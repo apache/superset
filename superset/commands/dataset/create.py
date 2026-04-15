@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -30,6 +30,7 @@ from superset.commands.dataset.exceptions import (
     DatasetInvalidError,
     TableNotFoundValidationError,
 )
+from superset.commands.utils import populate_subjects
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.extensions import security_manager
@@ -58,7 +59,6 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         schema = self._properties.get("schema")
         table_name = self._properties["table_name"]
         sql = self._properties.get("sql")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
@@ -102,10 +102,6 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                         field_name="sql",
                     )
                 )
-        try:
-            owners = self.populate_owners(owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        populate_subjects(self._properties, exceptions)
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)

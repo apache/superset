@@ -377,7 +377,7 @@ def _make_mock_chart(chart_id: int = 42) -> Mock:
     chart.created_on_humanized = "2 days ago"
     chart.uuid = "test-uuid-42"
     chart.tags = []
-    chart.owners = []
+    chart.editors = []
     return chart
 
 
@@ -385,7 +385,7 @@ class TestChartSerializationEagerLoading:
     """Tests for eager loading fix in generate_chart serialization path."""
 
     def test_serialize_chart_object_succeeds_with_loaded_relationships(self):
-        """serialize_chart_object works when tags/owners are already loaded."""
+        """serialize_chart_object works when tags/editors are already loaded."""
         from superset.mcp_service.chart.schemas import serialize_chart_object
 
         chart = _make_mock_chart()
@@ -395,7 +395,7 @@ class TestChartSerializationEagerLoading:
         assert result.id == 42
         assert result.slice_name == "Test Chart"
         assert result.tags == []
-        assert result.owners == []
+        assert result.editors == []
 
     def test_serialize_chart_object_with_certification_fields(self):
         """serialize_chart_object correctly serializes non-None certification values."""
@@ -429,7 +429,7 @@ class TestChartSerializationEagerLoading:
 
     def test_generate_chart_refetches_via_dao(self):
         """The serialization path re-fetches the chart via
-        ChartDAO.find_by_id() with query_options for owners and tags."""
+        ChartDAO.find_by_id() with query_options for editors and tags."""
         refetched_chart = _make_mock_chart()
         refetched_chart.tags = [Mock(id=1, name="tag1", type="custom")]
         refetched_chart.tags[0].description = ""
@@ -489,6 +489,6 @@ class TestChartSerializationEagerLoading:
         assert chart_data["id"] == original_chart.id
         assert chart_data["slice_name"] == original_chart.slice_name
         assert chart_data["url"] == explore_url
-        # No tags/owners keys — those would require relationship access
+        # No tags/editors keys — those would require relationship access
         assert "tags" not in chart_data
-        assert "owners" not in chart_data
+        assert "editors" not in chart_data

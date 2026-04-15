@@ -19,6 +19,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, Union
+from unittest.mock import MagicMock
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
@@ -40,6 +41,42 @@ FIXED_USER_ID = 1234
 FIXED_USERNAME = "admin"
 
 
+def _make_user_subject(user_id: int) -> MagicMock:
+    """Create a mock user-type Subject with an underlying User."""
+    from superset.subjects.types import SubjectType
+
+    user = User(id=user_id, username=str(user_id))
+    subject = MagicMock()
+    subject.type = SubjectType.USER
+    subject.user = user
+    subject.user_id = user_id
+    return subject
+
+
+def _make_role_subject(role_id: int) -> MagicMock:
+    """Create a mock role-type Subject (no underlying User)."""
+    from superset.subjects.types import SubjectType
+
+    subject = MagicMock()
+    subject.type = SubjectType.ROLE
+    subject.user = None
+    subject.user_id = None
+    subject.role_id = role_id
+    return subject
+
+
+def _make_group_subject(group_id: int) -> MagicMock:
+    """Create a mock group-type Subject (no underlying User)."""
+    from superset.subjects.types import SubjectType
+
+    subject = MagicMock()
+    subject.type = SubjectType.GROUP
+    subject.user = None
+    subject.user_id = None
+    subject.group_id = group_id
+    return subject
+
+
 def _get_users(
     params: Optional[Union[int, list[int]]],
 ) -> Optional[Union[User, list[User]]]:
@@ -51,8 +88,26 @@ def _get_users(
 
 
 @dataclass
+class EditorSpec:
+    """Specification for building a list of mixed-type editor subjects."""
+
+    user_ids: list[int]
+    role_ids: list[int] | None = None
+    group_ids: list[int] | None = None
+
+    def build(self) -> list[MagicMock]:
+        editors: list[MagicMock] = []
+        editors.extend(_make_user_subject(uid) for uid in self.user_ids)
+        for rid in self.role_ids or []:
+            editors.append(_make_role_subject(rid))
+        for gid in self.group_ids or []:
+            editors.append(_make_group_subject(gid))
+        return editors
+
+
+@dataclass
 class ModelConfig:
-    owners: list[int]
+    editors: EditorSpec
     creator: Optional[int] = None
     modifier: Optional[int] = None
 
@@ -70,7 +125,7 @@ class ModelType(int, Enum):
             ModelType.REPORT_SCHEDULE,
             [FixedExecutor(FIXED_USERNAME)],
             ModelConfig(
-                owners=[1, 2],
+                editors=EditorSpec(user_ids=[1, 2]),
                 creator=3,
                 modifier=4,
             ),
@@ -87,7 +142,7 @@ class ModelType(int, Enum):
                 ExecutorType.MODIFIER_OWNER,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[]),
+            ModelConfig(editors=EditorSpec(user_ids=[])),
             None,
             (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
@@ -101,7 +156,7 @@ class ModelType(int, Enum):
                 ExecutorType.MODIFIER_OWNER,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[], modifier=1),
+            ModelConfig(editors=EditorSpec(user_ids=[]), modifier=1),
             None,
             (ExecutorType.MODIFIER, 1),
         ),
@@ -115,7 +170,7 @@ class ModelType(int, Enum):
                 ExecutorType.MODIFIER_OWNER,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[2], modifier=1),
+            ModelConfig(editors=EditorSpec(user_ids=[2]), modifier=1),
             None,
             (ExecutorType.OWNER, 2),
         ),
@@ -129,7 +184,7 @@ class ModelType(int, Enum):
                 ExecutorType.MODIFIER_OWNER,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[2], creator=3, modifier=1),
+            ModelConfig(editors=EditorSpec(user_ids=[2]), creator=3, modifier=1),
             None,
             (ExecutorType.CREATOR, 3),
         ),
@@ -138,7 +193,11 @@ class ModelType(int, Enum):
             [
                 ExecutorType.OWNER,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=3, modifier=4),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=3,
+                modifier=4,
+            ),
             None,
             (ExecutorType.OWNER, 4),
         ),
@@ -147,7 +206,11 @@ class ModelType(int, Enum):
             [
                 ExecutorType.OWNER,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=3, modifier=8),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=3,
+                modifier=8,
+            ),
             None,
             (ExecutorType.OWNER, 3),
         ),
@@ -156,7 +219,11 @@ class ModelType(int, Enum):
             [
                 ExecutorType.MODIFIER_OWNER,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=8, modifier=9),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=8,
+                modifier=9,
+            ),
             None,
             ExecutorNotFoundError(),
         ),
@@ -165,7 +232,11 @@ class ModelType(int, Enum):
             [
                 ExecutorType.MODIFIER_OWNER,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=8, modifier=4),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=8,
+                modifier=4,
+            ),
             None,
             (ExecutorType.MODIFIER_OWNER, 4),
         ),
@@ -174,7 +245,11 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CREATOR_OWNER,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=8, modifier=9),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=8,
+                modifier=9,
+            ),
             None,
             ExecutorNotFoundError(),
         ),
@@ -183,7 +258,11 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CREATOR_OWNER,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=4, modifier=8),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=4,
+                modifier=8,
+            ),
             None,
             (ExecutorType.CREATOR_OWNER, 4),
         ),
@@ -192,7 +271,11 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CURRENT_USER,
             ],
-            ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=4, modifier=8),
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2, 3, 4, 5, 6, 7]),
+                creator=4,
+                modifier=8,
+            ),
             None,
             ExecutorNotFoundError(),
         ),
@@ -201,7 +284,7 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CURRENT_USER,
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             4,
             (ExecutorType.CURRENT_USER, 4),
         ),
@@ -210,7 +293,7 @@ class ModelType(int, Enum):
             [
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             4,
             (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
@@ -219,7 +302,7 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CURRENT_USER,
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             None,
             ExecutorNotFoundError(),
         ),
@@ -231,7 +314,7 @@ class ModelType(int, Enum):
                 ExecutorType.CURRENT_USER,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             None,
             (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
@@ -240,7 +323,7 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CURRENT_USER,
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             4,
             (ExecutorType.CURRENT_USER, 4),
         ),
@@ -249,7 +332,7 @@ class ModelType(int, Enum):
             [
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             4,
             (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
@@ -258,7 +341,7 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CURRENT_USER,
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             None,
             ExecutorNotFoundError(),
         ),
@@ -267,7 +350,7 @@ class ModelType(int, Enum):
             [
                 ExecutorType.FIXED_USER,
             ],
-            ModelConfig(owners=[]),
+            ModelConfig(editors=EditorSpec(user_ids=[])),
             None,
             InvalidExecutorError(),
         ),
@@ -279,9 +362,52 @@ class ModelType(int, Enum):
                 ExecutorType.CURRENT_USER,
                 FixedExecutor(FIXED_USERNAME),
             ],
-            ModelConfig(owners=[1], creator=2, modifier=3),
+            ModelConfig(editors=EditorSpec(user_ids=[1]), creator=2, modifier=3),
             None,
             (ExecutorType.FIXED_USER, FIXED_USER_ID),
+        ),
+        # Mixed editors: roles/groups are ignored, only user-type editors count
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.OWNER],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[5], role_ids=[10], group_ids=[20]),
+                creator=5,
+            ),
+            None,
+            (ExecutorType.OWNER, 5),
+        ),
+        # Only role/group editors: OWNER falls through since no user-type editors
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.OWNER, FixedExecutor(FIXED_USERNAME)],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[], role_ids=[10], group_ids=[20]),
+            ),
+            None,
+            (ExecutorType.FIXED_USER, FIXED_USER_ID),
+        ),
+        # Mixed editors with MODIFIER_OWNER: modifier is a user-type editor
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.MODIFIER_OWNER],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1, 2], role_ids=[10]),
+                modifier=2,
+            ),
+            None,
+            (ExecutorType.MODIFIER_OWNER, 2),
+        ),
+        # Mixed editors with MODIFIER_OWNER: modifier is NOT a user-type editor
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.MODIFIER_OWNER],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[1], role_ids=[10]),
+                modifier=99,
+            ),
+            None,
+            ExecutorNotFoundError(),
         ),
     ],
 )
@@ -314,11 +440,11 @@ def test_get_executor(
 
     obj = model(
         id=1,
-        owners=_get_users(model_config.owners),
         created_by=_get_users(model_config.creator),
         changed_by=_get_users(model_config.modifier),
         **model_kwargs,
     )
+    obj.editors = model_config.editors.build()
     if isinstance(expected_result, Exception):
         cm = pytest.raises(type(expected_result))
         expected_executor_type = None

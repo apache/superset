@@ -22,6 +22,8 @@ import pytest
 
 import tests.integration_tests.test_app  # pylint: disable=unused-import  # noqa: F401
 from superset import db, security_manager
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.utils import json
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
@@ -73,8 +75,9 @@ class TestDashboardDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.daos.dashboard.g")
-    def test_copy_dashboard(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    @patch("superset.security.manager.g")
+    def test_copy_dashboard(self, mock_sm_g, mock_g):
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         original_dash = (
             db.session.query(Dashboard).filter_by(slug="world_health").first()
         )
@@ -91,7 +94,13 @@ class TestDashboardDAO(SupersetTestCase):
         assert len(dash.position) == len(original_dash.position)
         assert dash.dashboard_title == "copied dash"
         assert dash.css == "<css>"
-        assert dash.owners == [security_manager.find_user("admin")]
+        admin = security_manager.find_user("admin")
+        admin_subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .first()
+        )
+        assert dash.editors == [admin_subject]
         self.assertCountEqual(dash.slices, original_dash.slices)  # noqa: PT009
 
         db.session.delete(dash)
@@ -99,8 +108,9 @@ class TestDashboardDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.daos.dashboard.g")
-    def test_copy_dashboard_copies_native_filters(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    @patch("superset.security.manager.g")
+    def test_copy_dashboard_copies_native_filters(self, mock_sm_g, mock_g):
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         original_dash = (
             db.session.query(Dashboard).filter_by(slug="world_health").first()
         )
@@ -125,8 +135,9 @@ class TestDashboardDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.daos.dashboard.g")
-    def test_copy_dashboard_duplicate_slices(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    @patch("superset.security.manager.g")
+    def test_copy_dashboard_duplicate_slices(self, mock_sm_g, mock_g):
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         original_dash = (
             db.session.query(Dashboard).filter_by(slug="world_health").first()
         )
@@ -143,7 +154,13 @@ class TestDashboardDAO(SupersetTestCase):
         assert len(dash.position) == len(original_dash.position)
         assert dash.dashboard_title == "copied dash"
         assert dash.css == "<css>"
-        assert dash.owners == [security_manager.find_user("admin")]
+        admin = security_manager.find_user("admin")
+        admin_subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=admin.id, type=SubjectType.USER)
+            .first()
+        )
+        assert dash.editors == [admin_subject]
         assert len(dash.slices) == len(original_dash.slices)
         for original_slc in original_dash.slices:
             for slc in dash.slices:

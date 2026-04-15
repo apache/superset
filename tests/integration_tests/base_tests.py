@@ -43,6 +43,8 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql.parse import CTASMethod
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema, shortid
 from superset.utils.database import get_example_database
@@ -58,6 +60,44 @@ from tests.integration_tests.fixtures.importexport import (
 from tests.integration_tests.test_app import app, login
 
 FAKE_DB_NAME = "fake_db_100"
+
+
+def subjects_from_users(users: list[ab_models.User]) -> list[Subject]:
+    """Convert a list of User objects to their corresponding Subjects.
+
+    Useful in integration tests where you need to set model.editors
+    or model.viewers from User objects. Automatically creates Subject
+    rows if they don't exist yet (via sync_user_subject).
+    """
+    from superset.subjects.sync import sync_user_subject
+
+    subjects = []
+    for user in users:
+        subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=user.id, type=SubjectType.USER)
+            .first()
+        )
+        if not subject:
+            sync_user_subject(user)
+            db.session.flush()
+            subject = (
+                db.session.query(Subject)
+                .filter_by(user_id=user.id, type=SubjectType.USER)
+                .first()
+            )
+        if subject:
+            subjects.append(subject)
+    return subjects
+
+
+def user_is_editor(user: Any, model: Any) -> bool:
+    """Check whether a User is among a model's editors (via user-type Subject)."""
+    return any(
+        s.type == SubjectType.USER and s.user_id == user.id for s in model.editors
+    )
+
+
 DEFAULT_PASSWORD = "general"  # noqa: S105
 test_client = app.test_client()
 
@@ -345,7 +385,7 @@ class SupersetTestCase(TestCase):
         datasource.perm = "mock_datasource_perm"
         datasource.__class__ = SqlaTable
         datasource.database.db_engine_spec.mutate_expression_label = lambda x: x
-        datasource.owners = MagicMock()
+        datasource.editors = MagicMock()
         datasource.id = 99999
         return datasource
 
@@ -584,12 +624,17 @@ class SupersetTestCase(TestCase):
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
     ) -> Dashboard:
-        obj_owners = list()  # noqa: C408
+        obj_editors = list()  # noqa: C408
         obj_roles = list()  # noqa: C408
         slices = slices or []
         for owner in owners:
-            user = db.session.query(security_manager.user_model).get(owner)
-            obj_owners.append(user)
+            subject = (
+                db.session.query(Subject)
+                .filter_by(user_id=owner, type=SubjectType.USER)
+                .first()
+            )
+            if subject:
+                obj_editors.append(subject)
         for role in roles:
             role_obj = db.session.query(security_manager.role_model).get(role)
             obj_roles.append(role_obj)
@@ -606,8 +651,7 @@ class SupersetTestCase(TestCase):
         dashboard = Dashboard(
             dashboard_title=dashboard_title,
             slug=slug,
-            owners=obj_owners,
-            roles=obj_roles,
+            editors=obj_editors,
             position_json=position_json,
             css=css,
             json_metadata=json_metadata,

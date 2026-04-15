@@ -80,7 +80,7 @@ interface HydrateChartData {
   form_data: JsonObject;
   description: string;
   description_markeddown: string;
-  owners: { id: number }[];
+  editors: { id: number }[];
   modified: string;
   changed_on: string;
 }
@@ -179,7 +179,7 @@ export const hydrateDashboard =
         datasource: slice.form_data.datasource,
         description: slice.description,
         description_markeddown: slice.description_markeddown,
-        owners: slice.owners,
+        editors: slice.editors,
         modified: slice.modified,
         changed_on: new Date(slice.changed_on).getTime(),
       };

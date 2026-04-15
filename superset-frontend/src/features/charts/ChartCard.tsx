@@ -31,7 +31,7 @@ import {
   MenuItem,
 } from '@superset-ui/core/components';
 import Chart from 'src/types/Chart';
-import { FacePile } from 'src/components';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
 
@@ -185,7 +185,7 @@ export default function ChartCard({
           '/static/assets/images/chart-card-fallback.svg',
         )}
         description={t('Modified %s', chart.changed_on_delta_humanized)}
-        coverLeft={<FacePile users={chart.owners || []} />}
+        coverLeft={<SubjectPile subjects={chart.editors || []} />}
         coverRight={<Label>{chart.datasource_name_text}</Label>}
         linkComponent={Link}
         actions={

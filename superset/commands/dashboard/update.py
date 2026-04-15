@@ -35,7 +35,11 @@ from superset.commands.dashboard.exceptions import (
     DashboardSlugExistsValidationError,
     DashboardUpdateFailedError,
 )
-from superset.commands.utils import populate_roles, update_tags, validate_tags
+from superset.commands.utils import (
+    compute_subjects,
+    update_tags,
+    validate_tags,
+)
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
@@ -76,8 +80,6 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
-        roles_ids: Optional[list[int]] = self._properties.get("roles")
         slug: Optional[str] = self._properties.get("slug")
         tag_ids: Optional[list[int]] = self._properties.get("tags")
 
@@ -87,7 +89,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             raise DashboardNotFoundError()
         # Check ownership
         try:
-            security_manager.raise_for_ownership(self._model)
+            security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise DashboardForbiddenError() from ex
 
@@ -95,15 +97,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         if not DashboardDAO.validate_update_slug_uniqueness(self._model_id, slug):
             exceptions.append(DashboardSlugExistsValidationError())
 
-        # Validate/Populate owner
-        try:
-            owners = self.compute_owners(
-                self._model.owners,
-                owner_ids,
-            )
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        compute_subjects(self._model, self._properties, exceptions)
 
         # validate tags
         try:
@@ -111,14 +105,6 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
 
-        # Validate/Populate role
-        if roles_ids is None:
-            roles_ids = [role.id for role in self._model.roles]
-        try:
-            roles = populate_roles(roles_ids)
-            self._properties["roles"] = roles
-        except ValidationError as ex:
-            exceptions.append(ex)
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
 

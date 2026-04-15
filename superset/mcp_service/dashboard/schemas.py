@@ -27,7 +27,7 @@ Example usage:
         id=1,
         dashboard_title="Sales Dashboard",
         published=True,
-        owners=[UserInfo(id=1, username="admin")],
+        editors=[SubjectInfo(id=1, label="admin", type="USER")],
         charts=[DashboardChartSummary(id=1, slice_name="Sales Chart")]
     )
 
@@ -89,9 +89,9 @@ from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     RoleInfo,
-    serialize_user_object,
+    serialize_subject_object,
+    SubjectInfo,
     TagInfo,
-    UserInfo,
 )
 from superset.mcp_service.utils.sanitization import (
     _remove_dangerous_unicode,
@@ -160,7 +160,7 @@ class DashboardFilter(ColumnOperator):
         "dashboard_title",
         "published",
         "created_by_fk",
-        "owner",
+        "editor",
         "favorite",
     ] = Field(
         ...,
@@ -356,7 +356,7 @@ class DashboardInfo(BaseModel):
     created_on_humanized: str | None = None
     changed_on_humanized: str | None = None
     chart_count: int = 0
-    owners: List[UserInfo] = Field(default_factory=list)
+    editors: List[SubjectInfo] = Field(default_factory=list)
     tags: List[TagInfo] = Field(default_factory=list)
     roles: List[RoleInfo] = Field(default_factory=list)
     charts: List[DashboardChartSummary] = Field(default_factory=list)
@@ -690,12 +690,12 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
             getattr(dashboard, "json_metadata", None),
             getattr(dashboard, "position_json", None),
         ),
-        owners=[
+        editors=[
             info
-            for owner in dashboard.owners
-            if (info := serialize_user_object(owner)) is not None
+            for editor in dashboard.editors
+            if (info := serialize_subject_object(editor)) is not None
         ]
-        if dashboard.owners
+        if dashboard.editors
         else [],
         tags=[
             TagInfo.model_validate(tag, from_attributes=True) for tag in dashboard.tags
@@ -771,12 +771,12 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         if getattr(dashboard, "uuid", None)
         else None,
         chart_count=len(getattr(dashboard, "slices", [])),
-        owners=[
+        editors=[
             info
-            for owner in getattr(dashboard, "owners", [])
-            if (info := serialize_user_object(owner)) is not None
+            for editor in getattr(dashboard, "editors", [])
+            if (info := serialize_subject_object(editor)) is not None
         ]
-        if getattr(dashboard, "owners", None)
+        if getattr(dashboard, "editors", None)
         else [],
         tags=[
             TagInfo.model_validate(tag, from_attributes=True)

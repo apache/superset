@@ -173,7 +173,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           extra: buildExtraJsonObject(column),
         }),
       ),
-      owners: datasource.owners.map(
+      editors: (datasource.editors || []).map(
         (o: Record<string, number>) => o.value || o.id,
       ),
     };
@@ -208,7 +208,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       json.result.type = 'table';
       onDatasourceSave({
         ...json.result,
-        owners: currentDatasource.owners,
+        editors: currentDatasource.editors,
       });
       onHide();
     } catch (response) {

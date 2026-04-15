@@ -32,8 +32,12 @@ import {
 } from '@superset-ui/core/components';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
+import SubjectPicker, {
+  mapSubjectsToPickerValues,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
 import { FILTER_OPTIONS } from './constants';
-import { FilterType, RLSObject, RoleObject, TableObject } from './types';
+import { FilterType, RLSObject, TableObject } from './types';
 
 const noMargins = css`
   margin: 0;
@@ -119,7 +123,7 @@ const DEFAULT_RULE = {
   name: '',
   filter_type: FilterType.Regular,
   tables: [],
-  roles: [],
+  subjects: [],
   clause: '',
   group_key: '',
   description: '',
@@ -168,13 +172,12 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     }
   };
 
-  // find selected tables and roles
+  // find selected tables and subjects
   const getSelectedData = useCallback(() => {
     if (!resource) {
       return null;
     }
     const tables: TableObject[] = [];
-    const roles: RoleObject[] = [];
 
     resource.tables?.forEach(selectedTable => {
       tables.push({
@@ -186,16 +189,17 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       });
     });
 
-    resource.roles?.forEach(selectedRole => {
-      roles.push({
-        key: selectedRole.id,
-        label: selectedRole.name,
-        value: selectedRole.id,
-      });
-    });
+    const subjects = mapSubjectsToPickerValues(
+      (resource.subjects || []).map(s => ({
+        id: s.value,
+        label: (s.label as string) || '',
+        type: (s.type as number) ?? 0,
+        secondary_label: s.secondary_label as string | undefined,
+      })),
+    );
 
-    return { tables, roles };
-  }, [resource?.tables, resource?.roles]);
+    return { tables, subjects };
+  }, [resource?.tables, resource?.subjects]);
 
   // initialize
   useEffect(() => {
@@ -209,9 +213,9 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
   useEffect(() => {
     if (resource) {
       setCurrentRule({ ...resource, id: rule?.id });
-      const selectedTableAndRoles = getSelectedData();
-      updateRuleState('tables', selectedTableAndRoles?.tables || []);
-      updateRuleState('roles', selectedTableAndRoles?.roles || []);
+      const selectedData = getSelectedData();
+      updateRuleState('tables', selectedData?.tables || []);
+      updateRuleState('subjects', selectedData?.subjects || []);
     }
   }, [resource]);
 
@@ -239,8 +243,8 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     updateRuleState('tables', tables || []);
   };
 
-  const onRolesChange = (roles: Array<SelectValue>) => {
-    updateRuleState('roles', roles || []);
+  const onSubjectsChange = (subjects: SubjectPickerValue[]) => {
+    updateRuleState('subjects', subjects || []);
   };
 
   const hide = () => {
@@ -251,12 +255,13 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
 
   const onSave = () => {
     const tables: number[] = [];
-    const roles: number[] = [];
+    const subjects: number[] = [];
 
     currentRule.tables?.forEach(table => tables.push(table.key));
-    currentRule.roles?.forEach(role => roles.push(role.key));
+    currentRule.subjects?.forEach(subject => subjects.push(subject.value));
 
-    const data: any = { ...currentRule, tables, roles };
+    const data: any = { ...currentRule, tables, subjects };
+    delete data.roles;
 
     if (isEditMode && currentRule.id) {
       const updateId = currentRule.id;
@@ -288,29 +293,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
         });
         return SupersetClient.get({
           endpoint: `/api/v1/rowlevelsecurity/related/tables?q=${query}`,
-        }).then(response => {
-          const list = response.json.result.map(
-            (item: { value: number; text: string }) => ({
-              label: item.text,
-              value: item.value,
-            }),
-          );
-          return { data: list, totalCount: response.json.count };
-        });
-      },
-    [],
-  );
-
-  const loadRoleOptions = useMemo(
-    () =>
-      (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
-          filter: input,
-          page,
-          page_size: pageSize,
-        });
-        return SupersetClient.get({
-          endpoint: `/api/v1/rowlevelsecurity/related/roles?q=${query}`,
         }).then(response => {
           const list = response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -407,21 +389,20 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
           <StyledInputContainer>
             <div className="control-label">
               {currentRule.filter_type === FilterType.Base
-                ? t('Excluded roles')
-                : t('Roles')}{' '}
+                ? t('Excluded subjects')
+                : t('Subjects')}{' '}
               <InfoTooltip
                 tooltip={t(
-                  'For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.',
+                  'For regular filters, these are the subjects (users, roles, groups) this filter will be applied to. For base filters, these are the subjects that the filter DOES NOT apply to, e.g. Admin if admin should see all data.',
                 )}
               />
             </div>
             <div className="input-container">
-              <AsyncSelect
-                ariaLabel={t('Roles')}
-                mode="multiple"
-                onChange={onRolesChange}
-                value={(currentRule?.roles as SelectValue[]) || []}
-                options={loadRoleOptions}
+              <SubjectPicker
+                relatedUrl="/api/v1/rowlevelsecurity/related/subjects"
+                ariaLabel={t('Subjects')}
+                onChange={onSubjectsChange}
+                value={currentRule?.subjects || []}
               />
             </div>
           </StyledInputContainer>

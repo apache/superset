@@ -16,21 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   UndefinedUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
-import Owner from 'src/types/Owner';
+import User from 'src/types/User';
+import Subject from 'src/types/Subject';
 import {
   userHasPermission,
   canUserEditDashboard,
   canUserSaveAsDashboard,
   isUserAdmin,
+  isUserDashboardEditor,
 } from './permissionUtils';
 
-const ownerUser: UserWithPermissionsAndRoles = {
+const editorUser: UserWithPermissionsAndRoles = {
   createdOn: '2021-05-12T16:56:22.116839',
   email: 'user@example.com',
   firstName: 'Test',
@@ -38,15 +39,15 @@ const ownerUser: UserWithPermissionsAndRoles = {
   isAnonymous: false,
   lastName: 'User',
   userId: 1,
-  username: 'owner',
+  username: 'editor',
   permissions: {},
   roles: { Alpha: [['can_write', 'Dashboard']] },
 };
 
 const adminUser: UserWithPermissionsAndRoles = {
-  ...ownerUser,
+  ...editorUser,
   roles: {
-    ...ownerUser?.roles,
+    ...editorUser?.roles,
     Admin: [['can_write', 'Dashboard']],
   },
   userId: 2,
@@ -54,15 +55,21 @@ const adminUser: UserWithPermissionsAndRoles = {
 };
 
 const outsiderUser: UserWithPermissionsAndRoles = {
-  ...ownerUser,
+  ...editorUser,
   userId: 3,
   username: 'outsider',
 };
 
-const owner: Owner = {
+const owner: User = {
   first_name: 'Test',
-  id: ownerUser.userId!,
+  id: editorUser.userId!,
   last_name: 'User',
+};
+
+const editorSubject: Subject = {
+  id: 10,
+  label: 'Test User Subject',
+  type: 1,
 };
 
 const sqlLabMenuAccessPermission: [string, string] = ['menu_access', 'SQL Lab'];
@@ -73,9 +80,9 @@ const arbitraryPermissions: [string, string][] = [
 ];
 
 const sqlLabUser: UserWithPermissionsAndRoles = {
-  ...ownerUser,
+  ...editorUser,
   roles: {
-    ...ownerUser.roles,
+    ...editorUser.roles,
     sql_lab: [sqlLabMenuAccessPermission],
   },
 };
@@ -93,44 +100,84 @@ const dashboard: Dashboard = {
   changed_by: owner,
   changed_on: '2021-05-12T16:56:22.116839',
   charts: [],
-  owners: [owner],
   roles: [],
+  editors: [editorSubject],
+  viewers: [],
 };
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: {
+      user_subjects: [10],
+    },
+  })),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+test('isUserDashboardEditor returns true when user is in editors subjects', () => {
+  expect(isUserDashboardEditor(dashboard)).toEqual(true);
+});
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('canUserEditDashboard', () => {
-  test('allows owners to edit', () => {
-    expect(canUserEditDashboard(dashboard, ownerUser)).toEqual(true);
-  });
-  test('allows admin users to edit regardless of ownership', () => {
-    expect(canUserEditDashboard(dashboard, adminUser)).toEqual(true);
-  });
-  test('rejects non-owners', () => {
-    expect(canUserEditDashboard(dashboard, outsiderUser)).toEqual(false);
-  });
-  test('rejects nonexistent users', () => {
-    expect(canUserEditDashboard(dashboard, null)).toEqual(false);
-  });
-  test('rejects missing roles', () => {
-    // in redux, when there is no user, the user is actually set to an empty object,
-    // so we need to handle missing roles as well as a missing user.s
-    expect(canUserEditDashboard(dashboard, {})).toEqual(false);
-  });
-  test('rejects "admins" if the admin role does not have edit rights for some reason', () => {
-    expect(
-      canUserEditDashboard(dashboard, {
-        ...adminUser,
-        roles: { Admin: [] },
-      }),
-    ).toEqual(false);
-  });
+test('isUserDashboardEditor returns false when user is not in editors subjects', () => {
+  const dashWithoutEditor = {
+    ...dashboard,
+    editors: [{ id: 999, label: 'Other', type: 1 }],
+  };
+  expect(isUserDashboardEditor(dashWithoutEditor)).toEqual(false);
+});
+
+test('isUserDashboardEditor returns false when editors is empty', () => {
+  const dashNoEditors = { ...dashboard, editors: [] };
+  expect(isUserDashboardEditor(dashNoEditors)).toEqual(false);
+});
+
+test('canUserEditDashboard allows editors', () => {
+  expect(canUserEditDashboard(dashboard, editorUser)).toEqual(true);
+});
+
+test('canUserEditDashboard allows admins', () => {
+  expect(canUserEditDashboard(dashboard, adminUser)).toEqual(true);
+});
+
+test('canUserEditDashboard rejects non-editors', () => {
+  const dashNoEditor = {
+    ...dashboard,
+    editors: [{ id: 999, label: 'Other', type: 1 }],
+  };
+  expect(canUserEditDashboard(dashNoEditor, outsiderUser)).toEqual(false);
+});
+
+test('canUserEditDashboard rejects nonexistent users', () => {
+  expect(canUserEditDashboard(dashboard, null)).toEqual(false);
+});
+
+test('canUserEditDashboard rejects missing roles', () => {
+  expect(canUserEditDashboard(dashboard, {})).toEqual(false);
+});
+
+test('canUserEditDashboard rejects admins without write permission', () => {
+  expect(
+    canUserEditDashboard(dashboard, {
+      ...adminUser,
+      roles: { Admin: [] },
+    }),
+  ).toEqual(false);
+});
+
+test('canUserSaveAsDashboard allows editors', () => {
+  expect(canUserSaveAsDashboard(dashboard, editorUser)).toEqual(true);
+});
+
+test('canUserSaveAsDashboard allows admins', () => {
+  expect(canUserSaveAsDashboard(dashboard, adminUser)).toEqual(true);
+});
+
+test('canUserSaveAsDashboard rejects non-editors', () => {
+  const dashNoEditor = {
+    ...dashboard,
+    editors: [{ id: 999, label: 'Other', type: 1 }],
+  };
+  expect(canUserSaveAsDashboard(dashNoEditor, outsiderUser)).toEqual(false);
 });
 
 test('isUserAdmin returns true for admin user', () => {
@@ -146,7 +193,7 @@ test('isUserAdmin returns false for undefined user', () => {
 });
 
 test('isUserAdmin returns false for non-admin user', () => {
-  expect(isUserAdmin(ownerUser)).toEqual(false);
+  expect(isUserAdmin(editorUser)).toEqual(false);
 });
 
 test('userHasPermission always returns true for admin user', () => {
@@ -168,7 +215,7 @@ test('userHasPermission always returns false for undefined user', () => {
 test('userHasPermission returns false if user does not have permission', () => {
   expect(
     userHasPermission(
-      ownerUser,
+      editorUser,
       sqlLabMenuAccessPermission[1],
       sqlLabMenuAccessPermission[0],
     ),
@@ -183,54 +230,4 @@ test('userHasPermission returns true if user has permission', () => {
       sqlLabMenuAccessPermission[0],
     ),
   ).toEqual(true);
-});
-
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
-  beforeAll(() => {
-    mockedIsFeatureEnabled.mockImplementation(
-      (featureFlag: FeatureFlag) => featureFlag !== FeatureFlag.DashboardRbac,
-    );
-  });
-
-  afterAll(() => {
-    mockedIsFeatureEnabled.mockRestore();
-  });
-
-  test('allows owners', () => {
-    expect(canUserSaveAsDashboard(dashboard, ownerUser)).toEqual(true);
-  });
-
-  test('allows admin users', () => {
-    expect(canUserSaveAsDashboard(dashboard, adminUser)).toEqual(true);
-  });
-
-  test('allows non-owners', () => {
-    expect(canUserSaveAsDashboard(dashboard, outsiderUser)).toEqual(true);
-  });
-});
-
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('canUserSaveAsDashboard with RBAC feature flag enabled', () => {
-  beforeAll(() => {
-    mockedIsFeatureEnabled.mockImplementation(
-      (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.DashboardRbac,
-    );
-  });
-
-  afterAll(() => {
-    mockedIsFeatureEnabled.mockRestore();
-  });
-
-  test('allows owners', () => {
-    expect(canUserSaveAsDashboard(dashboard, ownerUser)).toEqual(true);
-  });
-
-  test('allows admin users', () => {
-    expect(canUserSaveAsDashboard(dashboard, adminUser)).toEqual(true);
-  });
-
-  test('reject non-owners', () => {
-    expect(canUserSaveAsDashboard(dashboard, outsiderUser)).toEqual(false);
-  });
 });

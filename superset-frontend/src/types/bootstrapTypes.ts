@@ -169,6 +169,7 @@ export interface CommonBootstrapData {
   d3_format: Partial<FormatLocaleDefinition>;
   d3_time_format: Partial<TimeLocaleDefinition>;
   pdf_compression_level: 'NONE' | 'FAST' | 'MEDIUM' | 'SLOW';
+  user_subjects?: number[];
 }
 
 export interface BootstrapData {

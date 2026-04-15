@@ -68,7 +68,7 @@ export interface ExploreState {
     };
   };
   metadata?: {
-    owners?: string[] | null;
+    editors?: string[] | null;
   };
   saveAction?: SaveActionType | null;
   chartStates?: Record<number, JsonObject>;
@@ -154,14 +154,14 @@ interface SetStashFormDataAction {
   isHidden: boolean;
 }
 
-// Owner can be either a number (user ID) or an object with value/label
+// Editor can be either a number (subject ID) or an object with value/label
 // This handles both Slice format (number[]) and select control format ({value, label}[])
-type OwnerItem = number | { value: number; label: string };
+type EditorItem = number | { value: number; label: string };
 
 interface SliceUpdatedAction {
   type: typeof actions.SLICE_UPDATED;
-  slice: Omit<Slice, 'owners'> & {
-    owners?: OwnerItem[];
+  slice: Omit<Slice, 'editors'> & {
+    editors?: EditorItem[];
     slice_name?: string;
   };
 }
@@ -603,26 +603,26 @@ export default function exploreReducer(
     },
     [actions.SLICE_UPDATED]() {
       const typedAction = action as SliceUpdatedAction;
-      // Handle owners that can be either number[] or Array<{value, label}>
-      const getOwnerId = (owner: OwnerItem): number =>
-        typeof owner === 'number' ? owner : owner.value;
-      const getOwnerLabel = (owner: OwnerItem): string | null =>
-        typeof owner === 'number' ? null : owner.label;
+      // Handle editors that can be either number[] or Array<{value, label}>
+      const getEditorId = (editor: EditorItem): number =>
+        typeof editor === 'number' ? editor : editor.value;
+      const getEditorLabel = (editor: EditorItem): string | null =>
+        typeof editor === 'number' ? null : editor.label;
       return {
         ...state,
         slice: {
           ...state.slice,
           ...typedAction.slice,
-          owners: typedAction.slice.owners
-            ? typedAction.slice.owners.map(getOwnerId)
+          editors: typedAction.slice.editors
+            ? typedAction.slice.editors.map(getEditorId)
             : null,
         } as Slice,
         sliceName: typedAction.slice.slice_name ?? state.sliceName,
         metadata: {
           ...state.metadata,
-          owners: typedAction.slice.owners
-            ? (typedAction.slice.owners
-                .map(getOwnerLabel)
+          editors: typedAction.slice.editors
+            ? (typedAction.slice.editors
+                .map(getEditorLabel)
                 .filter((x): x is string => x !== null) as string[])
             : null,
         },

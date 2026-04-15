@@ -188,7 +188,7 @@ function ReportModal({
       creation_method: creationMethod,
       dashboard: dashboardId,
       chart: chart?.id,
-      owners: [userId],
+      editors: [userId],
       recipients: [
         {
           recipient_config_json: {

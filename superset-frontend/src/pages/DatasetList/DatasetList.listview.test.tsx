@@ -184,7 +184,7 @@ test('renders all required column headers', async () => {
     within(table).getByRole('columnheader', { name: /Schema/i }),
   ).toBeInTheDocument();
   expect(
-    within(table).getByRole('columnheader', { name: /Owners/i }),
+    within(table).getByRole('columnheader', { name: /Editors/i }),
   ).toBeInTheDocument();
   expect(
     within(table).getByRole('columnheader', { name: /Last modified/i }),
@@ -990,6 +990,7 @@ test('edit action is enabled for dataset owner', async () => {
   const dataset = {
     ...mockDatasets[0],
     owners: [{ id: mockAdminUser.userId, username: 'admin' }],
+    editors: [{ id: mockAdminUser.userId, value: mockAdminUser.userId }],
   };
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
@@ -1014,6 +1015,7 @@ test('edit action is disabled for non-owner', async () => {
   const dataset = {
     ...mockDatasets[0],
     owners: [{ id: 999, username: 'other_user' }], // Different user
+    editors: [{ id: 999, value: 999 }],
   };
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
@@ -1044,6 +1046,7 @@ test('all action buttons are clickable and enabled for admin user', async () => 
   const virtualDataset = {
     ...mockDatasets[1],
     owners: [{ id: mockAdminUser.userId, username: 'admin' }],
+    editors: [{ id: mockAdminUser.userId, value: mockAdminUser.userId }],
   };
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
@@ -1244,6 +1247,12 @@ test('duplicate action shows error toast on 403 forbidden', async () => {
         id: mockAdminUser.userId as number,
       },
     ],
+    editors: [
+      {
+        id: mockAdminUser.userId as number,
+        value: mockAdminUser.userId as number,
+      },
+    ],
   };
 
   setupErrorTestScenario({
@@ -1300,6 +1309,12 @@ test('duplicate action shows error toast on 500 internal server error', async ()
         first_name: mockAdminUser.firstName,
         last_name: mockAdminUser.lastName,
         id: mockAdminUser.userId as number,
+      },
+    ],
+    editors: [
+      {
+        id: mockAdminUser.userId as number,
+        value: mockAdminUser.userId as number,
       },
     ],
   };
@@ -1711,6 +1726,12 @@ test('edit action shows error toast when dataset fetch fails', async () => {
         first_name: mockAdminUser.firstName,
         last_name: mockAdminUser.lastName,
         id: mockAdminUser.userId as number,
+      },
+    ],
+    editors: [
+      {
+        id: mockAdminUser.userId as number,
+        value: mockAdminUser.userId as number,
       },
     ],
   };

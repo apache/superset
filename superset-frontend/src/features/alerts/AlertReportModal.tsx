@@ -43,13 +43,14 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Owner from 'src/types/Owner';
 import {
-  OwnerSelectLabel,
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-  OWNER_OPTION_FILTER_PROPS,
-} from 'src/features/owners/OwnerSelectLabel';
+  SubjectSelectLabel,
+  SUBJECT_TEXT_LABEL_PROP,
+  SUBJECT_DETAIL_PROP,
+} from 'src/features/subjects/SubjectSelectLabel';
+import SubjectPicker, {
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
 // import { Form as AntdForm } from 'src/components/Form';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import {
@@ -432,7 +433,7 @@ export const TRANSLATIONS = {
   NOTIFICATION_TITLE: t('Notification method'),
   // Error text
   NAME_ERROR_TEXT: t('name'),
-  OWNERS_ERROR_TEXT: t('owners'),
+  OWNERS_ERROR_TEXT: t('editors'),
   CONTENT_ERROR_TEXT: t('content type'),
   DATABASE_ERROR_TEXT: t('database'),
   SQL_ERROR_TEXT: t('sql'),
@@ -674,7 +675,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     log_retention: ALERT_REPORTS_DEFAULT_RETENTION,
     working_timeout: ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
     name: '',
-    owners: [],
+    editors: [],
     recipients: [],
     sql: '',
     email_subject: '',
@@ -930,8 +931,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : null,
       custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
-      owners: (currentAlert?.owners || []).map(
-        owner => (owner as MetaObject).value || owner.id,
+      editors: (currentAlert?.editors || []).map(
+        editor => (editor as MetaObject).value || editor.id,
       ),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
@@ -941,6 +942,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (data.recipients && !data.recipients.length) {
       delete data.recipients;
     }
+
+    // Remove owners field from the spread since the backend uses editors
+    delete data.owners;
 
     data.context_markdown = 'string';
     if (isEditMode) {
@@ -988,38 +992,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   // Fetch data to populate form dropdowns
-  const loadOwnerOptions = useMemo(
-    () =>
-      (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
-          filter: input,
-          page,
-          page_size: pageSize,
-        });
-        return SupersetClient.get({
-          endpoint: `/api/v1/report/related/created_by?q=${query}`,
-        }).then(response => ({
-          data: response.json.result.map(
-            (item: {
-              value: number;
-              text: string;
-              extra: { email?: string };
-            }) => ({
-              value: item.value,
-              label: OwnerSelectLabel({
-                name: item.text,
-                email: item.extra?.email,
-              }),
-              [OWNER_TEXT_LABEL_PROP]: item.text,
-              [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
-            }),
-          ),
-          totalCount: response.json.count,
-        }));
-      },
-    [],
-  );
-
   const getSourceData = useCallback(
     (db?: MetaObject) => {
       const database = db || currentAlert?.database;
@@ -1355,8 +1327,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('sql', value || '');
   };
 
-  const onOwnersChange = (value: Array<SelectValue>) => {
-    updateAlertState('owners', value || []);
+  const onEditorsChange = (value: SubjectPickerValue[]) => {
+    updateAlertState('editors', value || []);
   };
 
   const onSourceChange = (value: Array<SelectValue>) => {
@@ -1744,7 +1716,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (!currentAlert?.name?.length) {
       errors.push(TRANSLATIONS.NAME_ERROR_TEXT);
     }
-    if (!currentAlert?.owners?.length) {
+    if (!currentAlert?.editors?.length) {
       errors.push(TRANSLATIONS.OWNERS_ERROR_TEXT);
     }
     updateValidationStatus(Sections.General, errors);
@@ -1878,16 +1850,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       setCurrentAlert({
         ...defaultAlert,
-        owners: currentUser
+        editors: currentUser
           ? [
               {
                 value: currentUser.userId,
-                label: OwnerSelectLabel({
-                  name: `${currentUser.firstName} ${currentUser.lastName}`,
-                  email: currentUser.email,
+                label: SubjectSelectLabel({
+                  label: `${currentUser.firstName} ${currentUser.lastName}`,
+                  type: 1,
                 }),
-                [OWNER_TEXT_LABEL_PROP]: `${currentUser.firstName} ${currentUser.lastName}`,
-                [OWNER_EMAIL_PROP]: currentUser.email ?? '',
+                [SUBJECT_TEXT_LABEL_PROP]: `${currentUser.firstName} ${currentUser.lastName}`,
+                [SUBJECT_DETAIL_PROP]: currentUser.email ?? '',
               },
             ]
           : [],
@@ -1980,21 +1952,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        owners: (resource.owners || []).map(owner => {
-          const ownerName =
-            (owner as MetaObject).label ||
-            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`;
-          return {
-            value: (owner as MetaObject).value || owner.id,
-            label: OwnerSelectLabel({
-              name: typeof ownerName === 'string' ? ownerName : '',
-              email: (owner as Owner).email,
-            }),
-            [OWNER_TEXT_LABEL_PROP]:
-              typeof ownerName === 'string' ? ownerName : '',
-            [OWNER_EMAIL_PROP]: (owner as Owner).email ?? '',
-          };
-        }),
+        editors: (resource.editors || []).map((editor: any) => ({
+          value: editor.value || editor.id,
+          label: SubjectSelectLabel({
+            label:
+              editor.label ||
+              (editor.first_name
+                ? `${editor.first_name} ${editor.last_name}`
+                : ''),
+            type: editor.type,
+            secondaryLabel: editor.secondary_label || editor.email,
+          }),
+          [SUBJECT_TEXT_LABEL_PROP]:
+            editor.label ||
+            (editor.first_name
+              ? `${editor.first_name} ${editor.last_name}`
+              : ''),
+          [SUBJECT_DETAIL_PROP]: editor.secondary_label || editor.email || '',
+        })),
         validator_config_json:
           resource.validator_type === 'not null'
             ? {
@@ -2012,7 +1987,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateEmailSubject();
   }, [
     currentAlertSafe.name,
-    currentAlertSafe.owners,
+    currentAlertSafe.editors,
     currentAlertSafe.database,
     currentAlertSafe.sql,
     currentAlertSafe.validator_config_json,
@@ -2131,23 +2106,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       onChange={onInputChange}
                     />
                   </ModalFormField>
-                  <ModalFormField label={t('Owners')} required>
-                    <AsyncSelect
-                      ariaLabel={t('Owners')}
+                  <ModalFormField label={t('Editors')} required>
+                    <SubjectPicker
+                      relatedUrl="/api/v1/report/related/editors"
+                      ariaLabel={t('Editors')}
                       allowClear
-                      name="owners"
-                      mode="multiple"
-                      placeholder={t('Select owners')}
+                      placeholder={t('Select editors')}
                       value={
-                        (currentAlert?.owners as {
+                        (currentAlert?.editors as {
                           label: string;
                           value: number;
                         }[]) || []
                       }
-                      options={loadOwnerOptions}
-                      onChange={onOwnersChange}
-                      data-test="owners-select"
-                      optionFilterProps={OWNER_OPTION_FILTER_PROPS}
+                      onChange={onEditorsChange}
+                      dataTest="editors-select"
                     />
                   </ModalFormField>
                   <ModalFormField label={t('Description')}>

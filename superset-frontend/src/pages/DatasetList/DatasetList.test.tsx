@@ -226,7 +226,7 @@ test('handles datasets with missing fields and renders gracefully', async () => 
     expect(screen.getByText('Incomplete Dataset')).toBeInTheDocument();
   });
 
-  // Verify empty owners renders without crashing (no FacePile)
+  // Verify empty editors renders without crashing
   const table = screen.getByRole('table');
   expect(table).toBeInTheDocument();
 

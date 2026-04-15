@@ -435,10 +435,10 @@ def add_chart_to_existing_dashboard(
 
         # Re-fetch the dashboard with eager-loaded relationships to avoid
         # "Instance is not bound to a Session" errors when serializing
-        # chart .tags and .owners.  The preceding command.run() commit may
+        # chart .tags and .editors.  The preceding command.run() commit may
         # invalidate the session in multi-tenant environments; on failure,
         # return a minimal response using only scalar attributes that are
-        # already loaded — relationship fields (owners, tags, slices) would
+        # already loaded — relationship fields (editors, tags, slices) would
         # trigger lazy-loading on the same dead session.
         from sqlalchemy.orm import subqueryload
 
@@ -450,9 +450,9 @@ def add_chart_to_existing_dashboard(
                 DashboardDAO.find_by_id(
                     updated_dashboard.id,
                     query_options=[
-                        subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+                        subqueryload(Dashboard.slices).subqueryload(Slice.editors),
                         subqueryload(Dashboard.slices).subqueryload(Slice.tags),
-                        subqueryload(Dashboard.owners),
+                        subqueryload(Dashboard.editors),
                         subqueryload(Dashboard.tags),
                     ],
                 )
@@ -495,8 +495,8 @@ def add_chart_to_existing_dashboard(
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (
             serialize_tag_object,
-            serialize_user_object,
         )
+        from superset.mcp_service.system.schemas import serialize_subject_object
 
         dashboard_info = DashboardInfo(
             id=updated_dashboard.id,
@@ -511,10 +511,10 @@ def add_chart_to_existing_dashboard(
             uuid=str(updated_dashboard.uuid) if updated_dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/",
             chart_count=len(updated_dashboard.slices),
-            owners=[
-                serialize_user_object(owner)
-                for owner in getattr(updated_dashboard, "owners", [])
-                if serialize_user_object(owner) is not None
+            editors=[
+                serialize_subject_object(editor)
+                for editor in getattr(updated_dashboard, "editors", [])
+                if serialize_subject_object(editor) is not None
             ],
             tags=[
                 serialize_tag_object(tag)

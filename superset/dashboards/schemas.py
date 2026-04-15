@@ -21,6 +21,7 @@ from marshmallow import fields, post_dump, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
 from superset import security_manager
+from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import json
 
@@ -55,6 +56,12 @@ roles_description = (
     "These roles are always applied in addition to restrictions on dataset "
     "level access. "
     "If no roles defined then the dashboard is available to all roles."
+)
+editors_description = (
+    "A list of subject IDs (users, roles, or groups) that can alter the dashboard."
+)
+viewers_description = (
+    "A list of subject IDs (users, roles, or groups) that can view the dashboard."
 )
 position_json_description = (
     "This json object describes the positioning of the widgets "
@@ -237,6 +244,8 @@ class DashboardGetResponseSchema(Schema):
     charts = fields.List(fields.String(metadata={"description": charts_description}))
     owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
     roles = fields.List(fields.Nested(RolesSchema))
+    editors = fields.List(fields.Nested(SubjectResponseSchema))
+    viewers = fields.List(fields.Nested(SubjectResponseSchema))
     tags = fields.Nested(TagSchema, many=True)
     custom_tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
@@ -257,6 +266,8 @@ class DashboardGetResponseSchema(Schema):
             del serialized["owners"]
             del serialized["changed_by_name"]
             del serialized["changed_by"]
+            serialized.pop("editors", None)
+            serialized.pop("viewers", None)
         return serialized
 
 
@@ -300,6 +311,7 @@ class DashboardDatasetSchema(Schema):
     fetch_values_predicate = fields.Str()
     template_params = fields.Str()
     owners = fields.List(fields.Dict())
+    editors = fields.List(fields.Nested(SubjectResponseSchema))
     columns = fields.List(fields.Dict())
     column_types = fields.List(fields.Int())
     column_names = fields.List(fields.Str())
@@ -317,6 +329,7 @@ class DashboardDatasetSchema(Schema):
         if security_manager.is_guest_user():
             del serialized["owners"]
             del serialized["database"]
+            serialized.pop("editors", None)
         return serialized
 
 
@@ -356,7 +369,8 @@ class DashboardPostSchema(BaseDashboardSchema):
         validate=[Length(1, 255)],
     )
     owners = fields.List(fields.Integer(metadata={"description": owners_description}))
-    roles = fields.List(fields.Integer(metadata={"description": roles_description}))
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
+    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
     position_json = fields.String(
         metadata={"description": position_json_description}, validate=validate_json
     )
@@ -413,8 +427,11 @@ class DashboardPutSchema(BaseDashboardSchema):
     owners = fields.List(
         fields.Integer(metadata={"description": owners_description}, allow_none=True)
     )
-    roles = fields.List(
-        fields.Integer(metadata={"description": roles_description}, allow_none=True)
+    editors = fields.List(
+        fields.Integer(metadata={"description": editors_description}, allow_none=True)
+    )
+    viewers = fields.List(
+        fields.Integer(metadata={"description": viewers_description}, allow_none=True)
     )
     position_json = fields.String(
         metadata={"description": position_json_description},

@@ -35,6 +35,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartEditableFilter,
     ChartFavoriteFilter,
     ChartFilter,
     ChartHasCreatedByFilter,
@@ -83,6 +84,10 @@ from superset.daos.chart import ChartDAO
 from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
 from superset.models.slice import Slice
+from superset.subjects.filters import (
+    FilterRelatedSubjects,
+    subject_type_filter,
+)
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
@@ -164,10 +169,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "last_saved_by.id",
         "last_saved_by.first_name",
         "last_saved_by.last_name",
-        "owners.first_name",
-        "owners.id",
-        "owners.last_name",
-        "owners.email",
+        "editors.id",
+        "editors.label",
+        "editors.type",
+        "viewers.id",
+        "viewers.label",
+        "viewers.type",
         "dashboards.id",
         "dashboards.dashboard_title",
         "params",
@@ -207,7 +214,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description",
         "id",
         "uuid",
-        "owners",
+        "editors",
         "dashboards",
         "slice_name",
         "viz_type",
@@ -220,6 +227,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "id": [
             ChartFavoriteFilter,
             ChartCertifiedFilter,
+            ChartEditableFilter,
             ChartOwnedCreatedFavoredByMeFilter,
         ],
         "slice_name": [ChartAllTextFilter],
@@ -250,20 +258,41 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
-        "owners": ("first_name", "asc"),
+        "editors": ("label", "asc"),
+        "viewers": ("label", "asc"),
+    }
+    text_field_rel_fields = {
+        "editors": "label",
+        "viewers": "label",
     }
     base_related_field_filters = {
-        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "editors": [
+            ["type", subject_type_filter("SUBJECTS_RELATED_TYPES_CHARTS"), lambda: []]
+        ],
+        "viewers": [
+            ["type", subject_type_filter("SUBJECTS_RELATED_TYPES_CHARTS"), lambda: []]
+        ],
     }
     related_field_filters = {
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
+        "viewers": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
 
-    allowed_rel_fields = {"owners", "created_by", "changed_by"}
+    allowed_rel_fields = {
+        "owners",
+        "created_by",
+        "changed_by",
+        "editors",
+        "viewers",
+    }
+    extra_fields_rel_fields = {
+        "editors": ["type", "active", "secondary_label", "img"],
+        "viewers": ["type", "active", "secondary_label", "img"],
+    }
 
     @expose("/<id_or_uuid>", methods=["GET"])
     @protect()
@@ -574,8 +603,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".cache_screenshot",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.cache_screenshot"
+        ),
         log_to_statsd=False,
     )
     def cache_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
@@ -876,8 +906,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @rison(get_fav_star_ids_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".favorite_status",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.favorite_status"
+        ),
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
@@ -968,8 +999,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".remove_favorite",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.remove_favorite"
+        ),
         log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:

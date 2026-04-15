@@ -61,7 +61,7 @@ class TestTagging(SupersetTestCase):
         test_dataset = SqlaTable(
             table_name="foo",
             schema=None,
-            owners=[],
+            editors=[],
             database=get_main_database(),
             sql=None,
             extra='{"certification": 1}',
@@ -245,7 +245,7 @@ class TestTagging(SupersetTestCase):
         test_dataset = SqlaTable(
             table_name="foo",
             schema=None,
-            owners=[],
+            editors=[],
             database=get_main_database(),
             sql=None,
             extra='{"certification": 1}',

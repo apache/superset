@@ -52,9 +52,9 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
-    serialize_user_object,
+    serialize_subject_object,
+    SubjectInfo,
     TagInfo,
-    UserInfo,
 )
 from superset.mcp_service.utils.sanitization import (
     sanitize_filter_value,
@@ -87,7 +87,7 @@ class ChartLike(Protocol):
     created_on_humanized: str | None
     uuid: str | None
     tags: List[Any] | None
-    owners: List[Any] | None
+    editors: List[Any] | None
 
 
 class ChartInfo(BaseModel):
@@ -124,7 +124,9 @@ class ChartInfo(BaseModel):
     )
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
-    owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
+    editors: List[SubjectInfo] = Field(
+        default_factory=list, description="Chart editors"
+    )
 
     # Fields for unsaved state support
     form_data: Dict[str, Any] | None = Field(
@@ -340,12 +342,12 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         ]
         if getattr(chart, "tags", None)
         else [],
-        owners=[
+        editors=[
             info
-            for owner in getattr(chart, "owners", [])
-            if (info := serialize_user_object(owner)) is not None
+            for editor in getattr(chart, "editors", [])
+            if (info := serialize_subject_object(editor)) is not None
         ]
-        if getattr(chart, "owners", None)
+        if getattr(chart, "editors", None)
         else [],
     )
 

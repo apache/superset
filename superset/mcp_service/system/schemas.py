@@ -172,6 +172,31 @@ class TagInfo(BaseModel):
     description: str | None = None
 
 
+class SubjectInfo(BaseModel):
+    """A subject (user, role, or group) that can be an editor or viewer."""
+
+    id: int | None = None
+    label: str | None = None
+    type: str | None = Field(None, description="Subject type: USER, ROLE, or GROUP")
+    active: bool | None = None
+
+
+def serialize_subject_object(subject: Any) -> SubjectInfo | None:
+    """Serialize a Subject ORM object to SubjectInfo."""
+    if not subject:
+        return None
+
+    type_val = getattr(subject, "type", None)
+    type_name = type_val.name if type_val is not None else None
+
+    return SubjectInfo(
+        id=getattr(subject, "id", None),
+        label=getattr(subject, "label", None),
+        type=type_name,
+        active=getattr(subject, "active", None),
+    )
+
+
 class RoleInfo(BaseModel):
     id: int | None = None
     name: str | None = None

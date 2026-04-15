@@ -55,7 +55,7 @@ def create_mock_dataset(
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = f"[{database_name}].[{schema}]"
@@ -117,7 +117,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -173,7 +173,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -225,7 +225,7 @@ async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[public]"
@@ -256,7 +256,7 @@ async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -305,7 +305,7 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -351,7 +351,7 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -408,7 +408,7 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -435,7 +435,7 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -489,7 +489,7 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = None
@@ -533,7 +533,7 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -582,7 +582,7 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = True
     dataset.database_id = 2
     dataset.schema_perm = None
@@ -626,7 +626,7 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -671,7 +671,7 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -717,7 +717,7 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -768,7 +768,7 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -814,7 +814,7 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -880,7 +880,7 @@ async def test_get_dataset_info_success(mock_info, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -1019,7 +1019,7 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -1111,7 +1111,7 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -1187,7 +1187,7 @@ async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"

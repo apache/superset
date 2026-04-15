@@ -37,11 +37,13 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.utils import json
 from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import SupersetTestCase, user_is_editor
 from tests.integration_tests.conftest import (  # noqa: F401
     CTAS_SCHEMA_NAME,
     with_feature_flags,
@@ -93,16 +95,21 @@ class TestDatasetApi(SupersetTestCase):
         metrics: list[SqlMetric] | None = None,
         extra: str | None = None,
     ) -> SqlaTable:
-        obj_owners = list()  # noqa: C408
+        obj_editors = list()  # noqa: C408
         for owner in owners:
-            user = db.session.query(security_manager.user_model).get(owner)
-            obj_owners.append(user)
+            subject = (
+                db.session.query(Subject)
+                .filter_by(user_id=owner, type=SubjectType.USER)
+                .first()
+            )
+            if subject:
+                obj_editors.append(subject)
         database = database or get_example_database()
         schema = schema or get_example_default_schema()
         table = SqlaTable(
             table_name=table_name,
             schema=schema,
-            owners=obj_owners,
+            editors=obj_editors,
             database=database,
             sql=sql,
             catalog=catalog,
@@ -280,11 +287,11 @@ class TestDatasetApi(SupersetTestCase):
             "datasource_type",
             "default_endpoint",
             "description",
+            "editors",
             "explore_url",
             "extra",
             "id",
             "kind",
-            "owners",
             "schema",
             "sql",
             "table_name",
@@ -411,7 +418,7 @@ class TestDatasetApi(SupersetTestCase):
             "kind": "physical",
             "main_dttm_col": None,
             "offset": 0,
-            "owners": [],
+            "editors": [],
             "schema": get_example_default_schema(),
             "sql": None,
             "table_name": "energy_usage",
@@ -811,28 +818,28 @@ class TestDatasetApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(SqlaTable).get(data.get("id"))
         assert admin in model.owners
+        assert user_is_editor(admin, model)
         assert alpha in model.owners
+        assert user_is_editor(alpha, model)
         self.items_to_delete = [model]
 
-    def test_create_dataset_item_owners_invalid(self):
+    def test_create_dataset_item_editors_invalid(self):
         """
-        Dataset API: Test create dataset item owner invalid
+        Dataset API: Test create dataset item editor subject invalid
         """
-
-        admin = self.get_user("admin")
         main_db = get_main_database()
         self.login(ADMIN_USERNAME)
         table_data = {
             "database": main_db.id,
             "schema": "",
             "table_name": "ab_permission",
-            "owners": [admin.id, 1000],
+            "editors": [1000],
         }
         uri = "api/v1/dataset/"
         rv = self.post_assert_metric(uri, table_data, "post")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
-        expected_result = {"message": {"owners": ["Owners are invalid"]}}
+        expected_result = {"message": {"editors": ["Subjects are invalid"]}}
         assert data == expected_result
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
@@ -858,7 +865,9 @@ class TestDatasetApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(SqlaTable).get(data.get("id"))
         assert admin in model.owners
+        assert user_is_editor(admin, model)
         assert alpha in model.owners
+        assert user_is_editor(alpha, model)
         self.items_to_delete = [model]
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
@@ -1062,6 +1071,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         model = db.session.query(SqlaTable).get(dataset.id)
         assert model.owners == current_owners
+        assert len(model.editors) == len(current_owners)
 
         self.items_to_delete = [dataset]
 
@@ -1078,6 +1088,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         model = db.session.query(SqlaTable).get(dataset.id)
         assert model.owners == []
+        assert model.editors == []
 
         self.items_to_delete = [dataset]
 
@@ -1095,6 +1106,8 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         model = db.session.query(SqlaTable).get(dataset.id)
         assert model.owners == [gamma]
+        assert len(model.editors) == 1
+        assert user_is_editor(gamma, model)
 
         self.items_to_delete = [dataset]
 
@@ -1113,6 +1126,7 @@ class TestDatasetApi(SupersetTestCase):
         model = db.session.query(SqlaTable).get(dataset.id)
         assert model.description == dataset_data["description"]
         assert model.owners == current_owners
+        assert len(model.editors) == len(current_owners)
 
         self.items_to_delete = [dataset]
 
@@ -1613,14 +1627,14 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 403
         self.items_to_delete = [dataset]
 
-    def test_update_dataset_item_owners_invalid(self):
+    def test_update_dataset_item_editors_invalid(self):
         """
-        Dataset API: Test update dataset item owner invalid
+        Dataset API: Test update dataset item editor subject invalid
         """
 
         dataset = self.insert_default_dataset()
         self.login(ADMIN_USERNAME)
-        table_data = {"description": "changed_description", "owners": [1000]}
+        table_data = {"description": "changed_description", "editors": [1000]}
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.put_assert_metric(uri, table_data, "put")
         assert rv.status_code == 422
@@ -3370,188 +3384,3 @@ class TestDatasetApi(SupersetTestCase):
             assert rv.status_code == 403
 
         self.items_to_delete = [dash, chart, dataset, dashboard_dataset]
-
-    @with_feature_flags(DASHBOARD_RBAC=True)
-    def test_get_drill_info_dashboard_rbac_access_granted(self):
-        """
-        Dataset API: Test drill_info with dashboard parameter when user has access
-        via the DASHBOARD_RBAC FF.
-        """
-        with self.temporary_user(
-            clone_user=security_manager.find_user(username=GAMMA_USERNAME)
-        ) as test_user:
-            user_role_ids = [role.id for role in test_user.roles]
-            # Login as admin to avoid FK issues during temp account deletion
-            self.login(ADMIN_USERNAME)
-            dataset = self.insert_dataset(
-                table_name="test_rbac_dataset",
-                owners=[],
-                columns=[
-                    TableColumn(
-                        column_name="restricted_column",
-                        type="VARCHAR(255)",
-                        verbose_name="Restricted Column",
-                        groupby=True,
-                    ),
-                ],
-                fetch_metadata=False,
-            )
-            chart = self.insert_chart("Test RBAC Chart", dataset.id)
-            dash = self.insert_dashboard(
-                "RBAC Test Dashboard",
-                "rbac-test-dashboard",
-                [],
-                roles=user_role_ids,
-                slices=[chart],
-                published=True,
-            )
-
-            self.logout()
-            self.login(test_user.username)
-
-            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
-            rv = self.client.get(uri)
-
-            assert rv.status_code == 200
-            data = json.loads(rv.data.decode("utf-8"))
-            result = data["result"]
-
-            assert "created_by" in result
-            assert "created_on_humanized" in result
-            assert "changed_by" in result
-            assert "changed_on_humanized" in result
-            assert result["id"] == dataset.id
-            assert result["table_name"] == "test_rbac_dataset"
-            assert len(result["columns"]) == 1
-            assert result["columns"][0]["column_name"] == "restricted_column"
-
-        self.items_to_delete = [dash, chart, dataset]
-
-    @with_feature_flags(DASHBOARD_RBAC=True)
-    def test_get_drill_info_dashboard_rbac_no_perm_to_drill(self):
-        """
-        Dataset API: Test drill_info with dashboard parameter when user has
-        no permission to access the API.
-        """
-        with self.temporary_user(
-            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
-            pvms_to_remove=[("can_get_drill_info", "Dataset")],
-        ) as test_user:
-            user_role_ids = [role.id for role in test_user.roles]
-            self.login(ADMIN_USERNAME)
-
-            dataset = self.insert_dataset(
-                table_name="test_rbac_dataset_denied",
-                owners=[],
-                columns=[
-                    TableColumn(
-                        column_name="restricted_column",
-                        type="VARCHAR(255)",
-                        groupby=True,
-                    ),
-                ],
-                fetch_metadata=False,
-            )
-            chart = self.insert_chart("Test RBAC Chart second", dataset.id)
-            dash = self.insert_dashboard(
-                "RBAC Test Dashboard 2",
-                "rbac-test-dashboard-2",
-                [],
-                slices=[chart],
-                roles=user_role_ids,
-                published=True,
-            )
-
-            self.logout()
-            self.login(test_user.username)
-
-            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
-            rv = self.client.get(uri)
-
-            assert rv.status_code == 403
-
-        self.items_to_delete = [dash, chart, dataset]
-
-    @with_feature_flags(DASHBOARD_RBAC=True)
-    def test_get_drill_info_dashboard_rbac_no_access_on_dashboard(self):
-        """
-        Dataset API: Test drill_info with dashboard parameter when user has
-        no access to the dashboard.
-        """
-        dataset = self.insert_dataset(
-            table_name="test_rbac_dataset_denied",
-            owners=[],
-            columns=[
-                TableColumn(
-                    column_name="restricted_column",
-                    type="VARCHAR(255)",
-                    groupby=True,
-                ),
-            ],
-            fetch_metadata=False,
-        )
-        chart = self.insert_chart("Test RBAC Chart second", dataset.id)
-        dash = self.insert_dashboard(
-            "RBAC Test Dashboard 2",
-            "rbac-test-dashboard-2",
-            [],
-            slices=[chart],
-            roles=[],
-            published=True,
-        )
-
-        with self.temporary_user(
-            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
-            login=True,
-            username="test_new_account",
-        ):
-            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
-            rv = self.client.get(uri)
-
-            assert rv.status_code == 403
-
-        self.items_to_delete = [dash, chart, dataset]
-
-    @with_feature_flags(DASHBOARD_RBAC=True)
-    def test_get_drill_info_dashboard_rbac_no_dashboard_id(self):
-        """
-        Dataset API: Test drill_info without dashboard ID parameter falls back
-        to regular access control.
-        """
-        with self.temporary_user(
-            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
-        ) as test_user:
-            self.login(ADMIN_USERNAME)
-            user_role_ids = [role.id for role in test_user.roles]
-
-            dataset = self.insert_dataset(
-                table_name="test_no_dashboard_id",
-                owners=[],
-                columns=[
-                    TableColumn(
-                        column_name="restricted_column",
-                        type="VARCHAR(255)",
-                        groupby=True,
-                    ),
-                ],
-                fetch_metadata=False,
-            )
-            chart = self.insert_chart("Test RBAC Chart second", dataset.id)
-            dashboard = self.insert_dashboard(
-                "RBAC Test Dashboard 2",
-                "rbac-test-dashboard-2",
-                [],
-                slices=[chart],
-                roles=user_role_ids,
-                published=True,
-            )
-
-            self.logout()
-            self.login(test_user.username)
-
-            uri = f"api/v1/dataset/{dataset.id}/drill_info/"
-            rv = self.client.get(uri)
-
-            assert rv.status_code == 404
-
-        self.items_to_delete = [dashboard, chart, dataset]

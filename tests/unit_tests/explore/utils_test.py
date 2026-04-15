@@ -37,7 +37,7 @@ dataset_find_by_id = "superset.daos.dataset.DatasetDAO.find_by_id"
 query_find_by_id = "superset.daos.query.QueryDAO.find_by_id"
 chart_find_by_id = "superset.daos.chart.ChartDAO.find_by_id"
 is_admin = "superset.security.SupersetSecurityManager.is_admin"
-is_owner = "superset.security.SupersetSecurityManager.is_owner"
+is_owner = "superset.security.SupersetSecurityManager.is_editor"
 can_access_datasource = (
     "superset.security.SupersetSecurityManager.can_access_datasource"
 )

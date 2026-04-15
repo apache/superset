@@ -82,6 +82,9 @@ owners_description = (
     "Owner are users ids allowed to delete or change this report. "
     "If left empty you will be one of the owners of the report."
 )
+editors_description = (
+    "A list of subject IDs (users, roles, or groups) that can alter the report."
+)
 validator_type_description = (
     "Determines when to trigger alert based off value from alert query. "
     "Alerts will be triggered with these validator types:\n"
@@ -232,6 +235,7 @@ class ReportSchedulePostSchema(Schema):
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
     validator_type = fields.String(
         metadata={"description": validator_type_description},
         validate=validate.OneOf(
@@ -367,6 +371,9 @@ class ReportSchedulePutSchema(Schema):
     database = fields.Integer(required=False, allow_none=True)
     owners = fields.List(
         fields.Integer(metadata={"description": owners_description}), required=False
+    )
+    editors = fields.List(
+        fields.Integer(metadata={"description": editors_description}), required=False
     )
     validator_type = fields.String(
         metadata={"description": validator_type_description},

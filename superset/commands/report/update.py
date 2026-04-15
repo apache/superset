@@ -34,6 +34,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
 )
+from superset.commands.utils import compute_subjects
 from superset.daos.database import DatabaseDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
@@ -75,7 +76,6 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
 
         # Optional fields
         database_id = self._properties.get("database")
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         exceptions: list[ValidationError] = []
 
@@ -140,18 +140,16 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
 
         # Check ownership
         try:
-            security_manager.raise_for_ownership(self._model)
+            security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise ReportScheduleForbiddenError() from ex
 
-        # Validate/Populate owner
-        try:
-            owners = self.compute_owners(
-                self._model.owners,
-                owner_ids,
-            )
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        compute_subjects(
+            self._model,
+            self._properties,
+            exceptions,
+            include_viewers=False,
+        )
+
         if exceptions:
             raise ReportScheduleInvalidError(exceptions=exceptions)

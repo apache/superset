@@ -18,6 +18,7 @@ from marshmallow import fields, Schema
 from marshmallow.validate import Length, Range
 
 from superset.dashboards.schemas import UserSchema
+from superset.subjects.schemas import SubjectResponseSchema
 
 delete_tags_schema = {"type": "array", "items": {"type": "string"}}
 object_type_description = "A title for the tag."
@@ -55,6 +56,7 @@ class TaggedObjectEntityResponseSchema(Schema):
     creator = fields.String()
     tags = fields.List(fields.Nested(TagGetResponseSchema()))
     owners = fields.List(fields.Nested(UserSchema()))
+    editors = fields.List(fields.Nested(SubjectResponseSchema()))
 
 
 objects_to_tag_field = fields.List(

@@ -87,7 +87,7 @@ export const getSlicePayload = async (
   sliceName: string,
   formDataWithNativeFilters: QueryFormData = {} as QueryFormData,
   dashboards: number[],
-  owners: [],
+  editors: [],
   formDataFromSlice: QueryFormData = {} as QueryFormData,
 ): Promise<Partial<PayloadSlice>> => {
   const adhocFilters: Partial<QueryFormData> = extractAdhocFiltersFromFormData(
@@ -175,7 +175,7 @@ export const getSlicePayload = async (
     datasource_id: datasourceId,
     datasource_type: datasourceType,
     dashboards,
-    owners,
+    editors,
     query_context: JSON.stringify(queryContext),
   };
 
@@ -237,7 +237,7 @@ export const updateSlice =
     },
   ) =>
   async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
-    const { slice_id: sliceId, owners, form_data: formDataFromSlice } = slice;
+    const { slice_id: sliceId, editors, form_data: formDataFromSlice } = slice;
     const formData = getState().explore?.form_data;
     try {
       const response = await SupersetClient.put({
@@ -246,7 +246,7 @@ export const updateSlice =
           sliceName,
           formData,
           dashboards,
-          owners as [],
+          editors as [],
           formDataFromSlice,
         ),
       });

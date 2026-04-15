@@ -43,7 +43,7 @@ const mockedProps = {
           message: 'Issue code message B',
         },
       ],
-      owners: ['Owner A', 'Owner B'],
+      editors: ['Owner A', 'Owner B'],
       timeout: 30,
     },
     level: 'error' as ErrorLevel,
@@ -76,10 +76,10 @@ test('should render the owners', () => {
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(
-    screen.getByText('Please reach out to the Chart Owners for assistance.'),
+    screen.getByText('Please reach out to the Chart Editors for assistance.'),
   ).toBeInTheDocument();
   expect(
-    screen.getByText('Chart Owners: Owner A, Owner B'),
+    screen.getByText('Chart Editors: Owner A, Owner B'),
   ).toBeInTheDocument();
 });
 
@@ -94,7 +94,7 @@ test('should NOT render the owners', () => {
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(
-    screen.queryByText('Chart Owners: Owner A, Owner B'),
+    screen.queryByText('Chart Editors: Owner A, Owner B'),
   ).not.toBeInTheDocument();
 });
 

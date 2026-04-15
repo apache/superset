@@ -116,7 +116,10 @@ def import_dataset(  # noqa: C901
     user = get_user()
     if existing:
         if overwrite and can_write and user:
-            if user not in existing.owners and not security_manager.is_admin():
+            if (
+                not security_manager.is_editor(existing)
+                and not security_manager.is_admin()
+            ):
                 raise ImportFailedError(
                     "A dataset already exists and user doesn't "
                     "have permissions to overwrite it"
@@ -186,8 +189,12 @@ def import_dataset(  # noqa: C901
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, dataset.database)
 
-    if (user := get_user()) and user not in dataset.owners:
-        dataset.owners.append(user)
+    if user := get_user():
+        from superset.subjects.utils import subjects_from_owners
+
+        for subj in subjects_from_owners([user]):
+            if subj not in dataset.editors:
+                dataset.editors.append(subj)
 
     return dataset
 

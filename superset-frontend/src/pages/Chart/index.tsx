@@ -243,7 +243,9 @@ export default function ExplorePage() {
                 : Promise.reject()
             )
               .then(
-                ({ result: { id, url, owners, form_data: _, ...data } }) => {
+                ({
+                  result: { id, url, editors, viewers, form_data: _, ...data },
+                }) => {
                   if (isStale()) {
                     return;
                   }
@@ -252,7 +254,8 @@ export default function ExplorePage() {
                     datasource: err.extra?.datasource_name,
                     slice_id: id,
                     slice_url: url,
-                    owners: owners?.map(({ id }) => id),
+                    editors: editors?.map(({ id }) => id),
+                    viewers: viewers?.map(({ id }) => id),
                   };
                   dispatch(
                     hydrateExplore({

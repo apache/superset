@@ -21,6 +21,7 @@ from marshmallow.validate import Length, OneOf
 
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.dashboards.schemas import UserSchema
+from superset.subjects.schemas import SubjectResponseSchema
 from superset.utils.core import RowLevelSecurityFilterType
 
 id_description = "Unique if of rls filter"
@@ -31,6 +32,8 @@ filter_type_description = "Regular filters add where clauses to queries if a use
 tables_description = "These are the tables this filter will be applied to."
 # pylint: disable=line-too-long
 roles_description = "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data."  # noqa: E501
+# pylint: disable=line-too-long
+subjects_description = "Subjects (users, roles, groups) associated with this RLS rule. For regular filters, the rule applies to these subjects. For base filters, these subjects are excluded from the filter."  # noqa: E501
 # pylint: disable=line-too-long
 group_key_description = "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe')."  # noqa: E501
 # pylint: disable=line-too-long
@@ -75,6 +78,7 @@ class RLSListSchema(Schema):
         ),
     )
     roles = fields.List(fields.Nested(RolesSchema))
+    subjects = fields.List(fields.Nested(SubjectResponseSchema))
     tables = fields.List(fields.Nested(TablesSchema))
     clause = fields.String(metadata={"description": "clause_description"})
     changed_on_delta_humanized = fields.Function(
@@ -95,6 +99,7 @@ class RLSShowSchema(Schema):
         ),
     )
     roles = fields.List(fields.Nested(RolesSchema))
+    subjects = fields.List(fields.Nested(SubjectResponseSchema))
     tables = fields.List(fields.Nested(TablesSchema))
     clause = fields.String(metadata={"description": "clause_description"})
     group_key = fields.String(metadata={"description": "group_key_description"})
@@ -131,7 +136,13 @@ class RLSPostSchema(Schema):
     roles = fields.List(
         fields.Integer(),
         metadata={"description": "roles_description"},
-        required=True,
+        required=False,
+        allow_none=False,
+    )
+    subjects = fields.List(
+        fields.Integer(),
+        metadata={"description": subjects_description},
+        required=False,
         allow_none=False,
     )
     group_key = fields.String(
@@ -173,6 +184,12 @@ class RLSPutSchema(Schema):
     roles = fields.List(
         fields.Integer(),
         metadata={"description": "roles_description"},
+        required=False,
+        allow_none=False,
+    )
+    subjects = fields.List(
+        fields.Integer(),
+        metadata={"description": subjects_description},
         required=False,
         allow_none=False,
     )

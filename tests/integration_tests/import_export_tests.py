@@ -44,7 +44,11 @@ from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
 from superset.utils import json
 
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import (
+    subjects_from_users,
+    SupersetTestCase,
+    user_is_editor,
+)
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
@@ -496,18 +500,22 @@ class TestImportExport(SupersetTestCase):
         # set another user as an owner of importing dashboard
         dash_with_1_slice.created_by = admin_user
         dash_with_1_slice.changed_by = admin_user
-        dash_with_1_slice.owners = [admin_user]
+        dash_with_1_slice.editors = subjects_from_users([admin_user])
 
         imported_dash_id = import_dashboard(dash_with_1_slice)
         imported_dash = self.get_dash(imported_dash_id)
         assert imported_dash.created_by == gamma_user
         assert imported_dash.changed_by == gamma_user
         assert imported_dash.owners == [gamma_user]
+        assert len(imported_dash.editors) == 1
+        assert user_is_editor(gamma_user, imported_dash)
 
         imported_slc = imported_dash.slices[0]
         assert imported_slc.created_by == gamma_user
         assert imported_slc.changed_by == gamma_user
         assert imported_slc.owners == [gamma_user]
+        assert len(imported_slc.editors) == 1
+        assert user_is_editor(gamma_user, imported_slc)
 
     @pytest.mark.skip
     def test_import_override_dashboard_slice_reset_ownership(self):
@@ -524,11 +532,15 @@ class TestImportExport(SupersetTestCase):
         assert imported_dash.created_by == gamma_user
         assert imported_dash.changed_by == gamma_user
         assert imported_dash.owners == [gamma_user]
+        assert len(imported_dash.editors) == 1
+        assert user_is_editor(gamma_user, imported_dash)
 
         imported_slc = imported_dash.slices[0]
         assert imported_slc.created_by == gamma_user
         assert imported_slc.changed_by == gamma_user
         assert imported_slc.owners == [gamma_user]
+        assert len(imported_slc.editors) == 1
+        assert user_is_editor(gamma_user, imported_slc)
 
         # re-import with another user shouldn't change the permissions
         g.user = admin_user
@@ -539,11 +551,15 @@ class TestImportExport(SupersetTestCase):
         assert imported_dash.created_by == gamma_user
         assert imported_dash.changed_by == gamma_user
         assert imported_dash.owners == [gamma_user]
+        assert len(imported_dash.editors) == 1
+        assert user_is_editor(gamma_user, imported_dash)
 
         imported_slc = imported_dash.slices[0]
         assert imported_slc.created_by == gamma_user
         assert imported_slc.changed_by == gamma_user
         assert imported_slc.owners == [gamma_user]
+        assert len(imported_slc.editors) == 1
+        assert user_is_editor(gamma_user, imported_slc)
 
     def _create_dashboard_for_import(self, id_=10100):
         slc = self.create_slice(

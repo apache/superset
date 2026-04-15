@@ -28,6 +28,7 @@ from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
+from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
@@ -97,6 +98,12 @@ viz_type_description = "The type of chart visualization used."
 owners_description = (
     "Owner are users ids allowed to delete or change this chart. "
     "If left empty you will be one of the owners of the chart."
+)
+editors_description = (
+    "A list of subject IDs (users, roles, or groups) that can alter the chart."
+)
+viewers_description = (
+    "A list of subject IDs (users, roles, or groups) that can view the chart."
 )
 params_description = (
     "Parameters are generated dynamically when clicking the save "
@@ -205,6 +212,8 @@ class ChartPostSchema(Schema):
         validate=Length(0, 250),
     )
     owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
+    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
     params = fields.String(
         metadata={"description": params_description},
         allow_none=True,
@@ -268,6 +277,8 @@ class ChartPutSchema(Schema):
         validate=Length(0, 250),
     )
     owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
+    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
     params = fields.String(
         metadata={"description": params_description},
         allow_none=True,
@@ -1742,6 +1753,8 @@ class ChartGetResponseSchema(Schema):
     is_managed_externally = fields.Boolean()
     tags = fields.Nested(TagSchema, many=True)
     owners = fields.List(fields.Nested(UserSchema))
+    editors = fields.List(fields.Nested(SubjectResponseSchema))
+    viewers = fields.List(fields.Nested(SubjectResponseSchema))
     dashboards = fields.List(fields.Nested(DashboardSchema))
     uuid = fields.UUID()
     datasource_id = fields.Int()

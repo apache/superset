@@ -20,7 +20,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
-from superset import db, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.reports.models import ReportSchedule
 from superset.views.base import BaseFilter
 
@@ -29,15 +29,47 @@ class ReportScheduleFilter(BaseFilter):  # pylint: disable=too-few-public-method
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-        owner_ids_query = (
+
+        if is_feature_enabled("ENABLE_VIEWERS"):
+            return self._apply_viewers(query)
+        return self._apply_legacy(query)
+
+    def _apply_viewers(self, query: Query) -> Query:
+        from superset.subjects.models import report_schedule_editors
+        from superset.subjects.utils import get_user_subject_ids_subquery
+        from superset.utils.core import get_user_id
+
+        user_id = get_user_id()
+        if not user_id:
+            return query.filter(ReportSchedule.id < 0)
+
+        subject_subquery = get_user_subject_ids_subquery(user_id)
+        editor_query = (
             db.session.query(ReportSchedule.id)
-            .join(ReportSchedule.owners)
+            .join(
+                report_schedule_editors,
+                ReportSchedule.id == report_schedule_editors.c.report_schedule_id,
+            )
+            .filter(report_schedule_editors.c.subject_id.in_(subject_subquery))
+        )
+        return query.filter(ReportSchedule.id.in_(editor_query))
+
+    def _apply_legacy(self, query: Query) -> Query:
+        from superset.subjects.models import report_schedule_editors, Subject
+        from superset.utils.core import get_user_id
+
+        editor_ids_query = (
+            db.session.query(report_schedule_editors.c.report_schedule_id)
+            .join(
+                Subject.__table__,
+                Subject.__table__.c.id == report_schedule_editors.c.subject_id,
+            )
             .filter(
-                security_manager.user_model.id
-                == security_manager.user_model.get_user_id()
+                Subject.__table__.c.type == 1,
+                Subject.__table__.c.user_id == get_user_id(),
             )
         )
-        return query.filter(ReportSchedule.id.in_(owner_ids_query))
+        return query.filter(ReportSchedule.id.in_(editor_ids_query))
 
 
 class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods

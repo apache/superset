@@ -331,8 +331,8 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "tags": ColumnMetadata(
         name="tags", description="Chart tags", type="list", is_default=False
     ),
-    "owners": ColumnMetadata(
-        name="owners", description="Chart owners", type="list", is_default=False
+    "editors": ColumnMetadata(
+        name="editors", description="Chart editors", type="list", is_default=False
     ),
 }
 
@@ -425,8 +425,8 @@ DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "tags": ColumnMetadata(
         name="tags", description="Dataset tags", type="list", is_default=False
     ),
-    "owners": ColumnMetadata(
-        name="owners", description="Dataset owners", type="list", is_default=False
+    "editors": ColumnMetadata(
+        name="editors", description="Dataset editors", type="list", is_default=False
     ),
 }
 
@@ -494,8 +494,8 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "tags": ColumnMetadata(
         name="tags", description="Dashboard tags", type="list", is_default=False
     ),
-    "owners": ColumnMetadata(
-        name="owners", description="Dashboard owners", type="list", is_default=False
+    "editors": ColumnMetadata(
+        name="editors", description="Dashboard editors", type="list", is_default=False
     ),
     "charts": ColumnMetadata(
         name="charts", description="Charts in dashboard", type="list", is_default=False

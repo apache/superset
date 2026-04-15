@@ -25,7 +25,7 @@ import { Button, Loading } from '@superset-ui/core/components';
 import MetadataBar, {
   MetadataType,
   Description,
-  Owner,
+  Editor,
   LastModified,
 } from '@superset-ui/core/components/MetadataBar';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
@@ -33,7 +33,7 @@ import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
 import { fetchObjectsByTagIds, fetchSingleTag } from 'src/features/tags/tags';
-import getOwnerName from 'src/utils/getOwnerName';
+import getUserName from 'src/utils/getUserName';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 import { findPermission } from 'src/utils/findPermission';
 import { useSelector } from 'react-redux';
@@ -124,17 +124,17 @@ function AllEntities() {
     items.push(description);
   }
 
-  const owner: Owner = {
-    type: MetadataType.Owner,
-    createdBy: getOwnerName(tag?.created_by),
+  const editor: Editor = {
+    type: MetadataType.Editor,
+    createdBy: getUserName(tag?.created_by),
     createdOn: tag?.created_on_delta_humanized || '',
   };
-  items.push(owner);
+  items.push(editor);
 
   const lastModified: LastModified = {
     type: MetadataType.LastModified,
     value: tag?.changed_on_delta_humanized || '',
-    modifiedBy: getOwnerName(tag?.changed_by),
+    modifiedBy: getUserName(tag?.changed_by),
   };
   items.push(lastModified);
 

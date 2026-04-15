@@ -950,6 +950,8 @@ def test_data_for_slices_handles_missing_datasource(mocker: MockerFixture) -> No
 
 def test_owners_data_includes_email(mocker: MockerFixture) -> None:
     """Test that the owners_data property includes the email field."""
+    from superset.subjects.types import SubjectType
+
     database = mocker.MagicMock()
 
     table = SqlaTable(
@@ -966,7 +968,11 @@ def test_owners_data_includes_email(mocker: MockerFixture) -> None:
     mock_owner.id = 1
     mock_owner.email = "john@example.com"
 
-    table.owners = [mock_owner]
+    # Set up a user-type editor subject pointing to the mock owner
+    mock_subject = mocker.MagicMock()
+    mock_subject.type = SubjectType.USER
+    mock_subject.user = mock_owner
+    table.editors = [mock_subject]
 
     owners_data = table.owners_data
     assert len(owners_data) == 1

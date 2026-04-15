@@ -234,7 +234,7 @@ def test_save_always_checks_ownership_even_without_owners_field(
     mock_orm = MagicMock()
     mock_orm.owner_class = MagicMock()  # not None — model supports ownership
     mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_ownership.side_effect = SupersetSecurityException(
+    mock_security_manager.raise_for_editorship.side_effect = SupersetSecurityException(
         SupersetError(
             message="Not an owner",
             error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -266,7 +266,7 @@ def test_save_always_checks_ownership_even_without_owners_field(
         with pytest.raises(DatasetForbiddenError):
             raw_save(_view_self())
 
-    mock_security_manager.raise_for_ownership.assert_called_once_with(mock_orm)
+    mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
 
 
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
@@ -279,7 +279,7 @@ def test_save_non_owner_with_owners_field_is_rejected(
     mock_orm = MagicMock()
     mock_orm.owner_class = MagicMock()
     mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_ownership.side_effect = SupersetSecurityException(
+    mock_security_manager.raise_for_editorship.side_effect = SupersetSecurityException(
         SupersetError(
             message="Not an owner",
             error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -311,4 +311,4 @@ def test_save_non_owner_with_owners_field_is_rejected(
         with pytest.raises(DatasetForbiddenError):
             raw_save(_view_self())
 
-    mock_security_manager.raise_for_ownership.assert_called_once_with(mock_orm)
+    mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)

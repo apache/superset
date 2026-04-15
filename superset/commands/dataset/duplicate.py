@@ -52,7 +52,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         self.validate()
         database_id = self._base_model.database_id
         table_name = self._properties["table_name"]
-        owners = self._properties["owners"]
+        editors = self._properties["editors"]
         database = db.session.query(Database).get(database_id)
         if not database:
             raise SupersetErrorException(
@@ -63,7 +63,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
                 ),
                 status=404,
             )
-        table = SqlaTable(table_name=table_name, owners=owners)
+        table = SqlaTable(table_name=table_name, editors=editors)
         table.database = database
         table.schema = self._base_model.schema
         table.template_params = self._base_model.template_params
@@ -119,8 +119,13 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(DatasetExistsValidationError(table=Table(duplicate_name)))
 
         try:
-            owners = self.populate_owners()
-            self._properties["owners"] = owners
+            from superset.commands.utils import populate_subject_list
+
+            editors = populate_subject_list(
+                self._properties.get("editors"),
+                default_to_user=True,
+            )
+            self._properties["editors"] = editors
         except ValidationError as ex:
             exceptions.append(ex)
 

@@ -166,7 +166,7 @@ function getFilteredSortedSlices(
   return Object.values(slices)
     .filter(slice =>
       showOnlyMyCharts
-        ? slice?.owners?.find(owner => owner.id === userId) ||
+        ? slice?.editors?.find(editor => editor.id === userId) ||
           slice?.created_by?.id === userId
         : true,
     )

@@ -32,19 +32,19 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
-    Table,
     Text,
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
 
-from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
+from superset.subjects.models import report_schedule_editors, Subject
+from superset.subjects.types import SubjectType
 from superset.utils.backports import StrEnum
 from superset.utils.core import MediumText
 
@@ -98,26 +98,6 @@ class ReportSourceFormat(StrEnum):
     DASHBOARD = "dashboard"
 
 
-report_schedule_user = Table(
-    "report_schedule_user",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column(
-        "user_id",
-        Integer,
-        ForeignKey("ab_user.id", ondelete="CASCADE"),
-        nullable=False,
-    ),
-    Column(
-        "report_schedule_id",
-        Integer,
-        ForeignKey("report_schedule.id", ondelete="CASCADE"),
-        nullable=False,
-    ),
-    UniqueConstraint("user_id", "report_schedule_id"),
-)
-
-
 class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     """
     Report Schedules, supports alerts and reports
@@ -150,11 +130,16 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     # (Alerts) M-O to database
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
     database = relationship(Database, foreign_keys=[database_id])
-    owners = relationship(
-        security_manager.user_model,
-        secondary=report_schedule_user,
+    editors = relationship(
+        Subject,
+        secondary=report_schedule_editors,
         passive_deletes=True,
     )
+
+    @property
+    def owners(self) -> list[Any]:
+        """Derive owners from user-type editors (backwards compat)."""
+        return [s.user for s in self.editors if s.type == SubjectType.USER and s.user]
 
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)

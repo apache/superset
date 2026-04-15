@@ -37,8 +37,9 @@ import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import Owner from 'src/types/Owner';
+import User from 'src/types/User';
 import Role from 'src/types/Role';
+import Subject from 'src/types/Subject';
 import { TagType } from 'src/components/Tag/TagType';
 import { ChartState } from '../explore/types';
 import { AutoRefreshStatus } from './types/autoRefresh';
@@ -199,9 +200,9 @@ export type DashboardInfo = {
   filterBarOrientation: FilterBarOrientation;
   created_on_delta_humanized: string;
   changed_on_delta_humanized: string;
-  changed_by?: Owner;
-  created_by?: Owner;
-  owners: Owner[];
+  changed_by?: User;
+  created_by?: User;
+  editors: Subject[];
   chartCustomizationData?: { [itemId: string]: ColumnOption[] };
   chartCustomizationLoading?: { [itemId: string]: boolean };
   pendingChartCustomizations?: Record<string, ChartCustomization>;
@@ -352,7 +353,7 @@ export type Slice = {
   datasource_type: DatasourceType;
   datasource_url: string;
   datasource_name: string;
-  owners: { id: number }[];
+  editors: { id: number }[];
   created_by: { id: number };
 };
 

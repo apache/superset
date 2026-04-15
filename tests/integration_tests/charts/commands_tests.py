@@ -42,7 +42,11 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import override_user
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import (
+    subjects_from_users,
+    SupersetTestCase,
+    user_is_editor,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -248,6 +252,8 @@ class TestImportChartsCommand(SupersetTestCase):
         assert chart.table.database == database
 
         assert chart.owners == [admin]
+        assert len(chart.editors) == 1
+        assert user_is_editor(admin, chart)
 
         db.session.delete(chart)
         db.session.delete(dataset)
@@ -362,6 +368,8 @@ class TestChartsCreateCommand(SupersetTestCase):
         assert json_params == {"viz_type": "new_viz_type"}
         assert chart.slice_name == "new chart"
         assert chart.owners == [user]
+        assert len(chart.editors) == 1
+        assert user_is_editor(user, chart)
         db.session.delete(chart)
         db.session.commit()
 
@@ -435,7 +443,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
         chart = db.session.query(Slice).all()[0]
         pk = chart.id
         admin = security_manager.find_user(username="admin")
-        chart.owners = [admin]
+        chart.editors = subjects_from_users([admin])
         db.session.commit()
 
         user = security_manager.find_user(username="alpha")
@@ -450,7 +458,9 @@ class TestChartsUpdateCommand(SupersetTestCase):
         chart = db.session.query(Slice).get(pk)
         assert chart.query_context == query_context
         assert len(chart.owners) == 1
+        assert len(chart.editors) == 1
         assert chart.owners[0] == admin
+        assert user_is_editor(admin, chart)
 
     @patch("superset.commands.chart.update.g")
     @patch("superset.utils.core.g")
@@ -471,13 +481,13 @@ class TestChartsUpdateCommand(SupersetTestCase):
         mock_u_g.user = mock_c_g.user = mock_sm_g.user = admin
 
         chart = db.session.query(Slice).first()
-        chart.owners = [alpha]
+        chart.editors = subjects_from_users([alpha])
 
         # Create a dashboard owned by admin (not accessible to alpha)
         admin_dashboard = Dashboard(
             dashboard_title="Admin Dashboard",
             slug="admin-dashboard",
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=False,
         )
         db.session.add(admin_dashboard)
@@ -526,13 +536,13 @@ class TestChartsUpdateCommand(SupersetTestCase):
 
         # Create chart owned by alpha
         chart = db.session.query(Slice).first()
-        chart.owners = [alpha]
+        chart.editors = subjects_from_users([alpha])
 
         # Create private dashboard owned by admin (not accessible to alpha)
         admin_dashboard = Dashboard(
             dashboard_title="Admin Private Dashboard",
             slug="admin-private-dashboard",
-            owners=[admin],
+            editors=subjects_from_users([admin]),
             published=False,  # Private dashboard
         )
         db.session.add(admin_dashboard)
@@ -573,13 +583,13 @@ class TestChartsUpdateCommand(SupersetTestCase):
 
         # Create chart owned by admin
         chart = db.session.query(Slice).first()
-        chart.owners = [admin]
+        chart.editors = subjects_from_users([admin])
 
         # Create private dashboard owned by alpha
         alpha_dashboard = Dashboard(
             dashboard_title="Alpha Private Dashboard",
             slug="alpha-private-dashboard",
-            owners=[alpha],
+            editors=subjects_from_users([alpha]),
             published=False,
         )
         db.session.add(alpha_dashboard)

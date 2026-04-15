@@ -49,6 +49,12 @@ from superset.daos.datasource import DatasourceDAO
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
+from superset.subjects.models import (
+    dashboard_editors,
+    dashboard_viewers,
+    Subject,
+)
+from superset.subjects.types import SubjectType
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
@@ -63,6 +69,8 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
     if dashboard_id is None:
         return
 
+    from superset.subjects.utils import subjects_from_owners
+
     session = sqla.inspect(target).session  # pylint: disable=disallowed-name
     new_user = session.query(User).filter_by(id=target.id).first()
 
@@ -75,7 +83,7 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         css=template.css,
         json_metadata=template.json_metadata,
         slices=template.slices,
-        owners=[new_user],
+        editors=subjects_from_owners([new_user] if new_user else []),
     )
     session.add(dashboard)
 
@@ -100,34 +108,6 @@ dashboard_slices = Table(
 )
 
 
-dashboard_user = Table(
-    "dashboard_user",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
-)
-
-
-DashboardRoles = Table(
-    "dashboard_roles",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column(
-        "dashboard_id",
-        Integer,
-        ForeignKey("dashboards.id", ondelete="CASCADE"),
-        nullable=False,
-    ),
-    Column(
-        "role_id",
-        Integer,
-        ForeignKey("ab_role.id", ondelete="CASCADE"),
-        nullable=False,
-    ),
-)
-
-
 class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     """The dashboard object!"""
 
@@ -144,11 +124,6 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     slug = Column(String(255), unique=True)
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
-    )
-    owners = relationship(
-        security_manager.user_model,
-        secondary=dashboard_user,
-        passive_deletes=True,
     )
     tags = relationship(
         "Tag",
@@ -173,7 +148,27 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
-    roles = relationship(security_manager.role_model, secondary=DashboardRoles)
+    editors = relationship(
+        Subject,
+        secondary=dashboard_editors,
+        passive_deletes=True,
+    )
+    viewers = relationship(
+        Subject,
+        secondary=dashboard_viewers,
+        passive_deletes=True,
+    )
+
+    @property
+    def owners(self) -> list[User]:
+        """Derive owners from user-type editors (backwards compat)."""
+        return [s.user for s in self.editors if s.type == SubjectType.USER and s.user]
+
+    @property
+    def roles(self) -> list[Any]:
+        """Derive roles from role-type viewers (backwards compat)."""
+        return [s.role for s in self.viewers if s.type == SubjectType.ROLE and s.role]
+
     embedded = relationship(
         "EmbeddedDashboard",
         back_populates="dashboard",

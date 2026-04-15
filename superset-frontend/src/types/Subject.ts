@@ -16,16 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getOwnerName from './getOwnerName';
 
-test('render owner name correctly', () => {
-  expect(getOwnerName({ id: 1, first_name: 'Foo', last_name: 'Bar' })).toEqual(
-    'Foo Bar',
-  );
+/**
+ * The Subject model as returned from the API.
+ * Subjects represent users, roles, or groups that can be
+ * assigned as editors or viewers on dashboards and charts.
+ */
+export enum SubjectType {
+  User = 1,
+  Role = 2,
+  Group = 3,
+}
 
-  expect(getOwnerName({ id: 2, full_name: 'John Doe' })).toEqual('John Doe');
-});
-
-test('return empty string for undefined owner', () => {
-  expect(getOwnerName(undefined)).toEqual('');
-});
+export default interface Subject {
+  id: number;
+  label?: string;
+  secondary_label?: string;
+  img?: string;
+  type: SubjectType;
+  active?: boolean;
+}

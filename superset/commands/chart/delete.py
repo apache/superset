@@ -65,6 +65,6 @@ class DeleteChartCommand(BaseCommand):
         # Check ownership
         for model in self._models:
             try:
-                security_manager.raise_for_ownership(model)
+                security_manager.raise_for_editorship(model)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex

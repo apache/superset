@@ -255,7 +255,7 @@ def generate_size_reduction_suggestions(
     current_filters = query_params.get("filters")
     if not current_filters and "list_" in tool_name:
         suggestions.append(
-            "Add filters to narrow down results (e.g., filter by owner, "
+            "Add filters to narrow down results (e.g., filter by editor, "
             "date range, or specific attributes)"
         )
 

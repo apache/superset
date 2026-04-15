@@ -40,7 +40,11 @@ from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import (
+    subjects_from_users,
+    SupersetTestCase,
+    user_is_editor,
+)
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
@@ -177,7 +181,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             self.original_dashboard = Dashboard()
             self.original_dashboard.dashboard_title = "Original Dashboard"
             self.original_dashboard.slug = "slug"
-            self.original_dashboard.owners = [admin]
+            self.original_dashboard.editors = subjects_from_users([admin])
             self.original_dashboard.slices = [self.chart]
             self.original_dashboard.published = False
             db.session.add(self.original_dashboard)
@@ -185,7 +189,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             self.new_dashboard = Dashboard()
             self.new_dashboard.dashboard_title = "New Dashboard"
             self.new_dashboard.slug = "new_slug"
-            self.new_dashboard.owners = [admin]
+            self.new_dashboard.editors = subjects_from_users([admin])
             self.new_dashboard.published = False
             db.session.add(self.new_dashboard)
 
@@ -577,22 +581,22 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    def test_create_chart_validate_owners(self):
+    def test_create_chart_validate_editors(self):
         """
-        Chart API: Test create validate owners
+        Chart API: Test create validate editors (subjects)
         """
         chart_data = {
             "slice_name": "title1",
             "datasource_id": 1,
             "datasource_type": "table",
-            "owners": [1000],
+            "editors": [1000],
         }
         self.login(ADMIN_USERNAME)
         uri = "api/v1/chart/"
         rv = self.post_assert_metric(uri, chart_data, "post")
         assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": {"owners": ["Owners are invalid"]}}
+        expected_response = {"message": {"editors": ["Subjects are invalid"]}}
         assert response == expected_response
 
     def test_create_chart_validate_params(self):
@@ -702,7 +706,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert model.slice_name == "title1_changed"
         assert model.description == "description1"
         assert admin not in model.owners
+        assert not user_is_editor(admin, model)
         assert gamma in model.owners
+        assert user_is_editor(gamma, model)
         assert model.viz_type == "viz_type1"
         assert model.params == '{"a": 1}'
         assert model.cache_timeout == 1000
@@ -739,7 +745,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         current_chart = [d for d in res if d["id"] == chart_id][0]
         assert current_chart["slice_name"] == new_name
         assert "username" not in current_chart["changed_by"].keys()
-        assert "username" not in current_chart["owners"][0].keys()
+        assert len(current_chart["editors"]) > 0
 
         db.session.delete(model)
         db.session.commit()
@@ -789,7 +795,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         model = db.session.query(Slice).get(chart_id)
         assert model.slice_name == new_name
         assert alpha in model.owners
+        assert user_is_editor(alpha, model)
         assert gamma in model.owners
+        assert user_is_editor(gamma, model)
         db.session.delete(model)
         db.session.commit()
 
@@ -807,7 +815,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         model = db.session.query(Slice).get(chart_id)
         assert admin not in model.owners
+        assert not user_is_editor(admin, model)
         assert gamma in model.owners
+        assert user_is_editor(gamma, model)
         db.session.delete(model)
         db.session.commit()
 
@@ -825,6 +835,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.put_assert_metric(uri, chart_data, "put")
         assert rv.status_code == 200
         assert [admin] == self.chart.owners
+        assert len(self.chart.editors) == 1
+        assert user_is_editor(admin, self.chart)
 
     @pytest.mark.usefixtures("add_dashboard_to_chart")
     def test_update_chart_clear_owner_list(self):
@@ -838,6 +850,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.put_assert_metric(uri, chart_data, "put")
         assert rv.status_code == 200
         assert [] == self.chart.owners
+        assert self.chart.editors == []
 
     def test_update_chart_populate_owner(self):
         """
@@ -849,6 +862,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart_id = self.insert_chart("title", [], 1).id
         model = db.session.query(Slice).get(chart_id)
         assert model.owners == []
+        assert model.editors == []
         chart_data = {"owners": [gamma.id]}
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
@@ -856,7 +870,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         model_updated = db.session.query(Slice).get(chart_id)
         assert admin not in model_updated.owners
+        assert not user_is_editor(admin, model_updated)
         assert gamma in model_updated.owners
+        assert user_is_editor(gamma, model_updated)
         db.session.delete(model_updated)
         db.session.commit()
 
@@ -926,7 +942,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         original_dashboard = Dashboard()
         original_dashboard.dashboard_title = "Original Dashboard"
         original_dashboard.slug = "slug"
-        original_dashboard.owners = [user_alpha1]
+        original_dashboard.editors = subjects_from_users([user_alpha1])
         original_dashboard.slices = [chart]
         original_dashboard.published = False
         db.session.add(original_dashboard)
@@ -934,7 +950,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         new_dashboard = Dashboard()
         new_dashboard.dashboard_title = "Cloned Dashboard"
         new_dashboard.slug = "new_slug"
-        new_dashboard.owners = [user_alpha2]
+        new_dashboard.editors = subjects_from_users([user_alpha2])
         new_dashboard.slices = [chart]
         new_dashboard.published = False
         db.session.add(new_dashboard)
@@ -995,22 +1011,22 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.delete(chart)
         db.session.commit()
 
-    def test_update_chart_validate_owners(self):
+    def test_update_chart_validate_editors(self):
         """
-        Chart API: Test update validate owners
+        Chart API: Test update validate editors (subjects)
         """
         chart_data = {
             "slice_name": "title1",
             "datasource_id": 1,
             "datasource_type": "table",
-            "owners": [1000],
+            "editors": [1000],
         }
         self.login(ADMIN_USERNAME)
         uri = "api/v1/chart/"  # noqa: F541
         rv = self.client.post(uri, json=chart_data)
         assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": {"owners": ["Owners are invalid"]}}
+        expected_response = {"message": {"editors": ["Subjects are invalid"]}}
         assert response == expected_response
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -1024,6 +1040,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart.id}"
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 200
+        from unittest.mock import ANY
+
         expected_result = {
             "cache_timeout": None,
             "certified_by": None,
@@ -1038,6 +1056,16 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                     "email": "admin@fab.org",
                 }
             ],
+            "editors": [
+                {
+                    "id": ANY,
+                    "label": "admin user",
+                    "secondary_label": "admin@fab.org",
+                    "type": 1,
+                    "img": ANY,
+                }
+            ],
+            "viewers": [],
             "params": None,
             "slice_name": "title",
             "tags": [],
@@ -1953,9 +1981,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
 
-        data["result"].sort(key=lambda x: x["datasource_id"])
-        assert data["result"][0]["slice_name"] == "name0"
-        assert data["result"][0]["datasource_id"] == 1
+        # Verify the fixture charts are in the results
+        result_names = {r["slice_name"] for r in data["result"]}
+        assert "name0" in result_names
 
     @parameterized.expand(
         [

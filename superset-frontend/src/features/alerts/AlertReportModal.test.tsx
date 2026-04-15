@@ -74,7 +74,7 @@ const generateMockPayload = (dashboard = true) => {
     last_value_row_json: null,
     log_retention: 90,
     name: 'Test Alert',
-    owners: [
+    editors: [
       {
         first_name: 'Superset',
         id: 1,
@@ -209,10 +209,8 @@ fetchMock.get(FETCH_REPORT_INVALID_ANCHOR_ENDPOINT, {
   },
 });
 
-// Related mocks — component uses /api/v1/report/related/* endpoints for both
-// alerts and reports, so we mock both the legacy alert paths and the actual
-// report paths used by the component.
-const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
+// Related mocks
+const editorsEndpoint = 'glob:*/api/v1/report/related/editors?*';
 const databaseEndpoint = 'glob:*/api/v1/alert/related/database?*';
 const dashboardEndpoint = 'glob:*/api/v1/alert/related/dashboard?*';
 const chartEndpoint = 'glob:*/api/v1/alert/related/chart?*';
@@ -220,7 +218,7 @@ const reportDashboardEndpoint = 'glob:*/api/v1/report/related/dashboard?*';
 const reportChartEndpoint = 'glob:*/api/v1/report/related/chart?*';
 const tabsEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
 
-fetchMock.get(ownersEndpoint, { result: [] });
+fetchMock.get(editorsEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
 fetchMock.get(dashboardEndpoint, { result: [] });
 fetchMock.get(chartEndpoint, { result: [{ text: 'table chart', value: 1 }] });
@@ -317,7 +315,7 @@ const validAlert: AlertObject = {
   force_screenshot: false,
   last_state: 'Not triggered',
   name: 'Test Alert',
-  owners: [
+  editors: [
     {
       first_name: 'Superset',
       id: 1,
@@ -529,14 +527,14 @@ test('renders all fields in General Section', () => {
     useRedux: true,
   });
   const name = screen.getByPlaceholderText(/enter alert name/i);
-  const owners = screen.getByTestId('owners-select');
+  const editors = screen.getByTestId('editors-select');
   const description = screen.getByPlaceholderText(
     /include description to be sent with alert/i,
   );
   const activeSwitch = screen.getByRole('switch');
 
   expect(name).toBeInTheDocument();
-  expect(owners).toBeInTheDocument();
+  expect(editors).toBeInTheDocument();
   expect(description).toBeInTheDocument();
   expect(activeSwitch).toBeInTheDocument();
 });
