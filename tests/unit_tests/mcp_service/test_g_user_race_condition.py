@@ -109,9 +109,9 @@ async def test_nullcontext_shared_context_causes_race():
             bob_task(results),
         )
         # Alice reads Bob's ID because they share the same g
-        assert (
-            results["alice"] == BOB.id
-        ), "Expected Alice to see Bob's ID due to shared g"
+        assert results["alice"] == BOB.id, (
+            "Expected Alice to see Bob's ID due to shared g"
+        )
         assert results["bob"] == BOB.id
 
 
