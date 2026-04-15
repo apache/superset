@@ -43,9 +43,10 @@ const config: ControlPanelConfig = {
               label: t('Sort by series'),
               default: false,
               description: t(
-                'Include a secondary sort by series name (ascending). '
-                  + 'This produces consistent ordering when multiple series have the '
-                  + 'same metric value, but may reduce query performance on some databases.',
+                'Sort results by series name in ascending order. ' +
+                  'When combined with "Sort by metric", this acts as a tiebreaker ' +
+                  'for equal metric values. Adding this sort may reduce query ' +
+                  'performance on some databases.',
               ),
             },
           },
