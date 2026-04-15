@@ -78,6 +78,35 @@ class TestDatasetSoftDelete(SupersetTestCase):
             row.restore()
             db.session.commit()
 
+    def test_soft_deleted_dataset_included_in_list_when_requested(self):
+        """GET /api/v1/dataset/?include_deleted=true includes deleted datasets."""
+        dataset_id = self._get_example_dataset_id()
+        self.login(ADMIN_USERNAME)
+
+        self.client.delete(f"/api/v1/dataset/{dataset_id}")
+
+        rv = self.client.get("/api/v1/dataset/?include_deleted=true")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data)
+        deleted_row = next(
+            (row for row in data["result"] if row["id"] == dataset_id),
+            None,
+        )
+        assert deleted_row is not None
+        assert deleted_row["deleted_at"] is not None
+
+        # Cleanup
+        row = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+        )
+        if row:
+            row.restore()
+            db.session.commit()
+
     def test_no_cascade_to_dependent_charts(self):
         """Soft-deleting a dataset should NOT cascade to its charts (FR-009, T018)."""
         dataset_id = self._get_example_dataset_id()

@@ -101,6 +101,7 @@ logger = logging.getLogger(__name__)
 
 class DatasetRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(SqlaTable)
+    allow_include_deleted_list = True
     base_filters = [["id", DatasourceFilter, lambda: []]]
 
     resource_name = "dataset"

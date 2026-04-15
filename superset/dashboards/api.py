@@ -225,6 +225,7 @@ CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
 # pylint: disable=too-many-public-methods
 class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
+    allow_include_deleted_list = True
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,

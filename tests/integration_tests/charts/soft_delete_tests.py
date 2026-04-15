@@ -94,6 +94,29 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    def test_soft_deleted_chart_included_in_list_when_requested(self):
+        """GET /api/v1/chart/?include_deleted=true includes deleted charts."""
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("listed_with_deleted", [admin_id], 1)
+        chart_id = chart.id
+        self.login(ADMIN_USERNAME)
+
+        self.client.delete(f"/api/v1/chart/{chart_id}")
+
+        rv = self.client.get("/api/v1/chart/?include_deleted=true")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data)
+        deleted_row = next(
+            (row for row in data["result"] if row["id"] == chart_id),
+            None,
+        )
+        assert deleted_row is not None
+        assert deleted_row["deleted_at"] is not None
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
     def test_delete_already_soft_deleted_chart_returns_404(self):
         """DELETE on an already soft-deleted chart returns 404 (FR-008)."""
         admin_id = self.get_user("admin").id

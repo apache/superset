@@ -611,7 +611,7 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("changed_on")
     def changed_on_(self) -> Markup:
-        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')
+        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')  # noqa: S704
 
     @renders("changed_on")
     def changed_on_delta_humanized(self) -> str:
@@ -655,7 +655,7 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("changed_on")
     def modified(self) -> Markup:
-        return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')
+        return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')  # noqa: S704
 
 
 SKIP_VISIBILITY_FILTER = "skip_visibility_filter"
@@ -707,9 +707,17 @@ def _add_soft_delete_filter(execute_state):  # type: ignore
     Opt out for a specific query by passing
     ``execution_options(skip_visibility_filter=True)``.
     """
-    if execute_state.is_select and not execute_state.execution_options.get(
+    skip_visibility_filter = execute_state.execution_options.get(
         SKIP_VISIBILITY_FILTER, False
-    ):
+    )
+    try:
+        skip_visibility_filter = skip_visibility_filter or getattr(
+            g, SKIP_VISIBILITY_FILTER, False
+        )
+    except RuntimeError:
+        pass
+
+    if execute_state.is_select and not skip_visibility_filter:
         execute_state.statement = execute_state.statement.options(
             with_loader_criteria(
                 SoftDeleteMixin,
