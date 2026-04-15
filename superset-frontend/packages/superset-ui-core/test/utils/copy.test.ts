@@ -27,6 +27,11 @@ const makeGetText = (text: string) => () => Promise.resolve(text);
 
 const globalWithClipboardItem = global as unknown as { ClipboardItem?: unknown };
 
+afterEach(() => {
+  jest.restoreAllMocks();
+  delete globalWithClipboardItem.ClipboardItem;
+});
+
 test('uses Clipboard API writeText on non-Safari browsers', async () => {
   Object.defineProperty(navigator, 'userAgent', {
     value: CHROME_UA,
@@ -60,8 +65,6 @@ test('uses ClipboardItem API on Safari browsers', async () => {
 
   expect(MockClipboardItem).toHaveBeenCalled();
   expect(write).toHaveBeenCalledWith([expect.anything()]);
-
-  delete globalWithClipboardItem.ClipboardItem;
 });
 
 test('falls back to writeText on Safari when ClipboardItem write fails', async () => {
@@ -81,8 +84,6 @@ test('falls back to writeText on Safari when ClipboardItem write fails', async (
   await copyTextToClipboard(makeGetText('fallback text'));
 
   expect(writeText).toHaveBeenCalledWith('fallback text');
-
-  delete globalWithClipboardItem.ClipboardItem;
 });
 
 function mockExecCommand(impl: (cmd: string) => boolean) {
@@ -139,8 +140,6 @@ test('falls back to execCommand copy when Clipboard API is unavailable', async (
 
   expect(document.execCommand).toHaveBeenCalledWith('copy');
   expect(removeRange).toHaveBeenCalledWith(mockRange);
-
-  jest.restoreAllMocks();
 });
 
 test('falls back to removeAllRanges when removeRange is not available', async () => {
@@ -157,8 +156,6 @@ test('falls back to removeAllRanges when removeRange is not available', async ()
   await copyTextToClipboard(makeGetText('no removeRange'));
 
   expect(removeAllRanges).toHaveBeenCalled();
-
-  jest.restoreAllMocks();
 });
 
 test('rejects when execCommand returns false', async () => {
@@ -172,8 +169,6 @@ test('rejects when execCommand returns false', async () => {
   mockExecCommand(() => false);
 
   await expect(copyTextToClipboard(makeGetText('fail'))).rejects.toBeUndefined();
-
-  jest.restoreAllMocks();
 });
 
 test('rejects when execCommand throws', async () => {
@@ -193,8 +188,6 @@ test('rejects when execCommand throws', async () => {
   });
 
   await expect(copyTextToClipboard(makeGetText('throw'))).rejects.toBeUndefined();
-
-  jest.restoreAllMocks();
 });
 
 test('resolves without copying when getSelection returns null', async () => {
@@ -211,7 +204,7 @@ test('resolves without copying when getSelection returns null', async () => {
 
   jest.spyOn(document, 'getSelection').mockReturnValue(null);
 
-  await expect(copyTextToClipboard(makeGetText('no selection'))).resolves.toBeUndefined();
-
-  jest.restoreAllMocks();
+  await expect(
+    copyTextToClipboard(makeGetText('no selection')),
+  ).resolves.toBeUndefined();
 });
