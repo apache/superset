@@ -45,6 +45,7 @@ export const buildTree = (
   validNodes: string[],
   initiallyExcludedCharts: number[],
   buildTreeLeafTitle: BuildTreeLeafTitle,
+  visited: Set<string> = new Set(),
 ) => {
   let itemToPass: TreeItem = treeItem;
   if (
@@ -71,6 +72,10 @@ export const buildTree = (
     itemToPass = currentTreeItem;
   }
   node?.children?.forEach?.(child => {
+    if (visited.has(child)) {
+      return;
+    }
+    visited.add(child);
     const node = layout?.[child];
     if (node) {
       buildTree(
@@ -81,6 +86,7 @@ export const buildTree = (
         validNodes,
         initiallyExcludedCharts,
         buildTreeLeafTitle,
+        visited,
       );
     } else {
       logging.warn(
@@ -108,13 +114,19 @@ const checkTreeItem = (
   layout: Layout,
   items: string[],
   excluded: number[],
+  visited: Set<string> = new Set(),
 ) => {
   items.forEach(item => {
+    if (visited.has(item)) {
+      return;
+    }
+    visited.add(item);
     checkTreeItem(
       checkedItems,
       layout,
       addInvisibleParents(layout, item),
       excluded,
+      visited,
     );
     if (
       layout[item]?.type === CHART_TYPE &&
