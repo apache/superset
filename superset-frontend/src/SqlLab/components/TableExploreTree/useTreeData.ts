@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useMemo, useReducer, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import {
   Table,
@@ -26,6 +27,7 @@ import {
   useLazyTableMetadataQuery,
   useLazyTableExtendedMetadataQuery,
 } from 'src/hooks/apiResources';
+import { addDangerToast } from 'src/SqlLab/actions/sqlLab';
 import type { TreeNodeData } from './types';
 import { SupersetError } from '@superset-ui/core';
 
@@ -42,6 +44,7 @@ interface TreeDataState {
 type TreeDataAction =
   | { type: 'SET_TABLE_DATA'; key: string; data: { options: Table[] } }
   | { type: 'SET_TABLE_SCHEMA_DATA'; key: string; data: TableMetaData }
+  | { type: 'CLEAR_TABLE_SCHEMA_DATA'; key: string }
   | { type: 'SET_LOADING_NODE'; nodeId: string; loading: boolean }
   | { type: 'SET_ERROR'; errorPayload: SupersetError | null };
 
@@ -71,6 +74,10 @@ function treeDataReducer(
           [action.key]: action.data,
         },
       };
+    case 'CLEAR_TABLE_SCHEMA_DATA': {
+      const { [action.key]: _, ...rest } = state.tableSchemaData;
+      return { ...state, tableSchemaData: rest };
+    }
     case 'SET_LOADING_NODE':
       return {
         ...state,
@@ -108,6 +115,7 @@ interface UseTreeDataResult {
     catalog: string | null | undefined;
     schema: string;
   }) => void;
+  refreshTableSchema: (id: string) => void;
   errorPayload: SupersetError | null;
 }
 
@@ -122,6 +130,7 @@ const useTreeData = ({
   catalog,
   pinnedTables,
 }: UseTreeDataParams): UseTreeDataResult => {
+  const reduxDispatch = useDispatch();
   // Schema data from API
   const {
     currentData: schemaData,
@@ -195,6 +204,8 @@ const useTreeData = ({
           dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
 
           // Fetch metadata asynchronously
+          // .unwrap() causes RTK Query to reject on error so .catch() fires.
+          // Without it RTK Query resolves with { error } instead of rejecting.
           Promise.all([
             fetchTableMetadata(
               {
@@ -204,7 +215,7 @@ const useTreeData = ({
                 table,
               },
               true,
-            ),
+            ).unwrap(),
             fetchTableExtendedMetadata(
               {
                 dbId: parsedDbId,
@@ -213,22 +224,30 @@ const useTreeData = ({
                 table,
               },
               true,
-            ),
+            ).unwrap(),
           ])
-            .then(
-              ([{ data: tableMetadata }, { data: tableExtendedMetadata }]) => {
-                if (tableMetadata) {
-                  dispatch({
-                    type: 'SET_TABLE_SCHEMA_DATA',
-                    key: tableKey,
-                    data: {
-                      ...tableMetadata,
-                      ...tableExtendedMetadata,
-                    },
-                  });
-                }
-              },
-            )
+            .then(([tableMetadata, tableExtendedMetadata]) => {
+              if (tableMetadata) {
+                dispatch({
+                  type: 'SET_TABLE_SCHEMA_DATA',
+                  key: tableKey,
+                  data: {
+                    ...tableMetadata,
+                    ...tableExtendedMetadata,
+                  },
+                });
+              }
+            })
+            .catch(() => {
+              reduxDispatch(
+                addDangerToast(
+                  t(
+                    'An error occurred while fetching table metadata for %s',
+                    table,
+                  ),
+                ),
+              );
+            })
             .finally(() => {
               dispatch({
                 type: 'SET_LOADING_NODE',
@@ -245,6 +264,7 @@ const useTreeData = ({
       fetchTableExtendedMetadata,
       fetchTableMetadata,
       pinnedTables,
+      reduxDispatch,
       tableData,
       tableSchemaData,
     ],
@@ -287,6 +307,55 @@ const useTreeData = ({
         });
     },
     [fetchLazyTables],
+  );
+
+  const refreshTableSchema = useCallback(
+    (id: string) => {
+      const parts = id.split(':');
+      const [, databaseId, schema, table] = parts;
+      const parsedDbId = Number(databaseId);
+      const tableKey = `${parsedDbId}:${schema}:${table}`;
+
+      dispatch({ type: 'CLEAR_TABLE_SCHEMA_DATA', key: tableKey });
+      dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
+
+      Promise.all([
+        fetchTableMetadata(
+          { dbId: parsedDbId, catalog, schema, table },
+          false,
+        ).unwrap(),
+        fetchTableExtendedMetadata(
+          { dbId: parsedDbId, catalog, schema, table },
+          false,
+        ).unwrap(),
+      ])
+        .then(([tableMetadata, tableExtendedMetadata]) => {
+          if (tableMetadata) {
+            dispatch({
+              type: 'SET_TABLE_SCHEMA_DATA',
+              key: tableKey,
+              data: {
+                ...tableMetadata,
+                ...tableExtendedMetadata,
+              },
+            });
+          }
+        })
+        .catch(() => {
+          reduxDispatch(
+            addDangerToast(
+              t(
+                'An error occurred while refreshing table metadata for %s',
+                table,
+              ),
+            ),
+          );
+        })
+        .finally(() => {
+          dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: false });
+        });
+    },
+    [catalog, fetchTableExtendedMetadata, fetchTableMetadata, reduxDispatch],
   );
 
   // Build tree data
@@ -378,6 +447,7 @@ const useTreeData = ({
     selectStarMap,
     handleToggle,
     handleRefreshTables,
+    refreshTableSchema,
     errorPayload,
   };
 };
