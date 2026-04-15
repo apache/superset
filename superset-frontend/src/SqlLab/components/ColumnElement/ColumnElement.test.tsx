@@ -24,9 +24,9 @@ import { table } from 'src/SqlLab/fixtures';
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColumnElement', () => {
   test('is valid with props', () => {
-    expect(
-      isValidElement(<ColumnElement column={table.columns[0]} />),
-    ).toBe(true);
+    expect(isValidElement(<ColumnElement column={table.columns[0]} />)).toBe(
+      true,
+    );
   });
   test('renders a proper primary key', () => {
     const { container } = render(<ColumnElement column={table.columns[0]} />);
