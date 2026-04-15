@@ -25,6 +25,7 @@ call, concurrent tasks share one g namespace and g.user mutations race.
 These tests verify that:
 - Always pushing a new app_context() per task isolates g.user (SAFE)
 - Reusing a shared parent context via nullcontext() causes races (UNSAFE)
+- When a request context is active, nullcontext() is safe (middleware path)
 """
 
 import asyncio
@@ -46,7 +47,7 @@ def _get_user_id() -> int | None:
     """Mirrors superset.utils.core.get_user_id."""
     try:
         return g.user.id
-    except Exception:
+    except AttributeError:
         return None
 
 
@@ -54,7 +55,8 @@ def _get_user_id() -> int | None:
 async def test_fresh_app_context_per_task_isolates_g_user():
     """
     Each task pushes its own app_context(). g.user is isolated.
-    This is the fixed code path in _get_app_context_manager().
+    This is the fixed code path in _get_app_context_manager() when
+    no request context is active (app-context-only mode).
     """
     app = Flask(__name__)
 
@@ -81,28 +83,64 @@ async def test_nullcontext_shared_context_causes_race():
     """
     Both tasks reuse the parent's app context (nullcontext path).
     g.user is shared — one task overwrites the other's identity.
-    This is the bug that existed before the fix.
+    Uses asyncio.Event for deterministic interleaving.
     """
     app = Flask(__name__)
 
-    async def tool_call(user, results, key):
-        # No per-task app_context — nullcontext() reuses parent's g
-        g.user = user
-        await asyncio.sleep(0)
-        results[key] = _get_user_id()
+    alice_set = asyncio.Event()
+    bob_set = asyncio.Event()
+
+    async def alice_task(results):
+        g.user = ALICE
+        alice_set.set()  # Signal: Alice has set g.user
+        await bob_set.wait()  # Wait for Bob to overwrite g.user
+        results["alice"] = _get_user_id()
+
+    async def bob_task(results):
+        await alice_set.wait()  # Wait for Alice to set g.user first
+        g.user = BOB  # Overwrite the shared g.user
+        bob_set.set()  # Signal: Bob has overwritten
+        results["bob"] = _get_user_id()
 
     with app.app_context():
         results: dict[str, int | None] = {}
         await asyncio.gather(
-            tool_call(ALICE, results, "alice"),
-            tool_call(BOB, results, "bob"),
+            alice_task(results),
+            bob_task(results),
         )
-        # At least one user sees the wrong ID
-        alice_wrong = results["alice"] != ALICE.id
-        bob_wrong = results["bob"] != BOB.id
+        # Alice reads Bob's ID because they share the same g
         assert (
-            alice_wrong or bob_wrong
-        ), "Expected race — both tasks share g via parent context"
+            results["alice"] == BOB.id
+        ), "Expected Alice to see Bob's ID due to shared g"
+        assert results["bob"] == BOB.id
+
+
+@pytest.mark.asyncio()
+async def test_request_context_preserves_g_user():
+    """
+    When a request context is active (middleware set g.user), each task
+    pushes its own test_request_context. The per-task app_context +
+    request_context provides isolation even with nullcontext() in the
+    auth hook.
+    """
+    app = Flask(__name__)
+
+    async def tool_call(user, results, key):
+        with app.app_context():
+            with app.test_request_context(path="/mcp"):
+                g.user = user
+                await asyncio.sleep(0)
+                results[key] = _get_user_id()
+
+    with app.app_context():
+        for _ in range(200):
+            results: dict[str, int | None] = {}
+            await asyncio.gather(
+                tool_call(ALICE, results, "alice"),
+                tool_call(BOB, results, "bob"),
+            )
+            assert results["alice"] == ALICE.id
+            assert results["bob"] == BOB.id
 
 
 @pytest.mark.asyncio()
