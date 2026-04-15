@@ -108,6 +108,23 @@ class ColumnInfo(BaseModel):
     type: str = Field(..., description="Column data type")
     is_nullable: bool | None = Field(None, description="Whether column allows NULL")
 
+    @field_validator("is_nullable", mode="before")
+    @classmethod
+    def coerce_is_nullable(cls, v: Any) -> bool | None:
+        """Coerce non-boolean values (e.g. Athena's 'UNKNOWN') to None."""
+        if v is None or isinstance(v, bool):
+            return v
+        if isinstance(v, (int, float)):
+            return bool(v)
+        if isinstance(v, str):
+            lowered = v.strip().lower()
+            if lowered in ("true", "1", "yes"):
+                return True
+            if lowered in ("false", "0", "no"):
+                return False
+            return None
+        return None
+
 
 class StatementData(BaseModel):
     """Row data and column metadata for a single SQL statement."""

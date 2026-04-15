@@ -34,6 +34,7 @@ from fastmcp.exceptions import ToolError
 from superset_core.queries.types import QueryResult, QueryStatus, StatementResult
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.sql_lab.schemas import ColumnInfo
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -1164,3 +1165,53 @@ class TestExecuteSqlOAuth2:
             assert data["success"] is False
             assert "configuration" in data["error"]
             assert data["error_type"] == "OAUTH2_REDIRECT_ERROR"
+
+
+class TestColumnInfoIsNullable:
+    """Tests for ColumnInfo.is_nullable coercion (Athena returns 'UNKNOWN')."""
+
+    def test_unknown_string_becomes_none(self):
+        assert (
+            ColumnInfo(name="c", type="int", is_nullable="UNKNOWN").is_nullable is None
+        )
+
+    def test_arbitrary_string_becomes_none(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="maybe").is_nullable is None
+
+    def test_true_bool(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=True).is_nullable is True
+
+    def test_false_bool(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=False).is_nullable is False
+
+    def test_none(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=None).is_nullable is None
+
+    def test_default_is_none(self):
+        assert ColumnInfo(name="c", type="int").is_nullable is None
+
+    def test_true_string(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="true").is_nullable is True
+
+    def test_false_string(self):
+        assert (
+            ColumnInfo(name="c", type="int", is_nullable="false").is_nullable is False
+        )
+
+    def test_one_string(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="1").is_nullable is True
+
+    def test_zero_string(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="0").is_nullable is False
+
+    def test_integer_one(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=1).is_nullable is True
+
+    def test_integer_zero(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=0).is_nullable is False
+
+    def test_model_validate_unknown(self):
+        col = ColumnInfo.model_validate(
+            {"name": "c", "type": "int", "is_nullable": "UNKNOWN"}
+        )
+        assert col.is_nullable is None
