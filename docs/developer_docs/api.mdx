@@ -412,7 +412,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 |--------|----------|-------------|
 | `GET` | [Get security roles](/developer-docs/api/get-security-roles) | `/api/v1/security/roles/` |
 | `POST` | [Create security roles](/developer-docs/api/create-security-roles) | `/api/v1/security/roles/` |
-| `GET` | [Get security roles  info](/developer-docs/api/get-security-roles-info) | `/api/v1/security/roles/_info` |
+| `GET` | [Get security roles info](/developer-docs/api/get-security-roles-info) | `/api/v1/security/roles/_info` |
 | `DELETE` | [Delete security roles by pk](/developer-docs/api/delete-security-roles-by-pk) | `/api/v1/security/roles/{pk}` |
 | `GET` | [Get security roles by pk](/developer-docs/api/get-security-roles-by-pk) | `/api/v1/security/roles/{pk}` |
 | `PUT` | [Update security roles by pk](/developer-docs/api/update-security-roles-by-pk) | `/api/v1/security/roles/{pk}` |
@@ -430,7 +430,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 |--------|----------|-------------|
 | `GET` | [Get security users](/developer-docs/api/get-security-users) | `/api/v1/security/users/` |
 | `POST` | [Create security users](/developer-docs/api/create-security-users) | `/api/v1/security/users/` |
-| `GET` | [Get security users  info](/developer-docs/api/get-security-users-info) | `/api/v1/security/users/_info` |
+| `GET` | [Get security users info](/developer-docs/api/get-security-users-info) | `/api/v1/security/users/_info` |
 | `DELETE` | [Delete security users by pk](/developer-docs/api/delete-security-users-by-pk) | `/api/v1/security/users/{pk}` |
 | `GET` | [Get security users by pk](/developer-docs/api/get-security-users-by-pk) | `/api/v1/security/users/{pk}` |
 | `PUT` | [Update security users by pk](/developer-docs/api/update-security-users-by-pk) | `/api/v1/security/users/{pk}` |
@@ -443,7 +443,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | [Get security permissions](/developer-docs/api/get-security-permissions) | `/api/v1/security/permissions/` |
-| `GET` | [Get security permissions  info](/developer-docs/api/get-security-permissions-info) | `/api/v1/security/permissions/_info` |
+| `GET` | [Get security permissions info](/developer-docs/api/get-security-permissions-info) | `/api/v1/security/permissions/_info` |
 | `GET` | [Get security permissions by pk](/developer-docs/api/get-security-permissions-by-pk) | `/api/v1/security/permissions/{pk}` |
 
 </details>
@@ -455,7 +455,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 |--------|----------|-------------|
 | `GET` | [Get security resources](/developer-docs/api/get-security-resources) | `/api/v1/security/resources/` |
 | `POST` | [Create security resources](/developer-docs/api/create-security-resources) | `/api/v1/security/resources/` |
-| `GET` | [Get security resources  info](/developer-docs/api/get-security-resources-info) | `/api/v1/security/resources/_info` |
+| `GET` | [Get security resources info](/developer-docs/api/get-security-resources-info) | `/api/v1/security/resources/_info` |
 | `DELETE` | [Delete security resources by pk](/developer-docs/api/delete-security-resources-by-pk) | `/api/v1/security/resources/{pk}` |
 | `GET` | [Get security resources by pk](/developer-docs/api/get-security-resources-by-pk) | `/api/v1/security/resources/{pk}` |
 | `PUT` | [Update security resources by pk](/developer-docs/api/update-security-resources-by-pk) | `/api/v1/security/resources/{pk}` |
@@ -469,7 +469,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 |--------|----------|-------------|
 | `GET` | [Get security permissions resources](/developer-docs/api/get-security-permissions-resources) | `/api/v1/security/permissions-resources/` |
 | `POST` | [Create security permissions resources](/developer-docs/api/create-security-permissions-resources) | `/api/v1/security/permissions-resources/` |
-| `GET` | [Get security permissions resources  info](/developer-docs/api/get-security-permissions-resources-info) | `/api/v1/security/permissions-resources/_info` |
+| `GET` | [Get security permissions resources info](/developer-docs/api/get-security-permissions-resources-info) | `/api/v1/security/permissions-resources/_info` |
 | `DELETE` | [Delete security permissions resources by pk](/developer-docs/api/delete-security-permissions-resources-by-pk) | `/api/v1/security/permissions-resources/{pk}` |
 | `GET` | [Get security permissions resources by pk](/developer-docs/api/get-security-permissions-resources-by-pk) | `/api/v1/security/permissions-resources/{pk}` |
 | `PUT` | [Update security permissions resources by pk](/developer-docs/api/update-security-permissions-resources-by-pk) | `/api/v1/security/permissions-resources/{pk}` |
@@ -578,7 +578,29 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | [Get api by version  openapi](/developer-docs/api/get-api-by-version-openapi) | `/api/{version}/_openapi` |
+| `GET` | [Get api by version openapi](/developer-docs/api/get-api-by-version-openapi) | `/api/{version}/_openapi` |
+
+</details>
+
+<details>
+<summary><strong>Themes</strong> (14 endpoints) — Manage UI themes for customizing Superset's appearance.</summary>
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `DELETE` | [Bulk delete themes](/developer-docs/api/bulk-delete-themes) | `/api/v1/theme/` |
+| `GET` | [Get a list of themes](/developer-docs/api/get-a-list-of-themes) | `/api/v1/theme/` |
+| `POST` | [Create a theme](/developer-docs/api/create-a-theme) | `/api/v1/theme/` |
+| `GET` | [Get metadata information about this API resource (theme-info)](/developer-docs/api/get-metadata-information-about-this-api-resource-theme-info) | `/api/v1/theme/_info` |
+| `DELETE` | [Delete a theme](/developer-docs/api/delete-a-theme) | `/api/v1/theme/{pk}` |
+| `GET` | [Get a theme](/developer-docs/api/get-a-theme) | `/api/v1/theme/{pk}` |
+| `PUT` | [Update a theme](/developer-docs/api/update-a-theme) | `/api/v1/theme/{pk}` |
+| `PUT` | [Set a theme as the system dark theme](/developer-docs/api/set-a-theme-as-the-system-dark-theme) | `/api/v1/theme/{pk}/set_system_dark` |
+| `PUT` | [Set a theme as the system default theme](/developer-docs/api/set-a-theme-as-the-system-default-theme) | `/api/v1/theme/{pk}/set_system_default` |
+| `GET` | [Download multiple themes as YAML files](/developer-docs/api/download-multiple-themes-as-yaml-files) | `/api/v1/theme/export/` |
+| `POST` | [Import themes from a ZIP file](/developer-docs/api/import-themes-from-a-zip-file) | `/api/v1/theme/import/` |
+| `GET` | [Get related fields data (theme-related-column-name)](/developer-docs/api/get-related-fields-data-theme-related-column-name) | `/api/v1/theme/related/{column_name}` |
+| `DELETE` | [Clear the system dark theme](/developer-docs/api/clear-the-system-dark-theme) | `/api/v1/theme/unset_system_dark` |
+| `DELETE` | [Clear the system default theme](/developer-docs/api/clear-the-system-default-theme) | `/api/v1/theme/unset_system_default` |
 
 </details>
 
