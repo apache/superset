@@ -80,6 +80,24 @@ class InMemoryFinder(importlib.abc.MetaPathFinder):
 
             self.modules[mod_name] = (content, is_package, full_path)
 
+        # Detect the publisher namespace prefix. Extension backend files follow the
+        # convention {publisher}/{package}/..., so all module names share a common
+        # first component (the publisher). Extensions may use bare imports without
+        # the publisher prefix (e.g., "from pandas_semantic_layer.layer import ..."
+        # instead of "from betodealmeida.pandas_semantic_layer.layer import ..."),
+        # so we register aliases without the prefix to support both import styles.
+        prefixes = {name.split(".")[0] for name in self.modules if "." in name}
+        if len(prefixes) == 1:
+            publisher_prefix = next(iter(prefixes))
+            prefix_dot = f"{publisher_prefix}."
+            aliases: dict[str, Tuple[Any, Any, Any]] = {}
+            for mod_name, value in self.modules.items():
+                if mod_name.startswith(prefix_dot):
+                    short_name = mod_name[len(prefix_dot) :]
+                    if short_name not in self.modules:
+                        aliases[short_name] = value
+            self.modules.update(aliases)
+
         # Create namespace packages for all parent modules
         # This ensures publisher namespace packages exist
         namespace_packages: set[str] = set()

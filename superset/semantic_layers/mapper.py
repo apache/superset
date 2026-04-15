@@ -51,7 +51,10 @@ from superset_core.semantic_layers.view import SemanticViewFeature
 
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_object import QueryObject
-from superset.common.utils.time_range_utils import get_since_until_from_query_object
+from superset.common.utils.time_range_utils import (
+    get_since_until_from_query_object,
+    get_since_until_from_time_range,
+)
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
 from superset.models.helpers import QueryResult
@@ -293,7 +296,7 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
 
     grain = (
         _convert_time_grain(query_object.extras["time_grain_sqla"])
-        if "time_grain_sqla" in query_object.extras
+        if query_object.extras.get("time_grain_sqla")
         else None
     )
     dimensions = [
@@ -532,11 +535,22 @@ def _convert_query_object_filter(
 
     dimension = all_dimensions[col]
 
-    val_str = filter_["val"]
+    val_str = filter_.get("val")
     value: FilterValues | frozenset[FilterValues]
-    if val_str is None:
+
+    # For operators that require a value, skip if val is missing/empty
+    operators_without_value = {
+        FilterOperator.IS_NULL.value,
+        FilterOperator.IS_NOT_NULL.value,
+    }
+    if val_str is None and operator_str not in operators_without_value:
+        # Skip filters with no value (e.g., IN filter with no values selected)
+        return None
+    elif val_str is None:
         value = None
     elif isinstance(val_str, (list, tuple)):
+        if len(val_str) == 0 and operator_str not in operators_without_value:
+            return None
         value = frozenset(val_str)
     else:
         value = val_str
@@ -545,21 +559,33 @@ def _convert_query_object_filter(
     if operator_str == FilterOperator.TEMPORAL_RANGE.value:
         if not isinstance(value, str) or value == NO_TIME_RANGE:
             return None
-        start, end = value.split(" : ")
-        return {
-            Filter(
-                type=PredicateType.WHERE,
-                column=dimension,
-                operator=Operator.GREATER_THAN_OR_EQUAL,
-                value=start,
-            ),
-            Filter(
-                type=PredicateType.WHERE,
-                column=dimension,
-                operator=Operator.LESS_THAN,
-                value=end,
-            ),
-        }
+
+        # Resolve human-readable time ranges (e.g., "Last week", "Last month")
+        # to actual datetime objects using Superset's date parser
+        from_dttm, to_dttm = get_since_until_from_time_range(time_range=value)
+        if not from_dttm and not to_dttm:
+            return None
+
+        result: set[Filter] = set()
+        if from_dttm:
+            result.add(
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=dimension,
+                    operator=Operator.GREATER_THAN_OR_EQUAL,
+                    value=from_dttm,
+                ),
+            )
+        if to_dttm:
+            result.add(
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=dimension,
+                    operator=Operator.LESS_THAN,
+                    value=to_dttm,
+                ),
+            )
+        return result
 
     # Map QueryObject operators to semantic layer operators
     operator_mapping = {
