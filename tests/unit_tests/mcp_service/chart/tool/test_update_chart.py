@@ -19,6 +19,7 @@
 Unit tests for update_chart MCP tool
 """
 
+import importlib
 from unittest.mock import Mock, patch
 
 import pytest
@@ -40,6 +41,10 @@ from superset.mcp_service.chart.tool.update_chart import (
     _build_preview_form_data,
     _build_update_payload,
     _find_chart,
+)
+
+update_chart_module = importlib.import_module(
+    "superset.mcp_service.chart.tool.update_chart"
 )
 
 
@@ -687,9 +692,7 @@ class TestUpdateChartNameOnly:
 
             assert result.structured_content["success"] is True
             assert result.structured_content["chart"]["slice_name"] == "Renamed Chart"
-            assert (
-                result.structured_content["chart"]["is_unsaved_state"] is False
-            )
+            assert result.structured_content["chart"]["is_unsaved_state"] is False
 
             # Verify UpdateChartCommand was called with name-only payload
             mock_update_cmd_cls.assert_called_once_with(
@@ -739,10 +742,7 @@ class TestUpdateChartNameOnly:
 class TestUpdateChartPreviewFirst:
     """Integration-style tests for the preview-first default flow."""
 
-    @patch(
-        "superset.mcp_service.chart.tool.update_chart._create_preview_url",
-        new_callable=Mock,
-    )
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
     @patch(
         "superset.commands.chart.update.UpdateChartCommand",
         new_callable=Mock,
@@ -797,13 +797,9 @@ class TestUpdateChartPreviewFirst:
             result = await client.call_tool("update_chart", {"request": request})
 
             assert result.structured_content["success"] is True
-            assert (
-                result.structured_content["chart"]["is_unsaved_state"] is True
-            )
+            assert result.structured_content["chart"]["is_unsaved_state"] is True
             assert result.structured_content["chart"]["id"] == 1
-            assert (
-                result.structured_content["chart"]["form_data_key"] == "preview_key"
-            )
+            assert result.structured_content["chart"]["form_data_key"] == "preview_key"
             assert result.structured_content["explore_url"] == preview_url
             assert result.structured_content["form_data_key"] == "preview_key"
 
@@ -811,10 +807,7 @@ class TestUpdateChartPreviewFirst:
             mock_update_cmd_cls.assert_not_called()
             mock_create_preview.assert_called_once()
 
-    @patch(
-        "superset.mcp_service.chart.tool.update_chart._create_preview_url",
-        new_callable=Mock,
-    )
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
     @patch(
         "superset.mcp_service.auth.check_chart_data_access",
         new_callable=Mock,

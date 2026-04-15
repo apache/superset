@@ -66,9 +66,7 @@ def _find_chart(identifier: int | str) -> Any | None:
     return ChartDAO.find_by_id(identifier, id_column="uuid")
 
 
-def _validation_error_response(
-    message: str, details: str
-) -> GenerateChartResponse:
+def _validation_error_response(message: str, details: str) -> GenerateChartResponse:
     return GenerateChartResponse.model_validate(
         {
             "chart": None,
@@ -404,9 +402,7 @@ async def update_chart(  # noqa: C901
             if saved and updated_chart and updated_chart.uuid
             else (str(chart.uuid) if chart.uuid else None)
         )
-        viz_type = (
-            updated_chart.viz_type if saved and updated_chart else chart.viz_type
-        )
+        viz_type = updated_chart.viz_type if saved and updated_chart else chart.viz_type
 
         result = {
             "chart": {
