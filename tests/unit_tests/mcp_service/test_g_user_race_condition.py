@@ -51,7 +51,7 @@ def _get_user_id() -> int | None:
         return None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_fresh_app_context_per_task_isolates_g_user():
     """
     Each task pushes its own app_context(). g.user is isolated.
@@ -78,7 +78,7 @@ async def test_fresh_app_context_per_task_isolates_g_user():
             assert results["bob"] == BOB.id
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_nullcontext_shared_context_causes_race():
     """
     Both tasks reuse the parent's app context (nullcontext path).
@@ -115,7 +115,7 @@ async def test_nullcontext_shared_context_causes_race():
         assert results["bob"] == BOB.id
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_request_context_preserves_g_user():
     """
     When a request context is active (middleware set g.user), each task
@@ -143,7 +143,7 @@ async def test_request_context_preserves_g_user():
             assert results["bob"] == BOB.id
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_high_contention_isolation():
     """10 concurrent users, 50 iterations — stress test."""
     app = Flask(__name__)
