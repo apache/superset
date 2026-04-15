@@ -359,9 +359,18 @@ class Chart extends PureComponent<ChartProps, {}> {
       chartIsStale,
       queriesResponse = [],
       width,
+      formData,
+      vizType,
     } = this.props;
 
     const databaseName = datasource?.database?.name as string | undefined;
+
+    // Build an accessible label for the chart container (WCAG 1.1.1)
+    const sliceName = (formData as Record<string, unknown>)
+      ?.slice_name as string | undefined;
+    const chartAriaLabel = sliceName
+      ? t('%s — %s chart', sliceName, vizType)
+      : t('%s chart', vizType);
 
     const isLoading = chartStatus === 'loading';
     // Suppress spinner during auto-refresh to avoid visual flicker
@@ -425,6 +434,8 @@ class Chart extends PureComponent<ChartProps, {}> {
           data-test="chart-container"
           height={height}
           width={width}
+          role={showSpinner ? undefined : 'img'}
+          aria-label={showSpinner ? undefined : chartAriaLabel}
         >
           {showSpinner
             ? this.renderSpinner(databaseName)

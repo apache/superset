@@ -94,6 +94,7 @@ const VerticalDotsTrigger = () => {
       iconSize="xl"
       iconColor={theme.colorTextLabel}
       className="dot"
+      aria-hidden="true"
     />
   );
 };
@@ -563,26 +564,26 @@ const SliceHeaderControls = (
         {
           key: MenuKeys.ExportCsv,
           label: t('Export to .CSV'),
-          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+          icon: <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden="true" />,
         },
         ...(isPivotTable
           ? [
               {
                 key: MenuKeys.ExportPivotCsv,
                 label: t('Export to Pivoted .CSV'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden="true" />,
               },
               {
                 key: MenuKeys.ExportPivotXlsx,
                 label: t('Export to Pivoted Excel'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden="true" />,
               },
             ]
           : []),
         {
           key: MenuKeys.ExportXlsx,
           label: t('Export to Excel'),
-          icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+          icon: <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden="true" />,
         },
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
         props.supersetCanCSV &&
@@ -591,19 +592,19 @@ const SliceHeaderControls = (
               {
                 key: MenuKeys.ExportFullCsv,
                 label: t('Export to full .CSV'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden="true" />,
               },
               {
                 key: MenuKeys.ExportFullXlsx,
                 label: t('Export to full Excel'),
-                icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                icon: <Icons.FileOutlined css={dropdownIconsStyles} aria-hidden="true" />,
               },
             ]
           : []),
         {
           key: MenuKeys.DownloadAsImage,
           label: t('Download as image'),
-          icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
+          icon: <Icons.FileImageOutlined css={dropdownIconsStyles} aria-hidden="true" />,
         },
       ],
     });
@@ -631,6 +632,7 @@ const SliceHeaderControls = (
       {isFullSize && (
         <Icons.FullscreenExitOutlined
           style={{ fontSize: 22 }}
+          aria-label={t('Exit fullscreen')}
           onClick={() => {
             if (document.fullscreenElement) {
               exitChartFullscreen();

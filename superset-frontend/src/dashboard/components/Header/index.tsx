@@ -683,6 +683,7 @@ const Header = (): JSX.Element => {
                       onClick={
                         undoLength > 0 ? boundActionCreators.onUndo : undefined
                       }
+                      aria-label={t('Undo the action')}
                     >
                       <Icons.Undo
                         css={[
@@ -692,6 +693,7 @@ const Header = (): JSX.Element => {
                         ]}
                         data-test="undo-action"
                         iconSize="xl"
+                        aria-hidden="true"
                       />
                     </StyledUndoRedoButton>
                   </Tooltip>
@@ -705,6 +707,7 @@ const Header = (): JSX.Element => {
                       onClick={
                         redoLength > 0 ? boundActionCreators.onRedo : undefined
                       }
+                      aria-label={t('Redo the action')}
                     >
                       <Icons.Redo
                         css={[
@@ -714,6 +717,7 @@ const Header = (): JSX.Element => {
                         ]}
                         data-test="redo-action"
                         iconSize="xl"
+                        aria-hidden="true"
                       />
                     </StyledUndoRedoButton>
                   </Tooltip>
@@ -737,7 +741,7 @@ const Header = (): JSX.Element => {
                   data-test="header-save-button"
                   aria-label={t('Save')}
                 >
-                  <Icons.SaveOutlined iconSize="m" />
+                  <Icons.SaveOutlined iconSize="m" aria-hidden="true" />
                   {t('Save')}
                 </Button>
               </div>

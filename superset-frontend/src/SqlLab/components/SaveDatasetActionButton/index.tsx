@@ -34,7 +34,7 @@ const SaveDatasetActionButton = ({
       color="default"
       variant="text"
       onClick={() => setShowSave(true)}
-      icon={<Icons.SaveOutlined />}
+      icon={<Icons.SaveOutlined aria-hidden="true" />}
       tooltip={t('Save query')}
       aria-label={t('Save')}
     />
@@ -43,7 +43,7 @@ const SaveDatasetActionButton = ({
         color="default"
         variant="text"
         onClick={() => onSaveAsExplore?.()}
-        icon={<Icons.TableOutlined />}
+        icon={<Icons.TableOutlined aria-hidden="true" />}
         tooltip={t('Save or Overwrite Dataset')}
         aria-label={t('Save dataset')}
       />

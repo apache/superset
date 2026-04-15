@@ -401,7 +401,7 @@ const ResultSet = ({
               buttonSize="small"
               variant="text"
               color="primary"
-              icon={<Icons.DownloadOutlined iconSize="m" />}
+              icon={<Icons.DownloadOutlined iconSize="m" aria-hidden="true" />}
               tooltip={t('Download to CSV')}
               aria-label={t('Download to CSV')}
               {...(!shouldUseStreamingExport() && {
@@ -439,7 +439,7 @@ const ResultSet = ({
                   buttonSize="small"
                   variant="text"
                   color="primary"
-                  icon={<Icons.CopyOutlined iconSize="m" />}
+                  icon={<Icons.CopyOutlined iconSize="m" aria-hidden="true" />}
                   tooltip={t('Copy to Clipboard')}
                   aria-label={t('Copy to Clipboard')}
                   data-test="copy-to-clipboard-button"
