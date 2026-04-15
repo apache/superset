@@ -926,3 +926,203 @@ class TestBuildPreviewFormData:
         assert isinstance(result, dict)
         assert result["slice_id"] == 9
         assert result["slice_name"] == "Broken"
+
+
+class TestUpdateChartSaveWithConfig:
+    """Save-path integration tests for update_chart with a full config payload."""
+
+    @patch(
+        "superset.commands.chart.update.UpdateChartCommand",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_save_chart_with_config_success(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_update_cmd_cls,
+        mcp_server,
+    ):
+        """save_chart=True with a config payload persists and returns saved chart."""
+        mock_chart = Mock()
+        mock_chart.id = 77
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Pre-save"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "uuid-77"
+        mock_chart.params = '{"viz_type": "table"}'
+        mock_find_by_id.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="my_dataset",
+            warnings=[],
+        )
+
+        updated_chart = Mock()
+        updated_chart.id = 77
+        updated_chart.slice_name = "After-save"
+        updated_chart.viz_type = "table"
+        updated_chart.uuid = "uuid-77"
+        mock_update_cmd_cls.return_value.run.return_value = updated_chart
+
+        request = {
+            "identifier": 77,
+            "save_chart": True,
+            "config": {
+                "chart_type": "table",
+                "columns": [{"name": "col1"}],
+            },
+            "generate_preview": False,
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+        assert result.structured_content["success"] is True
+        chart = result.structured_content["chart"]
+        assert chart["is_unsaved_state"] is False
+        assert chart["id"] == 77
+        assert chart["slice_name"] == "After-save"
+        assert "slice_id=77" in result.structured_content["explore_url"]
+        mock_update_cmd_cls.assert_called_once()
+
+
+class TestUpdateChartErrorPaths:
+    """Integration tests for error-handling branches in update_chart."""
+
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_chart_not_found_returns_notfound_error(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mcp_server,
+    ):
+        """Missing chart returns a structured NotFound error without raising."""
+        mock_find_by_id.return_value = None
+
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "update_chart", {"request": {"identifier": 9999}}
+            )
+
+        assert result.structured_content["success"] is False
+        error = result.structured_content["error"]
+        assert error["error_type"] == "NotFound"
+        assert "9999" in error["message"]
+
+    @patch(
+        "superset.commands.chart.update.UpdateChartCommand",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_update_command_exception_is_caught(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_update_cmd_cls,
+        mcp_server,
+    ):
+        """CommandException from UpdateChartCommand.run() is captured and returned."""
+        from superset.commands.exceptions import CommandException
+
+        mock_chart = Mock()
+        mock_chart.id = 5
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Name"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "uuid-5"
+        mock_chart.params = "{}"
+        mock_find_by_id.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="my_dataset",
+            warnings=[],
+        )
+
+        mock_update_cmd_cls.return_value.run.side_effect = CommandException("boom")
+
+        request = {
+            "identifier": 5,
+            "save_chart": True,
+            "chart_name": "Retry",
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+        assert result.structured_content["success"] is False
+        error = result.structured_content["error"]
+        assert error["error_type"] == "CommandException"
+        assert "boom" in error["details"]
+
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_preview_extracts_form_data_key_from_url_fallback(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_create_preview,
+        mcp_server,
+    ):
+        """If _create_preview_url returns (url, None), form_data_key comes from url."""
+        mock_chart = Mock()
+        mock_chart.id = 8
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "uuid-8"
+        mock_chart.params = '{"viz_type": "table"}'
+        mock_find_by_id.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="my_dataset",
+            warnings=[],
+        )
+
+        preview_url = (
+            "http://localhost:8088/explore/?form_data_key=url_embedded_key&slice_id=8"
+        )
+        mock_create_preview.return_value = (preview_url, None)
+
+        request = {
+            "identifier": 8,
+            "config": {
+                "chart_type": "table",
+                "columns": [{"name": "col1"}],
+            },
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+        assert result.structured_content["success"] is True
+        assert result.structured_content["form_data_key"] == "url_embedded_key"
