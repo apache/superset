@@ -104,6 +104,9 @@ export default class TextControl<
       this.initialValue = this.props.value;
       value = safeStringify(this.props.value);
     }
+    const hasErrors =
+      this.props.validationErrors && this.props.validationErrors.length > 0;
+    const errorId = hasErrors ? `${this.props.controlId || this.props.name || 'text'}-error` : undefined;
     return (
       <div>
         <ControlHeader {...this.props} />
@@ -116,7 +119,19 @@ export default class TextControl<
           value={value}
           disabled={this.props.disabled}
           aria-label={this.props.label}
+          aria-invalid={hasErrors || undefined}
+          aria-describedby={errorId}
+          id={this.props.controlId || this.props.name}
         />
+        {hasErrors && (
+          <span
+            id={errorId}
+            role="alert"
+            style={{ color: 'red', fontSize: '12px', display: 'block', marginTop: '4px' }}
+          >
+            {this.props.validationErrors!.join('. ')}
+          </span>
+        )}
       </div>
     );
   }

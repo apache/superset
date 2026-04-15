@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import { ReactNode, Children, isValidElement, cloneElement, useId } from 'react';
 import { css, styled } from '@apache-superset/core/theme';
 import { InfoTooltip } from '@superset-ui/core/components';
 
@@ -128,6 +128,22 @@ export function ModalFormField({
   validateStatus,
   hasFeedback = false,
 }: ModalFormFieldProps) {
+  const uniqueId = useId();
+  const errorId = error ? `${uniqueId}-error` : undefined;
+
+  // Clone the first child element to inject aria-invalid and aria-describedby
+  const enhancedChildren = error
+    ? Children.map(children, (child, index) => {
+        if (index === 0 && isValidElement(child)) {
+          return cloneElement(child as React.ReactElement<any>, {
+            'aria-invalid': true,
+            'aria-describedby': errorId,
+          });
+        }
+        return child;
+      })
+    : children;
+
   return (
     <StyledFieldContainer bottomSpacing={bottomSpacing} data-test={testId}>
       <div className="control-label">
@@ -135,9 +151,13 @@ export function ModalFormField({
         {tooltip && <InfoTooltip tooltip={tooltip} />}
         {required && <span className="required">*</span>}
       </div>
-      <div className="input-container">{children}</div>
+      <div className="input-container">{enhancedChildren}</div>
       {helperText && <div className="helper">{helperText}</div>}
-      {error && <div className="error">{error}</div>}
+      {error && (
+        <div className="error" id={errorId} role="alert">
+          {error}
+        </div>
+      )}
     </StyledFieldContainer>
   );
 }

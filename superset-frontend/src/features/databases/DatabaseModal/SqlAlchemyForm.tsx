@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EventHandler, ChangeEvent, MouseEvent, ReactNode } from 'react';
+import { EventHandler, ChangeEvent, MouseEvent, ReactNode, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import SupersetText from 'src/utils/textUtils';
@@ -39,6 +39,10 @@ const SqlAlchemyTab = ({
   testInProgress?: boolean;
   children?: ReactNode;
 }) => {
+  const [nameBlurred, setNameBlurred] = useState(false);
+  const [uriBlurred, setUriBlurred] = useState(false);
+  const nameError = nameBlurred && !db?.database_name;
+  const uriError = uriBlurred && !db?.sqlalchemy_uri;
   const fallbackDocsUrl =
     SupersetText?.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DOCS_URL ||
     'https://docs.sqlalchemy.org/en/13/core/engines.html';
@@ -60,8 +64,16 @@ const SqlAlchemyTab = ({
             value={db?.database_name || ''}
             placeholder={t('Name your database')}
             onChange={onInputChange}
+            onBlur={() => setNameBlurred(true)}
+            aria-invalid={nameError || undefined}
+            aria-describedby={nameError ? 'database-name-error' : undefined}
           />
         </div>
+        {nameError && (
+          <div className="helper" id="database-name-error" role="alert" style={{ color: 'var(--ifm-color-danger, #e04f5f)' }}>
+            {t('Display Name is required')}
+          </div>
+        )}
         <div className="helper">
           {t('Pick a name to help you identify this database.')}
         </div>
@@ -82,8 +94,16 @@ const SqlAlchemyTab = ({
               t('dialect+driver://username:password@host:port/database')
             }
             onChange={onInputChange}
+            onBlur={() => setUriBlurred(true)}
+            aria-invalid={uriError || undefined}
+            aria-describedby={uriError ? 'sqlalchemy-uri-error' : undefined}
           />
         </div>
+        {uriError && (
+          <div className="helper" id="sqlalchemy-uri-error" role="alert" style={{ color: 'var(--ifm-color-danger, #e04f5f)' }}>
+            {t('SQLAlchemy URI is required')}
+          </div>
+        )}
         <div className="helper">
           {t('Refer to the')}{' '}
           <a

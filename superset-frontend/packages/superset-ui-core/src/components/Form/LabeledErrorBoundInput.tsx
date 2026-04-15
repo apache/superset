@@ -65,6 +65,7 @@ export const LabeledErrorBoundInput = ({
   ...props
 }: LabeledErrorBoundInputProps) => {
   const hasError = !!errorMessage;
+  const errorDescriptionId = hasError ? `${id || props.name}-error-description` : undefined;
   return (
     <StyledFormGroup className={className}>
       <Flex align="center">
@@ -78,13 +79,23 @@ export const LabeledErrorBoundInput = ({
         validateStatus={
           isValidating ? 'validating' : hasError ? 'error' : 'success'
         }
-        help={errorMessage || helpText}
+        help={
+          hasError ? (
+            <span id={errorDescriptionId} role="alert">
+              {errorMessage}
+            </span>
+          ) : (
+            helpText
+          )
+        }
         hasFeedback={!!hasError}
       >
         {visibilityToggle || props.name === 'password' ? (
           <StyledInputPassword
             {...props}
             {...validationMethods}
+            aria-invalid={hasError || undefined}
+            aria-describedby={errorDescriptionId}
             iconRender={visible =>
               visible ? (
                 <Tooltip title={t('Hide password.')}>
@@ -99,7 +110,12 @@ export const LabeledErrorBoundInput = ({
             role="textbox"
           />
         ) : (
-          <StyledInput {...props} {...validationMethods} />
+          <StyledInput
+            {...props}
+            {...validationMethods}
+            aria-invalid={hasError || undefined}
+            aria-describedby={errorDescriptionId}
+          />
         )}
         {get_url && description ? (
           <Button
