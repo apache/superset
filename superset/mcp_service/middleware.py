@@ -130,6 +130,18 @@ class LoggingMiddleware(Middleware):
     in on_message().
     """
 
+    def _is_error_response(self, result: ToolResult) -> bool:
+        """Check if a tool result contains an error schema response.
+
+        MCP tools return error schemas (ChartError, DashboardError, etc.)
+        instead of raising exceptions. These serialize to JSON containing
+        an "error_type" field.
+        """
+        try:
+            return '"error_type"' in result.content[0].text
+        except (AttributeError, IndexError):
+            return False
+
     def _extract_context_info(
         self, context: MiddlewareContext
     ) -> tuple[
@@ -171,8 +183,11 @@ class LoggingMiddleware(Middleware):
         success = False
         try:
             result = await call_next(context)
-            success = True
+            success = not self._is_error_response(result)
             return result
+        except Exception:
+            success = False
+            raise
         finally:
             duration_ms = int((time.time() - start_time) * 1000)
             if has_app_context():
@@ -936,6 +951,72 @@ class ResponseSizeGuardMiddleware(Middleware):
             excluded_tools = [excluded_tools]
         self.excluded_tools = set(excluded_tools or [])
 
+    def _try_truncate_info_response(
+        self,
+        tool_name: str,
+        response: Any,
+        estimated_tokens: int,
+    ) -> Any | None:
+        """Attempt to dynamically truncate an info tool response to fit the limit.
+
+        Returns the truncated response if successful, None otherwise.
+        """
+        from superset.mcp_service.utils.token_utils import (
+            estimate_response_tokens,
+            truncate_oversized_response,
+        )
+
+        try:
+            truncated, was_truncated, notes = truncate_oversized_response(
+                response, self.token_limit
+            )
+        except (MemoryError, RecursionError) as trunc_error:
+            logger.warning(
+                "Truncation failed for %s due to %s: %s",
+                tool_name,
+                type(trunc_error).__name__,
+                trunc_error,
+            )
+            return None
+
+        if not was_truncated:
+            return None
+
+        truncated_tokens = estimate_response_tokens(truncated)
+        if truncated_tokens > self.token_limit:
+            return None
+
+        logger.warning(
+            "Response for %s truncated from ~%d to ~%d tokens (limit: %d). Fields: %s",
+            tool_name,
+            estimated_tokens,
+            truncated_tokens,
+            self.token_limit,
+            "; ".join(notes),
+        )
+
+        try:
+            user_id = get_user_id()
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_response_truncated",
+                curated_payload={
+                    "tool": tool_name,
+                    "original_tokens": estimated_tokens,
+                    "truncated_tokens": truncated_tokens,
+                    "token_limit": self.token_limit,
+                    "truncation_notes": notes,
+                },
+            )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log truncation event: %s", log_error)
+
+        if isinstance(truncated, dict):
+            truncated["_response_truncated"] = True
+            truncated["_truncation_notes"] = notes
+
+        return truncated
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -984,8 +1065,17 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         # Block if over limit
         if estimated_tokens > self.token_limit:
-            # Extract params for smart suggestions
             params = getattr(context.message, "params", {}) or {}
+
+            # For info tools, try dynamic truncation before blocking
+            from superset.mcp_service.utils.token_utils import INFO_TOOLS
+
+            if tool_name in INFO_TOOLS:
+                truncated = self._try_truncate_info_response(
+                    tool_name, response, estimated_tokens
+                )
+                if truncated is not None:
+                    return truncated
 
             # Log the blocked response
             logger.error(
@@ -1011,9 +1101,6 @@ class ResponseSizeGuardMiddleware(Middleware):
             except Exception as log_error:  # noqa: BLE001
                 logger.warning("Failed to log size exceeded event: %s", log_error)
 
-            # Generate helpful error message with suggestions
-            # Avoid passing the full `response` (which may be huge) into the formatter
-            # to prevent large-memory operations during error formatting.
             error_message = format_size_limit_error(
                 tool_name=tool_name,
                 params=params,

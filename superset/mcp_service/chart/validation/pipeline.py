@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Tuple
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     GenerateChartRequest,
+    parse_chart_config,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -171,6 +172,10 @@ class ValidationPipeline:
             if request is None:
                 return ValidationResult(is_valid=False, error=error)
 
+            # Parse the raw config dict into a typed ChartConfig for
+            # downstream validators that need typed access.
+            typed_config = parse_chart_config(request.config)
+
             # Fetch dataset context once and reuse across validation layers
             dataset_context = ValidationPipeline._get_dataset_context(
                 request.dataset_id
@@ -178,20 +183,20 @@ class ValidationPipeline:
 
             # Layer 2: Dataset validation (reuses context)
             is_valid, error = ValidationPipeline._validate_dataset(
-                request.config, request.dataset_id, dataset_context
+                typed_config, request.dataset_id, dataset_context
             )
             if not is_valid:
                 return ValidationResult(is_valid=False, request=request, error=error)
 
             # Layer 3: Runtime validation - returns warnings as metadata, not errors
             _is_valid, warnings_metadata = ValidationPipeline._validate_runtime(
-                request.config, request.dataset_id
+                typed_config, request.dataset_id
             )
             # Runtime validation always returns True now, warnings are informational
 
             # Layer 4: Column name normalization (reuses context)
             normalized_request = ValidationPipeline._normalize_column_names(
-                request, dataset_context
+                request, dataset_context, typed_config=typed_config
             )
 
             return ValidationResult(
@@ -284,6 +289,7 @@ class ValidationPipeline:
     def _normalize_column_names(
         request: GenerateChartRequest,
         dataset_context: DatasetContext | None = None,
+        typed_config: ChartConfig | None = None,
     ) -> GenerateChartRequest:
         """
         Normalize column names in the request to match canonical dataset names.
@@ -297,6 +303,8 @@ class ValidationPipeline:
             request: The validated chart generation request
             dataset_context: Pre-fetched dataset context to avoid duplicate
                 DB queries. If None, fetches from the database.
+            typed_config: Pre-parsed typed ChartConfig. If None, parses from
+                request.config dict.
 
         Returns:
             A new request with normalized column names
@@ -304,8 +312,9 @@ class ValidationPipeline:
         try:
             from .dataset_validator import DatasetValidator
 
+            config = typed_config or parse_chart_config(request.config)
             normalized_config = DatasetValidator.normalize_column_names(
-                request.config,
+                config,
                 request.dataset_id,
                 dataset_context=dataset_context,
             )

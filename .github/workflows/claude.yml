@@ -76,7 +76,7 @@ jobs:
         fetch-depth: 1
 
     - name: Run Claude PR Action
-      uses: anthropics/claude-code-action@094bd24d575e7b30ac1576024817bf1a97c81262 # beta
+      uses: anthropics/claude-code-action@5fb899572b81d2bb648d4d187173a2f423a9677c # beta
       with:
         anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
         timeout_minutes: "60"

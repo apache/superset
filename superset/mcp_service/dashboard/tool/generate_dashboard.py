@@ -29,7 +29,6 @@ from flask import g
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
-from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -40,7 +39,6 @@ from superset.mcp_service.dashboard.schemas import (
     GenerateDashboardRequest,
     GenerateDashboardResponse,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -188,8 +186,7 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
         destructiveHint=False,
     ),
 )
-@parse_request(GenerateDashboardRequest)
-def generate_dashboard(
+def generate_dashboard(  # noqa: C901
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:
     """Create dashboard from chart IDs.
@@ -325,9 +322,15 @@ def generate_dashboard(
                 dashboard.slices = fresh_charts
 
                 db.session.add(dashboard)
-                db.session.commit()
+                db.session.commit()  # pylint: disable=consider-using-transaction
             except SQLAlchemyError as db_err:
-                db.session.rollback()
+                try:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Database rollback failed during error handling",
+                        exc_info=True,
+                    )
                 logger.error(
                     "Dashboard creation failed: %s",
                     db_err,
@@ -367,7 +370,13 @@ def generate_dashboard(
                 dashboard.id,
                 exc_info=True,
             )
-            db.session.rollback()
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except SQLAlchemyError:
+                logger.warning(
+                    "Database rollback failed during dashboard re-fetch error handling",
+                    exc_info=True,
+                )
             dashboard_url = (
                 f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/"
             )
@@ -385,6 +394,7 @@ def generate_dashboard(
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
+            serialize_chart_summary,
             serialize_tag_object,
             serialize_user_object,
         )
@@ -416,7 +426,7 @@ def generate_dashboard(
             charts=[
                 obj
                 for chart in getattr(dashboard, "slices", [])
-                if (obj := serialize_chart_object(chart)) is not None
+                if (obj := serialize_chart_summary(chart)) is not None
             ],
         )
 
@@ -431,6 +441,14 @@ def generate_dashboard(
         )
 
     except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         logger.error("Error creating dashboard: %s", e, exc_info=True)
         return GenerateDashboardResponse(
             dashboard=None,
