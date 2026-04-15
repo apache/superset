@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/core';
 import { SelectOptionsType, SelectProps } from './types';
 import { Select } from '.';
 
@@ -109,7 +110,7 @@ export const InteractiveSelect = ({
 
 InteractiveSelect.args = {
   mode: 'single',
-  placeholder: 'Select ...',
+  placeholder: t('Select ...'),
   showSearch: true,
   allowNewOptions: false,
   allowClear: false,
@@ -414,7 +415,7 @@ AdvancedPlayground.args = {
   oneLine: false,
   optionsCount: options.length,
   optionFilterProps: ['value', 'label', 'custom'],
-  placeholder: 'Select ...',
+  placeholder: t('Select ...'),
   showSearch: true,
 };
 
