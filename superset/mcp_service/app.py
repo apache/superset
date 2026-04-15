@@ -111,35 +111,57 @@ Example: If get_dataset_info returns metrics=[{{"metric_name": "count", ...}}], 
   {{"name": "count", "saved_metric": true}}  ← CORRECT
   {{"name": "count", "aggregate": "COUNT"}}  ← WRONG (count is not a column)
 
+IMPORTANT - Request Wrapper:
+Most tools require a 'request' wrapper object. Pass all parameters inside request:
+  list_charts(request={{"filters": [...], "page": 1}})
+  get_chart_info(request={{"identifier": 123}})
+  get_dataset_info(request={{"identifier": 456}})
+  execute_sql(request={{"database_id": 1, "sql": "SELECT 1"}})
+Do NOT pass parameters directly without the request wrapper — it will fail.
+
 Recommended Workflows:
 
 To create a chart:
-1. list_datasets -> find a dataset
-2. get_dataset_info(id) -> examine columns AND metrics (note which names are metrics!)
-3. generate_explore_link(dataset_id, config) -> preview interactively
-4. generate_chart(dataset_id, config, save_chart=True) -> save permanently
+1. list_datasets(request={{}}) -> find a dataset
+2. get_dataset_info(request={{"identifier": <id>}})
+   -> examine columns AND metrics
+3. generate_explore_link(request={{
+     "dataset_id": <id>,
+     "config": {{"chart_type": "xy", ...}}
+   }}) -> preview interactively
+4. generate_chart(request={{
+     "dataset_id": <id>,
+     "config": {{...}}, "save_chart": true
+   }}) -> save permanently
 
 To find your own charts/dashboards/databases:
 1. get_instance_info -> get current_user.id
-2. list_charts(filters=[{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}])
-3. Or: list_dashboards(filters=[{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}])
-4. Or: list_databases(filters=[{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}])
+2. list_charts(request={{"filters": [{{"col": "created_by_fk",
+   "opr": "eq", "value": current_user.id}}]}})
+3. Or: list_dashboards(request={{"filters": [{{"col": "created_by_fk",
+   "opr": "eq", "value": current_user.id}}]}})
+4. Or: list_databases(request={{"filters": [{{"col": "created_by_fk",
+   "opr": "eq", "value": current_user.id}}]}})
 
 To explore data with SQL:
-1. list_datasets -> find a dataset and note its database_id
-2. execute_sql(database_id, sql) -> run query
-3. save_sql_query(database_id, label, sql) -> save query for later reuse
-4. open_sql_lab_with_context(database_id) -> open SQL Lab UI
+1. list_datasets(request={{}}) -> find a dataset and note its database_id
+2. execute_sql(request={{"database_id": <id>, "sql": "SELECT ..."}})
+3. save_sql_query(request={{
+     "database_id": <id>, "label": "name", "sql": "..."
+   }})
+4. open_sql_lab_with_context(request={{
+     "database_connection_id": <id>
+   }})
 
 To chart from a SQL query (JOIN, CTE, aggregation):
-1. execute_sql(database_id, sql) -> verify the query returns expected data
+1. execute_sql(request={{"database_id": <id>, "sql": "..."}})
+   -> verify the query returns expected data
 2. Ask the user if they want to save it as a dataset
-3. create_virtual_dataset(database_id, sql, dataset_name) -> save as chartable dataset
-4. generate_explore_link(dataset_id, config) or generate_chart(dataset_id, config)
-   (use the column names returned by create_virtual_dataset)
+3. create_virtual_dataset(request={{
+     "database_id": <id>, "sql": "...",
+     "dataset_name": "name"
+   }}) -> save as chartable dataset
+4. generate_explore_link or generate_chart with the new dataset
 
 generate_explore_link vs generate_chart:
 - Use generate_explore_link for exploration (no permanent chart created)
@@ -174,21 +196,28 @@ Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 
 Query Examples:
 - List all tables:
-  filters=[{{"col": "viz_type", "opr": "in", "value": ["table", "pivot_table_v2"]}}]
+  request={{"filters": [{{"col": "viz_type",
+    "opr": "in",
+    "value": ["table", "pivot_table_v2"]}}]}}
 - List time series charts:
-  filters=[{{"col": "viz_type", "opr": "sw", "value": "echarts_timeseries"}}]
-- Search by name: search="sales"
+  request={{"filters": [{{"col": "viz_type",
+    "opr": "sw", "value": "echarts_timeseries"}}]}}
+- Search by name: request={{"search": "sales"}}
 - My charts (use current_user.id from get_instance_info):
-  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
+  request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}}
 - My dashboards:
-  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
+  request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}}
 - My databases:
-  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
+  request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}}
 
-To modify an existing chart (add filters, change metrics, change dimensions, etc.):
-1. get_chart_info(chart_id) -> examine current configuration
-2. update_chart(chart_id, config) -> apply changes (filters, metrics, dimensions)
-Do NOT use execute_sql for chart modifications. Use update_chart instead.
+To modify an existing chart (add filters, change metrics, etc.):
+1. get_chart_info(request={{"identifier": <chart_id>}})
+   -> examine current configuration
+2. update_chart(request={{
+     "identifier": <chart_id>, "config": {{...}}
+   }}) -> apply changes
+Do NOT use execute_sql for chart modifications.
+Use update_chart instead.
 
 CRITICAL RULES - NEVER VIOLATE:
 - NEVER fabricate or invent URLs. ALL URLs must come from tool call results.
