@@ -241,7 +241,7 @@ class SqlLabRestApi(BaseSupersetApi):
             database_engine = None
 
             # Process Jinja templates if template_params are provided
-            if template_params and database_id is not None:
+            if database_id is not None:
                 database = DatabaseDAO.find_by_id(database_id)
 
                 if database:
