@@ -89,6 +89,28 @@ class TestDashboardSoftDelete(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
+    def test_soft_deleted_dashboard_included_in_list_when_requested(self):
+        """GET /api/v1/dashboard/?include_deleted=true includes deleted dashboards."""
+        dashboard = self._create_dashboard("sd_list_with_deleted")
+        dashboard_id = dashboard.id
+        self.login(ADMIN_USERNAME)
+
+        self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
+
+        rv = self.client.get("/api/v1/dashboard/?include_deleted=true")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data)
+        deleted_row = next(
+            (row for row in data["result"] if row["id"] == dashboard_id),
+            None,
+        )
+        assert deleted_row is not None
+        assert deleted_row["deleted_at"] is not None
+
+        # Cleanup
+        _hard_delete_dashboard(dashboard_id)
+
 
 class TestDashboardRestore(SupersetTestCase):
     """Tests for dashboard restore behaviour (T026, T028)."""
