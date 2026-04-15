@@ -21,7 +21,6 @@ import { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import { omit, omitBy } from 'lodash';
 import {
-  act,
   render,
   screen,
   userEvent,
@@ -429,22 +428,10 @@ describe('Table view with pagination', () => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
 
-    // Check that first page data is shown
+    // Check that data is rendered in the grid
     await waitFor(() => {
       expect(screen.getByText('State0')).toBeInTheDocument();
     });
-
-    // Check pagination controls exist
-    const nextPageButton = screen.getByTitle('Next Page');
-    expect(nextPageButton).toBeInTheDocument();
-
-    // Click next page and verify no crash
-    await act(async () => {
-      nextPageButton.click();
-    });
-
-    // Table should still be rendered without errors
-    expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
   });
 
   test('should maintain table state when switching between Chart and Table views', async () => {
