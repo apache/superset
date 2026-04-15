@@ -1386,6 +1386,14 @@ class UpdateChartRequest(QueryCacheControl):
     chart_name: str | None = Field(
         None, description="Auto-generates if omitted", max_length=255
     )
+    save_chart: bool = Field(
+        default=False,
+        description=(
+            "When False (default), generates a preview explore URL that lets the "
+            "user review changes and click Save to overwrite the original chart. "
+            "Set to True to persist the update immediately."
+        ),
+    )
     generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],

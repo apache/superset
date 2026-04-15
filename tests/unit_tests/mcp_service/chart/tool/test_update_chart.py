@@ -37,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     XYChartConfig,
 )
 from superset.mcp_service.chart.tool.update_chart import (
+    _build_preview_form_data,
     _build_update_payload,
     _find_chart,
 )
@@ -677,6 +678,7 @@ class TestUpdateChartNameOnly:
         request = {
             "identifier": 1,
             "chart_name": "Renamed Chart",
+            "save_chart": True,
             "generate_preview": False,
         }
 
@@ -685,6 +687,9 @@ class TestUpdateChartNameOnly:
 
             assert result.structured_content["success"] is True
             assert result.structured_content["chart"]["slice_name"] == "Renamed Chart"
+            assert (
+                result.structured_content["chart"]["is_unsaved_state"] is False
+            )
 
             # Verify UpdateChartCommand was called with name-only payload
             mock_update_cmd_cls.assert_called_once_with(
@@ -729,3 +734,202 @@ class TestUpdateChartNameOnly:
                 assert error["error_type"] == "ValidationError"
                 assert "config" in error["message"].lower()
                 assert "chart_name" in error["message"].lower()
+
+
+class TestUpdateChartPreviewFirst:
+    """Integration-style tests for the preview-first default flow."""
+
+    @patch(
+        "superset.mcp_service.chart.tool.update_chart._create_preview_url",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.commands.chart.update.UpdateChartCommand",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_default_generates_preview_without_saving(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_update_cmd_cls,
+        mock_create_preview,
+        mcp_server,
+    ):
+        """Default update flow returns a preview URL and does NOT save."""
+        mock_chart = Mock()
+        mock_chart.id = 1
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Existing Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "abc-123"
+        mock_chart.params = '{"viz_type": "table", "datasource": "10__table"}'
+        mock_find_by_id.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="my_dataset",
+            warnings=[],
+        )
+
+        preview_url = (
+            "http://localhost:8088/explore/?form_data_key=preview_key&slice_id=1"
+        )
+        mock_create_preview.return_value = (preview_url, "preview_key")
+
+        request = {
+            "identifier": 1,
+            "config": {
+                "chart_type": "table",
+                "columns": [{"name": "col1"}],
+            },
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is True
+            assert (
+                result.structured_content["chart"]["is_unsaved_state"] is True
+            )
+            assert result.structured_content["chart"]["id"] == 1
+            assert (
+                result.structured_content["chart"]["form_data_key"] == "preview_key"
+            )
+            assert result.structured_content["explore_url"] == preview_url
+            assert result.structured_content["form_data_key"] == "preview_key"
+
+            # Ensure the chart was NOT persisted
+            mock_update_cmd_cls.assert_not_called()
+            mock_create_preview.assert_called_once()
+
+    @patch(
+        "superset.mcp_service.chart.tool.update_chart._create_preview_url",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_preview_missing_config_and_name_returns_error(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_create_preview,
+        mcp_server,
+    ):
+        """Preview flow also errors when neither config nor chart_name given."""
+        mock_chart = Mock()
+        mock_chart.id = 1
+        mock_chart.datasource_id = 10
+        mock_chart.params = "{}"
+        mock_find_by_id.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="my_dataset",
+            warnings=[],
+        )
+
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "update_chart", {"request": {"identifier": 1}}
+            )
+
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_type"] == "ValidationError"
+            mock_create_preview.assert_not_called()
+
+
+class TestBuildPreviewFormData:
+    """Unit tests for _build_preview_form_data helper."""
+
+    def test_merges_existing_params_with_new_config(self):
+        """New config values override existing form_data keys."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="region")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock()
+        chart.id = 42
+        chart.datasource_id = 7
+        chart.slice_name = "Existing"
+        chart.params = '{"viz_type": "line", "custom_flag": true}'
+
+        result = _build_preview_form_data(request, chart)
+
+        assert isinstance(result, dict)
+        # Existing keys not touched by the new config are preserved
+        assert result["custom_flag"] is True
+        # New config overrides existing keys
+        assert result["viz_type"] == "table"
+        # slice_id and datasource are always stamped onto the preview
+        assert result["slice_id"] == 42
+        assert result["datasource"] == "7__table"
+        assert result["slice_name"] == "Existing"
+
+    def test_name_only_preview_keeps_existing_form_data(self):
+        """Name-only preview preserves existing form_data and renames."""
+        request = UpdateChartRequest(identifier=1, chart_name="Brand New Name")
+        chart = Mock()
+        chart.id = 5
+        chart.datasource_id = 3
+        chart.slice_name = "Old"
+        chart.params = '{"viz_type": "big_number", "metric": "count"}'
+
+        result = _build_preview_form_data(request, chart)
+
+        assert isinstance(result, dict)
+        assert result["viz_type"] == "big_number"
+        assert result["metric"] == "count"
+        assert result["slice_name"] == "Brand New Name"
+        assert result["slice_id"] == 5
+
+    def test_missing_config_and_name_returns_validation_error(self):
+        """Matches the _build_update_payload validation behavior."""
+        request = UpdateChartRequest(identifier=1)
+        chart = Mock()
+        chart.id = 1
+        chart.datasource_id = 10
+        chart.params = "{}"
+
+        result = _build_preview_form_data(request, chart)
+
+        assert isinstance(result, GenerateChartResponse)
+        assert result.success is False
+        assert result.error is not None
+        assert result.error.error_type == "ValidationError"
+
+    def test_handles_invalid_existing_params(self):
+        """Gracefully recovers when chart.params is not valid JSON."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock()
+        chart.id = 9
+        chart.datasource_id = 4
+        chart.slice_name = "Broken"
+        chart.params = "not-json"
+
+        result = _build_preview_form_data(request, chart)
+
+        assert isinstance(result, dict)
+        assert result["slice_id"] == 9
+        assert result["slice_name"] == "Broken"
