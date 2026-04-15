@@ -39,6 +39,7 @@ from superset.utils.database import (
 from superset.utils import core as utils, json
 from superset.models.sql_lab import Query
 
+from superset.sql.parse import SQLScript
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
@@ -292,19 +293,22 @@ class TestSqlLabApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
 
-        data = {
-            "sql": "select IIF(score > 0, 'positive', 'negative') from my_table",
-            "database_id": example_db.id,
-        }
+        # IIF is normalized differently per dialect:
+        # SQLite preserves IIF(), Postgres/base converts to CASE WHEN.
+        # Compute the expected result from the actual engine so the test is
+        # environment-independent.
+        sql = "select IIF(score > 0, 'positive', 'negative') from my_table"
+        engine = example_db.db_engine_spec.engine
+        expected = SQLScript(sql, engine).format()
+
+        data = {"sql": sql, "database_id": example_db.id}
         rv = self.client.post(
             "/api/v1/sqllab/format_sql/",
             json=data,
         )
         resp_data = json.loads(rv.data.decode("utf-8"))
-        # SQLite dialect preserves IIF(); base dialect converts it to CASE WHEN
-        assert "IIF(" in resp_data["result"]
-        assert "CASE WHEN" not in resp_data["result"]
         assert rv.status_code == 200
+        assert resp_data["result"] == expected
 
     def test_format_sql_request_with_jinja(self):
         self.login(ADMIN_USERNAME)
