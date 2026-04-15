@@ -21,10 +21,14 @@ MCP tool: update_chart
 
 import logging
 import time
+from typing import Any
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from sqlalchemy.exc import SQLAlchemyError
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.commands.exceptions import CommandException
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -35,19 +39,91 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     GenerateChartResponse,
+    parse_chart_config,
     PerformanceMetadata,
     UpdateChartRequest,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["mutate"])
-@parse_request(UpdateChartRequest)
-async def update_chart(
+def _find_chart(identifier: int | str) -> Any | None:
+    """Find a chart by numeric ID or UUID string."""
+    from superset.daos.chart import ChartDAO
+
+    if isinstance(identifier, int) or (
+        isinstance(identifier, str) and identifier.isdigit()
+    ):
+        chart_id = int(identifier) if isinstance(identifier, str) else identifier
+        return ChartDAO.find_by_id(chart_id)
+    return ChartDAO.find_by_id(identifier, id_column="uuid")
+
+
+def _build_update_payload(
+    request: UpdateChartRequest,
+    chart: Any,
+) -> dict[str, Any] | GenerateChartResponse:
+    """Build the update payload for a chart update.
+
+    Returns a dict payload on success, or a GenerateChartResponse error
+    when neither config nor chart_name is provided.
+    """
+    if request.config is not None:
+        config = parse_chart_config(request.config)
+        dataset_id = chart.datasource_id if chart.datasource_id else None
+        new_form_data = map_config_to_form_data(config, dataset_id=dataset_id)
+        new_form_data.pop("_mcp_warnings", None)
+
+        chart_name = (
+            request.chart_name
+            if request.chart_name
+            else chart.slice_name or generate_chart_name(config)
+        )
+
+        return {
+            "slice_name": chart_name,
+            "viz_type": new_form_data["viz_type"],
+            "params": json.dumps(new_form_data),
+        }
+
+    # Name-only update: keep existing visualization, just rename
+    if not request.chart_name:
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "error": {
+                    "error_type": "ValidationError",
+                    "message": ("Either 'config' or 'chart_name' must be provided."),
+                    "details": (
+                        "Either 'config' or 'chart_name' must be provided. "
+                        "Use config for visualization changes, chart_name "
+                        "for renaming."
+                    ),
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )
+    return {"slice_name": request.chart_name}
+
+
+@tool(
+    tags=["mutate"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Update chart",
+        readOnlyHint=False,
+        destructiveHint=True,
+    ),
+)
+async def update_chart(  # noqa: C901
     request: UpdateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
     """Update existing chart with new configuration.
@@ -97,63 +173,68 @@ async def update_chart(
     start_time = time.time()
 
     try:
-        # Find the existing chart
-        from superset.daos.chart import ChartDAO
-
         with event_logger.log_context(action="mcp.update_chart.chart_lookup"):
-            chart = None
-            if isinstance(request.identifier, int) or (
-                isinstance(request.identifier, str) and request.identifier.isdigit()
-            ):
-                chart_id = (
-                    int(request.identifier)
-                    if isinstance(request.identifier, str)
-                    else request.identifier
-                )
-                chart = ChartDAO.find_by_id(chart_id)
-            else:
-                # Try UUID lookup using DAO flexible method
-                chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
+            chart = _find_chart(request.identifier)
 
         if not chart:
             return GenerateChartResponse.model_validate(
                 {
                     "chart": None,
-                    "error": f"No chart found with identifier: {request.identifier}",
+                    "error": {
+                        "error_type": "NotFound",
+                        "message": (
+                            f"No chart found with identifier: {request.identifier}"
+                        ),
+                        "details": (
+                            f"No chart found with identifier: {request.identifier}"
+                        ),
+                    },
                     "success": False,
                     "schema_version": "2.0",
                     "api_version": "v1",
                 }
             )
 
-        # Map the new config to form_data format
-        # Get dataset_id from existing chart for column type checking
-        dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(request.config, dataset_id=dataset_id)
+        # Validate dataset access before allowing update.
+        # check_chart_data_access is the centralized data-level
+        # permission check that complements the class-level RBAC
+        # enforced by mcp_auth_hook.
+        from superset.mcp_service.auth import check_chart_data_access
 
-        # Update chart using Superset's command
-        from superset.commands.chart.update import UpdateChartCommand
-
-        with event_logger.log_context(action="mcp.update_chart.db_write"):
-            # Generate new chart name if provided, otherwise keep existing
-            chart_name = (
-                request.chart_name
-                if request.chart_name
-                else chart.slice_name or generate_chart_name(request.config)
+        validation_result = check_chart_data_access(chart)
+        if not validation_result.is_valid:
+            error_msg = validation_result.error or "Chart's dataset is not accessible"
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "DatasetNotAccessible",
+                        "message": error_msg,
+                        "details": error_msg,
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
             )
 
-            update_payload = {
-                "slice_name": chart_name,
-                "viz_type": new_form_data["viz_type"],
-                "params": json.dumps(new_form_data),
-            }
+        # Build update payload (config update or name-only rename)
+        from superset.commands.chart.update import UpdateChartCommand
 
-            command = UpdateChartCommand(chart.id, update_payload)
+        payload_or_error = _build_update_payload(request, chart)
+        if isinstance(payload_or_error, GenerateChartResponse):
+            return payload_or_error
+
+        with event_logger.log_context(action="mcp.update_chart.db_write"):
+            command = UpdateChartCommand(chart.id, payload_or_error)
             updated_chart = command.run()
 
+        # Parse config for analysis (may be None for name-only updates)
+        config = parse_chart_config(request.config) if request.config else None
+
         # Generate semantic analysis
-        capabilities = analyze_chart_capabilities(updated_chart, request.config)
-        semantics = analyze_chart_semantics(updated_chart, request.config)
+        capabilities = analyze_chart_capabilities(updated_chart, config)
+        semantics = analyze_chart_semantics(updated_chart, config)
 
         # Create performance metadata
         execution_time = int((time.time() - start_time) * 1000)
@@ -167,7 +248,7 @@ async def update_chart(
         chart_name = (
             updated_chart.slice_name
             if updated_chart and hasattr(updated_chart, "slice_name")
-            else generate_chart_name(request.config)
+            else (generate_chart_name(config) if config else "Updated chart")
         )
         accessibility = AccessibilityMetadata(
             color_blind_safe=True,  # Would need actual analysis
@@ -237,12 +318,59 @@ async def update_chart(
         }
         return GenerateChartResponse.model_validate(result)
 
-    except Exception as e:
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Chart update requires OAuth authentication: identifier=%s"
+            % request.identifier
+        )
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "success": False,
+                "error": {
+                    "error_type": "OAUTH2_REDIRECT",
+                    "message": build_oauth2_redirect_message(ex),
+                    "details": "OAuth2 authentication required",
+                },
+            }
+        )
+    except OAuth2Error:
+        await ctx.error("OAuth2 configuration error: chart_id=%s" % request.identifier)
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "success": False,
+                "error": {
+                    "error_type": "OAUTH2_REDIRECT_ERROR",
+                    "message": OAUTH2_CONFIG_ERROR_MESSAGE,
+                    "details": "OAuth2 configuration or provider error",
+                },
+            }
+        )
+    except (
+        CommandException,
+        SQLAlchemyError,
+        ValueError,
+        KeyError,
+        AttributeError,
+    ) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         execution_time = int((time.time() - start_time) * 1000)
         return GenerateChartResponse.model_validate(
             {
                 "chart": None,
-                "error": f"Chart update failed: {str(e)}",
+                "error": {
+                    "error_type": type(e).__name__,
+                    "message": f"Chart update failed: {e}",
+                    "details": str(e),
+                },
                 "performance": {
                     "query_duration_ms": execution_time,
                     "cache_status": "error",
