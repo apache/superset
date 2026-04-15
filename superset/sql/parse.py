@@ -1321,7 +1321,12 @@ class FirebirdStatement(BaseSQLStatement[str]):
             stripped = part.strip()
             if stripped:
                 parts.append(cls(stripped, engine, stripped))
-        return parts or [cls(script.strip(), engine, script.strip())]
+        if parts:
+            return parts
+        if not script.strip():
+            return []
+        stripped = script.strip()
+        return [cls(stripped, engine, stripped)]
 
     @classmethod
     def _parse_statement(
@@ -1370,22 +1375,39 @@ class FirebirdStatement(BaseSQLStatement[str]):
         return self._parsed.strip()
 
     def get_settings(self) -> dict[str, str | bool]:
+        """Return statement-level settings.  Firebird has none."""
         return {}
 
     def is_select(self) -> bool:
-        first_word = (
-            self._parsed.lstrip().split()[0].upper()
-            if self._parsed.strip()
-            else ""
-        )
-        return first_word in {"SELECT", "WITH"}
+        """Check whether the statement is a SELECT-style query."""
+        sql = self._parsed.lstrip().upper()
+        if not sql:
+            return False
+        first_word = sql.split()[0]
+        if first_word == "WITH":
+            # WITH ... SELECT is a select; WITH ... INSERT/DELETE/etc. is not.
+            return not bool(
+                re.search(
+                    r"\b(" + "|".join(_FIREBIRD_MUTATING_KEYWORDS) + r")\b",
+                    sql,
+                )
+            )
+        return first_word == "SELECT"
 
     def is_mutating(self) -> bool:
-        first_word = (
-            self._parsed.lstrip().split()[0].upper()
-            if self._parsed.strip()
-            else ""
-        )
+        """Check whether the statement performs a mutating operation."""
+        sql = self._parsed.lstrip().upper()
+        if not sql:
+            return False
+        first_word = sql.split()[0]
+        if first_word == "WITH":
+            # WITH ... INSERT/DELETE/UPDATE is mutating.
+            return bool(
+                re.search(
+                    r"\b(" + "|".join(_FIREBIRD_MUTATING_KEYWORDS) + r")\b",
+                    sql,
+                )
+            )
         return first_word in _FIREBIRD_MUTATING_KEYWORDS
 
     def optimize(self) -> FirebirdStatement:
@@ -1393,8 +1415,17 @@ class FirebirdStatement(BaseSQLStatement[str]):
         return FirebirdStatement(ast=self._parsed, engine=self.engine)
 
     def check_functions_present(self, functions: set[str]) -> bool:
+        """Check whether any of the given function names appear in the SQL."""
         upper = self._parsed.upper()
         return any(f.upper() in upper for f in functions)
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """Check if any of the given tables are present in the statement."""
+        logger.warning(
+            "Firebird SQL is not supported by sqlglot — table checking "
+            "disabled; data-access roles will not be enforced by Superset."
+        )
+        return False
 
     def get_limit_value(self) -> int | None:
         """
@@ -1426,6 +1457,15 @@ class FirebirdStatement(BaseSQLStatement[str]):
             >>> stmt.format()
             'SELECT FIRST 10 * FROM t'
         """
+        if method == LimitMethod.FETCH_MANY:
+            return
+        if method not in (LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL):
+            raise SupersetParseError(
+                self._parsed,
+                self.engine,
+                message=f"Unsupported limit method for Firebird: {method}",
+            )
+
         match = _FIREBIRD_FIRST_RE.search(self._parsed)
         if match:
             self._parsed = (
@@ -1442,7 +1482,21 @@ class FirebirdStatement(BaseSQLStatement[str]):
             )
 
     def parse_predicate(self, predicate: str) -> str:
+        """Return the predicate unchanged (no AST rewriting for Firebird)."""
         return predicate
+
+    def apply_rls(
+        self,
+        catalog: str | None,
+        schema: str | None,
+        predicates: dict[Table, list[str]],
+        method: RLSMethod,
+    ) -> None:
+        """Apply RLS rules.  Not supported for Firebird (no AST)."""
+        logger.warning(
+            "Firebird SQL is not supported by sqlglot — RLS rewriting "
+            "disabled; row-level security will not be enforced by Superset."
+        )
 
 
 class SQLScript:

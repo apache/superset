@@ -39,6 +39,7 @@ from superset.sql.parse import (
 
 
 class TestFirebirdSplitScript:
+    """Test SQL script splitting behavior for Firebird statements."""
     def test_single_statement(self) -> None:
         stmts = FirebirdStatement.split_script("SELECT * FROM t", "firebird")
         assert len(stmts) == 1
@@ -65,8 +66,14 @@ class TestFirebirdSplitScript:
         assert stmts[0].format() == "SELECT 1"
 
     def test_empty_script(self) -> None:
+        """An empty script should return an empty list."""
         stmts = FirebirdStatement.split_script("", "firebird")
-        assert len(stmts) == 1
+        assert len(stmts) == 0
+
+    def test_whitespace_only_script(self) -> None:
+        """A whitespace-only script should return an empty list."""
+        stmts = FirebirdStatement.split_script("   ", "firebird")
+        assert len(stmts) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -75,6 +82,7 @@ class TestFirebirdSplitScript:
 
 
 class TestFirebirdParseStatement:
+    """Test statement parsing and validation for Firebird."""
     def test_single_statement(self) -> None:
         stmt = FirebirdStatement("SELECT 1", "firebird")
         assert stmt.format() == "SELECT 1"
@@ -108,9 +116,12 @@ class TestFirebirdParseStatement:
         ("CREATE TABLE t (id INT)", False),
         ("DROP TABLE t", False),
         ("ALTER TABLE t ADD col INT", False),
+        ("WITH cte AS (SELECT 1) INSERT INTO t SELECT * FROM cte", False),
+        ("WITH cte AS (SELECT 1) DELETE FROM t WHERE id IN (SELECT id FROM cte)", False),
     ],
 )
 def test_firebird_is_select(sql: str, expected: bool) -> None:
+    """Verify select-statement detection for Firebird SQL."""
     assert FirebirdStatement(sql, "firebird").is_select() == expected
 
 
@@ -125,9 +136,12 @@ def test_firebird_is_select(sql: str, expected: bool) -> None:
         ("DROP TABLE t", True),
         ("ALTER TABLE t ADD col INT", True),
         ("EXECUTE PROCEDURE sp_test", True),
+        ("WITH cte AS (SELECT 1) INSERT INTO t SELECT * FROM cte", True),
+        ("WITH cte AS (SELECT 1) DELETE FROM t WHERE id IN (SELECT id FROM cte)", True),
     ],
 )
 def test_firebird_is_mutating(sql: str, expected: bool) -> None:
+    """Verify mutating-statement detection for Firebird SQL."""
     assert FirebirdStatement(sql, "firebird").is_mutating() == expected
 
 
@@ -169,9 +183,17 @@ def test_firebird_get_limit_value(sql: str, expected: int | None) -> None:
     ],
 )
 def test_firebird_set_limit_value(sql: str, limit: int, expected: str) -> None:
+    """Verify FIRST N limit injection/replacement for Firebird SQL."""
     stmt = FirebirdStatement(sql, "firebird")
     stmt.set_limit_value(limit)
     assert stmt.format() == expected
+
+
+def test_firebird_set_limit_fetch_many_is_noop() -> None:
+    """FETCH_MANY should not rewrite the SQL."""
+    stmt = FirebirdStatement("SELECT * FROM t", "firebird")
+    stmt.set_limit_value(10, method=LimitMethod.FETCH_MANY)
+    assert stmt.format() == "SELECT * FROM t"
 
 
 # ---------------------------------------------------------------------------
@@ -231,9 +253,31 @@ def test_firebird_parse_predicate_passthrough() -> None:
 
 
 def test_firebird_check_functions_present() -> None:
+    """Verify function-name detection in Firebird SQL."""
     stmt = FirebirdStatement("SELECT VERSION() FROM t", "firebird")
     assert stmt.check_functions_present({"version"}) is True
     assert stmt.check_functions_present({"nonexistent"}) is False
+
+
+def test_firebird_check_tables_present_returns_false() -> None:
+    """check_tables_present always returns False (no parser)."""
+    stmt = FirebirdStatement("SELECT * FROM my_table", "firebird")
+    assert stmt.check_tables_present({"my_table"}) is False
+
+
+def test_firebird_apply_rls_is_noop() -> None:
+    """apply_rls should not raise and should leave the SQL unchanged."""
+    from superset.sql.parse import RLSMethod
+
+    stmt = FirebirdStatement("SELECT * FROM t", "firebird")
+    original = stmt.format()
+    stmt.apply_rls(
+        catalog=None,
+        schema=None,
+        predicates={},
+        method=RLSMethod.UNION,
+    )
+    assert stmt.format() == original
 
 
 # ---------------------------------------------------------------------------
