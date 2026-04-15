@@ -197,19 +197,19 @@ Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 
 Query Examples:
 - List all tables:
-  request={{"filters": [{{"col": "viz_type",
+  list_charts(request={{"filters": [{{"col": "viz_type",
     "opr": "in",
-    "value": ["table", "pivot_table_v2"]}}]}}
+    "value": ["table", "pivot_table_v2"]}}]}})
 - List time series charts:
-  request={{"filters": [{{"col": "viz_type",
-    "opr": "sw", "value": "echarts_timeseries"}}]}}
-- Search by name: request={{"search": "sales"}}
+  list_charts(request={{"filters": [{{"col": "viz_type",
+    "opr": "sw", "value": "echarts_timeseries"}}]}})
+- Search by name: list_charts(request={{"search": "sales"}})
 - My charts (use current_user.id from get_instance_info):
-  request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}}
+  list_charts(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
 - My dashboards:
-  request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}}
+  list_dashboards(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
 - My databases:
-  request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}}
+  list_databases(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
 
 To modify an existing chart (add filters, change metrics, etc.):
 1. get_chart_info(request={{"identifier": <chart_id>}})
