@@ -315,7 +315,7 @@ function processGroupByCustomizations(
   });
 
   const chartType = chart.form_data?.viz_type;
-  if (isChartWithoutGroupBy(chartType)) {
+  if (isChartWithoutGroupBy(chartType) || chartType === 'chord') {
     return {};
   }
 
