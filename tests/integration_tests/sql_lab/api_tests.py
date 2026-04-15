@@ -288,6 +288,24 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertDictEqual(resp_data, success_resp)  # noqa: PT009
         assert rv.status_code == 200
 
+    def test_format_sql_request_with_db_id(self):
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+
+        data = {
+            "sql": "select IIF(score > 0, 'positive', 'negative') from my_table",
+            "database_id": example_db.id,
+        }
+        rv = self.client.post(
+            "/api/v1/sqllab/format_sql/",
+            json=data,
+        )
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        # SQLite dialect preserves IIF(); base dialect converts it to CASE WHEN
+        assert "IIF(" in resp_data["result"]
+        assert "CASE WHEN" not in resp_data["result"]
+        assert rv.status_code == 200
+
     def test_format_sql_request_with_jinja(self):
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
