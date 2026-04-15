@@ -245,27 +245,27 @@ class SqlLabRestApi(BaseSupersetApi):
                 database = DatabaseDAO.find_by_id(database_id)
 
                 if database:
-                  database_engine = database.db_engine_spec.engine
+                    database_engine = database.db_engine_spec.engine
 
-                  if template_params:
-                      try:
-                          template_params = (
-                              json.loads(template_params)
-                              if isinstance(template_params, str)
-                              else template_params
-                          )
-                          if template_params:
-                              template_processor = get_template_processor(
-                                  database=database
-                              )
-                              sql = template_processor.process_template(
-                                  sql, **template_params
-                              )
-                      except json.JSONDecodeError:
-                          logger.warning(
-                              "Invalid template parameter %s. Skipping processing",
-                              str(template_params),
-                          )
+                    if template_params:
+                        try:
+                            template_params = (
+                                json.loads(template_params)
+                                if isinstance(template_params, str)
+                                else template_params
+                            )
+                            if template_params:
+                                template_processor = get_template_processor(
+                                    database=database
+                                )
+                                sql = template_processor.process_template(
+                                    sql, **template_params
+                                )
+                        except json.JSONDecodeError:
+                            logger.warning(
+                                "Invalid template parameter %s. Skipping processing",
+                                str(template_params),
+                            )
 
             result = SQLScript(sql, model.get("engine", database_engine)).format()
             return self.response(200, result=result)
