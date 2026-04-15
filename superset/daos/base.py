@@ -87,8 +87,8 @@ operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.in_: lambda col, val: col.in_(
         val if isinstance(val, (list, tuple)) else [val]
     ),
-    ColumnOperatorEnum.nin: lambda col, val: ~col.in_(
-        val if isinstance(val, (list, tuple)) else [val]
+    ColumnOperatorEnum.nin: lambda col, val: (
+        ~col.in_(val if isinstance(val, (list, tuple)) else [val])
     ),
     ColumnOperatorEnum.gt: lambda col, val: col > val,
     ColumnOperatorEnum.gte: lambda col, val: col >= val,

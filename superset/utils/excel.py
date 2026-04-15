@@ -70,9 +70,9 @@ def apply_column_types(
                 # if the number is too large, convert it to a string
                 # Excel does not support numbers larger than 10^15
                 df[column] = df[column].apply(
-                    lambda x: str(x)
-                    if isinstance(x, (int, float)) and abs(x) > 10**15
-                    else x
+                    lambda x: (
+                        str(x) if isinstance(x, (int, float)) and abs(x) > 10**15 else x
+                    )
                 )
             except ValueError:
                 df[column] = df[column].astype(str)

@@ -48,7 +48,9 @@ def test_export_assets(
     mocked_export_result = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),  # noqa: E501
         ),
         ("databases/example.yaml", lambda: "<DATABASE CONTENTS>"),
     ]

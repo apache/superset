@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -17,7 +17,12 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { DataMaskStateWithId, isFeatureEnabled, FeatureFlag, JsonObject } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  isFeatureEnabled,
+  FeatureFlag,
+  JsonObject,
+} from '@superset-ui/core';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -121,16 +126,12 @@ export const hydrateDashboard =
       chartItem.slice_id = chartItem.form_data.slice_id as number;
     });
 
-    // new dash: position_json could be {} or null
-    // getEmptyLayout() includes a version string entry plus BasicLayoutItem entries
-    // which lack the `meta` field; layout is mutated below to add full LayoutItem entries
     const layout = (
       positionData && Object.keys(positionData).length > 0
         ? positionData
         : getEmptyLayout()
     ) as Record<string, LayoutItem | DashboardEntity>;
 
-    // create a lookup to sync layout names with slice names
     const chartIdToLayoutId: Record<number, string> = {};
     Object.values(layout).forEach(layoutComponent => {
       if (layoutComponent.type === CHART_TYPE) {
@@ -141,7 +142,6 @@ export const hydrateDashboard =
       }
     });
 
-    // find root level chart container node for newly-added slices
     const parentId = findFirstParentContainerId(layout as DashboardLayout);
     const parent = layout[parentId];
     let newSlicesContainer: DashboardEntity | undefined;
@@ -186,7 +186,6 @@ export const hydrateDashboard =
 
       sliceIds.add(key);
 
-      // if there are newly added slices from explore view, fill slices into 1 or more rows
       if (!chartIdToLayoutId[key] && layout[parentId]) {
         if (
           newSlicesContainerWidth === 0 ||
@@ -223,16 +222,12 @@ export const hydrateDashboard =
         newSlicesContainerWidth += GRID_DEFAULT_CHART_WIDTH;
       }
 
-      // sync layout names with current slice names in case a slice was edited
-      // in explore since the layout was updated. name updates go through layout for undo/redo
-      // functionality and python updates slice names based on layout upon dashboard save
       const layoutId = chartIdToLayoutId[key];
       if (layoutId && layout[layoutId]) {
         (layout[layoutId] as LayoutItem).meta.sliceName = slice.slice_name;
       }
     });
 
-    // make sure that parents tree is built
     if (
       Object.values(layout).some(
         element => element.id !== DASHBOARD_ROOT_ID && !element.parents,
@@ -251,7 +246,6 @@ export const hydrateDashboard =
       components: layout as Record<string, LayoutItem>,
     });
 
-    // store the header as a layout component so we can undo/redo changes
     layout[DASHBOARD_HEADER_ID] = {
       id: DASHBOARD_HEADER_ID,
       type: DASHBOARD_HEADER_TYPE,
@@ -266,16 +260,13 @@ export const hydrateDashboard =
       future: [] as Record<string, LayoutItem | DashboardEntity>[],
     };
 
-    // Searches for a focused_chart parameter in the URL to automatically focus a chart
     const focusedChartId = getUrlParam(URL_PARAMS.dashboardFocusedChart);
     let focusedChartLayoutId: string | undefined;
     if (focusedChartId) {
-      // Converts focused_chart to dashboard layout id
       const found = Object.values(dashboardLayout.present).find(
         element => (element as LayoutItem).meta?.chartId === focusedChartId,
       );
       focusedChartLayoutId = found?.id;
-      // Removes the focused_chart parameter from the URL
       const params = new URLSearchParams(window.location.search);
       params.delete(URL_PARAMS.dashboardFocusedChart.name);
       history.replace({
@@ -283,7 +274,6 @@ export const hydrateDashboard =
       });
     }
 
-    // find direct link component and path from root
     const directLinkComponentId = focusedChartLayoutId || getLocationHash();
     let directPathToChild = dashboardState.directPathToChild || [];
     if (directLinkComponentId && layout[directLinkComponentId]) {
@@ -330,11 +320,10 @@ export const hydrateDashboard =
       data: {
         sliceEntities: { ...initSliceEntities, slices, isLoading: false },
         charts: chartQueries,
-        // read-only data
         dashboardInfo: {
           ...dashboard,
           metadata,
-          userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
+          userId: user.userId ? String(user.userId) : null,
           dash_edit_perm: canEdit,
           dash_save_perm: canUserSaveAsDashboard(dashboard, user),
           dash_share_perm: findPermission(
@@ -353,11 +342,13 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
-          superset_can_download: isFeatureEnabled(FeatureFlag.GranularExportControls)
+          superset_can_csv: findPermission('can_csv', 'Superset', roles),
+          superset_can_download: isFeatureEnabled(
+            FeatureFlag.GranularExportControls,
+          )
             ? findPermission('can_export_data', 'Superset', roles)
             : findPermission('can_csv', 'Superset', roles),
           common: {
-            // legacy, please use state.common instead
             conf: common?.conf,
           },
           filterBarOrientation:
@@ -376,8 +367,6 @@ export const hydrateDashboard =
           focusedFilterField: null,
           expandedSlices: metadata?.expanded_slices || {},
           refreshFrequency: metadata?.refresh_frequency || 0,
-          // dashboard viewers can set refresh frequency for the current visit,
-          // only persistent refreshFrequency will be saved to backend
           shouldPersistRefreshFrequency: false,
           css: dashboard.css || '',
           colorNamespace: metadata?.color_namespace || null,
