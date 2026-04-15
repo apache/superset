@@ -62,6 +62,7 @@ Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
+- create_virtual_dataset: Save a SQL query as a virtual dataset for charting
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
@@ -526,6 +527,7 @@ from superset.mcp_service.database.tool import (  # noqa: F401, E402
     list_databases,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    create_virtual_dataset,
     get_dataset_info,
     list_datasets,
     query_dataset,
