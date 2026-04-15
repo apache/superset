@@ -19,13 +19,17 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# A README is automatically generated from this file to document it, using helm-docs (see https://github.com/norwoodj/helm-docs)
+# A README is automatically generated from this file to document it,
+# using helm-docs (see https://github.com/norwoodj/helm-docs)
 # To update it, install helm-docs and run helm-docs from the root of this chart
 
 # -- Provide a name to override the name of the chart
 nameOverride: ~
 # -- Provide a name to override the full names of resources
 fullnameOverride: ~
+
+# -- Labels to be added to all resources
+extraLabels: {}
 
 # -- User ID directive. This user must have enough permissions to run the bootstrap script
 # Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure
@@ -102,7 +106,7 @@ extraSecretEnv: {}
   #   # Generate your own secret key for encryption. Use openssl rand -base64 42 to generate a good key
   #  SUPERSET_SECRET_KEY: 'CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET'
 
-# -- Extra files to mount on `/app/pythonpath`
+# -- Extra files to be mounted as ConfigMap on the path specified in `extraConfigMountPath`
 extraConfigs: {}
   # import_datasources.yaml: |
   #     databases:
@@ -116,7 +120,7 @@ extraConfigs: {}
   #       sqlalchemy_uri: example://example-db.local
   #       tables: []
 
-# -- Extra files to mount on `/app/pythonpath` as secrets
+# -- Extra files to be mounted as Secrets on the path specified in `configMountPath`
 extraSecrets: {}
 
 extraVolumes: []
@@ -247,7 +251,9 @@ hostAliases: []
 
 # Superset node configuration
 supersetNode:
-  replicaCount: 1
+  replicas:
+    enabled: true
+    replicaCount: 1
   autoscaling:
     enabled: false
     minReplicas: 1
@@ -271,7 +277,7 @@ supersetNode:
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/run-server.sh"
   connections:
     # -- Change in case of bringing your own redis and then also set redis.enabled:false
-    redis_host: '{{ .Release.Name }}-redis-headless'
+    redis_host: "{{ .Release.Name }}-redis-headless"
     redis_port: "6379"
     redis_user: ""
     # redis_password: superset
@@ -283,7 +289,9 @@ supersetNode:
       enabled: false
       ssl_cert_reqs: CERT_NONE
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
-    db_host: '{{ .Release.Name }}-postgresql'
+    # -- Database type for Superset metadata (Supported types: "postgresql", "mysql")
+    db_type: "postgresql"
+    db_host: "{{ .Release.Name }}-postgresql"
     db_port: "5432"
     db_user: superset
     db_pass: superset
@@ -304,6 +312,12 @@ supersetNode:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -timeout 120s
+      resources:
+        limits:
+          memory: "256Mi"
+        requests:
+          cpu: "250m"
+          memory: "128Mi"
 
   # -- Launch additional containers into supersetNode pod
   extraContainers: []
@@ -364,7 +378,9 @@ supersetNode:
 
 # Superset Celery worker configuration
 supersetWorker:
-  replicaCount: 1
+  replicas:
+    enabled: true
+    replicaCount: 1
   autoscaling:
     enabled: false
     minReplicas: 1
@@ -400,6 +416,12 @@ supersetWorker:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+      resources:
+        limits:
+          memory: "256Mi"
+        requests:
+          cpu: "250m"
+          memory: "128Mi"
   # -- Launch additional containers into supersetWorker pod
   extraContainers: []
   # -- Annotations to be added to supersetWorker deployment
@@ -446,6 +468,8 @@ supersetWorker:
   startupProbe: {}
   # -- No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic)
   readinessProbe: {}
+  # -- Set priorityClassName for supersetWorker pods
+  priorityClassName: ~
 
 # Superset beat configuration (to trigger scheduled jobs like reports)
 supersetCeleryBeat:
@@ -480,6 +504,12 @@ supersetCeleryBeat:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+      resources:
+        limits:
+          memory: "256Mi"
+        requests:
+          cpu: "250m"
+          memory: "128Mi"
   # -- Launch additional containers into supersetCeleryBeat pods
   extraContainers: []
   # -- Annotations to be added to supersetCeleryBeat deployment
@@ -502,6 +532,8 @@ supersetCeleryBeat:
     #  memory: 128Mi
   podSecurityContext: {}
   containerSecurityContext: {}
+  # -- Set priorityClassName for CeleryBeat pods
+  priorityClassName: ~
 
 supersetCeleryFlower:
   # -- Enables a Celery flower deployment (management UI to monitor celery jobs)
@@ -571,6 +603,12 @@ supersetCeleryFlower:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+      resources:
+        limits:
+          memory: "256Mi"
+        requests:
+          cpu: "250m"
+          memory: "128Mi"
   # -- Launch additional containers into supersetCeleryFlower pods
   extraContainers: []
   # -- Annotations to be added to supersetCeleryFlower deployment
@@ -593,10 +631,12 @@ supersetCeleryFlower:
     #  memory: 128Mi
   podSecurityContext: {}
   containerSecurityContext: {}
+  # -- Set priorityClassName for supersetCeleryFlower pods
+  priorityClassName: ~
 
 supersetWebsockets:
   # -- This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode
-  # see https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
+  # see https://superset.apache.org/docs/contributing/misc#async-chart-queries
   enabled: false
   replicaCount: 1
   # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWebsockets pods
@@ -686,6 +726,8 @@ supersetWebsockets:
     failureThreshold: 3
     periodSeconds: 5
     successThreshold: 1
+  # -- Set priorityClassName for supersetWebsockets pods
+  priorityClassName: ~
 
 init:
   # Configure resources
@@ -731,6 +773,12 @@ init:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -timeout 120s
+      resources:
+        limits:
+          memory: "256Mi"
+        requests:
+          cpu: "250m"
+          memory: "128Mi"
   # -- A Superset init script
   # @default -- a script to create admin user and initialize roles
   initscript: |-
@@ -762,6 +810,8 @@ init:
   extraContainers: []
   ## Annotations to be added to init job pods
   podAnnotations: {}
+  # Labels to be added to init job pods
+  podLabels: {}
   podSecurityContext: {}
   containerSecurityContext: {}
   ## Tolerations to be added to init job pods
@@ -770,6 +820,8 @@ init:
   affinity: {}
   # -- TopologySpreadConstrains to be added to init job
   topologySpreadConstraints: []
+  # -- Set priorityClassName for init job pods
+  priorityClassName: ~
 
 # -- Configuration values for the postgresql dependency.
 # ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql
@@ -792,7 +844,7 @@ postgresql:
     database: superset
 
   image:
-    tag: "14.6.0-debian-11-r13"
+    tag: "14.17.0-debian-12-r3"
 
   ## PostgreSQL Primary parameters
   primary:
@@ -853,7 +905,7 @@ redis:
     ## docker registry secret names (list)
     # pullSecrets: nil
     ##
-    ## Configure persistance
+    ## Configure persistence
     persistence:
       ##
       ## Use a PVC to persist data.
@@ -874,3 +926,6 @@ affinity: {}
 
 # -- TopologySpreadConstrains to be added to all deployments
 topologySpreadConstraints: []
+
+# -- Set priorityClassName for superset pods
+priorityClassName: ~

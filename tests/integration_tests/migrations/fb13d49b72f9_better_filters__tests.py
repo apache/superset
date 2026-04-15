@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from importlib import import_module
 
+from superset.utils import json
+
 better_filters = import_module(
-    "superset.migrations.versions." "2018-12-11_22-03_fb13d49b72f9_better_filters",
+    "superset.migrations.versions.2018-12-11_22-03_fb13d49b72f9_better_filters",
 )
 Slice = better_filters.Slice
 upgrade_slice = better_filters.upgrade_slice
@@ -28,7 +29,7 @@ def test_upgrade_slice():
     slc = Slice(
         slice_name="FOO",
         viz_type="filter_box",
-        params=json.dumps(dict(metric="foo", groupby=["bar"])),
+        params=json.dumps(dict(metric="foo", groupby=["bar"])),  # noqa: C408
     )
     upgrade_slice(slc)
     params = json.loads(slc.params)

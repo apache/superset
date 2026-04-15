@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { t } from '@apache-superset/core/translation';
 
 export default function RightPanel() {
-  return <div>Right Panel</div>;
+  return <div>{t('Right Panel')}</div>;
 }

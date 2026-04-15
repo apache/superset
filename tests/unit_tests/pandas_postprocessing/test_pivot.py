@@ -101,7 +101,7 @@ def test_pivot_fill_values():
 
 def test_pivot_fill_column_values():
     """
-    Make sure pivot witn null column names returns correct DataFrame
+    Make sure pivot with null column names returns correct DataFrame
     """
     df_copy = categories_df.copy()
     df_copy["category"] = None

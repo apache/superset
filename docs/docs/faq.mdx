@@ -1,9 +1,64 @@
 ---
 sidebar_position: 9
+title: Frequently Asked Questions
+description: Common questions about Apache Superset including performance, database support, visualizations, and configuration.
+keywords: [superset faq, superset questions, superset help, data visualization faq]
 ---
 
-# FAQ
+import FAQSchema from '@site/src/components/FAQSchema';
 
+<FAQSchema faqs={[
+  {
+    question: "How big of a dataset can Superset handle?",
+    answer: "Superset can work with even gigantic databases. Superset acts as a thin layer above your underlying databases or data engines, which do all the processing. Superset simply visualizes the results of the query. The key to achieving acceptable performance is whether your database can execute queries and return results at acceptable speed."
+  },
+  {
+    question: "What are the computing specifications required to run Superset?",
+    answer: "The specs depend on how many users you have and their activity, not on the size of your data. Community members have reported 8GB RAM, 2vCPUs as adequate for a moderately-sized instance. Monitor your resource usage and adjust as needed."
+  },
+  {
+    question: "Can I join or query multiple tables at one time?",
+    answer: "Not in the Explore or Visualization UI directly. A Superset SQLAlchemy datasource can only be a single table or a view. You can create a view that joins tables, or use SQL Lab where you can write SQL queries to join multiple tables."
+  },
+  {
+    question: "How do I create my own visualization?",
+    answer: "Read the instructions in the Creating Visualization Plugins documentation to learn how to build custom visualizations for Superset."
+  },
+  {
+    question: "Can I upload and visualize CSV data?",
+    answer: "Yes! Superset supports CSV upload functionality. Read the Exploring Data documentation to learn how to enable and use CSV upload."
+  },
+  {
+    question: "Why are my queries timing out?",
+    answer: "There are many possible causes. For SQL Lab, Superset allows queries to run up to 6 hours by default (configurable via SQLLAB_ASYNC_TIME_LIMIT_SEC). For dashboard timeouts, check your gateway/proxy timeout settings and adjust SUPERSET_WEBSERVER_TIMEOUT in superset_config.py."
+  },
+  {
+    question: "Why is the map not visible in the geospatial visualization?",
+    answer: "You need to register a free account at Mapbox.com, obtain an API key, and add it to your .env file at the key MAPBOX_API_KEY."
+  },
+  {
+    question: "What database engine can I use as a backend for Superset?",
+    answer: "Superset is tested using MySQL, PostgreSQL, and SQLite backends for storing its internal metadata. While Superset supports many databases as data sources, only these are recommended for the metadata store in production."
+  },
+  {
+    question: "Does Superset work with my database?",
+    answer: "Superset supports any database with a Python SQLAlchemy dialect and DBAPI driver. Check the Connecting to Databases documentation for the full list of supported databases."
+  },
+  {
+    question: "Does Superset offer a public API?",
+    answer: "Yes, Superset has a public REST API documented using Swagger. Enable FAB_API_SWAGGER_UI in superset_config.py to access interactive API documentation at /swagger/v1."
+  },
+  {
+    question: "Does Superset collect any telemetry data?",
+    answer: "Superset uses Scarf by default to collect basic telemetry data to help maintainers understand version usage. Users can opt out by setting the SCARF_ANALYTICS environment variable to false."
+  },
+  {
+    question: "Does Superset have a trash bin to recover deleted assets?",
+    answer: "No, there is no built-in way to recover deleted dashboards, charts, or datasets. It is recommended to take periodic backups of the metadata database and use export functionality for recovery."
+  }
+]} />
+
+# FAQ
 
 ## How big of a dataset can Superset handle?
 
@@ -28,7 +83,6 @@ to occur in spikes, e.g., if everyone in a meeting loads the same dashboard at o
 Superset's application metadata does not require a very large database to store it, though
 the log file grows over time.
 
-
 ## Can I join / query multiple tables at one time?
 
 Not in the Explore or Visualization UI. A Superset SQLAlchemy datasource can only be a single table
@@ -37,7 +91,7 @@ or a view.
 When working with tables, the solution would be to create a table that contains all the fields
 needed for your analysis, most likely through some scheduled batch process.
 
-A view is a simple logical layer that abstracts an arbitrary SQL queries as a virtual table. This can
+A view is a simple logical layer that abstracts an arbitrary SQL query as a virtual table. This can
 allow you to join and union multiple tables and to apply some transformation using arbitrary SQL
 expressions. The limitation there is your database performance, as Superset effectively will run a
 query on top of your query (view). A good practice may be to limit yourself to joining your main
@@ -53,11 +107,11 @@ multiple tables as long as your database account has access to the tables.
 ## How do I create my own visualization?
 
 We recommend reading the instructions in
-[Creating Visualization Plugins](/docs/contributing/howtos#creating-visualization-plugins).
+[Creating Visualization Plugins](/developer-docs/contributing/howtos#creating-visualization-plugins).
 
 ## Can I upload and visualize CSV data?
 
-Absolutely! Read the instructions [here](/docs/using-superset/exploring-data) to learn
+Absolutely! Read the instructions [here](/user-docs/using-superset/exploring-data) to learn
 how to enable and use CSV upload.
 
 ## Why are my queries timing out?
@@ -68,7 +122,7 @@ For running long query from Sql Lab, by default Superset allows it run as long a
 being killed by celery. If you want to increase the time for running query, you can specify the
 timeout in configuration. For example:
 
-```
+```python
 SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 ```
 
@@ -80,7 +134,7 @@ come back within client-side timeout (60 seconds by default), Superset will disp
 to avoid gateway timeout message. If you have a longer gateway timeout limit, you can change the
 timeout settings in **superset_config.py**:
 
-```
+```python
 SUPERSET_WEBSERVER_TIMEOUT = 60
 ```
 
@@ -89,7 +143,7 @@ SUPERSET_WEBSERVER_TIMEOUT = 60
 You need to register a free account at [Mapbox.com](https://www.mapbox.com), obtain an API key, and add it
 to **.env** at the key MAPBOX_API_KEY:
 
-```
+```python
 MAPBOX_API_KEY = "longstringofalphanumer1c"
 ```
 
@@ -101,7 +155,7 @@ refreshed - especially if some data is slow moving, or run heavy queries. To exc
 from the timed refresh process, add the `timed_refresh_immune_slices` key to the dashboard JSON
 Metadata field:
 
-```
+```json
 {
    "filter_immune_slices": [],
     "expanded_slices": {},
@@ -117,7 +171,7 @@ Slice refresh will also be staggered over the specified period. You can turn off
 setting the `stagger_refresh` to false and modify the stagger period by setting `stagger_time` to a
 value in milliseconds in the JSON Metadata field:
 
-```
+```json
 {
     "stagger_refresh": false,
     "stagger_time": 2500
@@ -127,7 +181,7 @@ value in milliseconds in the JSON Metadata field:
 Here, the entire dashboard will refresh at once if periodic refresh is on. The stagger time of 2.5
 seconds is ignored.
 
-**Why does ‘flask fab’ or superset freezed/hung/not responding when started (my home directory is
+**Why does ‘flask fab’ or superset freeze/hang/not responding when started (my home directory is
 NFS mounted)?**
 
 By default, Superset creates and uses an SQLite database at `~/.superset/superset.db`. SQLite is
@@ -139,12 +193,12 @@ You can override this path using the **SUPERSET_HOME** environment variable.
 Another workaround is to change where superset stores the sqlite database by adding the following in
 `superset_config.py`:
 
-```
+```python
 SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db?check_same_thread=false'
 ```
 
 You can read more about customizing Superset using the configuration file
-[here](/docs/configuration/configuring-superset).
+[here](/admin-docs/configuration/configuring-superset).
 
 ## What if the table schema changed?
 
@@ -159,12 +213,12 @@ table afterwards to configure the Columns tab, check the appropriate boxes and s
 
 To clarify, the database backend is an OLTP database used by Superset to store its internal
 information like your list of users and dashboard definitions. While Superset supports a
-[variety of databases as data *sources*](/docs/configuration/databases#installing-database-drivers),
+[variety of databases as data _sources_](/user-docs/databases/#installing-database-drivers),
 only a few database engines are supported for use as the OLTP backend / metadata store.
 
 Superset is tested using MySQL, PostgreSQL, and SQLite backends. It’s recommended you install
 Superset on one of these database servers for production.  Installation on other OLTP databases
-may work but isn’t tested.  It has been reported that [Microsoft SQL Server does *not*
+may work but isn’t tested.  It has been reported that [Microsoft SQL Server does _not_
 work as a Superset backend](https://github.com/apache/superset/issues/18961). Column-store,
 non-OLTP databases are not designed for this type of workload.
 
@@ -176,20 +230,23 @@ You can take a look at this Flask-AppBuilder
 ## Is there a way to force the dashboard to use specific colors?
 
 It is possible on a per-dashboard basis by providing a mapping of labels to colors in the JSON
-Metadata attribute using the `label_colors` key.
+Metadata attribute using the `label_colors` key. You can use either the full hex color, a named color,
+like `red`, `coral` or `lightblue`, or the index in the current color palette (0 for first color, 1 for
+second etc). Example:
 
-```
+```json
 {
     "label_colors": {
-        "Girls": "#FF69B4",
-        "Boys": "#ADD8E6"
+        "foo": "#FF69B4",
+        "bar": "lightblue",
+        "baz": 0
     }
 }
 ```
 
 ## Does Superset work with [insert database engine here]?
 
-The [Connecting to Databases section](/docs/configuration/databases) provides the best
+The [Connecting to Databases section](/user-docs/databases/) provides the best
 overview for supported databases. Database engines not listed on that page may work too. We rely on
 the community to contribute to this knowledge base.
 
@@ -212,7 +269,7 @@ SQLAlchemy and DBAPI scope. This includes features like:
 Beyond the SQLAlchemy connector, it’s also possible, though much more involved, to extend Superset
 and write your own connector. The only example of this at the moment is the Druid connector, which
 is getting superseded by Druid’s growing SQL support and the recent availability of a DBAPI and
-SQLAlchemy driver. If the database you are considering integrating has any kind of of SQL support,
+SQLAlchemy driver. If the database you are considering integrating has any kind of SQL support,
 it’s probably preferable to go the SQLAlchemy route. Note that for a native connector to be possible
 the database needs to have support for running OLAP-type queries and should be able to do things that
 are typical in basic SQL:
@@ -225,7 +282,7 @@ are typical in basic SQL:
 ## Does Superset offer a public API?
 
 Yes, a public REST API, and the surface of that API formal is expanding steadily. You can read more about this API and
-interact with it using Swagger [here](/docs/api).
+interact with it using Swagger [here](/developer-docs/api).
 
 Some of the
 original vision for the collection of endpoints under **/api/v1** was originally specified in
@@ -235,7 +292,7 @@ made to cover more and more use cases.
 The API available is documented using [Swagger](https://swagger.io/) and the documentation can be
 made available under **/swagger/v1** by enabling the following flag in `superset_config.py`:
 
-```
+```python
 FAB_API_SWAGGER_UI = True
 ```
 
@@ -265,7 +322,7 @@ Superset uses [Scarf](https://about.scarf.sh/) by default to collect basic telem
 We use the [Scarf Gateway](https://docs.scarf.sh/gateway/) to sit in front of container registries, the [scarf-js](https://about.scarf.sh/package-sdks) package to track `npm` installations, and a Scarf pixel to gather anonymous analytics on Superset page views.
 Scarf purges PII and provides aggregated statistics. Superset users can easily opt out of analytics in various ways documented [here](https://docs.scarf.sh/gateway/#do-not-track) and [here](https://docs.scarf.sh/package-analytics/#as-a-user-of-a-package-using-scarf-js-how-can-i-opt-out-of-analytics).
 Superset maintainers can also opt out of telemetry data collection by setting the `SCARF_ANALYTICS` environment variable to `false` in the Superset container (or anywhere Superset/webpack are run).
-Additional opt-out instructions for Docker users are available on the [Docker Installation](/docs/installation/docker-compose) page.
+Additional opt-out instructions for Docker users are available on the [Docker Installation](/admin-docs/installation/docker-compose) page.
 
 ## Does Superset have an archive panel or trash bin from which a user can recover deleted assets?
 
@@ -274,3 +331,11 @@ No. Currently, there is no way to recover a deleted Superset dashboard/chart/dat
 Hence, it is recommended to take periodic backups of the metadata database. For recovery, you can launch a recovery instance of a Superset server with the backed-up copy of the DB attached and use the Export Dashboard button in the Superset UI (or the `superset export-dashboards` CLI command). Then, take the .zip file and import it into the current Superset instance.
 
 Alternatively, you can programmatically take regular exports of the assets as a backup.
+
+## I ran a security scan of the Superset container image and it showed dozens of "high" and "critical" vulnerabilities! Can you release a version of Superset without these?
+
+You are talking about dependency CVEs: identified vulnerabilities in software that Superset uses. Most of these CVEs are in the Linux kernel or Python, both of which have many other people working on their security.
+
+We address these dependency CVEs as best we can by regularly updating our dependencies to newer versions. We use bots to assist with that and cheerfully welcome pull requests from humans that fix dependency CVEs.
+
+The Superset [security team](https://superset.apache.org/docs/security/#reporting-security-vulnerabilities) focuses primarily on vulnerabilities _in Superset itself_. See our [CVEs page](https://superset.apache.org/docs/security/cves) for a list of past Superset CVEs.

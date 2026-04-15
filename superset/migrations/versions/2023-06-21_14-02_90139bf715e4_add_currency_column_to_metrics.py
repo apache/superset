@@ -22,21 +22,20 @@ Create Date: 2023-06-21 14:02:08.200955
 
 """
 
+import sqlalchemy as sa
+
+from superset.migrations.shared.utils import add_columns, drop_columns
+
 # revision identifiers, used by Alembic.
 revision = "90139bf715e4"
 down_revision = "83e1abbe777f"
 
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
-
 
 def upgrade():
-    op.add_column("metrics", sa.Column("currency", sa.String(128), nullable=True))
-    op.add_column("sql_metrics", sa.Column("currency", sa.String(128), nullable=True))
+    add_columns("metrics", sa.Column("currency", sa.String(128), nullable=True))
+    add_columns("sql_metrics", sa.Column("currency", sa.String(128), nullable=True))
 
 
 def downgrade():
-    with op.batch_alter_table("sql_metrics") as batch_op_sql_metrics:
-        batch_op_sql_metrics.drop_column("currency")
-    with op.batch_alter_table("metrics") as batch_op_metrics:
-        batch_op_metrics.drop_column("currency")
+    drop_columns("sql_metrics", "currency")
+    drop_columns("metrics", "currency")

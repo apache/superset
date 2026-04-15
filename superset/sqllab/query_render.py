@@ -26,7 +26,6 @@ from jinja2.meta import find_undeclared_variables
 from superset import is_feature_enabled
 from superset.commands.sql_lab.execute import SqlQueryRender
 from superset.errors import SupersetErrorType
-from superset.sql_parse import ParsedQuery
 from superset.sqllab.exceptions import SqlLabException
 from superset.utils import core as utils
 
@@ -58,19 +57,32 @@ class SqlQueryRenderImpl(SqlQueryRender):
                 database=query_model.database, query=query_model
             )
 
-            parsed_query = ParsedQuery(
-                query_model.sql,
-                strip_comments=True,
-                engine=query_model.database.db_engine_spec.engine,
-            )
             rendered_query = sql_template_processor.process_template(
-                parsed_query.stripped(), **execution_context.template_params
+                query_model.sql.strip().strip(";"),
+                **execution_context.template_params,
             )
             self._validate(execution_context, rendered_query, sql_template_processor)
             return rendered_query
         except TemplateError as ex:
             self._raise_template_exception(ex, execution_context)
             return "NOT_REACHABLE_CODE"
+        except Exception as ex:
+            from superset.jinja_context import UndefinedTemplateFunctionException
+
+            if isinstance(ex, UndefinedTemplateFunctionException):
+                return query_model.sql.strip().strip(";")
+            raise
+
+    def _strip_sql_comments(
+        self,
+        execution_context: SqlJsonExecutionContext,
+        sql: str,
+    ) -> str:
+        from superset.sql.parse import SQLScript
+
+        engine = execution_context.query.database.db_engine_spec.engine
+        script = SQLScript(sql, engine)
+        return script.format(comments=False)
 
     def _validate(
         self,
@@ -79,7 +91,11 @@ class SqlQueryRenderImpl(SqlQueryRender):
         sql_template_processor: BaseTemplateProcessor,
     ) -> None:
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-            syntax_tree = sql_template_processor.env.parse(rendered_query)
+            sql_for_validation = self._strip_sql_comments(
+                execution_context,
+                rendered_query,
+            )
+            syntax_tree = sql_template_processor.env.parse(sql_for_validation)
             undefined_parameters = find_undeclared_variables(syntax_tree)
             if undefined_parameters:
                 self._raise_undefined_parameter_exception(

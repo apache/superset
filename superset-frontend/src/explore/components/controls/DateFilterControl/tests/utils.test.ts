@@ -17,14 +17,13 @@
  * under the License.
  */
 
-import {
-  customTimeRangeEncode,
-  customTimeRangeDecode,
-} from 'src/explore/components/controls/DateFilterControl/utils';
+import { customTimeRangeEncode } from 'src/explore/components/controls/DateFilterControl/utils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Custom TimeRange', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('customTimeRangeEncode', () => {
-    it('1) specific : specific', () => {
+    test('1) specific : specific', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: '2021-01-20T00:00:00',
@@ -41,7 +40,7 @@ describe('Custom TimeRange', () => {
       ).toEqual('2021-01-20T00:00:00 : 2021-01-27T00:00:00');
     });
 
-    it('2) specific : relative', () => {
+    test('2) specific : relative', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: '2021-01-20T00:00:00',
@@ -60,7 +59,7 @@ describe('Custom TimeRange', () => {
       );
     });
 
-    it('3) now : relative', () => {
+    test('3) now : relative', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: 'now',
@@ -77,7 +76,7 @@ describe('Custom TimeRange', () => {
       ).toEqual('now : DATEADD(DATETIME("now"), 7, day)');
     });
 
-    it('4) today : relative', () => {
+    test('4) today : relative', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: 'today',
@@ -94,7 +93,7 @@ describe('Custom TimeRange', () => {
       ).toEqual('today : DATEADD(DATETIME("today"), 7, day)');
     });
 
-    it('5) relative : specific', () => {
+    test('5) relative : specific', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: '2021-01-27T00:00:00',
@@ -113,7 +112,7 @@ describe('Custom TimeRange', () => {
       );
     });
 
-    it('6) relative : now', () => {
+    test('6) relative : now', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: 'now',
@@ -130,7 +129,7 @@ describe('Custom TimeRange', () => {
       ).toEqual('DATEADD(DATETIME("now"), -7, day) : now');
     });
 
-    it('7) relative : today', () => {
+    test('7) relative : today', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: 'today',
@@ -147,7 +146,7 @@ describe('Custom TimeRange', () => {
       ).toEqual('DATEADD(DATETIME("today"), -7, day) : today');
     });
 
-    it('8) relative : relative (now)', () => {
+    test('8) relative : relative (now)', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: 'now',
@@ -166,7 +165,7 @@ describe('Custom TimeRange', () => {
       );
     });
 
-    it('9) relative : relative (date/time)', () => {
+    test('9) relative : relative (date/time)', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: '2021-01-27T00:00:00',
@@ -183,116 +182,6 @@ describe('Custom TimeRange', () => {
       ).toEqual(
         'DATEADD(DATETIME("2021-01-27T00:00:00"), -7, day) : DATEADD(DATETIME("2021-01-27T00:00:00"), 7, day)',
       );
-    });
-  });
-
-  describe('customTimeRangeDecode', () => {
-    it('1) specific : specific', () => {
-      expect(
-        customTimeRangeDecode('2021-01-20T00:00:00 : 2021-01-27T00:00:00'),
-      ).toEqual({
-        customRange: {
-          sinceDatetime: '2021-01-20T00:00:00',
-          sinceMode: 'specific',
-          sinceGrain: 'day',
-          sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
-          untilMode: 'specific',
-          untilGrain: 'day',
-          untilGrainValue: 7,
-          anchorMode: 'now',
-          anchorValue: 'now',
-        },
-        matchedFlag: true,
-      });
-    });
-
-    it('2) specific : relative', () => {
-      expect(
-        customTimeRangeDecode(
-          '2021-01-20T00:00:00 : DATEADD(DATETIME("2021-01-20T00:00:00"), 7, day)',
-        ),
-      ).toEqual({
-        customRange: {
-          sinceDatetime: '2021-01-20T00:00:00',
-          sinceMode: 'specific',
-          sinceGrain: 'day',
-          sinceGrainValue: -7,
-          untilDatetime: '2021-01-20T00:00:00',
-          untilMode: 'relative',
-          untilGrain: 'day',
-          untilGrainValue: 7,
-          anchorMode: 'now',
-          anchorValue: 'now',
-        },
-        matchedFlag: true,
-      });
-    });
-
-    it('3) relative : specific', () => {
-      expect(
-        customTimeRangeDecode(
-          'DATEADD(DATETIME("2021-01-27T00:00:00"), -7, day) : 2021-01-27T00:00:00',
-        ),
-      ).toEqual({
-        customRange: {
-          sinceDatetime: '2021-01-27T00:00:00',
-          sinceMode: 'relative',
-          sinceGrain: 'day',
-          sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
-          untilMode: 'specific',
-          untilGrain: 'day',
-          untilGrainValue: 7,
-          anchorMode: 'now',
-          anchorValue: 'now',
-        },
-        matchedFlag: true,
-      });
-    });
-
-    it('4) relative : relative (now)', () => {
-      expect(
-        customTimeRangeDecode(
-          'DATEADD(DATETIME("now"), -7, day) : DATEADD(DATETIME("now"), 7, day)',
-        ),
-      ).toEqual({
-        customRange: {
-          sinceDatetime: 'now',
-          sinceMode: 'relative',
-          sinceGrain: 'day',
-          sinceGrainValue: -7,
-          untilDatetime: 'now',
-          untilMode: 'relative',
-          untilGrain: 'day',
-          untilGrainValue: 7,
-          anchorMode: 'now',
-          anchorValue: 'now',
-        },
-        matchedFlag: true,
-      });
-    });
-
-    it('5) relative : relative (date/time)', () => {
-      expect(
-        customTimeRangeDecode(
-          'DATEADD(DATETIME("2021-01-27T00:00:00"), -7, day) : DATEADD(DATETIME("2021-01-27T00:00:00"), 7, day)',
-        ),
-      ).toEqual({
-        customRange: {
-          sinceDatetime: '2021-01-27T00:00:00',
-          sinceMode: 'relative',
-          sinceGrain: 'day',
-          sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
-          untilMode: 'relative',
-          untilGrain: 'day',
-          untilGrainValue: 7,
-          anchorMode: 'specific',
-          anchorValue: '2021-01-27T00:00:00',
-        },
-        matchedFlag: true,
-      });
     });
   });
 });

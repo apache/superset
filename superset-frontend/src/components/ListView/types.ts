@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 export interface SortColumn {
   id: string;
@@ -24,8 +24,9 @@ export interface SortColumn {
 }
 
 export interface SelectOption {
-  label: string;
+  label: ReactNode;
   value: any;
+  [key: string]: unknown;
 }
 
 export interface CardSortSelectOption {
@@ -35,20 +36,21 @@ export interface CardSortSelectOption {
   value: any;
 }
 
-export interface Filter {
+export interface ListViewFilter {
   Header: ReactNode;
   key: string;
   id: string;
   toolTipDescription?: string;
   urlDisplay?: string;
-  operator?: FilterOperator;
+  operator?: ListViewFilterOperator;
   input?:
     | 'text'
     | 'textarea'
     | 'select'
     | 'checkbox'
     | 'search'
-    | 'datetime_range';
+    | 'datetime_range'
+    | 'numerical_range';
   unfilteredLabel?: string;
   selects?: SelectOption[];
   onFilterOpen?: () => void;
@@ -58,40 +60,51 @@ export interface Filter {
     page: number,
     pageSize: number,
   ) => Promise<{ data: SelectOption[]; totalCount: number }>;
+  optionFilterProps?: string[];
   paginate?: boolean;
+  loading?: boolean;
+  dateFilterValueType?: 'unix' | 'iso';
+  min?: number;
+  max?: number;
+  dropdownStyle?: React.CSSProperties;
+  autoComplete?: string;
+  inputName?: string;
 }
 
-export type Filters = Filter[];
+export type ListViewFilters = ListViewFilter[];
 
 export type ViewModeType = 'card' | 'table';
 
-export interface FilterValue {
+export type InnerFilterValue =
+  | string
+  | boolean
+  | number
+  | null
+  | undefined
+  | string[]
+  | number[]
+  | { label: ReactNode; value: string | number }
+  | [number | null, number | null];
+
+export interface ListViewFilterValue {
   id: string;
   urlDisplay?: string;
   operator?: string;
-  value:
-    | string
-    | boolean
-    | number
-    | null
-    | undefined
-    | string[]
-    | number[]
-    | { label: string; value: string | number };
+  value: InnerFilterValue;
 }
 
-export interface FetchDataConfig {
+export interface ListViewFetchDataConfig {
   pageIndex: number;
   pageSize: number;
   sortBy: SortColumn[];
-  filters: FilterValue[];
+  filters: ListViewFilterValue[];
 }
 
-export interface InternalFilter extends FilterValue {
+export interface InternalFilter extends ListViewFilterValue {
   Header?: string;
 }
 
-export enum FilterOperator {
+export enum ListViewFilterOperator {
   StartsWith = 'sw',
   EndsWith = 'ew',
   Contains = 'ct',
@@ -117,7 +130,10 @@ export enum FilterOperator {
   DatasetIsCertified = 'dataset_is_certified',
   DashboardHasCreatedBy = 'dashboard_has_created_by',
   ChartHasCreatedBy = 'chart_has_created_by',
-  DashboardTags = 'dashboard_tags',
-  ChartTags = 'chart_tags',
-  SavedQueryTags = 'saved_query_tags',
+  DashboardTagByName = 'dashboard_tags',
+  DashboardTagById = 'dashboard_tag_id',
+  ChartTagByName = 'chart_tags',
+  ChartTagById = 'chart_tag_id',
+  SavedQueryTagByName = 'saved_query_tags',
+  SavedQueryTagById = 'saved_query_tag_id',
 }

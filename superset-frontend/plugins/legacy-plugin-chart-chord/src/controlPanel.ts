@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   getStandardizedControls,
@@ -33,18 +34,7 @@ const config: ControlPanelConfig = {
         ['metric'],
         ['adhoc_filters'],
         ['row_limit'],
-        [
-          {
-            name: 'sort_by_metric',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort by metric'),
-              description: t(
-                'Whether to sort results by the selected metric in descending order.',
-              ),
-            },
-          },
-        ],
+        ['sort_by_metric'],
       ],
     },
     {

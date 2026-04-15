@@ -16,21 +16,56 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
+import { ensureIsArray, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA, SelectFilterOperatorType } from './types';
 
 const {
   enableEmptyFilter,
   inverseSelection,
   multiSelect,
+  creatable,
   defaultToFirstItem,
   searchAllOptions,
   sortAscending,
+  operatorType,
 } = DEFAULT_FORM_DATA;
+
+type FilterSelectColumn = {
+  column_name: string;
+  type_generic?: GenericDataType | null;
+};
+
+export const getOperatorTypeChoices = (isStringColumn: boolean) => [
+  [SelectFilterOperatorType.Exact, t('Exact match (IN)')],
+  ...(isStringColumn
+    ? [
+        [SelectFilterOperatorType.Contains, t('Contains text (ILIKE %x%)')],
+        [SelectFilterOperatorType.StartsWith, t('Starts with (ILIKE x%)')],
+        [SelectFilterOperatorType.EndsWith, t('Ends with (ILIKE %x)')],
+      ]
+    : []),
+];
+
+export const isStringOperatorColumn = (
+  selectedColumn: unknown,
+  columns?: FilterSelectColumn[],
+) => {
+  const columnName = ensureIsArray(selectedColumn)[0];
+  if (!columnName || !columns) {
+    return true;
+  }
+  const column = columns.find(col => col.column_name === columnName);
+  if (!column || column.type_generic == null) {
+    return true;
+  }
+  return column.type_generic === GenericDataType.String;
+};
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -56,6 +91,44 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
+            name: 'operatorType',
+            config: {
+              type: 'SelectControl',
+              renderTrigger: true,
+              affectsDataMask: true,
+              label: t('Match type'),
+              default: operatorType,
+              choices: getOperatorTypeChoices(true),
+              description: t(
+                'Determines how the filter matches values. ' +
+                  '"Exact match" uses the IN operator (default). ' +
+                  'ILIKE options enable partial text matching with a free-text input. ' +
+                  'Warning: ILIKE queries may be slow on large datasets as they cannot use indexes effectively.',
+              ),
+              mapStateToProps: state => {
+                const isStringColumn = isStringOperatorColumn(
+                  state.controls?.groupby?.value,
+                  state.datasource?.columns as FilterSelectColumn[] | undefined,
+                );
+                return {
+                  choices: getOperatorTypeChoices(isStringColumn),
+                  description: isStringColumn
+                    ? t(
+                        'Determines how the filter matches values. ' +
+                          '"Exact match" uses the IN operator (default). ' +
+                          'ILIKE options enable partial text matching with a free-text input. ' +
+                          'Warning: ILIKE queries may be slow on large datasets as they cannot use indexes effectively.',
+                      )
+                    : t(
+                        'Only exact match is available for non-string columns.',
+                      ),
+                };
+              },
+            },
+          },
+        ],
+        [
+          {
             name: 'sortAscending',
             config: {
               type: 'CheckboxControl',
@@ -63,6 +136,18 @@ const config: ControlPanelConfig = {
               label: t('Sort ascending'),
               default: sortAscending,
               description: t('Check for sorting ascending'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'creatable',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Allow creation of new values'),
+              default: creatable,
+              affectsDataMask: true,
+              renderTrigger: true,
             },
           },
         ],
@@ -105,7 +190,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               requiredFirst: true,
               description: t(
-                'When using this option, default value can’t be set',
+                'When using this option, default value can’t be set. Using this option may impact the load times for your dashboard.',
               ),
             },
           },

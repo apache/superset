@@ -16,14 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, MouseEventHandler } from 'react';
+import {
+  ReactNode,
+  MouseEventHandler,
+  ReactElement,
+  ComponentType,
+} from 'react';
 import type { Editor } from 'brace';
+import type { QueryData } from '../chart/types/QueryResponse';
+import type {
+  BaseFormData,
+  LatestQueryFormData,
+  QueryFormData,
+} from '../query';
+import type { JsonResponse } from '../connection';
 
 /**
  * A function which returns text (or marked-up text)
  * If what you want is a react component, don't use this. Use React.ComponentType instead.
  */
-type ReturningDisplayable<P = void> = (props: P) => string | React.ReactElement;
+type ReturningDisplayable<P = void> = (props: P) => string | ReactElement;
+
+/**
+ * A function which returns the drill by options for a given dataset and chart's formData.
+ */
+export type LoadDrillByOptions = (
+  datasetId: number,
+  formData: BaseFormData,
+) => Promise<JsonResponse>;
 
 /**
  * This type defines all available extensions of Superset's default UI.
@@ -36,7 +56,7 @@ type ReturningDisplayable<P = void> = (props: P) => string | React.ReactElement;
 interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   index?: number;
   url?: string;
   isFrontendRoute?: boolean;
@@ -82,15 +102,15 @@ export interface DatabaseConnectionExtension {
   /**
    * url or dataURI (recommended) of a logo to use in place of a title.  title is fallback display if no logo is provided
    */
-  logo?: React.ComponentType<any>;
+  logo?: ComponentType<any>;
   /**
    * Descriptive text displayed under the logo or title to provide user with more context about the configuration section
    */
-  description: React.ComponentType<any>;
+  description: ComponentType<any>;
   /**
    * React component to render for display in the database connection configuration
    */
-  component: React.ComponentType<any>;
+  component: ComponentType<any>;
   /**
    * Is the database extension enabled?
    */
@@ -119,13 +139,21 @@ export interface SQLFormExtensionProps {
   startQuery: (ctasArg?: any, ctas_method?: any) => void;
 }
 
-export interface SQLResultTableExtentionProps {
+export interface SQLResultTableExtensionProps {
   queryId: string;
   orderedColumnKeys: string[];
   data: Record<string, unknown>[];
   height: number;
   filterText?: string;
   expandedColumns?: string[];
+  allowHTML?: boolean;
+}
+
+export interface SQLTablePreviewExtensionProps {
+  dbId: number;
+  catalog?: string;
+  schema: string;
+  tableName: string;
 }
 
 /**
@@ -186,30 +214,60 @@ export interface CustomAutocomplete extends AutocompleteItem {
   insertMatch?: (editor: Editor, data: AutocompleteItem) => void;
 }
 
+export interface DateFilterControlProps {
+  name: string;
+  onChange: (timeRange: string) => void;
+  value?: string;
+  onOpenPopover?: () => void;
+  onClosePopover?: () => void;
+  overlayStyle?: 'Modal' | 'Popover';
+  isOverflowingFilterBar?: boolean;
+}
+
+export interface ExploreChartHeaderProps {
+  chartId: number;
+  queriesResponse: QueryData[] | null;
+  sliceFormData: QueryFormData | null;
+  queryFormData: QueryFormData;
+  lastRendered: number;
+  latestQueryFormData: LatestQueryFormData;
+  chartUpdateEndTime: number | null;
+  chartUpdateStartTime: number;
+  queryController: AbortController | null;
+  triggerQuery: boolean;
+}
+
 export type Extensions = Partial<{
-  'alertsreports.header.icon': React.ComponentType;
-  'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
+  'alertsreports.header.icon': ComponentType;
+  'load.drillby.options': LoadDrillByOptions;
+  'embedded.documentation.configuration_details': ComponentType<ConfigDetailsProps>;
   'embedded.documentation.description': ReturningDisplayable;
   'embedded.documentation.url': string;
-  'embedded.modal': React.ComponentType<DashboardEmbedModalExtensions>;
-  'dashboard.nav.right': React.ComponentType;
-  'home.submenu': React.ComponentType<SubMenuProps>;
-  'navbar.right-menu.item.icon': React.ComponentType<RightMenuItemIconProps>;
-  'navbar.right': React.ComponentType;
-  'report-modal.dropdown.item.icon': React.ComponentType;
-  'root.context.provider': React.ComponentType;
-  'welcome.message': React.ComponentType;
-  'welcome.banner': React.ComponentType;
-  'welcome.main.replacement': React.ComponentType;
-  'ssh_tunnel.form.switch': React.ComponentType<SwitchProps>;
+  'embedded.modal': ComponentType<DashboardEmbedModalExtensions>;
+  'dashboard.nav.right': ComponentType;
+  'home.submenu': ComponentType<SubMenuProps>;
+  'navbar.right-menu.item.icon': ComponentType<RightMenuItemIconProps>;
+  'navbar.right': ComponentType;
+  'report-modal.dropdown.item.icon': ComponentType;
+  'root.context.provider': ComponentType;
+  'welcome.message': ComponentType;
+  'welcome.banner': ComponentType;
+  'welcome.main.replacement': ComponentType;
+  'ssh_tunnel.form.switch': ComponentType<SwitchProps>;
   'databaseconnection.extraOption': DatabaseConnectionExtension;
   /* Custom components to show in the database and dataset delete modals */
-  'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
-  'dataset.delete.related': React.ComponentType<DatasetDeleteRelatedExtensionProps>;
-  'sqleditor.extension.form': React.ComponentType<SQLFormExtensionProps>;
-  'sqleditor.extension.resultTable': React.ComponentType<SQLResultTableExtentionProps>;
-  'dashboard.slice.header': React.ComponentType<SliceHeaderExtension>;
+  'database.delete.related': ComponentType<DatabaseDeleteRelatedExtensionProps>;
+  'dataset.delete.related': ComponentType<DatasetDeleteRelatedExtensionProps>;
+  'sqleditor.extension.form': ComponentType<SQLFormExtensionProps>;
+  'sqleditor.extension.resultTable': ComponentType<SQLResultTableExtensionProps>;
+  'dashboard.slice.header': ComponentType<SliceHeaderExtension>;
   'sqleditor.extension.customAutocomplete': (
     args: CustomAutoCompleteArgs,
   ) => CustomAutocomplete[] | undefined;
+  'sqleditor.extension.tablePreview': [
+    string,
+    ComponentType<SQLTablePreviewExtensionProps>,
+  ][];
+  'filter.dateFilterControl': ComponentType<DateFilterControlProps>;
+  'explore.chart.header': ComponentType<ExploreChartHeaderProps>;
 }>;

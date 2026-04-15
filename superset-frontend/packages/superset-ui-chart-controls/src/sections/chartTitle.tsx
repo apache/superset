@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 
 import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 
 export const TITLE_MARGIN_OPTIONS: number[] = [
-  15, 30, 50, 75, 100, 125, 150, 200,
+  0, 15, 30, 50, 75, 100, 125, 150, 200,
 ];
 export const TITLE_POSITION_OPTIONS: [string, string][] = [
   ['Left', t('Left')],
   ['Top', t('Top')],
 ];
+
 export const titleControls: ControlPanelSectionConfig = {
   label: t('Chart Title'),
   tabOverride: 'customize',
@@ -44,7 +44,6 @@ export const titleControls: ControlPanelSectionConfig = {
           label: t('X Axis Title'),
           renderTrigger: true,
           default: '',
-          description: t('Changing this control takes effect instantly'),
         },
       },
     ],
@@ -55,11 +54,10 @@ export const titleControls: ControlPanelSectionConfig = {
           type: 'SelectControl',
           freeForm: true,
           clearable: true,
-          label: t('X AXIS TITLE BOTTOM MARGIN'),
+          label: t('X Axis Title Margin'),
           renderTrigger: true,
           default: TITLE_MARGIN_OPTIONS[0],
           choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
-          description: t('Changing this control takes effect instantly'),
         },
       },
     ],
@@ -72,7 +70,6 @@ export const titleControls: ControlPanelSectionConfig = {
           label: t('Y Axis Title'),
           renderTrigger: true,
           default: '',
-          description: t('Changing this control takes effect instantly'),
         },
       },
     ],
@@ -87,7 +84,6 @@ export const titleControls: ControlPanelSectionConfig = {
           renderTrigger: true,
           default: TITLE_MARGIN_OPTIONS[0],
           choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
-          description: t('Changing this control takes effect instantly'),
         },
       },
     ],
@@ -102,7 +98,6 @@ export const titleControls: ControlPanelSectionConfig = {
           renderTrigger: true,
           default: TITLE_POSITION_OPTIONS[0][0],
           choices: TITLE_POSITION_OPTIONS,
-          description: t('Changing this control takes effect instantly'),
         },
       },
     ],

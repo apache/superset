@@ -15,18 +15,25 @@
 
 import logging
 from pathlib import Path, PurePosixPath
-from typing import Any, Optional
+from typing import Any, Callable, Dict, Optional, Type
 from zipfile import ZipFile
 
 import yaml
 from marshmallow import fields, Schema, validate
 from marshmallow.exceptions import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from superset import db
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.extensions import feature_flag_manager
 from superset.models.core import Database
+from superset.models.dashboard import dashboard_slices
+from superset.tags.models import Tag, TaggedObject
+from superset.utils import json
 from superset.utils.core import check_is_safe_zip
+from superset.utils.decorators import transaction
 
 METADATA_FILE_NAME = "metadata.yaml"
 IMPORT_VERSION = "1.0.0"
@@ -75,7 +82,7 @@ def load_metadata(contents: dict[str, str]) -> dict[str, str]:
 
         # otherwise we raise the validation error
         ex.messages = {METADATA_FILE_NAME: ex.messages}
-        raise ex
+        raise
 
     return metadata
 
@@ -96,6 +103,7 @@ def validate_metadata_type(
 
 
 # pylint: disable=too-many-locals,too-many-arguments
+# ruff: noqa: C901
 def load_configs(
     contents: dict[str, str],
     schemas: dict[str, Schema],
@@ -104,6 +112,7 @@ def load_configs(
     ssh_tunnel_passwords: dict[str, str],
     ssh_tunnel_private_keys: dict[str, str],
     ssh_tunnel_priv_key_passwords: dict[str, str],
+    encrypted_extra_secrets: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     configs: dict[str, Any] = {}
 
@@ -142,9 +151,13 @@ def load_configs(
             try:
                 config = load_yaml(file_name, content)
 
-                # populate passwords from the request or from existing DBs
+                # populate passwords from the request, from YAML config,
+                # or from existing DBs
                 if file_name in passwords:
                     config["password"] = passwords[file_name]
+                elif prefix == "databases" and config.get("password"):
+                    # password already in YAML config, keep it
+                    pass
                 elif prefix == "databases" and config["uuid"] in db_passwords:
                     config["password"] = db_passwords[config["uuid"]]
 
@@ -184,9 +197,39 @@ def load_configs(
                         db_ssh_tunnel_priv_key_passws[config["uuid"]]
                     )
 
+                # populate encrypted_extra secrets from the request
+                # The secrets dict maps JSONPath -> value
+                # e.g., {"$.oauth2_client_info.secret": "actual_value"}
+                if file_name in encrypted_extra_secrets and config.get(
+                    "masked_encrypted_extra"
+                ):
+                    # Normalize escape sequences (needed for PEM keys/certs)
+                    normalized_secrets = {
+                        path: value.replace("\\n", "\n")
+                        if isinstance(value, str)
+                        else value
+                        for path, value in encrypted_extra_secrets[file_name].items()
+                    }
+                    temp_dict = json.loads(config["masked_encrypted_extra"])
+                    temp_dict = json.set_masked_fields(temp_dict, normalized_secrets)
+                    config["masked_encrypted_extra"] = json.dumps(temp_dict)
+
+                # Normalize example data URLs before schema validation
+                if prefix == "datasets" and "data" in config:
+                    from superset.examples.helpers import normalize_example_data_url
+
+                    config["data"] = normalize_example_data_url(config["data"])
+
                 schema.load(config)
                 configs[file_name] = config
             except ValidationError as exc:
+                logger.error(
+                    "Schema validation failed for %s (prefix: %s): %s",
+                    file_name,
+                    prefix,
+                    exc.messages,
+                )
+                logger.debug("Config content that failed validation: %s", config)
                 exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
 
@@ -214,3 +257,146 @@ def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
         for file_name in bundle.namelist()
         if is_valid_config(file_name)
     }
+
+
+# pylint: disable=consider-using-transaction
+# ruff: noqa: C901
+@transaction()
+def import_tag(
+    target_tag_names: list[str],
+    contents: dict[str, Any],
+    object_id: int,
+    object_type: str,
+    db_session: Session,
+) -> list[int]:
+    """Handles the import logic for tags for charts and dashboards"""
+
+    if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+        return []
+
+    tag_descriptions = {}
+    new_tag_ids = []
+
+    if "tags.yaml" in contents:
+        try:
+            tags_config = yaml.safe_load(contents["tags.yaml"])
+        except yaml.YAMLError as err:
+            logger.error("Error parsing tags.yaml: %s", err)
+            tags_config = {}
+
+        for tag_info in tags_config.get("tags", []):
+            tag_name = tag_info.get("tag_name")
+            description = tag_info.get("description", None)
+            if tag_name:
+                tag_descriptions[tag_name] = description
+
+    existing_assocs = (
+        db_session.query(TaggedObject)
+        .filter_by(object_id=object_id, object_type=object_type)
+        .all()
+    )
+
+    existing_tags = {
+        tag.name: tag
+        for tag in db_session.query(Tag).filter(Tag.name.in_(target_tag_names))
+    }
+
+    for tag_name in target_tag_names:
+        try:
+            tag = existing_tags.get(tag_name)
+
+            # If tag does not exist, create it
+            if tag is None:
+                description = tag_descriptions.get(tag_name, None)
+                tag = Tag(name=tag_name, description=description, type="custom")
+                db_session.add(tag)
+                existing_tags[tag_name] = tag  # Update the existing_tags dictionary
+
+            # Ensure the association with the object
+            tagged_object = (
+                db_session.query(TaggedObject)
+                .filter_by(object_id=object_id, object_type=object_type, tag_id=tag.id)
+                .first()
+            )
+            if not tagged_object:
+                new_tagged_object = TaggedObject(
+                    tag_id=tag.id, object_id=object_id, object_type=object_type
+                )
+                db_session.add(new_tagged_object)
+
+            new_tag_ids.append(tag.id)
+
+        except SQLAlchemyError as err:
+            logger.error(
+                "Error processing tag '%s' for %s ID %d: %s",
+                tag_name,
+                object_type,
+                object_id,
+                err,
+            )
+            continue  # No need for manual rollback, handled by transaction decorator
+
+    # Remove old tags not in the new config
+    for tag in existing_assocs:
+        if tag.tag_id not in new_tag_ids:
+            db_session.delete(tag)
+
+    return new_tag_ids
+
+
+def safe_insert_dashboard_chart_relationships(
+    dashboard_chart_ids: list[tuple[int, int]],
+) -> None:
+    """
+    Safely insert dashboard-chart relationships, handling duplicates.
+
+    This function checks for existing relationships and only inserts new ones
+    to avoid duplicate key constraint errors.
+    """
+    from sqlalchemy.sql import select
+
+    if not dashboard_chart_ids:
+        return
+
+    # Get existing relationships only for dashboards being updated
+    dashboard_ids = {dashboard_id for dashboard_id, _ in dashboard_chart_ids}
+    existing_relationships = db.session.execute(
+        select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id]).where(
+            dashboard_slices.c.dashboard_id.in_(dashboard_ids)
+        )
+    ).fetchall()
+    existing_relationships_set = {(row[0], row[1]) for row in existing_relationships}
+
+    # Filter out relationships that already exist
+    new_relationships = [
+        (dashboard_id, chart_id)
+        for dashboard_id, chart_id in dashboard_chart_ids
+        if (dashboard_id, chart_id) not in existing_relationships_set
+    ]
+
+    # Insert new relationships in bulk, deduplicating to avoid unique constraint issues
+
+    if unique_new_relationships := set(new_relationships):
+        db.session.execute(
+            dashboard_slices.insert(),
+            [
+                {"dashboard_id": dashboard_id, "slice_id": chart_id}
+                for dashboard_id, chart_id in unique_new_relationships
+            ],
+        )
+
+
+def get_resource_mappings_batched(
+    model_class: Type[Any],
+    batch_size: int = 1000,
+    value_func: Callable[[Any], Any] = lambda x: x.id,
+) -> Dict[str, Any]:
+    offset = 0
+    mapping = {}
+    while True:
+        batch = db.session.query(model_class).limit(batch_size).offset(offset).all()
+        if not batch:
+            break
+        mapping.update({str(x.uuid): value_func(x) for x in batch})
+        offset += batch_size
+    return mapping

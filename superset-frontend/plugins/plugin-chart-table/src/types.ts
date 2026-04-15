@@ -17,56 +17,35 @@
  * under the License.
  */
 import {
-  NumberFormatter,
-  TimeFormatter,
   TimeGranularity,
   QueryFormMetric,
   ChartProps,
   DataRecord,
-  DataRecordValue,
   DataRecordFilters,
-  GenericDataType,
   QueryMode,
   ChartDataResponseResult,
   QueryFormData,
   SetDataMaskHook,
   ContextMenuFilters,
-  CurrencyFormatter,
-  Currency,
 } from '@superset-ui/core';
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import type {
+  BasicColorFormatterType,
+  ColorFormatters,
+  DataColumnMeta,
+  ServerPaginationData,
+  TableColumnConfig,
+} from '@superset-ui/chart-controls';
 
-export type CustomFormatter = (value: DataRecordValue) => string;
-
-export type TableColumnConfig = {
-  d3NumberFormat?: string;
-  d3SmallNumberFormat?: string;
-  d3TimeFormat?: string;
-  columnWidth?: number;
-  horizontalAlign?: 'left' | 'right' | 'center';
-  showCellBars?: boolean;
-  alignPositiveNegative?: boolean;
-  colorPositiveNegative?: boolean;
-  truncateLongCells?: boolean;
-  currencyFormat?: Currency;
+// Re-export shared types used by internal plugin files that import from './types'
+// Types used locally in this file - re-export from local binding
+export type {
+  BasicColorFormatterType,
+  DataColumnMeta,
+  ServerPaginationData,
+  TableColumnConfig,
 };
-
-export interface DataColumnMeta {
-  // `key` is what is called `label` in the input props
-  key: string;
-  // `label` is verbose column name used for rendering
-  label: string;
-  dataType: GenericDataType;
-  formatter?:
-    | TimeFormatter
-    | NumberFormatter
-    | CustomFormatter
-    | CurrencyFormatter;
-  isMetric?: boolean;
-  isPercentMetric?: boolean;
-  isNumeric?: boolean;
-  config?: TableColumnConfig;
-}
+// Types only re-exported, not used locally - direct re-export
+export type { SearchOption, SortByItem } from '@superset-ui/chart-controls';
 
 export interface TableChartData {
   records: DataRecord[];
@@ -108,7 +87,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   width: number;
   rowCount?: number;
   serverPagination: boolean;
-  serverPaginationData: { pageSize?: number; currentPage?: number };
+  serverPaginationData: ServerPaginationData;
   setDataMask: SetDataMaskHook;
   isRawRecords?: boolean;
   data: D[];
@@ -136,6 +115,19 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
     clientY: number,
     filters?: ContextMenuFilters,
   ) => void;
+  isUsingTimeComparison?: boolean;
+  basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  startDateOffset?: string;
+  // For explore page to reset the server Pagination data
+  // if server page length is changed from control panel
+  hasServerPageLengthChanged: boolean;
+  serverPageLength: number;
+  slice_id: number;
+  // Maps column labels (used as keys in query results) back to original
+  // column names for cross-filtering, so that adhoc columns with custom labels
+  // emit the correct column name in cross-filter data masks
+  columnLabelToNameMap?: Record<string, string>;
 }
 
 export default {};

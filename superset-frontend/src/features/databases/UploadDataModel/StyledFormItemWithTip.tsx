@@ -17,19 +17,19 @@
  * under the License.
  */
 
-import React from 'react';
-import InfoTooltip from 'src/components/InfoTooltip';
+import { FC, ReactNode } from 'react';
+import { InfoTooltip } from '@superset-ui/core/components';
 import { StyledFormItem } from './styles';
 
 interface StyledFormItemWithTipProps {
   label: string;
   tip: string;
   name: string;
-  children: React.ReactNode;
+  children: ReactNode;
   rules?: any[];
 }
 
-const StyledFormItemWithTip: React.FC<StyledFormItemWithTipProps> = ({
+const StyledFormItemWithTip: FC<StyledFormItemWithTipProps> = ({
   label,
   tip,
   children,

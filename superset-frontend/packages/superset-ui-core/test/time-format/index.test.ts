@@ -25,14 +25,18 @@ import {
   getTimeFormatterRegistry,
   LOCAL_PREFIX,
   PREVIEW_TIME,
-  smartDateFormatter,
-  smartDateVerboseFormatter,
+  SMART_DATE_ID,
+  SMART_DATE_VERBOSE_ID,
+  SMART_DATE_DETAILED_ID,
+  createSmartDateFormatter,
+  createSmartDateVerboseFormatter,
+  createSmartDateDetailedFormatter,
   TimeFormats,
   TimeFormatter,
 } from '@superset-ui/core';
 
 describe('index', () => {
-  it('exports modules', () => {
+  test('exports modules', () => {
     [
       createD3TimeFormatter,
       createMultiFormatter,
@@ -41,8 +45,12 @@ describe('index', () => {
       getTimeFormatterRegistry,
       LOCAL_PREFIX,
       PREVIEW_TIME,
-      smartDateFormatter,
-      smartDateVerboseFormatter,
+      SMART_DATE_ID,
+      SMART_DATE_VERBOSE_ID,
+      SMART_DATE_DETAILED_ID,
+      createSmartDateFormatter,
+      createSmartDateVerboseFormatter,
+      createSmartDateDetailedFormatter,
       TimeFormats,
       TimeFormatter,
     ].forEach(x => expect(x).toBeDefined());

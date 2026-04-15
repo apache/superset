@@ -28,6 +28,9 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- if .Values.extraLabels }}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
   {{- if .Values.supersetCeleryFlower.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetCeleryFlower.deploymentAnnotations | nindent 4 }}
   {{- end }}
@@ -47,6 +50,9 @@ spec:
       labels:
         app: "{{ template "superset.name" . }}-flower"
         release: {{ .Release.Name }}
+        {{- if .Values.extraLabels }}
+          {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- end }}
         {{- if .Values.supersetCeleryFlower.podLabels }}
           {{- toYaml .Values.supersetCeleryFlower.podLabels | nindent 8 }}
         {{- end }}
@@ -128,6 +134,9 @@ spec:
         {{- with .Values.supersetCeleryFlower.affinity }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- end }}
+      {{- if .Values.supersetCeleryFlower.priorityClassName }}
+      priorityClassName: {{ .Values.supersetCeleryFlower.priorityClassName }}
       {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.supersetCeleryFlower.topologySpreadConstraints }}
       topologySpreadConstraints:

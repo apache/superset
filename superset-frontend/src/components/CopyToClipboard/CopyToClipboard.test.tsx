@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import CopyToClipboard from '.';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { CopyToClipboard } from '.';
 
 test('renders with default props', () => {
   const text = 'Text';
@@ -65,7 +68,7 @@ test('not renders tooltip on hover with hideTooltip props', async () => {
   });
   userEvent.hover(screen.getByText('Copy'));
   const tooltip = screen.queryByRole('tooltip');
-  expect(tooltip).toBe(null);
+  expect(tooltip).not.toBeInTheDocument();
 });
 
 test('triggers onCopyEnd', async () => {
@@ -75,6 +78,30 @@ test('triggers onCopyEnd', async () => {
   });
   userEvent.click(screen.getByText('Copy'));
   await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
+});
+
+test('does not copy when disabled', async () => {
+  const callback = jest.fn();
+  document.execCommand = callback;
+
+  const originalClipboard = { ...global.navigator.clipboard };
+  // @ts-expect-error
+  global.navigator.clipboard = { write: callback, writeText: callback };
+
+  render(<CopyToClipboard disabled text="Text" />, { useRedux: true });
+
+  const copyButton = screen.getByText('Copy');
+  expect(copyButton).toHaveAttribute('aria-disabled', 'true');
+
+  userEvent.click(copyButton);
+
+  await waitFor(() => {
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  jest.resetAllMocks();
+  // @ts-expect-error
+  global.navigator.clipboard = originalClipboard;
 });
 
 test('renders unwrapped', () => {

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Optional
 
 from superset.commands.annotation_layer.exceptions import (
@@ -24,8 +25,8 @@ from superset.commands.annotation_layer.exceptions import (
 )
 from superset.commands.base import BaseCommand
 from superset.daos.annotation_layer import AnnotationLayerDAO
-from superset.daos.exceptions import DAODeleteFailedError
 from superset.models.annotations import AnnotationLayer
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -35,15 +36,11 @@ class DeleteAnnotationLayerCommand(BaseCommand):
         self._model_ids = model_ids
         self._models: Optional[list[AnnotationLayer]] = None
 
+    @transaction(on_error=partial(on_error, reraise=AnnotationLayerDeleteFailedError))
     def run(self) -> None:
         self.validate()
         assert self._models
-
-        try:
-            AnnotationLayerDAO.delete(self._models)
-        except DAODeleteFailedError as ex:
-            logger.exception(ex.exception)
-            raise AnnotationLayerDeleteFailedError() from ex
+        AnnotationLayerDAO.delete(self._models)
 
     def validate(self) -> None:
         # Validate/populate model exists

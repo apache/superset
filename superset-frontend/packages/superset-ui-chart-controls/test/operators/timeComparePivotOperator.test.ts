@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObject, SqlaFormData } from '@superset-ui/core';
+import { QueryObject, SqlaFormData, VizType } from '@superset-ui/core';
 import {
   timeCompareOperator,
   timeComparePivotOperator,
@@ -30,7 +30,7 @@ const formData: SqlaFormData = {
   time_range: '2015 : 2016',
   granularity: 'month',
   datasource: 'foo',
-  viz_type: 'table',
+  viz_type: VizType.Table,
   show_empty_columns: true,
 };
 const queryObject: QueryObject = {

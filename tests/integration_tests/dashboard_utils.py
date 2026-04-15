@@ -16,7 +16,6 @@
 # under the License.
 """Utils to provide dashboards for tests"""
 
-import json
 from typing import Optional
 
 from pandas import DataFrame  # noqa: F401
@@ -26,6 +25,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.core import DatasourceType, get_example_default_schema
 
 

@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import { isObject } from 'lodash';
-import { t, SupersetClient } from '@superset-ui/core';
-import Button from 'src/components/Button';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { Button } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
 
 interface SimpleDataSource {
@@ -38,7 +39,7 @@ const CLOSE = t('Close');
 const SAVE_AS_DATASET = t('Save as Dataset');
 const OPEN_IN_SQL_LAB = t('Open in SQL Lab');
 
-const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
+const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
   closeModal: () => void;
   changeDatasource: () => void;
   datasource: SimpleDataSource;
@@ -76,6 +77,7 @@ const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
   return (
     <div>
       <Button
+        buttonStyle="secondary"
         onClick={() => {
           props?.closeModal?.();
           props?.changeDatasource?.();
@@ -83,11 +85,13 @@ const ViewQueryModalFooter: React.FC<ViewQueryModalFooterProps> = (props: {
       >
         {SAVE_AS_DATASET}
       </Button>
-      <Button onClick={({ metaKey }) => openSQL(Boolean(metaKey))}>
+      <Button
+        buttonStyle="secondary"
+        onClick={({ metaKey }) => openSQL(Boolean(metaKey))}
+      >
         {OPEN_IN_SQL_LAB}
       </Button>
       <Button
-        buttonStyle="primary"
         onClick={() => {
           props?.closeModal?.();
         }}

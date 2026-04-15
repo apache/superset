@@ -17,23 +17,19 @@
  * under the License.
  */
 
-import React from 'react';
-import { ComponentStory, ComponentMeta } from '@storybook/react';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { StoryFn, Meta } from '@storybook/react';
 import DatasetPanel from './DatasetPanel';
 import { exampleColumns } from './fixtures';
 
 export default {
   title: 'Superset App/views/CRUD/data/dataset/DatasetPanel',
   component: DatasetPanel,
-} as ComponentMeta<typeof DatasetPanel>;
+} as Meta<typeof DatasetPanel>;
 
-export const Basic: ComponentStory<typeof DatasetPanel> = args => (
-  <ThemeProvider theme={supersetTheme}>
-    <div style={{ height: '350px' }}>
-      <DatasetPanel {...args} />
-    </div>
-  </ThemeProvider>
+export const Basic: StoryFn<typeof DatasetPanel> = args => (
+  <div style={{ height: '350px' }}>
+    <DatasetPanel {...args} />
+  </div>
 );
 
 Basic.args = {

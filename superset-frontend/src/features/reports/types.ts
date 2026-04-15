@@ -23,7 +23,7 @@
 export type ReportScheduleType = 'Alert' | 'Report';
 export type ReportCreationMethod = 'charts' | 'dashboards' | 'alerts_reports';
 
-export type ReportRecipientType = 'Email' | 'Slack';
+export type ReportRecipientType = 'Email' | 'Slack' | 'Webhook';
 
 export enum ReportType {
   Dashboards = 'dashboards',
@@ -46,7 +46,14 @@ export interface ReportObject {
   name: string;
   owners: number[];
   recipients: [
-    { recipient_config_json: { target: string }; type: ReportRecipientType },
+    {
+      recipient_config_json: {
+        target: string;
+        ccTarget: string;
+        bccTarget: string;
+      };
+      type: ReportRecipientType;
+    },
   ];
   report_format: string;
   timezone: string;

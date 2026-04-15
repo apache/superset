@@ -16,7 +16,6 @@
 # under the License.
 # isort:skip_file
 import functools
-import json
 import logging
 from typing import Any, Callable
 from collections.abc import Iterator
@@ -30,6 +29,7 @@ from superset.models.core import Database
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils.ssh_tunnel import mask_password_info
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 def parse_extra(extra_payload: str) -> dict[str, Any]:
     try:
         extra = json.loads(extra_payload)
-    except json.decoder.JSONDecodeError:
+    except json.JSONDecodeError:
         logger.info("Unable to decode `extra` field: %s", extra_payload)
         return {}
 
@@ -88,7 +88,7 @@ class ExportDatabasesCommand(ExportModelsCommand):
                     "schemas_allowed_for_file_upload"
                 )
 
-        if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(model.id):
+        if ssh_tunnel := model.ssh_tunnel:
             ssh_tunnel_payload = ssh_tunnel.export_to_dict(
                 recursive=False,
                 include_parent_ref=False,
@@ -96,6 +96,15 @@ class ExportDatabasesCommand(ExportModelsCommand):
                 export_uuids=False,
             )
             payload["ssh_tunnel"] = mask_password_info(ssh_tunnel_payload)
+
+        # If DB has sensitive fields in Secure Extra, export them masked.
+        # If not, export them as-is.
+        if encrypted_extra := model.encrypted_extra:
+            masked_encrypted_extra = model.masked_encrypted_extra
+            if encrypted_extra != masked_encrypted_extra:
+                payload["masked_encrypted_extra"] = masked_encrypted_extra
+            else:
+                payload["encrypted_extra"] = encrypted_extra
 
         payload["version"] = EXPORT_VERSION
 

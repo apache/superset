@@ -21,7 +21,7 @@ from typing import Any, TYPE_CHECKING
 
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
-from superset.utils import json as json_utils
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -50,16 +50,16 @@ class ExecutionContextConvertor:
 
     def serialize_payload(self) -> str:
         if self._exc_status == SqlJsonExecutionStatus.HAS_RESULTS:
-            return json_utils.dumps(
+            return json.dumps(
                 apply_display_max_row_configuration_if_require(
                     self.payload, self._max_row_in_display_configuration
                 ),
-                default=json_utils.pessimistic_json_iso_dttm_ser,
+                default=json.pessimistic_json_iso_dttm_ser,
                 ignore_nan=True,
             )
 
-        return json_utils.dumps(
+        return json.dumps(
             {"query": self.payload},
-            default=json_utils.json_int_dttm_ser,
+            default=json.json_int_dttm_ser,
             ignore_nan=True,
         )

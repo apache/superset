@@ -16,12 +16,12 @@
 # under the License.
 import logging
 from abc import ABC, abstractmethod
-
-from sqlalchemy.exc import SQLAlchemyError
+from functools import partial
 
 from superset.commands.base import BaseCommand
 from superset.commands.temporary_cache.exceptions import TemporaryCacheDeleteFailedError
 from superset.commands.temporary_cache.parameters import CommandParameters
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +30,9 @@ class DeleteTemporaryCacheCommand(BaseCommand, ABC):
     def __init__(self, cmd_params: CommandParameters):
         self._cmd_params = cmd_params
 
+    @transaction(on_error=partial(on_error, reraise=TemporaryCacheDeleteFailedError))
     def run(self) -> bool:
-        try:
-            return self.delete(self._cmd_params)
-        except SQLAlchemyError as ex:
-            logger.exception("Error running delete command")
-            raise TemporaryCacheDeleteFailedError() from ex
+        return self.delete(self._cmd_params)
 
     def validate(self) -> None:
         pass

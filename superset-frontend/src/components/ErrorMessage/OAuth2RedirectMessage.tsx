@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, MouseEvent } from 'react';
+
 import { useDispatch, useSelector } from 'react-redux';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { ExplorePageState } from 'src/explore/types';
@@ -24,10 +25,11 @@ import { RootState } from 'src/dashboard/types';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
-import { QueryResponse, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { QueryResponse } from '@superset-ui/core';
 
-import { ErrorMessageComponentProps } from './types';
-import ErrorAlert from './ErrorAlert';
+import type { ErrorMessageComponentProps } from './types';
+import { ErrorAlert } from './ErrorAlert';
 
 interface OAuth2RedirectExtra {
   url: string;
@@ -58,16 +60,17 @@ interface OAuth2RedirectExtra {
  * by the backend and sent from the opened tab to the original tab. For extra security,
  * we also check that the source of the message is the opened tab via a ref.
  */
-function OAuth2RedirectMessage({
+export function OAuth2RedirectMessage({
   error,
   source,
+  closable,
 }: ErrorMessageComponentProps<OAuth2RedirectExtra>) {
   const oAuthTab = useRef<Window | null>(null);
   const { extra, level } = error;
 
   // store a reference to the OAuth2 browser tab, so we can check that the success
   // message is coming from it
-  const handleOAuthClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleOAuthClick = (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     oAuthTab.current = window.open(extra.url, '_blank');
   };
@@ -122,7 +125,7 @@ function OAuth2RedirectMessage({
         } else if (source === 'explore' && chartId) {
           dispatch(triggerQuery(true, chartId));
         } else if (source === 'dashboard') {
-          dispatch(onRefresh(chartList, true, 0, dashboardId));
+          dispatch(onRefresh(chartList.map(Number), true, 0, dashboardId));
         }
       }
     };
@@ -144,36 +147,33 @@ function OAuth2RedirectMessage({
 
   const body = (
     <p>
-      This database uses OAuth2 for authentication. Please click the link above
-      to grant Apache Superset permission to access the data. Your personal
-      access token will be stored encrypted and used only for queries run by
-      you.
+      {t(
+        'This database uses OAuth2 for authentication. Please click the link above to grant Apache Superset permission to access the data. Your personal access token will be stored encrypted and used only for queries run by you.',
+      )}
     </p>
   );
   const subtitle = (
     <>
-      You need to{' '}
+      {t('You need to')}{' '}
       <a
         href={extra.url}
         onClick={handleOAuthClick}
         target="_blank"
         rel="noreferrer"
       >
-        provide authorization
+        {t('provide authorization')}
       </a>{' '}
-      in order to run this query.
+      {t('in order to run this operation.')}
     </>
   );
 
   return (
     <ErrorAlert
-      title={t('Authorization needed')}
-      subtitle={subtitle}
-      level={level}
-      source={source}
-      body={body}
+      errorType={t('Authorization needed')}
+      message={subtitle}
+      type={level}
+      description={body}
+      closable={closable}
     />
   );
 }
-
-export default OAuth2RedirectMessage;

@@ -21,13 +21,12 @@ Revises: 21e88bc06c02
 Create Date: 2018-02-13 08:07:40.766277
 """
 
-import json
-
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 revision = "e866bd2d4976"
 down_revision = "21e88bc06c02"

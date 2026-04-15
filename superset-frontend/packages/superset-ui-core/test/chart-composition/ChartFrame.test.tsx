@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ChartFrame } from '@superset-ui/core';
@@ -38,7 +37,7 @@ type Props = {
 
 const renderChartFrame = (props: Props) => render(<ChartFrame {...props} />);
 
-it('renders content that requires smaller space than frame', () => {
+test('renders content that requires smaller space than frame', () => {
   const { getByText } = renderChartFrame({
     width: 400,
     height: 400,
@@ -53,7 +52,7 @@ it('renders content that requires smaller space than frame', () => {
   expect(getByText('400/400')).toBeInTheDocument();
 });
 
-it('renders content without specifying content size', () => {
+test('renders content without specifying content size', () => {
   const { getByText } = renderChartFrame({
     width: 400,
     height: 400,
@@ -66,7 +65,7 @@ it('renders content without specifying content size', () => {
   expect(getByText('400/400')).toBeInTheDocument();
 });
 
-it('renders content that requires equivalent size to frame', () => {
+test('renders content that requires equivalent size to frame', () => {
   const { getByText } = renderChartFrame({
     width: 400,
     height: 400,
@@ -81,7 +80,7 @@ it('renders content that requires equivalent size to frame', () => {
   expect(getByText('400/400')).toBeInTheDocument();
 });
 
-it('renders content that requires space larger than frame', () => {
+test('renders content that requires space larger than frame', () => {
   const { getByText, container } = renderChartFrame({
     width: 400,
     height: 400,
@@ -98,7 +97,7 @@ it('renders content that requires space larger than frame', () => {
   expect(containerDiv).toHaveStyle({ overflowX: 'auto', overflowY: 'auto' });
 });
 
-it('renders content when width is larger than frame', () => {
+test('renders content when width is larger than frame', () => {
   const { getByText, container } = renderChartFrame({
     width: 400,
     height: 400,
@@ -114,7 +113,7 @@ it('renders content when width is larger than frame', () => {
   expect(containerDiv).toHaveStyle({ overflowX: 'auto', overflowY: 'hidden' });
 });
 
-it('renders content when height is larger than frame', () => {
+test('renders content when height is larger than frame', () => {
   const { getByText, container } = renderChartFrame({
     width: 400,
     height: 400,

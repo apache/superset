@@ -17,10 +17,10 @@
  * under the License.
  */
 
-import { JsonValue, t, TimeGranularity } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { JsonValue, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import {
-  LabelPositionEnum,
   LegendFormData,
   LegendOrientation,
   LegendType,
@@ -45,27 +45,19 @@ export const TIMESERIES_CONSTANTS = {
   dataZoomEnd: 100,
   yAxisLabelTopOffset: 20,
   extraControlsOffset: 22,
+  // Min right padding (px) for horizontal bar charts to ensure value labels are fully visible
+  horizontalBarLabelRightPadding: 70,
+  // Height thresholds (px) for responsive y-axis behavior
+  compactChartHeight: 100,
+  microChartHeight: 60,
+  // One y-axis tick per this many pixels of chart height
+  yAxisPixelsPerTick: 80,
 };
-
-export const LABEL_POSITION: [LabelPositionEnum, string][] = [
-  [LabelPositionEnum.Top, 'Top'],
-  [LabelPositionEnum.Left, 'Left'],
-  [LabelPositionEnum.Right, 'Right'],
-  [LabelPositionEnum.Bottom, 'Bottom'],
-  [LabelPositionEnum.Inside, 'Inside'],
-  [LabelPositionEnum.InsideBottomLeft, 'Inside left'],
-  [LabelPositionEnum.InsideBottomRight, 'Inside right'],
-  [LabelPositionEnum.InsideTop, 'Inside top'],
-  [LabelPositionEnum.InsideBottom, 'Inside bottom'],
-  [LabelPositionEnum.InsideTopLeft, 'Inside top left'],
-  [LabelPositionEnum.InsideBottomLeft, 'Inside bottom left'],
-  [LabelPositionEnum.InsideTopRight, 'Inside top right'],
-  [LabelPositionEnum.InsideBottomRight, 'Inside bottom right'],
-];
 
 export enum OpacityEnum {
   Transparent = 0,
   SemiTransparent = 0.3,
+  DerivedSeries = 0.7,
   NonTransparent = 1,
 }
 
@@ -89,6 +81,14 @@ export const AreaChartStackControlOptions: [
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [...StackControlOptions, [StackControlsValue.Expand, t('Expand')]];
 
+export const StackControlOptionsWithoutStream: [
+  JsonValue,
+  Exclude<ReactNode, null | undefined | boolean>,
+][] = [
+  [null, t('None')],
+  [StackControlsValue.Stack, t('Stack')],
+];
+
 export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.HOUR]: 3600 * 1000,
   [TimeGranularity.DAY]: 3600 * 1000 * 24,
@@ -102,13 +102,14 @@ export const DEFAULT_LEGEND_FORM_DATA: LegendFormData = {
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
   showLegend: true,
+  legendSort: null,
 };
 
 export const DEFAULT_TITLE_FORM_DATA: TitleFormData = {
   xAxisTitle: '',
   xAxisTitleMargin: 0,
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 15,
   yAxisTitlePosition: 'Top',
 };
 
@@ -120,3 +121,5 @@ export const TOOLTIP_POINTER_MARGIN = 10;
 // If no satisfactory position can be found, how far away
 // from the edge of the window should the tooltip be kept
 export const TOOLTIP_OVERFLOW_MARGIN = 5;
+
+export const DEFAULT_LOCALE = 'en';

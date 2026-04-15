@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import {
   getColumnLabel,
   getNumberFormatter,
@@ -176,6 +175,7 @@ export default function EchartsGraph({
       width={width}
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
+      vizType={formData.vizType}
     />
   );
 }

@@ -22,7 +22,6 @@ Create Date: 2018-12-11 22:03:21.612516
 
 """
 
-import json
 import logging
 
 from alembic import op
@@ -30,10 +29,13 @@ from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "fb13d49b72f9"
 down_revision = "de021a1ca60d"
+
+logger = logging.getLogger("alembic.env")
 
 Base = declarative_base()
 
@@ -49,7 +51,7 @@ class Slice(Base):
 
 def upgrade_slice(slc):
     params = json.loads(slc.params)
-    logging.info(f"Upgrading {slc.slice_name}")
+    logger.info("Upgrading %s", slc.slice_name)
     cols = params.get("groupby")
     metric = params.get("metric")
     if cols:
@@ -79,8 +81,8 @@ def upgrade():
     for slc in filter_box_slices.all():
         try:
             upgrade_slice(slc)
-        except Exception:
-            logging.exception(e)  # noqa: F821
+        except Exception as e:
+            logger.exception(e)
 
     session.commit()
     session.close()
@@ -94,7 +96,7 @@ def downgrade():
     for slc in filter_box_slices.all():
         try:
             params = json.loads(slc.params)
-            logging.info(f"Downgrading {slc.slice_name}")
+            logger.info("Downgrading %s", slc.slice_name)
             flts = params.get("filter_configs")
             if not flts:
                 continue
@@ -102,7 +104,7 @@ def downgrade():
             params["groupby"] = [o.get("column") for o in flts]
             slc.params = json.dumps(params, sort_keys=True)
         except Exception as ex:
-            logging.exception(ex)
+            logger.exception(ex)
 
     session.commit()
     session.close()

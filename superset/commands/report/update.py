@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -26,6 +26,8 @@ from superset.commands.base import UpdateMixin
 from superset.commands.report.base import BaseReportScheduleCommand
 from superset.commands.report.exceptions import (
     DatabaseNotFoundValidationError,
+    ReportScheduleAlertRequiredDatabaseValidationError,
+    ReportScheduleDatabaseNotAllowedValidationError,
     ReportScheduleForbiddenError,
     ReportScheduleInvalidError,
     ReportScheduleNameUniquenessValidationError,
@@ -33,10 +35,11 @@ from superset.commands.report.exceptions import (
     ReportScheduleUpdateFailedError,
 )
 from superset.daos.database import DatabaseDAO
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
+from superset.utils import json
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -47,25 +50,19 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         self._properties = data.copy()
         self._model: Optional[ReportSchedule] = None
 
+    @transaction(on_error=partial(on_error, reraise=ReportScheduleUpdateFailedError))
     def run(self) -> Model:
         self.validate()
-        assert self._model
+        return ReportScheduleDAO.update(self._model, self._properties)
 
-        try:
-            report_schedule = ReportScheduleDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as ex:
-            logger.exception(ex.exception)
-            raise ReportScheduleUpdateFailedError() from ex
-        return report_schedule
-
-    def validate(self) -> None:
+    def validate(self) -> None:  # noqa: C901
         """
         Validates the properties of a report schedule configuration, including uniqueness
         of name and type, relations based on the report type, frequency, etc. Populates
         a list of `ValidationErrors` to be returned in the API response if any.
 
         Fields were loaded according to the `ReportSchedulePutSchema` schema.
-        """
+        """  # noqa: E501
         # Load existing report schedule config
         self._model = ReportScheduleDAO.find_by_id(self._model_id)
         if not self._model:
@@ -103,8 +100,22 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
                     )
                 )
 
+        # Determine effective database state (payload overrides model)
+        if "database" in self._properties:
+            has_database = self._properties["database"] is not None
+        else:
+            has_database = self._model.database_id is not None
+
+        # Validate database is not allowed on Report type
+        if report_type == ReportScheduleType.REPORT and has_database:
+            exceptions.append(ReportScheduleDatabaseNotAllowedValidationError())
+
+        # Validate Alert has a database
+        if report_type == ReportScheduleType.ALERT and not has_database:
+            exceptions.append(ReportScheduleAlertRequiredDatabaseValidationError())
+
         # Validate if DB exists (for alerts)
-        if report_type == ReportScheduleType.ALERT and database_id:
+        if report_type == ReportScheduleType.ALERT and database_id is not None:
             if not (database := DatabaseDAO.find_by_id(database_id)):
                 exceptions.append(DatabaseNotFoundValidationError())
             self._properties["database"] = database
@@ -120,6 +131,7 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
 
         # Validate chart or dashboard relations
         self.validate_chart_dashboard(exceptions, update=True)
+        self._validate_report_extra(exceptions)
 
         if "validator_config_json" in self._properties:
             self._properties["validator_config_json"] = json.dumps(

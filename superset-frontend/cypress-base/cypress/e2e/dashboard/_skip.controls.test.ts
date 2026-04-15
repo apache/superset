@@ -25,13 +25,13 @@ import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 import { WORLD_HEALTH_CHARTS } from './utils';
 import { isLegacyResponse } from '../../utils/vizPlugins';
 
-describe.skip('Dashboard top-level controls', () => {
+describe('Dashboard top-level controls', () => {
   beforeEach(() => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
   });
 
-  // flaky test
-  it('should allow chart level refresh', () => {
+  // flaky test - query completes before assertion
+  it.skip('should allow chart level refresh', () => {
     const mapSpec = WORLD_HEALTH_CHARTS.find(
       ({ viz }) => viz === 'world_map',
     ) as ChartSpec;
@@ -62,7 +62,7 @@ describe.skip('Dashboard top-level controls', () => {
     // should allow force refresh
     WORLD_HEALTH_CHARTS.forEach(waitForChartLoad);
     getChartAliasesBySpec(WORLD_HEALTH_CHARTS).then(aliases => {
-      cy.get('[aria-label="more-horiz"]').click();
+      cy.get('[aria-label="ellipsis"]').click();
       cy.get('[data-test="refresh-dashboard-menu-item"]').should(
         'not.have.class',
         'ant-dropdown-menu-item-disabled',
@@ -91,7 +91,7 @@ describe.skip('Dashboard top-level controls', () => {
         });
       });
     });
-    cy.get('[aria-label="more-horiz"]').click();
+    cy.get('[aria-label="ellipsis"]').click();
     cy.get('[data-test="refresh-dashboard-menu-item"]').and(
       'not.have.class',
       'ant-dropdown-menu-item-disabled',

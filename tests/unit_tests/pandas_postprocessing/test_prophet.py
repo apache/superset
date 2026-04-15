@@ -28,7 +28,7 @@ from tests.unit_tests.fixtures.dataframes import prophet_df
 
 def test_prophet_valid():
     df = prophet(df=prophet_df, time_grain="P1M", periods=3, confidence_interval=0.9)
-    columns = {column for column in df.columns}
+    columns = {column for column in df.columns}  # noqa: C416
     assert columns == {
         DTTM_ALIAS,
         "a__yhat",
@@ -112,7 +112,7 @@ def test_prophet_valid():
 
 def test_prophet_valid_zero_periods():
     df = prophet(df=prophet_df, time_grain="P1M", periods=0, confidence_interval=0.9)
-    columns = {column for column in df.columns}
+    columns = {column for column in df.columns}  # noqa: C416
     assert columns == {
         DTTM_ALIAS,
         "a__yhat",

@@ -17,11 +17,11 @@
  * under the License.
  */
 import rison from 'rison';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   makeApi,
   SupersetClient,
-  t,
   JsonObject,
   getClientErrorObject,
 } from '@superset-ui/core';
@@ -34,14 +34,22 @@ import {
   getSSHPasswordsNeeded,
   getSSHPrivateKeysNeeded,
   getSSHPrivateKeyPasswordsNeeded,
+  getEncryptedExtraFieldsNeeded,
 } from 'src/views/CRUD/utils';
-import { FetchDataConfig } from 'src/components/ListView';
-import { FilterValue } from 'src/components/ListView/types';
+import type {
+  ListViewFetchDataConfig as FetchDataConfig,
+  ListViewFilterValue as FilterValue,
+} from 'src/components';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import SupersetText from 'src/utils/textUtils';
 import { DatabaseObject } from 'src/features/databases/types';
-import { FavoriteStatus, ImportResourceName } from './types';
+import {
+  FavoriteStatus,
+  FileEncryptedExtraFields,
+  ImportResourceName,
+} from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -77,6 +85,7 @@ export function useListViewResource<D extends object = any>(
   defaultCollectionValue: D[] = [],
   baseFilters?: FilterValue[], // must be memoized
   initialLoadingState = true,
+  selectColumns?: string[],
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -87,13 +96,21 @@ export function useListViewResource<D extends object = any>(
     bulkSelectEnabled: false,
   });
 
-  function updateState(update: Partial<ListViewResourceState<D>>) {
-    setState(currentState => ({ ...currentState, ...update }));
-  }
+  const updateState = useCallback(
+    (update: Partial<ListViewResourceState<D>>) => {
+      setState(currentState => ({ ...currentState, ...update }));
+    },
+    [],
+  );
 
   function toggleBulkSelect() {
     updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
   }
+
+  const handleErrorMsgRef = useRef(handleErrorMsg);
+  useEffect(() => {
+    handleErrorMsgRef.current = handleErrorMsg;
+  });
 
   useEffect(() => {
     if (!infoEnable) return;
@@ -108,7 +125,7 @@ export function useListViewResource<D extends object = any>(
         });
       },
       createErrorHandler(errMsg =>
-        handleErrorMsg(
+        handleErrorMsgRef.current(
           t(
             'An error occurred while fetching %s info: %s',
             resourceLabel,
@@ -117,15 +134,20 @@ export function useListViewResource<D extends object = any>(
         ),
       ),
     );
-  }, []);
+  }, [infoEnable, resource, resourceLabel, updateState]);
 
-  function hasPerm(perm: string) {
-    if (!state.permissions.length) {
-      return false;
-    }
+  const hasPerm = useCallback(
+    (perm: string) => {
+      if (!state.permissions.length) {
+        return false;
+      }
 
-    return Boolean(state.permissions.find(p => p === perm));
-  }
+      return Boolean(state.permissions.find(p => p === perm));
+    },
+    [state.permissions],
+  );
+
+  const lastFetchDataConfigRef = useRef<FetchDataConfig | null>(null);
 
   const fetchData = useCallback(
     ({
@@ -134,19 +156,23 @@ export function useListViewResource<D extends object = any>(
       sortBy,
       filters: filterValues,
     }: FetchDataConfig) => {
+      const config: FetchDataConfig = {
+        filters: filterValues,
+        pageIndex,
+        pageSize,
+        sortBy,
+      };
+      lastFetchDataConfigRef.current = config;
       // set loading state, cache the last config for refreshing data.
       updateState({
-        lastFetchDataConfig: {
-          filters: filterValues,
-          pageIndex,
-          pageSize,
-          sortBy,
-        },
+        lastFetchDataConfig: config,
         loading: true,
       });
-
       const filterExps = (baseFilters || [])
         .concat(filterValues)
+        .filter(
+          ({ value }) => value !== '' && value !== null && value !== undefined,
+        )
         .map(({ id, operator: opr, value }) => ({
           col: id,
           opr,
@@ -162,6 +188,7 @@ export function useListViewResource<D extends object = any>(
         page: pageIndex,
         page_size: pageSize,
         ...(filterExps.length ? { filters: filterExps } : {}),
+        ...(selectColumns?.length ? { select_columns: selectColumns } : {}),
       });
 
       return SupersetClient.get({
@@ -189,7 +216,27 @@ export function useListViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [baseFilters],
+    [
+      baseFilters,
+      handleErrorMsg,
+      resource,
+      resourceLabel,
+      selectColumns,
+      updateState,
+    ],
+  );
+
+  const refreshData = useCallback(
+    (provideConfig?: FetchDataConfig) => {
+      if (lastFetchDataConfigRef.current) {
+        return fetchData(lastFetchDataConfigRef.current);
+      }
+      if (provideConfig) {
+        return fetchData(provideConfig);
+      }
+      return null;
+    },
+    [fetchData],
   );
 
   return {
@@ -207,15 +254,7 @@ export function useListViewResource<D extends object = any>(
     hasPerm,
     fetchData,
     toggleBulkSelect,
-    refreshData: (provideConfig?: FetchDataConfig) => {
-      if (state.lastFetchDataConfig) {
-        return fetchData(state.lastFetchDataConfig);
-      }
-      if (provideConfig) {
-        return fetchData(provideConfig);
-      }
-      return null;
-    },
+    refreshData,
   };
 }
 
@@ -230,7 +269,7 @@ export function useSingleViewResource<D extends object = any>(
   resourceName: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
-  path_suffix = '',
+  pathSuffix = '',
 ) {
   const [state, setState] = useState<SingleViewResourceState<D>>({
     loading: false,
@@ -238,9 +277,12 @@ export function useSingleViewResource<D extends object = any>(
     error: null,
   });
 
-  function updateState(update: Partial<SingleViewResourceState<D>>) {
-    setState(currentState => ({ ...currentState, ...update }));
-  }
+  const updateState = useCallback(
+    (update: Partial<SingleViewResourceState<D>>) => {
+      setState(currentState => ({ ...currentState, ...update }));
+    },
+    [],
+  );
 
   const fetchResource = useCallback(
     (resourceID: number) => {
@@ -251,7 +293,7 @@ export function useSingleViewResource<D extends object = any>(
 
       const baseEndpoint = `/api/v1/${resourceName}/${resourceID}`;
       const endpoint =
-        path_suffix !== '' ? `${baseEndpoint}/${path_suffix}` : baseEndpoint;
+        pathSuffix !== '' ? `${baseEndpoint}/${pathSuffix}` : baseEndpoint;
       return SupersetClient.get({
         endpoint,
       })
@@ -281,7 +323,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [handleErrorMsg, pathSuffix, resourceName, resourceLabel, updateState],
   );
 
   const createResource = useCallback(
@@ -325,7 +367,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [handleErrorMsg, resourceName, resourceLabel, updateState],
   );
 
   const updateResource = useCallback(
@@ -374,7 +416,7 @@ export function useSingleViewResource<D extends object = any>(
           }
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [handleErrorMsg, resourceName, resourceLabel, updateState],
   );
 
   const clearError = () =>
@@ -402,6 +444,7 @@ interface ImportResourceState {
   sshPasswordNeeded: string[];
   sshPrivateKeyNeeded: string[];
   sshPrivateKeyPasswordNeeded: string[];
+  encryptedExtraFieldsNeeded: FileEncryptedExtraFields[];
   failed: boolean;
 }
 
@@ -417,20 +460,22 @@ export function useImportResource(
     sshPasswordNeeded: [],
     sshPrivateKeyNeeded: [],
     sshPrivateKeyPasswordNeeded: [],
+    encryptedExtraFieldsNeeded: [],
     failed: false,
   });
 
-  function updateState(update: Partial<ImportResourceState>) {
+  const updateState = useCallback((update: Partial<ImportResourceState>) => {
     setState(currentState => ({ ...currentState, ...update }));
-  }
+  }, []);
 
   const importResource = useCallback(
-    (
+    async (
       bundle: File,
       databasePasswords: Record<string, string> = {},
       sshTunnelPasswords: Record<string, string> = {},
       sshTunnelPrivateKey: Record<string, string> = {},
       sshTunnelPrivateKeyPasswords: Record<string, string> = {},
+      encryptedExtraSecrets: Record<string, Record<string, string>> = {},
       overwrite = false,
     ) => {
       // Set loading state
@@ -485,6 +530,18 @@ export function useImportResource(
           JSON.stringify(sshTunnelPrivateKeyPasswords),
         );
       }
+      /* The import bundle may contain masked_encrypted_extra; if required
+       * the secrets should be provided by the user during import.
+       */
+      if (
+        encryptedExtraSecrets &&
+        Object.keys(encryptedExtraSecrets).length > 0
+      ) {
+        formData.append(
+          'encrypted_extra_secrets',
+          JSON.stringify(encryptedExtraSecrets),
+        );
+      }
 
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
@@ -498,6 +555,7 @@ export function useImportResource(
             sshPasswordNeeded: [],
             sshPrivateKeyNeeded: [],
             sshPrivateKeyPasswordNeeded: [],
+            encryptedExtraFieldsNeeded: [],
             failed: false,
           });
           return true;
@@ -536,6 +594,9 @@ export function useImportResource(
                 sshPrivateKeyPasswordNeeded: getSSHPrivateKeyPasswordsNeeded(
                   error.errors,
                 ),
+                encryptedExtraFieldsNeeded: getEncryptedExtraFieldsNeeded(
+                  error.errors,
+                ),
                 alreadyExists: getAlreadyExists(error.errors),
               });
             }
@@ -546,7 +607,7 @@ export function useImportResource(
           updateState({ loading: false });
         });
     },
-    [],
+    [handleErrorMsg, resourceLabel, resourceName, updateState],
   );
 
   return { state, importResource };
@@ -584,8 +645,11 @@ export function useFavoriteStatus(
 ) {
   const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>({});
 
-  const updateFavoriteStatus = (update: FavoriteStatus) =>
-    setFavoriteStatus(currentState => ({ ...currentState, ...update }));
+  const updateFavoriteStatus = useCallback(
+    (update: FavoriteStatus) =>
+      setFavoriteStatus(currentState => ({ ...currentState, ...update })),
+    [],
+  );
 
   useEffect(() => {
     if (!ids.length) {
@@ -593,10 +657,13 @@ export function useFavoriteStatus(
     }
     favoriteApis[type](ids).then(
       ({ result }) => {
-        const update = result.reduce((acc, element) => {
-          acc[element.id] = element.value;
-          return acc;
-        }, {});
+        const update = result.reduce<Record<string, boolean>>(
+          (acc, element) => {
+            acc[element.id] = element.value;
+            return acc;
+          },
+          {},
+        );
         updateFavoriteStatus(update);
       },
       createErrorHandler(errMsg =>
@@ -605,7 +672,7 @@ export function useFavoriteStatus(
         ),
       ),
     );
-  }, [ids, type, handleErrorMsg]);
+  }, [ids, type, handleErrorMsg, updateFavoriteStatus]);
 
   const saveFaveStar = useCallback(
     (id: number, isStarred: boolean) => {
@@ -629,7 +696,7 @@ export function useFavoriteStatus(
         ),
       );
     },
-    [type],
+    [handleErrorMsg, type, updateFavoriteStatus],
   );
 
   return [saveFaveStar, favoriteStatus] as const;
@@ -642,7 +709,7 @@ export const useChartEditModal = (
   const [sliceCurrentlyEditing, setSliceCurrentlyEditing] =
     useState<Slice | null>(null);
 
-  function openChartEditModal(chart: Chart) {
+  const openChartEditModal = useCallback((chart: Chart) => {
     setSliceCurrentlyEditing({
       slice_id: chart.id,
       slice_name: chart.slice_name,
@@ -652,11 +719,11 @@ export const useChartEditModal = (
       certification_details: chart.certification_details,
       is_managed_externally: chart.is_managed_externally,
     });
-  }
+  }, []);
 
-  function closeChartEditModal() {
+  const closeChartEditModal = useCallback(() => {
     setSliceCurrentlyEditing(null);
-  }
+  }, []);
 
   function handleChartUpdated(edits: Chart) {
     // update the chart in our state with the edited info
@@ -680,7 +747,9 @@ export const copyQueryLink = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   copyTextToClipboard(() =>
-    Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
+    Promise.resolve(
+      `${window.location.origin}${ensureAppRoot(`/sqllab?savedQueryId=${id}`)}`,
+    ),
   )
     .then(() => {
       addSuccessToast(t('Link Copied!'));
@@ -748,137 +817,98 @@ export function useDatabaseValidation() {
   const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
     null,
   );
+  const [isValidating, setIsValidating] = useState(false);
+  const [hasValidated, setHasValidated] = useState(false);
+
   const getValidation = useCallback(
-    (database: Partial<DatabaseObject> | null, onCreate = false) => {
+    async (database: Partial<DatabaseObject> | null, onCreate = false) => {
       if (database?.parameters?.ssh) {
-        // TODO: /validate_parameters/ and related utils should support ssh tunnel
         setValidationErrors(null);
-        return [];
+        setIsValidating(false);
+        setHasValidated(true);
+        return Promise.resolve([]);
       }
 
-      return (
-        SupersetClient.post({
+      setIsValidating(true);
+
+      try {
+        await SupersetClient.post({
           endpoint: '/api/v1/database/validate_parameters/',
           body: JSON.stringify(transformDB(database)),
           headers: { 'Content-Type': 'application/json' },
-        })
-          .then(() => {
-            setValidationErrors(null);
-          })
-          // eslint-disable-next-line consistent-return
-          .catch(e => {
-            if (typeof e.json === 'function') {
-              return e.json().then(({ errors = [] }: JsonObject) => {
-                const parsedErrors = errors
-                  .filter((error: { error_type: string }) => {
-                    const skipValidationError = ![
-                      'CONNECTION_MISSING_PARAMETERS_ERROR',
-                      'CONNECTION_ACCESS_DENIED_ERROR',
-                    ].includes(error.error_type);
-                    return skipValidationError || onCreate;
-                  })
-                  .reduce(
-                    (
-                      obj: {},
-                      {
-                        error_type,
-                        extra,
-                        message,
-                      }: {
-                        error_type: string;
-                        extra: {
-                          invalid?: string[];
-                          missing?: string[];
-                          name: string;
-                          catalog: {
-                            name: string;
-                            url: string;
-                            idx: number;
-                          };
-                          issue_codes?: {
-                            code?: number;
-                            message?: string;
-                          }[];
-                        };
-                        message: string;
-                      },
-                    ) => {
-                      if (extra.catalog) {
-                        if (extra.catalog.name) {
-                          return {
-                            ...obj,
-                            error_type,
-                            [extra.catalog.idx]: {
-                              name: message,
-                            },
-                          };
-                        }
-                        if (extra.catalog.url) {
-                          return {
-                            ...obj,
-                            error_type,
-                            [extra.catalog.idx]: {
-                              url: message,
-                            },
-                          };
-                        }
+        });
+        setValidationErrors(null);
+        setIsValidating(false);
+        setHasValidated(true);
+        return [];
+      } catch (error) {
+        if (typeof error.json === 'function') {
+          return error.json().then(({ errors = [] }) => {
+            const parsedErrors = errors
+              .filter((err: { error_type: string }) => {
+                const allowed = [
+                  'CONNECTION_MISSING_PARAMETERS_ERROR',
+                  'CONNECTION_ACCESS_DENIED_ERROR',
+                  'INVALID_PAYLOAD_SCHEMA_ERROR',
+                ];
+                return allowed.includes(err.error_type) || onCreate;
+              })
+              .reduce((acc: JsonObject, err2: any) => {
+                const { message, extra } = err2;
 
-                        return {
-                          ...obj,
-                          error_type,
-                          [extra.catalog.idx]: {
-                            name: message,
-                            url: message,
-                          },
-                        };
-                      }
-                      // if extra.invalid doesn't exist then the
-                      // error can't be mapped to a parameter
-                      // so leave it alone
-                      if (extra.invalid) {
-                        return {
-                          ...obj,
-                          [extra.invalid[0]]: message,
-                          error_type,
-                        };
-                      }
-                      if (extra.missing) {
-                        return {
-                          ...obj,
-                          error_type,
-                          ...Object.assign(
-                            {},
-                            ...extra.missing.map(field => ({
-                              [field]: 'This is a required field',
-                            })),
-                          ),
-                        };
-                      }
-                      if (extra.issue_codes?.length) {
-                        return {
-                          ...obj,
-                          error_type,
-                          description: message || extra.issue_codes[0]?.message,
-                        };
-                      }
+                if (extra?.catalog) {
+                  const { idx } = extra.catalog;
+                  acc[idx] = {
+                    ...acc[idx],
+                    ...(extra.catalog.name ? { name: message } : {}),
+                    ...(extra.catalog.url ? { url: message } : {}),
+                  };
+                  return acc;
+                }
 
-                      return obj;
-                    },
-                    {},
-                  );
-                setValidationErrors(parsedErrors);
-                return parsedErrors;
-              });
-            }
-            // eslint-disable-next-line no-console
-            console.error(e);
-          })
-      );
+                if (extra?.invalid) {
+                  extra.invalid.forEach((field: string) => {
+                    acc[field] = message;
+                  });
+                }
+
+                if (extra?.missing) {
+                  extra.missing.forEach((field1: string) => {
+                    acc[field1] = 'This is a required field';
+                  });
+                }
+
+                if (extra?.issue_codes?.length) {
+                  acc.description = message || extra.issue_codes[0]?.message;
+                }
+
+                return acc;
+              }, {});
+
+            setValidationErrors(parsedErrors);
+            setIsValidating(false);
+            setHasValidated(true);
+            return parsedErrors;
+          });
+        }
+
+        console.error('Unexpected error during validation:', error);
+        setIsValidating(false);
+        setHasValidated(true);
+        return {};
+      }
     },
     [setValidationErrors],
   );
 
-  return [validationErrors, getValidation, setValidationErrors] as const;
+  return [
+    validationErrors,
+    getValidation,
+    setValidationErrors,
+    isValidating,
+    hasValidated,
+    setHasValidated,
+  ] as const;
 }
 
 export const reportSelector = (

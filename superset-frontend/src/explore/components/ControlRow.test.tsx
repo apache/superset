@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactElement } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import ControlSetRow from 'src/explore/components/ControlRow';
 import StashFormDataContainer from './StashFormDataContainer';
 
 const MockControl = (props: {
-  children: React.ReactElement;
+  children: ReactElement;
   type?: string;
   isVisible?: boolean;
 }) => <div>{props.children}</div>;

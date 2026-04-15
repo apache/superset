@@ -18,46 +18,49 @@
  */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
-import React, {
+import {
   useState,
   useEffect,
   useMemo,
   useRef,
   useCallback,
   ChangeEvent,
+  FC,
 } from 'react';
-import type AceEditor from 'react-ace';
+
+import type { editors } from '@apache-superset/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
-import { CSSTransition } from 'react-transition-group';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import Split from 'react-split';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import { t } from '@apache-superset/core/translation';
 import {
-  css,
   FeatureFlag,
   isFeatureEnabled,
-  styled,
-  t,
-  useTheme,
   getExtensionsRegistry,
   QueryResponse,
   Query,
 } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import type {
   QueryEditor,
   SqlLabRootState,
   CursorPosition,
 } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { debounce, throttle, isBoolean, isEmpty } from 'lodash';
-import Modal from 'src/components/Modal';
+import { debounce, isEmpty } from 'lodash';
 import Mousetrap from 'mousetrap';
-import Button from 'src/components/Button';
-import Timer from 'src/components/Timer';
-import ResizableSidebar from 'src/components/ResizableSidebar';
-import { AntdDropdown, AntdSwitch, Skeleton } from 'src/components';
-import { Input } from 'src/components/Input';
-import { Menu } from 'src/components/Menu';
-import Icons from 'src/components/Icons';
+import {
+  Button,
+  Divider,
+  EmptyState,
+  Input,
+  Modal,
+} from '@superset-ui/core/components';
+import { Splitter } from 'src/components/Splitter';
+import { Skeleton } from '@superset-ui/core/components/Skeleton';
+import { Switch } from '@superset-ui/core/components/Switch';
+import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
 import { detectOS } from 'src/utils/common';
 import {
   addNewQueryEditor,
@@ -77,53 +80,58 @@ import {
   setActiveSouthPaneTab,
   updateSavedQuery,
   formatQuery,
+  fetchQueryEditor,
   switchQueryEditor,
 } from 'src/SqlLab/actions/sqlLab';
 import {
-  STATE_TYPE_MAP,
   SQL_EDITOR_GUTTER_HEIGHT,
-  SQL_EDITOR_GUTTER_MARGIN,
-  SQL_TOOLBAR_HEIGHT,
-  SQL_EDITOR_LEFTBAR_WIDTH,
-  SQL_EDITOR_PADDING,
   INITIAL_NORTH_PERCENT,
-  INITIAL_SOUTH_PERCENT,
   SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
-  WINDOW_RESIZE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
 import {
   getItem,
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import useLogAction from 'src/logger/useLogAction';
+import {
+  LOG_ACTIONS_SQLLAB_CREATE_TABLE_AS,
+  LOG_ACTIONS_SQLLAB_CREATE_VIEW_AS,
+  LOG_ACTIONS_SQLLAB_ESTIMATE_QUERY_COST,
+  LOG_ACTIONS_SQLLAB_FORMAT_SQL,
+  LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE,
+  LOG_ACTIONS_SQLLAB_RUN_QUERY,
+  LOG_ACTIONS_SQLLAB_STOP_QUERY,
+  Logger,
+} from 'src/logger/LogUtils';
+import { CopyToClipboard } from 'src/components';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
 import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
 import ShareSqlLabQuery from '../ShareSqlLabQuery';
-import SqlEditorLeftBar from '../SqlEditorLeftBar';
-import AceEditorWrapper from '../AceEditorWrapper';
+import EditorWrapper from '../EditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
 import KeyboardShortcutButton, {
   KEY_MAP,
   KeyboardShortcut,
 } from '../KeyboardShortcutButton';
+import SqlEditorTopBar from '../SqlEditorTopBar';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 const StyledToolbar = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
-  background: ${({ theme }) => theme.colors.grayscale.light5};
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
+  background: ${({ theme }) => theme.colorBgContainer};
   display: flex;
   justify-content: space-between;
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border: 1px solid ${({ theme }) => theme.colorBorder};
   border-top: 0;
-  column-gap: ${({ theme }) => theme.gridUnit}px;
+  column-gap: ${({ theme }) => theme.sizeUnit}px;
 
   form {
     margin-block-end: 0;
@@ -133,8 +141,10 @@ const StyledToolbar = styled.div`
   .rightItems {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    gap: ${({ theme }) => theme.sizeUnit}px;
     & > span {
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
       display: inline-block;
 
       &:last-child {
@@ -148,67 +158,61 @@ const StyledToolbar = styled.div`
   }
 `;
 
-const StyledSidebar = styled.div<{ width: number; hide: boolean | undefined }>`
-  flex: 0 0 ${({ width }) => width}px;
-  width: ${({ width }) => width}px;
-  padding: ${({ theme, hide }) => (hide ? 0 : theme.gridUnit * 2.5)}px;
-  border-right: 1px solid
-    ${({ theme, hide }) =>
-      hide ? 'transparent' : theme.colors.grayscale.light2};
-`;
-
 const StyledSqlEditor = styled.div`
   ${({ theme }) => css`
-    display: flex;
-    flex-direction: row;
     height: 100%;
 
-    .schemaPane {
-      transition: transform ${theme.transitionTiming}s ease-in-out;
-    }
-
     .queryPane {
+      padding: 0;
+      + .ant-splitter-bar .ant-splitter-bar-dragger {
+        &::before {
+          height: 1px;
+          background-color: ${theme.colorBorder};
+          transform: translateX(-50%) !important;
+        }
+        &::after {
+          height: ${SQL_EDITOR_GUTTER_HEIGHT}px;
+          background: transparent;
+          border-top: 1px solid ${theme.colorBorder};
+          border-bottom: 1px solid ${theme.colorBorder};
+          transform: translate(-50%, -2px);
+        }
+      }
+    }
+
+    .north-pane {
+      padding: ${theme.sizeUnit * 2}px 0 0 0;
+      height: 100%;
+      margin: 0 ${theme.sizeUnit * 4}px;
+    }
+
+    .SouthPane {
+      & .ant-tabs-tabpane {
+        margin: 0 ${theme.sizeUnit * 4}px;
+        & .ant-tabs {
+          margin: 0 ${theme.sizeUnit * -4}px;
+        }
+      }
+      & .ant-tabs-tab {
+        box-shadow: none !important;
+        background: transparent !important;
+        border-color: transparent !important;
+        margin-top: ${theme.sizeUnit * 2}px !important;
+        &.ant-tabs-tab-active {
+          border-bottom-color: ${theme.colorPrimary} !important;
+          & .ant-tabs-tab-btn {
+            font-weight: ${theme.fontWeightStrong};
+            color: ${theme.colorTextBase} !important;
+            text-shadow: none !important;
+          }
+        }
+      }
+    }
+
+    .sql-container {
       flex: 1 1 auto;
-      padding: ${theme.gridUnit * 2}px;
-      overflow-y: auto;
-      overflow-x: scroll;
-    }
-
-    .schemaPane-enter-done,
-    .schemaPane-exit {
-      transform: translateX(0);
-      z-index: 7;
-    }
-
-    .schemaPane-exit-active {
-      transform: translateX(-120%);
-    }
-
-    .schemaPane-enter-active {
-      transform: translateX(0);
-      max-width: ${theme.gridUnit * 75}px;
-    }
-
-    .schemaPane-enter,
-    .schemaPane-exit-done {
-      max-width: 0;
-      transform: translateX(-120%);
-      overflow: hidden;
-    }
-
-    .schemaPane-exit-done + .queryPane {
-      margin-left: 0;
-    }
-
-    .gutter {
-      border-top: 1px solid ${theme.colors.grayscale.light2};
-      border-bottom: 1px solid ${theme.colors.grayscale.light2};
-      width: 3%;
-      margin: ${SQL_EDITOR_GUTTER_MARGIN}px 47%;
-    }
-
-    .gutter.gutter-vertical {
-      cursor: row-resize;
+      margin: 0 ${theme.sizeUnit * -4}px;
+      box-shadow: 0 0 0 1px ${theme.colorBorder};
     }
   `}
 `;
@@ -224,17 +228,7 @@ export type Props = {
   scheduleQueryWarning: string | null;
 };
 
-const elementStyle = (
-  dimension: string,
-  elementSize: number,
-  gutterSize: number,
-) => ({
-  [dimension]: `calc(${elementSize}% - ${
-    gutterSize + SQL_EDITOR_GUTTER_MARGIN
-  }px)`,
-});
-
-const SqlEditor: React.FC<Props> = ({
+const SqlEditor: FC<Props> = ({
   queryEditor,
   defaultQueryLimit,
   maxRow,
@@ -245,7 +239,7 @@ const SqlEditor: React.FC<Props> = ({
   const theme = useTheme();
   const dispatch = useDispatch();
 
-  const { database, latestQuery, hideLeftBar, currentQueryEditorId } =
+  const { database, latestQuery, currentQueryEditorId, hasSqlStatement } =
     useSelector<
       SqlLabRootState,
       {
@@ -253,17 +247,20 @@ const SqlEditor: React.FC<Props> = ({
         latestQuery?: QueryResponse;
         hideLeftBar?: boolean;
         currentQueryEditorId: QueryEditor['id'];
+        hasSqlStatement: boolean;
       }
     >(({ sqlLab: { unsavedQueryEditor, databases, queries, tabHistory } }) => {
       let { dbId, latestQueryId, hideLeftBar } = queryEditor;
       if (unsavedQueryEditor?.id === queryEditor.id) {
         dbId = unsavedQueryEditor.dbId || dbId;
         latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
-        hideLeftBar = isBoolean(unsavedQueryEditor.hideLeftBar)
-          ? unsavedQueryEditor.hideLeftBar
-          : hideLeftBar;
+        hideLeftBar =
+          typeof unsavedQueryEditor.hideLeftBar === 'boolean'
+            ? unsavedQueryEditor.hideLeftBar
+            : hideLeftBar;
       }
       return {
+        hasSqlStatement: Boolean(queryEditor.sql?.trim().length > 0),
         database: databases[dbId || ''],
         latestQuery: queries[latestQueryId || ''],
         hideLeftBar,
@@ -271,28 +268,26 @@ const SqlEditor: React.FC<Props> = ({
       };
     }, shallowEqual);
 
+  const logAction = useLogAction({ queryEditorId: queryEditor.id });
   const isActive = currentQueryEditorId === queryEditor.id;
-  const [height, setHeight] = useState(0);
   const [autorun, setAutorun] = useState(queryEditor.autorun);
   const [ctas, setCtas] = useState('');
   const [northPercent, setNorthPercent] = useState(
     queryEditor.northPercent || INITIAL_NORTH_PERCENT,
   );
-  const [southPercent, setSouthPercent] = useState(
-    queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
-  );
   const [autocompleteEnabled, setAutocompleteEnabled] = useState(
     getItem(LocalStorageKeys.SqllabIsAutocompleteEnabled, true),
   );
   const [renderHTMLEnabled, setRenderHTMLEnabled] = useState(
-    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, false),
+    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, true),
   );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
-  const [showEmptyState, setShowEmptyState] = useState(false);
-
-  const sqlEditorRef = useRef<HTMLDivElement>(null);
-  const northPaneRef = useRef<HTMLDivElement>(null);
+  const currentSQL = useRef<string>(queryEditor.sql);
+  const showEmptyState = useMemo(
+    () => !database || isEmpty(database),
+    [database],
+  );
 
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
 
@@ -304,7 +299,8 @@ const SqlEditor: React.FC<Props> = ({
 
       dispatch(
         runQueryFromSqlEditor(
-          database,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          database as any,
           queryEditor,
           defaultQueryLimit,
           ctasArg ? ctas : '',
@@ -317,9 +313,15 @@ const SqlEditor: React.FC<Props> = ({
     [ctas, database, defaultQueryLimit, dispatch, queryEditor],
   );
 
-  const formatCurrentQuery = useCallback(() => {
-    dispatch(formatQuery(queryEditor));
-  }, [dispatch, queryEditor]);
+  const formatCurrentQuery = useCallback(
+    (useShortcut?: boolean) => {
+      logAction(LOG_ACTIONS_SQLLAB_FORMAT_SQL, {
+        shortcut: Boolean(useShortcut),
+      });
+      dispatch(formatQuery(queryEditor));
+    },
+    [dispatch, queryEditor, logAction],
+  );
 
   const stopQuery = useCallback(() => {
     if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
@@ -342,12 +344,6 @@ const SqlEditor: React.FC<Props> = ({
     }
   }, [autorun, dispatch, queryEditor, startQuery]);
 
-  // One layer of abstraction for easy spying in unit tests
-  const getSqlEditorHeight = () =>
-    sqlEditorRef.current
-      ? sqlEditorRef.current.clientHeight - SQL_EDITOR_PADDING * 2
-      : 0;
-
   const getHotkeyConfig = useCallback(() => {
     // Get the user's OS
     const userOS = detectOS();
@@ -358,6 +354,7 @@ const SqlEditor: React.FC<Props> = ({
         descr: KEY_MAP[KeyboardShortcut.CtrlR],
         func: () => {
           if (queryEditor.sql.trim() !== '') {
+            logAction(LOG_ACTIONS_SQLLAB_RUN_QUERY, { shortcut: true });
             startQuery();
           }
         },
@@ -368,6 +365,7 @@ const SqlEditor: React.FC<Props> = ({
         descr: KEY_MAP[KeyboardShortcut.CtrlEnter],
         func: () => {
           if (queryEditor.sql.trim() !== '') {
+            logAction(LOG_ACTIONS_SQLLAB_RUN_QUERY, { shortcut: true });
             startQuery();
           }
         },
@@ -384,6 +382,7 @@ const SqlEditor: React.FC<Props> = ({
               descr: KEY_MAP[KeyboardShortcut.CtrlT],
             }),
         func: () => {
+          Logger.markTimeOrigin();
           dispatch(addNewQueryEditor());
         },
       },
@@ -398,79 +397,169 @@ const SqlEditor: React.FC<Props> = ({
               key: KeyboardShortcut.CtrlE,
               descr: KEY_MAP[KeyboardShortcut.CtrlE],
             }),
-        func: stopQuery,
+        func: () => {
+          logAction(LOG_ACTIONS_SQLLAB_STOP_QUERY, { shortcut: true });
+          stopQuery();
+        },
       },
       {
         name: 'formatQuery',
         key: KeyboardShortcut.CtrlShiftF,
         descr: KEY_MAP[KeyboardShortcut.CtrlShiftF],
         func: () => {
-          formatCurrentQuery();
+          formatCurrentQuery(true);
+        },
+      },
+      {
+        name: 'switchTabToLeft',
+        key: KeyboardShortcut.CtrlLeft,
+        descr: KEY_MAP[KeyboardShortcut.CtrlLeft],
+        func: () => {
+          dispatch(switchQueryEditor(true));
+        },
+      },
+      {
+        name: 'switchTabToRight',
+        key: KeyboardShortcut.CtrlRight,
+        descr: KEY_MAP[KeyboardShortcut.CtrlRight],
+        func: () => {
+          dispatch(switchQueryEditor(false));
         },
       },
     ];
   }, [dispatch, queryEditor.sql, startQuery, stopQuery, formatCurrentQuery]);
 
   const hotkeys = useMemo(() => {
-    // Get all hotkeys including ace editor hotkeys
+    // Get all hotkeys including editor hotkeys
     // Get the user's OS
     const userOS = detectOS();
+
+    type EditorHandle = editors.EditorHandle;
+
+    /**
+     * Find the position of a semicolon in the given direction from a starting position.
+     * Returns the position after the semicolon (for backwards) or at the semicolon (for forwards).
+     */
+    const findSemicolon = (
+      lines: string[],
+      fromLine: number,
+      fromColumn: number,
+      backwards: boolean,
+    ): { line: number; column: number } | null => {
+      if (backwards) {
+        // Search backwards: start from current position going up
+        for (let line = fromLine; line >= 0; line -= 1) {
+          const lineText = lines[line];
+          const searchEnd = line === fromLine ? fromColumn : lineText.length;
+          // Search from right to left within the line
+          const idx = lineText.lastIndexOf(';', searchEnd - 1);
+          if (idx !== -1) {
+            // Return position after the semicolon
+            return { line, column: idx + 1 };
+          }
+        }
+      } else {
+        // Search forwards: start from current position going down
+        for (let line = fromLine; line < lines.length; line += 1) {
+          const lineText = lines[line];
+          const searchStart = line === fromLine ? fromColumn + 1 : 0;
+          const idx = lineText.indexOf(';', searchStart);
+          if (idx !== -1) {
+            // Return position at the semicolon (end of statement)
+            return { line, column: idx + 1 };
+          }
+        }
+      }
+      return null;
+    };
+
     const base = [
       ...getHotkeyConfig(),
       {
         name: 'runQuery3',
         key: KeyboardShortcut.CtrlShiftEnter,
         descr: KEY_MAP[KeyboardShortcut.CtrlShiftEnter],
-        func: (editor: AceEditor['editor']) => {
-          if (!editor.getValue().trim()) {
+        func: (editor: EditorHandle) => {
+          const value = editor.getValue();
+          if (!value.trim()) {
             return;
           }
-          const session = editor.getSession();
+
+          const lines = value.split('\n');
           const cursorPosition = editor.getCursorPosition();
-          const totalLine = session.getLength();
-          const currentRow = editor.getFirstVisibleRow();
-          let end = editor.find(';', {
-            backwards: false,
-            skipCurrent: true,
-          })?.end;
-          if (!end || end.row < cursorPosition.row) {
+          const totalLines = lines.length;
+
+          // Find the end of the statement (next semicolon or end of file)
+          const semicolonEnd = findSemicolon(
+            lines,
+            cursorPosition.line,
+            cursorPosition.column,
+            false,
+          );
+          let end: { line: number; column: number };
+          if (semicolonEnd && semicolonEnd.line >= cursorPosition.line) {
+            end = semicolonEnd;
+          } else {
+            // No semicolon found forward, use end of file
+            const lastLineIndex = totalLines - 1;
             end = {
-              row: totalLine + 1,
-              column: 0,
+              line: lastLineIndex,
+              column: lines[lastLineIndex]?.length ?? 0,
             };
           }
-          let start = editor.find(';', {
-            backwards: true,
-            skipCurrent: true,
-          })?.end;
-          let currentLine = start?.row;
+
+          // Find the start of the statement (previous semicolon or start of file)
+          const semicolonStart = findSemicolon(
+            lines,
+            cursorPosition.line,
+            cursorPosition.column,
+            true,
+          );
+          let start: { line: number; column: number } | undefined;
+          if (semicolonStart) {
+            start = semicolonStart;
+          }
+
+          // Determine the starting line
+          let currentLine = start?.line;
           if (
-            !currentLine ||
-            currentLine > cursorPosition.row ||
-            (currentLine === cursorPosition.row &&
+            currentLine === undefined ||
+            currentLine > cursorPosition.line ||
+            (currentLine === cursorPosition.line &&
               (start?.column || 0) > cursorPosition.column)
           ) {
             currentLine = 0;
           }
+
+          // Skip empty lines to find actual content
           let content =
-            currentLine === start?.row
-              ? session.getLine(currentLine).slice(start.column).trim()
-              : session.getLine(currentLine).trim();
-          while (!content && currentLine < totalLine) {
+            currentLine === start?.line && start
+              ? lines[currentLine].slice(start.column).trim()
+              : (lines[currentLine]?.trim() ?? '');
+          while (!content && currentLine < totalLines - 1) {
             currentLine += 1;
-            content = session.getLine(currentLine).trim();
+            content = lines[currentLine]?.trim() ?? '';
           }
-          if (currentLine !== start?.row) {
-            start = { row: currentLine, column: 0 };
+
+          // Adjust start if we skipped lines
+          if (start === undefined || currentLine !== start.line) {
+            start = { line: currentLine, column: 0 };
           }
-          editor.selection.setSelectionRange({
-            start: start ?? { row: 0, column: 0 },
+
+          // Set selection and run query
+          editor.setSelection({
+            start: start ?? { line: 0, column: 0 },
             end,
           });
           startQuery();
-          editor.selection.clearSelection();
+
+          // Clear selection and restore cursor position
+          editor.setSelection({
+            start: cursorPosition,
+            end: cursorPosition,
+          });
           editor.moveCursorToPosition(cursorPosition);
-          editor.scrollToRow(currentRow);
+          editor.scrollToLine(cursorPosition.line);
         },
       },
     ];
@@ -479,8 +568,14 @@ const SqlEditor: React.FC<Props> = ({
         name: 'previousLine',
         key: KeyboardShortcut.CtrlP,
         descr: KEY_MAP[KeyboardShortcut.CtrlP],
-        func: editor => {
-          editor.navigateUp();
+        func: (editor: EditorHandle) => {
+          const pos = editor.getCursorPosition();
+          if (pos.line > 0) {
+            editor.moveCursorToPosition({
+              line: pos.line - 1,
+              column: pos.column,
+            });
+          }
         },
       });
     }
@@ -503,37 +598,29 @@ const SqlEditor: React.FC<Props> = ({
     !queryEditor.loaded;
 
   const loadQueryEditor = useEffectEvent(() => {
+    const duration = Logger.getTimestamp();
+    logAction(LOG_ACTIONS_SQLLAB_LOAD_TAB_STATE, {
+      duration,
+      queryEditorId: queryEditor.id,
+      inLocalStorage: Boolean(queryEditor.inLocalStorage),
+      hasLoaded: !shouldLoadQueryEditor,
+    });
     if (shouldLoadQueryEditor) {
-      dispatch(switchQueryEditor(queryEditor, displayLimit));
+      dispatch(fetchQueryEditor(queryEditor, displayLimit));
     }
   });
 
   useEffect(() => {
-    // We need to measure the height of the sql editor post render to figure the height of
-    // the south pane so it gets rendered properly
-    setHeight(getSqlEditorHeight());
-    const handleWindowResizeWithThrottle = throttle(
-      () => setHeight(getSqlEditorHeight()),
-      WINDOW_RESIZE_THROTTLE_MS,
-    );
     if (isActive) {
       loadQueryEditor();
-      window.addEventListener('resize', handleWindowResizeWithThrottle);
       window.addEventListener('beforeunload', onBeforeUnload);
     }
 
     return () => {
-      window.removeEventListener('resize', handleWindowResizeWithThrottle);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
     // TODO: Remove useEffectEvent deps once https://github.com/facebook/react/pull/25881 is released
   }, [onBeforeUnload, loadQueryEditor, isActive]);
-
-  useEffect(() => {
-    if (!database || isEmpty(database)) {
-      setShowEmptyState(true);
-    }
-  }, [database]);
 
   useEffect(() => {
     // setup hotkeys
@@ -558,18 +645,17 @@ const SqlEditor: React.FC<Props> = ({
     }
   };
 
-  const onResizeEnd = ([northPercent, southPercent]: number[]) => {
-    setNorthPercent(northPercent);
-    setSouthPercent(southPercent);
+  const onResizeEnd = ([nHeight, sHeight]: number[]) => {
+    const northPercent = Math.round((nHeight * 100) / (nHeight + sHeight));
+    const southPercent = 100 - northPercent;
 
-    if (northPaneRef.current?.clientHeight) {
-      dispatch(persistEditorHeight(queryEditor, northPercent, southPercent));
-    }
+    setNorthPercent(northPercent);
+    dispatch(persistEditorHeight(queryEditor, northPercent, southPercent));
   };
 
   const setQueryEditorAndSaveSql = useCallback(
-    sql => {
-      dispatch(queryEditorSetAndSaveSql(queryEditor, sql));
+    (sql: string) => {
+      dispatch(queryEditorSetAndSaveSql(queryEditor, sql, undefined));
     },
     [dispatch, queryEditor],
   );
@@ -580,26 +666,12 @@ const SqlEditor: React.FC<Props> = ({
   );
 
   const onSqlChanged = useEffectEvent((sql: string) => {
-    dispatch(queryEditorSetSql(queryEditor, sql));
-  });
-
-  // Return the heights for the ace editor and the south pane as an object
-  // given the height of the sql editor, north pane percent and south pane percent.
-  const getAceEditorAndSouthPaneHeights = (
-    height: number,
-    northPercent: number,
-    southPercent: number,
-  ) => ({
-    aceEditorHeight:
-      (height * northPercent) / (theme.gridUnit * 25) -
-      (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN) -
-      SQL_TOOLBAR_HEIGHT,
-    southPaneHeight:
-      (height * southPercent) / (theme.gridUnit * 25) -
-      (SQL_EDITOR_GUTTER_HEIGHT / 2 + SQL_EDITOR_GUTTER_MARGIN),
+    currentSQL.current = sql;
+    dispatch(queryEditorSetSql(queryEditor, sql, undefined));
   });
 
   const getQueryCostEstimate = () => {
+    logAction(LOG_ACTIONS_SQLLAB_ESTIMATE_QUERY_COST, { shortcut: false });
     if (database) {
       dispatch(estimateQueryCost(queryEditor));
     }
@@ -631,184 +703,294 @@ const SqlEditor: React.FC<Props> = ({
     setCtas(event.target.value);
   };
 
-  const renderDropdown = () => {
+  const getSecondaryMenuItems = () => {
     const qe = queryEditor;
     const successful = latestQuery?.state === 'success';
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
-    return (
-      <Menu css={{ width: theme.gridUnit * 50 }}>
-        <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
-          {' '}
-          <span>{t('Render HTML')}</span>{' '}
-          <AntdSwitch
-            checked={renderHTMLEnabled}
-            onChange={handleToggleRenderHTMLEnabled}
-          />{' '}
-        </Menu.Item>
-        <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
-          {' '}
-          <span>{t('Autocomplete')}</span>{' '}
-          <AntdSwitch
-            checked={autocompleteEnabled}
-            onChange={handleToggleAutocompleteEnabled}
-          />{' '}
-        </Menu.Item>
-        {isFeatureEnabled(FeatureFlag.EnableTemplateProcessing) && (
-          <Menu.Item>
-            <TemplateParamsEditor
-              language="json"
-              onChange={params => {
-                dispatch(queryEditorSetTemplateParams(qe, params));
+
+    const menuItems: MenuItemType[] = [
+      {
+        key: 'render-html',
+        label: (
+          <div css={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>{t('Render HTML')}</span>{' '}
+            <Switch
+              checked={renderHTMLEnabled}
+              onChange={(checked, event) => {
+                event.stopPropagation();
+                handleToggleRenderHTMLEnabled();
               }}
-              queryEditorId={qe.id}
             />
-          </Menu.Item>
-        )}
-        <Menu.Item onClick={formatCurrentQuery}>{t('Format SQL')}</Menu.Item>
-        {!isEmpty(scheduledQueriesConf) && (
-          <Menu.Item>
-            <ScheduleQueryButton
-              defaultLabel={qe.name}
-              sql={qe.sql}
-              onSchedule={(query: Query) => dispatch(scheduleQuery(query))}
-              schema={qe.schema}
-              dbId={qe.dbId}
-              scheduleQueryWarning={scheduleQueryWarning}
-              tooltip={scheduleToolTip}
-              disabled={!successful}
+          </div>
+        ),
+      },
+      {
+        key: 'autocomplete',
+        label: (
+          <div css={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>{t('Autocomplete')}</span>
+            <Switch
+              checked={autocompleteEnabled}
+              onChange={(checked, event) => {
+                event.stopPropagation();
+                handleToggleAutocompleteEnabled();
+              }}
             />
-          </Menu.Item>
-        )}
-        <Menu.Item>
+          </div>
+        ),
+      },
+      isFeatureEnabled(FeatureFlag.EnableTemplateProcessing) && {
+        key: 'template-params',
+        label: (
+          <TemplateParamsEditor
+            language="json"
+            onChange={params => {
+              dispatch(queryEditorSetTemplateParams(qe, params));
+            }}
+            queryEditorId={qe.id}
+          />
+        ),
+      },
+      {
+        key: 'format-sql',
+        label: t('Format SQL'),
+        onClick: () => formatCurrentQuery(),
+      },
+      !isEmpty(scheduledQueriesConf) && {
+        key: 'schedule-query',
+        label: (
+          <ScheduleQueryButton
+            defaultLabel={qe.name}
+            sql={qe.sql}
+            onSchedule={(query: Query) => dispatch(scheduleQuery(query))}
+            schema={qe.schema}
+            dbId={qe.dbId}
+            scheduleQueryWarning={scheduleQueryWarning}
+            tooltip={scheduleToolTip}
+            disabled={!successful}
+          />
+        ),
+      },
+      {
+        key: 'keyboard-shortcuts',
+        label: (
           <KeyboardShortcutButton>
             {t('Keyboard shortcuts')}
           </KeyboardShortcutButton>
-        </Menu.Item>
-      </Menu>
-    );
+        ),
+      },
+    ].filter(Boolean) as MenuItemType[];
+
+    return menuItems;
   };
 
   const onSaveQuery = async (query: QueryPayload, clientId: string) => {
     const savedQuery = await dispatch(saveQuery(query, clientId));
-    dispatch(addSavedQueryToTabState(queryEditor, savedQuery));
+    dispatch(
+      addSavedQueryToTabState(
+        queryEditor,
+        savedQuery as unknown as { remoteId: string },
+      ),
+    );
   };
 
-  const renderEditorBottomBar = () => {
+  const renderEditorPrimaryAction = () => {
     const { allow_ctas: allowCTAS, allow_cvas: allowCVAS } = database || {};
-
     const showMenu = allowCTAS || allowCVAS;
-    const runMenuBtn = (
-      <Menu>
-        {allowCTAS && (
-          <Menu.Item
-            onClick={() => {
-              setShowCreateAsModal(true);
-              setCreateAs(CtasEnum.Table);
-            }}
-            key="1"
-          >
-            {t('CREATE TABLE AS')}
-          </Menu.Item>
-        )}
-        {allowCVAS && (
-          <Menu.Item
-            onClick={() => {
-              setShowCreateAsModal(true);
-              setCreateAs(CtasEnum.View);
-            }}
-            key="2"
-          >
-            {t('CREATE VIEW AS')}
-          </Menu.Item>
-        )}
-      </Menu>
-    );
+    const menuItems: MenuItemType[] = [
+      allowCTAS && {
+        key: '1',
+        label: t('CREATE TABLE AS'),
+        onClick: () => {
+          logAction(LOG_ACTIONS_SQLLAB_CREATE_TABLE_AS, {
+            shortcut: false,
+          });
+          setShowCreateAsModal(true);
+          setCreateAs(CtasEnum.Table);
+        },
+      },
+      allowCVAS && {
+        key: '2',
+        label: t('CREATE VIEW AS'),
+        onClick: () => {
+          logAction(LOG_ACTIONS_SQLLAB_CREATE_VIEW_AS, {
+            shortcut: false,
+          });
+          setShowCreateAsModal(true);
+          setCreateAs(CtasEnum.View);
+        },
+      },
+    ].filter(Boolean) as MenuItemType[];
+
+    const runMenuBtn = <Menu items={menuItems} />;
 
     return (
-      <StyledToolbar className="sql-toolbar" id="js-sql-toolbar">
-        <div className="leftItems">
-          <span>
-            <RunQueryActionButton
-              allowAsync={database?.allow_run_async === true}
+      <>
+        <RunQueryActionButton
+          queryEditorId={queryEditor.id}
+          queryState={latestQuery?.state}
+          runQuery={runQuery}
+          stopQuery={stopQuery}
+          overlayCreateAsMenu={showMenu ? runMenuBtn : null}
+        />
+        <QueryLimitSelect
+          queryEditorId={queryEditor.id}
+          maxRow={maxRow}
+          defaultQueryLimit={defaultQueryLimit}
+        />
+        <Divider type="vertical" />
+        {isFeatureEnabled(FeatureFlag.EstimateQueryCost) &&
+          database?.allows_cost_estimate && (
+            <EstimateQueryCostButton
+              getEstimate={getQueryCostEstimate}
               queryEditorId={queryEditor.id}
-              queryState={latestQuery?.state}
-              runQuery={runQuery}
-              stopQuery={stopQuery}
-              overlayCreateAsMenu={showMenu ? runMenuBtn : null}
-            />
-          </span>
-          {isFeatureEnabled(FeatureFlag.EstimateQueryCost) &&
-            database?.allows_cost_estimate && (
-              <span>
-                <EstimateQueryCostButton
-                  getEstimate={getQueryCostEstimate}
-                  queryEditorId={queryEditor.id}
-                  tooltip={t('Estimate the cost before running a query')}
-                />
-              </span>
-            )}
-          <span>
-            <QueryLimitSelect
-              queryEditorId={queryEditor.id}
-              maxRow={maxRow}
-              defaultQueryLimit={defaultQueryLimit}
-            />
-          </span>
-          {latestQuery && (
-            <Timer
-              startTime={latestQuery.startDttm}
-              endTime={latestQuery.endDttm}
-              status={STATE_TYPE_MAP[latestQuery.state]}
-              isRunning={latestQuery.state === 'running'}
+              tooltip={t('Estimate the cost before running a query')}
             />
           )}
-        </div>
-        <div className="rightItems">
-          <span>
-            <SaveQuery
-              queryEditorId={queryEditor.id}
-              columns={latestQuery?.results?.columns || []}
-              onSave={onSaveQuery}
-              onUpdate={(query, remoteId) =>
-                dispatch(updateSavedQuery(query, remoteId))
-              }
-              saveQueryWarning={saveQueryWarning}
-              database={database}
-            />
-          </span>
-          <span>
-            <ShareSqlLabQuery queryEditorId={queryEditor.id} />
-          </span>
-          <AntdDropdown overlay={renderDropdown()} trigger={['click']}>
-            <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
-          </AntdDropdown>
-        </div>
-      </StyledToolbar>
+        <SaveQuery
+          queryEditorId={queryEditor.id}
+          columns={latestQuery?.results?.columns || []}
+          onSave={onSaveQuery}
+          onUpdate={(query, remoteId) =>
+            dispatch(updateSavedQuery(query, remoteId))
+          }
+          saveQueryWarning={saveQueryWarning}
+          database={database}
+        />
+        <ShareSqlLabQuery queryEditorId={queryEditor.id} />
+      </>
     );
   };
+
+  const renderEmptyAlert = () => (
+    <StyledToolbar className="sql-toolbar" id="js-sql-toolbar">
+      <Alert
+        type="warning"
+        message={t(
+          'The database that was used to generate this query could not be found',
+        )}
+        description={t(
+          'Choose one of the available databases on the left panel.',
+        )}
+        closable={false}
+      />
+    </StyledToolbar>
+  );
 
   const handleCursorPositionChange = (newPosition: CursorPosition) => {
     dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
   };
 
-  const queryPane = () => {
-    const { aceEditorHeight, southPaneHeight } =
-      getAceEditorAndSouthPaneHeights(height, northPercent, southPercent);
-    return (
-      <Split
-        expandToMin
+  const copyQuery = (callback: (text: string) => void) => {
+    callback(currentSQL.current);
+  };
+  const renderCopyQueryButton = () => (
+    <Button type="primary">{t('COPY QUERY')}</Button>
+  );
+
+  const renderDatasetWarning = () => (
+    <Alert
+      css={css`
+        margin-bottom: ${theme.sizeUnit * 2}px;
+        padding-top: ${theme.sizeUnit * 4}px;
+        .ant-alert-action {
+          align-self: center;
+        }
+      `}
+      type="info"
+      action={
+        <CopyToClipboard
+          wrapText={false}
+          copyNode={renderCopyQueryButton()}
+          getText={copyQuery}
+        />
+      }
+      description={
+        <div
+          css={css`
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          `}
+        >
+          <div
+            css={css`
+              display: flex;
+              flex-direction: column;
+            `}
+          >
+            <p
+              css={css`
+                font-size: ${theme.fontSize}px;
+                font-weight: ${theme.fontWeightStrong};
+                color: ${theme.colorPrimaryText};
+                margin: 0px;
+              `}
+            >
+              {' '}
+              {t(`You are editing a query from the virtual dataset `) +
+                queryEditor.name}
+            </p>
+            <p
+              css={css`
+                font-size: ${theme.fontSize}px;
+                font-weight: ${theme.fontWeightStrong};
+                color: ${theme.colorPrimaryText};
+                margin: 0px;
+              `}
+            >
+              {t(
+                'After making the changes, copy the query and paste in the virtual dataset SQL snippet settings.',
+              )}{' '}
+            </p>
+          </div>
+        </div>
+      }
+      message=""
+    />
+  );
+
+  const queryPane = () => (
+    <Splitter
+      layout="vertical"
+      onResizeStart={onResizeStart}
+      onResizeEnd={onResizeEnd}
+    >
+      <Splitter.Panel
+        min={queryEditor.isDataset ? 400 : 200}
+        defaultSize={`${northPercent}%`}
         className="queryPane"
-        sizes={[northPercent, southPercent]}
-        elementStyle={elementStyle}
-        minSize={200}
-        direction="vertical"
-        gutterSize={SQL_EDITOR_GUTTER_HEIGHT}
-        onDragStart={onResizeStart}
-        onDragEnd={onResizeEnd}
       >
-        <div ref={northPaneRef} className="north-pane">
+        <div className="north-pane">
+          {showEmptyState ? (
+            renderEmptyAlert()
+          ) : (
+            <SqlEditorTopBar
+              queryEditorId={queryEditor.id}
+              defaultPrimaryActions={renderEditorPrimaryAction()}
+              defaultSecondaryActions={getSecondaryMenuItems()}
+            />
+          )}
+          {queryEditor.isDataset && renderDatasetWarning()}
+          <div className="sql-container">
+            <AutoSizer disableWidth>
+              {({ height }) =>
+                isActive && (
+                  <EditorWrapper
+                    autocomplete={autocompleteEnabled}
+                    onBlur={onSqlChanged}
+                    onChange={onSqlChanged}
+                    queryEditorId={queryEditor.id}
+                    onCursorPositionChange={handleCursorPositionChange}
+                    height={`${height}px`}
+                    hotkeys={hotkeys}
+                  />
+                )
+              }
+            </AutoSizer>
+          </div>
           {SqlFormExtension && (
             <SqlFormExtension
               queryEditorId={queryEditor.id}
@@ -818,27 +1000,18 @@ const SqlEditor: React.FC<Props> = ({
               startQuery={startQuery}
             />
           )}
-          <AceEditorWrapper
-            autocomplete={autocompleteEnabled}
-            onBlur={onSqlChanged}
-            onChange={onSqlChanged}
-            queryEditorId={queryEditor.id}
-            onCursorPositionChange={handleCursorPositionChange}
-            height={`${aceEditorHeight}px`}
-            hotkeys={hotkeys}
-          />
-          {renderEditorBottomBar()}
         </div>
+      </Splitter.Panel>
+      <Splitter.Panel className="queryPane">
         <SouthPane
           queryEditorId={queryEditor.id}
           latestQueryId={latestQuery?.id}
-          height={southPaneHeight}
           displayLimit={displayLimit}
           defaultQueryLimit={defaultQueryLimit}
         />
-      </Split>
-    );
-  };
+      </Splitter.Panel>
+    </Splitter>
+  );
 
   const createViewModalTitle =
     createAs === CtasEnum.View ? 'CREATE VIEW AS' : 'CREATE TABLE AS';
@@ -848,46 +1021,22 @@ const SqlEditor: React.FC<Props> = ({
       ? t('Specify name to CREATE VIEW AS schema in: public')
       : t('Specify name to CREATE TABLE AS schema in: public');
 
-  const leftBarStateClass = hideLeftBar
-    ? 'schemaPane-exit-done'
-    : 'schemaPane-enter-done';
   return (
-    <StyledSqlEditor ref={sqlEditorRef} className="SqlEditor">
-      <CSSTransition classNames="schemaPane" in={!hideLeftBar} timeout={300}>
-        <ResizableSidebar
-          id={`sqllab:${queryEditor.id}`}
-          minWidth={SQL_EDITOR_LEFTBAR_WIDTH}
-          initialWidth={SQL_EDITOR_LEFTBAR_WIDTH}
-          enable={!hideLeftBar}
-        >
-          {adjustedWidth => (
-            <StyledSidebar
-              className={`schemaPane ${leftBarStateClass}`}
-              width={adjustedWidth}
-              hide={hideLeftBar}
-            >
-              <SqlEditorLeftBar
-                database={database}
-                queryEditorId={queryEditor.id}
-                setEmptyState={bool => setShowEmptyState(bool)}
-              />
-            </StyledSidebar>
-          )}
-        </ResizableSidebar>
-      </CSSTransition>
+    <StyledSqlEditor className="SqlEditor">
       {shouldLoadQueryEditor ? (
         <div
           data-test="sqlEditor-loading"
           css={css`
             flex: 1;
-            padding: ${theme.gridUnit * 4}px;
+            padding: ${theme.sizeUnit * 4}px;
           `}
         >
           <Skeleton active />
         </div>
-      ) : showEmptyState ? (
-        <EmptyStateBig
+      ) : showEmptyState && !hasSqlStatement ? (
+        <EmptyState
           image="vector.svg"
+          size="large"
           title={t('Select a database to write a query')}
           description={t(
             'Choose one of the available databases from the panel on the left.',
@@ -896,8 +1045,10 @@ const SqlEditor: React.FC<Props> = ({
       ) : (
         queryPane()
       )}
+
       <Modal
         show={showCreateAsModal}
+        name={t(createViewModalTitle)}
         title={t(createViewModalTitle)}
         onHide={() => setShowCreateAsModal(false)}
         footer={

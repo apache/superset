@@ -23,6 +23,15 @@ class DAOException(SupersetException):
     """
 
 
+class DAOFindFailedError(DAOException):
+    """
+    DAO Find failed
+    """
+
+    status = 400
+    message = "Find failed"
+
+
 class DAOCreateFailedError(DAOException):
     """
     DAO Create failed
@@ -59,3 +68,8 @@ class DatasourceTypeNotSupportedError(DAOException):
 class DatasourceNotFound(DAOException):
     status = 404
     message = "Datasource does not exist"
+
+
+class DatasourceValueIsIncorrect(DAOException):
+    status = 422
+    message = "Datasource value is neither id or uuid"

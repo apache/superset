@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme, css } from '@superset-ui/core';
-import React, { ReactElement } from 'react';
-import { Tooltip } from 'src/components/Tooltip';
-import Icons from 'src/components/Icons';
-import { RecipientIconName } from '../types';
+import { SupersetTheme, css } from '@apache-superset/core/theme';
+import { ReactElement } from 'react';
+import { Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { NotificationMethodOption } from '../types';
 
-const StyledIcon = (theme: SupersetTheme) => css`
-  color: ${theme.colors.grayscale.light1};
-  margin-right: ${theme.gridUnit * 2}px;
+const notificationStyledIcon = (theme: SupersetTheme) => css`
+  color: ${theme.colorIcon};
+  margin-right: ${theme.sizeUnit * 2}px;
+  vertical-align: middle;
 `;
 
 export default function RecipientIcon({ type }: { type: string }) {
@@ -33,13 +34,29 @@ export default function RecipientIcon({ type }: { type: string }) {
     label: '',
   };
   switch (type) {
-    case RecipientIconName.Email:
-      recipientIconConfig.icon = <Icons.Email css={StyledIcon} />;
-      recipientIconConfig.label = RecipientIconName.Email;
+    case NotificationMethodOption.Email:
+      recipientIconConfig.icon = (
+        <Icons.MailOutlined css={notificationStyledIcon} iconSize="l" />
+      );
+      recipientIconConfig.label = NotificationMethodOption.Email;
       break;
-    case RecipientIconName.Slack:
-      recipientIconConfig.icon = <Icons.Slack css={StyledIcon} />;
-      recipientIconConfig.label = RecipientIconName.Slack;
+    case NotificationMethodOption.Slack:
+      recipientIconConfig.icon = (
+        <Icons.SlackOutlined css={notificationStyledIcon} iconSize="l" />
+      );
+      recipientIconConfig.label = NotificationMethodOption.Slack;
+      break;
+    case NotificationMethodOption.SlackV2:
+      recipientIconConfig.icon = (
+        <Icons.SlackOutlined css={notificationStyledIcon} iconSize="l" />
+      );
+      recipientIconConfig.label = NotificationMethodOption.Slack;
+      break;
+    case NotificationMethodOption.Webhook:
+      recipientIconConfig.icon = (
+        <Icons.ApiOutlined css={notificationStyledIcon} iconSize="l" />
+      );
+      recipientIconConfig.label = NotificationMethodOption.Webhook;
       break;
     default:
       recipientIconConfig.icon = null;

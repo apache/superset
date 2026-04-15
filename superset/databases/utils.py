@@ -22,7 +22,7 @@ from typing import Any, TYPE_CHECKING
 from sqlalchemy.engine.url import make_url, URL
 
 from superset.commands.database.exceptions import DatabaseInvalidError
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 
 if TYPE_CHECKING:
     from superset.databases.schemas import (
@@ -99,6 +99,7 @@ def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
         "columns": payload_columns,
         "selectStar": database.select_star(
             table,
+            show_cols=True if columns else False,
             indent=True,
             cols=columns,
             latest_partition=True,
@@ -123,8 +124,8 @@ def make_url_safe(raw_url: str | URL) -> URL:
         url = raw_url.strip()
         try:
             return make_url(url)  # noqa
-        except Exception:
-            raise DatabaseInvalidError()  # pylint: disable=raise-missing-from
+        except Exception as ex:
+            raise DatabaseInvalidError() from ex
 
     else:
         return raw_url

@@ -16,7 +16,7 @@
 # under the License.
 from typing import Callable
 
-from flask import abort, request
+from flask import abort, current_app, request
 from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, login_user
 from flask_wtf.csrf import same_origin
@@ -24,7 +24,7 @@ from flask_wtf.csrf import same_origin
 from superset import event_logger, is_feature_enabled
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.superset_typing import FlaskResponse
-from superset.utils import json as json_utils
+from superset.utils import json
 from superset.views.base import BaseSupersetView, common_bootstrap_payload
 
 
@@ -77,6 +77,9 @@ class EmbeddedView(BaseSupersetView):
         )
 
         bootstrap_data = {
+            "config": {
+                "GUEST_TOKEN_HEADER_NAME": current_app.config["GUEST_TOKEN_HEADER_NAME"]
+            },
             "common": common_bootstrap_payload(),
             "embedded": {
                 "dashboard_id": embedded.dashboard_id,
@@ -86,7 +89,7 @@ class EmbeddedView(BaseSupersetView):
         return self.render_template(
             "superset/spa.html",
             entry="embedded",
-            bootstrap_data=json_utils.dumps(
-                bootstrap_data, default=json_utils.pessimistic_json_iso_dttm_ser
+            bootstrap_data=json.dumps(
+                bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
             ),
         )

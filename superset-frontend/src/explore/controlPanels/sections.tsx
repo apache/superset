@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelSectionConfig,
   ControlSubSectionHeader,
@@ -100,7 +99,8 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
       ['metrics'],
       ['adhoc_filters'],
       ['groupby'],
-      ['limit', 'timeseries_limit_metric'],
+      ['limit', 'group_others_when_limit_reached'],
+      ['timeseries_limit_metric'],
       ['order_desc'],
       [
         {
@@ -273,3 +273,82 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
     ],
   },
 ];
+
+function buildMatrixifySection(
+  axis: 'columns' | 'rows',
+): ControlPanelSectionConfig {
+  const customizationControls =
+    axis === 'rows'
+      ? ['matrixify_show_row_labels', 'matrixify_row_height']
+      : ['matrixify_show_column_headers', 'matrixify_fit_columns_dynamically'];
+
+  return {
+    label:
+      axis === 'columns'
+        ? t('Columns (horizontal layout)')
+        : t('Rows (vertical layout)'),
+    expanded: true,
+    tabOverride: 'matrixify',
+    visibility: ({ controls }) => controls?.matrixify_enable?.value === true,
+    controlSetRows: [
+      [`matrixify_mode_${axis}`],
+      [`matrixify_${axis}`],
+      [`matrixify_dimension_selection_mode_${axis}`],
+      [`matrixify_dimension_${axis}`],
+      [`matrixify_topn_dimension_${axis}`],
+      [`matrixify_topn_value_${axis}`],
+      [`matrixify_all_sort_by_${axis}`],
+      [`matrixify_topn_metric_${axis}`],
+      [`matrixify_topn_order_${axis}`],
+      [
+        <ControlSubSectionHeader>
+          {t('Customization and styling')}
+        </ControlSubSectionHeader>,
+      ],
+      customizationControls,
+    ],
+  };
+}
+
+export const matrixifyRows = buildMatrixifySection('rows');
+export const matrixifyColumns = buildMatrixifySection('columns');
+
+export const matrixifyEnableSection: ControlPanelSectionConfig = {
+  label: t('Matrixify'),
+  expanded: true,
+  tabOverride: 'matrixify',
+  controlSetRows: [
+    [
+      {
+        name: 'matrixify_enable',
+        config: {
+          type: 'SwitchControl',
+          label: t('Enable matrixify'),
+          default: false,
+          renderTrigger: true,
+        },
+      },
+    ],
+  ],
+};
+
+export const matrixifyCells: ControlPanelSectionConfig = {
+  label: t('Cell layout & styling'),
+  expanded: true,
+  tabOverride: 'matrixify',
+  visibility: ({ controls }) => {
+    if (controls?.matrixify_enable?.value !== true) return false;
+    const rowMode = controls?.matrixify_mode_rows?.value;
+    const colMode = controls?.matrixify_mode_columns?.value;
+    return (
+      rowMode === 'metrics' ||
+      rowMode === 'dimensions' ||
+      colMode === 'metrics' ||
+      colMode === 'dimensions'
+    );
+  },
+  controlSetRows: [
+    ['matrixify_charts_per_row'],
+    ['matrixify_cell_title_template'],
+  ],
+};

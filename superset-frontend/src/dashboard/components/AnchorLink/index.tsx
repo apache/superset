@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
-import { t } from '@superset-ui/core';
+import { useEffect } from 'react';
+import { t } from '@apache-superset/core/translation';
 
 import URLShortLinkButton, {
   URLShortLinkButtonProps,
@@ -64,7 +64,7 @@ export default function AnchorLink({
   }, [id, scrollIntoView]);
 
   return (
-    <span className="anchor-link-container" id={id}>
+    <span className="anchor-link-container" id={id} data-test="anchor-link">
       {showShortLinkButton && dashboardId && (
         <URLShortLinkButton
           anchorLinkId={id}
