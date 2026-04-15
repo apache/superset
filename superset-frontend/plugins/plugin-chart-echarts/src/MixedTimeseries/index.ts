@@ -16,17 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  hasGenericChartAxes,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { AnnotationType, Behavior } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.jpg';
+import exampleDark from './images/example-dark.jpg';
 import {
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesProps,
@@ -54,41 +52,36 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
       loadChart: () => import('./EchartsMixedTimeseries'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t(
-              'Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).',
-            )
-          : t(
-              'Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).',
-            ),
+        description: t(
+          'Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).',
+        ),
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        exampleGallery: [{ url: example }],
-        name: hasGenericChartAxes ? t('Mixed Chart') : t('Mixed Time-Series'),
+        exampleGallery: [{ url: example, urlDark: exampleDark }],
+        name: t('Mixed Chart'),
         thumbnail,
+        thumbnailDark,
         tags: [
           t('Advanced-Analytics'),
-          t('Aesthetic'),
           t('ECharts'),
-          t('Experimental'),
           t('Line'),
           t('Multi-Variables'),
           t('Time'),
           t('Transformable'),
+          t('Featured'),
         ],
         queryObjectCount: 2,
       },
-      // @ts-ignore
       transformProps,
     });
   }

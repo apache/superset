@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as uiCore from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   UndefinedUser,
   UserWithPermissionsAndRoles,
@@ -24,7 +24,7 @@ import {
 import { Dashboard } from 'src/types/Dashboard';
 import Owner from 'src/types/Owner';
 import {
-  canUserAccessSqlLab,
+  userHasPermission,
   canUserEditDashboard,
   canUserSaveAsDashboard,
   isUserAdmin,
@@ -46,7 +46,7 @@ const ownerUser: UserWithPermissionsAndRoles = {
 const adminUser: UserWithPermissionsAndRoles = {
   ...ownerUser,
   roles: {
-    ...(ownerUser?.roles || {}),
+    ...ownerUser?.roles,
     Admin: [['can_write', 'Dashboard']],
   },
   userId: 2,
@@ -65,11 +65,18 @@ const owner: Owner = {
   last_name: 'User',
 };
 
+const sqlLabMenuAccessPermission: [string, string] = ['menu_access', 'SQL Lab'];
+
+const arbitraryPermissions: [string, string][] = [
+  ['can_write', 'AnArbitraryView'],
+  sqlLabMenuAccessPermission,
+];
+
 const sqlLabUser: UserWithPermissionsAndRoles = {
   ...ownerUser,
   roles: {
     ...ownerUser.roles,
-    sql_lab: [],
+    sql_lab: [sqlLabMenuAccessPermission],
   },
 };
 
@@ -90,30 +97,33 @@ const dashboard: Dashboard = {
   roles: [],
 };
 
-let isFeatureEnabledMock: jest.MockInstance<
-  boolean,
-  [feature: uiCore.FeatureFlag]
->;
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('canUserEditDashboard', () => {
-  it('allows owners to edit', () => {
+  test('allows owners to edit', () => {
     expect(canUserEditDashboard(dashboard, ownerUser)).toEqual(true);
   });
-  it('allows admin users to edit regardless of ownership', () => {
+  test('allows admin users to edit regardless of ownership', () => {
     expect(canUserEditDashboard(dashboard, adminUser)).toEqual(true);
   });
-  it('rejects non-owners', () => {
+  test('rejects non-owners', () => {
     expect(canUserEditDashboard(dashboard, outsiderUser)).toEqual(false);
   });
-  it('rejects nonexistent users', () => {
+  test('rejects nonexistent users', () => {
     expect(canUserEditDashboard(dashboard, null)).toEqual(false);
   });
-  it('rejects missing roles', () => {
+  test('rejects missing roles', () => {
     // in redux, when there is no user, the user is actually set to an empty object,
     // so we need to handle missing roles as well as a missing user.s
     expect(canUserEditDashboard(dashboard, {})).toEqual(false);
   });
-  it('rejects "admins" if the admin role does not have edit rights for some reason', () => {
+  test('rejects "admins" if the admin role does not have edit rights for some reason', () => {
     expect(
       canUserEditDashboard(dashboard, {
         ...adminUser,
@@ -139,78 +149,88 @@ test('isUserAdmin returns false for non-admin user', () => {
   expect(isUserAdmin(ownerUser)).toEqual(false);
 });
 
-test('canUserAccessSqlLab returns true for admin user', () => {
-  expect(canUserAccessSqlLab(adminUser)).toEqual(true);
+test('userHasPermission always returns true for admin user', () => {
+  arbitraryPermissions.forEach(permissionView => {
+    expect(
+      userHasPermission(adminUser, permissionView[1], permissionView[0]),
+    ).toEqual(true);
+  });
 });
 
-test('canUserAccessSqlLab returns false for undefined', () => {
-  expect(canUserAccessSqlLab(undefined)).toEqual(false);
+test('userHasPermission always returns false for undefined user', () => {
+  arbitraryPermissions.forEach(permissionView => {
+    expect(
+      userHasPermission(undefinedUser, permissionView[1], permissionView[0]),
+    ).toEqual(false);
+  });
 });
 
-test('canUserAccessSqlLab returns false for undefined user', () => {
-  expect(canUserAccessSqlLab(undefinedUser)).toEqual(false);
+test('userHasPermission returns false if user does not have permission', () => {
+  expect(
+    userHasPermission(
+      ownerUser,
+      sqlLabMenuAccessPermission[1],
+      sqlLabMenuAccessPermission[0],
+    ),
+  ).toEqual(false);
 });
 
-test('canUserAccessSqlLab returns false for non-sqllab role', () => {
-  expect(canUserAccessSqlLab(ownerUser)).toEqual(false);
+test('userHasPermission returns true if user has permission', () => {
+  expect(
+    userHasPermission(
+      sqlLabUser,
+      sqlLabMenuAccessPermission[1],
+      sqlLabMenuAccessPermission[0],
+    ),
+  ).toEqual(true);
 });
 
-test('canUserAccessSqlLab returns true for sqllab role', () => {
-  expect(canUserAccessSqlLab(sqlLabUser)).toEqual(true);
-});
-
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('canUserSaveAsDashboard with RBAC feature flag disabled', () => {
   beforeAll(() => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(
-        (featureFlag: uiCore.FeatureFlag) =>
-          featureFlag !== uiCore.FeatureFlag.DASHBOARD_RBAC,
-      );
+    mockedIsFeatureEnabled.mockImplementation(
+      (featureFlag: FeatureFlag) => featureFlag !== FeatureFlag.DashboardRbac,
+    );
   });
 
   afterAll(() => {
-    // @ts-ignore
-    isFeatureEnabledMock.restore();
+    mockedIsFeatureEnabled.mockRestore();
   });
 
-  it('allows owners', () => {
+  test('allows owners', () => {
     expect(canUserSaveAsDashboard(dashboard, ownerUser)).toEqual(true);
   });
 
-  it('allows admin users', () => {
+  test('allows admin users', () => {
     expect(canUserSaveAsDashboard(dashboard, adminUser)).toEqual(true);
   });
 
-  it('allows non-owners', () => {
+  test('allows non-owners', () => {
     expect(canUserSaveAsDashboard(dashboard, outsiderUser)).toEqual(true);
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('canUserSaveAsDashboard with RBAC feature flag enabled', () => {
   beforeAll(() => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(
-        (featureFlag: uiCore.FeatureFlag) =>
-          featureFlag === uiCore.FeatureFlag.DASHBOARD_RBAC,
-      );
+    mockedIsFeatureEnabled.mockImplementation(
+      (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.DashboardRbac,
+    );
   });
 
   afterAll(() => {
-    // @ts-ignore
-    isFeatureEnabledMock.restore();
+    mockedIsFeatureEnabled.mockRestore();
   });
 
-  it('allows owners', () => {
+  test('allows owners', () => {
     expect(canUserSaveAsDashboard(dashboard, ownerUser)).toEqual(true);
   });
 
-  it('allows admin users', () => {
+  test('allows admin users', () => {
     expect(canUserSaveAsDashboard(dashboard, adminUser)).toEqual(true);
   });
 
-  it('reject non-owners', () => {
+  test('reject non-owners', () => {
     expect(canUserSaveAsDashboard(dashboard, outsiderUser)).toEqual(false);
   });
 });

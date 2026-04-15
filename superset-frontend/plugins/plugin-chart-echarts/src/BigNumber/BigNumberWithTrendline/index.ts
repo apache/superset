@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, Behavior } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Behavior } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import buildQuery from './buildQuery';
 import example from './images/Big_Number_Trendline.jpg';
+import exampleDark from './images/Big_Number_Trendline-dark.jpg';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import {
   BigNumberWithTrendlineChartProps,
   BigNumberWithTrendlineFormData,
@@ -33,19 +36,20 @@ const metadata = {
   description: t(
     'Showcases a single number accompanied by a simple line chart, to call attention to an important metric along with its change over time or other dimension.',
   ),
-  exampleGallery: [{ url: example }],
+  exampleGallery: [{ url: example, urlDark: exampleDark }],
   name: t('Big Number with Trendline'),
   tags: [
     t('Advanced-Analytics'),
+    t('ECharts'),
     t('Line'),
     t('Percentages'),
-    t('Popular'),
+    t('Featured'),
     t('Report'),
-    t('Description'),
     t('Trend'),
   ],
   thumbnail,
-  behaviors: [Behavior.DRILL_TO_DETAIL],
+  thumbnailDark,
+  behaviors: [Behavior.DrillToDetail],
 };
 
 export default class BigNumberWithTrendlineChartPlugin extends EchartsChartPlugin<

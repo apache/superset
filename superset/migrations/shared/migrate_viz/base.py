@@ -4,7 +4,7 @@
 # regarding copyright ownership.  The ASF licenses this file
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
+# with the License. You may obtain a copy of the License at
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -14,19 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import annotations
-
 import copy
-import json
+import logging
 from typing import Any
 
-from alembic import op
+from flask import current_app
 from sqlalchemy import and_, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session
 
-from superset import conf, db, is_feature_enabled
 from superset.constants import TimeGrain
 from superset.migrations.shared.utils import paginated_update, try_load_json
+from superset.utils import json
+from superset.utils.date_parser import get_since_until
+
+logger = logging.getLogger("alembic.env")
 
 Base = declarative_base()
 
@@ -42,6 +44,7 @@ class Slice(Base):  # type: ignore
 
 
 FORM_DATA_BAK_FIELD_NAME = "form_data_bak"
+QUERIES_BAK_FIELD_NAME = "queries_bak"
 
 
 class MigrateViz:
@@ -64,8 +67,8 @@ class MigrateViz:
         if "viz_type" in self.data:
             self.data["viz_type"] = self.target_viz_type
 
-        # Sometimes visualizations have same keys in the source form_data and rename_keys
-        # We need to remove them from data to allow the migration to work properly with rename_keys
+        # Sometimes visualizations have same keys in the source form_data and rename_keys  # noqa: E501
+        # We need to remove them from data to allow the migration to work properly with rename_keys  # noqa: E501
         for source_key, target_key in self.rename_keys.items():
             if source_key in self.data and target_key in self.data:
                 self.data.pop(target_key)
@@ -84,8 +87,7 @@ class MigrateViz:
 
             rv_data[key] = value
 
-        if is_feature_enabled("GENERIC_CHART_AXES"):
-            self._migrate_temporal_filter(rv_data)
+        self._migrate_temporal_filter(rv_data)
 
         self.data = rv_data
 
@@ -95,7 +97,9 @@ class MigrateViz:
     def _migrate_temporal_filter(self, rv_data: dict[str, Any]) -> None:
         """Adds a temporal filter."""
         granularity_sqla = rv_data.pop("granularity_sqla", None)
-        time_range = rv_data.pop("time_range", None) or conf.get("DEFAULT_TIME_FILTER")
+        time_range = rv_data.pop("time_range", None) or current_app.config.get(
+            "DEFAULT_TIME_FILTER"
+        )
 
         if not granularity_sqla:
             return
@@ -113,66 +117,104 @@ class MigrateViz:
         }
 
         if isinstance(granularity_sqla, dict):
-            temporal_filter["comparator"] = None
-            temporal_filter["expressionType"] = "SQL"
-            temporal_filter["subject"] = granularity_sqla["label"]
-            temporal_filter["sqlExpression"] = granularity_sqla["sqlExpression"]
+            since, until = get_since_until(time_range=time_range)
+            if not since and not until:
+                temporal_filter = {}
+            else:
+                temporal_filter["comparator"] = None
+                temporal_filter["expressionType"] = "SQL"
+                temporal_filter["subject"] = granularity_sqla["label"]
 
-        rv_data["adhoc_filters"] = (rv_data.get("adhoc_filters") or []) + [
-            temporal_filter
-        ]
+                start_date = since.isoformat() if since else None
+                end_date = until.isoformat() if until else None
+                if start_date and end_date:
+                    temporal_filter["sqlExpression"] = (
+                        f"{granularity_sqla['sqlExpression']} >= '{start_date}' AND "
+                        f"{granularity_sqla['sqlExpression']} < '{end_date}'"
+                    )
+                elif start_date:
+                    temporal_filter["sqlExpression"] = (
+                        f"{granularity_sqla['sqlExpression']} >= '{start_date}'"
+                    )
+                elif end_date:
+                    temporal_filter["sqlExpression"] = (
+                        f"{granularity_sqla['sqlExpression']} < '{end_date}'"
+                    )
 
-    @classmethod
-    def upgrade_slice(cls, slc: Slice) -> Slice:
-        clz = cls(slc.params)
-        form_data_bak = copy.deepcopy(clz.data)
-
-        clz._pre_action()
-        clz._migrate()
-        clz._post_action()
-
-        # viz_type depends on the migration and should be set after its execution
-        # because a source viz can be mapped to different target viz types
-        slc.viz_type = clz.target_viz_type
-
-        # only backup params
-        slc.params = json.dumps({**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak})
-
-        if "form_data" in (query_context := try_load_json(slc.query_context)):
-            query_context["form_data"] = clz.data
-            slc.query_context = json.dumps(query_context)
-        return slc
+        rv_data["adhoc_filters"] = rv_data.get("adhoc_filters") or []
+        if temporal_filter:
+            rv_data["adhoc_filters"].append(temporal_filter)
 
     @classmethod
-    def downgrade_slice(cls, slc: Slice) -> Slice:
-        form_data = try_load_json(slc.params)
-        if "viz_type" in (form_data_bak := form_data.get(FORM_DATA_BAK_FIELD_NAME, {})):
-            slc.params = json.dumps(form_data_bak)
-            slc.viz_type = form_data_bak.get("viz_type")
+    def upgrade_slice(cls, slc: Slice) -> None:
+        try:
+            clz = cls(slc.params)
+            form_data_bak = copy.deepcopy(clz.data)
+
+            clz._pre_action()
+            clz._migrate()
+            clz._post_action()
+
+            # viz_type depends on the migration and should be set after its execution
+            # because a source viz can be mapped to different target viz types
+            slc.viz_type = clz.target_viz_type
+
+            backup: Any | dict[str, Any] = {FORM_DATA_BAK_FIELD_NAME: form_data_bak}
+
             query_context = try_load_json(slc.query_context)
-            if "form_data" in query_context:
-                query_context["form_data"] = form_data_bak
-                slc.query_context = json.dumps(query_context)
-        return slc
+            queries_bak = None
+
+            if query_context:
+                if "form_data" in query_context:
+                    query_context["form_data"] = clz.data
+
+                queries_bak = copy.deepcopy(query_context["queries"])
+
+                queries = clz._build_query()["queries"]
+                query_context["queries"] = queries
+            else:
+                query_context = clz._build_query()
+
+            slc.query_context = json.dumps(query_context)
+            backup[QUERIES_BAK_FIELD_NAME] = queries_bak
+            slc.params = json.dumps({**clz.data, **backup})
+
+        except Exception as e:
+            logger.warning("Failed to migrate slice %s: %s", slc.id, e)
 
     @classmethod
-    def upgrade(cls) -> None:
-        bind = op.get_bind()
-        session = db.Session(bind=bind)
+    def downgrade_slice(cls, slc: Slice) -> None:
+        try:
+            form_data = try_load_json(slc.params)
+            if "viz_type" in (
+                form_data_bak := form_data.get(FORM_DATA_BAK_FIELD_NAME, {})
+            ):
+                slc.params = json.dumps(form_data_bak)
+                slc.viz_type = form_data_bak.get("viz_type")
+                query_context = try_load_json(slc.query_context)
+                queries_bak = form_data.get(QUERIES_BAK_FIELD_NAME, {})
+                if queries_bak:
+                    query_context["queries"] = queries_bak
+                    if "form_data" in query_context:
+                        query_context["form_data"] = form_data_bak
+                        slc.query_context = json.dumps(query_context)
+                else:
+                    slc.query_context = None
+
+        except Exception as e:
+            logger.warning("Failed to downgrade slice %s: %s", slc.id, e)
+
+    @classmethod
+    def upgrade(cls, session: Session) -> None:
         slices = session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
         for slc in paginated_update(
             slices,
-            lambda current, total: print(
-                f"  Updating {current}/{total} charts", end="\r"
-            ),
+            lambda current, total: logger.info("Upgraded %s/%s charts", current, total),
         ):
-            new_viz = cls.upgrade_slice(slc)
-            session.merge(new_viz)
+            cls.upgrade_slice(slc)
 
     @classmethod
-    def downgrade(cls) -> None:
-        bind = op.get_bind()
-        session = db.Session(bind=bind)
+    def downgrade(cls, session: Session) -> None:
         slices = session.query(Slice).filter(
             and_(
                 Slice.viz_type == cls.target_viz_type,
@@ -181,9 +223,11 @@ class MigrateViz:
         )
         for slc in paginated_update(
             slices,
-            lambda current, total: print(
-                f"  Downgrading {current}/{total} charts", end="\r"
+            lambda current, total: logger.info(
+                "Downgraded %s/%s charts", current, total
             ),
         ):
-            new_viz = cls.downgrade_slice(slc)
-            session.merge(new_viz)
+            cls.downgrade_slice(slc)
+
+    def _build_query(self) -> Any | dict[str, Any]:
+        """Builds a query based on the form data."""

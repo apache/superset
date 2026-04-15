@@ -17,13 +17,14 @@
  * under the License.
  */
 
-import React from 'react';
-import { t, styled } from '@superset-ui/core';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { EmptyState } from '@superset-ui/core/components';
+import { Link } from 'react-router-dom';
 
 const StyledContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 8}px
-    ${({ theme }) => theme.gridUnit * 6}px;
+  padding: ${({ theme }) => theme.sizeUnit * 8}px
+    ${({ theme }) => theme.sizeUnit * 6}px;
 
   display: flex;
   align-items: center;
@@ -31,11 +32,11 @@ const StyledContainer = styled.div`
   height: 100%;
 `;
 
-const StyledEmptyStateBig = styled(EmptyStateBig)`
+const StyledEmptyState = styled(EmptyState)`
   max-width: 50%;
 
   p {
-    width: ${({ theme }) => theme.gridUnit * 115}px;
+    width: ${({ theme }) => theme.sizeUnit * 115}px;
   }
 `;
 
@@ -50,15 +51,11 @@ export const VIEW_DATASET_MESSAGE = t(
 const renderEmptyDescription = () => (
   <>
     {SELECT_MESSAGE}
-    <span
-      role="button"
-      onClick={() => {
-        window.location.href = `/superset/sqllab`;
-      }}
-      tabIndex={0}
-    >
-      {CREATE_MESSAGE}
-    </span>
+    <Link to="/sqllab">
+      <span role="button" tabIndex={0}>
+        {CREATE_MESSAGE}
+      </span>
+    </Link>
     {VIEW_DATASET_MESSAGE}
   </>
 );
@@ -95,8 +92,10 @@ export const MessageContent = (props: MessageContentProps) => {
   }
   return (
     <StyledContainer>
-      <StyledEmptyStateBig
+      <StyledEmptyState
         image={currentImage}
+        size="medium"
+        textSize="large"
         title={currentTitle}
         description={currentDescription}
       />

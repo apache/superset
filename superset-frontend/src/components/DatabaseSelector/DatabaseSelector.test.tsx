@@ -17,19 +17,19 @@
  * under the License.
  */
 
-import React from 'react';
-import { act } from 'react-dom/test-utils';
 import fetchMock from 'fetch-mock';
 import {
+  act,
+  defaultStore as store,
   render,
   screen,
+  userEvent,
   waitFor,
-  defaultStore as store,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import { api } from 'src/hooks/apiResources/queryApi';
-import DatabaseSelector, { DatabaseSelectorProps } from '.';
-import { EmptyStateSmall } from '../EmptyState';
+import { EmptyState } from '@superset-ui/core/components';
+import { DatabaseSelector } from '.';
+import type { DatabaseSelectorProps } from './types';
 
 const createProps = (): DatabaseSelectorProps => ({
   db: {
@@ -40,8 +40,9 @@ const createProps = (): DatabaseSelectorProps => ({
   formMode: false,
   isDatabaseSelectEnabled: true,
   readOnly: false,
+  catalog: null,
   schema: 'public',
-  sqlLabMode: true,
+  sqlLabMode: false,
   getDbList: jest.fn(),
   handleError: jest.fn(),
   onDbChange: jest.fn(),
@@ -56,12 +57,13 @@ const fakeDatabaseApiResult = {
     allow_file_upload: 'Allow Csv Upload',
     allow_ctas: 'Allow Ctas',
     allow_cvas: 'Allow Cvas',
-    allow_dml: 'Allow Dml',
+    allow_dml: 'Allow DDL and DML',
     allow_run_async: 'Allow Run Async',
     allows_cost_estimate: 'Allows Cost Estimate',
     allows_subquery: 'Allows Subquery',
     allows_virtual_table_explore: 'Allows Virtual Table Explore',
     disable_data_preview: 'Disables SQL Lab Data Preview',
+    disable_drill_to_detail: 'Disable Drill To Detail',
     backend: 'Backend',
     changed_on: 'Changed On',
     changed_on_delta_humanized: 'Changed On Delta Humanized',
@@ -83,6 +85,7 @@ const fakeDatabaseApiResult = {
     'allows_subquery',
     'allows_virtual_table_explore',
     'disable_data_preview',
+    'disable_drill_to_detail',
     'backend',
     'changed_on',
     'changed_on_delta_humanized',
@@ -116,6 +119,7 @@ const fakeDatabaseApiResult = {
       allows_subquery: true,
       allows_virtual_table_explore: true,
       disable_data_preview: false,
+      disable_drill_to_detail: false,
       backend: 'postgresql',
       changed_on: '2021-03-09T19:02:07.141095',
       changed_on_delta_humanized: 'a day ago',
@@ -136,6 +140,7 @@ const fakeDatabaseApiResult = {
       allows_subquery: true,
       allows_virtual_table_explore: true,
       disable_data_preview: false,
+      disable_drill_to_detail: false,
       backend: 'mysql',
       changed_on: '2021-03-09T19:02:07.141095',
       changed_on_delta_humanized: 'a day ago',
@@ -149,21 +154,37 @@ const fakeDatabaseApiResult = {
   ],
 };
 
+const fakeDatabaseApiResultInReverseOrder = {
+  ...fakeDatabaseApiResult,
+  ids: [2, 1],
+  result: [...fakeDatabaseApiResult.result].reverse(),
+};
+
 const fakeSchemaApiResult = {
   count: 2,
   result: ['information_schema', 'public'],
+};
+
+const fakeCatalogApiResult = {
+  count: 0,
+  result: [],
 };
 
 const fakeFunctionNamesApiResult = {
   function_names: [],
 };
 
-const databaseApiRoute = 'glob:*/api/v1/database/?*';
+const databaseApiRoute =
+  'glob:*/api/v1/database/?*order_column:database_name,order_direction*';
+const catalogApiRoute = 'glob:*/api/v1/database/*/catalogs/?*';
 const schemaApiRoute = 'glob:*/api/v1/database/*/schemas/?*';
 const tablesApiRoute = 'glob:*/api/v1/database/*/tables/*';
 
 function setupFetchMock() {
-  fetchMock.get(databaseApiRoute, fakeDatabaseApiResult);
+  fetchMock.get(databaseApiRoute, fakeDatabaseApiResult, {
+    name: databaseApiRoute,
+  });
+  fetchMock.get(catalogApiRoute, fakeCatalogApiResult);
   fetchMock.get(schemaApiRoute, fakeSchemaApiResult);
   fetchMock.get(tablesApiRoute, fakeFunctionNamesApiResult);
 }
@@ -173,7 +194,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
@@ -190,31 +211,31 @@ test('Refresh should work', async () => {
 
   render(<DatabaseSelector {...props} />, { useRedux: true, store });
 
-  expect(fetchMock.calls(schemaApiRoute).length).toBe(0);
+  expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(0);
 
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema: public',
   });
 
-  userEvent.click(select);
+  await userEvent.click(select);
 
   await waitFor(() => {
-    expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
-    expect(fetchMock.calls(schemaApiRoute).length).toBe(1);
-    expect(props.handleError).toBeCalledTimes(0);
-    expect(props.onDbChange).toBeCalledTimes(0);
-    expect(props.onSchemaChange).toBeCalledTimes(0);
+    expect(fetchMock.callHistory.calls(databaseApiRoute).length).toBe(1);
+    expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1);
+    expect(props.handleError).toHaveBeenCalledTimes(0);
+    expect(props.onDbChange).toHaveBeenCalledTimes(0);
+    expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   });
 
   // click schema reload
-  userEvent.click(screen.getByRole('button', { name: 'refresh' }));
+  await userEvent.click(screen.getByRole('button', { name: 'sync' }));
 
   await waitFor(() => {
-    expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
-    expect(fetchMock.calls(schemaApiRoute).length).toBe(2);
-    expect(props.handleError).toBeCalledTimes(0);
-    expect(props.onDbChange).toBeCalledTimes(0);
-    expect(props.onSchemaChange).toBeCalledTimes(0);
+    expect(fetchMock.callHistory.calls(databaseApiRoute).length).toBe(1);
+    expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(2);
+    expect(props.handleError).toHaveBeenCalledTimes(0);
+    expect(props.onDbChange).toHaveBeenCalledTimes(0);
+    expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   });
 });
 
@@ -229,8 +250,62 @@ test('Should database select display options', async () => {
   expect(await screen.findByText('test-mysql')).toBeInTheDocument();
 });
 
+test('should display options in order of the api response', async () => {
+  fetchMock.removeRoute(databaseApiRoute);
+  fetchMock.get(databaseApiRoute, fakeDatabaseApiResultInReverseOrder, {
+    name: databaseApiRoute,
+  });
+  const props = createProps();
+  render(<DatabaseSelector {...props} db={undefined} />, {
+    useRedux: true,
+    store,
+  });
+  const select = screen.getByRole('combobox', {
+    name: 'Select database or type to search databases',
+  });
+  expect(select).toBeInTheDocument();
+  userEvent.click(select);
+  const options = await screen.findAllByRole('option');
+
+  expect(options[0]).toHaveTextContent(
+    `${fakeDatabaseApiResultInReverseOrder.result[0].id}`,
+  );
+  expect(options[1]).toHaveTextContent(
+    `${fakeDatabaseApiResultInReverseOrder.result[1].id}`,
+  );
+});
+
+test('Should fetch the search keyword when total count exceeds initial options', async () => {
+  fetchMock.removeRoute(databaseApiRoute);
+  fetchMock.get(
+    databaseApiRoute,
+    {
+      ...fakeDatabaseApiResult,
+      count: fakeDatabaseApiResult.result.length + 1,
+    },
+    { name: databaseApiRoute },
+  );
+
+  const props = createProps();
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+  const select = screen.getByRole('combobox', {
+    name: 'Select database or type to search databases',
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(databaseApiRoute)).toHaveLength(1),
+  );
+  expect(select).toBeInTheDocument();
+  await userEvent.type(select, 'keywordtest');
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(databaseApiRoute)).toHaveLength(2),
+  );
+  expect(fetchMock.callHistory.calls(databaseApiRoute)[1].url).toContain(
+    'keywordtest',
+  );
+});
+
 test('should show empty state if there are no options', async () => {
-  fetchMock.reset();
+  fetchMock.removeRoutes();
   fetchMock.get(databaseApiRoute, { result: [] });
   fetchMock.get(schemaApiRoute, { result: [] });
   fetchMock.get(tablesApiRoute, { result: [] });
@@ -239,14 +314,14 @@ test('should show empty state if there are no options', async () => {
     <DatabaseSelector
       {...props}
       db={undefined}
-      emptyState={<EmptyStateSmall title="empty" image="" />}
+      emptyState={<EmptyState size="small" title="empty" />}
     />,
     { useRedux: true, store },
   );
   const select = screen.getByRole('combobox', {
     name: 'Select database or type to search databases',
   });
-  userEvent.click(select);
+  await userEvent.click(select);
   const emptystate = await screen.findByText('empty');
   expect(emptystate).toBeInTheDocument();
   expect(screen.queryByText('test-mysql')).not.toBeInTheDocument();
@@ -256,16 +331,20 @@ test('Should schema select display options', async () => {
   const props = createProps();
   render(<DatabaseSelector {...props} />, { useRedux: true, store });
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema: public',
   });
   expect(select).toBeInTheDocument();
-  userEvent.click(select);
-  expect(
-    await screen.findByRole('option', { name: 'public' }),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByRole('option', { name: 'information_schema' }),
-  ).toBeInTheDocument();
+  await userEvent.click(select);
+  await waitFor(() => {
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+  const publicOption = await screen.findByRole('option', { name: 'public' });
+  expect(publicOption).toBeInTheDocument();
+
+  const infoSchemaOption = await screen.findByRole('option', {
+    name: 'information_schema',
+  });
+  expect(infoSchemaOption).toBeInTheDocument();
 });
 
 test('Sends the correct db when changing the database', async () => {
@@ -275,12 +354,12 @@ test('Sends the correct db when changing the database', async () => {
     name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
-  userEvent.click(select);
-  userEvent.click(await screen.findByText('test-mysql'));
+  await userEvent.click(select);
+  await userEvent.click(await screen.findByText('test-mysql'));
   await waitFor(() =>
     expect(props.onDbChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: 2,
+        value: 2,
         database_name: 'test-mysql',
         backend: 'mysql',
       }),
@@ -290,15 +369,24 @@ test('Sends the correct db when changing the database', async () => {
 
 test('Sends the correct schema when changing the schema', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+  const { rerender } = render(<DatabaseSelector {...props} db={null} />, {
+    useRedux: true,
+    store,
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(databaseApiRoute).length).toBe(1),
+  );
+  rerender(<DatabaseSelector {...props} />);
+  expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema: public',
   });
   expect(select).toBeInTheDocument();
-  userEvent.click(select);
-  const schemaOption = await screen.findAllByText('information_schema');
-  userEvent.click(schemaOption[1]);
+  await userEvent.click(select);
+  const schemaOption = await screen.findByText('information_schema');
+  await userEvent.click(schemaOption);
   await waitFor(() =>
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
+  expect(props.onSchemaChange).toHaveBeenCalledTimes(1);
 });

@@ -26,13 +26,12 @@ Create Date: 2017-01-24 12:31:06.541746
 revision = "db0c65b146bd"
 down_revision = "f18570e03440"
 
-import json
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, Integer, String, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from alembic import op
-from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
-
-from superset import db
+from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
@@ -57,7 +56,6 @@ def upgrade():
         try:
             d = json.loads(slc.params or "{}")
             slc.params = json.dumps(d, indent=2, sort_keys=True)
-            session.merge(slc)
             session.commit()
             print(f"Upgraded ({i}/{slice_len}): {slc.slice_name}")
         except Exception as ex:

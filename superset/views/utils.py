@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import logging
 from collections import defaultdict
 from functools import wraps
@@ -22,16 +23,13 @@ from urllib import parse
 
 import msgpack
 import pyarrow as pa
-import simplejson as json
-from flask import flash, g, has_request_context, redirect, request
+from flask import current_app as app, g, has_request_context, redirect, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
-from sqlalchemy.orm.exc import NoResultFound
-from werkzeug.wrappers.response import Response
+from sqlalchemy.exc import NoResultFound
 
-import superset.models.core as models
-from superset import app, dataframe, db, result_set, viz
+from superset import appbuilder, dataframe, db, result_set, viz
 from superset.common.db_query_status import QueryStatus
 from superset.daos.datasource import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -47,7 +45,12 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
-from superset.superset_typing import FormData
+from superset.superset_typing import (
+    ExplorableData,
+    FlaskResponse,
+    FormData,
+)
+from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
@@ -60,19 +63,51 @@ if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
 
 
-def sanitize_datasource_data(datasource_data: dict[str, Any]) -> dict[str, Any]:
+def redirect_to_login(next_target: str | None = None) -> FlaskResponse:
+    """Return a redirect response to the login view, preserving target URL.
+
+    When ``next_target`` is ``None`` the current request path (including query
+    string) is used, provided a request context is available. The resulting URL
+    always remains relative, mirroring Flask-AppBuilder expectations.
+    """
+
+    login_url = appbuilder.get_url_for_login
+    parsed = parse.urlparse(login_url)
+    query = parse.parse_qs(parsed.query, keep_blank_values=True)
+
+    target = next_target
+    if target is None and has_request_context():
+        if request.query_string:
+            target = request.script_root + request.full_path.rstrip("?")
+        else:
+            target = request.script_root + request.path
+
+    if target:
+        query["next"] = [target]
+
+    encoded_query = parse.urlencode(query, doseq=True)
+    redirect_url = parse.urlunparse(parsed._replace(query=encoded_query))
+    return redirect(redirect_url)
+
+
+def sanitize_datasource_data(
+    datasource_data: ExplorableData,
+) -> dict[str, Any]:
+    """
+    Sanitize datasource data by removing sensitive database parameters.
+    """
     if datasource_data:
         datasource_database = datasource_data.get("database")
         if datasource_database:
             datasource_database["parameters"] = {}
 
-    return datasource_data
+    return datasource_data  # type: ignore[return-value]
 
 
 def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, Any]:
     if user.is_anonymous:
         payload = {}
-        user.roles = (security_manager.find_role("Public"),)
+        user.roles = (security_manager.get_public_role(),)
     elif security_manager.is_guest_user(user):
         payload = {
             "username": user.username,
@@ -91,6 +126,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
             "isAnonymous": user.is_anonymous,
             "createdOn": user.created_on.isoformat(),
             "email": user.email,
+            "loginCount": user.login_count,
         }
 
     if include_perms:
@@ -101,15 +137,20 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
     return payload
 
 
+def get_config_value(key: str) -> Any:
+    value = app.config[key]
+    return value() if callable(value) else value
+
+
 def get_permissions(
     user: User,
 ) -> tuple[dict[str, list[tuple[str]]], DefaultDict[str, list[str]]]:
-    if not user.roles:
-        raise AttributeError("User object does not have roles")
+    if not user.roles and not user.groups:
+        raise AttributeError("User object does not have roles or groups")
 
     data_permissions = defaultdict(set)
     roles_permissions = security_manager.get_user_roles_permissions(user)
-    for _, permissions in roles_permissions.items():
+    for _, permissions in roles_permissions.items():  # noqa: F402
         for permission in permissions:
             if permission[0] in ("datasource_access", "database_access"):
                 data_permissions[permission[0]].add(permission[1])
@@ -128,7 +169,6 @@ def get_viz(
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
     datasource = DatasourceDAO.get_datasource(
-        db.session,
         DatasourceType(datasource_type),
         datasource_id,
     )
@@ -145,7 +185,7 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
         return {}
 
 
-def get_form_data(  # pylint: disable=too-many-locals
+def get_form_data(
     slice_id: Optional[int] = None,
     use_slice_data: bool = False,
     initial_form_data: Optional[dict[str, Any]] = None,
@@ -153,10 +193,12 @@ def get_form_data(  # pylint: disable=too-many-locals
     form_data: dict[str, Any] = initial_form_data or {}
 
     if has_request_context():
+        json_data = request.get_json(cache=True) if request.is_json else {}
+
         # chart data API requests are JSON
-        request_json_data = (
-            request.json["queries"][0]
-            if request.is_json and "queries" in request.json
+        first_query = (
+            json_data["queries"][0]
+            if "queries" in json_data and json_data["queries"]
             else None
         )
 
@@ -164,8 +206,8 @@ def get_form_data(  # pylint: disable=too-many-locals
 
         request_form_data = request.form.get("form_data")
         request_args_data = request.args.get("form_data")
-        if request_json_data:
-            form_data.update(request_json_data)
+        if first_query:
+            form_data.update(first_query)
         if request_form_data:
             parsed_form_data = loads_request_json(request_form_data)
             # some chart data api requests are form_data
@@ -180,23 +222,10 @@ def get_form_data(  # pylint: disable=too-many-locals
 
     # Fallback to using the Flask globals (used for cache warmup and async queries)
     if not form_data and hasattr(g, "form_data"):
-        form_data = getattr(g, "form_data")
+        form_data = g.form_data
         # chart data API requests are JSON
         json_data = form_data["queries"][0] if "queries" in form_data else {}
         form_data.update(json_data)
-
-    if has_request_context():
-        url_id = request.args.get("r")
-        if url_id:
-            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
-            if saved_url:
-                url_str = parse.unquote_plus(
-                    saved_url.url.split("?")[1][10:], encoding="utf-8"
-                )
-                url_form_data = loads_request_json(url_str)
-                # allow form_date in request override saved url
-                url_form_data.update(form_data)
-                form_data = url_form_data
 
     form_data = {k: v for k, v in form_data.items() if k not in REJECTED_FORM_DATA_KEYS}
 
@@ -311,8 +340,7 @@ CONTAINER_TYPES = ["COLUMN", "GRID", "TABS", "TAB", "ROW"]
 def get_dashboard_extra_filters(
     slice_id: int, dashboard_id: int
 ) -> list[dict[str, Any]]:
-    session = db.session()
-    dashboard = session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
 
     # is chart in this dashboard?
     if (
@@ -323,7 +351,7 @@ def get_dashboard_extra_filters(
     ):
         return []
 
-    try:
+    with contextlib.suppress(json.JSONDecodeError):
         # does this dashboard have default filters?
         json_metadata = json.loads(dashboard.json_metadata)
         default_filters = json.loads(json_metadata.get("default_filters", "null"))
@@ -340,13 +368,10 @@ def get_dashboard_extra_filters(
             and isinstance(default_filters, dict)
         ):
             return build_extra_filters(layout, filter_scopes, default_filters, slice_id)
-    except json.JSONDecodeError:
-        pass
-
     return []
 
 
-def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks
+def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-blocks  # noqa: C901
     layout: dict[str, dict[str, Any]],
     filter_scopes: dict[str, dict[str, Any]],
     default_filters: dict[str, dict[str, list[Any]]],
@@ -562,8 +587,3 @@ def get_cta_schema_name(
     if not func:
         return None
     return func(database, user, schema, sql)
-
-
-def redirect_with_flash(url: str, message: str, category: str) -> Response:
-    flash(message=message, category=category)
-    return redirect(url)

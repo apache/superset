@@ -1,0 +1,96 @@
+name: pre-commit checks
+
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python-version: ["current", "previous", "next"]
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Enable brew and helm-docs
+        # Add brew to the path - see https://github.com/actions/runner-images/issues/6283
+        run: |
+          echo "/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin" >> $GITHUB_PATH
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          echo "HOMEBREW_PREFIX=$HOMEBREW_PREFIX" >>"${GITHUB_ENV}"
+          echo "HOMEBREW_CELLAR=$HOMEBREW_CELLAR" >>"${GITHUB_ENV}"
+          echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
+          brew install norwoodj/tap/helm-docs
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd superset-frontend
+          npm ci
+
+      - name: Install Docs Dependencies
+        run: |
+          cd docs
+          yarn install --immutable
+
+      - name: Cache pre-commit environments
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-
+
+      - name: Get changed files
+        id: changed_files
+        uses: ./.github/actions/file-changes-action
+        with:
+          output: ' '
+
+      - name: pre-commit
+        run: |
+          set +e  # Don't exit immediately on failure
+          export SKIP=type-checking-frontend
+          pre-commit run --files ${{ steps.changed_files.outputs.files }}
+          PRE_COMMIT_EXIT_CODE=$?
+          git diff --quiet --exit-code
+          GIT_DIFF_EXIT_CODE=$?
+          if [ "${PRE_COMMIT_EXIT_CODE}" -ne 0 ] || [ "${GIT_DIFF_EXIT_CODE}" -ne 0 ]; then
+            if [ "${PRE_COMMIT_EXIT_CODE}" -ne 0 ]; then
+              echo "❌ Pre-commit check failed (exit code: ${PRE_COMMIT_EXIT_CODE})."
+              echo "🔍 Modified files:"
+              git diff --name-only
+            else
+              echo "❌ Git working directory is dirty."
+              echo "📌 This likely means that pre-commit made changes that were not committed."
+              echo "🔍 Modified files:"
+              git diff --name-only
+            fi
+
+            echo "🚒 To prevent/address this CI issue, please install/use pre-commit locally."
+            echo "📖 More details here: https://superset.apache.org/docs/contributing/development#git-hooks"
+            exit 1
+          fi

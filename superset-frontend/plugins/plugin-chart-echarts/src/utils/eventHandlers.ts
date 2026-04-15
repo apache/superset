@@ -54,7 +54,9 @@ const getCrossFilterDataMask =
       values = [value];
     }
 
-    const groupbyValues = values.map(value => labelMap[value]);
+    const groupbyValues = values
+      .map(value => labelMap[value])
+      .filter(Boolean) as string[][];
 
     return {
       dataMask: {
@@ -122,6 +124,9 @@ export const contextMenuEventHandler =
       const drillFilters: BinaryQueryObjectFilterClause[] = [];
       if (groupby.length > 0) {
         const values = labelMap[e.name];
+        if (!values) {
+          return;
+        }
         groupby.forEach((dimension, i) => {
           drillFilters.push({
             col: dimension,
@@ -137,7 +142,8 @@ export const contextMenuEventHandler =
       }
       onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
         drillToDetail: drillFilters,
-        crossFilter: getCrossFilterDataMask(e.name),
+        crossFilter:
+          groupby.length > 0 ? getCrossFilterDataMask(e.name) : undefined,
         drillBy: { filters: drillFilters, groupbyFieldName: 'groupby' },
       });
     }
@@ -157,11 +163,14 @@ export const allEventHandlers = (
     formData,
   } = transformedProps;
   const eventHandlers: EventHandlers = {
-    click: clickEventHandler(
-      getCrossFilterDataMask(selectedValues, groupby, labelMap),
-      setDataMask,
-      emitCrossFilters,
-    ),
+    click:
+      groupby.length > 0
+        ? clickEventHandler(
+            getCrossFilterDataMask(selectedValues, groupby, labelMap),
+            setDataMask,
+            emitCrossFilters,
+          )
+        : () => {},
     contextmenu: contextMenuEventHandler(
       groupby,
       onContextMenu,

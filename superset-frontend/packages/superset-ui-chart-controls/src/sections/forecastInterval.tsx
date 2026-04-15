@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  legacyValidateInteger,
-  legacyValidateNumber,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { legacyValidateInteger, legacyValidateNumber } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
+import { displayTimeRelatedControls } from '../utils';
 
 export const FORECAST_DEFAULT_DATA = {
   forecastEnabled: false,
@@ -35,6 +33,7 @@ export const FORECAST_DEFAULT_DATA = {
 export const forecastIntervalControls: ControlPanelSectionConfig = {
   label: t('Predictive Analytics'),
   expanded: false,
+  visibility: displayTimeRelatedControls,
   controlSetRows: [
     [
       {

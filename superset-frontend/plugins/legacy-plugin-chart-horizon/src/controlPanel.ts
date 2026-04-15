@@ -16,16 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelConfig,
   formatSelectOptions,
-  sections,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
+    {
+      label: t('Time'),
+      expanded: true,
+      description: t('Time related form attributes'),
+      controlSetRows: [['granularity_sqla'], ['time_range']],
+    },
     {
       label: t('Query'),
       expanded: true,

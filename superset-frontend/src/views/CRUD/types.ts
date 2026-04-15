@@ -46,7 +46,7 @@ export interface DashboardTableProps {
   user?: User;
   mine: Array<Dashboard>;
   showThumbnails?: boolean;
-  otherTabData: Array<Dashboard>;
+  otherTabData?: Array<Dashboard>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
 }
@@ -70,6 +70,7 @@ export interface Dashboard {
 
 export type SavedQueryObject = {
   id: number;
+  catalog: string | null;
   changed_on: string;
   changed_on_delta_humanized: string;
   database: {
@@ -103,6 +104,7 @@ export interface QueryObject {
     username: string;
   };
   start_time: number;
+  start_running_time: number | null;
   end_time: number;
   rows: number;
   tmp_table_name: string;
@@ -110,23 +112,25 @@ export interface QueryObject {
 }
 
 export enum QueryObjectColumns {
-  id = 'id',
-  changed_on = 'changed_on',
-  database = 'database',
-  database_name = 'database.database_name',
-  schema = 'schema',
-  sql = 'sql',
-  executed_sql = 'executed_sql',
-  sql_tables = 'sql_tables',
-  status = 'status',
-  tab_name = 'tab_name',
-  user = 'user',
-  user_first_name = 'user.first_name',
-  start_time = 'start_time',
-  end_time = 'end_time',
-  rows = 'rows',
-  tmp_table_name = 'tmp_table_name',
-  tracking_url = 'tracking_url',
+  Id = 'id',
+  ChangedOn = 'changed_on',
+  ChangedBy = 'changed_by',
+  Database = 'database',
+  DatabaseName = 'database.database_name',
+  Schema = 'schema',
+  Sql = 'sql',
+  ExecutedSql = 'executed_sql',
+  SqlTables = 'sql_tables',
+  Status = 'status',
+  TabName = 'tab_name',
+  User = 'user',
+  UserFirstName = 'user.first_name',
+  StartTime = 'start_time',
+  StartRunningTime = 'start_running_time',
+  EndTime = 'end_time',
+  Rows = 'rows',
+  TmpTableName = 'tmp_table_name',
+  TrackingUrl = 'tracking_url',
 }
 
 export type ImportResourceName =
@@ -134,14 +138,29 @@ export type ImportResourceName =
   | 'dashboard'
   | 'database'
   | 'dataset'
-  | 'saved_query';
+  | 'saved_query'
+  | 'theme';
 
 export interface Tag {
   changed_on_delta_humanized: string;
+  changed_by: Owner;
+  created_on_delta_humanized: string;
   name: string;
   id: number;
-  created_by: object;
+  created_by: Owner;
+  description: string;
+  type: string;
 }
 
 export type DatabaseObject = Partial<Database> &
   Pick<Database, 'sqlalchemy_uri'>;
+
+export interface EncryptedExtraField {
+  path: string;
+  label: string;
+}
+
+export interface FileEncryptedExtraFields {
+  fileName: string;
+  fields: EncryptedExtraField[];
+}

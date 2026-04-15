@@ -17,10 +17,10 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { FAST_DEBOUNCE } from 'src/constants';
+import { Constants } from '@superset-ui/core/components';
 
-export function useDebounceValue(value: string, delay = FAST_DEBOUNCE) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
+export function useDebounceValue<T>(value: T, delay = Constants.FAST_DEBOUNCE) {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
   useEffect(() => {
     const handler: NodeJS.Timeout = setTimeout(() => {

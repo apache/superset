@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { useState } from 'react';
 import styled from '@emotion/styled';
-import { List } from 'antd';
 import Layout from '@theme/Layout';
 import { mq } from '../utils';
 import SectionHeader from '../components/SectionHeader';
@@ -86,14 +85,18 @@ const communityLinks = [
 ];
 
 const StyledJoinCommunity = styled('section')`
-  background-color: var(--ifm-off-section-background);
+  background-color: var(--ifm-background-color);
   border-bottom: 1px solid var(--ifm-border-color);
   .list {
     max-width: 540px;
     margin: 0 auto;
     padding: 40px 20px 20px 35px;
+    list-style: none;
   }
   .item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
     padding: 0;
     border: 0;
   }
@@ -118,7 +121,7 @@ const StyledJoinCommunity = styled('section')`
   .description {
     font-size: 14px;
     line-height: 20px;
-    color: var(--ifm-secondary-text);
+    color: var(--ifm-font-base-color);
     margin-top: -8px;
     margin-bottom: 23px;
     ${mq[1]} {
@@ -143,22 +146,6 @@ const StyledCalendarIframe = styled('iframe')`
   }
 `;
 
-const StyledNewsletterIframe = styled('iframe')`
-  display: block;
-  max-width: 1080px;
-  width: calc(100% - 40px);
-  height: 285px;
-  margin: 30px auto 20px;
-  border: 0;
-  @media (max-width: 1200px) {
-    height: 380px;
-  }
-  @media (max-width: 679px) {
-    height: 680px;
-    margin-top: 15px;
-  }
-`;
-
 const StyledLink = styled('a')`
   display: inline-flex;
   align-items: center;
@@ -179,7 +166,18 @@ const StyledLink = styled('a')`
   }
 `;
 
+const FinePrint = styled('div')`
+  font-size: 14px;
+  color: var(--ifm-secondary-text);
+`;
+
 const Community = () => {
+  const [showCalendar, setShowCalendar] = useState(false); // State to control calendar visibility
+
+  const toggleCalendar = () => {
+    setShowCalendar(!showCalendar); // Toggle calendar visibility
+  };
+
   return (
     <Layout
       title="Community"
@@ -194,37 +192,33 @@ const Community = () => {
           />
         </BlurredSection>
         <StyledJoinCommunity>
-          <List
-            className="list"
-            itemLayout="horizontal"
-            dataSource={communityLinks}
-            renderItem={({ url, title, description, image, ariaLabel }) => (
-              <List.Item className="item">
-                <List.Item.Meta
-                  avatar={
-                    <a
-                      className="title"
-                      href={url}
-                      target="_blank"
-                      aria-label={ariaLabel}
-                    >
-                      <img className="icon" src={`/img/community/${image}`} />
+          <ul className="list">
+            {communityLinks.map(
+              ({ url, title, description, image, ariaLabel }) => (
+                <li className="item" key={title}>
+                  <a
+                    className="avatar"
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={ariaLabel}
+                  >
+                    <img className="icon" src={`/img/community/${image}`} />
+                  </a>
+                  <div>
+                    <a href={url} target="_blank" rel="noreferrer">
+                      <p className="title" style={{ marginBottom: 0 }}>
+                        {title}
+                      </p>
                     </a>
-                  }
-                  title={
-                    <a className="title" href={url} target="_blank">
-                      {title}
-                    </a>
-                  }
-                  description={<p className="description">{description}</p>}
-                  role="group"
-                  aria-label="Community link"
-                />
-              </List.Item>
+                    <p className="description">{description}</p>
+                  </div>
+                </li>
+              ),
             )}
-          />
+          </ul>
         </StyledJoinCommunity>
-        <BlurredSection>
+        <BlurredSection id="superset-community-calendar">
           <SectionHeader
             level="h2"
             title="Superset Community Calendar"
@@ -235,26 +229,32 @@ const Community = () => {
                 <StyledLink
                   href="https://calendar.google.com/calendar/u/0/r?cid=superset.committers@gmail.com"
                   target="_blank"
+                  rel="noreferrer"
                 >
                   <img src="/img/calendar-icon.svg" alt="calendar-icon" />
                   Subscribe to the Superset Community Calendar
                 </StyledLink>
+                <br />
+                <StyledLink onClick={toggleCalendar}>
+                  <img src="/img/calendar-icon.svg" alt="calendar-icon" />
+                  {showCalendar ? 'Hide Calendar' : 'Display Calendar*'}
+                </StyledLink>
+                {!showCalendar && (
+                  <FinePrint>
+                    <sup>*</sup>Clicking on this link will load and send data
+                    from and to Google.
+                  </FinePrint>
+                )}
               </>
             }
           />
-          <StyledCalendarIframe
-            src="https://calendar.google.com/calendar/embed?src=superset.committers%40gmail.com&ctz=America%2FLos_Angeles"
-            frameBorder="0"
-            scrolling="no"
-          />
-        </BlurredSection>
-        <BlurredSection>
-          <SectionHeader level="h2" title="Newsletter Archive" />
-          <StyledNewsletterIframe
-            src="https://preset.io/embed/newsletter/"
-            frameBorder="0"
-            scrolling="no"
-          />
+          {showCalendar && (
+            <StyledCalendarIframe
+              src="https://calendar.google.com/calendar/embed?src=superset.committers%40gmail.com&ctz=America%2FLos_Angeles"
+              frameBorder="0"
+              scrolling="no"
+            />
+          )}
         </BlurredSection>
       </main>
     </Layout>

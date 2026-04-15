@@ -22,14 +22,12 @@ import {
   FeatureFlag,
   makeApi,
   SupersetClient,
-  logging,
-} from '@superset-ui/core';
-import { SupersetError } from 'src/components/ErrorMessage/types';
-import getBootstrapData from 'src/utils/getBootstrapData';
-import {
   getClientErrorObject,
   parseErrorJson,
-} from '../utils/getClientErrorObject';
+  SupersetError,
+} from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 type AsyncEvent = {
   id?: string | null;
@@ -230,7 +228,7 @@ const wsConnect = (): void => {
 };
 
 export const init = (appConfig?: AppConfig) => {
-  if (!isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) return;
+  if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
   if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
 
   listenersByJobId = {};

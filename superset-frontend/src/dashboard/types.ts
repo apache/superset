@@ -17,24 +17,46 @@
  * under the License.
  */
 import {
+  ChartCustomization,
+  ChartCustomizationDivider,
   ChartProps,
   DataMaskStateWithId,
   DatasourceType,
   ExtraFormData,
-  GenericDataType,
   JsonObject,
   NativeFilterScope,
   NativeFiltersState,
+  NativeFilterTarget,
+  ColumnOption,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
+import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
-
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import Owner from 'src/types/Owner';
+import Role from 'src/types/Role';
+import { TagType } from 'src/components/Tag/TagType';
 import { ChartState } from '../explore/types';
+import { AutoRefreshStatus } from './types/autoRefresh';
 
 export type { Dashboard } from 'src/types/Dashboard';
+
+export interface ExtendedNativeFilterScope extends NativeFilterScope {
+  selectedLayers?: string[];
+}
+
+/** Configuration item for native filters and chart customizations */
+export interface FilterConfigItem extends JsonObject {
+  id: string;
+  chartsInScope?: number[];
+  tabsInScope?: string[];
+  type?: string;
+  targets?: Partial<NativeFilterTarget>[];
+}
 
 export type ChartReducerInitialState = typeof chart;
 
@@ -51,12 +73,14 @@ export type Chart = ChartState & {
   form_data: {
     viz_type: string;
     datasource: string;
+    color_scheme: string;
+    slice_id: number;
   };
 };
 
 export enum FilterBarOrientation {
-  VERTICAL = 'VERTICAL',
-  HORIZONTAL = 'HORIZONTAL',
+  Vertical = 'VERTICAL',
+  Horizontal = 'HORIZONTAL',
 }
 
 // chart's cross filter scoping can have its custom value or point to the global configuration
@@ -83,7 +107,11 @@ export type ChartConfiguration = {
 
 export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
-export type DashboardLayoutState = { present: DashboardLayout };
+export type DashboardLayoutState = {
+  past: DashboardLayout[];
+  present: DashboardLayout;
+  future: DashboardLayout[];
+};
 export type DashboardState = {
   preselectNativeFilters?: JsonObject;
   editMode: boolean;
@@ -98,6 +126,8 @@ export type DashboardState = {
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;
+  nativeFiltersBarOpen?: boolean;
+  css?: string;
   focusedFilterField?: {
     chartId: number;
     column: string;
@@ -113,29 +143,84 @@ export type DashboardState = {
     dashboardId: number;
     data: JsonObject;
   };
+  chartStates?: Record<string, JsonObject>;
+  autoRefreshStatus?: AutoRefreshStatus;
+  autoRefreshPaused?: boolean;
+  autoRefreshPausedByTab?: boolean;
+  lastSuccessfulRefresh?: number | null;
+  lastAutoRefreshTime?: number | null;
+  lastRefreshError?: string | null;
+  refreshErrorCount?: number;
+  autoRefreshFetchStartTime?: number | null;
+  autoRefreshPauseOnInactiveTab?: boolean;
+  labelsColorMapMustSync?: boolean;
+  sharedLabelsColorsMustSync?: boolean;
+  maxUndoHistoryExceeded?: boolean;
+  updatedColorScheme?: boolean;
+  inactiveTabs?: string[];
+  datasetsStatus?: ResourceStatus;
+  expandedSlices?: Record<number, boolean>;
+  refreshFrequency: number;
+  shouldPersistRefreshFrequency?: boolean;
+  colorNamespace?: string;
+  isStarred?: boolean;
+  lastRefreshTime?: number;
+  tabActivationTimes?: Record<string, number>;
 };
 export type DashboardInfo = {
   id: number;
   common: {
-    flash_messages: string[];
     conf: JsonObject;
   };
   userId: string;
   dash_edit_perm: boolean;
   json_metadata: string;
   metadata: {
-    native_filter_configuration: JsonObject;
+    native_filter_configuration: FilterConfigItem[];
     chart_configuration: ChartConfiguration;
     global_chart_configuration: GlobalChartCrossFilterConfig;
     color_scheme: string;
     color_namespace: string;
     color_scheme_domain: string[];
     label_colors: JsonObject;
-    shared_label_colors: JsonObject;
+    shared_label_colors: string[];
+    map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
+    chart_customization_config?: (
+      | ChartCustomization
+      | ChartCustomizationDivider
+    )[];
+    timed_refresh_immune_slices?: number[];
+    refresh_frequency?: number;
+    positions?: JsonObject;
+    filter_scopes?: JsonObject;
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
+  created_on_delta_humanized: string;
+  changed_on_delta_humanized: string;
+  changed_by?: Owner;
+  created_by?: Owner;
+  owners: Owner[];
+  chartCustomizationData?: { [itemId: string]: ColumnOption[] };
+  chartCustomizationLoading?: { [itemId: string]: boolean };
+  pendingChartCustomizations?: Record<string, ChartCustomization>;
+  theme?: {
+    id: number;
+    theme_name: string;
+    json_data: string;
+  } | null;
+  css?: string;
+  slug?: string;
+  last_modified_time: number;
+  certified_by?: string;
+  certification_details?: string;
+  roles?: Role[];
+  tags?: TagType[];
+  is_managed_externally?: boolean;
+  dash_share_perm?: boolean;
+  dash_save_perm?: boolean;
+  dash_export_perm?: boolean;
 };
 
 export type ChartsState = { [key: string]: Chart };
@@ -144,24 +229,29 @@ export type Datasource = Dataset & {
   uid: string;
   column_types: GenericDataType[];
   table_name: string;
+  database?: Database;
 };
 export type DatasourcesState = {
   [key: string]: Datasource;
 };
 
 /** Root state of redux */
+export type GetState = () => RootState;
+
 export type RootState = {
   datasources: DatasourcesState;
-  sliceEntities: JsonObject;
+  sliceEntities: SliceEntitiesState;
   charts: ChartsState;
   dashboardLayout: DashboardLayoutState;
-  dashboardFilters: {};
+  dashboardFilters: JsonObject;
   dashboardState: DashboardState;
   dashboardInfo: DashboardInfo;
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
   user: UserWithPermissionsAndRoles;
+  common?: { conf: JsonObject };
+  lastModifiedTime: number;
 };
 
 /** State of dashboardLayout in redux */
@@ -171,30 +261,56 @@ export type Layout = { [key: string]: LayoutItem };
 export type Charts = { [key: number]: Chart };
 
 type ComponentTypesKeys = keyof typeof componentTypes;
-export type ComponentType = typeof componentTypes[ComponentTypesKeys];
+export type ComponentType = (typeof componentTypes)[ComponentTypesKeys];
+
+export type LayoutItemMeta = {
+  chartId?: number;
+  defaultText?: string;
+  height?: number;
+  placeholder?: string;
+  sliceName?: string;
+  sliceNameOverride?: string;
+  text?: string;
+  uuid?: string;
+  width?: number;
+  headerSize?: string;
+  /** Markdown source code for markdown components */
+  code?: string;
+  /** Background style value for columns and rows */
+  background?: string;
+  /** Allow additional meta properties used by different component types */
+  [key: string]: unknown;
+};
 
 /** State of dashboardLayout item in redux */
 export type LayoutItem = {
   children: string[];
-  parents: string[];
+  parents?: string[];
   type: ComponentType;
   id: string;
-  meta: {
-    chartId: number;
-    defaultText?: string;
-    height: number;
-    placeholder?: string;
-    sliceName?: string;
-    sliceNameOverride?: string;
-    text?: string;
-    uuid: string;
-    width: number;
-  };
+  meta: LayoutItemMeta;
 };
 
+/** Loose component type used by utility and factory functions */
+export interface DashboardComponent {
+  id: string;
+  type: string;
+  children: string[];
+  parents?: string[];
+  meta: LayoutItemMeta;
+}
+
+/** Map of dashboard components keyed by ID */
+export type DashboardComponentMap = { [id: string]: DashboardComponent };
+
 type ActiveFilter = {
+  filterType?: string;
+  targets: Partial<NativeFilterTarget>[];
   scope: number[];
   values: ExtraFormData;
+  layerScope?: {
+    [chartId: number]: number[];
+  };
 };
 
 export type ActiveFilters = {
@@ -206,6 +322,7 @@ export interface DashboardPermalinkState {
   activeTabs: string[];
   anchor: string;
   urlParams?: UrlParamEntries;
+  chartStates?: Record<string, JsonObject>;
 }
 
 export interface DashboardPermalinkValue {
@@ -238,3 +355,42 @@ export type Slice = {
   owners: { id: number }[];
   created_by: { id: number };
 };
+
+export interface SliceEntitiesState {
+  slices: Record<number, Slice>;
+  isLoading: boolean;
+  errorMessage: string | null;
+  lastUpdated: number;
+}
+
+export enum MenuKeys {
+  DownloadAsImage = 'download_as_image',
+  ExploreChart = 'explore_chart',
+  ExportCsv = 'export_csv',
+  ExportPivotCsv = 'export_pivot_csv',
+  ExportFullCsv = 'export_full_csv',
+  ExportXlsx = 'export_xlsx',
+  ExportFullXlsx = 'export_full_xlsx',
+  ForceRefresh = 'force_refresh',
+  Fullscreen = 'fullscreen',
+  ToggleChartDescription = 'toggle_chart_description',
+  ViewQuery = 'view_query',
+  ViewResults = 'view_results',
+  DrillToDetail = 'drill_to_detail',
+  CrossFilterScoping = 'cross_filter_scoping',
+  Share = 'share',
+  ShareByEmail = 'share_by_email',
+  CopyLink = 'copy_link',
+  Download = 'download',
+  SaveModal = 'save_modal',
+  RefreshDashboard = 'refresh_dashboard',
+  AutorefreshModal = 'autorefresh_modal',
+  SetFilterMapping = 'set_filter_mapping',
+  EditProperties = 'edit_properties',
+  EditCss = 'edit_css',
+  ToggleFullscreen = 'toggle_fullscreen',
+  ManageEmbedded = 'manage_embedded',
+  ManageEmailReports = 'manage_email_reports',
+  ExportPivotXlsx = 'export_pivot_xlsx',
+  EmbedCode = 'embed_code',
+}

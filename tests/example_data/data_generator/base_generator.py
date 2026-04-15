@@ -21,5 +21,4 @@ from typing import Any
 
 class ExampleDataGenerator(ABC):
     @abstractmethod
-    def generate(self) -> Iterable[dict[Any, Any]]:
-        ...
+    def generate(self) -> Iterable[dict[Any, Any]]: ...

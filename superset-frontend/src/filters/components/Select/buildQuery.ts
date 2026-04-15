@@ -18,13 +18,13 @@
  */
 import {
   buildQueryContext,
-  GenericDataType,
   getColumnLabel,
   isPhysicalColumn,
   QueryObject,
   QueryObjectFilterClause,
   BuildQuery,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { DEFAULT_FORM_DATA, PluginFilterSelectQueryFormData } from './types';
 
 const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
@@ -40,8 +40,8 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
       columns.filter(isPhysicalColumn).forEach(column => {
         const label = getColumnLabel(column);
         if (
-          coltypeMap[label] === GenericDataType.STRING ||
-          (coltypeMap[label] === GenericDataType.NUMERIC &&
+          coltypeMap[label] === GenericDataType.String ||
+          (coltypeMap[label] === GenericDataType.Numeric &&
             !Number.isNaN(Number(search)))
         ) {
           extraFilters.push({

@@ -16,14 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { render, screen } from 'spec/helpers/testing-library';
-import setupExtensions from 'src/setup/setupExtensions';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { getExtensionsRegistry } from '@superset-ui/core';
+import * as CoreTheme from '@apache-superset/core/theme';
 import { Menu } from './Menu';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
+
+jest.mock('@apache-superset/core/theme', () => ({
+  ...jest.requireActual('@apache-superset/core/theme'),
+  useTheme: jest.fn(),
+}));
+
+jest.mock('antd', () => ({
+  ...jest.requireActual('antd'),
+  Grid: {
+    ...jest.requireActual('antd').Grid,
+    useBreakpoint: () => ({ md: true }),
+  },
+}));
 
 const dropdownItems = [
   {
@@ -43,26 +56,26 @@ const dropdownItems = [
       {
         label: 'Upload a CSV',
         name: 'Upload a CSV',
-        url: '/csvtodatabaseview/form',
+        url: '#',
         perm: true,
       },
       {
         label: 'Upload a Columnar File',
         name: 'Upload a Columnar file',
-        url: '/columnartodatabaseview/form',
+        url: '#',
         perm: true,
       },
       {
         label: 'Upload Excel',
         name: 'Upload Excel',
-        url: '/exceltodatabaseview/form',
+        url: '#',
         perm: true,
       },
     ],
   },
   {
     label: 'SQL query',
-    url: '/superset/sqllab?new=true',
+    url: '/sqllab?new=true',
     icon: 'fa-fw fa-search',
     perm: 'can_sqllab',
     view: 'Superset',
@@ -171,9 +184,9 @@ const mockedProps = {
       },
     ],
     brand: {
-      path: '/superset/profile/admin/',
+      path: '/superset/welcome/',
       icon: '/static/assets/images/superset-logo-horiz.png',
-      alt: 'Superset',
+      alt: 'Apache Superset',
       width: '126',
       tooltip: '',
       text: '',
@@ -203,7 +216,6 @@ const mockedProps = {
       user_info_url: '/users/userinfo/',
       user_logout_url: '/logout/',
       user_login_url: '/login/',
-      user_profile_url: '/profile/',
       locale: 'en',
       version_string: '1.0.0',
       version_sha: 'randomSHA',
@@ -241,6 +253,12 @@ const notanonProps = {
 };
 
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+const staticAssetsPrefixMock = jest.spyOn(
+  getBootstrapData,
+  'staticAssetsPrefix',
+);
+const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');
+const useThemeMock = CoreTheme.useTheme as jest.Mock;
 
 fetchMock.get(
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
@@ -250,6 +268,11 @@ fetchMock.get(
 beforeEach(() => {
   // setup a DOM element as a render target
   useSelectorMock.mockClear();
+  // By default use empty static assets prefix and default app root
+  staticAssetsPrefixMock.mockReturnValue('');
+  applicationRootMock.mockReturnValue('');
+  // By default useTheme returns the real default theme (brandLogoUrl is falsy)
+  useThemeMock.mockReturnValue(CoreTheme.supersetTheme);
 });
 
 test('should render', async () => {
@@ -258,6 +281,7 @@ test('should render', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(container).toBeInTheDocument();
@@ -269,33 +293,44 @@ test('should render the navigation', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   expect(await screen.findByRole('navigation')).toBeInTheDocument();
 });
 
-test('should render the brand', async () => {
-  useSelectorMock.mockReturnValue({ roles: user.roles });
-  const {
-    data: {
-      brand: { alt, icon },
-    },
-  } = mockedProps;
-  render(<Menu {...mockedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-    useRouter: true,
-  });
-  expect(await screen.findByAltText(alt)).toBeInTheDocument();
-  const image = screen.getByAltText(alt);
-  expect(image).toHaveAttribute('src', icon);
-});
+test.each(['', '/myapp'])(
+  'should render the brand, including app_root "%s"',
+  async app_root => {
+    staticAssetsPrefixMock.mockReturnValue(app_root);
+    useSelectorMock.mockReturnValue({ roles: user.roles });
+    const {
+      data: {
+        brand: { alt, icon },
+      },
+    } = mockedProps;
+    render(<Menu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+    expect(await screen.findByAltText(alt)).toBeInTheDocument();
+    const image = screen.getByAltText(alt);
+    expect(image).toHaveAttribute('src', `${app_root}${icon}`);
+  },
+);
 
 test('should render the environment tag', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: { environment_tag },
   } = mockedProps;
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
   expect(await screen.findByText(environment_tag.text)).toBeInTheDocument();
 });
 
@@ -308,6 +343,7 @@ test('should render all the top navbar menu items', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   expect(await screen.findByText(menu[0].label)).toBeInTheDocument();
   menu.forEach(item => {
@@ -324,9 +360,11 @@ test('should render the top navbar child menu items', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
-  const sources = screen.getByText('Sources');
+  const sources = await screen.findByText('Sources');
   userEvent.hover(sources);
+
   const datasets = await screen.findByText('Datasets');
   const databases = await screen.findByText('Databases');
   const dataset = menu[1].childs![0] as { url: string };
@@ -342,6 +380,7 @@ test('should render the dropdown items', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
@@ -372,6 +411,7 @@ test('should render the Settings', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const settings = await screen.findByText('Settings');
   expect(settings).toBeInTheDocument();
@@ -383,6 +423,7 @@ test('should render the Settings menu item', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   userEvent.hover(screen.getByText('Settings'));
   const label = await screen.findByText('Security');
@@ -398,6 +439,7 @@ test('should render the Settings dropdown child menu items', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   userEvent.hover(screen.getByText('Settings'));
   const listUsers = await screen.findByText('List Users');
@@ -410,8 +452,9 @@ test('should render the plus menu (+) when user is not anonymous', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
-  expect(await screen.findByTestId('new-dropdown')).toBeInTheDocument();
+  expect(await screen.findByTestId('new-dropdown-icon')).toBeInTheDocument();
 });
 
 test('should NOT render the plus menu (+) when user is anonymous', async () => {
@@ -420,6 +463,7 @@ test('should NOT render the plus menu (+) when user is anonymous', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
@@ -437,6 +481,7 @@ test('should render the user actions when user is not anonymous', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   userEvent.hover(screen.getByText('Settings'));
   const user = await screen.findByText('User');
@@ -455,28 +500,10 @@ test('should NOT render the user actions when user is anonymous', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByText('User')).not.toBeInTheDocument();
-});
-
-test('should render the Profile link when available', async () => {
-  useSelectorMock.mockReturnValue({ roles: user.roles });
-  const {
-    data: {
-      navbar_right: { user_profile_url },
-    },
-  } = mockedProps;
-
-  render(<Menu {...notanonProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-    useRouter: true,
-  });
-
-  userEvent.hover(screen.getByText('Settings'));
-  const profile = await screen.findByText('Profile');
-  expect(profile).toHaveAttribute('href', user_profile_url);
 });
 
 test('should render the About section and version_string, sha or build_number when available', async () => {
@@ -491,16 +518,30 @@ test('should render the About section and version_string, sha or build_number wh
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   userEvent.hover(screen.getByText('Settings'));
   const about = await screen.findByText('About');
-  const version = await screen.findByText(`Version: ${version_string}`);
-  const sha = await screen.findByText(`SHA: ${version_sha}`);
-  const build = await screen.findByText(`Build: ${build_number}`);
+
+  // The version information is rendered as combined text in a single element
+  // Use getAllByText to get all matching elements and check the first one
+  const versionTexts = await screen.findAllByText(
+    (_, element) =>
+      element?.textContent?.includes(`Version: ${version_string}`) ?? false,
+  );
+  const shaTexts = await screen.findAllByText(
+    (_, element) =>
+      element?.textContent?.includes(`SHA: ${version_sha}`) ?? false,
+  );
+  const buildTexts = await screen.findAllByText(
+    (_, element) =>
+      element?.textContent?.includes(`Build: ${build_number}`) ?? false,
+  );
+
   expect(about).toBeInTheDocument();
-  expect(version).toBeInTheDocument();
-  expect(sha).toBeInTheDocument();
-  expect(build).toBeInTheDocument();
+  expect(versionTexts[0]).toBeInTheDocument();
+  expect(shaTexts[0]).toBeInTheDocument();
+  expect(buildTexts[0]).toBeInTheDocument();
 });
 
 test('should render the Documentation link when available', async () => {
@@ -514,6 +555,7 @@ test('should render the Documentation link when available', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   userEvent.hover(screen.getByText('Settings'));
   const doc = await screen.findByTitle('Documentation');
@@ -532,6 +574,7 @@ test('should render the Bug Report link when available', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const bugReport = await screen.findByTitle('Report a bug');
   expect(bugReport).toHaveAttribute('href', bug_report_url);
@@ -549,6 +592,7 @@ test('should render the Login link when user is anonymous', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   const login = await screen.findByText('Login');
   expect(login).toHaveAttribute('href', user_login_url);
@@ -560,6 +604,7 @@ test('should render the Language Picker', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   expect(await screen.findByLabelText('Languages')).toBeInTheDocument();
 });
@@ -570,6 +615,7 @@ test('should hide create button without proper roles', async () => {
     useRedux: true,
     useQueryParams: true,
     useRouter: true,
+    useTheme: true,
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
@@ -581,6 +627,7 @@ test('should render without QueryParamProvider', async () => {
     useRedux: true,
     useRouter: true,
     useQueryParams: true,
+    useTheme: true,
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
@@ -593,11 +640,159 @@ test('should render an extension component if one is supplied', async () => {
     <>navbar.right extension component</>
   ));
 
-  setupExtensions();
+  setupCodeOverrides();
 
-  render(<Menu {...mockedProps} />, { useRouter: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRouter: true,
+    useQueryParams: true,
+    useRedux: true,
+    useTheme: true,
+  });
 
-  expect(
-    await screen.findByText('navbar.right extension component'),
-  ).toBeInTheDocument();
+  const extension = await screen.findAllByText(
+    'navbar.right extension component',
+  );
+
+  expect(extension[0]).toBeInTheDocument();
+});
+
+test('should render the brand text if available', async () => {
+  useSelectorMock.mockReturnValue({ roles: [] });
+
+  const modifiedProps = {
+    ...mockedProps,
+    data: {
+      ...mockedProps.data,
+      brand: {
+        ...mockedProps.data.brand,
+        text: 'Welcome to Superset',
+      },
+    },
+  };
+
+  render(<Menu {...modifiedProps} />, {
+    useRouter: true,
+    useQueryParams: true,
+    useRedux: true,
+    useTheme: true,
+  });
+
+  const brandText = await screen.findByText('Welcome to Superset');
+  expect(brandText).toBeInTheDocument();
+});
+
+test('should not render the brand text if not available', async () => {
+  useSelectorMock.mockReturnValue({ roles: [] });
+  const text = 'Welcome to Superset';
+  render(<Menu {...mockedProps} />, {
+    useRouter: true,
+    useQueryParams: true,
+    useRedux: true,
+    useTheme: true,
+  });
+
+  const brandText = screen.queryByText(text);
+  expect(brandText).not.toBeInTheDocument();
+});
+
+test('brand logo href should not be prefixed with app root when brandLogoHref is an absolute URL', async () => {
+  applicationRootMock.mockReturnValue('/superset');
+  useThemeMock.mockReturnValue({
+    ...CoreTheme.supersetTheme,
+    brandLogoUrl: '/static/assets/images/custom-logo.png',
+    brandLogoHref: 'https://external.example.com',
+  });
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: /apache superset/i,
+  });
+  expect(brandLink).toHaveAttribute('href', 'https://external.example.com');
+});
+
+test('brand logo href should not be prefixed with app root when brandLogoHref is protocol-relative', async () => {
+  applicationRootMock.mockReturnValue('/superset');
+  useThemeMock.mockReturnValue({
+    ...CoreTheme.supersetTheme,
+    brandLogoUrl: '/static/assets/images/custom-logo.png',
+    brandLogoHref: '//external.example.com',
+  });
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: /apache superset/i,
+  });
+  expect(brandLink).toHaveAttribute('href', '//external.example.com');
+});
+
+test('brand path should be prefixed with app root in subdirectory deployment', async () => {
+  applicationRootMock.mockReturnValue('/superset');
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  const propsWithSimplePath = {
+    ...mockedProps,
+    data: {
+      ...mockedProps.data,
+      brand: {
+        ...mockedProps.data.brand,
+        path: '/welcome/',
+      },
+    },
+  };
+
+  render(<Menu {...propsWithSimplePath} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: new RegExp(propsWithSimplePath.data.brand.alt, 'i'),
+  });
+  expect(brandLink).toHaveAttribute('href', '/superset/welcome/');
+});
+
+test('brand link falls back to brand.path when theme brandLogoUrl is absent', async () => {
+  // useThemeMock default returns supersetTheme with brandLogoUrl undefined (falsy)
+  applicationRootMock.mockReturnValue('/superset');
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+
+  const propsWithFallbackPath = {
+    ...mockedProps,
+    data: {
+      ...mockedProps.data,
+      brand: {
+        ...mockedProps.data.brand,
+        path: '/welcome/',
+      },
+    },
+  };
+
+  render(<Menu {...propsWithFallbackPath} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const brandLink = await screen.findByRole('link', {
+    name: new RegExp(propsWithFallbackPath.data.brand.alt, 'i'),
+  });
+  // ensureAppRoot must have been applied: /welcome/ → /superset/welcome/
+  expect(brandLink).toHaveAttribute('href', '/superset/welcome/');
 });

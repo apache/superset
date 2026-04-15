@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { styled, t } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
+import { useState } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { useTheme, styled } from '@apache-superset/core/theme';
 import cx from 'classnames';
-import Button from 'src/components/Button';
+import { Button, Modal } from '@superset-ui/core/components';
 import withToasts, {
   ToastProps,
 } from 'src/components/MessageToasts/withToasts';
@@ -29,54 +29,43 @@ import useQueryPreviewState from 'src/features/queries/hooks/useQueryPreviewStat
 import { QueryObject } from 'src/views/CRUD/types';
 
 const QueryTitle = styled.div`
-  color: ${({ theme }) => theme.colors.secondary.light2};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colorTextSecondary};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   margin-bottom: 0;
-  text-transform: uppercase;
 `;
 
 const QueryLabel = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  color: ${({ theme }) => theme.colorText};
+  font-size: ${({ theme }) => theme.fontSize}px;
   padding: 4px 0 24px 0;
 `;
 
 const QueryViewToggle = styled.div`
-  margin: 0 0 ${({ theme }) => theme.gridUnit * 6}px 0;
+  display: flex;
 `;
 
 const TabButton = styled.div`
-  display: inline;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 4}px;
-  margin-right: ${({ theme }) => theme.gridUnit * 4}px;
-  color: ${({ theme }) => theme.colors.secondary.dark1};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px
+    ${({ theme }) => theme.sizeUnit * 4}px;
+  margin-right: ${({ theme }) => theme.sizeUnit * 4}px;
+  color: ${({ theme }) => theme.colorPrimaryText};
 
   &.active,
   &:focus,
   &:hover {
-    background: ${({ theme }) => theme.colors.secondary.light4};
-    border-bottom: none;
+    background: ${({ theme }) => theme.colorPrimaryBg};
     border-radius: ${({ theme }) => theme.borderRadius}px;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
 
   &:hover:not(.active) {
-    background: ${({ theme }) => theme.colors.secondary.light5};
+    background: ${({ theme }) => theme.colorPrimaryBgHover};
   }
 `;
 const StyledModal = styled(Modal)`
   .ant-modal-body {
-    padding: ${({ theme }) => theme.gridUnit * 6}px;
-  }
-
-  pre {
-    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    line-height: ${({ theme }) => theme.typography.sizes.l}px;
-    height: 375px;
-    border: none;
+    padding: ${({ theme }) => theme.sizeUnit * 6}px;
+    padding-top: 0;
   }
 `;
 
@@ -105,6 +94,15 @@ function QueryPreviewModal({
       currentQueryId: query.id,
       fetchData,
     });
+  const theme = useTheme();
+  const codeBlockStyle = {
+    border: 1,
+    borderColor: theme.colorBorder,
+    borderStyle: 'solid',
+    marginTop: theme.sizeUnit * 4,
+    fontSize: theme.fontSize * 0.75,
+    height: theme.sizeUnit * 100,
+  };
 
   const [currentTab, setCurrentTab] = useState<'user' | 'executed'>('user');
 
@@ -120,6 +118,7 @@ function QueryPreviewModal({
             <Button
               data-test="previous-query"
               key="previous-query"
+              buttonStyle="secondary"
               disabled={disablePrevious}
               onClick={() => handleDataChange(true)}
             >
@@ -128,6 +127,7 @@ function QueryPreviewModal({
             <Button
               data-test="next-query"
               key="next-query"
+              buttonStyle="secondary"
               disabled={disableNext}
               onClick={() => handleDataChange(false)}
             >
@@ -136,7 +136,6 @@ function QueryPreviewModal({
             <Button
               data-test="open-in-sql-lab"
               key="open-in-sql-lab"
-              buttonStyle="primary"
               onClick={() => openInSqlLab(id)}
             >
               {t('Open in SQL Lab')}
@@ -168,6 +167,7 @@ function QueryPreviewModal({
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
           language="sql"
+          customStyle={codeBlockStyle}
         >
           {(currentTab === 'user' ? sql : executed_sql) || ''}
         </SyntaxHighlighterCopy>

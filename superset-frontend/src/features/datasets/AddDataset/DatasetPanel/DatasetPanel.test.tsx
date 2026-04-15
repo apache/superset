@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import DatasetPanel, {
   REFRESHING,
-  ALT_LOADING,
   tableColumnDefinition,
   COLUMN_TITLE,
 } from 'src/features/datasets/AddDataset/DatasetPanel/DatasetPanel';
@@ -37,15 +35,19 @@ import {
 } from './MessageContent';
 
 jest.mock(
-  'src/components/Icons/Icon',
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
-    ({ fileName }: { fileName: string }) =>
-      <span role="img" aria-label={fileName.replace('_', '-')} />,
+    ({ fileName }: { fileName: string }) => (
+      <span role="img" aria-label={fileName.replace('_', '-')} />
+    ),
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasetPanel', () => {
   test('renders a blank state DatasetPanel', () => {
-    render(<DatasetPanel hasError={false} columnList={[]} loading={false} />);
+    render(<DatasetPanel hasError={false} columnList={[]} loading={false} />, {
+      useRouter: true,
+    });
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
     expect(blankDatasetImg).toBeVisible();
@@ -73,6 +75,9 @@ describe('DatasetPanel', () => {
         columnList={[]}
         loading={false}
       />,
+      {
+        useRouter: true,
+      },
     );
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
@@ -91,10 +96,13 @@ describe('DatasetPanel', () => {
         columnList={[]}
         loading
       />,
+      {
+        useRouter: true,
+      },
     );
 
-    const blankDatasetImg = screen.getByAltText(ALT_LOADING);
-    expect(blankDatasetImg).toBeVisible();
+    const loadingIndicator = screen.getByTestId('loading-indicator');
+    expect(loadingIndicator).toBeVisible();
     const blankDatasetTitle = screen.getByText(REFRESHING);
     expect(blankDatasetTitle).toBeVisible();
   });
@@ -107,6 +115,9 @@ describe('DatasetPanel', () => {
         columnList={[]}
         loading={false}
       />,
+      {
+        useRouter: true,
+      },
     );
 
     const errorTitle = screen.getByText(ERROR_TITLE);
@@ -124,14 +135,17 @@ describe('DatasetPanel', () => {
         columnList={exampleColumns}
         loading={false}
       />,
+      {
+        useRouter: true,
+      },
     );
     expect(await screen.findByText(tableName)).toBeVisible();
-    expect(screen.getByText(COLUMN_TITLE)).toBeVisible();
+    expect(screen.getByTitle(COLUMN_TITLE)).toBeVisible();
     expect(
-      screen.getByText(tableColumnDefinition[0].title as string),
+      screen.getByLabelText(tableColumnDefinition[0].title as string),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(tableColumnDefinition[1].title as string),
+      screen.getByLabelText(tableColumnDefinition[1].title as string),
     ).toBeInTheDocument();
     exampleColumns.forEach(row => {
       expect(screen.getByText(row.name)).toBeInTheDocument();
@@ -148,6 +162,9 @@ describe('DatasetPanel', () => {
         loading={false}
         datasets={exampleDataset}
       />,
+      {
+        useRouter: true,
+      },
     );
 
     // This is text in the info banner

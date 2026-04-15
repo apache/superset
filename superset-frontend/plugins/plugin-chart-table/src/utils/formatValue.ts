@@ -17,12 +17,13 @@
  * under the License.
  */
 import {
+  CurrencyFormatter,
   DataRecordValue,
-  GenericDataType,
   getNumberFormatter,
   isProbablyHTML,
   sanitizeHtml,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { DataColumnMeta } from '../types';
 import DateWithFormatter from './DateWithFormatter';
 
@@ -32,6 +33,8 @@ import DateWithFormatter from './DateWithFormatter';
 function formatValue(
   formatter: DataColumnMeta['formatter'],
   value: DataRecordValue,
+  rowData?: Record<string, DataRecordValue>,
+  currencyColumn?: string,
 ): [boolean, string] {
   // render undefined as empty string
   if (value === undefined) {
@@ -47,6 +50,10 @@ function formatValue(
     return [false, 'N/A'];
   }
   if (formatter) {
+    // If formatter is a CurrencyFormatter, pass row context for AUTO mode
+    if (formatter instanceof CurrencyFormatter) {
+      return [false, formatter(value as number, rowData, currencyColumn)];
+    }
     return [false, formatter(value as number)];
   }
   if (typeof value === 'string') {
@@ -58,17 +65,25 @@ function formatValue(
 export function formatColumnValue(
   column: DataColumnMeta,
   value: DataRecordValue,
+  rowData?: Record<string, DataRecordValue>,
 ) {
-  const { dataType, formatter, config = {} } = column;
-  const isNumber = dataType === GenericDataType.NUMERIC;
+  const { dataType, formatter, config = {}, currencyCodeColumn } = column;
+  const isNumber = dataType === GenericDataType.Numeric;
   const smallNumberFormatter =
     config.d3SmallNumberFormat === undefined
       ? formatter
-      : getNumberFormatter(config.d3SmallNumberFormat);
+      : config.currencyFormat
+        ? new CurrencyFormatter({
+            d3Format: config.d3SmallNumberFormat,
+            currency: config.currencyFormat,
+          })
+        : getNumberFormatter(config.d3SmallNumberFormat);
   return formatValue(
     isNumber && typeof value === 'number' && Math.abs(value) < 1
       ? smallNumberFormatter
       : formatter,
     value,
+    rowData,
+    currencyCodeColumn,
   );
 }

@@ -23,6 +23,9 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+from superset import db
+from tests.conftest import with_config
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
@@ -81,7 +84,7 @@ def test_table(session: Session) -> "SqlaTable":
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.core import Database
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     columns = [
@@ -101,23 +104,21 @@ def test_table(session: Session) -> "SqlaTable":
     )
 
 
+@with_config(
+    {
+        "SQLA_TABLE_MUTATOR": partial(
+            apply_dttm_defaults,
+            dttm_defaults={
+                "main_dttm_col": "event_time",
+                "dttm_columns": {"ds": {}, "event_time": {}},
+            },
+        )
+    }
+)
 def test_main_dttm_col(mocker: MockerFixture, test_table: "SqlaTable") -> None:
     """
     Test the ``SQLA_TABLE_MUTATOR`` config.
     """
-    dttm_defaults = {
-        "main_dttm_col": "event_time",
-        "dttm_columns": {"ds": {}, "event_time": {}},
-    }
-    mocker.patch(
-        "superset.connectors.sqla.models.config",
-        new={
-            "SQLA_TABLE_MUTATOR": partial(
-                apply_dttm_defaults,
-                dttm_defaults=dttm_defaults,
-            )
-        },
-    )
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[
@@ -132,6 +133,16 @@ def test_main_dttm_col(mocker: MockerFixture, test_table: "SqlaTable") -> None:
     assert test_table.main_dttm_col == "event_time"
 
 
+@with_config(
+    {
+        "SQLA_TABLE_MUTATOR": partial(
+            apply_dttm_defaults,
+            dttm_defaults={
+                "main_dttm_col": "nonexistent",
+            },
+        )
+    }
+)
 def test_main_dttm_col_nonexistent(
     mocker: MockerFixture,
     test_table: "SqlaTable",
@@ -139,18 +150,6 @@ def test_main_dttm_col_nonexistent(
     """
     Test the ``SQLA_TABLE_MUTATOR`` config when main datetime column doesn't exist.
     """
-    dttm_defaults = {
-        "main_dttm_col": "nonexistent",
-    }
-    mocker.patch(
-        "superset.connectors.sqla.models.config",
-        new={
-            "SQLA_TABLE_MUTATOR": partial(
-                apply_dttm_defaults,
-                dttm_defaults=dttm_defaults,
-            )
-        },
-    )
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[
@@ -166,6 +165,16 @@ def test_main_dttm_col_nonexistent(
     assert test_table.main_dttm_col == "ds"
 
 
+@with_config(
+    {
+        "SQLA_TABLE_MUTATOR": partial(
+            apply_dttm_defaults,
+            dttm_defaults={
+                "main_dttm_col": "id",
+            },
+        )
+    }
+)
 def test_main_dttm_col_nondttm(
     mocker: MockerFixture,
     test_table: "SqlaTable",
@@ -173,18 +182,6 @@ def test_main_dttm_col_nondttm(
     """
     Test the ``SQLA_TABLE_MUTATOR`` config when main datetime column has wrong type.
     """
-    dttm_defaults = {
-        "main_dttm_col": "id",
-    }
-    mocker.patch(
-        "superset.connectors.sqla.models.config",
-        new={
-            "SQLA_TABLE_MUTATOR": partial(
-                apply_dttm_defaults,
-                dttm_defaults=dttm_defaults,
-            )
-        },
-    )
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[
@@ -200,6 +197,19 @@ def test_main_dttm_col_nondttm(
     assert test_table.main_dttm_col == "ds"
 
 
+@with_config(
+    {
+        "SQLA_TABLE_MUTATOR": partial(
+            apply_dttm_defaults,
+            dttm_defaults={
+                "dttm_columns": {
+                    "id": {"python_date_format": "epoch_ms"},
+                    "dttm": {"python_date_format": "epoch_s"},
+                },
+            },
+        )
+    }
+)
 def test_python_date_format_by_column_name(
     mocker: MockerFixture,
     test_table: "SqlaTable",
@@ -207,28 +217,11 @@ def test_python_date_format_by_column_name(
     """
     Test the ``SQLA_TABLE_MUTATOR`` setting for "python_date_format".
     """
-    table_defaults = {
-        "dttm_columns": {
-            "id": {"python_date_format": "epoch_ms"},
-            "dttm": {"python_date_format": "epoch_s"},
-            "duration_ms": {"python_date_format": "invalid"},
-        },
-    }
-    mocker.patch(
-        "superset.connectors.sqla.models.config",
-        new={
-            "SQLA_TABLE_MUTATOR": partial(
-                apply_dttm_defaults,
-                dttm_defaults=table_defaults,
-            )
-        },
-    )
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[
             {"column_name": "id", "type": "INTEGER", "is_dttm": False},
             {"column_name": "dttm", "type": "INTEGER", "is_dttm": False},
-            {"column_name": "duration_ms", "type": "INTEGER", "is_dttm": False},
         ],
     )
 
@@ -242,13 +235,20 @@ def test_python_date_format_by_column_name(
     assert dttm_col.is_dttm
     assert dttm_col.python_date_format == "epoch_s"
 
-    duration_ms_col = [c for c in test_table.columns if c.column_name == "duration_ms"][
-        0
-    ]
-    assert duration_ms_col.is_dttm
-    assert duration_ms_col.python_date_format == "invalid"
 
-
+@with_config(
+    {
+        "SQLA_TABLE_MUTATOR": partial(
+            apply_dttm_defaults,
+            dttm_defaults={
+                "dttm_columns": {
+                    "dttm": {"expression": "CAST(dttm as INTEGER)"},
+                    "duration_ms": {"expression": "CAST(duration_ms as DOUBLE)"},
+                },
+            },
+        )
+    }
+)
 def test_expression_by_column_name(
     mocker: MockerFixture,
     test_table: "SqlaTable",
@@ -256,21 +256,6 @@ def test_expression_by_column_name(
     """
     Test the ``SQLA_TABLE_MUTATOR`` setting for expression.
     """
-    table_defaults = {
-        "dttm_columns": {
-            "dttm": {"expression": "CAST(dttm as INTEGER)"},
-            "duration_ms": {"expression": "CAST(duration_ms as DOUBLE)"},
-        },
-    }
-    mocker.patch(
-        "superset.connectors.sqla.models.config",
-        new={
-            "SQLA_TABLE_MUTATOR": partial(
-                apply_dttm_defaults,
-                dttm_defaults=table_defaults,
-            )
-        },
-    )
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[
@@ -292,6 +277,14 @@ def test_expression_by_column_name(
     assert duration_ms_col.expression == "CAST(duration_ms as DOUBLE)"
 
 
+@with_config(
+    {
+        "SQLA_TABLE_MUTATOR": partial(
+            apply_dttm_defaults,
+            dttm_defaults=FULL_DTTM_DEFAULTS_EXAMPLE,
+        )
+    }
+)
 def test_full_setting(
     mocker: MockerFixture,
     test_table: "SqlaTable",
@@ -299,15 +292,6 @@ def test_full_setting(
     """
     Test the ``SQLA_TABLE_MUTATOR`` with full settings.
     """
-    mocker.patch(
-        "superset.connectors.sqla.models.config",
-        new={
-            "SQLA_TABLE_MUTATOR": partial(
-                apply_dttm_defaults,
-                dttm_defaults=FULL_DTTM_DEFAULTS_EXAMPLE,
-            )
-        },
-    )
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[

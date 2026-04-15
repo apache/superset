@@ -19,8 +19,7 @@
 
 import { validateNumber } from '@superset-ui/core';
 
-// eslint-disable-next-line import/prefer-default-export
-export function parseYAxisBound(
+export function parseAxisBound(
   bound?: string | number | null,
 ): number | undefined {
   if (bound === undefined || bound === null || Number.isNaN(Number(bound))) {

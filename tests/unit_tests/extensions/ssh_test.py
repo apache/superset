@@ -14,9 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
-import pytest
 import sshtunnel
 
 from superset.extensions.ssh import SSHManagerFactory

@@ -17,11 +17,12 @@
  * under the License.
  */
 
-import React, { FunctionComponent } from 'react';
-import { t, SupersetTheme } from '@superset-ui/core';
+import { FunctionComponent } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { SupersetTheme } from '@apache-superset/core/theme';
 
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
-import Alert from 'src/components/Alert';
 import { antdWarningAlertStyles } from './styles';
 
 const supersetTextDocs = getDatabaseDocumentationLinks();
@@ -34,7 +35,7 @@ export interface IProps {
   showDbInstallInstructions: boolean;
 }
 
-const ErrorAlert: FunctionComponent<IProps> = ({
+export const ErrorAlert: FunctionComponent<IProps> = ({
   errorMessage,
   showDbInstallInstructions,
 }) => (
@@ -67,5 +68,3 @@ const ErrorAlert: FunctionComponent<IProps> = ({
     }
   />
 );
-
-export default ErrorAlert;

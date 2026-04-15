@@ -1,4 +1,10 @@
-name: Cleanup ephemeral envs (PR close)
+name: Cleanup ephemeral envs (PR close) [DEPRECATED]
+
+# ⚠️  DEPRECATION NOTICE ⚠️
+# This workflow is deprecated and will be removed in a future version.
+# The new Superset Showtime workflow handles cleanup automatically.
+# See .github/workflows/showtime.yml and showtime-cleanup.yml for replacements.
+# Migration guide: https://github.com/mistercrunch/superset-showtime
 
 on:
   pull_request_target:
@@ -6,7 +12,7 @@ on:
 
 jobs:
   config:
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-24.04
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -14,20 +20,22 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [ -n "${{ (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') || '' }}" ]; then
+          if [ -n "${AWS_ACCESS_KEY_ID}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
 
+        env:
+          AWS_ACCESS_KEY_ID: ${{ (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') || '' }}
   ephemeral-env-cleanup:
     needs: config
     if: needs.config.outputs.has-secrets
     name: Cleanup ephemeral envs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -36,7 +44,7 @@ jobs:
       - name: Describe ECS service
         id: describe-services
         run: |
-          echo "::set-output name=active::$(aws ecs describe-services --cluster superset-ci --services pr-${{ github.event.number }}-service | jq '.services[] | select(.status == "ACTIVE") | any')"
+          echo "active=$(aws ecs describe-services --cluster superset-ci --services pr-${{ github.event.number }}-service | jq '.services[] | select(.status == "ACTIVE") | any')" >> $GITHUB_OUTPUT
 
       - name: Delete ECS service
         if: steps.describe-services.outputs.active == 'true'
@@ -50,7 +58,7 @@ jobs:
       - name: Login to Amazon ECR
         if: steps.describe-services.outputs.active == 'true'
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@f2e9fc6c2b355c1890b65e6f6f0e2ac3e6e22f78 # v2
 
       - name: Delete ECR image tag
         if: steps.describe-services.outputs.active == 'true'
@@ -63,13 +71,13 @@ jobs:
 
       - name: Comment (success)
         if: steps.describe-services.outputs.active == 'true'
-        uses: actions/github-script@v3
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{github.token}}
           script: |
-            github.issues.createComment({
+            github.rest.issues.createComment({
               issue_number: ${{ github.event.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Ephemeral environment shutdown and build artifacts deleted.'
+              body: '⚠️ **DEPRECATED WORKFLOW** - Ephemeral environment shutdown and build artifacts deleted. Please migrate to the new Superset Showtime system for future PRs.'
             })

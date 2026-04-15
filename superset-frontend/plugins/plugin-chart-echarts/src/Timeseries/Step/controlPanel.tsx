@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { getColumnLabel, QueryFormColumn } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
+  checkColumnType,
   ControlPanelConfig,
   ControlPanelsContainerProps,
   ControlSubSectionHeader,
@@ -32,9 +34,15 @@ import { EchartsTimeseriesSeriesType } from '../../types';
 import { DEFAULT_FORM_DATA, TIME_SERIES_DESCRIPTION_TEXT } from '../constants';
 import {
   legendSection,
+  minorTicks,
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
+  truncateXAxis,
+  xAxisBounds,
+  xAxisLabelRotation,
+  xAxisLabelInterval,
+  forceMaxInterval,
 } from '../../controls';
 
 const {
@@ -47,12 +55,9 @@ const {
   rowLimit,
   truncateYAxis,
   yAxisBounds,
-  zoomable,
-  xAxisLabelRotation,
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
     sections.echartsTimeSeriesQueryWithXAxisSort,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
@@ -64,6 +69,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ...seriesOrderSection,
         ['color_scheme'],
+        ['time_shift_color'],
         [
           {
             name: 'seriesType',
@@ -149,18 +155,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'zoomable',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Data Zoom'),
-              default: zoomable,
-              renderTrigger: true,
-              description: t('Enable data zooming controls'),
-            },
-          },
-        ],
+        ['zoomable'],
+        [minorTicks],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
@@ -170,29 +166,36 @@ const config: ControlPanelConfig = {
               ...sharedControls.x_axis_time_format,
               default: 'smart_date',
               description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Temporal],
+                ),
+              disableStash: true,
+              resetOnHide: false,
             },
           },
         ],
         [
           {
-            name: 'xAxisLabelRotation',
+            name: 'x_axis_number_format',
             config: {
-              type: 'SelectControl',
-              freeForm: true,
-              clearable: false,
-              label: t('Rotate x axis label'),
-              choices: [
-                [0, '0°'],
-                [45, '45°'],
-              ],
-              default: xAxisLabelRotation,
-              renderTrigger: true,
-              description: t(
-                'Input field supports custom rotation. e.g. 30 for 30°',
-              ),
+              ...sharedControls.x_axis_number_format,
+              default: '~g',
+              mapStateToProps: undefined,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Numeric],
+                ),
             },
           },
         ],
+        [xAxisLabelRotation],
+        [xAxisLabelInterval],
+        [forceMaxInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
@@ -222,6 +225,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',

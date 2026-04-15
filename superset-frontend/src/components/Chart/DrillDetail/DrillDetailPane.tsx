@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
+import {
+  cloneElement,
   ReactElement,
   useCallback,
   useEffect,
@@ -25,27 +26,30 @@ import React, {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
+import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
-  css,
+  DatasourceType,
   ensureIsArray,
-  GenericDataType,
   JsonObject,
   QueryFormData,
-  t,
-  useTheme,
 } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { useResizeDetector } from 'react-resize-detector';
-import Loading from 'src/components/Loading';
-import BooleanCell from 'src/components/Table/cell-renderers/BooleanCell';
-import NullCell from 'src/components/Table/cell-renderers/NullCell';
-import TimeCell from 'src/components/Table/cell-renderers/TimeCell';
-import { EmptyStateMedium } from 'src/components/EmptyState';
+import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/BooleanCell';
+import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
+import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
+import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
-import Table, { ColumnsType, TableSize } from 'src/components/Table';
-import HeaderWithRadioGroup from 'src/components/Table/header-renderers/HeaderWithRadioGroup';
-import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
+import Table, {
+  ColumnsType,
+  TableSize,
+} from '@superset-ui/core/components/Table';
+import { RootState } from 'src/dashboard/types';
+import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
+import { Dataset } from '../types';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';
@@ -63,7 +67,7 @@ function Resizable({ children }: { children: ReactElement }) {
   const { ref, height } = useResizeDetector();
   return (
     <div ref={ref} css={{ flex: 1 }}>
-      {React.cloneElement(children, { height })}
+      {cloneElement(children, { height })}
     </div>
   );
 }
@@ -76,9 +80,11 @@ enum TimeFormatting {
 export default function DrillDetailPane({
   formData,
   initialFilters,
+  dataset,
 }: {
   formData: QueryFormData;
   initialFilters: BinaryQueryObjectFilterClause[];
+  dataset?: Dataset;
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
@@ -89,7 +95,13 @@ export default function DrillDetailPane({
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
     new Map(),
   );
-  const [timeFormatting, setTimeFormatting] = useState({});
+  const [timeFormatting, setTimeFormatting] = useState<
+    Record<string, TimeFormatting>
+  >({});
+
+  const dashboardId = useSelector<RootState, number>(
+    ({ dashboardInfo }) => dashboardInfo.id,
+  );
 
   const SAMPLES_ROW_LIMIT = useSelector(
     (state: { common: { conf: JsonObject } }) =>
@@ -102,9 +114,10 @@ export default function DrillDetailPane({
     [formData.datasource],
   );
 
-  const { metadataBar, status: metadataBarStatus } = useDatasetMetadataBar({
-    datasetId: datasourceId,
+  const { metadataBar: metadataBarComponent } = useDatasetMetadataBar({
+    dataset,
   });
+
   // Get page of results
   const resultsPage = useMemo(() => {
     const nextResultsPage = resultsPages.get(pageIndex);
@@ -122,9 +135,9 @@ export default function DrillDetailPane({
         key: column,
         dataIndex: column,
         title:
-          resultsPage?.colTypes[index] === GenericDataType.TEMPORAL ? (
+          resultsPage?.colTypes[index] === GenericDataType.Temporal ? (
             <HeaderWithRadioGroup
-              headerTitle={column}
+              headerTitle={dataset?.verbose_map?.[column] || column}
               groupTitle={t('Formatting')}
               groupOptions={[
                 { label: t('Original value'), value: TimeFormatting.Original },
@@ -139,11 +152,14 @@ export default function DrillDetailPane({
                   : TimeFormatting.Formatted
               }
               onChange={value =>
-                setTimeFormatting(state => ({ ...state, [column]: value }))
+                setTimeFormatting(state => ({
+                  ...state,
+                  [column]: parseInt(value, 10) as TimeFormatting,
+                }))
               }
             />
           ) : (
-            column
+            dataset?.verbose_map?.[column] || column
           ),
         render: value => {
           if (value === true || value === false) {
@@ -153,7 +169,7 @@ export default function DrillDetailPane({
             return <NullCell />;
           }
           if (
-            resultsPage?.colTypes[index] === GenericDataType.TEMPORAL &&
+            resultsPage?.colTypes[index] === GenericDataType.Temporal &&
             timeFormatting[column] !== TimeFormatting.Original &&
             (typeof value === 'number' || value instanceof Date)
           ) {
@@ -163,7 +179,12 @@ export default function DrillDetailPane({
         },
         width: 150,
       })) || [],
-    [resultsPage?.colNames, resultsPage?.colTypes, timeFormatting],
+    [
+      resultsPage?.colNames,
+      resultsPage?.colTypes,
+      timeFormatting,
+      dataset?.verbose_map,
+    ],
   );
 
   const data: DataType[] = useMemo(
@@ -217,12 +238,13 @@ export default function DrillDetailPane({
       const jsonPayload = getDrillPayload(formData, filters) ?? {};
       const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / PAGE_SIZE);
       getDatasourceSamples(
-        datasourceType,
-        datasourceId,
+        datasourceType as DatasourceType,
+        Number(datasourceId),
         false,
         jsonPayload,
         PAGE_SIZE,
         pageIndex + 1,
+        dashboardId,
       )
         .then(response => {
           setResultsPages(
@@ -260,9 +282,9 @@ export default function DrillDetailPane({
     resultsPages,
   ]);
 
-  const bootstrapping =
-    (!responseError && !resultsPages.size) ||
-    metadataBarStatus === ResourceStatus.LOADING;
+  const bootstrapping = !responseError && !resultsPages.size;
+
+  const allowHTML = formData.allow_render_html ?? true;
 
   let tableContent = null;
   if (responseError) {
@@ -270,7 +292,7 @@ export default function DrillDetailPane({
     tableContent = (
       <pre
         css={css`
-          margin-top: ${theme.gridUnit * 4}px;
+          margin-top: ${theme.sizeUnit * 4}px;
         `}
       >
         {responseError}
@@ -282,7 +304,7 @@ export default function DrillDetailPane({
   } else if (resultsPage?.total === 0) {
     // Render empty state if no results are returned for page
     const title = t('No rows were returned for this dataset');
-    tableContent = <EmptyStateMedium image="document.svg" title={title} />;
+    tableContent = <EmptyState image="document.svg" title={title} />;
   } else {
     // Render table if at least one page has successfully loaded
     tableContent = (
@@ -290,7 +312,7 @@ export default function DrillDetailPane({
         <Table
           data={data}
           columns={mappedColumns}
-          size={TableSize.SMALL}
+          size={TableSize.Small}
           defaultPageSize={PAGE_SIZE}
           recordCount={resultsPage?.total}
           usePagination
@@ -300,7 +322,7 @@ export default function DrillDetailPane({
           }
           resizable
           virtualize
-          allowHTML
+          allowHTML={allowHTML}
         />
       </Resizable>
     );
@@ -308,7 +330,7 @@ export default function DrillDetailPane({
 
   return (
     <>
-      {!bootstrapping && metadataBar}
+      {!bootstrapping && metadataBarComponent}
       {!bootstrapping && (
         <TableControls
           filters={filters}

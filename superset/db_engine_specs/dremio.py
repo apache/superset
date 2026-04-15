@@ -14,20 +14,76 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
-from typing import Any, Optional
 
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any, TYPE_CHECKING
+
+from packaging.version import Version
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.utils.hashing import hash_from_str
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
+
+# See https://github.com/apache/superset/pull/25657
+FIXED_ALIAS_IN_SELECT_VERSION = Version("24.1.0")
 
 
 class DremioEngineSpec(BaseEngineSpec):
     engine = "dremio"
     engine_name = "Dremio"
+    engine_aliases = {"dremio+flight"}
+    drivers = {
+        "flight": "Arrow Flight driver for Dremio",
+        "pyodbc": "ODBC driver for Dremio",
+    }
+    default_driver = "flight"
+    sqlalchemy_uri_placeholder = (
+        "dremio+flight://data.dremio.cloud:443/?"
+        "Token=<TOKEN>&"
+        "UseEncryption=true&"
+        "disableCertificateVerification=true"
+    )
 
-    allows_alias_in_select = False
+    metadata = {
+        "description": (
+            "Dremio is a data lakehouse platform for fast, self-service analytics."
+        ),
+        "logo": "dremio.png",
+        "homepage_url": "https://www.dremio.com/",
+        "categories": [DatabaseCategory.QUERY_ENGINES, DatabaseCategory.PROPRIETARY],
+        "pypi_packages": ["sqlalchemy_dremio"],
+        "connection_string": (
+            "dremio+flight://data.dremio.cloud:443/?Token={token}&UseEncryption=true"
+        ),
+        "parameters": {
+            "token": "Personal Access Token (PAT) or API token",
+        },
+        "drivers": [
+            {
+                "name": "Arrow Flight (Recommended)",
+                "pypi_package": "sqlalchemy_dremio",
+                "connection_string": (
+                    "dremio+flight://data.dremio.cloud:443/"
+                    "?Token={token}&UseEncryption=true"
+                ),
+                "is_recommended": True,
+            },
+            {
+                "name": "ODBC",
+                "pypi_package": "sqlalchemy_dremio",
+                "connection_string": "dremio+pyodbc://{token}@{host}:31010/dremio",
+                "is_recommended": False,
+                "notes": "Requires Dremio ODBC drivers installed.",
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -46,9 +102,24 @@ class DremioEngineSpec(BaseEngineSpec):
         return "TO_DATE({col})"
 
     @classmethod
+    def get_allows_alias_in_select(cls, database: Database) -> bool:
+        """
+        Dremio supports aliases in SELECT statements since version 24.1.0.
+
+        If no version is specified in the DB extra, we assume the Dremio version is post
+        24.1.0. This way, as we move forward people don't have to specify a version when
+        setting up their databases.
+        """
+        version = database.get_extra().get("version")
+        if version and Version(version) < FIXED_ALIAS_IN_SELECT_VERSION:
+            return False
+
+        return True
+
+    @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.Date):
@@ -57,3 +128,14 @@ class DremioEngineSpec(BaseEngineSpec):
             dttm_formatted = dttm.isoformat(sep=" ", timespec="milliseconds")
             return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.FFF')"""
         return None
+
+    @staticmethod
+    def _mutate_label(label: str) -> str:
+        """
+        Suffix with the first six characters from the md5 of the label to avoid
+        collisions with original column names
+
+        :param label: Expected expression label
+        :return: Conditionally mutated label
+        """
+        return f"{label}_{hash_from_str(label)[:6]}"

@@ -45,6 +45,7 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   annotationLayers: AnnotationLayer[];
   // shared properties
   minorSplitLine: boolean;
+  minorTicks: boolean;
   logAxis: boolean;
   logAxisSecondary: boolean;
   yAxisFormat?: string;
@@ -56,10 +57,13 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   truncateYAxis: boolean;
   truncateYAxisSecondary: boolean;
   timeGrainSqla?: TimeGranularity;
+  forceMaxInterval?: boolean;
   tooltipTimeFormat?: string;
   zoomable: boolean;
   richTooltip: boolean;
+  showQueryIdentifiers?: boolean;
   xAxisLabelRotation: number;
+  xAxisLabelInterval?: number | string;
   colorScheme?: string;
   // types specific to Query A and Query B
   area: boolean;
@@ -89,7 +93,7 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
 } & LegendFormData &
   TitleFormData;
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   annotationLayers: [],
@@ -104,6 +108,8 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   yAxisFormatSecondary: TIMESERIES_DEFAULTS.yAxisFormat,
   yAxisTitleSecondary: DEFAULT_TITLE_FORM_DATA.yAxisTitle,
   tooltipTimeFormat: TIMESERIES_DEFAULTS.tooltipTimeFormat,
+  xAxisBounds: TIMESERIES_DEFAULTS.xAxisBounds,
+  xAxisForceCategorical: TIMESERIES_DEFAULTS.xAxisForceCategorical,
   xAxisTimeFormat: TIMESERIES_DEFAULTS.xAxisTimeFormat,
   area: TIMESERIES_DEFAULTS.area,
   areaB: TIMESERIES_DEFAULTS.area,
@@ -129,12 +135,13 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   groupbyB: [],
   zoomable: TIMESERIES_DEFAULTS.zoomable,
   richTooltip: TIMESERIES_DEFAULTS.richTooltip,
+  showQueryIdentifiers: false,
   xAxisLabelRotation: TIMESERIES_DEFAULTS.xAxisLabelRotation,
+  xAxisLabelInterval: TIMESERIES_DEFAULTS.xAxisLabelInterval,
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
-export interface EchartsMixedTimeseriesProps
-  extends BaseChartProps<EchartsMixedTimeseriesFormData> {
+export interface EchartsMixedTimeseriesProps extends BaseChartProps<EchartsMixedTimeseriesFormData> {
   formData: EchartsMixedTimeseriesFormData;
 }
 

@@ -16,21 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  AnnotationType,
-  Behavior,
-  hasGenericChartAxes,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { AnnotationType, Behavior } from '@superset-ui/core';
 import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
 } from '../types';
 import example1 from './images/Area1.png';
+import example1Dark from './images/Area1-dark.png';
 import { EchartsChartPlugin } from '../../types';
 
 const areaTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
@@ -50,41 +48,35 @@ export default class EchartsAreaChartPlugin extends EchartsChartPlugin<
       loadChart: () => import('../EchartsTimeseries'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t(
-              'Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.',
-            )
-          : t(
-              'Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.',
-            ),
-        exampleGallery: [{ url: example1 }],
+        description: t(
+          'Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.',
+        ),
+        exampleGallery: [{ url: example1, urlDark: example1Dark }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: hasGenericChartAxes
-          ? t('Area Chart')
-          : t('Time-series Area Chart'),
+        name: t('Area Chart'),
         tags: [
           t('ECharts'),
           t('Predictive'),
           t('Advanced-Analytics'),
-          t('Aesthetic'),
           t('Time'),
           t('Line'),
           t('Transformable'),
           t('Stacked'),
-          t('Popular'),
+          t('Featured'),
         ],
         thumbnail,
+        thumbnailDark,
       },
       transformProps: areaTransformProps,
     });

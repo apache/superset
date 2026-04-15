@@ -21,6 +21,10 @@ Revises: 4ea966691069
 Create Date: 2023-08-06 09:02:10.148992
 
 """
+
+from alembic import op
+
+from superset import db
 from superset.migrations.shared.migrate_viz import MigratePivotTable
 
 # revision identifiers, used by Alembic.
@@ -29,8 +33,12 @@ down_revision = "4ea966691069"
 
 
 def upgrade():
-    MigratePivotTable.upgrade()
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    MigratePivotTable.upgrade(session)
 
 
 def downgrade():
-    MigratePivotTable.downgrade()
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    MigratePivotTable.downgrade(session)

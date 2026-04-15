@@ -23,19 +23,21 @@ Create Date: 2020-02-07 14:13:51.714678
 """
 
 # revision identifiers, used by Alembic.
-import json
 import logging
 
 from alembic import op
-from sqlalchemy import and_, Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from superset import db
+from superset.utils import json
 from superset.utils.dashboard_filter_scopes_converter import convert_filter_scopes
 
 revision = "3325d4caccc8"
 down_revision = "e96dbf2cfef0"
+
+logger = logging.getLogger("alembic.env")
 
 Base = declarative_base()
 
@@ -86,8 +88,10 @@ def upgrade():
             if filters:
                 filter_scopes = convert_filter_scopes(json_metadata, filters)
                 json_metadata["filter_scopes"] = filter_scopes
-                logging.info(
-                    f"Adding filter_scopes for dashboard {dashboard.id}: {json.dumps(filter_scopes)}"
+                logger.info(
+                    "Adding filter_scopes for dashboard %s: %s",  # noqa: E501
+                    dashboard.id,
+                    json.dumps(filter_scopes),
                 )
 
             json_metadata.pop("filter_immune_slices", None)
@@ -99,10 +103,8 @@ def upgrade():
                 )
             else:
                 dashboard.json_metadata = None
-
-            session.merge(dashboard)
         except Exception as ex:
-            logging.exception(f"dashboard {dashboard.id} has error: {ex}")
+            logger.exception("dashboard %s has error: %s", dashboard.id, ex)
 
     session.commit()
     session.close()

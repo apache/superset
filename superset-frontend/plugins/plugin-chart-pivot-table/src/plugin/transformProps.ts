@@ -20,13 +20,13 @@ import {
   ChartProps,
   DataRecord,
   extractTimegrain,
-  GenericDataType,
   getTimeFormatter,
   getTimeFormatterForGranularity,
   QueryFormData,
-  smartDateFormatter,
+  SMART_DATE_ID,
   TimeFormats,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { getColorFormatters } from '@superset-ui/chart-controls';
 import { DateFormatter } from '../types';
 
@@ -79,10 +79,21 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rawFormData,
     hooks: { setDataMask = () => {}, onContextMenu },
     filterState,
-    datasource: { verboseMap = {}, columnFormats = {}, currencyFormats = {} },
+    datasource: {
+      verboseMap = {},
+      columnFormats = {},
+      currencyFormats = {},
+      currencyCodeColumn,
+    },
     emitCrossFilters,
+    theme,
   } = chartProps;
-  const { data, colnames, coltypes } = queriesData[0];
+  const {
+    data,
+    colnames,
+    coltypes,
+    detected_currency: detectedCurrency,
+  } = queriesData[0];
   const {
     groupbyRows,
     groupbyColumns,
@@ -96,13 +107,16 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rowSubtotalPosition,
     colSubtotalPosition,
     colTotals,
+    colSubTotals,
     rowTotals,
+    rowSubTotals,
     valueFormat,
     dateFormat,
     metricsLayout,
     conditionalFormatting,
     timeGrainSqla,
     currencyFormat,
+    allowRenderHtml,
   } = formData;
   const { selectedFilters } = filterState;
   const granularity = extractTimegrain(rawFormData);
@@ -110,7 +124,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
   const dateFormatters = colnames
     .filter(
       (colname: string, index: number) =>
-        coltypes[index] === GenericDataType.TEMPORAL,
+        coltypes[index] === GenericDataType.Temporal,
     )
     .reduce(
       (
@@ -118,7 +132,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
         temporalColname: string,
       ) => {
         let formatter: DateFormatter | undefined;
-        if (dateFormat === smartDateFormatter.id) {
+        if (dateFormat === SMART_DATE_ID) {
           if (granularity) {
             // time column use formats based on granularity
             formatter = getTimeFormatterForGranularity(granularity);
@@ -138,7 +152,13 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       },
       {},
     );
-  const metricColorFormatters = getColorFormatters(conditionalFormatting, data);
+  const metricColorFormatters = getColorFormatters(
+    conditionalFormatting,
+    data,
+    theme,
+  );
+
+  // AUTO symbol passed through - PivotTableChart handles per-cell currency detection
 
   return {
     width,
@@ -156,9 +176,13 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rowSubtotalPosition,
     colSubtotalPosition,
     colTotals,
+    colSubTotals,
     rowTotals,
+    rowSubTotals,
     valueFormat,
     currencyFormat,
+    currencyCodeColumn,
+    detectedCurrency,
     emitCrossFilters,
     setDataMask,
     selectedFilters,
@@ -170,5 +194,6 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     dateFormatters,
     onContextMenu,
     timeGrainSqla,
+    allowRenderHtml,
   };
 }

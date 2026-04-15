@@ -14,11 +14,33 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 from typing import Any
 
 import pyarrow as pa
 
+from superset import db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
+from superset.daos.database import DatabaseDAO
+from superset.models.sql_lab import TabState
+
+DATABASE_KEYS = [
+    "allow_file_upload",
+    "allow_ctas",
+    "allow_cvas",
+    "allow_dml",
+    "allow_run_async",
+    "allows_subquery",
+    "backend",
+    "database_name",
+    "expose_in_sqllab",
+    "force_ctas_schema",
+    "id",
+    "disable_data_preview",
+    "disable_drill_to_detail",
+    "allow_multi_catalog",
+]
 
 
 def apply_display_max_row_configuration_if_require(  # pylint: disable=invalid-name
@@ -56,3 +78,40 @@ def write_ipc_buffer(table: pa.Table) -> pa.Buffer:
         writer.write_table(table)
 
     return sink.getvalue()
+
+
+def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
+    tabs_state: list[Any] = []
+    active_tab: Any = None
+    databases: dict[int, Any] = {}
+    for database in DatabaseDAO.find_all():
+        databases[database.id] = {
+            k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
+        }
+        databases[database.id]["backend"] = database.backend
+        databases[database.id]["allow_multi_catalog"] = database.allow_multi_catalog
+        databases[database.id]["allows_virtual_table_explore"] = (
+            database.allows_virtual_table_explore
+        )
+
+    # These are unnecessary if sqllab backend persistence is disabled
+    if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
+        # send list of tab state ids
+        tabs_state = (
+            db.session.query(TabState.id, TabState.label)
+            .filter_by(user_id=user_id)
+            .all()
+        )
+        # return first active tab, or fallback to another one if no tab is active
+        active_tab = (
+            db.session.query(TabState)
+            .filter_by(user_id=user_id)
+            .order_by(TabState.active.desc())
+            .first()
+        )
+
+    return {
+        "tab_state_ids": tabs_state,
+        "active_tab": active_tab.to_dict() if active_tab else None,
+        "databases": databases,
+    }

@@ -18,11 +18,17 @@
  */
 import fetchMock from 'fetch-mock';
 import WS from 'jest-websocket-mock';
-import sinon from 'sinon';
-import * as uiCore from '@superset-ui/core';
-import { parseErrorJson } from 'src/utils/getClientErrorObject';
+import { parseErrorJson, isFeatureEnabled } from '@superset-ui/core';
 import * as asyncEvent from 'src/middleware/asyncEvent';
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('asyncEvent middleware', () => {
   const asyncPendingEvent = {
     status: 'pending',
@@ -81,20 +87,21 @@ describe('asyncEvent middleware', () => {
 
   const EVENTS_ENDPOINT = 'glob:*/api/v1/async_event/*';
   const CACHED_DATA_ENDPOINT = 'glob:*/api/v1/chart/data/*';
-  let featureEnabledStub: any;
 
   beforeEach(async () => {
-    featureEnabledStub = sinon.stub(uiCore, 'isFeatureEnabled');
-    featureEnabledStub.withArgs('GLOBAL_ASYNC_QUERIES').returns(true);
+    mockedIsFeatureEnabled.mockImplementation(
+      featureFlag => featureFlag === 'GLOBAL_ASYNC_QUERIES',
+    );
   });
 
   afterEach(() => {
-    fetchMock.reset();
-    featureEnabledStub.restore();
+    fetchMock.clearHistory().removeRoutes();
+    mockedIsFeatureEnabled.mockRestore();
   });
 
-  afterAll(fetchMock.reset);
+  afterAll(() => fetchMock.clearHistory().removeRoutes());
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('polling transport', () => {
     const config = {
       GLOBAL_ASYNC_QUERIES_TRANSPORT: 'polling',
@@ -114,32 +121,37 @@ describe('asyncEvent middleware', () => {
       asyncEvent.init(config);
     });
 
-    it('resolves with chart data on event done status', async () => {
-      await expect(
-        asyncEvent.waitForAsyncData(asyncPendingEvent),
-      ).resolves.toEqual([chartData]);
+    test('resolves with chart data on event done status', async () => {
+      const actualResolved =
+        await asyncEvent.waitForAsyncData(asyncPendingEvent);
+      expect(actualResolved).toEqual([chartData]);
 
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
     });
 
-    it('rejects on event error status', async () => {
-      fetchMock.reset();
+    test('rejects on event error status', async () => {
+      fetchMock.clearHistory().removeRoutes();
       fetchMock.get(EVENTS_ENDPOINT, {
         status: 200,
         body: { result: [asyncErrorEvent] },
       });
-      const errorResponse = await parseErrorJson(asyncErrorEvent);
-      await expect(
-        asyncEvent.waitForAsyncData(asyncPendingEvent),
-      ).rejects.toEqual(errorResponse);
+      const errorResponse = parseErrorJson(asyncErrorEvent);
+      let error: any = null;
+      try {
+        await asyncEvent.waitForAsyncData(asyncPendingEvent);
+      } catch (err) {
+        error = err;
+      } finally {
+        expect(error).toEqual(errorResponse);
+      }
 
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
     });
 
-    it('rejects on cached data fetch error', async () => {
-      fetchMock.reset();
+    test('rejects on cached data fetch error', async () => {
+      fetchMock.clearHistory().removeRoutes();
       fetchMock.get(EVENTS_ENDPOINT, {
         status: 200,
         body: { result: [asyncDoneEvent] },
@@ -148,16 +160,21 @@ describe('asyncEvent middleware', () => {
         status: 400,
       });
 
-      const errorResponse = [{ error: 'Bad Request' }];
-      await expect(
-        asyncEvent.waitForAsyncData(asyncPendingEvent),
-      ).rejects.toEqual(errorResponse);
+      let error = '';
+      try {
+        await asyncEvent.waitForAsyncData(asyncPendingEvent);
+      } catch (err) {
+        [{ error }] = err;
+      } finally {
+        expect(error).toEqual('Bad request');
+      }
 
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('ws transport', () => {
     let wsServer: WS;
     const config = {
@@ -184,7 +201,7 @@ describe('asyncEvent middleware', () => {
       WS.clean();
     });
 
-    it('resolves with chart data on event done status', async () => {
+    test('resolves with chart data on event done status', async () => {
       await wsServer.connected;
 
       const promise = asyncEvent.waitForAsyncData(asyncPendingEvent);
@@ -193,27 +210,27 @@ describe('asyncEvent middleware', () => {
 
       await expect(promise).resolves.toEqual([chartData]);
 
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(0);
     });
 
-    it('rejects on event error status', async () => {
+    test('rejects on event error status', async () => {
       await wsServer.connected;
 
       const promise = asyncEvent.waitForAsyncData(asyncPendingEvent);
 
       wsServer.send(JSON.stringify(asyncErrorEvent));
 
-      const errorResponse = await parseErrorJson(asyncErrorEvent);
+      const errorResponse = parseErrorJson(asyncErrorEvent);
 
       await expect(promise).rejects.toEqual(errorResponse);
 
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(0);
     });
 
-    it('rejects on cached data fetch error', async () => {
-      fetchMock.reset();
+    test('rejects on cached data fetch error', async () => {
+      fetchMock.clearHistory().removeRoutes();
       fetchMock.get(CACHED_DATA_ENDPOINT, {
         status: 400,
       });
@@ -224,15 +241,20 @@ describe('asyncEvent middleware', () => {
 
       wsServer.send(JSON.stringify(asyncDoneEvent));
 
-      const errorResponse = [{ error: 'Bad Request' }];
+      let error = '';
+      try {
+        await promise;
+      } catch (err) {
+        [{ error }] = err;
+      } finally {
+        expect(error).toEqual('Bad request');
+      }
 
-      await expect(promise).rejects.toEqual(errorResponse);
-
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(0);
     });
 
-    it('resolves when events are received before listener', async () => {
+    test('resolves when events are received before listener', async () => {
       await wsServer.connected;
 
       wsServer.send(JSON.stringify(asyncDoneEvent));
@@ -240,8 +262,8 @@ describe('asyncEvent middleware', () => {
       const promise = asyncEvent.waitForAsyncData(asyncPendingEvent);
       await expect(promise).resolves.toEqual([chartData]);
 
-      expect(fetchMock.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
-      expect(fetchMock.calls(EVENTS_ENDPOINT)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(CACHED_DATA_ENDPOINT)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(EVENTS_ENDPOINT)).toHaveLength(0);
     });
   });
 });

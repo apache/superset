@@ -42,6 +42,7 @@ jest.mock('@superset-ui/core', () => ({
     .mockReturnValue(jest.fn().mockResolvedValue(fakeApiResult)),
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('apiResource hooks', () => {
   beforeAll(() => {
     jest.useFakeTimers();
@@ -51,13 +52,14 @@ describe('apiResource hooks', () => {
     jest.useRealTimers();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('useApiResourceFullBody', () => {
-    it('returns a loading state at the start', async () => {
+    test('returns a loading state at the start', async () => {
       const { result } = renderHook(() =>
         useApiResourceFullBody('/test/endpoint'),
       );
       expect(result.current).toEqual({
-        status: ResourceStatus.LOADING,
+        status: ResourceStatus.Loading,
         result: null,
         error: null,
       });
@@ -66,7 +68,7 @@ describe('apiResource hooks', () => {
       });
     });
 
-    it('resolves to the value from the api', async () => {
+    test('resolves to the value from the api', async () => {
       const { result } = renderHook(() =>
         useApiResourceFullBody('/test/endpoint'),
       );
@@ -74,13 +76,13 @@ describe('apiResource hooks', () => {
         jest.runAllTimers();
       });
       expect(result.current).toEqual({
-        status: ResourceStatus.COMPLETE,
+        status: ResourceStatus.Complete,
         result: fakeApiResult,
         error: null,
       });
     });
 
-    it('handles api errors', async () => {
+    test('handles api errors', async () => {
       const fakeError = new Error('fake api error');
       (makeApi as any).mockReturnValue(jest.fn().mockRejectedValue(fakeError));
       const { result } = renderHook(() =>
@@ -90,19 +92,20 @@ describe('apiResource hooks', () => {
         jest.runAllTimers();
       });
       expect(result.current).toEqual({
-        status: ResourceStatus.ERROR,
+        status: ResourceStatus.Error,
         result: null,
         error: fakeError,
       });
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('useTransformedResource', () => {
-    it('applies a transformation to the resource', () => {
+    test('applies a transformation to the resource', () => {
       const { result } = renderHook(() =>
         useTransformedResource(
           {
-            status: ResourceStatus.COMPLETE,
+            status: ResourceStatus.Complete,
             result: fakeApiResult,
             error: null,
           },
@@ -110,7 +113,7 @@ describe('apiResource hooks', () => {
         ),
       );
       expect(result.current).toEqual({
-        status: ResourceStatus.COMPLETE,
+        status: ResourceStatus.Complete,
         result: {
           id: 1,
           name: 'FAKE API RESULT',
@@ -119,7 +122,7 @@ describe('apiResource hooks', () => {
       });
     });
 
-    it('works while loading', () => {
+    test('works while loading', () => {
       const nameToAllCaps = (thing: any) => ({
         ...thing,
         name: thing.name.toUpperCase(),
@@ -127,7 +130,7 @@ describe('apiResource hooks', () => {
       const { result } = renderHook(() =>
         useTransformedResource(
           {
-            status: ResourceStatus.LOADING,
+            status: ResourceStatus.Loading,
             result: null,
             error: null,
           },
@@ -135,15 +138,16 @@ describe('apiResource hooks', () => {
         ),
       );
       expect(result.current).toEqual({
-        status: ResourceStatus.LOADING,
+        status: ResourceStatus.Loading,
         result: null,
         error: null,
       });
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('useApiV1Endpoint', () => {
-    it('resolves to the value from the api', async () => {
+    test('resolves to the value from the api', async () => {
       (makeApi as any).mockReturnValue(
         jest.fn().mockResolvedValue({
           meta: 'data',
@@ -156,7 +160,7 @@ describe('apiResource hooks', () => {
         jest.runAllTimers();
       });
       expect(result.current).toEqual({
-        status: ResourceStatus.COMPLETE,
+        status: ResourceStatus.Complete,
         result: fakeApiResult,
         error: null,
       });

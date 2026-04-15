@@ -18,20 +18,27 @@
  * under the License.
  */
 import { JsonObject } from '@superset-ui/core';
-import { isString } from 'lodash';
+
+export const getTimeOffset = (
+  series: JsonObject,
+  timeCompare: string[],
+): string | undefined =>
+  timeCompare.find(
+    timeOffset =>
+      // offset is represented as <offset>, group by list
+      series.name.includes(`${timeOffset},`) ||
+      // offset is represented as <metric>__<offset>
+      series.name.includes(`__${timeOffset}`) ||
+      // offset is represented as <metric>, <offset>
+      series.name.includes(`, ${timeOffset}`),
+  );
 
 export const hasTimeOffset = (
   series: JsonObject,
   timeCompare: string[],
 ): boolean =>
-  isString(series.name)
-    ? !!timeCompare.find(
-        timeOffset =>
-          // offset is represented as <offset>, group by list
-          series.name.includes(`${timeOffset},`) ||
-          // offset is represented as <metric>__<offset>
-          series.name.includes(`__${timeOffset}`),
-      )
+  typeof series.name === 'string'
+    ? !!getTimeOffset(series, timeCompare)
     : false;
 
 export const getOriginalSeries = (
@@ -40,10 +47,14 @@ export const getOriginalSeries = (
 ): string => {
   let result = seriesName;
   timeCompare.forEach(compare => {
-    // offset is represented as <offset>, group by list
+    // offset in the middle: <metric>, <offset>, <dimension>
+    result = result.replace(`, ${compare},`, ',');
+    // offset at start: <offset>, <dimension>
     result = result.replace(`${compare},`, '');
-    // offset is represented as <metric>__<offset>
+    // offset with double underscore: <metric>__<offset>
     result = result.replace(`__${compare}`, '');
+    // offset at end: <metric>, <offset>
+    result = result.replace(`, ${compare}`, '');
   });
   return result.trim();
 };

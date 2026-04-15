@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject } from 'react';
+import { RefObject, Ref } from 'react';
+
 import {
   ChartDataResponseResult,
   ChartProps,
@@ -31,8 +32,8 @@ import {
   SqlaFormData,
   ChartMetadata,
 } from '@superset-ui/core';
-import { EChartsCoreOption, ECharts } from 'echarts';
-import { TooltipMarker } from 'echarts/types/src/util/format';
+import type { EChartsCoreOption, EChartsType } from 'echarts/core';
+import type { TooltipMarker } from 'echarts/types/src/util/format';
 import { StackControlsValue } from './constants';
 
 export type EchartsStylesProps = {
@@ -41,7 +42,7 @@ export type EchartsStylesProps = {
 };
 
 export type Refs = {
-  echartRef?: React.Ref<EchartsHandler>;
+  echartRef?: Ref<EchartsHandler>;
   divRef?: RefObject<HTMLDivElement>;
 };
 
@@ -54,10 +55,11 @@ export interface EchartsProps {
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
   refs: Refs;
+  vizType?: string;
 }
 
 export interface EchartsHandler {
-  getEchartInstance: () => ECharts | undefined;
+  getEchartInstance: () => EChartsType | undefined;
 }
 
 export enum ForecastSeriesEnum {
@@ -90,6 +92,7 @@ export type ForecastValue = {
   forecastTrend?: number;
   forecastLower?: number;
   forecastUpper?: number;
+  color?: string;
 };
 
 export type LegendFormData = {
@@ -97,6 +100,7 @@ export type LegendFormData = {
   legendOrientation: LegendOrientation;
   legendType: LegendType;
   showLegend: boolean;
+  legendSort: 'asc' | 'desc' | null;
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;
@@ -125,6 +129,7 @@ export interface BaseTransformedProps<F> {
   echartOptions: EChartsCoreOption;
   formData: F;
   height: number;
+  isRefreshing?: boolean;
   onContextMenu?: (
     clientX: number,
     clientY: number,
@@ -137,6 +142,7 @@ export interface BaseTransformedProps<F> {
   width: number;
   emitCrossFilters?: boolean;
   coltypeMapping?: Record<string, number>;
+  onLegendScroll?: (currentIndex: number) => void;
 }
 
 export type CrossFilterTransformedProps = {

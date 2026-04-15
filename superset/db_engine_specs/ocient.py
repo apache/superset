@@ -15,31 +15,27 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import contextlib
 import re
 import threading
 from re import Pattern
-from typing import Any, Callable, List, NamedTuple, Optional
+from typing import Any, Callable, NamedTuple, Optional
 
 from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.orm import Session
 
-# Need to try-catch here because pyocient may not be installed
-try:
+with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be installed
     # Ensure pyocient inherits Superset's logging level
     import geojson
     import pyocient
+    from flask import current_app as app
     from shapely import wkt
-
-    from superset import app
 
     superset_log_level = app.config["LOG_LEVEL"]
     pyocient.logger.setLevel(superset_log_level)
-except (ImportError, RuntimeError):
-    pass
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -101,7 +97,7 @@ def _wkt_to_geo_json(geo_as_wkt: str) -> Any:
 
 
 def _point_list_to_wkt(
-    points,  # type: List[pyocient._STPoint]
+    points,  # type: list[pyocient._STPoint]
 ) -> str:
     """
     Converts the list of pyocient._STPoint elements to a WKT LineString.
@@ -207,7 +203,7 @@ try:
         TypeCodes.ST_LINESTRING: _linestring_to_geo_json,
         TypeCodes.ST_POLYGON: _polygon_to_geo_json,
     }
-except ImportError as e:
+except ImportError:
     _sanitized_ocient_type_codes = {}
 
 
@@ -217,7 +213,7 @@ def _find_columns_to_sanitize(cursor: Any) -> list[PlacedSanitizeFunc]:
 
     :param cursor: the result set cursor
     :returns: the list of tuples consisting of the column index and sanitization function
-    """
+    """  # noqa: E501
     return [
         PlacedSanitizeFunc(i, _sanitized_ocient_type_codes[cursor.description[i][1]])
         for i in range(len(cursor.description))
@@ -228,7 +224,6 @@ def _find_columns_to_sanitize(cursor: Any) -> list[PlacedSanitizeFunc]:
 class OcientEngineSpec(BaseEngineSpec):
     engine = "ocient"
     engine_name = "Ocient"
-    # limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30
 
@@ -240,6 +235,17 @@ class OcientEngineSpec(BaseEngineSpec):
     # They are then removed, either upon cancellation or query completion
     query_id_mapping: dict[str, str] = {}
     query_id_mapping_lock = threading.Lock()
+
+    metadata = {
+        "description": "Ocient is a hyperscale data analytics database.",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-ocient"],
+        "connection_string": "ocient://{username}:{password}@{host}:{port}/{database}",
+        "install_instructions": "pip install sqlalchemy-ocient",
+    }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_INVALID_USERNAME_REGEX: (
@@ -318,12 +324,10 @@ class OcientEngineSpec(BaseEngineSpec):
     ) -> list[tuple[Any, ...]]:
         try:
             rows: list[tuple[Any, ...]] = super().fetch_data(cursor, limit)
-        except Exception as exception:
+        except Exception:
             with OcientEngineSpec.query_id_mapping_lock:
-                del OcientEngineSpec.query_id_mapping[
-                    getattr(cursor, "superset_query_id")
-                ]
-            raise exception
+                del OcientEngineSpec.query_id_mapping[cursor.superset_query_id]
+            raise
 
         # TODO: Unsure if we need to verify that we are receiving rows:
         if len(rows) > 0 and type(rows[0]).__name__ == "Row":
@@ -353,7 +357,9 @@ class OcientEngineSpec(BaseEngineSpec):
                 rows = [
                     tuple(
                         sanitize_func(val)
-                        for sanitize_func, val in zip(sanitization_functions, row)
+                        for sanitize_func, val in zip(
+                            sanitization_functions, row, strict=False
+                        )
                     )
                     for row in rows
                 ]
@@ -374,13 +380,13 @@ class OcientEngineSpec(BaseEngineSpec):
         return "DUMMY_VALUE"
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Any, query: Query) -> None:
         with OcientEngineSpec.query_id_mapping_lock:
             OcientEngineSpec.query_id_mapping[query.id] = cursor.query_id
 
         # Add the query id to the cursor
-        setattr(cursor, "superset_query_id", query.id)
-        return super().handle_cursor(cursor, query, session)
+        cursor.superset_query_id = query.id
+        return super().handle_cursor(cursor, query)
 
     @classmethod
     def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:

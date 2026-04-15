@@ -20,14 +20,14 @@ from flask import Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset.connectors.sqla.models import TableColumn
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
-from superset.datasets.columns.commands.delete import DeleteDatasetColumnCommand
-from superset.datasets.columns.commands.exceptions import (
+from superset.commands.dataset.columns.delete import DeleteDatasetColumnCommand
+from superset.commands.dataset.columns.exceptions import (
     DatasetColumnDeleteFailedError,
     DatasetColumnForbiddenError,
     DatasetColumnNotFoundError,
 )
+from superset.connectors.sqla.models import TableColumn
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)

@@ -16,13 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import omit from 'lodash/omit';
-
 import {
   AdhocColumn,
   buildQueryContext,
   ensureIsArray,
-  hasGenericChartAxes,
   isPhysicalColumn,
   QueryFormColumn,
   QueryFormOrderBy,
@@ -44,10 +41,6 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     if (
       isPhysicalColumn(col) &&
       time_grain_sqla &&
-      hasGenericChartAxes &&
-      /* Charts created before `GENERIC_CHART_AXES` is enabled have a different
-       * form data, with `granularity_sqla` set instead.
-       */
       (formData?.temporal_columns_lookup?.[col] ||
         formData.granularity_sqla === col)
     ) {
@@ -72,9 +65,7 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     }
     return [
       {
-        ...(hasGenericChartAxes
-          ? omit(baseQueryObject, ['extras.time_grain_sqla'])
-          : baseQueryObject),
+        ...baseQueryObject,
         orderby: orderBy,
         columns,
       },

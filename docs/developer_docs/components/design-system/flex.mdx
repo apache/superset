@@ -1,0 +1,197 @@
+---
+title: Flex
+sidebar_label: Flex
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Flex
+
+The Flex component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="Flex"
+  props={{
+  vertical: false,
+  wrap: "nowrap",
+  justify: "normal",
+  align: "normal",
+  flex: "normal",
+  gap: "small"
+}}
+  controls={[
+  {
+    name: "vertical",
+    label: "Vertical",
+    type: "boolean"
+  },
+  {
+    name: "wrap",
+    label: "Wrap",
+    type: "select",
+    options: [
+      "nowrap",
+      "wrap",
+      "wrap-reverse"
+    ]
+  },
+  {
+    name: "justify",
+    label: "Justify",
+    type: "select",
+    options: [
+      "start",
+      "center",
+      "space-between",
+      "space-around",
+      "space-evenly"
+    ]
+  },
+  {
+    name: "align",
+    label: "Align",
+    type: "select",
+    options: [
+      "start",
+      "center",
+      "end",
+      "stretch"
+    ]
+  },
+  {
+    name: "flex",
+    label: "Flex",
+    type: "string"
+  },
+  {
+    name: "gap",
+    label: "Gap",
+    type: "select",
+    options: [
+      "small",
+      "medium",
+      "large"
+    ]
+  }
+]}
+  sampleChildren={["Item 1","Item 2","Item 3","Item 4","Item 5"]}
+  sampleChildrenStyle={{padding:"8px 16px",background:"#e6f4ff",border:"1px solid #91caff",borderRadius:"4px"}}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Flex gap="small" wrap="wrap">
+      {['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5'].map(item => (
+        <div
+          key={item}
+          style={{
+            padding: '8px 16px',
+            background: '#e6f4ff',
+            border: '1px solid #91caff',
+            borderRadius: 4,
+          }}
+        >
+          {item}
+        </div>
+      ))}
+    </Flex>
+  );
+}
+```
+
+## Vertical Layout
+
+```tsx live
+function VerticalFlex() {
+  return (
+    <Flex vertical gap="small">
+      <Button buttonStyle="primary">Primary</Button>
+      <Button buttonStyle="dashed">Dashed</Button>
+      <Button buttonStyle="link">Link</Button>
+    </Flex>
+  );
+}
+```
+
+## Justify and Align
+
+```tsx live
+function JustifyAlign() {
+  const boxStyle = {
+    width: '100%',
+    height: 120,
+    borderRadius: 6,
+    border: '1px solid #40a9ff',
+  };
+  const itemStyle = {
+    width: 60,
+    height: 40,
+    backgroundColor: '#1677ff',
+    borderRadius: 4,
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {['flex-start', 'center', 'flex-end', 'space-between', 'space-around'].map(justify => (
+        <div key={justify}>
+          <span style={{ marginBottom: 4, display: 'block', color: '#666' }}>{justify}</span>
+          <Flex style={boxStyle} justify={justify} align="center">
+            <div style={itemStyle} />
+            <div style={itemStyle} />
+            <div style={itemStyle} />
+          </Flex>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `vertical` | `boolean` | `false` | - |
+| `wrap` | `string` | `"nowrap"` | - |
+| `justify` | `string` | `"normal"` | - |
+| `align` | `string` | `"normal"` | - |
+| `flex` | `string` | `"normal"` | - |
+| `gap` | `string` | `"small"` | - |
+
+## Import
+
+```tsx
+import { Flex } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Flex/Flex.stories.tsx).
+:::

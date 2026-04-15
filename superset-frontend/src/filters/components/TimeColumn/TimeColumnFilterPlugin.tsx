@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t, tn } from '@apache-superset/core/translation';
+import { ensureIsArray, ExtraFormData } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import { useEffect, useState } from 'react';
 import {
-  ensureIsArray,
-  ExtraFormData,
-  GenericDataType,
-  t,
-  tn,
-} from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
-import { Select } from 'src/components';
-import { FormItemProps } from 'antd/lib/form';
-import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
+  FormItem,
+  type FormItemProps,
+  Select,
+} from '@superset-ui/core/components';
+import { FilterPluginStyle, StatusMessage } from '../common';
 import { PluginFilterTimeColumnProps } from './types';
 
 export default function PluginFilterTimeColumn(
@@ -77,7 +76,7 @@ export default function PluginFilterTimeColumn(
   }, [JSON.stringify(filterState.value)]);
 
   const timeColumns = (data || []).filter(
-    row => row.dtype === GenericDataType.TEMPORAL,
+    row => row.dtype === GenericDataType.Temporal,
   );
 
   const placeholderText =
@@ -106,25 +105,22 @@ export default function PluginFilterTimeColumn(
 
   return (
     <FilterPluginStyle height={height} width={width}>
-      <StyledFormItem
-        validateStatus={filterState.validateStatus}
-        {...formItemData}
-      >
-        <Select
-          allowClear
-          value={value}
-          placeholder={placeholderText}
-          // @ts-ignore
-          onChange={handleChange}
-          onBlur={unsetFocusedFilter}
-          onFocus={setFocusedFilter}
-          onMouseEnter={setHoveredFilter}
-          onMouseLeave={unsetHoveredFilter}
-          ref={inputRef}
-          options={options}
-          onDropdownVisibleChange={setFilterActive}
-        />
-      </StyledFormItem>
+      <FormItem validateStatus={filterState.validateStatus} {...formItemData}>
+        <div onMouseEnter={setHoveredFilter} onMouseLeave={unsetHoveredFilter}>
+          <Select
+            name={formData.nativeFilterId}
+            allowClear
+            value={value}
+            placeholder={placeholderText}
+            onChange={val => handleChange(val as string | string[] | null)}
+            onBlur={unsetFocusedFilter}
+            onFocus={setFocusedFilter}
+            ref={inputRef}
+            options={options}
+            onOpenChange={setFilterActive}
+          />
+        </div>
+      </FormItem>
     </FilterPluginStyle>
   );
 }

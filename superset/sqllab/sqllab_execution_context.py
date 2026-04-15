@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-import json
+import contextlib
 import logging
 from dataclasses import dataclass
 from typing import Any, cast, TYPE_CHECKING
@@ -26,8 +26,8 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset import is_feature_enabled
 from superset.models.sql_lab import Query
-from superset.sql_parse import CtasMethod
-from superset.utils import core as utils
+from superset.sql.parse import CTASMethod
+from superset.utils import core as utils, json
 from superset.utils.core import apply_max_row_limit, get_user_id
 from superset.utils.dates import now_as_float
 from superset.views.utils import get_cta_schema_name
@@ -43,6 +43,7 @@ SqlResults = dict[str, Any]
 @dataclass
 class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     database_id: int
+    catalog: str | None
     schema: str
     sql: str
     template_params: dict[str, Any]
@@ -72,10 +73,13 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
 
     def _init_from_query_params(self, query_params: dict[str, Any]) -> None:
         self.database_id = cast(int, query_params.get("database_id"))
+        self.catalog = cast(str, query_params.get("catalog"))
         self.schema = cast(str, query_params.get("schema"))
         self.sql = cast(str, query_params.get("sql"))
         self.template_params = self._get_template_params(query_params)
-        self.async_flag = cast(bool, query_params.get("runAsync"))
+        self.async_flag = is_feature_enabled("SQLLAB_FORCE_RUN_ASYNC") or cast(
+            bool, query_params.get("runAsync")
+        )
         self.limit = self._get_limit_param(query_params)
         self.status = cast(str, query_params.get("status"))
         if cast(bool, query_params.get("select_as_cta")):
@@ -121,6 +125,8 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     def set_database(self, database: Database) -> None:
         self._validate_db(database)
         self.database = database
+        if self.catalog is None:
+            self.catalog = database.get_default_catalog()
         if self.select_as_cta:
             schema_name = self._get_ctas_target_schema_name(database)
             self.create_table_as_select.target_schema_name = schema_name  # type: ignore
@@ -141,28 +147,30 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self._sql_result = sql_result
 
     def create_query(self) -> Query:
-        # pylint: disable=line-too-long
         start_time = now_as_float()
+        ctas = cast(CreateTableAsSelect, self.create_table_as_select)
         if self.select_as_cta:
             return Query(
                 database_id=self.database_id,
                 sql=self.sql,
+                catalog=self.catalog,
                 schema=self.schema,
                 select_as_cta=True,
-                ctas_method=self.create_table_as_select.ctas_method,  # type: ignore
+                ctas_method=ctas.ctas_method.name,
                 start_time=start_time,
                 tab_name=self.tab_name,
                 status=self.status,
                 limit=self.limit,
                 sql_editor_id=self.sql_editor_id,
-                tmp_table_name=self.create_table_as_select.target_table_name,  # type: ignore
-                tmp_schema_name=self.create_table_as_select.target_schema_name,  # type: ignore
+                tmp_table_name=ctas.target_table_name,
+                tmp_schema_name=ctas.target_schema_name,
                 user_id=self.user_id,
                 client_id=self.client_id_or_short_id,
             )
         return Query(
             database_id=self.database_id,
             sql=self.sql,
+            catalog=self.catalog,
             schema=self.schema,
             select_as_cta=False,
             start_time=start_time,
@@ -175,22 +183,20 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         )
 
     def get_query_details(self) -> str:
-        try:
+        with contextlib.suppress(DetachedInstanceError):
             if hasattr(self, "query"):
                 if self.query.id:
                     return f"query '{self.query.id}' - '{self.query.sql}'"
-        except DetachedInstanceError:
-            pass
         return f"query '{self.sql}'"
 
 
 class CreateTableAsSelect:  # pylint: disable=too-few-public-methods
-    ctas_method: CtasMethod
+    ctas_method: CTASMethod
     target_schema_name: str | None
     target_table_name: str
 
     def __init__(
-        self, ctas_method: CtasMethod, target_schema_name: str, target_table_name: str
+        self, ctas_method: CTASMethod, target_schema_name: str, target_table_name: str
     ):
         self.ctas_method = ctas_method
         self.target_schema_name = target_schema_name
@@ -198,7 +204,7 @@ class CreateTableAsSelect:  # pylint: disable=too-few-public-methods
 
     @staticmethod
     def create_from(query_params: dict[str, Any]) -> CreateTableAsSelect:
-        ctas_method = query_params.get("ctas_method", CtasMethod.TABLE)
+        ctas_method = CTASMethod[query_params.get("ctas_method", "table").upper()]
         schema = cast(str, query_params.get("schema"))
         tmp_table_name = cast(str, query_params.get("tmp_table_name"))
         return CreateTableAsSelect(ctas_method, schema, tmp_table_name)

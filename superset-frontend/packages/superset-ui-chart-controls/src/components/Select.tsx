@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ReactNode } from 'react';
-import AntdSelect, { SelectProps as AntdSelectProps } from 'antd/lib/select';
+import { useState, ReactNode } from 'react';
+import {
+  RawAntdSelect as AntdSelect,
+  type RawAntdSelectProps as AntdSelectProps,
+} from '@superset-ui/core/components';
 
 export const { Option }: any = AntdSelect;
 
@@ -35,7 +38,7 @@ export type SelectProps<VT> = Omit<AntdSelectProps<VT>, 'options'> & {
 export default function Select<VT extends string | number>({
   creatable,
   onSearch,
-  dropdownMatchSelectWidth = false,
+  popupMatchSelectWidth = false,
   minWidth = '100%',
   showSearch: showSearch_ = true,
   onChange,
@@ -73,7 +76,7 @@ export default function Select<VT extends string | number>({
 
   return (
     <AntdSelect<VT>
-      dropdownMatchSelectWidth={dropdownMatchSelectWidth}
+      popupMatchSelectWidth={popupMatchSelectWidth}
       showSearch={showSearch}
       onSearch={handleSearch}
       onChange={handleChange}

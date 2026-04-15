@@ -27,21 +27,22 @@ at all. The classes here will use a common interface to specify all this.
 
 The general idea is to use static classes and an inheritance scheme.
 """
+
 import inspect
 import logging
 import pkgutil
 from collections import defaultdict
 from importlib import import_module
+from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any, Optional
 
-import sqlalchemy.databases
 import sqlalchemy.dialects
-from importlib_metadata import entry_points
+from flask import current_app as app
 from sqlalchemy.engine.default import DefaultDialect
-from sqlalchemy.engine.url import URL
+from sqlalchemy.exc import NoSuchModuleError
 
-from superset import app
+from superset import feature_flag_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ def get_engine_spec(backend: str, driver: Optional[str] = None) -> type[BaseEngi
     supporting that driver exists then a backend-only match is done, in order to allow new
     drivers to work with Superset even if they are not listed in the DB engine spec
     drivers.
-    """
+    """  # noqa: E501
     engine_specs = load_engine_specs()
 
     if driver is not None:
@@ -120,41 +121,41 @@ backend_replacements = {
 }
 
 
-def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
+# pylint: disable=too-many-branches
+def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noqa: C901
     """
     Return available engine specs and installed drivers for them.
     """
     drivers: dict[str, set[str]] = defaultdict(set)
 
     # native SQLAlchemy dialects
-    for attr in sqlalchemy.databases.__all__:
-        dialect = getattr(sqlalchemy.dialects, attr)
-        for attribute in dialect.__dict__.values():
+    for attr in sqlalchemy.dialects.__all__:
+        try:
+            dialect = sqlalchemy.dialects.registry.load(attr)
             if (
-                hasattr(attribute, "dialect")
-                and inspect.isclass(attribute.dialect)
-                and issubclass(attribute.dialect, DefaultDialect)
+                issubclass(dialect, DefaultDialect)
+                and hasattr(dialect, "driver")
                 # adodbapi dialect is removed in SQLA 1.4 and doesn't implement the
                 # `dbapi` method, hence needs to be ignored to avoid logging a warning
-                and attribute.dialect.driver != "adodbapi"
+                and dialect.driver != "adodbapi"
             ):
                 try:
-                    attribute.dialect.dbapi()
+                    dialect.dbapi()
                 except ModuleNotFoundError:
                     continue
                 except Exception as ex:  # pylint: disable=broad-except
-                    logger.warning(
-                        "Unable to load dialect %s: %s", attribute.dialect, ex
-                    )
+                    logger.warning("Unable to load dialect %s: %s", dialect, ex)
                     continue
-                drivers[attr].add(attribute.dialect.driver)
+                drivers[attr].add(dialect.driver)
+        except NoSuchModuleError:
+            continue
 
     # installed 3rd-party dialects
     for ep in entry_points(group="sqlalchemy.dialects"):
         try:
             dialect = ep.load()
         except Exception as ex:  # pylint: disable=broad-except
-            logger.warning("Unable to load SQLAlchemy dialect %s: %s", dialect, ex)
+            logger.debug("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
         else:
             backend = dialect.name
             if isinstance(backend, bytes):
@@ -166,19 +167,20 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
                 driver = driver.decode()
             drivers[backend].add(driver)
 
+    dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
+    if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
+        dbs_denylist["superset"] = {""}
+    dbs_denylist_engines = dbs_denylist.keys()
     available_engines = {}
+
     for engine_spec in load_engine_specs():
         driver = drivers[engine_spec.engine]
-
-        # do not add denied db engine specs to available list
-        dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
-        dbs_denylist_engines = dbs_denylist.keys()
-
         if (
             engine_spec.engine in dbs_denylist_engines
             and hasattr(engine_spec, "default_driver")
             and engine_spec.default_driver in dbs_denylist[engine_spec.engine]
         ):
+            # do not add denied db engine specs to available list
             continue
 
         # lookup driver by engine aliases.

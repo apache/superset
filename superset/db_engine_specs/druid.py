@@ -17,21 +17,19 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import types
-from sqlalchemy.engine.reflection import Inspector
 
 from superset import is_feature_enabled
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetException
-from superset.superset_typing import ResultSetColumnType
-from superset.utils import core as utils
+from superset.utils import core as utils, json
+from superset.utils.core import QuerySource
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -47,6 +45,82 @@ class DruidEngineSpec(BaseEngineSpec):
     engine_name = "Apache Druid"
     allows_joins = is_feature_enabled("DRUID_JOINS")
     allows_subqueries = True
+
+    # pydruid builds cursor.description from the first returned row, so a
+    # WHERE FALSE query (zero rows) leaves description as None.
+    type_probe_needs_row = True
+
+    metadata = {
+        "description": (
+            "Apache Druid is a high performance real-time analytics database."
+        ),
+        "logo": "druid.png",
+        "homepage_url": "https://druid.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.TIME_SERIES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["pydruid"],
+        "connection_string": (
+            "druid://{username}:{password}@{host}:{port}/druid/v2/sql"
+        ),
+        "default_port": 9088,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "IP address or URL of the host",
+            "port": "Default 9088",
+        },
+        "ssl_configuration": {
+            "custom_certificate": (
+                "Add certificate in Root Certificate field. "
+                "pydruid will automatically use https."
+            ),
+            "disable_ssl_verification": {
+                "engine_params": {
+                    "connect_args": {"scheme": "https", "ssl_verify_cert": False}
+                }
+            },
+        },
+        "advanced_features": {
+            "aggregations": (
+                "Define common aggregations in datasource edit view "
+                "under List Druid Column tab."
+            ),
+            "post_aggregations": (
+                "Create metrics with postagg as Metric Type and provide "
+                "valid JSON post-aggregation definition."
+            ),
+        },
+        "notes": (
+            "A native Druid connector ships with Superset "
+            "(behind DRUID_IS_ACTIVE flag) but SQLAlchemy connector "
+            "via pydruid is preferred."
+        ),
+        "compatible_databases": [
+            {
+                "name": "Imply",
+                "description": (
+                    "Imply is a fully-managed cloud platform and enterprise "
+                    "distribution built on Apache Druid. It provides real-time "
+                    "analytics with enterprise security and support."
+                ),
+                "logo": "imply.png",
+                "homepage_url": "https://imply.io/",
+                "categories": [
+                    DatabaseCategory.TIME_SERIES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["pydruid"],
+                "connection_string": (
+                    "druid://{username}:{password}@{host}/druid/v2/sql"
+                ),
+                "docs_url": "https://docs.imply.io/",
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -81,11 +155,14 @@ class DruidEngineSpec(BaseEngineSpec):
             orm_col.is_dttm = True
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         For Druid, the path to a SSL certificate is placed in `connect_args`.
 
         :param database: database instance from which to extract extras
+        :param source: in which context is the connection needed
         :raises CertificateException: If certificate is not valid/unparseable
         :raises SupersetException: If database extra json payload is unparseable
         """
@@ -129,15 +206,6 @@ class DruidEngineSpec(BaseEngineSpec):
         Convert from number of milliseconds since the epoch to a timestamp.
         """
         return "MILLIS_TO_TIMESTAMP({col})"
-
-    @classmethod
-    def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str | None
-    ) -> list[ResultSetColumnType]:
-        """
-        Update the Druid type map.
-        """
-        return super().get_columns(inspector, table_name, schema)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:

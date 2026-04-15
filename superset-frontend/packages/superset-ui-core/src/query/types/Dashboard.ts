@@ -19,6 +19,11 @@
 
 import { AdhocFilter, DataMask } from '@superset-ui/core';
 
+export interface ColumnOption {
+  label: string;
+  value: string;
+}
+
 export interface NativeFilterColumn {
   name: string;
   displayName?: string;
@@ -40,8 +45,13 @@ export interface NativeFilterTarget {
 }
 
 export enum NativeFilterType {
-  NATIVE_FILTER = 'NATIVE_FILTER',
-  DIVIDER = 'DIVIDER',
+  NativeFilter = 'NATIVE_FILTER',
+  Divider = 'DIVIDER',
+}
+
+export enum ChartCustomizationType {
+  ChartCustomization = 'CHART_CUSTOMIZATION',
+  Divider = 'CHART_CUSTOMIZATION_DIVIDER',
 }
 
 export enum DataMaskType {
@@ -54,17 +64,6 @@ export type DataMaskState = { [id: string]: DataMask };
 export type DataMaskWithId = { id: string } & DataMask;
 export type DataMaskStateWithId = { [filterId: string]: DataMaskWithId };
 
-export type FilterSet = {
-  id: number;
-  name: string;
-  nativeFilters: Filters;
-  dataMask: DataMaskStateWithId;
-};
-
-export type FilterSets = {
-  [filtersSetId: string]: FilterSet;
-};
-
 export type Filter = {
   cascadeParentIds: string[];
   defaultDataMask: DataMask;
@@ -72,9 +71,7 @@ export type Filter = {
   name: string;
   scope: NativeFilterScope;
   filterType: string;
-  // for now there will only ever be one target
-  // when multiple targets are supported, change this to Target[]
-  targets: [Partial<NativeFilterTarget>];
+  targets: Partial<NativeFilterTarget>[];
   controlValues: {
     [key: string]: any;
   };
@@ -87,9 +84,56 @@ export type Filter = {
   requiredFirst?: boolean;
   tabsInScope?: string[];
   chartsInScope?: number[];
-  type: typeof NativeFilterType.NATIVE_FILTER;
+  type: typeof NativeFilterType.NativeFilter;
   description: string;
 };
+
+export type ChartCustomization = {
+  id: string;
+  type: typeof ChartCustomizationType.ChartCustomization;
+  name: string;
+  filterType: string;
+  targets: Partial<NativeFilterTarget>[];
+  scope: NativeFilterScope;
+  chartsInScope?: number[];
+  tabsInScope?: string[];
+  cascadeParentIds?: string[];
+  defaultDataMask: DataMask;
+  controlValues: {
+    sortAscending?: boolean;
+    sortMetric?: string;
+    [key: string]: any;
+  };
+  description?: string;
+  removed?: boolean;
+};
+
+export type ChartCustomizationDivider = Partial<
+  Omit<ChartCustomization, 'id' | 'type'>
+> & {
+  id: string;
+  title: string;
+  description: string;
+  type: typeof ChartCustomizationType.Divider;
+};
+
+export type AppliedFilter = {
+  values: {
+    filters: Record<string, any>[];
+  } | null;
+};
+
+export type AppliedCrossFilterType = {
+  filterType: undefined;
+  targets: number[];
+  scope: number[];
+} & AppliedFilter;
+
+export type AppliedNativeFilterType = {
+  filterType: 'filter_select';
+  scope: number[];
+  targets: Partial<NativeFilterTarget>[];
+} & AppliedFilter;
 
 export type FilterWithDataMask = Filter & { dataMask: DataMaskWithId };
 
@@ -97,13 +141,31 @@ export type Divider = Partial<Omit<Filter, 'id' | 'type'>> & {
   id: string;
   title: string;
   description: string;
-  type: typeof NativeFilterType.DIVIDER;
+  type: typeof NativeFilterType.Divider;
 };
+
+export function isAppliedCrossFilterType(
+  filterElement: AppliedCrossFilterType | AppliedNativeFilterType | Filter,
+): filterElement is AppliedCrossFilterType {
+  return (
+    filterElement.filterType === undefined &&
+    filterElement.hasOwnProperty('values')
+  );
+}
+
+export function isAppliedNativeFilterType(
+  filterElement: AppliedCrossFilterType | AppliedNativeFilterType | Filter,
+): filterElement is AppliedNativeFilterType {
+  return (
+    filterElement.filterType === 'filter_select' &&
+    filterElement.hasOwnProperty('values')
+  );
+}
 
 export function isNativeFilter(
   filterElement: Filter | Divider,
 ): filterElement is Filter {
-  return filterElement.type === NativeFilterType.NATIVE_FILTER;
+  return filterElement.type === NativeFilterType.NativeFilter;
 }
 
 export function isNativeFilterWithDataMask(
@@ -118,13 +180,33 @@ export function isNativeFilterWithDataMask(
 export function isFilterDivider(
   filterElement: Filter | Divider,
 ): filterElement is Divider {
-  return filterElement.type === NativeFilterType.DIVIDER;
+  return filterElement.type === NativeFilterType.Divider;
+}
+
+export function isChartCustomization(
+  filterElement:
+    | Filter
+    | Divider
+    | ChartCustomization
+    | ChartCustomizationDivider,
+): filterElement is ChartCustomization {
+  return filterElement.type === ChartCustomizationType.ChartCustomization;
+}
+
+export function isChartCustomizationDivider(
+  filterElement: ChartCustomization | ChartCustomizationDivider,
+): filterElement is ChartCustomizationDivider {
+  return filterElement.type === ChartCustomizationType.Divider;
 }
 
 export type FilterConfiguration = Array<Filter | Divider>;
 
 export type Filters = {
-  [filterId: string]: Filter | Divider;
+  [filterId: string]:
+    | Filter
+    | Divider
+    | ChartCustomization
+    | ChartCustomizationDivider;
 };
 
 export type PartialFilters = {
@@ -133,14 +215,58 @@ export type PartialFilters = {
 
 export type NativeFiltersState = {
   filters: Filters;
-  filterSets: FilterSets;
   focusedFilterId?: string;
   hoveredFilterId?: string;
+};
+
+export type ChartCustomizationConfiguration = Array<
+  ChartCustomization | ChartCustomizationDivider
+>;
+
+export type ChartCustomizations = {
+  [chartCustomizationId: string]:
+    | ChartCustomization
+    | ChartCustomizationDivider;
+};
+
+export type PartialChartCustomizations = {
+  [chartCustomizationId: string]: Partial<
+    ChartCustomizations[keyof ChartCustomizations]
+  >;
 };
 
 export type DashboardComponentMetadata = {
   nativeFilters: NativeFiltersState;
   dataMask: DataMaskStateWithId;
 };
+
+export interface LegacyChartCustomizationDataset {
+  value: number | string;
+  label: string;
+  table_name?: string;
+}
+
+export interface LegacyChartCustomizationConfig {
+  name: string;
+  dataset: string | number | LegacyChartCustomizationDataset | null;
+  column: string | string[] | null;
+  sortAscending?: boolean;
+  sortMetric?: string;
+  canSelectMultiple?: boolean;
+  defaultDataMask?: DataMask;
+  controlValues?: {
+    enableEmptyFilter?: boolean;
+    [key: string]: any;
+  };
+  description?: string;
+}
+
+export interface LegacyChartCustomizationItem {
+  id: string;
+  title?: string;
+  removed?: boolean;
+  chartId?: number;
+  customization: LegacyChartCustomizationConfig;
+}
 
 export default {};

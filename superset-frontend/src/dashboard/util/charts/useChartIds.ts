@@ -17,20 +17,7 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import isEqual from 'lodash/isEqual';
-import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from 'src/dashboard/types';
-import { useMemoCompare } from 'src/hooks/useMemoCompare';
 
-const chartIdsSelector = createSelector(
-  (state: RootState) => state.charts,
-  charts => Object.values(charts).map(chart => chart.id),
-);
-
-export const useChartIds = () => {
-  const chartIds = useSelector<RootState, number[]>(chartIdsSelector);
-  return useMemoCompare(
-    chartIds,
-    (prev, next) => prev === next || isEqual(prev, next),
-  );
-};
+export const useChartIds = () =>
+  useSelector<RootState, number[]>(state => state.dashboardState.sliceIds);

@@ -20,6 +20,7 @@ import { NumberFormatter } from '../number-format';
 import { CurrencyFormatter } from '../currency-format';
 
 export * from '../query/types';
+export * from './AgGrid';
 
 export type Maybe<T> = T | null;
 

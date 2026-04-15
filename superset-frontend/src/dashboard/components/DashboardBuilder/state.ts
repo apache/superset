@@ -16,67 +16,98 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { useCallback, useEffect, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { RootState } from 'src/dashboard/types';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   useFilters,
   useNativeFiltersDataMask,
 } from '../nativeFilters/FilterBar/state';
+import { useChartCustomizationFromRedux } from '../nativeFilters/state';
+import { toggleNativeFiltersBar } from '../../actions/dashboardState';
 
-// eslint-disable-next-line import/prefer-default-export
 export const useNativeFilters = () => {
+  const dispatch = useDispatch();
+
   const [isInitialized, setIsInitialized] = useState(false);
+
+  const showNativeFilters = useSelector<RootState, boolean>(
+    () => getUrlParam(URL_PARAMS.showFilters) ?? true,
+  );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
+  const dashboardFiltersOpen = useSelector<RootState, boolean>(
+    state => state.dashboardState.nativeFiltersBarOpen ?? false,
+  );
 
   const filters = useFilters();
-  const filterValues = Object.values(filters);
+  const filterValues = useMemo(() => Object.values(filters), [filters]);
   const expandFilters = getUrlParam(URL_PARAMS.expandFilters);
-  const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(
-    expandFilters ?? !!filterValues.length,
-  );
+  const chartCustomizations = useChartCustomizationFromRedux();
 
   const nativeFiltersEnabled =
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-    (canEdit || (!canEdit && filterValues.length !== 0));
+    showNativeFilters &&
+    (canEdit ||
+      (!canEdit &&
+        (filterValues.length !== 0 || chartCustomizations.length !== 0)));
 
-  const requiredFirstFilter = filterValues.filter(
-    filter => filter.requiredFirst,
+  const requiredFirstFilter = useMemo(
+    () =>
+      filterValues.filter(
+        filter =>
+          'requiredFirst' in filter &&
+          filter.requiredFirst === true &&
+          filter.filterType !== 'filter_time',
+      ),
+    [filterValues],
   );
   const dataMask = useNativeFiltersDataMask();
+
+  const missingInitialFilters = useMemo(
+    () =>
+      requiredFirstFilter
+        .filter(({ id }) => dataMask[id]?.filterState?.value === undefined)
+        .map(({ name }) => name),
+    [requiredFirstFilter, dataMask],
+  );
+
   const showDashboard =
     isInitialized ||
     !nativeFiltersEnabled ||
-    !(
-      nativeFiltersEnabled &&
-      requiredFirstFilter.length &&
-      requiredFirstFilter.find(
-        ({ id }) => dataMask[id]?.filterState?.value === undefined,
-      )
-    );
+    missingInitialFilters.length === 0;
 
   const toggleDashboardFiltersOpen = useCallback(
     (visible?: boolean) => {
-      setDashboardFiltersOpen(visible ?? !dashboardFiltersOpen);
+      const newState = visible ?? !dashboardFiltersOpen;
+      dispatch(toggleNativeFiltersBar(newState));
     },
-    [dashboardFiltersOpen],
+    [dispatch, dashboardFiltersOpen],
   );
 
   useEffect(() => {
     if (
+      (isFeatureEnabled(FeatureFlag.FilterBarClosedByDefault) &&
+        expandFilters === null) ||
       expandFilters === false ||
-      (filterValues.length === 0 && nativeFiltersEnabled)
+      (filterValues.length === 0 &&
+        chartCustomizations.length === 0 &&
+        nativeFiltersEnabled)
     ) {
-      toggleDashboardFiltersOpen(false);
+      dispatch(toggleNativeFiltersBar(false));
     } else {
-      toggleDashboardFiltersOpen(true);
+      dispatch(toggleNativeFiltersBar(true));
     }
-  }, [filterValues.length]);
+  }, [
+    dispatch,
+    filterValues.length,
+    chartCustomizations.length,
+    expandFilters,
+    nativeFiltersEnabled,
+  ]);
 
   useEffect(() => {
     if (showDashboard) {
@@ -86,6 +117,7 @@ export const useNativeFilters = () => {
 
   return {
     showDashboard,
+    missingInitialFilters,
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,
     nativeFiltersEnabled,

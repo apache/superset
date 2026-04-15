@@ -14,57 +14,50 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=arguments-renamed
 from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import Dict, List
 
-from sqlalchemy.exc import SQLAlchemyError
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.charts.filters import ChartFilter
+from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.slice import Slice
-from superset.utils.core import get_iterable, get_user_id
-
-if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+from superset.models.slice import id_or_uuid_filter, Slice
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
+
+# Custom filterable fields for charts
+CHART_CUSTOM_FIELDS = {
+    "viz_type": ["eq", "in", "like"],
+    "datasource_name": ["eq", "in", "like"],
+}
 
 
 class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
 
     @classmethod
-    def delete(cls, items: Slice | list[Slice], commit: bool = True) -> None:
-        item_ids = [item.id for item in get_iterable(items)]
-        # bulk delete, first delete related data
-        # bulk delete itself
-        try:
-            db.session.query(Slice).filter(Slice.id.in_(item_ids)).delete(
-                synchronize_session="fetch"
-            )
-            if commit:
-                db.session.commit()
-        except SQLAlchemyError as ex:
-            db.session.rollback()
-            raise ex
+    def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
+        filterable = super().get_filterable_columns_and_operators()
+        # Add custom fields for charts
+        filterable.update(CHART_CUSTOM_FIELDS)
+        return filterable
 
     @staticmethod
-    def save(slc: Slice, commit: bool = True) -> None:
-        db.session.add(slc)
-        if commit:
-            db.session.commit()
-
-    @staticmethod
-    def overwrite(slc: Slice, commit: bool = True) -> None:
-        db.session.merge(slc)
-        if commit:
-            db.session.commit()
+    def get_by_id_or_uuid(id_or_uuid: str) -> Slice:
+        query = db.session.query(Slice).filter(id_or_uuid_filter(id_or_uuid))
+        # Apply chart base filters
+        query = ChartFilter("id", SQLAInterface(Slice, db.session)).apply(query, None)
+        chart = query.one_or_none()
+        if not chart:
+            raise ChartNotFoundError()
+        return chart
 
     @staticmethod
     def favorited_ids(charts: list[Slice]) -> list[FavStar]:
@@ -92,7 +85,6 @@ class ChartDAO(BaseDAO[Slice]):
                     dttm=datetime.now(),
                 )
             )
-            db.session.commit()
 
     @staticmethod
     def remove_favorite(chart: Slice) -> None:
@@ -107,4 +99,3 @@ class ChartDAO(BaseDAO[Slice]):
         )
         if fav:
             db.session.delete(fav)
-            db.session.commit()

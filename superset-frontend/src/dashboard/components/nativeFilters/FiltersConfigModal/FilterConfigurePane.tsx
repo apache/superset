@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NativeFilterType, styled } from '@superset-ui/core';
-import React from 'react';
+import { FC, ReactNode } from 'react';
+import { NativeFilterType } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import FilterTitlePane from './FilterTitlePane';
 import { FilterRemoval } from './types';
 
 interface Props {
-  children?: React.ReactNode;
+  children?: ReactNode;
   getFilterTitle: (filterId: string) => string;
   onChange: (activeKey: string) => void;
   onAdd: (type: NativeFilterType) => void;
@@ -42,16 +43,15 @@ const Container = styled.div`
 
 const ContentHolder = styled.div`
   flex-grow: 3;
-  margin-left: ${({ theme }) => theme.gridUnit * -1 - 1};
 `;
 
 const TitlesContainer = styled.div`
-  min-width: 300px;
-  max-width: 300px;
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  min-width: 290px;
+  max-width: 290px;
+  border-right: 1px solid ${({ theme }) => theme.colorSplit};
 `;
 
-const FilterConfigurePane: React.FC<Props> = ({
+const FilterConfigurePane: FC<Props> = ({
   getFilterTitle,
   onChange,
   onRemove,

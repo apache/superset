@@ -16,138 +16,110 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { act } from 'react-dom/test-utils';
-
+import { useState } from 'react';
 import {
-  AlertReportCronScheduler,
-  AlertReportCronSchedulerProps,
-} from './AlertReportCronScheduler';
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { AlertReportCronScheduler } from './AlertReportCronScheduler';
 
-const createProps = (props: Partial<AlertReportCronSchedulerProps> = {}) => ({
+const defaultProps = {
+  value: '0 12 * * 1',
   onChange: jest.fn(),
-  value: '* * * * *',
-  ...props,
+};
+
+beforeEach(() => {
+  defaultProps.onChange = jest.fn();
 });
 
-test('should render', () => {
-  const props = createProps();
-  render(<AlertReportCronScheduler {...props} />);
-
-  // Text found in the first radio option
-  expect(screen.getByText('Every')).toBeInTheDocument();
-  // Text found in the second radio option
-  expect(screen.getByText('CRON Schedule')).toBeInTheDocument();
+test('renders CronPicker by default (picker mode)', () => {
+  render(<AlertReportCronScheduler {...defaultProps} />);
+  expect(screen.getByText('Schedule type')).toBeInTheDocument();
+  expect(screen.getByText('Schedule')).toBeInTheDocument();
+  // CronPicker renders combobox elements; CRON text input does not
+  expect(
+    screen.queryByPlaceholderText('CRON expression'),
+  ).not.toBeInTheDocument();
 });
 
-test('only one radio option should be enabled at a time', () => {
-  const props = createProps();
-  const { container } = render(<AlertReportCronScheduler {...props} />);
-
-  expect(screen.getByTestId('picker')).toBeChecked();
-  expect(screen.getByTestId('input')).not.toBeChecked();
-
-  const pickerContainer = container.querySelector(
-    '.react-js-cron-select',
-  ) as HTMLElement;
-  const inputContainer = screen.getByTestId('input-content');
-
-  expect(within(pickerContainer).getAllByRole('combobox')[0]).toBeEnabled();
-  expect(inputContainer.querySelector('input[name="crontab"]')).toBeDisabled();
-
-  userEvent.click(screen.getByTestId('input'));
-
-  expect(within(pickerContainer).getAllByRole('combobox')[0]).toBeDisabled();
-  expect(inputContainer.querySelector('input[name="crontab"]')).toBeEnabled();
-
-  userEvent.click(screen.getByTestId('picker'));
-
-  expect(within(pickerContainer).getAllByRole('combobox')[0]).toBeEnabled();
-  expect(inputContainer.querySelector('input[name="crontab"]')).toBeDisabled();
-});
-
-test('picker mode updates correctly', async () => {
-  const onChangeCallback = jest.fn();
-  const props = createProps({
-    onChange: onChangeCallback,
+async function switchToCronInputMode() {
+  const scheduleTypeSelect = screen.getByRole('combobox', {
+    name: /Schedule type/i,
   });
-
-  const { container } = render(<AlertReportCronScheduler {...props} />);
-
-  expect(screen.getByTestId('picker')).toBeChecked();
-
-  const pickerContainer = container.querySelector(
-    '.react-js-cron-select',
-  ) as HTMLElement;
-
-  const firstSelect = within(pickerContainer).getAllByRole('combobox')[0];
-  act(() => {
-    userEvent.click(firstSelect);
-  });
-
-  expect(await within(pickerContainer).findByText('day')).toBeInTheDocument();
-  act(() => {
-    userEvent.click(within(pickerContainer).getByText('day'));
-  });
-
-  expect(onChangeCallback).toHaveBeenLastCalledWith('* * * * *');
-
-  const secondSelect = container.querySelector(
-    '.react-js-cron-hours .ant-select-selector',
-  ) as HTMLElement;
+  fireEvent.mouseDown(scheduleTypeSelect);
   await waitFor(() => {
-    expect(secondSelect).toBeInTheDocument();
+    expect(screen.getByText('CRON Schedule')).toBeInTheDocument();
   });
+  fireEvent.click(screen.getByText('CRON Schedule'));
+}
 
-  act(() => {
-    userEvent.click(secondSelect);
-  });
+test('switches to CRON input mode and shows text input', async () => {
+  render(<AlertReportCronScheduler {...defaultProps} />);
 
-  expect(await screen.findByText('9')).toBeInTheDocument();
-  act(() => {
-    userEvent.click(screen.getByText('9'));
-  });
+  await switchToCronInputMode();
 
   await waitFor(() => {
-    expect(onChangeCallback).toHaveBeenLastCalledWith('* 9 * * *');
+    expect(screen.getByPlaceholderText('CRON expression')).toBeInTheDocument();
   });
 });
 
-test('input mode updates correctly', async () => {
-  const onChangeCallback = jest.fn();
-  const props = createProps({
-    onChange: onChangeCallback,
-  });
+// Controlled wrapper: the component is fully controlled (value from props),
+// so blur/enter tests need a parent that updates value on onChange.
+function ControlledScheduler({
+  initialValue,
+  onChangeSpy,
+}: {
+  initialValue: string;
+  onChangeSpy: jest.Mock;
+}) {
+  const [value, setValue] = useState(initialValue);
+  return (
+    <AlertReportCronScheduler
+      value={value}
+      onChange={(v: string) => {
+        setValue(v);
+        onChangeSpy(v);
+      }}
+    />
+  );
+}
 
-  render(<AlertReportCronScheduler {...props} />);
+test('calls onChange on blur in CRON input mode', async () => {
+  const onChangeSpy = jest.fn();
+  render(
+    <ControlledScheduler initialValue="0 12 * * 1" onChangeSpy={onChangeSpy} />,
+  );
 
-  const inputContainer = screen.getByTestId('input-content');
-  userEvent.click(screen.getByTestId('input'));
+  await switchToCronInputMode();
 
-  const input = inputContainer.querySelector(
-    'input[name="crontab"]',
-  ) as HTMLElement;
-  await waitFor(() => {
-    expect(input).toBeEnabled();
-  });
+  const input = await screen.findByPlaceholderText('CRON expression');
+  fireEvent.change(input, { target: { value: '*/5 * * * *' } });
 
-  userEvent.clear(input);
-  expect(input).toHaveValue('');
+  // Clear spy so we only assert the blur-specific call
+  onChangeSpy.mockClear();
+  fireEvent.blur(input);
 
-  const value = '* 10 2 * *';
-  await act(async () => {
-    await userEvent.type(input, value, { delay: 1 });
-  });
+  expect(onChangeSpy).toHaveBeenCalledTimes(1);
+  expect(onChangeSpy).toHaveBeenCalledWith('*/5 * * * *');
+});
 
-  await waitFor(() => {
-    expect(input).toHaveValue(value);
-  });
+test('calls onChange on Enter key press in CRON input mode', async () => {
+  const onChangeSpy = jest.fn();
+  render(
+    <ControlledScheduler initialValue="0 12 * * 1" onChangeSpy={onChangeSpy} />,
+  );
 
-  act(() => {
-    userEvent.click(inputContainer);
-  });
+  await switchToCronInputMode();
 
-  expect(onChangeCallback).toHaveBeenLastCalledWith(value);
+  const input = await screen.findByPlaceholderText('CRON expression');
+  fireEvent.change(input, { target: { value: '0 9 * * 1-5' } });
+
+  // Clear spy so we only assert the Enter-specific call
+  onChangeSpy.mockClear();
+  fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+
+  expect(onChangeSpy).toHaveBeenCalledTimes(1);
+  expect(onChangeSpy).toHaveBeenCalledWith('0 9 * * 1-5');
 });

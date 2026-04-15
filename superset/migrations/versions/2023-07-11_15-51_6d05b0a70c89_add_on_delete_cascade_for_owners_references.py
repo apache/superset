@@ -26,7 +26,7 @@ Create Date: 2023-07-11 15:51:57.964635
 revision = "6d05b0a70c89"
 down_revision = "f92a3124dd66"
 
-from superset.migrations.shared.constraints import ForeignKey, redefine
+from superset.migrations.shared.constraints import ForeignKey, redefine  # noqa: E402
 
 foreign_keys = [
     ForeignKey(

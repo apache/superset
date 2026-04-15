@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render } from 'spec/helpers/testing-library';
 
 import MissingChart from 'src/dashboard/components/MissingChart';
@@ -29,8 +28,9 @@ const setup = (overrides?: MissingChartProps) => (
   <MissingChart height={100} {...overrides} />
 );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('MissingChart', () => {
-  it('renders a .missing-chart-container', () => {
+  test('renders a .missing-chart-container', () => {
     const rendered = render(setup());
 
     const missingChartContainer = rendered.container.querySelector(
@@ -39,7 +39,7 @@ describe('MissingChart', () => {
     expect(missingChartContainer).toBeVisible();
   });
 
-  it('renders a .missing-chart-body', () => {
+  test('renders a .missing-chart-body', () => {
     const rendered = render(setup());
 
     const missingChartBody = rendered.container.querySelector(

@@ -26,10 +26,9 @@ Create Date: 2020-12-03 16:21:06.771684
 revision = "811494c0cc23"
 down_revision = "8ee129739cf9"
 
-import sqlalchemy as sa
-from alembic import op
+from alembic import op  # noqa: E402
 
-from superset.migrations.shared import utils
+from superset.migrations.shared import utils  # noqa: E402
 
 
 def upgrade():

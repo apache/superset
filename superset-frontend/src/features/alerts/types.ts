@@ -17,8 +17,9 @@
  * under the License.
  */
 
+import type { ReactNode } from 'react';
 import Owner from 'src/types/Owner';
-import { NOTIFICATION_FORMATS } from 'src/reports/types';
+import { NotificationFormats } from 'src/features/reports/types';
 
 type user = {
   id: number;
@@ -41,19 +42,74 @@ export type DatabaseObject = {
   id: number;
 };
 
-export type NotificationMethodOption = 'Email' | 'Slack';
+export enum NotificationMethodOption {
+  Email = 'Email',
+  Slack = 'Slack',
+  SlackV2 = 'SlackV2',
+  Webhook = 'Webhook',
+}
+
+export type SelectValue = {
+  value: string;
+  label: string;
+};
+
+export type NotificationSetting = {
+  method?: NotificationMethodOption;
+  recipients: string;
+  cc?: string;
+  bcc?: string;
+  options: NotificationMethodOption[];
+};
+
+export type SlackChannel = {
+  id: string;
+  name: string;
+  is_member: boolean;
+  is_private: boolean;
+};
+
+export type TabNode = {
+  title: string;
+  value: string;
+  children?: TabNode[];
+};
 
 export type Recipient = {
   recipient_config_json: {
     target: string;
+    ccTarget?: string;
+    bccTarget?: string;
   };
   type: NotificationMethodOption;
 };
 
 export type MetaObject = {
   id?: number;
-  label?: string;
+  label?: ReactNode;
   value?: number | string;
+  [key: string]: unknown;
+};
+
+export type DashboardState = {
+  activeTabs?: Array<string>;
+  dataMask?: object;
+  anchor?: string;
+  nativeFilters?: Array<ExtraNativeFilter>;
+};
+
+export type ExtraNativeFilter = {
+  filterName?: string;
+  filterType?: string;
+  columnName?: string;
+  columnLabel?: string;
+  filterValues?: Array<any> | [];
+  nativeFilterId?: string | null;
+  optionFilterValues?: Array<any> | [];
+};
+
+export type Extra = {
+  dashboard?: DashboardState;
 };
 
 export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';
@@ -73,7 +129,9 @@ export type AlertObject = {
   dashboard_id?: number;
   database?: MetaObject;
   description?: string;
+  email_subject?: string;
   error?: string;
+  extra?: Extra;
   force_screenshot: boolean;
   grace_period?: number;
   id: number;
@@ -85,7 +143,7 @@ export type AlertObject = {
   sql?: string;
   timezone?: string;
   recipients?: Array<Recipient>;
-  report_format?: NOTIFICATION_FORMATS;
+  report_format?: NotificationFormats;
   type?: string;
   validator_config_json?: {
     op?: Operator;
@@ -117,9 +175,74 @@ export enum AlertState {
 export enum RecipientIconName {
   Email = 'Email',
   Slack = 'Slack',
+  SlackV2 = 'SlackV2',
+  Webhook = 'Webhook',
 }
 export interface AlertsReportsConfig {
   ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT: number;
   ALERT_REPORTS_DEFAULT_RETENTION: number;
   ALERT_REPORTS_DEFAULT_CRON_VALUE: string;
 }
+
+export type SectionValidationObject = {
+  hasErrors: boolean;
+  errors: string[];
+  name: string;
+};
+
+export interface ValidationObject {
+  [key: string]: SectionValidationObject;
+}
+
+export enum Sections {
+  General = 'generalSection',
+  Content = 'contentSection',
+  Alert = 'alertConditionSection',
+  Schedule = 'scheduleSection',
+  Notification = 'notificationSection',
+}
+
+export enum ContentType {
+  Dashboard = 'dashboard',
+  Chart = 'chart',
+}
+
+export type NativeFilterObject = {
+  cascadeParentIds: any[];
+  chartsInScope: number[];
+  controlValues: {
+    defaultToFirstItem: boolean;
+    enableEmptyFilter: boolean;
+    inverseSelection: boolean;
+    multiSelect: boolean;
+    searchAllOptions: boolean;
+  };
+  defaultDataMask: {
+    extraFormData: Record<string, any>;
+    filterState: Record<string, any>;
+    ownState: Record<string, any>;
+  };
+  description: string;
+  filterType: string;
+  id: string;
+  name: string;
+  scope: {
+    excluded: any[];
+    rootPath: string[];
+  };
+  tabsInScope: string[];
+  adhoc_filters: any[];
+  targets: Array<{
+    column: {
+      name: string;
+    };
+    datasetId: number;
+  }>;
+  type: string;
+};
+
+export type DashboardTabsResponse = {
+  tab_tree: TabNode[];
+  all_tabs: Record<string, string>;
+  native_filters: Partial<Record<string, NativeFilterObject[]>>;
+};

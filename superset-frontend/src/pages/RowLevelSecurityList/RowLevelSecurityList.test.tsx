@@ -16,18 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
-import { render, screen, within } from 'spec/helpers/testing-library';
-import { act } from 'react-dom/test-utils';
+import { act, render, screen, within } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import ListView from 'src/components/ListView/ListView';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import userEvent from '@testing-library/user-event';
 import RowLevelSecurityList from '.';
 
@@ -94,58 +87,30 @@ const mockRules = [
     ],
   },
 ];
-fetchMock.get(ruleListEndpoint, { result: mockRules, count: 2 });
-fetchMock.get(ruleInfoEndpoint, { permissions: ['can_read', 'can_write'] });
+fetchMock.get(
+  ruleListEndpoint,
+  { result: mockRules, count: 2 },
+  { name: ruleListEndpoint },
+);
+fetchMock.get(
+  ruleInfoEndpoint,
+  { permissions: ['can_read', 'can_write'] },
+  { name: ruleInfoEndpoint },
+);
 global.URL.createObjectURL = jest.fn();
 
 const mockUser = {
   userId: 1,
 };
 
-const mockedProps = {};
-
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
-
-describe('RulesList Enzyme', () => {
-  let wrapper: any;
-
-  beforeAll(async () => {
-    fetchMock.resetHistory();
-    wrapper = mount(
-      <MemoryRouter>
-        <Provider store={store}>
-          <RowLevelSecurityList {...mockedProps} user={mockUser} />
-        </Provider>
-      </MemoryRouter>,
-    );
-
-    await waitForComponentToPaint(wrapper);
-  });
-
-  it('renders', () => {
-    expect(wrapper.find(RowLevelSecurityList)).toExist();
-  });
-  it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
-  });
-  it('fetched data', () => {
-    // wrapper.update();
-    const apiCalls = fetchMock.calls(/rowlevelsecurity\/\?q/);
-    expect(apiCalls).toHaveLength(1);
-    expect(apiCalls[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/rowlevelsecurity/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
-    );
-  });
-});
-
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('RuleList RTL', () => {
   async function renderAndWait() {
     const mounted = act(async () => {
       const mockedProps = {};
       render(
         <MemoryRouter>
-          <QueryParamProvider>
+          <QueryParamProvider adapter={ReactRouter5Adapter}>
             <RowLevelSecurityList {...mockedProps} user={mockUser} />
           </QueryParamProvider>
         </MemoryRouter>,
@@ -155,24 +120,41 @@ describe('RuleList RTL', () => {
     return mounted;
   }
 
-  it('renders add rule button on empty state', async () => {
-    fetchMock.get(
-      ruleListEndpoint,
-      { result: [], count: 0 },
-      { overwriteRoutes: true },
+  test('renders', async () => {
+    await renderAndWait();
+    expect(screen.getByText('Row Level Security')).toBeVisible();
+  });
+
+  test('renders a ListView', async () => {
+    await renderAndWait();
+    expect(screen.getByTestId('rls-list-view')).toBeInTheDocument();
+  });
+
+  test('fetched data', async () => {
+    fetchMock.clearHistory();
+    await renderAndWait();
+    const apiCalls = fetchMock.callHistory.calls(/rowlevelsecurity\/\?q/);
+    expect(apiCalls).toHaveLength(1);
+    expect(apiCalls[0].url).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/rowlevelsecurity/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
+    fetchMock.clearHistory();
+  });
+
+  test('renders add rule button on empty state', async () => {
+    fetchMock.modifyRoute(ruleListEndpoint, {
+      response: { result: [], count: 0 },
+    });
     await renderAndWait();
 
     const emptyAddRuleButton = await screen.findByTestId('add-rule-empty');
     expect(emptyAddRuleButton).toBeInTheDocument();
-    fetchMock.get(
-      ruleListEndpoint,
-      { result: mockRules, count: 2 },
-      { overwriteRoutes: true },
-    );
+    fetchMock.modifyRoute(ruleListEndpoint, {
+      response: { result: mockRules, count: 2 },
+    });
   });
 
-  it('renders a "Rule" button to add a rule in bulk action', async () => {
+  test('renders a "Rule" button to add a rule in bulk action', async () => {
     await renderAndWait();
 
     const addRuleButton = await screen.findByTestId('add-rule');
@@ -181,38 +163,38 @@ describe('RuleList RTL', () => {
     expect(emptyAddRuleButton).not.toBeInTheDocument();
   });
 
-  it('renders filter options', async () => {
+  test('renders filter options', async () => {
     await renderAndWait();
 
     const searchFilters = screen.queryAllByTestId('filters-search');
     expect(searchFilters).toHaveLength(2);
 
-    const typeFilter = await screen.findByTestId('filters-select');
-    expect(typeFilter).toBeInTheDocument();
+    const typeFilter = screen.queryAllByTestId('filters-select');
+    expect(typeFilter).toHaveLength(3); // Update to expect 3 select filters
   });
 
-  it('renders correct list columns', async () => {
+  test('renders correct list columns', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');
     expect(table).toBeInTheDocument();
 
-    const nameColumn = await within(table).findByText('Name');
-    const fitlerTypeColumn = await within(table).findByText('Filter Type');
-    const groupKeyColumn = await within(table).findByText('Group Key');
-    const clauseColumn = await within(table).findByText('Clause');
-    const modifiedColumn = await within(table).findByText('Modified');
-    const actionsColumn = await within(table).findByText('Actions');
+    const nameColumn = await within(table).findByTitle('Name');
+    const filterTypeColumn = await within(table).findByTitle('Filter Type');
+    const groupKeyColumn = await within(table).findByTitle('Group Key');
+    const clauseColumn = await within(table).findByTitle('Clause');
+    const modifiedColumn = await within(table).findByTitle('Last modified');
+    const actionsColumn = await within(table).findByTitle('Actions');
 
     expect(nameColumn).toBeInTheDocument();
-    expect(fitlerTypeColumn).toBeInTheDocument();
+    expect(filterTypeColumn).toBeInTheDocument();
     expect(groupKeyColumn).toBeInTheDocument();
     expect(clauseColumn).toBeInTheDocument();
     expect(modifiedColumn).toBeInTheDocument();
     expect(actionsColumn).toBeInTheDocument();
   });
 
-  it('renders correct action buttons with write permission', async () => {
+  test('renders correct action buttons with write permission', async () => {
     await renderAndWait();
 
     const deleteActionIcon = screen.queryAllByTestId('rls-list-trash-icon');
@@ -222,12 +204,10 @@ describe('RuleList RTL', () => {
     expect(editActionIcon).toHaveLength(2);
   });
 
-  it('should not renders correct action buttons without write permission', async () => {
-    fetchMock.get(
-      ruleInfoEndpoint,
-      { permissions: ['can_read'] },
-      { overwriteRoutes: true },
-    );
+  test('should not renders correct action buttons without write permission', async () => {
+    fetchMock.modifyRoute(ruleInfoEndpoint, {
+      response: { permissions: ['can_read'] },
+    });
 
     await renderAndWait();
 
@@ -237,14 +217,12 @@ describe('RuleList RTL', () => {
     const editActionIcon = screen.queryByTestId('edit-alt');
     expect(editActionIcon).not.toBeInTheDocument();
 
-    fetchMock.get(
-      ruleInfoEndpoint,
-      { permissions: ['can_read', 'can_write'] },
-      { overwriteRoutes: true },
-    );
+    fetchMock.modifyRoute(ruleInfoEndpoint, {
+      response: { permissions: ['can_read', 'can_write'] },
+    });
   });
 
-  it('renders popover on new clicking rule button', async () => {
+  test('renders popover on new clicking rule button', async () => {
     await renderAndWait();
 
     const modal = screen.queryByTestId('rls-modal-title');

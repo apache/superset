@@ -17,11 +17,11 @@
  * under the License.
  */
 import { DatasourceType } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { Dataset } from './types';
 
 export const TestDataset: Dataset = {
   column_formats: {},
-  currency_formats: {},
   columns: [
     {
       advanced_data_type: undefined,
@@ -37,7 +37,7 @@ export const TestDataset: Dataset = {
       is_dttm: false,
       python_date_format: null,
       type: 'BIGINT',
-      type_generic: 0,
+      type_generic: GenericDataType.Numeric,
       verbose_name: null,
       warning_markdown: null,
     },
@@ -55,7 +55,7 @@ export const TestDataset: Dataset = {
       is_dttm: false,
       python_date_format: null,
       type: 'VARCHAR(16)',
-      type_generic: 1,
+      type_generic: GenericDataType.String,
       verbose_name: '',
       warning_markdown: null,
     },
@@ -73,7 +73,7 @@ export const TestDataset: Dataset = {
       is_dttm: false,
       python_date_format: null,
       type: 'VARCHAR(10)',
-      type_generic: 1,
+      type_generic: GenericDataType.String,
       verbose_name: null,
       warning_markdown: null,
     },
@@ -91,7 +91,7 @@ export const TestDataset: Dataset = {
       is_dttm: true,
       python_date_format: null,
       type: 'TIMESTAMP WITHOUT TIME ZONE',
-      type_generic: 2,
+      type_generic: GenericDataType.Temporal,
       verbose_name: null,
       warning_markdown: null,
     },
@@ -109,7 +109,7 @@ export const TestDataset: Dataset = {
       is_dttm: false,
       python_date_format: null,
       type: 'VARCHAR(255)',
-      type_generic: 1,
+      type_generic: GenericDataType.String,
       verbose_name: null,
       warning_markdown: null,
     },
@@ -121,6 +121,7 @@ export const TestDataset: Dataset = {
   main_dttm_col: 'ds',
   metrics: [
     {
+      uuid: '123',
       certification_details: null,
       certified_by: null,
       d3format: null,

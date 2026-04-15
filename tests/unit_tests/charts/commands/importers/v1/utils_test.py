@@ -15,9 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
-
-from superset.charts.commands.importers.v1.utils import migrate_chart
+from superset.commands.chart.importers.v1.utils import migrate_chart
+from superset.utils import json
 
 
 def test_migrate_chart_area() -> None:
@@ -31,12 +30,21 @@ def test_migrate_chart_area() -> None:
         "description": None,
         "certified_by": None,
         "certification_details": None,
-        "viz_type": "area",
+        "viz_type": "echarts_area",
+        "query_context": None,
         "params": json.dumps(
             {
-                "adhoc_filters": [],
+                "adhoc_filters": [
+                    {
+                        "clause": "WHERE",
+                        "subject": "ds",
+                        "operator": "TEMPORAL_RANGE",
+                        "comparator": "No filter",
+                        "expressionType": "SIMPLE",
+                    }
+                ],
                 "annotation_layers": [],
-                "bottom_margin": "auto",
+                "x_axis_title_margin": "auto",
                 "color_scheme": "supersetColors",
                 "comparison_type": "values",
                 "dashboards": [],
@@ -163,3 +171,44 @@ def test_migrate_pivot_table() -> None:
         "version": "1.0.0",
         "dataset_uuid": "a18b9cb0-b8d3-42ed-bd33-0f0fadbf0f6d",
     }
+
+
+def test_migrate_chart_query_context_form_data_is_dict() -> None:
+    """
+    Test that form_data in query_context remains a dict after migration.
+    """
+    chart_config = {
+        "slice_name": "Pivot Table with Query Context",
+        "description": None,
+        "certified_by": None,
+        "certification_details": None,
+        "viz_type": "pivot_table",
+        "params": json.dumps(
+            {
+                "columns": ["state"],
+                "groupby": ["name"],
+                "metrics": ["count"],
+                "viz_type": "pivot_table",
+            }
+        ),
+        "query_context": json.dumps(
+            {
+                "form_data": {
+                    "slice_id": 123,
+                    "viz_type": "pivot_table",
+                    "columns": ["state"],
+                },
+                "queries": [{"columns": ["state"]}],
+            }
+        ),
+        "cache_timeout": None,
+        "uuid": "a18b9cb0-b8d3-42ed-bd33-0f0fadbf0f6d",
+        "version": "1.0.0",
+        "dataset_uuid": "ffd15af2-2188-425c-b6b4-df28aac45872",
+    }
+
+    new_config = migrate_chart(chart_config)
+    query_context = json.loads(new_config["query_context"])
+
+    assert query_context["form_data"]["viz_type"] == "pivot_table_v2"
+    assert isinstance(query_context["form_data"], dict)

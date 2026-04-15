@@ -23,6 +23,7 @@ import {
 } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlPanelSectionConfig,
   expandControlConfig,
   isControlPanelSectionConfig,
 } from '@superset-ui/chart-controls';
@@ -38,7 +39,12 @@ const getMemoizedSectionsToRender = memoizeOne(
     } = controlPanelConfig;
 
     // default control panel sections
-    const sections = { ...SECTIONS };
+    const sections: Record<
+      string,
+      | ControlPanelSectionConfig
+      | ControlPanelSectionConfig[]
+      | Partial<ControlPanelSectionConfig>
+    > = { ...SECTIONS };
 
     // apply section overrides
     Object.entries(sectionOverrides).forEach(([section, overrides]) => {
@@ -52,7 +58,13 @@ const getMemoizedSectionsToRender = memoizeOne(
       }
     });
 
-    const { datasourceAndVizType } = sections;
+    const {
+      datasourceAndVizType,
+      matrixifyRows = null,
+      matrixifyColumns = null,
+      matrixifyCells = null,
+      matrixifyEnableSection = null,
+    } = sections;
 
     // list of datasource-specific controls that should be removed if the datasource is a specific type
     const filterControlsForTypes = [DatasourceType.Query, DatasourceType.Table];
@@ -60,9 +72,17 @@ const getMemoizedSectionsToRender = memoizeOne(
       ? ['granularity']
       : ['granularity_sqla', 'time_grain_sqla'];
 
-    return [datasourceAndVizType]
+    return [
+      datasourceAndVizType as ControlPanelSectionConfig,
+      matrixifyEnableSection as ControlPanelSectionConfig,
+      matrixifyColumns as ControlPanelSectionConfig,
+      matrixifyRows as ControlPanelSectionConfig,
+      matrixifyCells as ControlPanelSectionConfig,
+    ]
+      .filter(Boolean) // Filter out null/undefined sections
       .concat(controlPanelSections.filter(isControlPanelSectionConfig))
       .map(section => {
+        if (!section) return null;
         const { controlSetRows } = section;
         return {
           ...section,
@@ -77,7 +97,8 @@ const getMemoizedSectionsToRender = memoizeOne(
                 .map(item => expandControlConfig(item, controlOverrides)),
             ) || [],
         };
-      });
+      })
+      .filter(Boolean); // Filter out any null results
   },
 );
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import styled from '@emotion/styled';
 import { mq } from '../utils';
 
@@ -39,11 +39,12 @@ const StyledBlurredSection = styled('section')`
 
 interface BlurredSectionProps {
   children: ReactNode;
+  id?: string;
 }
 
-const BlurredSection = ({ children }: BlurredSectionProps) => {
+const BlurredSection = ({ children, id }: BlurredSectionProps) => {
   return (
-    <StyledBlurredSection>
+    <StyledBlurredSection id={id}>
       {children}
       <img className="blur" src="/img/community/blur.png" alt="Blur" />
     </StyledBlurredSection>

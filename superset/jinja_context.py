@@ -15,26 +15,46 @@
 # specific language governing permissions and limitations
 # under the License.
 """Defines the templating context for SQL Lab"""
-import json
-import re
-from functools import lru_cache, partial
-from typing import Any, Callable, cast, Optional, TYPE_CHECKING, Union
 
+from __future__ import annotations
+
+import logging
+import re
+from dataclasses import dataclass
+from datetime import datetime
+from functools import lru_cache, partial
+from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
+
+import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
-from jinja2 import DebugUndefined
+from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
+from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
-from typing_extensions import TypedDict
 
-from superset.constants import LRU_CACHE_MAX_SIZE
-from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.exceptions import SupersetTemplateException
+from superset import security_manager
+from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import (
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
+)
 from superset.extensions import feature_flag_manager
+from superset.sql.parse import Table
+from superset.superset_typing import Column, QueryObjectDict
+from superset.utils import json
 from superset.utils.core import (
+    AdhocFilterClause,
     convert_legacy_filters_into_adhoc,
+    FilterOperator,
+    get_user_email,
     get_user_id,
+    get_username,
     merge_extra_filters,
 )
 
@@ -42,6 +62,15 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.models.sql_lab import Query
+
+logger = logging.getLogger(__name__)
+
+
+class UndefinedTemplateFunctionException(SupersetTemplateException):
+    """Raised when an undefined function-like Jinja identifier is encountered."""
+
+    pass
+
 
 NONE_TYPE = type(None).__name__
 ALLOWED_TYPES = (
@@ -56,6 +85,7 @@ ALLOWED_TYPES = (
     "dict",
     "tuple",
     "set",
+    "TimeFilter",
 )
 COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
@@ -71,6 +101,17 @@ class Filter(TypedDict):
     val: Union[None, Any, list[Any]]
 
 
+@dataclass
+class TimeFilter:
+    """
+    Container for temporal filter.
+    """
+
+    from_expr: str | None
+    to_expr: str | None
+    time_range: str | None
+
+
 class ExtraCache:
     """
     Dummy class that exposes a method used to store additional values used in
@@ -80,27 +121,35 @@ class ExtraCache:
     # Regular expression for detecting the presence of templated methods which could
     # be added to the cache key.
     regex = re.compile(
-        r"\{\{.*("
-        r"current_user_id\(.*\)|"
-        r"current_username\(.*\)|"
-        r"cache_key_wrapper\(.*\)|"
-        r"url_param\(.*\)"
-        r").*\}\}"
+        r"(\{\{|\{%)[^{}]*?("
+        r"current_user_id\([^)]*\)|"
+        r"current_username\([^)]*\)|"
+        r"current_user_email\([^)]*\)|"
+        r"current_user_rls_rules\([^)]*\)|"
+        r"current_user_roles\([^)]*\)|"
+        r"cache_key_wrapper\([^)]*\)|"
+        r"url_param\([^)]*\)"
+        r")"
+        r"[^{}]*?(\}\}|\%\})"
     )
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
-        extra_cache_keys: Optional[list[Any]] = None,
-        applied_filters: Optional[list[str]] = None,
-        removed_filters: Optional[list[str]] = None,
-        dialect: Optional[Dialect] = None,
+        extra_cache_keys: list[Any] | None = None,
+        applied_filters: list[str] | None = None,
+        removed_filters: list[str] | None = None,
+        database: Database | None = None,
+        dialect: Dialect | None = None,
+        table: SqlaTable | None = None,
     ):
         self.extra_cache_keys = extra_cache_keys
         self.applied_filters = applied_filters if applied_filters is not None else []
         self.removed_filters = removed_filters if removed_filters is not None else []
+        self.database = database
         self.dialect = dialect
+        self.table = table
 
-    def current_user_id(self, add_to_cache_keys: bool = True) -> Optional[int]:
+    def current_user_id(self, add_to_cache_keys: bool = True) -> int | None:
         """
         Return the user ID of the user who is currently logged in.
 
@@ -108,14 +157,13 @@ class ExtraCache:
         :returns: The user ID
         """
 
-        if hasattr(g, "user") and g.user:
-            id_ = get_user_id()
+        if user_id := get_user_id():
             if add_to_cache_keys:
-                self.cache_key_wrapper(id_)
-            return id_
+                self.cache_key_wrapper(user_id)
+            return user_id
         return None
 
-    def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
+    def current_username(self, add_to_cache_keys: bool = True) -> str | None:
         """
         Return the username of the user who is currently logged in.
 
@@ -123,11 +171,69 @@ class ExtraCache:
         :returns: The username
         """
 
-        if g.user and hasattr(g.user, "username"):
+        if username := get_username():
             if add_to_cache_keys:
-                self.cache_key_wrapper(g.user.username)
-            return g.user.username
+                self.cache_key_wrapper(username)
+            return username
         return None
+
+    def current_user_email(self, add_to_cache_keys: bool = True) -> str | None:
+        """
+        Return the email address of the user who is currently logged in.
+
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: The user email address
+        """
+
+        if email_address := get_user_email():
+            if add_to_cache_keys:
+                self.cache_key_wrapper(email_address)
+            return email_address
+        return None
+
+    def current_user_roles(self, add_to_cache_keys: bool = True) -> list[str] | None:
+        """
+        Return the sorted list of roles of the user who is currently logged in.
+
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: List of role names
+        """
+        try:
+            user_roles = sorted(
+                [role.name for role in security_manager.get_user_roles()]
+            )
+            if not user_roles:
+                return None
+            if add_to_cache_keys:
+                self.cache_key_wrapper(json.dumps(user_roles))
+            return user_roles
+        except Exception:  # pylint: disable=broad-except
+            return None
+
+    def current_user_rls_rules(self) -> list[str] | None:
+        """
+        Return the row level security rules applied to the current user and dataset.
+        """
+        if not self.table:
+            return None
+
+        rls_rules = (
+            sorted(
+                [
+                    rule["clause"]
+                    for rule in security_manager.get_guest_rls_filters(self.table)
+                ]
+            )
+            if security_manager.is_guest_user()
+            else sorted(
+                [rule.clause for rule in security_manager.get_rls_filters(self.table)]
+            )
+        )
+        if not rls_rules:
+            return None
+
+        self.cache_key_wrapper(json.dumps(rls_rules))
+        return rls_rules
 
     def cache_key_wrapper(self, key: Any) -> Any:
         """
@@ -149,16 +255,16 @@ class ExtraCache:
     def url_param(
         self,
         param: str,
-        default: Optional[str] = None,
+        default: str | None = None,
         add_to_cache_keys: bool = True,
         escape_result: bool = True,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Read a url or post parameter and use it in your SQL Lab query.
 
         When in SQL Lab, it's possible to add arbitrary URL "query string" parameters,
         and use those in your SQL code. For instance you can alter your url and add
-        `?foo=bar`, as in `{domain}/superset/sqllab?foo=bar`. Then if your query is
+        `?foo=bar`, as in `{domain}/sqllab?foo=bar`. Then if your query is
         something like SELECT * FROM foo = '{{ url_param('foo') }}', it will be parsed
         at runtime and replaced by the value in the URL.
 
@@ -195,7 +301,7 @@ class ExtraCache:
         return result
 
     def filter_values(
-        self, column: str, default: Optional[str] = None, remove_filter: bool = False
+        self, column: str, default: str | None = None, remove_filter: bool = False
     ) -> list[Any]:
         """Gets a values for a particular filter as a list
 
@@ -265,11 +371,11 @@ class ExtraCache:
                 {%- for filter in get_filters('full_name', remove_filter=True) -%}
                 {%- if filter.get('op') == 'IN' -%}
                     AND
-                    full_name IN ( {{ "'" + "', '".join(filter.get('val')) + "'" }} )
+                    full_name IN {{ filter.get('val')|where_in }}
                 {%- endif -%}
                 {%- if filter.get('op') == 'LIKE' -%}
                     AND
-                    full_name LIKE {{ "'" + filter.get('val') + "'" }}
+                    full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
                 {%- endif -%}
                 {%- endfor -%}
                 UNION ALL
@@ -299,7 +405,6 @@ class ExtraCache:
         :return: returns a list of filters
         """
         # pylint: disable=import-outside-toplevel
-        from superset.utils.core import FilterOperator
         from superset.views.utils import get_form_data
 
         form_data, _ = get_form_data()
@@ -310,13 +415,20 @@ class ExtraCache:
 
         for flt in form_data.get("adhoc_filters", []):
             val: Union[Any, list[Any]] = flt.get("comparator")
-            op: str = flt["operator"].upper() if flt.get("operator") else None
-            # fltOpName: str = flt.get("filterOptionName")
+            op: str = flt["operator"].upper() if flt.get("operator") else None  # type: ignore
             if (
                 flt.get("expressionType") == "SIMPLE"
                 and flt.get("clause") == "WHERE"
                 and flt.get("subject") == column
-                and val
+                and (
+                    val
+                    # IS_NULL and IS_NOT_NULL operators do not have a value
+                    or op
+                    in (
+                        FilterOperator.IS_NULL,
+                        FilterOperator.IS_NOT_NULL,
+                    )
+                )
             ):
                 if remove_filter:
                     if column not in self.removed_filters:
@@ -325,14 +437,91 @@ class ExtraCache:
                     self.applied_filters.append(column)
 
                 if op in (
-                    FilterOperator.IN.value,
-                    FilterOperator.NOT_IN.value,
+                    FilterOperator.IN,
+                    FilterOperator.NOT_IN,
                 ) and not isinstance(val, list):
                     val = [val]
 
                 filters.append({"op": op, "col": column, "val": val})
 
         return filters
+
+    # pylint: disable=too-many-arguments
+    def get_time_filter(
+        self,
+        column: str | None = None,
+        default: str | None = None,
+        target_type: str | None = None,
+        strftime: str | None = None,
+        remove_filter: bool = False,
+    ) -> TimeFilter:
+        """Get the time filter with appropriate formatting,
+        either for a specific column, or whichever time range is being emitted
+        from a dashboard.
+
+        :param column: Name of the temporal column. Leave undefined to reference the
+            time range from a Dashboard Native Time Range filter (when present).
+        :param default: The default value to fall back to if the time filter is
+            not present, or has the value `No filter`
+        :param target_type: The target temporal type as recognized by the target
+            database (e.g. `TIMESTAMP`, `DATE` or `DATETIME`). If `column` is defined,
+            the format will default to the type of the column. This is used to produce
+            the format of the `from_expr` and `to_expr` properties of the returned
+            `TimeFilter` object.
+        :param strftime: format using the `strftime` method of `datetime`. When defined
+            `target_type` will be ignored.
+        :param remove_filter: When set to true, mark the filter as processed,
+            removing it from the outer query. Useful when a filter should
+            only apply to the inner query.
+        :return: The corresponding time filter.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.views.utils import get_form_data
+
+        form_data, _ = get_form_data()
+        convert_legacy_filters_into_adhoc(form_data)
+        merge_extra_filters(form_data)
+        time_range = form_data.get("time_range")
+        if column:
+            flt: AdhocFilterClause | None = next(
+                (
+                    flt
+                    for flt in form_data.get("adhoc_filters", [])
+                    if flt["operator"] == FilterOperator.TEMPORAL_RANGE
+                    and flt["subject"] == column
+                ),
+                None,
+            )
+            if flt:
+                if remove_filter:
+                    if column not in self.removed_filters:
+                        self.removed_filters.append(column)
+                if column not in self.applied_filters:
+                    self.applied_filters.append(column)
+
+                time_range = cast(str, flt["comparator"])
+                if not target_type and self.table:
+                    target_type = self.table.columns_types.get(column)
+
+        time_range = time_range or NO_TIME_RANGE
+        if time_range == NO_TIME_RANGE and default:
+            time_range = default
+        from_expr, to_expr = get_since_until_from_time_range(time_range)
+
+        def _format_dttm(dttm: datetime | None) -> str | None:
+            if strftime and dttm:
+                return dttm.strftime(strftime)
+            return (
+                self.database.db_engine_spec.convert_dttm(target_type or "", dttm)
+                if self.database and dttm
+                else None
+            )
+
+        return TimeFilter(
+            from_expr=_format_dttm(from_expr),
+            to_expr=_format_dttm(to_expr),
+            time_range=time_range,
+        )
 
 
 def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
@@ -385,7 +574,7 @@ def validate_context_types(context: dict[str, Any]) -> dict[str, Any]:
 
 
 def validate_template_context(
-    engine: Optional[str], context: dict[str, Any]
+    engine: str | None, context: dict[str, Any]
 ) -> dict[str, Any]:
     if engine and engine in context:
         # validate engine context separately to allow for engine-specific methods
@@ -397,23 +586,68 @@ def validate_template_context(
     return validate_context_types(context)
 
 
-def where_in(values: list[Any], mark: str = "'") -> str:
+class WhereInMacro:  # pylint: disable=too-few-public-methods
+    def __init__(self, dialect: Dialect):
+        self.dialect = dialect
+
+    def __call__(
+        self,
+        values: list[Any],
+        mark: str | None = None,
+        default_to_none: bool = False,
+    ) -> str | None:
+        """
+        Given a list of values, build a parenthesis list suitable for an IN expression.
+
+            >>> from sqlalchemy.dialects import mysql
+            >>> where_in = WhereInMacro(dialect=mysql.dialect())
+            >>> where_in([1, "Joe's", 3])
+            (1, 'Joe''s', 3)
+
+        The `default_to_none` parameter is used to determine the return value when the
+        list of values is empty:
+            - If `default_to_none` is `False` (default), the return value is ().
+            - If `default_to_none` is `True`, the return value is `None`.
+        """
+        binds = [bindparam(f"value_{i}", value) for i, value in enumerate(values)]
+        string_representations = [
+            str(
+                bind.compile(
+                    dialect=self.dialect, compile_kwargs={"literal_binds": True}
+                )
+            )
+            for bind in binds
+        ]
+        joined_values = ", ".join(string_representations)
+        result = (
+            f"({joined_values})" if (joined_values or not default_to_none) else None
+        )
+
+        if mark and result:
+            result += (
+                "\n-- WARNING: the `mark` parameter was removed from the `where_in` "
+                "macro for security reasons\n"
+            )
+
+        return result
+
+
+def to_datetime(
+    value: str | None, format: str = "%Y-%m-%d %H:%M:%S"
+) -> datetime | None:
     """
-    Given a list of values, build a parenthesis list suitable for an IN expression.
+    Parses a string into a datetime object.
 
-        >>> where_in([1, "b", 3])
-        (1, 'b', 3)
-
+    :param value: the string to parse.
+    :param format: the format to parse the string with.
+    :returns: the parsed datetime object.
     """
+    if not value:
+        return None
 
-    def quote(value: Any) -> str:
-        if isinstance(value, str):
-            value = value.replace(mark, mark * 2)
-            return f"{mark}{value}{mark}"
-        return str(value)
-
-    joined_values = ", ".join(quote(value) for value in values)
-    return f"({joined_values})"
+    # This value might come from a macro that could be including wrapping quotes
+    value = value.strip("'\"")
+    return datetime.strptime(value, format)
 
 
 class BaseTemplateProcessor:
@@ -421,17 +655,17 @@ class BaseTemplateProcessor:
     Base class for database-specific jinja context
     """
 
-    engine: Optional[str] = None
+    engine: str | None = None
 
     # pylint: disable=too-many-arguments
     def __init__(
         self,
         database: "Database",
-        query: Optional["Query"] = None,
-        table: Optional["SqlaTable"] = None,
-        extra_cache_keys: Optional[list[Any]] = None,
-        removed_filters: Optional[list[str]] = None,
-        applied_filters: Optional[list[str]] = None,
+        query: "Query" | None = None,
+        table: "SqlaTable" | None = None,
+        extra_cache_keys: list[Any] | None = None,
+        removed_filters: list[str] | None = None,
+        applied_filters: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
         self._database = database
@@ -441,19 +675,27 @@ class BaseTemplateProcessor:
             self._schema = query.schema
         elif table:
             self._schema = table.schema
+        self._table = table
         self._extra_cache_keys = extra_cache_keys
         self._applied_filters = applied_filters
         self._removed_filters = removed_filters
         self._context: dict[str, Any] = {}
-        self._env = SandboxedEnvironment(undefined=DebugUndefined)
+        self.env: Environment = SandboxedEnvironment(undefined=DebugUndefined)
         self.set_context(**kwargs)
 
         # custom filters
-        self._env.filters["where_in"] = where_in
+        self.env.filters["where_in"] = WhereInMacro(database.get_dialect())
+        self.env.filters["to_datetime"] = to_datetime
 
     def set_context(self, **kwargs: Any) -> None:
         self._context.update(kwargs)
         self._context.update(context_addons())
+
+    def get_context(self) -> dict[str, Any]:
+        """
+        Returns the current template context.
+        """
+        return self._context.copy()
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
@@ -462,32 +704,157 @@ class BaseTemplateProcessor:
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
-        template = self._env.from_string(sql)
-        kwargs.update(self._context)
+        try:
+            template = self.env.from_string(sql)
+        except (
+            TemplateSyntaxError,
+            SecurityError,
+            UndefinedError,
+            UnicodeError,
+            UnicodeDecodeError,
+            UnicodeEncodeError,
+        ) as ex:
+            error_msg = str(ex)
+            exception_type = type(ex).__name__
 
+            message = f"Jinja2 template error ({exception_type}): {error_msg}"
+
+            line_number = getattr(ex, "lineno", None)
+
+            logger.warning(
+                "Jinja2 template client error",
+                extra={
+                    "error_message": error_msg,
+                    "template_snippet": sql[:200] if sql else None,
+                    "template_length": len(sql) if sql else 0,
+                    "line_number": line_number,
+                    "error_type": "CLIENT_TEMPLATE_ERROR",
+                    "exception_type": exception_type,
+                },
+                exc_info=False,
+            )
+
+            error = SupersetError(
+                message=message,
+                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "template": sql[:500],
+                    "line": line_number,
+                    "exception_type": exception_type,
+                },
+            )
+
+            raise SupersetSyntaxErrorException([error]) from ex
+        except Exception as ex:
+            error_msg = str(ex)
+            exception_type = type(ex).__name__
+
+            message = f"Internal Jinja2 template error ({exception_type}): {error_msg}"
+
+            logger.error(
+                "Jinja2 template server error",
+                extra={
+                    "error_message": error_msg,
+                    "template_snippet": sql[:200] if sql else None,
+                    "template_length": len(sql) if sql else 0,
+                    "error_type": "SERVER_TEMPLATE_ERROR",
+                    "exception_type": exception_type,
+                },
+                exc_info=True,
+            )
+
+            raise SupersetTemplateException(message) from ex
+
+        kwargs.update(self._context)
         context = validate_template_context(self.engine, kwargs)
-        return template.render(context)
+
+        try:
+            return template.render(context)
+        except RecursionError as ex:
+            raise SupersetTemplateException(
+                "Infinite recursion detected in template"
+            ) from ex
+        except UndefinedError as ex:
+            match = re.search(r'["\']([^"\']+)["\']\s+is undefined', str(ex))
+            undefined_name = match.group(1) if match else None
+            if undefined_name and re.search(
+                r"\{\{\s*(?:[\w\.]*\.)?" + re.escape(undefined_name) + r"\s*\(", sql
+            ):
+                raise UndefinedTemplateFunctionException(str(ex)) from ex
+            raise
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
+    def _parse_datetime(self, dttm: str) -> datetime | None:
+        """
+        Try to parse a datetime and default to None in the worst case.
+
+        Since this may have been rendered by different engines, the datetime may
+        vary slightly in format. We try to make it consistent, and if all else
+        fails, just return None.
+        """
+        try:
+            return dateutil.parser.parse(dttm)
+        except dateutil.parser.ParserError:
+            return None
+
     def set_context(self, **kwargs: Any) -> None:
         super().set_context(**kwargs)
         extra_cache = ExtraCache(
             extra_cache_keys=self._extra_cache_keys,
             applied_filters=self._applied_filters,
             removed_filters=self._removed_filters,
+            database=self._database,
             dialect=self._database.get_dialect(),
+            table=self._table,
         )
+
+        from_dttm = (
+            self._parse_datetime(dttm)
+            if (dttm := self._context.get("from_dttm"))
+            else None
+        )
+        to_dttm = (
+            self._parse_datetime(dttm)
+            if (dttm := self._context.get("to_dttm"))
+            else None
+        )
+
+        dataset_macro_with_context = partial(
+            dataset_macro,
+            from_dttm=from_dttm,
+            to_dttm=to_dttm,
+        )
+
         self._context.update(
             {
                 "url_param": partial(safe_proxy, extra_cache.url_param),
                 "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
                 "current_username": partial(safe_proxy, extra_cache.current_username),
+                "current_user_email": partial(
+                    safe_proxy, extra_cache.current_user_email
+                ),
+                "current_user_roles": partial(
+                    safe_proxy, extra_cache.current_user_roles
+                ),
+                "current_user_rls_rules": partial(
+                    safe_proxy, extra_cache.current_user_rls_rules
+                ),
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
-                "dataset": partial(safe_proxy, dataset_macro),
+                "dataset": partial(safe_proxy, dataset_macro_with_context),
+                "get_time_filter": partial(safe_proxy, extra_cache.get_time_filter),
             }
+        )
+
+        # The `metric` filter needs the full context, in order to expand other filters
+        self._context["metric"] = partial(
+            safe_proxy,
+            metric_macro,
+            self.env,
+            self._context,
         )
 
 
@@ -496,7 +863,7 @@ class NoOpTemplateProcessor(BaseTemplateProcessor):
         """
         Makes processing a template a noop
         """
-        return sql
+        return str(sql)
 
 
 class PrestoTemplateProcessor(JinjaTemplateProcessor):
@@ -518,14 +885,12 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         }
 
     @staticmethod
-    def _schema_table(
-        table_name: str, schema: Optional[str]
-    ) -> tuple[str, Optional[str]]:
+    def _schema_table(table_name: str, schema: str | None) -> tuple[str, str | None]:
         if "." in table_name:
             schema, table_name = table_name.split(".")
         return table_name, schema
 
-    def first_latest_partition(self, table_name: str) -> Optional[str]:
+    def first_latest_partition(self, table_name: str) -> str | None:
         """
         Gets the first value in the array of all latest partitions
 
@@ -537,7 +902,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         latest_partitions = self.latest_partitions(table_name)
         return latest_partitions[0] if latest_partitions else None
 
-    def latest_partitions(self, table_name: str) -> Optional[list[str]]:
+    def latest_partitions(self, table_name: str) -> list[str] | None:
         """
         Gets the array of all latest partitions
 
@@ -550,7 +915,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
 
         table_name, schema = self._schema_table(table_name, self._schema)
         return cast(PrestoEngineSpec, self._database.db_engine_spec).latest_partition(
-            table_name, schema, self._database
+            database=self._database, table=Table(table_name, schema)
         )[1]
 
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
@@ -562,7 +927,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         return cast(
             PrestoEngineSpec, self._database.db_engine_spec
         ).latest_sub_partition(
-            table_name=table_name, schema=schema, database=self._database, **kwargs
+            database=self._database, table=Table(table_name, schema), **kwargs
         )
 
     latest_partition = first_latest_partition
@@ -572,11 +937,24 @@ class HiveTemplateProcessor(PrestoTemplateProcessor):
     engine = "hive"
 
 
+class SparkTemplateProcessor(HiveTemplateProcessor):
+    engine = "spark"
+
+    def process_template(self, sql: str, **kwargs: Any) -> str:
+        template = self.env.from_string(sql)
+        kwargs.update(self._context)
+
+        # Backwards compatibility if migrating from Hive.
+        context = validate_template_context(self.engine, kwargs)
+        context["hive"] = context["spark"]
+        return template.render(context)
+
+
 class TrinoTemplateProcessor(PrestoTemplateProcessor):
     engine = "trino"
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
-        template = self._env.from_string(sql)
+        template = self.env.from_string(sql)
         kwargs.update(self._context)
 
         # Backwards compatibility if migrating from Presto.
@@ -588,6 +966,7 @@ class TrinoTemplateProcessor(PrestoTemplateProcessor):
 DEFAULT_PROCESSORS = {
     "presto": PrestoTemplateProcessor,
     "hive": HiveTemplateProcessor,
+    "spark": SparkTemplateProcessor,
     "trino": TrinoTemplateProcessor,
 }
 
@@ -597,7 +976,7 @@ def get_template_processors() -> dict[str, Any]:
     processors = current_app.config.get("CUSTOM_TEMPLATE_PROCESSORS", {})
     for engine, processor in DEFAULT_PROCESSORS.items():
         # do not overwrite engine-specific CUSTOM_TEMPLATE_PROCESSORS
-        if not engine in processors:
+        if engine not in processors:
             processors[engine] = processor
 
     return processors
@@ -605,8 +984,8 @@ def get_template_processors() -> dict[str, Any]:
 
 def get_template_processor(
     database: "Database",
-    table: Optional["SqlaTable"] = None,
-    query: Optional["Query"] = None,
+    table: "SqlaTable" | None = None,
+    query: "Query" | None = None,
     **kwargs: Any,
 ) -> BaseTemplateProcessor:
     if feature_flag_manager.is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
@@ -621,13 +1000,19 @@ def get_template_processor(
 def dataset_macro(
     dataset_id: int,
     include_metrics: bool = False,
-    columns: Optional[list[str]] = None,
+    columns: list[str] | None = None,
+    from_dttm: datetime | None = None,
+    to_dttm: datetime | None = None,
 ) -> str:
     """
     Given a dataset ID, return the SQL that represents it.
 
     The generated SQL includes all columns (including computed) by default. Optionally
     the user can also request metrics to be included, and columns to group by.
+
+    The from_dttm and to_dttm parameters are filled in from filter values in explore
+    views, and we take them to make those properties available to jinja templates in
+    the underlying dataset.
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.dataset import DatasetDAO
@@ -638,12 +1023,108 @@ def dataset_macro(
 
     columns = columns or [column.column_name for column in dataset.columns]
     metrics = [metric.metric_name for metric in dataset.metrics]
-    query_obj = {
+    query_obj: QueryObjectDict = {
         "is_timeseries": False,
         "filter": [],
         "metrics": metrics if include_metrics else None,
-        "columns": columns,
+        "columns": cast(list[Column], columns),
+        "from_dttm": from_dttm,
+        "to_dttm": to_dttm,
     }
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql
     return f"(\n{sql}\n) AS dataset_{dataset_id}"
+
+
+def get_dataset_id_from_context(metric_key: str) -> int:
+    """
+    Retrieves the Dataset ID from the request context.
+
+    :param metric_key: the metric key.
+    :returns: the dataset ID.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.chart import ChartDAO
+    from superset.views.utils import loads_request_json
+
+    form_data: dict[str, Any] = {}
+    exc_message = _(
+        "Please specify the Dataset ID for the ``%(name)s`` metric in the Jinja macro.",
+        name=metric_key,
+    )
+
+    if has_request_context():
+        if payload := request.get_json(cache=True) if request.is_json else None:
+            if dataset_id := payload.get("datasource", {}).get("id"):
+                return dataset_id
+            form_data.update(payload.get("form_data", {}))
+        request_form = loads_request_json(request.form.get("form_data"))
+        form_data.update(request_form)
+        request_args = loads_request_json(request.args.get("form_data"))
+        form_data.update(request_args)
+
+    if form_data := (form_data or getattr(g, "form_data", {})):
+        if datasource_info := form_data.get("datasource"):
+            if isinstance(datasource_info, dict):
+                return datasource_info["id"]
+            return datasource_info.split("__")[0]
+        url_params = form_data.get("queries", [{}])[0].get("url_params", {})
+        if dataset_id := url_params.get("datasource_id"):
+            return dataset_id
+        if chart_id := (form_data.get("slice_id") or url_params.get("slice_id")):
+            chart_data = ChartDAO.find_by_id(chart_id)
+            if not chart_data:
+                raise SupersetTemplateException(exc_message)
+            return chart_data.datasource_id
+
+    raise SupersetTemplateException(exc_message)
+
+
+def metric_macro(
+    env: Environment,
+    context: dict[str, Any],
+    metric_key: str,
+    dataset_id: int | None = None,
+) -> str:
+    """
+    Given a metric key, returns its syntax.
+
+    The ``dataset_id`` is optional and if not specified, will be retrieved
+    from the request context (if available).
+
+    :param metric_key: the metric key.
+    :param dataset_id: the ID for the dataset the metric is associated with.
+    :returns: the macro SQL syntax.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.dataset import DatasetDAO
+
+    if not dataset_id:
+        dataset_id = get_dataset_id_from_context(metric_key)
+
+    # Embedded user access is validated at the dashboard level, so we bypass
+    # the regular DAO filter for them
+    dataset = DatasetDAO.find_by_id(
+        dataset_id,
+        skip_base_filter=security_manager.is_guest_user(),
+    )
+    if not dataset:
+        raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
+
+    metrics: dict[str, str] = {
+        metric.metric_name: metric.expression for metric in dataset.metrics
+    }
+    if metric_key not in metrics:
+        raise SupersetTemplateException(
+            _(
+                "Metric ``%(metric_name)s`` not found in %(dataset_name)s.",
+                metric_name=metric_key,
+                dataset_name=dataset.table_name,
+            )
+        )
+
+    definition = metrics[metric_key]
+    template = env.from_string(definition)
+    definition = template.render(context)
+
+    return definition

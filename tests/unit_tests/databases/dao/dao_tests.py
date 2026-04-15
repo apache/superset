@@ -30,19 +30,19 @@ def session_with_data(session: Session) -> Iterator[Session]:
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
-    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],
-        database=db,
+        database=database,
     )
     ssh_tunnel = SSHTunnel(
-        database_id=db.id,
-        database=db,
+        database_id=database.id,
+        database=database,
     )
 
-    session.add(db)
+    session.add(database)
     session.add(sqla_table)
     session.add(ssh_tunnel)
     session.flush()
@@ -54,7 +54,9 @@ def test_database_get_ssh_tunnel(session_with_data: Session) -> None:
     from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
-    result = DatabaseDAO.get_ssh_tunnel(1)
+    database = DatabaseDAO.find_by_id(1, skip_base_filter=True)
+    assert database is not None
+    result = database.ssh_tunnel
 
     assert result
     assert isinstance(result, SSHTunnel)
@@ -64,6 +66,7 @@ def test_database_get_ssh_tunnel(session_with_data: Session) -> None:
 def test_database_get_ssh_tunnel_not_found(session_with_data: Session) -> None:
     from superset.daos.database import DatabaseDAO
 
-    result = DatabaseDAO.get_ssh_tunnel(2)
+    database = DatabaseDAO.find_by_id(2, skip_base_filter=True)
+    result = database.ssh_tunnel if database else None
 
     assert result is None

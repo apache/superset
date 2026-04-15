@@ -17,6 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { GenericDataType } from '@apache-superset/core/common';
 import { DatasourceType } from './Datasource';
 import { BinaryOperator, SetOperator, UnaryOperator } from './Operator';
 import { AppliedTimeExtras, TimeRange } from './Time';
@@ -31,6 +32,7 @@ import { Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
+import { DataRecordValue } from './QueryResponse';
 
 export type BaseQueryObjectFilterClause = {
   col: QueryFormColumn;
@@ -40,13 +42,13 @@ export type BaseQueryObjectFilterClause = {
 
 export type BinaryQueryObjectFilterClause = BaseQueryObjectFilterClause & {
   op: BinaryOperator;
-  val: string | number | boolean;
+  val: DataRecordValue;
   formattedVal?: string;
 };
 
 export type SetQueryObjectFilterClause = BaseQueryObjectFilterClause & {
   op: SetOperator;
-  val: (string | number | boolean)[];
+  val: DataRecordValue[];
   formattedVal?: string[];
 };
 
@@ -68,6 +70,13 @@ export type QueryObjectExtras = Partial<{
   time_grain_sqla?: TimeGranularity;
   /** WHERE condition */
   where?: string;
+  /** Instant Time Comparison */
+  instant_time_comparison_range?: string;
+
+  time_compare?: string;
+
+  /** If true, WHERE/HAVING clauses need transpilation to target dialect */
+  transpile_to_dialect?: boolean;
 }>;
 
 export type ResidualQueryObjectData = {
@@ -83,9 +92,7 @@ export type ResidualQueryObjectData = {
  * and `transformProps`.
  */
 export interface QueryObject
-  extends QueryFields,
-    TimeRange,
-    ResidualQueryObjectData {
+  extends QueryFields, TimeRange, ResidualQueryObjectData {
   /**
    * Definition for annotation layers.
    */
@@ -146,6 +153,8 @@ export interface QueryObject
   series_columns?: QueryFormColumn[];
   series_limit?: number;
   series_limit_metric?: Maybe<QueryFormMetric>;
+
+  visible_deckgl_layers?: number[];
 }
 
 export interface QueryContext {
@@ -163,6 +172,7 @@ export interface QueryContext {
   form_data?: QueryFormData;
 }
 
+// Keep in sync with superset/errors.py
 export const ErrorTypeEnum = {
   // Frontend errors
   FRONTEND_CSRF_ERROR: 'FRONTEND_CSRF_ERROR',
@@ -184,9 +194,10 @@ export const ErrorTypeEnum = {
   CONNECTION_UNKNOWN_DATABASE_ERROR: 'CONNECTION_UNKNOWN_DATABASE_ERROR',
   CONNECTION_DATABASE_PERMISSIONS_ERROR:
     'CONNECTION_DATABASE_PERMISSIONS_ERROR',
-  CONNECTION_MISSING_PARAMETERS_ERRORS: 'CONNECTION_MISSING_PARAMETERS_ERRORS',
+  CONNECTION_MISSING_PARAMETERS_ERROR: 'CONNECTION_MISSING_PARAMETERS_ERROR',
   OBJECT_DOES_NOT_EXIST_ERROR: 'OBJECT_DOES_NOT_EXIST_ERROR',
   SYNTAX_ERROR: 'SYNTAX_ERROR',
+  CONNECTION_DATABASE_TIMEOUT: 'CONNECTION_DATABASE_TIMEOUT',
 
   // Viz errors
   VIZ_GET_DF_ERROR: 'VIZ_GET_DF_ERROR',
@@ -200,12 +211,17 @@ export const ErrorTypeEnum = {
   DATABASE_SECURITY_ACCESS_ERROR: 'DATABASE_SECURITY_ACCESS_ERROR',
   QUERY_SECURITY_ACCESS_ERROR: 'QUERY_SECURITY_ACCESS_ERROR',
   MISSING_OWNERSHIP_ERROR: 'MISSING_OWNERSHIP_ERROR',
+  USER_ACTIVITY_SECURITY_ACCESS_ERROR: 'USER_ACTIVITY_SECURITY_ACCESS_ERROR',
+  DASHBOARD_SECURITY_ACCESS_ERROR: 'DASHBOARD_SECURITY_ACCESS_ERROR',
+  CHART_SECURITY_ACCESS_ERROR: 'CHART_SECURITY_ACCESS_ERROR',
+  OAUTH2_REDIRECT: 'OAUTH2_REDIRECT',
+  OAUTH2_REDIRECT_ERROR: 'OAUTH2_REDIRECT_ERROR',
 
   // Other errors
   BACKEND_TIMEOUT_ERROR: 'BACKEND_TIMEOUT_ERROR',
   DATABASE_NOT_FOUND_ERROR: 'DATABASE_NOT_FOUND_ERROR',
 
-  // Sqllab error
+  // Sql Lab errors
   MISSING_TEMPLATE_PARAMS_ERROR: 'MISSING_TEMPLATE_PARAMS_ERROR',
   INVALID_TEMPLATE_PARAMS_ERROR: 'INVALID_TEMPLATE_PARAMS_ERROR',
   RESULTS_BACKEND_NOT_CONFIGURED_ERROR: 'RESULTS_BACKEND_NOT_CONFIGURED_ERROR',
@@ -215,6 +231,9 @@ export const ErrorTypeEnum = {
   SQLLAB_TIMEOUT_ERROR: 'SQLLAB_TIMEOUT_ERROR',
   RESULTS_BACKEND_ERROR: 'RESULTS_BACKEND_ERROR',
   ASYNC_WORKERS_ERROR: 'ASYNC_WORKERS_ERROR',
+  ADHOC_SUBQUERY_NOT_ALLOWED_ERROR: 'ADHOC_SUBQUERY_NOT_ALLOWED_ERROR',
+  INVALID_SQL_ERROR: 'INVALID_SQL_ERROR',
+  RESULT_TOO_LARGE_ERROR: 'RESULT_TOO_LARGE_ERROR',
 
   // Generic errors
   GENERIC_COMMAND_ERROR: 'GENERIC_COMMAND_ERROR',
@@ -223,16 +242,20 @@ export const ErrorTypeEnum = {
   // API errors
   INVALID_PAYLOAD_FORMAT_ERROR: 'INVALID_PAYLOAD_FORMAT_ERROR',
   INVALID_PAYLOAD_SCHEMA_ERROR: 'INVALID_PAYLOAD_SCHEMA_ERROR',
+  MARSHMALLOW_ERROR: 'MARSHMALLOW_ERROR',
+
+  // Report errors
+  REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR',
 } as const;
 
 type ValueOf<T> = T[keyof T];
 
 export type ErrorType = ValueOf<typeof ErrorTypeEnum>;
 
-// Keep in sync with superset/views/errors.py
+// Keep in sync with superset/errors.py
 export type ErrorLevel = 'info' | 'warning' | 'error';
 
-export type ErrorSource = 'dashboard' | 'explore' | 'sqllab';
+export type ErrorSource = 'dashboard' | 'explore' | 'sqllab' | 'crud';
 
 export type SupersetError<ExtraType = Record<string, any> | null> = {
   error_type: ErrorType;
@@ -250,37 +273,38 @@ export type QueryColumn = {
   name?: string;
   column_name: string;
   type: string | null;
+  type_generic: GenericDataType;
   is_dttm: boolean;
 };
 
 // Possible states of a query object for processing on the server
 export enum QueryState {
-  STARTED = 'started',
-  STOPPED = 'stopped',
-  FAILED = 'failed',
-  PENDING = 'pending',
-  RUNNING = 'running',
-  SCHEDULED = 'scheduled',
-  SUCCESS = 'success',
-  FETCHING = 'fetching',
-  TIMED_OUT = 'timed_out',
+  Started = 'started',
+  Stopped = 'stopped',
+  Failed = 'failed',
+  Pending = 'pending',
+  Running = 'running',
+  Scheduled = 'scheduled',
+  Success = 'success',
+  Fetching = 'fetching',
+  TimedOut = 'timed_out',
 }
 
-// Inidcates a Query's state is still processing
+// Indicates a Query's state is still processing
 export const runningQueryStateList: QueryState[] = [
-  QueryState.RUNNING,
-  QueryState.STARTED,
-  QueryState.PENDING,
-  QueryState.FETCHING,
-  QueryState.SCHEDULED,
+  QueryState.Running,
+  QueryState.Started,
+  QueryState.Pending,
+  QueryState.Fetching,
+  QueryState.Scheduled,
 ];
 
 // Indicates a Query's state has completed processing regardless of success / failure
 export const concludedQueryStateList: QueryState[] = [
-  QueryState.STOPPED,
-  QueryState.FAILED,
-  QueryState.SUCCESS,
-  QueryState.TIMED_OUT,
+  QueryState.Stopped,
+  QueryState.Failed,
+  QueryState.Success,
+  QueryState.TimedOut,
 ];
 
 export type Query = {
@@ -292,6 +316,7 @@ export type Query = {
   errorMessage: string | null;
   extra: {
     progress: string | null;
+    progress_text?: string;
     errors?: SupersetError[];
   };
   id: string;
@@ -299,9 +324,11 @@ export type Query = {
   link?: string;
   progress: number;
   resultsKey: string | null;
+  catalog?: string | null;
   schema?: string;
   sql: string;
   sqlEditorId: string;
+  sqlEditorImmutableId: string;
   state: QueryState;
   tab: string | null;
   tempSchema: string | null;
@@ -326,18 +353,21 @@ export type Query = {
   actions: Record<string, any>;
   type: DatasourceType;
   columns: QueryColumn[];
+  runAsync?: boolean;
 };
 
 export type QueryResults = {
-  results: {
-    displayLimitReached: boolean;
-    columns: QueryColumn[];
-    data: Record<string, unknown>[];
-    expanded_columns: QueryColumn[];
-    selected_columns: QueryColumn[];
-    query: { limit: number };
-    query_id?: number;
-  };
+  results: InnerQueryResults;
+};
+
+export type InnerQueryResults = {
+  displayLimitReached: boolean;
+  columns: QueryColumn[];
+  data: Record<string, unknown>[];
+  expanded_columns: QueryColumn[];
+  selected_columns: QueryColumn[];
+  query: { limit: number };
+  query_id?: number;
 };
 
 export type QueryResponse = Query & QueryResults;
@@ -348,6 +378,7 @@ export const testQuery: Query = {
   dbId: 1,
   sql: 'SELECT * FROM something',
   sqlEditorId: 'dfsadfs',
+  sqlEditorImmutableId: 'immutableId2353',
   tab: 'unimportant',
   tempTable: '',
   ctas: false,
@@ -357,7 +388,7 @@ export const testQuery: Query = {
   isDataPreview: false,
   progress: 0,
   resultsKey: null,
-  state: QueryState.SUCCESS,
+  state: QueryState.Success,
   tempSchema: null,
   trackingUrl: null,
   templateParams: null,
@@ -383,16 +414,19 @@ export const testQuery: Query = {
       column_name: 'Column 1',
       type: 'STRING',
       is_dttm: false,
+      type_generic: GenericDataType.String,
     },
     {
       column_name: 'Column 3',
       type: 'STRING',
       is_dttm: false,
+      type_generic: GenericDataType.String,
     },
     {
       column_name: 'Column 2',
       type: 'TIMESTAMP',
       is_dttm: true,
+      type_generic: GenericDataType.Temporal,
     },
   ],
 };
@@ -404,16 +438,19 @@ export const testQueryResults = {
       {
         column_name: 'Column 1',
         type: 'STRING',
+        type_generic: GenericDataType.String,
         is_dttm: false,
       },
       {
         column_name: 'Column 3',
         type: 'STRING',
+        type_generic: GenericDataType.String,
         is_dttm: false,
       },
       {
         column_name: 'Column 2',
         type: 'TIMESTAMP',
+        type_generic: GenericDataType.Temporal,
         is_dttm: true,
       },
     ],
@@ -425,16 +462,19 @@ export const testQueryResults = {
       {
         column_name: 'Column 1',
         type: 'STRING',
+        type_generic: GenericDataType.String,
         is_dttm: false,
       },
       {
         column_name: 'Column 3',
         type: 'STRING',
+        type_generic: GenericDataType.String,
         is_dttm: false,
       },
       {
         column_name: 'Column 2',
         type: 'TIMESTAMP',
+        type_generic: GenericDataType.Temporal,
         is_dttm: true,
       },
     ],

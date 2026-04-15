@@ -21,17 +21,18 @@ Revises: f2672aa8350a
 Create Date: 2020-08-12 00:24:39.617899
 
 """
-import json
+
 import logging
 import uuid
 from collections import defaultdict
 
 from alembic import op
-from sqlalchemy import and_, Column, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from superset import db
+from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "978245563a02"
@@ -120,7 +121,7 @@ def upgrade():
         )
         for i, dashboard in enumerate(dashboards):
             print(
-                f"scanning dashboard ({i + 1}/{len(dashboards)}) dashboard: {dashboard.id} >>>>"
+                f"scanning dashboard ({i + 1}/{len(dashboards)}) dashboard: {dashboard.id} >>>>"  # noqa: E501
             )
 
             # remove iframe slices from dashboard
@@ -163,7 +164,6 @@ def upgrade():
                     separators=(",", ":"),
                     sort_keys=True,
                 )
-                session.merge(dashboard)
 
         # remove iframe, separator and markup charts
         slices_to_remove = (
@@ -188,7 +188,7 @@ def upgrade():
         )
 
     except Exception as ex:
-        logging.exception(f"dashboard {dashboard.id} has error: {ex}")
+        logging.exception("dashboard %s has error: %s", dashboard.id, ex)
 
     session.commit()
     session.close()

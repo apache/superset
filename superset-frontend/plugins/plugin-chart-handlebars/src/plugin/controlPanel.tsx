@@ -19,9 +19,8 @@
 import {
   ControlPanelConfig,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { allColumnsControlSetItem } from './controls/columns';
 import { groupByControlSetItem } from './controls/groupBy';
 import { handlebarsTemplateControlSetItem } from './controls/handlebarTemplate';
@@ -39,16 +38,11 @@ import {
   orderByControlSetItem,
   orderDescendingControlSetItem,
 } from './controls/orderBy';
-import {
-  serverPageLengthControlSetItem,
-  serverPaginationControlSetRow,
-} from './controls/pagination';
 import { queryModeControlSetItem } from './controls/queryMode';
 import { styleControlSetItem } from './controls/style';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,
@@ -59,8 +53,7 @@ const config: ControlPanelConfig = {
         [percentMetricsControlSetItem],
         [timeSeriesLimitMetricControlSetItem, orderByControlSetItem],
         [orderDescendingControlSetItem],
-        serverPaginationControlSetRow,
-        [rowLimitControlSetItem, serverPageLengthControlSetItem],
+        [rowLimitControlSetItem],
         [includeTimeControlSetItem],
         [showTotalsControlSetItem],
         ['adhoc_filters'],

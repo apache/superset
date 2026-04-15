@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 from typing import Any
 
 from sqlalchemy import MetaData
@@ -21,7 +22,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import and_, func, join, literal, select
 
 from superset.extensions import db
-from superset.tags.models import ObjectTypes, TagTypes
+from superset.tags.models import ObjectType, TagType
 
 
 def add_types_to_charts(
@@ -34,7 +35,7 @@ def add_types_to_charts(
             [
                 tag.c.id.label("tag_id"),
                 slices.c.id.label("object_id"),
-                literal(ObjectTypes.chart.name).label("object_type"),
+                literal(ObjectType.chart.name).label("object_type"),
             ]
         )
         .select_from(
@@ -66,7 +67,7 @@ def add_types_to_dashboards(
             [
                 tag.c.id.label("tag_id"),
                 dashboard_table.c.id.label("object_id"),
-                literal(ObjectTypes.dashboard.name).label("object_type"),
+                literal(ObjectType.dashboard.name).label("object_type"),
             ]
         )
         .select_from(
@@ -98,7 +99,7 @@ def add_types_to_saved_queries(
             [
                 tag.c.id.label("tag_id"),
                 saved_query.c.id.label("object_id"),
-                literal(ObjectTypes.query.name).label("object_type"),
+                literal(ObjectType.query.name).label("object_type"),
             ]
         )
         .select_from(
@@ -130,7 +131,7 @@ def add_types_to_datasets(
             [
                 tag.c.id.label("tag_id"),
                 tables.c.id.label("object_id"),
-                literal(ObjectTypes.dataset.name).label("object_type"),
+                literal(ObjectType.dataset.name).label("object_type"),
             ]
         )
         .select_from(
@@ -220,15 +221,9 @@ def add_types(metadata: MetaData) -> None:
 
     # add a tag for each object type
     insert = tag.insert()
-    for type_ in ObjectTypes.__members__:
-        try:
-            db.session.execute(
-                insert,
-                name=f"type:{type_}",
-                type=TagTypes.type,
-            )
-        except IntegrityError:
-            pass  # already exists
+    for type_ in ObjectType.__members__:
+        with contextlib.suppress(IntegrityError):  # already exists
+            db.session.execute(insert, name=f"type:{type_}", type=TagType.type)
 
     add_types_to_charts(metadata, tag, tagged_object, columns)
     add_types_to_dashboards(metadata, tag, tagged_object, columns)
@@ -246,7 +241,7 @@ def add_owners_to_charts(
             [
                 tag.c.id.label("tag_id"),
                 slices.c.id.label("object_id"),
-                literal(ObjectTypes.chart.name).label("object_type"),
+                literal(ObjectType.chart.name).label("object_type"),
             ]
         )
         .select_from(
@@ -282,7 +277,7 @@ def add_owners_to_dashboards(
             [
                 tag.c.id.label("tag_id"),
                 dashboard_table.c.id.label("object_id"),
-                literal(ObjectTypes.dashboard.name).label("object_type"),
+                literal(ObjectType.dashboard.name).label("object_type"),
             ]
         )
         .select_from(
@@ -318,7 +313,7 @@ def add_owners_to_saved_queries(
             [
                 tag.c.id.label("tag_id"),
                 saved_query.c.id.label("object_id"),
-                literal(ObjectTypes.query.name).label("object_type"),
+                literal(ObjectType.query.name).label("object_type"),
             ]
         )
         .select_from(
@@ -354,7 +349,7 @@ def add_owners_to_datasets(
             [
                 tag.c.id.label("tag_id"),
                 tables.c.id.label("object_id"),
-                literal(ObjectTypes.dataset.name).label("object_type"),
+                literal(ObjectType.dataset.name).label("object_type"),
             ]
         )
         .select_from(
@@ -448,11 +443,8 @@ def add_owners(metadata: MetaData) -> None:
     ids = select([users.c.id])
     insert = tag.insert()
     for (id_,) in db.session.execute(ids):
-        try:
-            db.session.execute(insert, name=f"owner:{id_}", type=TagTypes.owner)
-        except IntegrityError:
-            pass  # already exists
-
+        with contextlib.suppress(IntegrityError):  # already exists
+            db.session.execute(insert, name=f"owner:{id_}", type=TagType.owner)
     add_owners_to_charts(metadata, tag, tagged_object, columns)
     add_owners_to_dashboards(metadata, tag, tagged_object, columns)
     add_owners_to_saved_queries(metadata, tag, tagged_object, columns)
@@ -489,15 +481,8 @@ def add_favorites(metadata: MetaData) -> None:
     ids = select([users.c.id])
     insert = tag.insert()
     for (id_,) in db.session.execute(ids):
-        try:
-            db.session.execute(
-                insert,
-                name=f"favorited_by:{id_}",
-                type=TagTypes.type,
-            )
-        except IntegrityError:
-            pass  # already exists
-
+        with contextlib.suppress(IntegrityError):  # already exists
+            db.session.execute(insert, name=f"favorited_by:{id_}", type=TagType.type)
     favstars = (
         select(
             [

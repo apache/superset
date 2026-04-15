@@ -17,19 +17,42 @@
  * under the License.
  */
 import rison from 'rison';
+import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
-  isFeatureEnabled,
-  FeatureFlag,
   SupersetClient,
-  t,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { Dispatch } from 'redux';
-import { Slice } from '../types';
+import { Slice, SliceEntitiesState } from '../types';
+import { HYDRATE_DASHBOARD } from './hydrate';
+
+export type { SliceEntitiesState };
 
 const FETCH_SLICES_PAGE_SIZE = 200;
+
+// Action types
+export type SliceEntitiesActionPayload =
+  | {
+      type: typeof ADD_SLICES;
+      payload: { slices: { [id: number]: Slice } };
+    }
+  | {
+      type: typeof SET_SLICES;
+      payload: { slices: { [id: number]: Slice } };
+    }
+  | {
+      type: typeof FETCH_ALL_SLICES_STARTED;
+    }
+  | {
+      type: typeof FETCH_ALL_SLICES_FAILED;
+      payload: { error: string };
+    }
+  | {
+      type: typeof HYDRATE_DASHBOARD;
+      data: { sliceEntities: SliceEntitiesState };
+    };
 
 export function getDatasourceParameter(
   datasourceId: number,
@@ -113,14 +136,6 @@ export function fetchSlices(
     }[] = filter_value
       ? [{ col: 'slice_name', opr: 'chart_all_text', value: filter_value }]
       : [];
-
-    if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
-      filters.push({
-        col: 'viz_type',
-        opr: 'neq',
-        value: 'filter_box',
-      });
-    }
 
     if (userId) {
       filters.push({ col: 'owners', opr: 'rel_m_m', value: userId });

@@ -17,26 +17,30 @@
  * under the License.
  */
 
-import React, { useMemo, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 
 import rison from 'rison';
-import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import DeleteModal from 'src/components/DeleteModal';
-import { Tooltip } from 'src/components/Tooltip';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
+import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
+import {
+  ModifiedInfo,
+  ListView,
+  ListViewActionsBar,
+  ListViewFilterOperator as FilterOperator,
+  type ListViewProps,
+  type ListViewActionProps,
+  type ListViewFilters,
+} from 'src/components';
+
 import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
+import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { Icons } from '@superset-ui/core/components/Icons';
 
 const PAGE_SIZE = 25;
 
@@ -129,6 +133,8 @@ function CssTemplatesList({
       {
         accessor: 'template_name',
         Header: t('Name'),
+        size: 'xxl',
+        id: 'template_name',
       },
       {
         Cell: ({
@@ -138,65 +144,12 @@ function CssTemplatesList({
               changed_by: changedBy,
             },
           },
-        }: any) => {
-          let name = 'null';
-
-          if (changedBy) {
-            name = `${changedBy.first_name} ${changedBy.last_name}`;
-          }
-
-          return (
-            <Tooltip
-              id="allow-run-async-header-tooltip"
-              title={t('Last modified by %s', name)}
-              placement="right"
-            >
-              <span>{changedOn}</span>
-            </Tooltip>
-          );
-        },
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
         disableSortBy: true,
-      },
-      {
-        Cell: ({
-          row: {
-            original: { created_on: createdOn },
-          },
-        }: any) => {
-          const date = new Date(createdOn);
-          const utc = new Date(
-            Date.UTC(
-              date.getFullYear(),
-              date.getMonth(),
-              date.getDate(),
-              date.getHours(),
-              date.getMinutes(),
-              date.getSeconds(),
-              date.getMilliseconds(),
-            ),
-          );
-
-          return moment(utc).fromNow();
-        },
-        Header: t('Created on'),
-        accessor: 'created_on',
-        size: 'xl',
-        disableSortBy: true,
-      },
-      {
-        accessor: 'created_by',
-        disableSortBy: true,
-        Header: t('Created by'),
-        Cell: ({
-          row: {
-            original: { created_by: createdBy },
-          },
-        }: any) =>
-          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
-        size: 'xl',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -209,7 +162,7 @@ function CssTemplatesList({
                   label: 'edit-action',
                   tooltip: t('Edit template'),
                   placement: 'bottom',
-                  icon: 'Edit',
+                  icon: 'EditOutlined',
                   onClick: handleEdit,
                 }
               : null,
@@ -218,19 +171,26 @@ function CssTemplatesList({
                   label: 'delete-action',
                   tooltip: t('Delete template'),
                   placement: 'bottom',
-                  icon: 'Trash',
+                  icon: 'DeleteOutlined',
                   onClick: handleDelete,
                 }
               : null,
           ].filter(item => !!item);
 
-          return <ActionsBar actions={actions as ActionProps[]} />;
+          return (
+            <ListViewActionsBar actions={actions as ListViewActionProps[]} />
+          );
         },
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
         size: 'xl',
+      },
+      {
+        accessor: QueryObjectColumns.ChangedBy,
+        hidden: true,
+        id: QueryObjectColumns.ChangedBy,
       },
     ],
     [canDelete, canCreate],
@@ -242,21 +202,6 @@ function CssTemplatesList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
-  if (canCreate) {
-    subMenuButtons.push({
-      name: (
-        <>
-          <i className="fa fa-plus" /> {t('CSS template')}
-        </>
-      ),
-      buttonStyle: 'primary',
-      onClick: () => {
-        setCurrentCssTemplate(null);
-        setCssTemplateModalOpen(true);
-      },
-    });
-  }
-
   if (canDelete) {
     subMenuButtons.push({
       name: t('Bulk select'),
@@ -265,20 +210,39 @@ function CssTemplatesList({
     });
   }
 
+  if (canCreate) {
+    subMenuButtons.push({
+      name: t('CSS template'),
+      buttonStyle: 'primary',
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      onClick: () => {
+        setCurrentCssTemplate(null);
+        setCssTemplateModalOpen(true);
+      },
+    });
+  }
+
   menuData.buttons = subMenuButtons;
 
-  const filters: Filters = useMemo(
+  const filters: ListViewFilters = useMemo(
     () => [
       {
-        Header: t('Created by'),
-        key: 'created_by',
-        id: 'created_by',
+        Header: t('Name'),
+        key: 'search',
+        id: 'template_name',
+        input: 'search',
+        operator: FilterOperator.Contains,
+      },
+      {
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'css_template',
-          'created_by',
+          'changed_by',
           createErrorHandler(errMsg =>
             t(
               'An error occurred while fetching dataset datasource values: %s',
@@ -288,13 +252,6 @@ function CssTemplatesList({
           user,
         ),
         paginate: true,
-      },
-      {
-        Header: t('Search'),
-        key: 'search',
-        id: 'template_name',
-        input: 'search',
-        operator: FilterOperator.contains,
       },
     ],
     [],
@@ -356,6 +313,9 @@ function CssTemplatesList({
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
+              refreshData={refreshData}
             />
           );
         }}

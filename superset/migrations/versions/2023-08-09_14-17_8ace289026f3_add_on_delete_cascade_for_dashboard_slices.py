@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add on delete cascade for dashboard slices
+"""add on delete cascade for dashboard_slices
 
 Revision ID: 8ace289026f3
 Revises: 2e826adca42c
@@ -27,7 +27,7 @@ revision = "8ace289026f3"
 down_revision = "2e826adca42c"
 
 
-from superset.migrations.shared.constraints import ForeignKey, redefine
+from superset.migrations.shared.constraints import ForeignKey, redefine  # noqa: E402
 
 foreign_keys = [
     ForeignKey(

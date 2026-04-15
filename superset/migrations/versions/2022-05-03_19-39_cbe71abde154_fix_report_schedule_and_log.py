@@ -26,12 +26,12 @@ Create Date: 2022-05-03 19:39:32.074608
 revision = "cbe71abde154"
 down_revision = "a9422eeaae74"
 
-from alembic import op
-from sqlalchemy import Column, Float, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, Float, Integer, String, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db
-from superset.reports.models import ReportState
+from superset import db  # noqa: E402
+from superset.reports.models import ReportState  # noqa: E402
 
 Base = declarative_base()
 

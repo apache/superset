@@ -26,11 +26,11 @@ Create Date: 2020-12-16 12:15:28.291777
 revision = "e37912a26567"
 down_revision = "42b4c9e01447"
 
-from alembic import op
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from alembic import op  # noqa: E402
+from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
-from superset.migrations.shared.security_converge import (
+from superset.migrations.shared.security_converge import (  # noqa: E402
     add_pvms,
     get_reversed_new_pvms,
     get_reversed_pvm_map,

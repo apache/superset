@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { nanoid } from 'nanoid';
 import { Column } from './Column';
 import { Metric } from './Metric';
 
@@ -52,12 +53,14 @@ export interface Datasource {
   verboseMap?: {
     [key: string]: string;
   };
+  currencyCodeColumn?: string;
 }
 
 export const DEFAULT_METRICS: Metric[] = [
   {
     metric_name: 'COUNT(*)',
     expression: 'COUNT(*)',
+    uuid: nanoid(),
   },
 ];
 

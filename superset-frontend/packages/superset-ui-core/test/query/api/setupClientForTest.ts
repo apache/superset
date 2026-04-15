@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// eslint-disable-next-line import/no-extraneous-dependencies -- The below fetch-mock import shouldn't be considered as direct dependency
 import fetchMock from 'fetch-mock';
 import { SupersetClient } from '@superset-ui/core';
 
