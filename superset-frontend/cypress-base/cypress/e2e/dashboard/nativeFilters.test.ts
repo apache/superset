@@ -394,17 +394,20 @@ describe('Native filters', () => {
 
     it('User can delete a native filter', () => {
       enterNativeFilterEditModal(false);
+      clickOnAddFilterInModal();
       cy.get(nativeFilters.filtersList.removeIcon).first().click();
       cy.contains('Restore filter').should('not.exist', { timeout: 10000 });
     });
 
     it('User can cancel creating a new filter', () => {
       enterNativeFilterEditModal(false);
+      clickOnAddFilterInModal();
       cancelNativeFilterSettings();
     });
 
     it('Verify setting options and tooltips for value filter', () => {
       enterNativeFilterEditModal(false);
+      clickOnAddFilterInModal();
       cy.contains('Filter value is required').scrollIntoView();
       cy.get('body').trigger('mousemove', { clientX: 0, clientY: 0 });
       cy.wait(300);

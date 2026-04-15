@@ -23,7 +23,7 @@ import {
   ChartCustomizationType,
   styled,
 } from '@superset-ui/core';
-import { Collapse, Flex } from '@superset-ui/core/components';
+import { Collapse, EmptyState, Flex } from '@superset-ui/core/components';
 import NewItemDropdown from '../NewItemDropdown';
 import ItemSectionContent from './ItemSection';
 import { FilterRemoval } from '../types';
@@ -43,6 +43,10 @@ const StyledSidebarFlex = styled(Flex)`
 
 const StyledHeaderFlex = styled(Flex)`
   padding: ${({ theme }) => theme.sizeUnit * 3}px;
+
+  & button {
+    width: 100%;
+  }
 `;
 
 // min-height: 0 lets the flex item shrink below its content size so that
@@ -144,6 +148,9 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
     </div>
   );
 
+  const hasNoItems =
+    filterOrderedIds.length === 0 && customizationOrderedIds.length === 0;
+
   return (
     <StyledSidebarFlex vertical>
       <StyledHeaderFlex align="center">
@@ -152,52 +159,63 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
           onAddCustomization={onAddCustomization}
         />
       </StyledHeaderFlex>
-      <StyledCollapse
-        activeKey={activeCollapseKeys}
-        onChange={keys => onCollapseChange(keys as string[])}
-        ghost
-      >
-        <StyledCollapse.Panel key="filters" header={filtersHeader}>
-          <ItemSectionContent
-            currentItemId={currentItemId}
-            items={filterOrderedIds}
-            removedItems={filterRemovedItems}
-            erroredItems={filterErroredItems}
-            getItemTitle={getItemTitle}
-            onChange={onChange}
-            onRearrange={onRearrange}
-            onRemove={onRemove}
-            restoreItem={restoreItem}
-            dataTestId="filter-title-container"
-            deleteAltText="RemoveFilter"
-            dragType={FILTER_TYPE}
-            isCurrentSection={isFilterId(currentItemId)}
-            onCrossListDrop={handleFilterCrossListDrop}
+      {hasNoItems ? (
+        <Flex>
+          <EmptyState
+            size="small"
+            title=""
+            image="empty.svg"
+            description={t('No filters or customizations created yet')}
           />
-        </StyledCollapse.Panel>
-
-        <StyledCollapse.Panel
-          key="chartCustomizations"
-          header={customizationsHeader}
+        </Flex>
+      ) : (
+        <StyledCollapse
+          activeKey={activeCollapseKeys}
+          onChange={keys => onCollapseChange(keys as string[])}
+          ghost
         >
-          <ItemSectionContent
-            currentItemId={currentItemId}
-            items={customizationOrderedIds}
-            removedItems={customizationRemovedItems}
-            erroredItems={customizationErroredItems}
-            getItemTitle={getItemTitle}
-            onChange={onChange}
-            onRearrange={onRearrange}
-            onRemove={onRemove}
-            restoreItem={restoreItem}
-            dataTestId="customization-title-container"
-            deleteAltText="RemoveCustomization"
-            dragType={CUSTOMIZATION_TYPE}
-            isCurrentSection={isChartCustomizationId(currentItemId)}
-            onCrossListDrop={handleCustomizationCrossListDrop}
-          />
-        </StyledCollapse.Panel>
-      </StyledCollapse>
+          <StyledCollapse.Panel key="filters" header={filtersHeader}>
+            <ItemSectionContent
+              currentItemId={currentItemId}
+              items={filterOrderedIds}
+              removedItems={filterRemovedItems}
+              erroredItems={filterErroredItems}
+              getItemTitle={getItemTitle}
+              onChange={onChange}
+              onRearrange={onRearrange}
+              onRemove={onRemove}
+              restoreItem={restoreItem}
+              dataTestId="filter-title-container"
+              deleteAltText="RemoveFilter"
+              dragType={FILTER_TYPE}
+              isCurrentSection={isFilterId(currentItemId)}
+              onCrossListDrop={handleFilterCrossListDrop}
+            />
+          </StyledCollapse.Panel>
+
+          <StyledCollapse.Panel
+            key="chartCustomizations"
+            header={customizationsHeader}
+          >
+            <ItemSectionContent
+              currentItemId={currentItemId}
+              items={customizationOrderedIds}
+              removedItems={customizationRemovedItems}
+              erroredItems={customizationErroredItems}
+              getItemTitle={getItemTitle}
+              onChange={onChange}
+              onRearrange={onRearrange}
+              onRemove={onRemove}
+              restoreItem={restoreItem}
+              dataTestId="customization-title-container"
+              deleteAltText="RemoveCustomization"
+              dragType={CUSTOMIZATION_TYPE}
+              isCurrentSection={isChartCustomizationId(currentItemId)}
+              onCrossListDrop={handleCustomizationCrossListDrop}
+            />
+          </StyledCollapse.Panel>
+        </StyledCollapse>
+      )}
     </StyledSidebarFlex>
   );
 };

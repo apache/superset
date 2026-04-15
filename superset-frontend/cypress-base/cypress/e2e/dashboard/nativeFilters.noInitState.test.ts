@@ -30,6 +30,7 @@ import {
   applyNativeFilterValueWithIndex,
   cancelNativeFilterSettings,
   deleteNativeFilter,
+  clickOnAddFilterInModal,
   enterNativeFilterEditModal,
   fillNativeFilterForm,
   inputNativeFilterDefaultValue,
@@ -235,6 +236,7 @@ describe('Native filters', () => {
 
       it('User can create a numerical range filter with "Range Inputs" display mode', () => {
         enterNativeFilterEditModal(false);
+        clickOnAddFilterInModal();
 
         fillNativeFilterForm(
           testItems.filterType.numerical,
@@ -254,6 +256,7 @@ describe('Native filters', () => {
 
       it('User can change the display mode to "Slider"', () => {
         enterNativeFilterEditModal(false);
+        clickOnAddFilterInModal();
 
         fillNativeFilterForm(
           testItems.filterType.numerical,
@@ -291,6 +294,7 @@ describe('Native filters', () => {
 
       it('User can change the display mode to "Slider and range input"', () => {
         enterNativeFilterEditModal(false);
+        clickOnAddFilterInModal();
 
         // Re-create filter
         fillNativeFilterForm(
