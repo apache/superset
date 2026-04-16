@@ -170,8 +170,8 @@ def _build_preview_form_data(
 
 def _create_preview_url(
     chart: Any, form_data: dict[str, Any]
-) -> tuple[str, str | None]:
-    """Cache form_data and return (explore_url, form_data_key).
+) -> tuple[str, str | None, list[str]]:
+    """Cache form_data and return (explore_url, form_data_key, warnings).
 
     The URL includes both ``slice_id`` and ``form_data_key`` so that when the
     user clicks Save in Explore, the edits overwrite the original chart.
@@ -183,7 +183,17 @@ def _create_preview_url(
     base_url = get_superset_base_url()
 
     if not chart.datasource_id:
-        return f"{base_url}/explore/?slice_id={chart.id}", None
+        warning = (
+            "Chart has no datasource; the preview URL shows the saved chart "
+            "state, not the pending changes. Open the URL and apply the "
+            "changes manually."
+        )
+        logger.warning(
+            "Chart %s has no datasource_id; preview URL cannot embed "
+            "form_data — user will see saved state.",
+            chart.id,
+        )
+        return f"{base_url}/explore/?slice_id={chart.id}", None, [warning]
 
     cmd_params = CommandParameters(
         datasource_type=DatasourceType.TABLE,
@@ -196,7 +206,7 @@ def _create_preview_url(
     explore_url = (
         f"{base_url}/explore/?form_data_key={form_data_key}&slice_id={chart.id}"
     )
-    return explore_url, form_data_key
+    return explore_url, form_data_key, []
 
 
 @tool(
@@ -214,10 +224,10 @@ async def update_chart(  # noqa: C901
     """Update existing chart with new configuration.
 
     IMPORTANT BEHAVIOR:
-    - Charts are NOT overwritten by default (save_chart=False) — a preview
-      explore URL is returned so the user can review changes and click Save
-      to overwrite the original chart (if they have permission).
-    - Set save_chart=True to persist the update immediately.
+    - By default (generate_preview=True), a preview explore URL is returned
+      so the user can review changes and click Save to overwrite the original
+      chart (if they have permission).
+    - Set generate_preview=False to persist the update immediately.
     - LLM clients MUST display the returned explore URL to users.
     - Use numeric ID or UUID string to identify the chart (NOT chart name).
     - MUST include chart_type in config (either 'xy' or 'table').
@@ -239,7 +249,7 @@ async def update_chart(  # noqa: C901
     ```json
     {
         "identifier": 123,
-        "save_chart": true,
+        "generate_preview": false,
         "config": {"chart_type": "table", "columns": [{"name": "region"}]}
     }
     ```
@@ -304,9 +314,10 @@ async def update_chart(  # noqa: C901
         updated_chart: Any = None
         explore_url: str
         form_data_key: str | None = None
+        warnings: list[str] = []
         saved = False
 
-        if request.save_chart:
+        if not request.generate_preview:
             from superset.commands.chart.update import UpdateChartCommand
 
             payload_or_error = _build_update_payload(request, chart)
@@ -326,7 +337,7 @@ async def update_chart(  # noqa: C901
                 return preview_or_error
 
             with event_logger.log_context(action="mcp.update_chart.preview_link"):
-                explore_url, form_data_key = _create_preview_url(
+                explore_url, form_data_key, warnings = _create_preview_url(
                     chart, preview_or_error
                 )
 
@@ -366,7 +377,7 @@ async def update_chart(  # noqa: C901
         # Generate previews for saved charts only. Unsaved previews rely on
         # the explore URL for interactive viewing.
         previews: dict[str, Any] = {}
-        if saved and updated_chart and request.generate_preview:
+        if saved and updated_chart and request.preview_formats:
             try:
                 with event_logger.log_context(action="mcp.update_chart.preview"):
                     from superset.mcp_service.chart.tool.get_chart_preview import (
@@ -415,6 +426,7 @@ async def update_chart(  # noqa: C901
                 "is_unsaved_state": not saved,
             },
             "error": None,
+            "warnings": warnings,
             "previews": previews,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,

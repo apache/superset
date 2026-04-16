@@ -43,6 +43,9 @@ from superset.mcp_service.chart.tool.update_chart import (
     _find_chart,
 )
 
+# The __init__.py re-exports the update_chart *function*, so a plain
+# `from ... import update_chart` gives the function, not the module.
+# Use importlib to get the module for patch.object().
 update_chart_module = importlib.import_module(
     "superset.mcp_service.chart.tool.update_chart"
 )
@@ -111,33 +114,30 @@ class TestUpdateChart:
         assert request2.chart_name == "Updated Sales Report"
 
     @pytest.mark.asyncio
-    async def test_update_chart_preview_generation(self):
-        """Test preview generation options in update request."""
+    async def test_update_chart_preview_formats(self):
+        """Test preview_formats options in update request."""
         config = TableChartConfig(
             chart_type="table",
             columns=[ColumnRef(name="col1")],
         )
 
-        # Default preview generation
+        # Default preview formats
         request1 = UpdateChartRequest(identifier=123, config=config)
-        assert request1.generate_preview is True
         assert request1.preview_formats == ["url"]
 
         # Custom preview formats
         request2 = UpdateChartRequest(
             identifier=123,
             config=config,
-            generate_preview=True,
             preview_formats=["url", "ascii", "table"],
         )
-        assert request2.generate_preview is True
         assert set(request2.preview_formats) == {"url", "ascii", "table"}
 
-        # Disable preview generation
+        # Empty preview formats (no extra previews after save)
         request3 = UpdateChartRequest(
-            identifier=123, config=config, generate_preview=False
+            identifier=123, config=config, preview_formats=[]
         )
-        assert request3.generate_preview is False
+        assert request3.preview_formats == []
 
     @pytest.mark.asyncio
     async def test_update_chart_identifier_types(self):
@@ -683,7 +683,6 @@ class TestUpdateChartNameOnly:
         request = {
             "identifier": 1,
             "chart_name": "Renamed Chart",
-            "save_chart": True,
             "generate_preview": False,
         }
 
@@ -783,7 +782,7 @@ class TestUpdateChartPreviewFirst:
         preview_url = (
             "http://localhost:8088/explore/?form_data_key=preview_key&slice_id=1"
         )
-        mock_create_preview.return_value = (preview_url, "preview_key")
+        mock_create_preview.return_value = (preview_url, "preview_key", [])
 
         request = {
             "identifier": 1,
@@ -950,7 +949,7 @@ class TestUpdateChartSaveWithConfig:
         mock_update_cmd_cls,
         mcp_server,
     ):
-        """save_chart=True with a config payload persists and returns saved chart."""
+        """generate_preview=False with a config payload persists and returns saved chart."""
         mock_chart = Mock()
         mock_chart.id = 77
         mock_chart.datasource_id = 10
@@ -976,12 +975,11 @@ class TestUpdateChartSaveWithConfig:
 
         request = {
             "identifier": 77,
-            "save_chart": True,
+            "generate_preview": False,
             "config": {
                 "chart_type": "table",
                 "columns": [{"name": "col1"}],
             },
-            "generate_preview": False,
         }
 
         async with Client(mcp) as client:
@@ -1063,7 +1061,7 @@ class TestUpdateChartErrorPaths:
 
         request = {
             "identifier": 5,
-            "save_chart": True,
+            "generate_preview": False,
             "chart_name": "Retry",
         }
 
@@ -1111,7 +1109,7 @@ class TestUpdateChartErrorPaths:
         preview_url = (
             "http://localhost:8088/explore/?form_data_key=url_embedded_key&slice_id=8"
         )
-        mock_create_preview.return_value = (preview_url, None)
+        mock_create_preview.return_value = (preview_url, None, [])
 
         request = {
             "identifier": 8,
