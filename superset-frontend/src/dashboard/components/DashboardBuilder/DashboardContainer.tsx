@@ -98,7 +98,7 @@ function normalizeChartCustomizationsForScopeCalculation(
   }
 
   return chartCustomizations
-    .filter(item => item != null)
+    .filter(Boolean)
     .map(item => {
       if (!isLegacyChartCustomizationFormat(item)) {
         return item;
