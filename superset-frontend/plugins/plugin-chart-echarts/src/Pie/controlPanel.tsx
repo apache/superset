@@ -26,6 +26,7 @@ import {
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
+  DEFAULT_TIME_FORMAT,
   getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -188,7 +189,7 @@ const config: ControlPanelConfig = {
               label: t('Date format'),
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
-              default: 'smart_date',
+              default: DEFAULT_TIME_FORMAT,
               description: D3_FORMAT_DOCS,
             },
           },
