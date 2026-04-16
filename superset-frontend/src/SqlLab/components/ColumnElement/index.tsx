@@ -74,13 +74,16 @@ interface ColumnElementProps {
     keys?: { type: ColumnKeyTypeType }[];
     type: string;
   };
+  actions?: ReactNode;
 }
 
-const NowrapDiv = styled.div`
+const ColumnType = styled.div`
   white-space: nowrap;
+  color: ${({ theme }) => theme.colorTextDescription};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
-const ColumnElement = ({ column }: ColumnElementProps) => {
+const ColumnElement = ({ column, actions }: ColumnElementProps) => {
   let columnName: ReactNode = column.name;
   let icons;
   if (column.keys && column.keys.length > 0) {
@@ -110,10 +113,9 @@ const ColumnElement = ({ column }: ColumnElementProps) => {
       <div data-test="col-name">
         {columnName}
         {icons}
+        {actions}
       </div>
-      <NowrapDiv className="text-muted">
-        <small> {column.type}</small>
-      </NowrapDiv>
+      <ColumnType>{column.type}</ColumnType>
     </Flex>
   );
 };

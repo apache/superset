@@ -26,7 +26,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -40,16 +40,24 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 # Minimal defaults for reduced token usage - users can request more via select_columns
+# NOTE: "database" (relationship) is included so the DAO eagerly loads it
+# via joinedload, which avoids N+1 lazy-load queries when the serializer
+# accesses dataset.database.name (via the database_name @property).
 DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
     "schema",
-    "uuid",
+    "database_name",
+    "database",
+    "description",
+    "certified_by",
+    "certification_details",
+    "changed_on",
+    "changed_on_humanized",
 ]
 
 SORTABLE_DATASET_COLUMNS = [
@@ -61,12 +69,20 @@ SORTABLE_DATASET_COLUMNS = [
 ]
 
 
-@tool(tags=["core"])
-@parse_request(ListDatasetsRequest)
+@tool(
+    tags=["core"],
+    class_permission_name="Dataset",
+    annotations=ToolAnnotations(
+        title="List datasets",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
     """List datasets with filtering and search.
 
-    Returns dataset metadata including columns and metrics.
+    Returns dataset metadata including table name, schema, and last modified
+    time.
 
     Sortable columns for order_column: id, table_name, schema, changed_on,
     created_on

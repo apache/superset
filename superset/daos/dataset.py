@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 # Custom filterable fields for datasets (not direct model columns)
 DATASET_CUSTOM_FIELDS: dict[str, list[str]] = {
     "database_name": ["eq", "like", "ilike"],
+    "owner": ["eq", "in"],
 }
 
 
@@ -77,6 +78,16 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                     operator_enum.apply(Database.database_name, c.value)
                 )
                 query = query.filter(SqlaTable.database_id.in_(subq))
+            elif c.col == "owner":
+                from superset.connectors.sqla.models import sqlatable_user
+
+                operator_enum = ColumnOperatorEnum(c.opr)
+                subq = select(sqlatable_user.c.table_id).where(
+                    operator_enum.apply(sqlatable_user.c.user_id, c.value)
+                )
+                query = query.filter(
+                    SqlaTable.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
             else:
                 remaining_operators.append(c)
 

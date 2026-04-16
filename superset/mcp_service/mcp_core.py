@@ -25,6 +25,7 @@ from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
 from pydantic import BaseModel
 
 from superset.daos.base import BaseDAO
+from superset.mcp_service.constants import ModelType
 from superset.mcp_service.utils import _is_uuid
 
 # Type variables for generic model tools
@@ -142,6 +143,11 @@ class ModelListCore(BaseCore, Generic[L]):
         page: int = 0,
         page_size: int = 10,
     ) -> L:
+        from superset.mcp_service.constants import MAX_PAGE_SIZE
+
+        # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
+        page_size = min(page_size, MAX_PAGE_SIZE)
+
         # Parse filters using generic utility (accepts JSON string or object)
         from superset.mcp_service.utils.schema_utils import (
             parse_json_or_list,
@@ -155,11 +161,23 @@ class ModelListCore(BaseCore, Generic[L]):
             select_columns = parse_json_or_list(
                 select_columns, param_name="select_columns"
             )
-            columns_to_load = select_columns
+            columns_to_load = list(select_columns)
             columns_requested = select_columns
         else:
-            columns_to_load = self.default_columns
+            columns_to_load = list(self.default_columns)
             columns_requested = self.default_columns
+
+        # Ensure computed columns have their dependencies loaded.
+        # Humanized timestamps are derived from their raw counterparts —
+        # if the raw column isn't loaded, the serializer produces null.
+        computed_deps: dict[str, str] = {
+            "changed_on_humanized": "changed_on",
+            "created_on_humanized": "created_on",
+        }
+        for computed, dependency in computed_deps.items():
+            if computed in columns_to_load and dependency not in columns_to_load:
+                columns_to_load.append(dependency)
+
         # Query the DAO
         items: List[Any]
         items, total_count = self.dao_class.list(
@@ -181,8 +199,11 @@ class ModelListCore(BaseCore, Generic[L]):
         total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
         from superset.mcp_service.system.schemas import PaginationInfo
 
+        # Report 1-based page in response to match the 1-based input convention
+        # used by all list tool wrappers (list_charts, list_datasets, etc.)
+        page_1based = page + 1
         pagination_info = PaginationInfo(
-            page=page,
+            page=page_1based,
             page_size=page_size,
             total_count=total_count,
             total_pages=total_pages,
@@ -202,7 +223,7 @@ class ModelListCore(BaseCore, Generic[L]):
             self.list_field_name: item_objs,
             "count": len(item_objs),
             "total_count": total_count,
-            "page": page,
+            "page": page_1based,
             "page_size": page_size,
             "total_pages": total_pages,
             "has_previous": page > 0,
@@ -513,7 +534,7 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
 
     def __init__(
         self,
-        model_type: Literal["chart", "dataset", "dashboard"],
+        model_type: ModelType,
         dao_class: Type[BaseDAO[Any]],
         output_schema: Type[S],
         select_columns: List[Any],
@@ -522,13 +543,14 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         search_columns: List[str],
         default_sort: str = "changed_on",
         default_sort_direction: Literal["asc", "desc"] = "desc",
+        exclude_filter_columns: set[str] | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """
         Initialize the schema discovery core.
 
         Args:
-            model_type: The type of model (chart, dataset, dashboard)
+            model_type: The type of model (chart, dataset, dashboard, database)
             dao_class: The DAO class to query for filter columns
             output_schema: Pydantic schema for the response (e.g., ModelSchemaInfo)
             select_columns: Column metadata (List[ColumnMetadata] or similar)
@@ -537,6 +559,8 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
             search_columns: Column names used for text search
             default_sort: Default sort column
             default_sort_direction: Default sort direction
+            exclude_filter_columns: Column names to omit from filter discovery
+                (e.g., sensitive fields like passwords or connection URIs)
             logger: Optional logger instance
         """
         super().__init__(logger)
@@ -549,6 +573,7 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         self.search_columns = search_columns
         self.default_sort = default_sort
         self.default_sort_direction = default_sort_direction
+        self.exclude_filter_columns = exclude_filter_columns or set()
 
     def _get_filter_columns(self) -> Dict[str, List[str]]:
         """Get filterable columns and operators from the DAO."""
@@ -559,16 +584,25 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
                 return {}
             # Convert to dict safely - handle both dict and dict-like objects
             if isinstance(filterable, dict):
-                return dict(filterable)
-            # Try to convert mapping-like objects
-            try:
-                return dict(filterable)
-            except (TypeError, ValueError):
-                self._log_warning(
-                    f"Unexpected filter columns type for {self.model_type}: "
-                    f"{type(filterable)}"
-                )
-                return {}
+                result = dict(filterable)
+            else:
+                # Try to convert mapping-like objects
+                try:
+                    result = dict(filterable)
+                except (TypeError, ValueError):
+                    self._log_warning(
+                        f"Unexpected filter columns type for {self.model_type}: "
+                        f"{type(filterable)}"
+                    )
+                    return {}
+            # Remove excluded columns (e.g., sensitive fields)
+            if self.exclude_filter_columns:
+                result = {
+                    k: v
+                    for k, v in result.items()
+                    if k not in self.exclude_filter_columns
+                }
+            return result
         except Exception as e:
             self._log_warning(
                 f"Failed to get filter columns for {self.model_type}: {e}"
