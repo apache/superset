@@ -118,9 +118,6 @@ def _build_update_payload(
             "viz_type": new_form_data["viz_type"],
             "params": json.dumps(new_form_data),
             # Clear stale query_context so get_chart_data uses the updated params.
-            # Charts opened in Explore accumulate a query_context that takes
-            # precedence over params; without this reset, filter and row_limit
-            # changes are silently ignored.
             "query_context": None,
         }
 
@@ -342,59 +339,6 @@ async def update_chart(  # noqa: C901
             if "params" in payload_or_error:
                 new_form_data = json.loads(payload_or_error["params"])
 
-            # Validate new config compiles before writing to DB.
-            if new_form_data is not None and chart.datasource_id is not None:
-                from superset.mcp_service.chart.tool.generate_chart import (
-                    _compile_chart,
-                    CompileResult,
-                )
-
-                with event_logger.log_context(action="mcp.update_chart.compile_check"):
-                    try:
-                        compile_result = _compile_chart(
-                            new_form_data, chart.datasource_id
-                        )
-                    except (
-                        CommandException,
-                        SQLAlchemyError,
-                        ValueError,
-                        KeyError,
-                        AttributeError,
-                    ) as exc:
-                        logger.warning(
-                            "Compile check raised unexpectedly: chart_id=%s, error=%s",
-                            chart.id,
-                            exc,
-                            exc_info=True,
-                        )
-                        compile_result = CompileResult(success=False, error=str(exc))
-                if not compile_result.success:
-                    await ctx.error(
-                        "Compile check failed for chart update: "
-                        "chart_id=%s, error=%s" % (chart.id, compile_result.error)
-                    )
-                    return GenerateChartResponse.model_validate(
-                        {
-                            "chart": None,
-                            "error": {
-                                "error_type": "CompileError",
-                                "message": (
-                                    "Updated chart configuration failed to compile. "
-                                    "The chart was not modified."
-                                ),
-                                "details": compile_result.error or "",
-                            },
-                            "success": False,
-                            "schema_version": "2.0",
-                            "api_version": "v1",
-                        }
-                    )
-            elif new_form_data is not None:
-                await ctx.warning(
-                    "Skipping compile check: chart has no dataset (chart_id=%s)"
-                    % (chart.id,)
-                )
-
             with event_logger.log_context(action="mcp.update_chart.db_write"):
                 command = UpdateChartCommand(chart.id, payload_or_error)
                 updated_chart = command.run()
@@ -499,7 +443,6 @@ async def update_chart(  # noqa: C901
             "error": None,
             "warnings": warnings,
             # Include form_data so callers can verify what was saved.
-            # Empty dict for name-only renames (visualization unchanged).
             "form_data": new_form_data if new_form_data is not None else {},
             "previews": previews,
             "capabilities": capabilities.model_dump() if capabilities else None,

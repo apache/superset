@@ -21,7 +21,7 @@ MCP tool: generate_chart (simplified schema)
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Dict, List
 from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
@@ -63,12 +63,12 @@ class CompileResult:
 
     success: bool
     error: str | None = None
-    warnings: list[str] = field(default_factory=list)
+    warnings: List[str] = field(default_factory=list)
     row_count: int | None = None
 
 
 def _compile_chart(
-    form_data: dict[str, Any],
+    form_data: Dict[str, Any],
     dataset_id: int,
 ) -> CompileResult:
     """Execute the chart's query to verify it renders without errors.
@@ -125,7 +125,7 @@ def _compile_chart(
         command.validate()
         result = command.run()
 
-        warnings: list[str] = []
+        warnings: List[str] = []
         row_count = 0
         for query in result.get("queries", []):
             if query.get("error"):
