@@ -328,14 +328,8 @@ def semantic_view(mock_implementation: MagicMock) -> SemanticView:
     view.cache_timeout = 3600
     view.configuration = "{}"
 
-    # Mock the implementation property
-    with patch.object(
-        SemanticView,
-        "implementation",
-        new_callable=lambda: property(lambda self: mock_implementation),
-    ):
-        # We need to return the view but the patch won't persist
-        pass
+    # Persist mocked implementation on this instance
+    view.__dict__["implementation"] = mock_implementation
 
     return view
 

@@ -41,13 +41,13 @@ revision = "33d7e0e21daa"
 down_revision = "a1b2c3d4e5f6"
 
 
-def upgrade():
+def upgrade() -> None:
     # Create semantic_layers table
     create_table(
         "semantic_layers",
         sa.Column("uuid", UUIDType(binary=True), default=uuid.uuid4, nullable=False),
         # created_on and changed_on are nullable=True to match AuditMixinNullable
-        sa.Column("created_on", sa.DateTime(), nullable=True),
+        sa.Column("created_on", sa.DateTime(), nullable=False),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("name", sa.String(length=250), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
@@ -154,7 +154,7 @@ def upgrade():
         )
 
 
-def downgrade():
+def downgrade() -> None:
     # Restore original constraint
     with op.batch_alter_table("slices") as batch_op:
         batch_op.drop_constraint("ck_chart_datasource", type_="check")
