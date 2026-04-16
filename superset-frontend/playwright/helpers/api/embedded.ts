@@ -100,7 +100,7 @@ export async function getGuestToken(
         first_name: 'Embedded',
         last_name: 'TestUser',
       },
-      resources: [{ type: 'dashboard', id: dashboardId }],
+      resources: [{ type: 'dashboard', id: String(dashboardId) }],
       rls,
     },
     headers: {
