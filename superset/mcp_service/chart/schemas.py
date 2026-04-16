@@ -996,6 +996,17 @@ class TableChartConfig(UnknownFieldCheckMixin):
     viz_type: Literal["table", "ag-grid-table"] = Field(
         "table", description="'ag-grid-table' for interactive features"
     )
+    query_mode: Literal["aggregate", "raw"] | None = Field(
+        None,
+        description=(
+            "Query mode: 'raw' returns individual rows without aggregation, "
+            "'aggregate' groups data using metrics. "
+            "When set to 'raw', all columns are treated as plain columns regardless "
+            "of any aggregate settings. "
+            "Defaults to auto-detection: 'raw' if no column has an aggregate "
+            "function, 'aggregate' otherwise."
+        ),
+    )
     columns: List[ColumnRef] = Field(
         ...,
         min_length=1,
