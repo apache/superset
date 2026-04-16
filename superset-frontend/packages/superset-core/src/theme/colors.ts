@@ -44,3 +44,32 @@ export interface ColorSchemeConfig {
 export interface SequentialSchemeConfig extends ColorSchemeConfig {
   isDiverging?: boolean;
 }
+
+/**
+ * Minimal interface for the categorical color scheme registry.
+ * Mirrors the public surface of @superset-ui/core's ColorSchemeRegistry.
+ */
+export interface CategoricalScheme {
+  id: string;
+  label?: string;
+  colors: string[];
+}
+
+export interface CategoricalSchemeRegistryLike {
+  keys(): string[];
+  get(name: string): CategoricalScheme | null | undefined;
+}
+
+/**
+ * Returns an alphabetically sorted list of all registered categorical color
+ * scheme names. The host app (ExtensionsStartup) provides the implementation
+ * via window.superset.colors.
+ */
+export declare function getCategoricalSchemeNames(): string[];
+
+/**
+ * Returns the color array for a named scheme, or null if not found.
+ * The host app (ExtensionsStartup) provides the implementation
+ * via window.superset.colors.
+ */
+export declare function getSchemeColors(schemeName: string): string[] | null;

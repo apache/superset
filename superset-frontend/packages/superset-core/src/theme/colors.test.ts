@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ColorSchemeGroup } from '@apache-superset/core/colors';
+import { ColorSchemeGroup } from '@apache-superset/core/theme';
 
 // ─── ColorSchemeGroup enum ────────────────────────────────────────────────────
 

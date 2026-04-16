@@ -24,7 +24,7 @@ import {
   isFeatureEnabled,
   getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
-import type { CategoricalSchemeRegistryLike } from '@apache-superset/core/colors';
+import type { CategoricalSchemeRegistryLike } from '@apache-superset/core/theme';
 import {
   authentication,
   core,

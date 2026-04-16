@@ -17,35 +17,16 @@
  * under the License.
  */
 
-// Types & enums for color scheme configuration — usable by extensions and host alike
-export type { ColorSchemeConfig, SequentialSchemeConfig } from './types';
-export { ColorSchemeGroup } from './types';
-
-/**
- * Minimal interface for the categorical color scheme registry.
- * Mirrors the public surface of @superset-ui/core's ColorSchemeRegistry.
- */
-export interface CategoricalScheme {
-  id: string;
-  label?: string;
-  colors: string[];
-}
-
-export interface CategoricalSchemeRegistryLike {
-  keys(): string[];
-  get(name: string): CategoricalScheme | null | undefined;
-}
-
-/**
- * Returns an alphabetically sorted list of all registered categorical color
- * scheme names. The host app (ExtensionsStartup) provides the implementation
- * via window.superset.colors.
- */
-export declare function getCategoricalSchemeNames(): string[];
-
-/**
- * Returns the color array for a named scheme, or null if not found.
- * The host app (ExtensionsStartup) provides the implementation
- * via window.superset.colors.
- */
-export declare function getSchemeColors(schemeName: string): string[] | null;
+// Color scheme APIs live in @apache-superset/core/theme.
+// This re-export shim keeps the @apache-superset/core/colors subpath working.
+export type {
+  ColorSchemeConfig,
+  SequentialSchemeConfig,
+  CategoricalScheme,
+  CategoricalSchemeRegistryLike,
+} from '../theme/colors';
+export {
+  ColorSchemeGroup,
+  getCategoricalSchemeNames,
+  getSchemeColors,
+} from '../theme/colors';

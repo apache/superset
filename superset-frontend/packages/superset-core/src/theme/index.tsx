@@ -88,3 +88,16 @@ export type {
 // Export theme utility functions
 export * from './utils/themeUtils';
 export * from './utils';
+
+// Color scheme API — types, enums, and declare-function bridge for extensions
+export type {
+  ColorSchemeConfig,
+  SequentialSchemeConfig,
+  CategoricalScheme,
+  CategoricalSchemeRegistryLike,
+} from './colors';
+export {
+  ColorSchemeGroup,
+  getCategoricalSchemeNames,
+  getSchemeColors,
+} from './colors';
