@@ -17,11 +17,9 @@
  * under the License.
  */
 
-import { useState } from 'react';
+import { useState, ChangeEvent } from 'react';
 import { t } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
-import Collapse from 'src/components/Collapse';
-import FormItem from 'src/components/Form/FormItem';
+import { Input, Collapse, FormItem } from 'src/components';
 import { CustomParametersChangeType, FieldPropTypes } from '../../types';
 
 const LABELS = {
@@ -62,7 +60,7 @@ export const OAuth2ClientField = ({
   });
 
   const handleChange =
-    (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    (key: string) => (e: ChangeEvent<HTMLInputElement>) => {
       const updatedInfo = {
         ...oauth2ClientInfo,
         [key]: e.target.value,
@@ -106,7 +104,7 @@ export const OAuth2ClientField = ({
               <FormItem label={LABELS.AUTH_URI}>
                 <Input
                   data-test="client-authorization-request-uri"
-                  placeholder={t('https://')}
+                  placeholder="https://"
                   value={oauth2ClientInfo.authorization_request_uri}
                   onChange={handleChange('authorization_request_uri')}
                 />
@@ -114,7 +112,7 @@ export const OAuth2ClientField = ({
               <FormItem label={LABELS.TOKEN_URI}>
                 <Input
                   data-test="client-token-request-uri"
-                  placeholder={t('https://')}
+                  placeholder="https://"
                   value={oauth2ClientInfo.token_request_uri}
                   onChange={handleChange('token_request_uri')}
                 />
