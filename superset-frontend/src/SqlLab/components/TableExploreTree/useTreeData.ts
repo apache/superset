@@ -146,6 +146,56 @@ const useTreeData = ({
   const [state, dispatch] = useReducer(treeDataReducer, initialState);
   const { tableData, tableSchemaData, loadingNodes, errorPayload } = state;
 
+  // Shared helper: fetch table metadata + extended metadata and store in state.
+  // preferCacheValue=true on initial open (use cached data if available),
+  // preferCacheValue=false on explicit refresh (bypass cache).
+  const fetchAndStoreTableSchema = useCallback(
+    (id: string, preferCacheValue: boolean) => {
+      const parts = id.split(':');
+      const [, databaseId, schema, table] = parts;
+      const parsedDbId = Number(databaseId);
+      const tableKey = `${parsedDbId}:${schema}:${table}`;
+
+      dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
+
+      // .unwrap() causes RTK Query to reject on error so .catch() fires.
+      // Without it RTK Query resolves with { error } instead of rejecting.
+      Promise.all([
+        fetchTableMetadata(
+          { dbId: parsedDbId, catalog, schema, table },
+          preferCacheValue,
+        ).unwrap(),
+        fetchTableExtendedMetadata(
+          { dbId: parsedDbId, catalog, schema, table },
+          preferCacheValue,
+        ).unwrap(),
+      ])
+        .then(([tableMetadata, tableExtendedMetadata]) => {
+          if (tableMetadata) {
+            dispatch({
+              type: 'SET_TABLE_SCHEMA_DATA',
+              key: tableKey,
+              data: { ...tableMetadata, ...tableExtendedMetadata },
+            });
+          }
+        })
+        .catch(() => {
+          reduxDispatch(
+            addDangerToast(
+              t(
+                'An error occurred while fetching table metadata for %s',
+                table,
+              ),
+            ),
+          );
+        })
+        .finally(() => {
+          dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: false });
+        });
+    },
+    [catalog, fetchTableExtendedMetadata, fetchTableMetadata, reduxDispatch],
+  );
+
   // Handle async loading when node is toggled open
   const handleToggle = useCallback(
     async (id: string, isOpen: boolean) => {
@@ -159,17 +209,10 @@ const useTreeData = ({
       if (identifier === 'schema') {
         const schemaKey = `${parsedDbId}:${schema}`;
         if (!tableData?.[schemaKey]) {
-          // Set loading state
           dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
 
-          // Fetch tables asynchronously
           fetchLazyTables(
-            {
-              dbId: parsedDbId,
-              catalog,
-              schema,
-              forceRefresh: false,
-            },
+            { dbId: parsedDbId, catalog, schema, forceRefresh: false },
             true,
           )
             .then(({ data }) => {
@@ -200,71 +243,15 @@ const useTreeData = ({
         if (pinnedTables[tableKey]) return;
 
         if (!tableSchemaData[tableKey]) {
-          // Set loading state
-          dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
-
-          // Fetch metadata asynchronously
-          // .unwrap() causes RTK Query to reject on error so .catch() fires.
-          // Without it RTK Query resolves with { error } instead of rejecting.
-          Promise.all([
-            fetchTableMetadata(
-              {
-                dbId: parsedDbId,
-                catalog,
-                schema,
-                table,
-              },
-              true,
-            ).unwrap(),
-            fetchTableExtendedMetadata(
-              {
-                dbId: parsedDbId,
-                catalog,
-                schema,
-                table,
-              },
-              true,
-            ).unwrap(),
-          ])
-            .then(([tableMetadata, tableExtendedMetadata]) => {
-              if (tableMetadata) {
-                dispatch({
-                  type: 'SET_TABLE_SCHEMA_DATA',
-                  key: tableKey,
-                  data: {
-                    ...tableMetadata,
-                    ...tableExtendedMetadata,
-                  },
-                });
-              }
-            })
-            .catch(() => {
-              reduxDispatch(
-                addDangerToast(
-                  t(
-                    'An error occurred while fetching table metadata for %s',
-                    table,
-                  ),
-                ),
-              );
-            })
-            .finally(() => {
-              dispatch({
-                type: 'SET_LOADING_NODE',
-                nodeId: id,
-                loading: false,
-              });
-            });
+          fetchAndStoreTableSchema(id, true);
         }
       }
     },
     [
       catalog,
+      fetchAndStoreTableSchema,
       fetchLazyTables,
-      fetchTableExtendedMetadata,
-      fetchTableMetadata,
       pinnedTables,
-      reduxDispatch,
       tableData,
       tableSchemaData,
     ],
@@ -317,45 +304,9 @@ const useTreeData = ({
       const tableKey = `${parsedDbId}:${schema}:${table}`;
 
       dispatch({ type: 'CLEAR_TABLE_SCHEMA_DATA', key: tableKey });
-      dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
-
-      Promise.all([
-        fetchTableMetadata(
-          { dbId: parsedDbId, catalog, schema, table },
-          false,
-        ).unwrap(),
-        fetchTableExtendedMetadata(
-          { dbId: parsedDbId, catalog, schema, table },
-          false,
-        ).unwrap(),
-      ])
-        .then(([tableMetadata, tableExtendedMetadata]) => {
-          if (tableMetadata) {
-            dispatch({
-              type: 'SET_TABLE_SCHEMA_DATA',
-              key: tableKey,
-              data: {
-                ...tableMetadata,
-                ...tableExtendedMetadata,
-              },
-            });
-          }
-        })
-        .catch(() => {
-          reduxDispatch(
-            addDangerToast(
-              t(
-                'An error occurred while refreshing table metadata for %s',
-                table,
-              ),
-            ),
-          );
-        })
-        .finally(() => {
-          dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: false });
-        });
+      fetchAndStoreTableSchema(id, false);
     },
-    [catalog, fetchTableExtendedMetadata, fetchTableMetadata, reduxDispatch],
+    [fetchAndStoreTableSchema],
   );
 
   // Build tree data
