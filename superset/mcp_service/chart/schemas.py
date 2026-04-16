@@ -1397,9 +1397,21 @@ class UpdateChartRequest(QueryCacheControl):
     chart_name: str | None = Field(
         None, description="Auto-generates if omitted", max_length=255
     )
-    generate_preview: bool = True
-    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
+    generate_preview: bool = Field(
+        default=True,
+        description=(
+            "When True (default), returns a preview explore URL so the user "
+            "can review changes before saving. When False, persists the "
+            "update immediately."
+        ),
+    )
+    preview_formats: list[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
+        description=(
+            "Extra preview formats to render after saving. Only used when "
+            "generate_preview=False. When generate_preview=True, the preview "
+            "is always an explore URL."
+        ),
     )
 
     @field_validator("config", mode="before")
