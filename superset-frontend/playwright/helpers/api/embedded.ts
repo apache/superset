@@ -17,24 +17,28 @@
  * under the License.
  */
 
-import { Page, APIResponse } from '@playwright/test';
-import { apiPost, apiPut, apiGet } from './requests';
+import { Page } from '@playwright/test';
+import { apiPost, apiPut } from './requests';
+import { ENDPOINTS as DASHBOARD_ENDPOINTS } from './dashboard';
 
 export const ENDPOINTS = {
   SECURITY_LOGIN: 'api/v1/security/login',
   GUEST_TOKEN: 'api/v1/security/guest_token/',
-  DASHBOARD: 'api/v1/dashboard/',
 } as const;
 
 export interface EmbeddedConfig {
   uuid: string;
   allowed_domains: string[];
-  dashboard_id: string;
+  dashboard_id: number;
 }
 
 /**
  * Enable embedding on a dashboard and return the embedded UUID.
  * Uses PUT (upsert) to preserve UUID across repeated calls.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param dashboardIdOrSlug - Numeric dashboard id or slug
+ * @param allowedDomains - Domains allowed to embed; empty array allows all
+ * @returns Embedded config with UUID, allowed_domains, and dashboard_id
  */
 export async function apiEnableEmbedding(
   page: Page,
@@ -43,7 +47,7 @@ export async function apiEnableEmbedding(
 ): Promise<EmbeddedConfig> {
   const response = await apiPut(
     page,
-    `${ENDPOINTS.DASHBOARD}${dashboardIdOrSlug}/embedded`,
+    `${DASHBOARD_ENDPOINTS.DASHBOARD}${dashboardIdOrSlug}/embedded`,
     { allowed_domains: allowedDomains },
   );
   const body = await response.json();
@@ -53,10 +57,14 @@ export async function apiEnableEmbedding(
 /**
  * Get a guest token for an embedded dashboard.
  * Uses the admin login flow (login → access_token → guest_token).
+ * @param page - Playwright page instance (used for request context)
+ * @param dashboardId - Dashboard id to grant access to
+ * @param options - Optional login credentials and RLS rules
+ * @returns Signed guest token string
  */
 export async function getGuestToken(
   page: Page,
-  dashboardId: string,
+  dashboardId: number | string,
   options?: {
     username?: string;
     password?: string;
@@ -82,7 +90,9 @@ export async function getGuestToken(
   const loginBody = await loginResponse.json();
   const accessToken = loginBody.access_token;
 
-  // Step 2: Fetch guest token using the access token
+  // Step 2: Fetch guest token using the access token.
+  // Uses raw page.request.post() (not apiPost) because the guest token endpoint
+  // requires a JWT Bearer token rather than session+CSRF auth.
   const guestResponse = await page.request.post(ENDPOINTS.GUEST_TOKEN, {
     data: {
       user: {
@@ -100,24 +110,4 @@ export async function getGuestToken(
   });
   const guestBody = await guestResponse.json();
   return guestBody.token;
-}
-
-/**
- * Get a dashboard by slug, returning its numeric ID.
- */
-export async function getDashboardIdBySlug(
-  page: Page,
-  slug: string,
-): Promise<number | null> {
-  const response = await apiGet(
-    page,
-    `${ENDPOINTS.DASHBOARD}?q=(filters:!((col:slug,opr:eq,value:'${slug}')))`,
-    { failOnStatusCode: false },
-  );
-  if (!response.ok()) return null;
-  const body = await response.json();
-  if (body.result?.length > 0) {
-    return body.result[0].id;
-  }
-  return null;
 }

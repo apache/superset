@@ -17,15 +17,12 @@
  * under the License.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
 import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
 import { readFileSync, existsSync } from 'fs';
 import { join, extname } from 'path';
-import {
-  apiEnableEmbedding,
-  getGuestToken,
-  getDashboardIdBySlug,
-} from '../../helpers/api/embedded';
+import { apiEnableEmbedding, getGuestToken } from '../../helpers/api/embedded';
+import { getDashboardBySlug } from '../../helpers/api/dashboard';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
 import { EMBEDDED } from '../../utils/constants';
 
@@ -46,6 +43,10 @@ const SUPERSET_DOMAIN = (() => {
   const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
   return url.replace(/\/+$/, '');
 })();
+
+const SUPERSET_BASE_URL = SUPERSET_DOMAIN.endsWith('/')
+  ? SUPERSET_DOMAIN
+  : `${SUPERSET_DOMAIN}/`;
 
 /**
  * Path to the SDK bundle built from superset-embedded-sdk/
@@ -100,15 +101,45 @@ function createEmbedAppServer(): Server {
   });
 }
 
+/**
+ * Create a browser context authenticated as admin for API-only work
+ * (enabling embedding, restoring config). Caller is responsible for closing.
+ */
+function createAdminContext(browser: Browser): Promise<BrowserContext> {
+  return browser.newContext({
+    storageState: 'playwright/.auth/user.json',
+    baseURL: SUPERSET_BASE_URL,
+  });
+}
+
 // ─── Test Suite ────────────────────────────────────────────────────────────
 
-// Run tests serially: they share a static file server on a fixed port
-test.describe.configure({ mode: 'serial' });
-
+// Describe wrapper is needed for shared server state and serial execution:
+// all tests share a static file server on a fixed port and must not run in parallel.
 test.describe('Embedded Dashboard E2E', () => {
+  test.describe.configure({ mode: 'serial' });
+
   let server: Server;
   let embedUuid: string;
   let dashboardId: number;
+
+  /**
+   * Set up a page to render the default embedded dashboard.
+   * Tests that need a different UUID or UI config should not use this helper.
+   */
+  async function setupEmbeddedPage(page: Page): Promise<EmbeddedPage> {
+    const embeddedPage = new EmbeddedPage(page);
+    await embeddedPage.exposeTokenFetcher(async () =>
+      getGuestToken(page, dashboardId),
+    );
+    await embeddedPage.goto({
+      uuid: embedUuid,
+      supersetDomain: SUPERSET_DOMAIN,
+    });
+    await embeddedPage.waitForIframe();
+    await embeddedPage.waitForDashboardContent();
+    return embeddedPage;
+  }
 
   test.beforeAll(async ({ browser }) => {
     // Skip all tests if the SDK bundle hasn't been built
@@ -124,24 +155,19 @@ test.describe('Embedded Dashboard E2E', () => {
       server.listen(EMBEDDED.APP_PORT, () => resolve());
     });
 
-    // Use a fresh page with auth to set up test data via API
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/user.json',
-      baseURL: SUPERSET_DOMAIN.endsWith('/')
-        ? SUPERSET_DOMAIN
-        : `${SUPERSET_DOMAIN}/`,
-    });
+    // Use a fresh context with auth to set up test data via API
+    const context = await createAdminContext(browser);
     const setupPage = await context.newPage();
 
     try {
       // Find a well-known example dashboard
-      const id = await getDashboardIdBySlug(setupPage, 'world_health');
-      if (!id) {
+      const dashboard = await getDashboardBySlug(setupPage, 'world_health');
+      if (!dashboard) {
         throw new Error(
           'Dashboard "world_health" not found. Ensure load_examples ran in CI setup.',
         );
       }
-      dashboardId = id;
+      dashboardId = dashboard.id;
 
       // Enable embedding on the dashboard (empty allowed_domains = allow all)
       const embedded = await apiEnableEmbedding(setupPage, dashboardId);
@@ -158,21 +184,7 @@ test.describe('Embedded Dashboard E2E', () => {
   });
 
   test('dashboard renders in embedded iframe', async ({ page }) => {
-    const embeddedPage = new EmbeddedPage(page);
-
-    // Bridge the guest token from Node.js into the browser
-    await embeddedPage.exposeTokenFetcher(async () =>
-      getGuestToken(page, String(dashboardId)),
-    );
-
-    // Navigate to the embed app
-    await embeddedPage.goto({
-      uuid: embedUuid,
-      supersetDomain: SUPERSET_DOMAIN,
-    });
-
-    // Wait for the iframe to be created by the SDK
-    await embeddedPage.waitForIframe();
+    const embeddedPage = await setupEmbeddedPage(page);
 
     // Verify the iframe src points to Superset's /embedded/ endpoint
     const iframeSrc = await page
@@ -180,27 +192,25 @@ test.describe('Embedded Dashboard E2E', () => {
       .getAttribute('src');
     expect(iframeSrc).toContain(`/embedded/${embedUuid}`);
 
-    // Wait for dashboard content to render inside the iframe
-    await embeddedPage.waitForDashboardContent();
-
     // Verify no errors in the test app
     const error = await embeddedPage.getError();
     expect(error).toBe('');
+
+    // Baseline: title should be visible when hideTitle is not set
+    const titleVisible = await embeddedPage.isTitleVisible();
+    expect(titleVisible).toBe(true);
   });
 
   test('UI config hideTitle hides dashboard title', async ({ page }) => {
     const embeddedPage = new EmbeddedPage(page);
-
     await embeddedPage.exposeTokenFetcher(async () =>
-      getGuestToken(page, String(dashboardId)),
+      getGuestToken(page, dashboardId),
     );
-
     await embeddedPage.goto({
       uuid: embedUuid,
       supersetDomain: SUPERSET_DOMAIN,
       hideTitle: true,
     });
-
     await embeddedPage.waitForIframe();
     await embeddedPage.waitForDashboardContent();
 
@@ -209,28 +219,17 @@ test.describe('Embedded Dashboard E2E', () => {
       .locator('iframe[title="Embedded Dashboard"]')
       .getAttribute('src');
     expect(iframeSrc).toContain('uiConfig=');
+
+    // Verify the title is actually hidden inside the iframe
+    const titleVisible = await embeddedPage.isTitleVisible();
+    expect(titleVisible).toBe(false);
   });
 
-  test('native filters are functional in embedded mode', async ({ page }) => {
-    const embeddedPage = new EmbeddedPage(page);
+  test('charts render inside embedded iframe', async ({ page }) => {
+    const embeddedPage = await setupEmbeddedPage(page);
 
-    await embeddedPage.exposeTokenFetcher(async () =>
-      getGuestToken(page, String(dashboardId)),
-    );
-
-    await embeddedPage.goto({
-      uuid: embedUuid,
-      supersetDomain: SUPERSET_DOMAIN,
-    });
-
-    await embeddedPage.waitForIframe();
-    await embeddedPage.waitForDashboardContent();
-
-    // Verify the filter bar is present in the iframe
-    const frame = embeddedPage.getIframeLocator();
-    // The World Health dashboard may or may not have filters,
-    // so we just verify the dashboard rendered without errors
-    const charts = frame.locator(
+    // Verify chart containers are present and visible in the iframe
+    const charts = embeddedPage.iframe.locator(
       '.chart-container, [data-test="chart-container"]',
     );
     await expect(charts.first()).toBeVisible({
@@ -238,17 +237,11 @@ test.describe('Embedded Dashboard E2E', () => {
     });
   });
 
-  test('allowed_domains blocks unauthorized referrer', async ({ page }) => {
-    // Set up a second embedded config with restricted domains
-    const context = await page
-      .context()
-      .browser()!
-      .newContext({
-        storageState: 'playwright/.auth/user.json',
-        baseURL: SUPERSET_DOMAIN.endsWith('/')
-          ? SUPERSET_DOMAIN
-          : `${SUPERSET_DOMAIN}/`,
-      });
+  test('allowed_domains blocks unauthorized referrer', async ({
+    page,
+    browser,
+  }) => {
+    const context = await createAdminContext(browser);
     const setupPage = await context.newPage();
 
     try {
@@ -259,9 +252,8 @@ test.describe('Embedded Dashboard E2E', () => {
 
       const embeddedPage = new EmbeddedPage(page);
       await embeddedPage.exposeTokenFetcher(async () =>
-        getGuestToken(page, String(dashboardId)),
+        getGuestToken(page, dashboardId),
       );
-
       await embeddedPage.goto({
         uuid: restrictedEmbed.uuid,
         supersetDomain: SUPERSET_DOMAIN,
@@ -270,12 +262,8 @@ test.describe('Embedded Dashboard E2E', () => {
       // The iframe should load but get a 403 from Superset's referrer check
       await embeddedPage.waitForIframe();
 
-      // Give the iframe time to receive the response
-      await page.waitForTimeout(3000);
-
-      // The dashboard content should NOT render (403 response)
-      const frame = embeddedPage.getIframeLocator();
-      const content = frame.locator(
+      // The dashboard content should NOT render (403 blocks the embedded page)
+      const content = embeddedPage.iframe.locator(
         '.grid-container, [data-test="grid-container"]',
       );
       await expect(content).not.toBeVisible({ timeout: 5000 });
@@ -292,14 +280,13 @@ test.describe('Embedded Dashboard E2E', () => {
     let tokenCallCount = 0;
     await embeddedPage.exposeTokenFetcher(async () => {
       tokenCallCount += 1;
-      return getGuestToken(page, String(dashboardId));
+      return getGuestToken(page, dashboardId);
     });
 
     await embeddedPage.goto({
       uuid: embedUuid,
       supersetDomain: SUPERSET_DOMAIN,
     });
-
     await embeddedPage.waitForIframe();
     await embeddedPage.waitForDashboardContent();
 
@@ -307,8 +294,7 @@ test.describe('Embedded Dashboard E2E', () => {
     expect(tokenCallCount).toBeGreaterThanOrEqual(1);
 
     // Verify charts are actually rendering data (not just loading spinners)
-    const frame = embeddedPage.getIframeLocator();
-    const charts = frame.locator(
+    const charts = embeddedPage.iframe.locator(
       '.chart-container, [data-test="chart-container"]',
     );
     const chartCount = await charts.count();

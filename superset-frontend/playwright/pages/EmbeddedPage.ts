@@ -75,9 +75,9 @@ export class EmbeddedPage {
   }
 
   /**
-   * Get a FrameLocator for the embedded dashboard iframe.
+   * FrameLocator for the embedded dashboard iframe.
    */
-  getIframeLocator(): FrameLocator {
+  get iframe(): FrameLocator {
     return this.page.frameLocator(EmbeddedPage.SELECTORS.IFRAME);
   }
 
@@ -96,7 +96,7 @@ export class EmbeddedPage {
    * Looks for the grid-container which indicates charts are loading/loaded.
    */
   async waitForDashboardContent(options?: { timeout?: number }): Promise<void> {
-    const frame = this.getIframeLocator();
+    const frame = this.iframe;
     await frame
       .locator('.grid-container, [data-test="grid-container"]')
       .first()
@@ -110,7 +110,10 @@ export class EmbeddedPage {
    * Get the status text from the test app.
    */
   async getStatus(): Promise<string> {
-    return this.page.locator(EmbeddedPage.SELECTORS.STATUS).textContent() ?? '';
+    return (
+      (await this.page.locator(EmbeddedPage.SELECTORS.STATUS).textContent()) ??
+      ''
+    );
   }
 
   /**
@@ -127,7 +130,7 @@ export class EmbeddedPage {
    * Check if the dashboard title is visible inside the iframe.
    */
   async isTitleVisible(): Promise<boolean> {
-    const frame = this.getIframeLocator();
+    const frame = this.iframe;
     return frame
       .locator(
         '[data-test="dashboard-header-container"] [data-test="editable-title"]',
