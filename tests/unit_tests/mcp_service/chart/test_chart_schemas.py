@@ -24,6 +24,8 @@ from pydantic import ValidationError
 
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
+    GenerateChartRequest,
+    parse_chart_config,
     TableChartConfig,
     XYChartConfig,
 )
@@ -570,3 +572,103 @@ class TestUnknownFieldDetection:
         assert config.stacked is True
         assert config.row_limit == 10000
         assert config.group_by is not None
+
+
+class TestColumnRefSavedMetric:
+    """Test ColumnRef saved_metric support."""
+
+    def test_saved_metric_defaults_to_false(self) -> None:
+        col = ColumnRef(name="revenue", aggregate="SUM")
+        assert col.saved_metric is False
+
+    def test_saved_metric_flag_accepted(self) -> None:
+        col = ColumnRef(name="total_revenue", saved_metric=True)
+        assert col.saved_metric is True
+        assert col.name == "total_revenue"
+
+    def test_saved_metric_clears_aggregate(self) -> None:
+        col = ColumnRef(name="total_revenue", saved_metric=True, aggregate="SUM")
+        assert col.saved_metric is True
+        assert col.aggregate is None
+
+    def test_saved_metric_preserves_label(self) -> None:
+        col = ColumnRef(name="total_revenue", saved_metric=True, label="Revenue")
+        assert col.label == "Revenue"
+
+    def test_saved_metric_in_table_config_unique_labels(self) -> None:
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="total_revenue", saved_metric=True),
+            ],
+        )
+        assert len(config.columns) == 2
+
+    def test_saved_metric_in_xy_config_unique_labels(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="total_revenue", saved_metric=True)],
+        )
+        assert len(config.y) == 1
+
+    def test_saved_metric_duplicate_label_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="Duplicate column/metric labels"):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="order_date"),
+                y=[
+                    ColumnRef(name="total_revenue", saved_metric=True),
+                    ColumnRef(
+                        name="other_metric",
+                        saved_metric=True,
+                        label="total_revenue",
+                    ),
+                ],
+            )
+
+
+class TestParseChartConfig:
+    """Tests for parse_chart_config and config coercion."""
+
+    def test_parse_valid_xy_config(self) -> None:
+        config = parse_chart_config(
+            {"chart_type": "xy", "x": {"name": "date"}, "y": [{"name": "v"}]}
+        )
+        assert config.chart_type == "xy"
+        assert config.x.name == "date"
+        assert len(config.y) == 1
+        assert config.y[0].name == "v"
+
+    def test_parse_valid_table_config(self) -> None:
+        config = parse_chart_config(
+            {"chart_type": "table", "columns": [{"name": "col1"}]}
+        )
+        assert config.chart_type == "table"
+        assert len(config.columns) == 1
+        assert config.columns[0].name == "col1"
+
+    def test_parse_missing_chart_type_raises(self) -> None:
+        with pytest.raises(ValueError, match="chart://configs"):
+            parse_chart_config({"x": {"name": "date"}, "y": [{"name": "v"}]})
+
+    def test_parse_unknown_chart_type_raises(self) -> None:
+        with pytest.raises(ValueError, match="chart://configs"):
+            parse_chart_config({"chart_type": "nonexistent", "x": {"name": "d"}})
+
+    def test_coerce_json_string_config(self) -> None:
+        raw = '{"chart_type": "table", "columns": [{"name": "c"}]}'
+        req = GenerateChartRequest(dataset_id=1, config=raw)
+        assert isinstance(req.config, dict)
+        assert req.config["chart_type"] == "table"
+
+    def test_coerce_typed_config_object(self) -> None:
+        typed = TableChartConfig(chart_type="table", columns=[ColumnRef(name="c")])
+        req = GenerateChartRequest(dataset_id=1, config=typed)
+        assert isinstance(req.config, dict)
+        assert req.config["chart_type"] == "table"
+
+    def test_coerce_invalid_json_string_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            GenerateChartRequest(dataset_id=1, config="not valid json")

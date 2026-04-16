@@ -75,7 +75,6 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = None
-    dashboard.position_json = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = "test-dashboard-uuid-1"
@@ -142,7 +141,6 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = None
-    dashboard.position_json = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = None
@@ -236,7 +234,6 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = None
-    dashboard.position_json = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = None
@@ -303,7 +300,6 @@ async def test_get_dashboard_info_success(mock_info, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = None
-    dashboard.position_json = None
     dashboard.published = True
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -383,7 +379,6 @@ async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = "{}"
-    dashboard.position_json = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -423,7 +418,6 @@ async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = "{}"
-    dashboard.position_json = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -475,7 +469,6 @@ async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = None
-    dashboard.position_json = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.thumbnail_url = None
@@ -529,21 +522,23 @@ class TestDashboardDefaultColumnFiltering:
             DASHBOARD_DEFAULT_COLUMNS,
         )
 
-        # Should have exactly 5 minimal columns
-        assert len(DASHBOARD_DEFAULT_COLUMNS) == 5
         assert set(DASHBOARD_DEFAULT_COLUMNS) == {
             "id",
             "dashboard_title",
             "slug",
+            "description",
+            "certified_by",
+            "certification_details",
             "url",
+            "changed_on",
             "changed_on_humanized",
         }
 
         # Heavy columns should NOT be in defaults
         assert "charts" not in DASHBOARD_DEFAULT_COLUMNS
         assert "published" not in DASHBOARD_DEFAULT_COLUMNS
-        assert "json_metadata" not in DASHBOARD_DEFAULT_COLUMNS
-        assert "position_json" not in DASHBOARD_DEFAULT_COLUMNS
+        assert "native_filters" not in DASHBOARD_DEFAULT_COLUMNS
+        assert "cross_filters_enabled" not in DASHBOARD_DEFAULT_COLUMNS
         assert "uuid" not in DASHBOARD_DEFAULT_COLUMNS
 
     def test_empty_select_columns_default(self):
@@ -587,7 +582,6 @@ class TestDashboardDefaultColumnFiltering:
         dashboard.certified_by = None
         dashboard.certification_details = None
         dashboard.json_metadata = None
-        dashboard.position_json = None
         dashboard.is_managed_externally = False
         dashboard.external_url = None
         dashboard.thumbnail_url = None
@@ -610,8 +604,8 @@ class TestDashboardDefaultColumnFiltering:
             assert "changed_on_humanized" in data["columns_requested"]
 
             # Verify heavy columns are NOT in columns_loaded by default
-            assert "json_metadata" not in data["columns_loaded"]
-            assert "position_json" not in data["columns_loaded"]
+            assert "native_filters" not in data["columns_loaded"]
+            assert "cross_filters_enabled" not in data["columns_loaded"]
 
 
 class TestDashboardSortableColumns:

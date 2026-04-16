@@ -25,6 +25,7 @@ import difflib
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
+import humanize
 from pydantic import (
     AliasChoices,
     AliasPath,
@@ -35,7 +36,9 @@ from pydantic import (
     model_serializer,
     model_validator,
     PositiveInt,
+    TypeAdapter,
 )
+from typing_extensions import Self
 
 from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
@@ -46,6 +49,7 @@ from superset.mcp_service.common.cache_schemas import (
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     serialize_user_object,
@@ -71,6 +75,8 @@ class ChartLike(Protocol):
     cache_timeout: int | None
     form_data: Dict[str, Any] | None
     query_context: Any | None
+    certified_by: str | None
+    certification_details: str | None
     changed_by: Any | None  # User object
     changed_by_name: str | None
     changed_on: str | datetime | None
@@ -109,6 +115,12 @@ class ChartInfo(BaseModel):
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
+    )
+    certified_by: str | None = Field(
+        None, description="Name of the person or team who certified this chart"
+    )
+    certification_details: str | None = Field(
+        None, description="Certification details or reason"
     )
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
@@ -270,17 +282,35 @@ class GetChartInfoRequest(BaseModel):
         return self
 
 
+def _humanize_timestamp(dt: datetime | None) -> str | None:
+    """Convert a datetime to a humanized string like '2 hours ago'."""
+    if dt is None:
+        return None
+    return humanize.naturaltime(datetime.now() - dt)
+
+
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
 
-    # Use the chart's native URL (explore URL) instead of screenshot URL
     from superset.mcp_service.utils.url_utils import get_superset_base_url
+    from superset.utils import json as utils_json
 
     chart_id = getattr(chart, "id", None)
     chart_url = None
     if chart_id:
         chart_url = f"{get_superset_base_url()}/explore/?slice_id={chart_id}"
+
+    # Parse form_data from the chart's params JSON string
+    chart_params = getattr(chart, "params", None)
+    chart_form_data = None
+    if chart_params and isinstance(chart_params, str):
+        try:
+            chart_form_data = utils_json.loads(chart_params)
+        except (TypeError, ValueError):
+            pass
+    elif isinstance(chart_params, dict):
+        chart_form_data = chart_params
 
     return ChartInfo(
         id=chart_id,
@@ -290,16 +320,19 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         datasource_type=getattr(chart, "datasource_type", None),
         url=chart_url,
         description=getattr(chart, "description", None),
+        certified_by=getattr(chart, "certified_by", None),
+        certification_details=getattr(chart, "certification_details", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
+        form_data=chart_form_data,
         changed_by=getattr(chart, "changed_by_name", None)
         or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
         changed_by_name=getattr(chart, "changed_by_name", None),
         changed_on=getattr(chart, "changed_on", None),
-        changed_on_humanized=getattr(chart, "changed_on_humanized", None),
+        changed_on_humanized=_humanize_timestamp(getattr(chart, "changed_on", None)),
         created_by=getattr(chart, "created_by_name", None)
         or (str(chart.created_by) if getattr(chart, "created_by", None) else None),
         created_on=getattr(chart, "created_on", None),
-        created_on_humanized=getattr(chart, "created_on_humanized", None),
+        created_on_humanized=_humanize_timestamp(getattr(chart, "created_on", None)),
         uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
         tags=[
             TagInfo.model_validate(tag, from_attributes=True)
@@ -485,6 +518,24 @@ class ColumnRef(BaseModel):
         ]
         | None
     ) = Field(None, description="SQL aggregate function")
+    saved_metric: bool = Field(
+        False,
+        description="If true, 'name' refers to a saved metric from the dataset "
+        "(use get_dataset_info to see available metrics). "
+        "When set, 'aggregate' is ignored.",
+    )
+
+    @property
+    def is_metric(self) -> bool:
+        """Whether this ref acts as a metric (has aggregate or is a saved metric)."""
+        return bool(self.aggregate) or self.saved_metric
+
+    @model_validator(mode="after")
+    def clear_aggregate_for_saved_metric(self) -> "ColumnRef":
+        """Clear aggregate when saved_metric is True since it's ignored."""
+        if self.saved_metric and self.aggregate is not None:
+            self.aggregate = None
+        return self
 
     @field_validator("name")
     @classmethod
@@ -592,7 +643,9 @@ class PieChartConfig(UnknownFieldCheckMixin):
         validation_alias=AliasChoices("dimension", "groupby"),
     )
     metric: ColumnRef = Field(
-        ..., description="Value metric (needs aggregate e.g. SUM, COUNT)"
+        ...,
+        description="Value metric (use aggregate e.g. SUM, COUNT for ad-hoc, "
+        "or set saved_metric=True for a saved dataset metric)",
     )
     donut: bool = False
     show_labels: bool = True
@@ -638,7 +691,8 @@ class PivotTableChartConfig(UnknownFieldCheckMixin):
     metrics: List[ColumnRef] = Field(
         ...,
         min_length=1,
-        description="Metrics (need aggregate e.g. SUM, COUNT, AVG)",
+        description="Metrics (use aggregate e.g. SUM, COUNT, AVG for ad-hoc, "
+        "or set saved_metric=True for saved dataset metrics)",
     )
     aggregate_function: Literal[
         "Sum",
@@ -818,7 +872,7 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
                     "Handlebars chart in 'aggregate' query mode requires 'metrics' "
                     "field. Specify at least one metric with an aggregate function."
                 )
-            missing_agg = [m.name for m in self.metrics if not m.aggregate]
+            missing_agg = [m.name for m in self.metrics if not m.is_metric]
             if missing_agg:
                 raise ValueError(
                     f"Handlebars chart in 'aggregate' query mode requires an "
@@ -826,6 +880,112 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
                     f"{', '.join(missing_agg)}. "
                     f"Use one of: SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, etc."
                 )
+        return self
+
+
+class BigNumberChartConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore")
+
+    chart_type: Literal["big_number"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'big_number'. "
+            "Creates Big Number charts that display a single prominent "
+            "metric value. Set show_trendline=True with a temporal_column "
+            "for a number with trendline, or leave show_trendline=False "
+            "for a standalone number."
+        ),
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description=(
+            "The metric to display as a big number. "
+            "Must include an aggregate function (e.g., SUM, COUNT)."
+        ),
+    )
+    temporal_column: str | None = Field(
+        None,
+        description=(
+            "Temporal column for the trendline x-axis. "
+            "Required when show_trendline is True."
+        ),
+        min_length=1,
+        max_length=255,
+        pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+    )
+    time_grain: TimeGrain | None = Field(
+        None,
+        description=(
+            "Time granularity for trendline data. "
+            "Common values: PT1H (hour), P1D (day), P1W (week), "
+            "P1M (month), P1Y (year)."
+        ),
+    )
+    show_trendline: bool = Field(
+        False,
+        description=(
+            "Show a trendline below the big number. "
+            "Requires 'temporal_column' to be set."
+        ),
+    )
+    subheader: str | None = Field(
+        None,
+        description="Subtitle text displayed below the big number",
+        max_length=500,
+    )
+    y_axis_format: str | None = Field(
+        None,
+        description=(
+            "Number format string for the metric value "
+            "(e.g., '$,.2f' for currency, ',.0f' for integers, "
+            "'.2%' for percentages)"
+        ),
+        max_length=50,
+    )
+    start_y_axis_at_zero: bool = Field(
+        True,
+        description="Anchor trendline y-axis at zero",
+    )
+    compare_lag: int | None = Field(
+        None,
+        description=(
+            "Number of time periods to compare against. "
+            "Displays a percentage change vs the prior period."
+        ),
+        ge=1,
+    )
+    filters: list[FilterConfig] | None = Field(
+        None,
+        description="Filters to apply",
+    )
+
+    @model_validator(mode="after")
+    def validate_trendline_fields(self) -> Self:
+        """Validate trendline requires temporal column."""
+        if self.show_trendline and not self.temporal_column:
+            raise ValueError(
+                "Big Number chart with show_trendline=True requires "
+                "'temporal_column'. Specify a date/time column for "
+                "the trendline x-axis."
+            )
+        if self.compare_lag and not self.show_trendline:
+            raise ValueError(
+                "compare_lag requires show_trendline=True. "
+                "Period comparison is only available for "
+                "trendline charts."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_metric_aggregate(self) -> Self:
+        """Ensure metric is a valid metric reference (aggregate or saved)."""
+        if not self.metric.is_metric:
+            raise ValueError(
+                "Big Number metric must be either a saved dataset metric "
+                "or include an aggregate function (e.g., SUM, COUNT, AVG). "
+                "Set 'saved_metric': true to use a saved metric, or add "
+                "'aggregate' to the metric specification."
+            )
         return self
 
 
@@ -861,7 +1021,9 @@ class TableChartConfig(UnknownFieldCheckMixin):
 
         for i, col in enumerate(self.columns):
             # Generate the label that will be used (same logic as create_metric_object)
-            if col.aggregate:
+            if col.saved_metric:
+                label = col.label or col.name
+            elif col.aggregate:
                 label = col.label or f"{col.aggregate}({col.name})"
             else:
                 label = col.label or col.name
@@ -943,7 +1105,9 @@ class XYChartConfig(UnknownFieldCheckMixin):
 
         # Check Y-axis labels
         for i, col in enumerate(self.y):
-            if col.aggregate:
+            if col.saved_metric:
+                label = col.label or col.name
+            elif col.aggregate:
                 label = col.label or f"{col.aggregate}({col.name})"
             else:
                 label = col.label or col.name
@@ -982,22 +1146,84 @@ class XYChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-# Discriminated union entry point with custom error handling
+# Discriminated union for runtime validation (not exposed in JSON Schema)
 ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
     | PieChartConfig
     | PivotTableChartConfig
     | MixedTimeseriesChartConfig
-    | HandlebarsChartConfig,
+    | HandlebarsChartConfig
+    | BigNumberChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'mixed_timeseries', or 'handlebars'"
+            "'pie', 'pivot_table', 'mixed_timeseries', 'handlebars', "
+            "or 'big_number'"
         ),
     ),
 ]
+
+# Module-level TypeAdapter avoids repeated schema compilation in
+# parse_chart_config() — safe because ChartConfig is fully defined above.
+_CHART_CONFIG_ADAPTER: TypeAdapter[ChartConfig] = TypeAdapter(ChartConfig)
+
+# Compact description for JSON Schema — keeps tool inputSchema small while
+# giving LLMs enough context to construct valid configs.
+_CHART_CONFIG_DESCRIPTION = (
+    "Chart configuration object. MUST include 'chart_type' to select the "
+    "schema. Types: 'xy' (x, y, kind: line/bar/area/scatter), "
+    "'table' (columns), 'pie' (dimension, metric), "
+    "'pivot_table' (rows, metrics), 'mixed_timeseries' (x, y, y_secondary), "
+    "'handlebars' (columns, handlebars_template), "
+    "'big_number' (metric). "
+    "See chart://configs resource for full field reference and examples."
+)
+
+
+def parse_chart_config(
+    config: Dict[str, Any],
+) -> (
+    XYChartConfig
+    | TableChartConfig
+    | PieChartConfig
+    | PivotTableChartConfig
+    | MixedTimeseriesChartConfig
+    | HandlebarsChartConfig
+    | BigNumberChartConfig
+):
+    """Parse a raw dict into the appropriate typed ChartConfig subclass.
+
+    Validates the dict against the discriminated union using chart_type.
+    Call this in tool function bodies to get a typed config object.
+    """
+    try:
+        return _CHART_CONFIG_ADAPTER.validate_python(config)
+    except Exception as e:
+        raise ValueError(
+            f"{e}\n\n"
+            f"Hint: read the chart://configs resource for valid configuration "
+            f"examples and field reference."
+        ) from e
+
+
+def _coerce_config_to_dict(v: Any) -> Dict[str, Any]:
+    """Accept ChartConfig objects, dicts, or JSON strings for the config field."""
+    if isinstance(v, str):
+        from superset.utils import json as json_utils
+
+        try:
+            v = json_utils.loads(v)
+        except (ValueError, TypeError) as exc:
+            raise ValueError(
+                f"config must be a JSON object string, got: {v!r}"
+            ) from exc
+    if hasattr(v, "model_dump"):
+        return v.model_dump()
+    if isinstance(v, dict):
+        return v
+    raise TypeError(f"config must be a dict or JSON string, got {type(v).__name__}")
 
 
 class ListChartsRequest(MetadataCacheControl):
@@ -1069,7 +1295,13 @@ class ListChartsRequest(MetadataCacheControl):
         Field(default=1, description="Page number for pagination (1-based)"),
     ]
     page_size: Annotated[
-        PositiveInt, Field(default=10, description="Number of items per page")
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+        ),
     ]
 
     @model_validator(mode="after")
@@ -1088,7 +1320,7 @@ class ListChartsRequest(MetadataCacheControl):
 # The tool input models
 class GenerateChartRequest(QueryCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="Chart configuration")
+    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
     chart_name: str | None = Field(
         None, description="Auto-generates if omitted", max_length=255
     )
@@ -1097,6 +1329,11 @@ class GenerateChartRequest(QueryCacheControl):
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
+
+    @field_validator("config", mode="before")
+    @classmethod
+    def coerce_config(cls, v: Any) -> Dict[str, Any]:
+        return _coerce_config_to_dict(v)
 
     @field_validator("chart_name")
     @classmethod
@@ -1130,12 +1367,22 @@ class GenerateChartRequest(QueryCacheControl):
 
 class GenerateExploreLinkRequest(FormDataCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="Chart configuration")
+    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
+
+    @field_validator("config", mode="before")
+    @classmethod
+    def coerce_config(cls, v: Any) -> Dict[str, Any]:
+        return _coerce_config_to_dict(v)
 
 
 class UpdateChartRequest(QueryCacheControl):
     identifier: int | str = Field(..., description="Chart ID or UUID")
-    config: ChartConfig
+    config: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            f"{_CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name."
+        ),
+    )
     chart_name: str | None = Field(
         None, description="Auto-generates if omitted", max_length=255
     )
@@ -1143,6 +1390,13 @@ class UpdateChartRequest(QueryCacheControl):
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
+
+    @field_validator("config", mode="before")
+    @classmethod
+    def coerce_config(cls, v: Any) -> Dict[str, Any] | None:
+        if v is None:
+            return None
+        return _coerce_config_to_dict(v)
 
     @field_validator("chart_name")
     @classmethod
@@ -1154,11 +1408,16 @@ class UpdateChartRequest(QueryCacheControl):
 class UpdateChartPreviewRequest(FormDataCacheControl):
     form_data_key: str = Field(..., description="Existing form_data_key to update")
     dataset_id: int | str = Field(..., description="Dataset ID or UUID")
-    config: ChartConfig
+    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
     generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
+
+    @field_validator("config", mode="before")
+    @classmethod
+    def coerce_config(cls, v: Any) -> Dict[str, Any]:
+        return _coerce_config_to_dict(v)
 
 
 class GetChartDataRequest(QueryCacheControl):
