@@ -271,7 +271,10 @@ function sortHierarchicalObject(
   return result;
 }
 
-function convertToNumberIfNumeric(value: string): string | number {
+function convertToNumberIfNumeric(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
   const n = Number(value);
   return value.trim() !== '' && !Number.isNaN(n) ? n : value;
 }

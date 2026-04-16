@@ -1052,7 +1052,7 @@ test('renderTableRow uses active header surface for adaptive contrast', () => {
 });
 
 function makeColPivotSettings(
-  value: string,
+  value: unknown,
 ): Parameters<TableRenderer['renderColHeaderRow']>[2] {
   return {
     rowAttrs: [],
@@ -1146,3 +1146,45 @@ test.each([
     expect(formatter).toHaveBeenCalledWith(expected);
   },
 );
+
+test('col header date formatter does not throw when value is a Date object', () => {
+  const dateValue = new Date(1700000000000);
+  const formatter = jest.fn().mockReturnValue('formatted');
+  tableRenderer = new TableRenderer({
+    ...mockProps,
+    cols: ['event_time'],
+    tableOptions: {
+      ...mockProps.tableOptions,
+      dateFormatters: { event_time: formatter },
+    },
+  });
+  expect(() =>
+    tableRenderer.renderColHeaderRow(
+      'event_time',
+      0,
+      makeColPivotSettings(dateValue),
+    ),
+  ).not.toThrow();
+  expect(formatter).toHaveBeenCalledWith(dateValue);
+});
+
+test('row header date formatter does not throw when value is a Date object', () => {
+  const dateValue = new Date(1700000000000);
+  const formatter = jest.fn().mockReturnValue('formatted');
+  tableRenderer = new TableRenderer({
+    ...mockProps,
+    rows: ['event_time'],
+    tableOptions: {
+      ...mockProps.tableOptions,
+      dateFormatters: { event_time: formatter },
+    },
+  });
+  expect(() =>
+    tableRenderer.renderTableRow(
+      [dateValue as unknown as string],
+      0,
+      makeRowPivotSettings(),
+    ),
+  ).not.toThrow();
+  expect(formatter).toHaveBeenCalledWith(dateValue);
+});
