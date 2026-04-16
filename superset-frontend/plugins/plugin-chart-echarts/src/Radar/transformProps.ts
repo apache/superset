@@ -363,7 +363,7 @@ export default function transformProps(
   const resolvedMargin = showLegend ? Number(legendMargin ?? 0) : 0;
 
   const offsetX = width ? (resolvedMargin / width) * 50 : 0;
-  const offsetY = width ? (resolvedMargin / height) * 50 : 0;
+  const offsetY = height ? (resolvedMargin / height) * 50 : 0;
 
   let centerX = 50;
   let centerY = 50
