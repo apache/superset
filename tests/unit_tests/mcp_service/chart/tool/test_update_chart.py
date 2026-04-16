@@ -134,9 +134,7 @@ class TestUpdateChart:
         assert set(request2.preview_formats) == {"url", "ascii", "table"}
 
         # Empty preview formats (no extra previews after save)
-        request3 = UpdateChartRequest(
-            identifier=123, config=config, preview_formats=[]
-        )
+        request3 = UpdateChartRequest(identifier=123, config=config, preview_formats=[])
         assert request3.preview_formats == []
 
     @pytest.mark.asyncio
@@ -949,7 +947,7 @@ class TestUpdateChartSaveWithConfig:
         mock_update_cmd_cls,
         mcp_server,
     ):
-        """generate_preview=False with a config payload persists and returns saved chart."""
+        """generate_preview=False with config persists and returns saved chart."""
         mock_chart = Mock()
         mock_chart.id = 77
         mock_chart.datasource_id = 10
