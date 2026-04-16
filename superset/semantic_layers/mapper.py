@@ -291,11 +291,7 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
 
     metrics = [all_metrics[metric] for metric in (query_object.metrics or [])]
 
-    grain = (
-        _convert_time_grain(query_object.extras["time_grain_sqla"])
-        if "time_grain_sqla" in query_object.extras
-        else None
-    )
+    grain = _convert_time_grain(query_object.extras.get("time_grain_sqla"))
     dimensions = [
         dimension
         for dimension in semantic_view.dimensions
@@ -740,13 +736,17 @@ def _get_group_limit_filters(
     return filters if filters else None
 
 
-def _convert_time_grain(time_grain: str) -> Grain | None:
+def _convert_time_grain(time_grain: str | None) -> Grain | None:
     """
     Convert a time grain string (ISO 8601 duration) to a Grain instance.
+
+    Returns None when ``time_grain`` is None or empty (no grain selected).
     """
+    if not time_grain:
+        return None
     try:
         return Grains.get(time_grain)
-    except (ValueError, isodate.ISO8601Error):
+    except (TypeError, ValueError, isodate.ISO8601Error):
         return None
 
 
