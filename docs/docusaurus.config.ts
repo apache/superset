@@ -962,16 +962,23 @@ const config: Config = {
         'This is a custom LLM for Apache Superset with access to all [documentation](superset.apache.org/docs/intro/), [GitHub Open Issues, PRs and READMEs](github.com/apache/superset).&#10;&#10;Companies deploy assistants like this ([built by kapa.ai](https://kapa.ai)) on docs via [website widget](https://docs.kapa.ai/integrations/website-widget) (Docker, Reddit), in [support forms](https://docs.kapa.ai/integrations/support-form-deflector) for ticket deflection (Monday.com, Mapbox), or as [Slack bots](https://docs.kapa.ai/integrations/slack-bot) with private sources.',
       'data-modal-example-questions':
         'How do I install Superset?,How can I contribute to Superset?',
-      // Project colour — used for the send button background and accent elements.
-      // Must NOT be white — a white button on a white modal background is invisible.
-      'data-project-color': 'rgb(81,166,197)',
-      'data-project-color-dark': 'rgb(81,166,197)',
-      'data-button-text-color': '#ffffff',
-      'data-button-text-color-dark': '#ffffff',
-      // Color scheme — base is 'light'; the selector is the sole authority for
-      // switching to dark. Using 'auto' would let the OS preference compete with
-      // Docusaurus's own toggle and invert the modes.
-      'data-color-scheme': 'light',
+      // Project colour — brand accent: controls submit button, links, active states.
+      'data-project-color': '#1a9ab5',
+      'data-project-color-dark': '#0b8dab',
+
+      // ── Kapa widget Launcher button ──
+      // Light mode: darker teal so logo is visible against it
+      'data-launcher-button-background-color': '#1a9ab5',
+      'data-launcher-button-color': '#ffffff',
+      'data-launcher-button-hover-background-color': '#158a9f',
+      // Dark mode:
+      'data-launcher-button-background-color-dark': '#0b8dab',
+      'data-launcher-button-color-dark': '#ffffff',
+      'data-launcher-button-hover-background-color-dark': '#097a95',
+
+      // Color scheme — 'auto' allows data-project-color-dark to activate.
+      // The selector takes precedence and syncs with Docusaurus's toggle.
+      'data-color-scheme': 'auto',
       'data-color-scheme-selector': "[data-theme='dark']",
       // ── Light mode ──────────────────────────────────────────────────────────
       // Header
@@ -989,6 +996,22 @@ const config: Config = {
       // Borders & links
       'data-border-color': '#dee2e6',
       'data-anchor-color': 'rgb(81,166,197)',
+      // ── Dark mode overrides (applied when [data-theme='dark'] matches) ──────
+      // Header
+      'data-modal-header-background-color-dark': '#1b1b1d',
+      'data-modal-header-color-dark': '#e4e4e7',
+      'data-modal-title-color-dark': 'rgb(81,166,197)',
+      // Body surfaces
+      'data-surface-color-dark': '#1b1b1d',
+      'data-surface-elevated-color-dark': '#242428',
+      'data-surface-hover-color-dark': '#2e2e33',
+      // Text
+      'data-text-color-dark': '#e4e4e7',
+      'data-text-muted-color-dark': '#a1a1aa',
+      'data-modal-disclaimer-text-color-dark': '#e4e4e7',
+      // Borders & links
+      'data-border-color-dark': '#3f3f46',
+      'data-anchor-color-dark': 'rgb(81,166,197)',
       // ── Dark mode overrides (applied when [data-theme='dark'] matches) ──────
       // Header
       'data-modal-header-background-color-dark': '#1b1b1d',
