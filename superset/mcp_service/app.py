@@ -54,9 +54,14 @@ Dashboard Management:
 - generate_dashboard: Create a dashboard from chart IDs
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard
 
+Database Connections:
+- list_databases: List database connections with advanced filters (1-based pagination)
+- get_database_info: Get detailed database connection info by ID (backend, capabilities)
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
+- create_virtual_dataset: Save a SQL query as a virtual dataset for charting
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
@@ -88,26 +93,76 @@ Available Prompts:
 - quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
 
+IMPORTANT - Using Saved Metrics vs Columns:
+When get_dataset_info returns a dataset, it includes both 'columns' and 'metrics'.
+- 'columns' are raw database columns (e.g., order_date, product_name, revenue)
+- 'metrics' are pre-defined saved metrics with SQL expressions
+  (e.g., count, total_revenue)
+
+When building chart configurations
+(generate_chart, generate_explore_link, update_chart):
+- For raw columns: use {{"name": "col_name", "aggregate": "SUM"}}
+- For saved metrics: use {{"name": "metric", "saved_metric": true}}
+  Do NOT add an aggregate when using saved_metric=true
+  (it's already defined in the metric).
+  Do NOT use a saved metric name as if it were a column — it will fail.
+
+Example: If get_dataset_info returns metrics=[{{"metric_name": "count", ...}}], use:
+  {{"name": "count", "saved_metric": true}}  ← CORRECT
+  {{"name": "count", "aggregate": "COUNT"}}  ← WRONG (count is not a column)
+
+IMPORTANT - Request Wrapper:
+For tools whose schema includes a top-level 'request' parameter, wrap all fields under request:
+  list_charts(request={{"filters": [...], "page": 1}})
+  get_chart_info(request={{"identifier": 123}})
+  get_dataset_info(request={{"identifier": 456}})
+  execute_sql(request={{"database_id": 1, "sql": "SELECT 1"}})
+Some tools do not use a request wrapper, so follow each tool's schema
+(for example: get_chart_type_schema(chart_type="xy")).
+
 Recommended Workflows:
 
 To create a chart:
-1. list_datasets -> find a dataset
-2. get_dataset_info(id) -> examine columns and metrics
-3. generate_explore_link(dataset_id, config) -> preview interactively
-4. generate_chart(dataset_id, config, save_chart=True) -> save permanently
+1. list_datasets(request={{}}) -> find a dataset
+2. get_dataset_info(request={{"identifier": <id>}})
+   -> examine columns AND metrics
+3. generate_explore_link(request={{
+     "dataset_id": <id>,
+     "config": {{"chart_type": "xy", ...}}
+   }}) -> preview interactively
+4. generate_chart(request={{
+     "dataset_id": <id>,
+     "config": {{...}}, "save_chart": true
+   }}) -> save permanently
 
-To find your own charts/dashboards:
+To find your own charts/dashboards/databases:
 1. get_instance_info -> get current_user.id
-2. list_charts(filters=[{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}])
-3. Or: list_dashboards(filters=[{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}])
+2. list_charts(request={{"filters": [{{"col": "created_by_fk",
+   "opr": "eq", "value": current_user.id}}]}})
+3. Or: list_dashboards(request={{"filters": [{{"col": "created_by_fk",
+   "opr": "eq", "value": current_user.id}}]}})
+4. Or: list_databases(request={{"filters": [{{"col": "created_by_fk",
+   "opr": "eq", "value": current_user.id}}]}})
 
 To explore data with SQL:
-1. list_datasets -> find a dataset and note its database_id
-2. execute_sql(database_id, sql) -> run query
-3. save_sql_query(database_id, label, sql) -> save query for later reuse
-4. open_sql_lab_with_context(database_id) -> open SQL Lab UI
+1. list_datasets(request={{}}) -> find a dataset and note its database_id
+2. execute_sql(request={{"database_id": <id>, "sql": "SELECT ..."}})
+3. save_sql_query(request={{
+     "database_id": <id>, "label": "name", "sql": "..."
+   }})
+4. open_sql_lab_with_context(request={{
+     "database_id": <id>
+   }})
+
+To chart from a SQL query (JOIN, CTE, aggregation):
+1. execute_sql(request={{"database_id": <id>, "sql": "..."}})
+   -> verify the query returns expected data
+2. Ask the user if they want to save it as a dataset
+3. create_virtual_dataset(request={{
+     "database_id": <id>, "sql": "...",
+     "dataset_name": "name"
+   }}) -> save as chartable dataset
+4. generate_explore_link or generate_chart with the new dataset
 
 generate_explore_link vs generate_chart:
 - Use generate_explore_link for exploration (no permanent chart created)
@@ -118,11 +173,18 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="xy", kind="bar": Bar chart for category comparison
 - chart_type="xy", kind="area": Area chart for volume visualization
 - chart_type="xy", kind="scatter": Scatter plot for correlation analysis
+- chart_type="big_number": Big Number display (single metric, header only)
+- chart_type="big_number", show_trendline=True,
+  temporal_column="<date_col>": Big Number with trendline
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
 - chart_type="pivot_table": Interactive pivot table for cross-tabulation
 - chart_type="mixed_timeseries": Dual-series chart combining two chart types
+- chart_type="handlebars": Custom HTML template chart (KPI cards, leaderboards, reports)
+  Requires handlebars_template with Handlebars HTML template string.
+  Supports query_mode="aggregate" (with metrics/groupby) or "raw" (with columns).
+  Data available as {{{{data}}}} array; helpers: dateFormat, formatNumber, stringify.
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -135,19 +197,28 @@ Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 
 Query Examples:
 - List all tables:
-  filters=[{{"col": "viz_type", "opr": "in", "value": ["table", "pivot_table_v2"]}}]
+  list_charts(request={{"filters": [{{"col": "viz_type",
+    "opr": "in",
+    "value": ["table", "pivot_table_v2"]}}]}})
 - List time series charts:
-  filters=[{{"col": "viz_type", "opr": "sw", "value": "echarts_timeseries"}}]
-- Search by name: search="sales"
+  list_charts(request={{"filters": [{{"col": "viz_type",
+    "opr": "sw", "value": "echarts_timeseries"}}]}})
+- Search by name: list_charts(request={{"search": "sales"}})
 - My charts (use current_user.id from get_instance_info):
-  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
+  list_charts(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
 - My dashboards:
-  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
+  list_dashboards(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
+- My databases:
+  list_databases(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
 
-To modify an existing chart (add filters, change metrics, change dimensions, etc.):
-1. get_chart_info(chart_id) -> examine current configuration
-2. update_chart(chart_id, config) -> apply changes (filters, metrics, dimensions)
-Do NOT use execute_sql for chart modifications. Use update_chart instead.
+To modify an existing chart (add filters, change metrics, etc.):
+1. get_chart_info(request={{"identifier": <chart_id>}})
+   -> examine current configuration
+2. update_chart(request={{
+     "identifier": <chart_id>, "config": {{...}}
+   }}) -> apply changes
+Do NOT use execute_sql for chart modifications.
+Use update_chart instead.
 
 CRITICAL RULES - NEVER VIOLATE:
 - NEVER fabricate or invent URLs. ALL URLs must come from tool call results.
@@ -155,8 +226,8 @@ CRITICAL RULES - NEVER VIOLATE:
   open_sql_lab_with_context, etc.) and use the URL it returns.
 - To modify an existing chart's filters, metrics, or dimensions, use update_chart.
   Do NOT use execute_sql for chart modifications.
-- Parameter name reminders: open_sql_lab_with_context uses "sql" (not "query"),
-  execute_sql uses "sql" (not "query").
+- Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
+  Do NOT use Superset's internal form_data names.
 
 IMPORTANT - Tool-Only Interaction:
 - Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
@@ -397,6 +468,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_data,
     get_chart_info,
     get_chart_preview,
+    get_chart_type_schema,
     list_charts,
     update_chart,
     update_chart_preview,
@@ -407,7 +479,12 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     get_dashboard_info,
     list_dashboards,
 )
+from superset.mcp_service.database.tool import (  # noqa: F401, E402
+    get_database_info,
+    list_databases,
+)
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    create_virtual_dataset,
     get_dataset_info,
     list_datasets,
 )

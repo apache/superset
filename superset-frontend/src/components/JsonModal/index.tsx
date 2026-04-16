@@ -42,6 +42,7 @@ export const JsonModal: FC<JsonModalProps> = ({
   modalTitle,
   jsonObject,
   jsonValue,
+  wrapContent = true,
 }) => {
   const jsonTreeTheme = useJsonTreeTheme();
 
@@ -66,7 +67,7 @@ export const JsonModal: FC<JsonModalProps> = ({
         </Button>
       }
       modalTitle={modalTitle}
-      triggerNode={<PreWrap>{content}</PreWrap>}
+      triggerNode={wrapContent ? <PreWrap>{content}</PreWrap> : content}
     />
   );
 };
