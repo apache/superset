@@ -1589,7 +1589,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # to the subquery so we prevent data inconsistency due to missing records
             # in the dataframes when performing the join
             if query_object.row_limit or query_object.row_offset:
-                query_object_clone_dct["row_limit"] = app.config["ROW_LIMIT"]
+                query_object_clone_dct["row_limit"] = (
+                    query_object.row_limit or app.config["ROW_LIMIT"]
+                )
                 query_object_clone_dct["row_offset"] = 0
 
             # Call the unified query method on the datasource

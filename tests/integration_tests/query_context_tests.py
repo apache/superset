@@ -23,7 +23,6 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 import pytest
-from flask import current_app
 from pandas import DateOffset
 
 from superset import db
@@ -851,21 +850,15 @@ class TestQueryContext(SupersetTestCase):
             df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
         )
         sqls = time_offsets_obj["queries"]
-        row_limit_value = current_app.config["ROW_LIMIT"]
-        row_limit_pattern_with_config_value = r"LIMIT " + re.escape(
-            str(row_limit_value)
-        )
         assert len(sqls) == 2
-        # 1 year ago
+        # 1 year ago — comparison query uses chart row_limit (100), not config ROW_LIMIT
         assert re.search(r"1989-01-01.+1990-01-01", sqls[0], re.S)
-        assert not re.search(r"LIMIT 100", sqls[0], re.S)
+        assert re.search(r"LIMIT 100", sqls[0], re.S)
         assert not re.search(r"OFFSET 10", sqls[0], re.S)
-        assert re.search(row_limit_pattern_with_config_value, sqls[0], re.S)
         # 1 year later
         assert re.search(r"1991-01-01.+1992-01-01", sqls[1], re.S)
-        assert not re.search(r"LIMIT 100", sqls[1], re.S)
+        assert re.search(r"LIMIT 100", sqls[1], re.S)
         assert not re.search(r"OFFSET 10", sqls[1], re.S)
-        assert re.search(row_limit_pattern_with_config_value, sqls[1], re.S)
 
 
 def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
