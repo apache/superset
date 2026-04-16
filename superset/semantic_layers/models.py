@@ -27,7 +27,7 @@ from typing import Any, TYPE_CHECKING
 
 import pyarrow as pa
 from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Identity, Integer, String, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import UUIDType
 from sqlalchemy_utils.types.json import JSONType
@@ -117,6 +117,9 @@ class SemanticLayer(AuditMixinNullable, Model):
     type = Column(String(250), nullable=False)  # snowflake, etc
 
     configuration = Column(encrypted_field_factory.create(JSONType), default="{}")
+    # Tracks the schema version of the configuration JSON field to aid with
+    # migrations as the configuration schema evolves over time.
+    configuration_version = Column(Integer, nullable=False, default=1)
     cache_timeout = Column(Integer, nullable=True)
 
     # Semantic views relationship
@@ -152,14 +155,20 @@ class SemanticView(AuditMixinNullable, Model):
 
     __tablename__ = "semantic_views"
 
-    uuid = Column(UUIDType(binary=True), primary_key=True, default=uuid.uuid4)
-    id = Column(Integer, Identity(), unique=True)
+    # Use integer as the primary key for cross-database auto-increment
+    # compatibility (sa.Identity() is not supported in MySQL or SQLite).
+    # The uuid column is a secondary unique identifier used in URLs and perms.
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(UUIDType(binary=True), unique=True, default=uuid.uuid4)
 
     # Core fields
     name = Column(String(250), nullable=False)
     description = Column(Text, nullable=True)
 
     configuration = Column(encrypted_field_factory.create(JSONType), default="{}")
+    # Tracks the schema version of the configuration JSON field to aid with
+    # migrations as the configuration schema evolves over time.
+    configuration_version = Column(Integer, nullable=False, default=1)
     cache_timeout = Column(Integer, nullable=True)
 
     # Semantic layer relationship
@@ -242,7 +251,7 @@ class SemanticView(AuditMixinNullable, Model):
     def data(self) -> ExplorableData:
         return {
             # core
-            "id": self.uuid.hex if self.uuid else uuid.uuid4().hex,
+            "id": self.id,
             "uid": self.uid,
             "type": "semantic_view",
             "name": self.name,
