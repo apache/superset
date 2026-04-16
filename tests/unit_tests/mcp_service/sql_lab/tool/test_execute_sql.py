@@ -1210,6 +1210,9 @@ class TestColumnInfoIsNullable:
     def test_integer_zero(self):
         assert ColumnInfo(name="c", type="int", is_nullable=0).is_nullable is False
 
+    def test_integer_two_becomes_none(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=2).is_nullable is None
+
     def test_model_validate_unknown(self):
         col = ColumnInfo.model_validate(
             {"name": "c", "type": "int", "is_nullable": "UNKNOWN"}

@@ -115,7 +115,11 @@ class ColumnInfo(BaseModel):
         if v is None or isinstance(v, bool):
             return v
         if isinstance(v, (int, float)):
-            return bool(v)
+            if v == 1:
+                return True
+            if v == 0:
+                return False
+            return None
         if isinstance(v, str):
             lowered = v.strip().lower()
             if lowered in ("true", "1", "yes"):
