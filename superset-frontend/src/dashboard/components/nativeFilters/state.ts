@@ -251,14 +251,16 @@ export function useIsFilterInScope() {
 
 export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
   const dashboardHasTabs = useDashboardHasTabs();
+  const activeTabs = useActiveDashboardTabs();
   const isFilterInScope = useIsFilterInScope();
 
   return useMemo(() => {
     let filtersInScope: (Filter | Divider)[] = [];
     const filtersOutOfScope: (Filter | Divider)[] = [];
 
-    // we check native filters scopes only on dashboards with tabs
-    if (!dashboardHasTabs) {
+    // Skip scope evaluation when tabs exist but activeTabs hasn't been
+    // populated yet (embedded dashboards on initial render).
+    if (!dashboardHasTabs || activeTabs.length === 0) {
       filtersInScope = filters;
     } else {
       filters.forEach(filter => {
@@ -272,7 +274,7 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
       });
     }
     return [filtersInScope, filtersOutOfScope];
-  }, [filters, dashboardHasTabs, isFilterInScope]);
+  }, [filters, dashboardHasTabs, activeTabs, isFilterInScope]);
 }
 
 export function useIsCustomizationInScope() {
@@ -318,6 +320,7 @@ export function useSelectCustomizationsInScope(
   customizations: (ChartCustomization | ChartCustomizationDivider)[],
 ) {
   const dashboardHasTabs = useDashboardHasTabs();
+  const activeTabs = useActiveDashboardTabs();
   const isCustomizationInScope = useIsCustomizationInScope();
 
   return useMemo(() => {
@@ -330,7 +333,9 @@ export function useSelectCustomizationsInScope(
       | ChartCustomizationDivider
     )[] = [];
 
-    if (!dashboardHasTabs) {
+    // Skip scope evaluation when tabs exist but activeTabs hasn't been
+    // populated yet (embedded dashboards on initial render).
+    if (!dashboardHasTabs || activeTabs.length === 0) {
       customizationsInScope = customizations;
     } else {
       customizations.forEach(customization => {
@@ -344,5 +349,5 @@ export function useSelectCustomizationsInScope(
       });
     }
     return [customizationsInScope, customizationsOutOfScope];
-  }, [customizations, dashboardHasTabs, isCustomizationInScope]);
+  }, [customizations, dashboardHasTabs, activeTabs, isCustomizationInScope]);
 }
