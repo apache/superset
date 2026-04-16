@@ -65,6 +65,9 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         source_type, name_filter, sql_filter, type_filter = self._parse_filters(filters)
         source_type = self._resolve_source_type(source_type, sql_filter, type_filter)
 
+        if source_type == "empty":
+            return {"count": 0, "result": []}
+
         ds_q = DatasourceDAO.build_dataset_query(name_filter, sql_filter)
         sv_q = DatasourceDAO.build_semantic_view_query(name_filter)
 
@@ -108,8 +111,18 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         sql_filter: bool | None,
         type_filter: str | None,
     ) -> str:
-        """Narrow source_type based on access flags, sql filter, and type filter."""
+        """Narrow source_type based on access flags, sql filter, and type filter.
+
+        Returns one of: "database", "semantic_layer", "all", or "empty".
+        "empty" signals that the caller should short-circuit and return no results
+        (used when the user explicitly requests semantic views but lacks access).
+        """
         if not self._can_read_semantic_views:
+            # If the user explicitly asked for semantic views but cannot read them,
+            # return "empty" so the caller yields zero results rather than silently
+            # falling back to the full dataset list.
+            if source_type == "semantic_layer" or type_filter == "semantic_view":
+                return "empty"
             return "database"
         if not self._can_read_datasets:
             return "semantic_layer"
