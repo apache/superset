@@ -293,7 +293,7 @@ export default function dashboardInfoReducer(
       };
     case CLEAR_ALL_CHART_CUSTOMIZATIONS: {
       const customizationConfig =
-        state.metadata?.chart_customization_config || [];
+        state.metadata?.chart_customization_config?.filter(Boolean) || [];
       return {
         ...state,
         metadata: {

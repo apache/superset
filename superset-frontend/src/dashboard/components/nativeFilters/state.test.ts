@@ -19,8 +19,18 @@
 
 import { renderHook } from '@testing-library/react-hooks';
 import { useSelector } from 'react-redux';
-import { NativeFilterType, Filter, Divider } from '@superset-ui/core';
-import { useIsFilterInScope, useSelectFiltersInScope } from './state';
+import {
+  NativeFilterType,
+  Filter,
+  Divider,
+  ChartCustomizationType,
+  type ChartCustomization,
+} from '@superset-ui/core';
+import {
+  useChartCustomizationConfiguration,
+  useIsFilterInScope,
+  useSelectFiltersInScope,
+} from './state';
 
 jest.mock('react-redux', () => {
   const actual = jest.requireActual('react-redux');
@@ -506,4 +516,46 @@ test('filter with mix of existing and non-existent charts in chartsInScope', () 
 
   const { result } = renderHook(() => useIsFilterInScope());
   expect(result.current(filter)).toBe(true);
+});
+
+test('useChartCustomizationConfiguration ignores null items in metadata', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) =>
+    selector({
+      dashboardInfo: {
+        metadata: {
+          chart_customization_config: [
+            null,
+            {
+              id: 'CHART_CUSTOMIZATION-1',
+              name: 'Dynamic Group By',
+              type: ChartCustomizationType.ChartCustomization,
+              filterType: 'chart_customization_dynamic_groupby',
+              chartsInScope: [101],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              controlValues: { canSelectMultiple: false },
+              defaultDataMask: {},
+              cascadeParentIds: [],
+              targets: [{ column: { name: 'status' }, datasetId: 1 }],
+              description: 'valid customization',
+            } satisfies ChartCustomization,
+          ],
+        },
+      },
+      dashboardLayout: {
+        present: {
+          'CHART-101': {
+            type: 'CHART',
+            meta: { chartId: 101 },
+          },
+        },
+      },
+    }),
+  );
+
+  const { result } = renderHook(() => useChartCustomizationConfiguration());
+
+  expect(result.current).toHaveLength(1);
+  expect(result.current[0]).toEqual(
+    expect.objectContaining({ id: 'CHART_CUSTOMIZATION-1' }),
+  );
 });
