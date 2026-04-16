@@ -134,6 +134,9 @@ function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
   const existingColumns = new Set<string>();
   const chartType = chart.form_data?.viz_type;
 
+  const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
+  existingGroupBy.forEach((col: string) => existingColumns.add(col));
+
   const xAxisColumn = chart.form_data?.x_axis;
   if (xAxisColumn && chartType !== 'heatmap' && chartType !== 'heatmap_v2') {
     existingColumns.add(xAxisColumn);

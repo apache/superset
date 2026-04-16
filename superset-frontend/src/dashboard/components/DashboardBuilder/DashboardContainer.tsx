@@ -97,27 +97,29 @@ function normalizeChartCustomizationsForScopeCalculation(
     return chartCustomizations;
   }
 
-  return chartCustomizations.map(item => {
-    if (!isLegacyChartCustomizationFormat(item)) {
-      return item;
-    }
+  return chartCustomizations
+    .filter(item => item != null)
+    .map(item => {
+      if (!isLegacyChartCustomizationFormat(item)) {
+        return item;
+      }
 
-    const migratedCustomization = migrateChartCustomization(item);
+      const migratedCustomization = migrateChartCustomization(item);
 
-    if (!item.chartId) {
-      return migratedCustomization;
-    }
+      if (!item.chartId) {
+        return migratedCustomization;
+      }
 
-    return {
-      ...migratedCustomization,
-      // Legacy items could target a single chart without an explicit scope.
-      // Preserve that targeting before calculateScopes recomputes chartsInScope.
-      scope: {
-        ...migratedCustomization.scope,
-        excluded: chartIds.filter(chartId => chartId !== item.chartId),
-      },
-    };
-  });
+      return {
+        ...migratedCustomization,
+        // Legacy items could target a single chart without an explicit scope.
+        // Preserve that targeting before calculateScopes recomputes chartsInScope.
+        scope: {
+          ...migratedCustomization.scope,
+          excluded: chartIds.filter(chartId => chartId !== item.chartId),
+        },
+      };
+    });
 }
 
 export const renderedChartIdsSelector: (state: RootState) => number[] =

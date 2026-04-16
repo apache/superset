@@ -418,6 +418,31 @@ test('migrateChartCustomizationArray migrates mixed array', () => {
   expect(result[1].name).toBe('Already Migrated');
 });
 
+test('isLegacyChartCustomizationFormat rejects item with customization: null', () => {
+  const item = { id: 'CUSTOMIZATION-NULL', customization: null };
+  expect(isLegacyChartCustomizationFormat(item)).toBe(false);
+});
+
+test('migrateChartCustomizationArray does not crash on legacy item with customization: null', () => {
+  const items = [
+    { id: 'CUSTOMIZATION-NULL', customization: null },
+    {
+      id: 'CUSTOMIZATION-VALID',
+      customization: {
+        name: 'Valid',
+        dataset: 1,
+        column: 'country',
+      },
+    },
+  ];
+  expect(() => migrateChartCustomizationArray(items)).not.toThrow();
+});
+
+test('isLegacyChartCustomizationFormat rejects item with customization: undefined', () => {
+  const item = { id: 'CUSTOMIZATION-UNDEF', customization: undefined };
+  expect(isLegacyChartCustomizationFormat(item)).toBe(false);
+});
+
 test('migrateChartCustomizationArray handles empty array', () => {
   const result = migrateChartCustomizationArray([]);
   expect(result).toEqual([]);

@@ -32,6 +32,7 @@ export function isLegacyChartCustomizationFormat(
     typeof item === 'object' &&
     item !== null &&
     'customization' in item &&
+    (item as Record<string, unknown>).customization != null &&
     !('type' in item)
   );
 }

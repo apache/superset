@@ -433,6 +433,49 @@ test('dataset mismatch: display control for a different dataset does not affect 
   expectGroupBy(result, ['original_column']);
 });
 
+test('dynamic group by with overlapping selection preserves multi-column base groupby', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['status'], ['status', 'category']),
+  );
+  expectGroupBy(result, ['status', 'category']);
+});
+
+test('timeseries chart: overlapping selection preserves multi-column base groupby', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+  const result = getFormDataWithExtraFilters({
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'echarts_timeseries_line',
+        datasource: '3__table',
+        groupby: ['series_col', 'breakdown_col'],
+        x_axis: 'time_col',
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['series_col'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({ id: customizationId }),
+    ],
+  });
+  expectGroupBy(result, ['series_col', 'breakdown_col']);
+});
+
+test('partial overlap: only non-existing columns pass through as customization override', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['status', 'new_col'], ['status', 'category']),
+  );
+  expectGroupBy(result, ['new_col']);
+});
+
 test('Scope boundary: display control with chartsInScope:[] does not affect the chart', () => {
   const customizationId = 'CHART_CUSTOMIZATION-groupby-out-of-scope';
   const argsOutOfScope: GetFormDataWithExtraFiltersArguments = {

@@ -700,6 +700,46 @@ test('returns empty scope data for chart customization dividers', async () => {
   }
 });
 
+test('does not crash when chart_customization_config contains a legacy item with customization: null', async () => {
+  const nullCustomizationId = 'CHART_CUSTOMIZATION-null-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  try {
+    const state = {
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [
+            {
+              id: nullCustomizationId,
+              customization: null,
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [nullCustomizationId]: {
+            id: nullCustomizationId,
+            chartsInScope: [],
+          },
+        },
+      },
+    };
+
+    expect(() => setup(state)).not.toThrow();
+  } finally {
+    spy.mockRestore();
+  }
+});
+
 test('does not dispatch setInScopeStatusOfCustomizations when chart_customization_config is empty', async () => {
   const spy = jest.spyOn(
     chartCustomizationActions,
