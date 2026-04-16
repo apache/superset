@@ -611,7 +611,6 @@ const FilterBar: FC<FiltersBarProps> = ({
     ),
     [
       orientation,
-      verticalConfig?.width,
       handleApply,
       handleClearAll,
       dataMaskSelected,
