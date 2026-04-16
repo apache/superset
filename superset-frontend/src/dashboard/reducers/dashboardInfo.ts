@@ -89,7 +89,10 @@ function preserveScopes<T extends ScopedConfigItem>(
   existingConfig: T[] | undefined,
   incomingConfig: T[] | undefined,
 ): T[] {
-  const existingScopesMap = (existingConfig || []).reduce<
+  const truthyExistingConfig = (existingConfig || []).filter(Boolean);
+  const truthyIncomingConfig = (incomingConfig || []).filter(Boolean);
+
+  const existingScopesMap = truthyExistingConfig.reduce<
     Record<string, { chartsInScope?: number[]; tabsInScope?: string[] }>
   >((acc, item) => {
     if (item.chartsInScope != null || item.tabsInScope != null) {
@@ -101,7 +104,7 @@ function preserveScopes<T extends ScopedConfigItem>(
     return acc;
   }, {});
 
-  return (incomingConfig || []).map(item => {
+  return truthyIncomingConfig.map(item => {
     const existingScopes = existingScopesMap[item.id];
     if (item.chartsInScope == null && existingScopes) {
       return {

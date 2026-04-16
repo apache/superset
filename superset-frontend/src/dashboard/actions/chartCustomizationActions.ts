@@ -333,7 +333,9 @@ export function setInScopeStatusOfCustomizations(
     }
 
     const { metadata } = getState().dashboardInfo;
-    const customizationConfig = metadata?.chart_customization_config || [];
+    const customizationConfig = (
+      metadata?.chart_customization_config || []
+    ).filter(Boolean);
 
     const scopeMap = new Map(
       customizationScopes.map(

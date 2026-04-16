@@ -740,6 +740,82 @@ test('does not crash when chart_customization_config contains a legacy item with
   }
 });
 
+test('does not crash when chart_customization_config contains a null entry', async () => {
+  expect(() =>
+    setup({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [null],
+        },
+      },
+      nativeFilters: { filters: {} },
+    }),
+  ).not.toThrow();
+});
+
+test('does not crash when chart_customization_config mixes null and new-format items', async () => {
+  const customizationId = 'CHART_CUSTOMIZATION-new-format-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  try {
+    expect(() =>
+      setup({
+        dashboardInfo: {
+          ...mockState.dashboardInfo,
+          metadata: {
+            ...mockState.dashboardInfo.metadata,
+            native_filter_configuration: [],
+            chart_customization_config: [
+              null,
+              {
+                id: customizationId,
+                type: 'CHART_CUSTOMIZATION',
+                name: 'Dynamic Group By',
+                filterType: 'chart_customization_dynamic_groupby',
+                targets: [{ datasetId: 1, column: { name: 'status' } }],
+                scope: { rootPath: ['ROOT_ID'], excluded: [] },
+                chartsInScope: [],
+                defaultDataMask: {},
+                controlValues: {},
+              },
+            ],
+          },
+        },
+        nativeFilters: {
+          filters: {
+            [customizationId]: {
+              id: customizationId,
+              type: 'CHART_CUSTOMIZATION',
+              chartsInScope: [],
+            },
+          },
+        },
+      }),
+    ).not.toThrow();
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            customizationId,
+            chartsInScope: [sliceId],
+          }),
+        ]),
+      );
+    });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
 test('does not dispatch setInScopeStatusOfCustomizations when chart_customization_config is empty', async () => {
   const spy = jest.spyOn(
     chartCustomizationActions,

@@ -93,33 +93,33 @@ function normalizeChartCustomizationsForScopeCalculation(
   chartCustomizations: ChartCustomizationConfiguration,
   chartIds: number[],
 ): ChartCustomizationConfiguration {
-  if (!chartCustomizations.some(isLegacyChartCustomizationFormat)) {
-    return chartCustomizations;
+  const truthyCustomizations = chartCustomizations.filter(Boolean);
+
+  if (!truthyCustomizations.some(isLegacyChartCustomizationFormat)) {
+    return truthyCustomizations;
   }
 
-  return chartCustomizations
-    .filter(Boolean)
-    .map(item => {
-      if (!isLegacyChartCustomizationFormat(item)) {
-        return item;
-      }
+  return truthyCustomizations.map(item => {
+    if (!isLegacyChartCustomizationFormat(item)) {
+      return item;
+    }
 
-      const migratedCustomization = migrateChartCustomization(item);
+    const migratedCustomization = migrateChartCustomization(item);
 
-      if (!item.chartId) {
-        return migratedCustomization;
-      }
+    if (!item.chartId) {
+      return migratedCustomization;
+    }
 
-      return {
-        ...migratedCustomization,
-        // Legacy items could target a single chart without an explicit scope.
-        // Preserve that targeting before calculateScopes recomputes chartsInScope.
-        scope: {
-          ...migratedCustomization.scope,
-          excluded: chartIds.filter(chartId => chartId !== item.chartId),
-        },
-      };
-    });
+    return {
+      ...migratedCustomization,
+      // Legacy items could target a single chart without an explicit scope.
+      // Preserve that targeting before calculateScopes recomputes chartsInScope.
+      scope: {
+        ...migratedCustomization.scope,
+        excluded: chartIds.filter(chartId => chartId !== item.chartId),
+      },
+    };
+  });
 }
 
 export const renderedChartIdsSelector: (state: RootState) => number[] =
