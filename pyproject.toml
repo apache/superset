@@ -373,6 +373,7 @@ unfixable = []
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
+"superset/mcp_service/app.py" = ["S608", "E501"]  # LLM instruction text: SQL examples (S608) and long lines in multiline string (E501)
 "scripts/*" = ["TID251"]
 "setup.py" = ["TID251"]
 "superset/config.py" = ["TID251"]

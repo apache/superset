@@ -24,6 +24,20 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Granular Export Controls
+
+A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
+
+| Permission | Controls |
+|---|---|
+| `can_export_data` | CSV, Excel, JSON exports |
+| `can_export_image` | Screenshot/PDF exports |
+| `can_copy_clipboard` | Copy-to-clipboard operations |
+
+When the feature flag is enabled, these permissions are enforced on both the frontend (disabled buttons with tooltips) and backend (403 responses from API endpoints). When disabled, legacy `can_csv` behavior is preserved.
+
+**Migration behavior:** All three new permissions are granted to every role that currently has `can_csv`, preserving existing access. Admins can then selectively revoke individual export permissions from specific roles as needed.
+
 ### Deck.gl MapBox viewport and opacity controls are functional
 
 The Deck.gl MapBox chart's **Opacity**, **Default longitude**, **Default latitude**, and **Zoom** controls were previously non-functional — changing them had no effect on the rendered map. These controls are now wired up correctly.
