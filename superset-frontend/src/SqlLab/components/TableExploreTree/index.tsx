@@ -41,6 +41,11 @@ import {
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { addTable, removeTables } from 'src/SqlLab/actions/sqlLab';
+import {
+  getItem,
+  setItem,
+  LocalStorageKeys,
+} from 'src/utils/localStorageHelpers';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import TreeNodeRenderer from './TreeNodeRenderer';
@@ -126,6 +131,25 @@ const StyledTreeContainer = styled.div`
 
 const ROW_HEIGHT = 28;
 
+const getPinnedSchemasFromStorage = (dbId: number | undefined): Set<string> => {
+  if (!dbId) return new Set();
+  const stored = getItem(LocalStorageKeys.SqllabPinnedSchemas, {});
+  const schemas = stored[dbId];
+  return Array.isArray(schemas) ? new Set<string>(schemas) : new Set();
+};
+
+const savePinnedSchemasToStorage = (
+  dbId: number | undefined,
+  schemas: Set<string>,
+) => {
+  if (!dbId) return;
+  const stored = getItem(LocalStorageKeys.SqllabPinnedSchemas, {});
+  setItem(LocalStorageKeys.SqllabPinnedSchemas, {
+    ...stored,
+    [dbId]: [...schemas],
+  });
+};
+
 const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -200,7 +224,19 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     },
     [dispatch, tables, editorId, dbId],
   );
-  const [pinnedSchemas, setPinnedSchemas] = useState<Set<string>>(new Set());
+  const [pinnedSchemas, setPinnedSchemas] = useState<Set<string>>(() =>
+    getPinnedSchemasFromStorage(dbId),
+  );
+
+  // Reload pinned schemas from localStorage when the database changes
+  useEffect(() => {
+    setPinnedSchemas(getPinnedSchemasFromStorage(dbId));
+  }, [dbId]);
+
+  // Persist pinned schemas to localStorage keyed by database_id
+  useEffect(() => {
+    savePinnedSchemasToStorage(dbId, pinnedSchemas);
+  }, [dbId, pinnedSchemas]);
 
   const handlePinSchema = useCallback((schemaName: string) => {
     setPinnedSchemas(prev => new Set([...prev, schemaName]));
