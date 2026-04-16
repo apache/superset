@@ -152,7 +152,9 @@ export const dndAdhocFilterControl: SharedControlConfig<
   type: 'DndFilterSelect',
   label: t('Filters'),
   default: [],
-  description: '',
+  description: t(
+    'Add columns to filter by. When typing or pasting filter values, commas will separate values into multiple entries. To include a comma within a value, wrap it in double quotes: "San Francisco, CA"',
+  ),
   mapStateToProps: ({ datasource, form_data }) => ({
     columns: isDataset(datasource)
       ? datasource.columns.filter(c => c.filterable)
