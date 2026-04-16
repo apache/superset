@@ -109,6 +109,44 @@ class TestTableChartConfig:
                 columns=[ColumnRef(name="product")],
             )
 
+    def test_explicit_raw_query_mode_accepted(self) -> None:
+        """Test that TableChartConfig accepts explicit query_mode='raw'."""
+        config = TableChartConfig(
+            chart_type="table",
+            query_mode="raw",
+            columns=[ColumnRef(name="product"), ColumnRef(name="category")],
+        )
+        assert config.query_mode == "raw"
+        assert len(config.columns) == 2
+
+    def test_explicit_aggregate_query_mode_accepted(self) -> None:
+        """Test that TableChartConfig accepts explicit query_mode='aggregate'."""
+        config = TableChartConfig(
+            chart_type="table",
+            query_mode="aggregate",
+            columns=[ColumnRef(name="sales", aggregate="SUM")],
+        )
+        assert config.query_mode == "aggregate"
+
+    def test_default_query_mode_is_none(self) -> None:
+        """Test that default query_mode is None (auto-detect)."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+        )
+        assert config.query_mode is None
+
+    def test_invalid_query_mode_rejected(self) -> None:
+        """Test that invalid query_mode values are rejected."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            TableChartConfig(
+                chart_type="table",
+                query_mode="invalid",
+                columns=[ColumnRef(name="product")],
+            )
+
 
 class TestXYChartConfig:
     """Test XYChartConfig validation."""
