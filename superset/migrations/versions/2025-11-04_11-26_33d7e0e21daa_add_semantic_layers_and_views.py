@@ -46,6 +46,7 @@ def upgrade():
     create_table(
         "semantic_layers",
         sa.Column("uuid", UUIDType(binary=True), default=uuid.uuid4, nullable=False),
+        # created_on and changed_on are nullable=True to match AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("name", sa.String(length=250), nullable=False),
@@ -55,6 +56,14 @@ def upgrade():
             "configuration",
             encrypted_field_factory.create(JSONType),
             nullable=True,
+        ),
+        # configuration_version tracks the schema version of the configuration
+        # JSON field to aid with migrations as the schema evolves over time.
+        sa.Column(
+            "configuration_version",
+            sa.Integer(),
+            nullable=False,
+            server_default="1",
         ),
         sa.Column("cache_timeout", sa.Integer(), nullable=True),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
@@ -79,11 +88,16 @@ def upgrade():
         ["id"],
     )
 
-    # Create semantic_views table
+    # Create semantic_views table.
+    # The integer `id` is the primary key (auto-increment across all supported
+    # databases) and `uuid` is a secondary unique identifier. This follows the
+    # standard Superset model pattern and avoids using sa.Identity(), which is
+    # not supported in MySQL or SQLite.
     create_table(
         "semantic_views",
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("uuid", UUIDType(binary=True), default=uuid.uuid4, nullable=False),
-        sa.Column("id", sa.Integer(), sa.Identity(), unique=True, nullable=False),
+        # created_on and changed_on are nullable=True to match AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("name", sa.String(length=250), nullable=False),
@@ -92,6 +106,14 @@ def upgrade():
             "configuration",
             encrypted_field_factory.create(JSONType),
             nullable=True,
+        ),
+        # configuration_version tracks the schema version of the configuration
+        # JSON field to aid with migrations as the schema evolves over time.
+        sa.Column(
+            "configuration_version",
+            sa.Integer(),
+            nullable=False,
+            server_default="1",
         ),
         sa.Column("cache_timeout", sa.Integer(), nullable=True),
         sa.Column(
@@ -102,7 +124,8 @@ def upgrade():
         ),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
-        sa.PrimaryKeyConstraint("uuid"),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("uuid"),
     )
 
     # Create foreign key constraints for semantic_views

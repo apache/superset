@@ -21,22 +21,25 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset.daos.base import BaseDAO
+from superset_core.semantic_layers.daos import (
+    AbstractSemanticLayerDAO,
+    AbstractSemanticViewDAO,
+)
+
 from superset.extensions import db
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 
 
-class SemanticLayerDAO(BaseDAO[SemanticLayer]):
+class SemanticLayerDAO(AbstractSemanticLayerDAO):
     """
     Data Access Object for SemanticLayer model.
     """
 
-    # SemanticLayer uses 'uuid' as the primary key field
-    id_column_name = "uuid"
+    model_cls = SemanticLayer
 
-    @staticmethod
-    def validate_uniqueness(name: str) -> bool:
+    @classmethod
+    def validate_uniqueness(cls, name: str) -> bool:
         """
         Validate that semantic layer name is unique.
 
@@ -46,8 +49,8 @@ class SemanticLayerDAO(BaseDAO[SemanticLayer]):
         query = db.session.query(SemanticLayer).filter(SemanticLayer.name == name)
         return not db.session.query(query.exists()).scalar()
 
-    @staticmethod
-    def validate_update_uniqueness(layer_uuid: str, name: str) -> bool:
+    @classmethod
+    def validate_update_uniqueness(cls, layer_uuid: str, name: str) -> bool:
         """
         Validate that semantic layer name is unique for updates.
 
@@ -61,8 +64,8 @@ class SemanticLayerDAO(BaseDAO[SemanticLayer]):
         )
         return not db.session.query(query.exists()).scalar()
 
-    @staticmethod
-    def find_by_name(name: str) -> SemanticLayer | None:
+    @classmethod
+    def find_by_name(cls, name: str) -> SemanticLayer | None:
         """
         Find semantic layer by name.
 
@@ -90,28 +93,14 @@ class SemanticLayerDAO(BaseDAO[SemanticLayer]):
         )
 
 
-class SemanticViewDAO(BaseDAO[SemanticView]):
+class SemanticViewDAO(AbstractSemanticViewDAO):
     """Data Access Object for SemanticView model."""
 
-    # SemanticView uses 'uuid' as the primary key field
-    id_column_name = "uuid"
+    model_cls = SemanticView
 
-    @staticmethod
-    def find_by_semantic_layer(layer_uuid: str) -> list[SemanticView]:
-        """
-        Find all views for a semantic layer.
-
-        :param layer_uuid: UUID of the semantic layer
-        :return: List of SemanticView instances
-        """
-        return (
-            db.session.query(SemanticView)
-            .filter(SemanticView.semantic_layer_uuid == layer_uuid)
-            .all()
-        )
-
-    @staticmethod
+    @classmethod
     def validate_uniqueness(
+        cls,
         name: str,
         layer_uuid: str,
         configuration: dict[str, Any],
@@ -140,8 +129,9 @@ class SemanticViewDAO(BaseDAO[SemanticView]):
         )
         return not any(json.loads(c.configuration) == configuration for c in candidates)
 
-    @staticmethod
+    @classmethod
     def validate_update_uniqueness(
+        cls,
         view_uuid: str,
         name: str,
         layer_uuid: str,
@@ -170,8 +160,8 @@ class SemanticViewDAO(BaseDAO[SemanticView]):
         )
         return not any(json.loads(c.configuration) == configuration for c in candidates)
 
-    @staticmethod
-    def find_by_name(name: str, layer_uuid: str) -> SemanticView | None:
+    @classmethod
+    def find_by_name(cls, name: str, layer_uuid: str) -> SemanticView | None:
         """
         Find semantic view by name within a semantic layer.
 

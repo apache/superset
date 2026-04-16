@@ -556,6 +556,7 @@ def test_semantic_view_data(
     view = SemanticView()
     view.name = "Orders View"
     view.description = "View of order data"
+    view.id = 1
     view.uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
     view.semantic_layer_uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
     view.cache_timeout = 3600
@@ -568,7 +569,7 @@ def test_semantic_view_data(
         data = view.data
 
         # Check core fields
-        assert data["id"] == "12345678123456781234567812345678"
+        assert data["id"] == 1
         assert data["uid"] == "semantic_view_uid_123"
         assert data["type"] == "semantic_view"
         assert data["name"] == "Orders View"
