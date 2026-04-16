@@ -22,7 +22,7 @@ import {
   ChartCustomization,
   ChartCustomizationType,
 } from '@superset-ui/core';
-import nativeFilterReducer from './nativeFilters';
+import nativeFilterReducer, { getInitialState } from './nativeFilters';
 import { SET_NATIVE_FILTERS_CONFIG_COMPLETE } from '../actions/nativeFilters';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -414,4 +414,37 @@ test('SET_NATIVE_FILTERS_CONFIG_COMPLETE treats backend response as source of tr
   expect(result.filters.filter2.tabsInScope).toEqual(['tab5']);
   expect(result.filters.customization1.chartsInScope).toEqual([12, 13]);
   expect(result.filters.customization1.tabsInScope).toEqual(['tab6']);
+});
+
+test('getInitialState builds filters map from combined filter and customization config', () => {
+  const filter = createMockFilter('filter1', [1, 2], ['tab1']);
+  const customization = createMockChartCustomization(
+    'custom1',
+    [3, 4],
+    ['tab2'],
+  );
+
+  const result = getInitialState({
+    filterConfig: [filter, customization],
+  });
+
+  expect(Object.keys(result.filters)).toHaveLength(2);
+  expect(result.filters.filter1).toBeDefined();
+  expect(result.filters.custom1).toBeDefined();
+  expect(result.filters.filter1.chartsInScope).toEqual([1, 2]);
+  expect(result.filters.custom1.chartsInScope).toEqual([3, 4]);
+});
+
+test('getInitialState crashes on null entries in filterConfig (hydrate must pre-filter)', () => {
+  // This proves why hydrate.ts MUST call .filter(Boolean) before passing
+  // chart_customization_config to getInitialState — null entries cause a
+  // TypeError when accessing .id on null.
+  expect(() =>
+    getInitialState({
+      filterConfig: [
+        null as unknown as Filter,
+        createMockFilter('filter1', [1], []),
+      ],
+    }),
+  ).toThrow();
 });
