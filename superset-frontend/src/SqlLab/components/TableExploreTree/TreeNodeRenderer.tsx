@@ -234,17 +234,19 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
       </Typography.Text>
       {identifier === 'schema' && (
         <div className="side-action-container" role="menu">
-          <RefreshLabel
-            onClick={e => {
-              e.stopPropagation();
-              handleRefreshTables({
-                dbId: Number(_dbId),
-                catalog,
-                schema,
-              });
-            }}
-            tooltipContent={t('Force refresh table list')}
-          />
+          <div className="action-hover">
+            <RefreshLabel
+              onClick={e => {
+                e.stopPropagation();
+                handleRefreshTables({
+                  dbId: Number(_dbId),
+                  catalog,
+                  schema,
+                });
+              }}
+              tooltipContent={t('Force refresh table list')}
+            />
+          </div>
         </div>
       )}
       {identifier === 'table' &&
