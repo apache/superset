@@ -71,11 +71,6 @@ function displayHeaderCell(
   );
 }
 
-function convertToNumberIfNumeric(value) {
-  const n = Number(value);
-  return value.trim() !== '' && !Number.isNaN(n) ? n : value;
-}
-
 export class TableRenderer extends Component {
   constructor(props) {
     super(props);
@@ -447,9 +442,7 @@ export class TableRenderer extends Component {
           dateFormatters &&
           dateFormatters[attrName] &&
           typeof dateFormatters[attrName] === 'function'
-            ? dateFormatters[attrName](
-                convertToNumberIfNumeric(colKey[attrIdx]),
-              )
+            ? dateFormatters[attrName](colKey[attrIdx])
             : colKey[attrIdx];
         attrValueCells.push(
           <th
@@ -659,7 +652,7 @@ export class TableRenderer extends Component {
 
         const headerCellFormattedValue =
           dateFormatters && dateFormatters[rowAttrs[i]]
-            ? dateFormatters[rowAttrs[i]](convertToNumberIfNumeric(r))
+            ? dateFormatters[rowAttrs[i]](r)
             : r;
         return (
           <th
