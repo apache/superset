@@ -1813,8 +1813,7 @@ def test_get_views(
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_by_uuid.return_value = mock_layer
 
-    mock_sv_dao = mocker.patch("superset.semantic_layers.api.SemanticViewDAO")
-    mock_sv_dao.find_by_semantic_layer.return_value = []
+    mock_dao.get_semantic_views.return_value = []
 
     response = client.post(
         f"/api/v1/semantic_layer/{test_uuid}/views",
@@ -1851,8 +1850,7 @@ def test_get_views_with_existing(
     existing_view.name = "Existing View"
     existing_view.configuration = '{"database": "mydb"}'
 
-    mock_sv_dao = mocker.patch("superset.semantic_layers.api.SemanticViewDAO")
-    mock_sv_dao.find_by_semantic_layer.return_value = [existing_view]
+    mock_dao.get_semantic_views.return_value = [existing_view]
 
     response = client.post(
         f"/api/v1/semantic_layer/{test_uuid}/views",
@@ -1932,8 +1930,7 @@ def test_get_views_existing_dict_config(
     existing_view.name = "View X"
     existing_view.configuration = {"key": "val"}  # dict, not string
 
-    mock_sv_dao = mocker.patch("superset.semantic_layers.api.SemanticViewDAO")
-    mock_sv_dao.find_by_semantic_layer.return_value = [existing_view]
+    mock_dao.get_semantic_views.return_value = [existing_view]
 
     response = client.post(
         f"/api/v1/semantic_layer/{test_uuid}/views",

@@ -55,7 +55,7 @@ from superset.commands.semantic_layer.update import (
     UpdateSemanticViewCommand,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
-from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
+from superset.daos.semantic_layer import SemanticLayerDAO
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.models.core import Database
 from superset.semantic_layers.models import SemanticLayer, SemanticView
@@ -174,6 +174,11 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     class_permission_name = "SemanticView"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     include_route_methods = {"put", "post", "delete", "bulk_delete"}
+    # SemanticViewRestApi exposes only write endpoints, but can_read must be
+    # declared explicitly so that FAB registers the permission. It is used by
+    # DatasourceRestApi.combined_list to gate access to semantic views in the
+    # combined datasource list.
+    base_permissions = ["can_read", "can_write"]
 
     edit_model_schema = SemanticViewPutSchema()
 
@@ -625,7 +630,7 @@ class SemanticLayerRestApi(BaseSupersetApi):
             )
 
         # Check which views already exist with the same runtime config
-        existing = SemanticViewDAO.find_by_semantic_layer(str(layer.uuid))
+        existing = SemanticLayerDAO.get_semantic_views(str(layer.uuid))
         existing_keys: set[tuple[str, str]] = set()
         for v in existing:
             config = v.configuration
