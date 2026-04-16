@@ -68,7 +68,7 @@ export class Modal {
   }
 
   /**
-   * Gets a footer button by text content (private helper)
+   * Gets a footer button by text content
    * @param buttonText - The text content of the button
    */
   private getFooterButton(buttonText: string): Locator {
@@ -80,7 +80,7 @@ export class Modal {
    * @param buttonText - The text content of the button to click
    * @param options - Optional click options
    */
-  protected async clickFooterButton(
+  async clickFooterButton(
     buttonText: string,
     options?: { timeout?: number; force?: boolean; delay?: number },
   ): Promise<void> {

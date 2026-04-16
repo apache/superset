@@ -130,6 +130,18 @@ class LoggingMiddleware(Middleware):
     in on_message().
     """
 
+    def _is_error_response(self, result: ToolResult) -> bool:
+        """Check if a tool result contains an error schema response.
+
+        MCP tools return error schemas (ChartError, DashboardError, etc.)
+        instead of raising exceptions. These serialize to JSON containing
+        an "error_type" field.
+        """
+        try:
+            return '"error_type"' in result.content[0].text
+        except (AttributeError, IndexError):
+            return False
+
     def _extract_context_info(
         self, context: MiddlewareContext
     ) -> tuple[
@@ -171,8 +183,11 @@ class LoggingMiddleware(Middleware):
         success = False
         try:
             result = await call_next(context)
-            success = True
+            success = not self._is_error_response(result)
             return result
+        except Exception:
+            success = False
+            raise
         finally:
             duration_ms = int((time.time() - start_time) * 1000)
             if has_app_context():
