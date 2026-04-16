@@ -187,6 +187,40 @@ class ExecuteSqlCore(BaseCore):
 
     def _handle_execution_error(self, e: Exception) -> ExecuteSqlResponse:
         """Map exceptions to error responses."""
+        # OAuth2 exceptions need special handling so the authorization URL
+        # (stored in extra["url"]) is surfaced to MCP clients instead of
+        # being dropped by str(e).
+        from superset.exceptions import OAuth2Error, OAuth2RedirectError
+        from superset.mcp_service.utils.oauth2_utils import (
+            build_oauth2_redirect_message,
+            OAUTH2_CONFIG_ERROR_MESSAGE,
+        )
+
+        if isinstance(e, OAuth2RedirectError):
+            return ExecuteSqlResponse(
+                success=False,
+                error=build_oauth2_redirect_message(e),
+                error_type="OAUTH2_REDIRECT",
+                rows=None,
+                columns=None,
+                row_count=None,
+                affected_rows=None,
+                query_id=None,
+                execution_time=None,
+            )
+        if isinstance(e, OAuth2Error):
+            return ExecuteSqlResponse(
+                success=False,
+                error=OAUTH2_CONFIG_ERROR_MESSAGE,
+                error_type="OAUTH2_REDIRECT_ERROR",
+                rows=None,
+                columns=None,
+                row_count=None,
+                affected_rows=None,
+                query_id=None,
+                execution_time=None,
+            )
+
         error_type = self._get_error_type(e)
         return ExecuteSqlResponse(
             success=False,
