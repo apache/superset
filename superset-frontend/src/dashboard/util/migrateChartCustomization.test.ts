@@ -423,7 +423,7 @@ test('isLegacyChartCustomizationFormat rejects item with customization: null', (
   expect(isLegacyChartCustomizationFormat(item)).toBe(false);
 });
 
-test('migrateChartCustomizationArray does not crash on legacy item with customization: null', () => {
+test('migrateChartCustomizationArray passes through item with customization: null as-is', () => {
   const items = [
     { id: 'CUSTOMIZATION-NULL', customization: null },
     {
@@ -435,7 +435,13 @@ test('migrateChartCustomizationArray does not crash on legacy item with customiz
       },
     },
   ];
-  expect(() => migrateChartCustomizationArray(items)).not.toThrow();
+  const result = migrateChartCustomizationArray(items);
+  expect(result).toHaveLength(2);
+  // The null-customization item is not legacy, so it passes through unchanged
+  expect(result[0]).toEqual({ id: 'CUSTOMIZATION-NULL', customization: null });
+  // The valid legacy item is migrated
+  expect(result[1].name).toBe('Valid');
+  expect(result[1].type).toBe(ChartCustomizationType.ChartCustomization);
 });
 
 test('isLegacyChartCustomizationFormat rejects item with customization: undefined', () => {
