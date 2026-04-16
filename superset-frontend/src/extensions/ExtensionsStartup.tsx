@@ -24,6 +24,7 @@ import {
   isFeatureEnabled,
   getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
+import type { CategoricalSchemeRegistryLike } from '@apache-superset/core/colors';
 import {
   authentication,
   core,
@@ -49,7 +50,11 @@ declare global {
       menus: typeof menus;
       sqlLab: typeof sqlLab;
       views: typeof views;
-      colors: typeof supersetCore.colors;
+      colors: {
+        ColorSchemeGroup: typeof supersetCore.colors.ColorSchemeGroup;
+        getCategoricalSchemeNames(): string[];
+        getSchemeColors(schemeName: string): string[] | null;
+      };
     };
   }
 }
@@ -73,6 +78,8 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
     }
 
     // Provide the implementations for @apache-superset/core
+    const registry =
+      getCategoricalSchemeRegistry() as CategoricalSchemeRegistryLike | null;
     window.superset = {
       ...supersetCore,
       authentication,
@@ -83,13 +90,16 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       menus,
       sqlLab,
       views,
+      colors: {
+        ColorSchemeGroup: supersetCore.colors.ColorSchemeGroup,
+        getCategoricalSchemeNames(): string[] {
+          return (registry?.keys() ?? []).sort();
+        },
+        getSchemeColors(schemeName: string): string[] | null {
+          return registry?.get(schemeName)?.colors ?? null;
+        },
+      },
     };
-
-    // Inject the categorical color scheme registry so extensions can access
-    // Superset's registered palettes without depending on @superset-ui/core.
-    supersetCore.colors.registerCategoricalSchemeRegistry(
-      getCategoricalSchemeRegistry(),
-    );
 
     const setup = async () => {
       if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {

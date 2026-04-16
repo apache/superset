@@ -21,13 +21,6 @@
 export type { ColorSchemeConfig, SequentialSchemeConfig } from './types';
 export { ColorSchemeGroup } from './types';
 
-// ─── Registry bridge for extensions ──────────────────────────────────────────
-//
-// The host app (ExtensionsStartup) calls `registerCategoricalSchemeRegistry()`
-// to inject @superset-ui/core's live singleton.  Extensions then call
-// `getCategoricalSchemeNames()` / `getSchemeColors()` and receive the same
-// palettes that the host app registered (including any custom extra schemes).
-
 /**
  * Minimal interface for the categorical color scheme registry.
  * Mirrors the public surface of @superset-ui/core's ColorSchemeRegistry.
@@ -43,37 +36,16 @@ export interface CategoricalSchemeRegistryLike {
   get(name: string): CategoricalScheme | null | undefined;
 }
 
-let _registry: CategoricalSchemeRegistryLike | null = null;
-
 /**
- * Called by the Superset host app (ExtensionsStartup) to inject the
- * categorical color scheme registry so extensions can access it without
- * depending directly on @superset-ui/core.
+ * Returns an alphabetically sorted list of all registered categorical color
+ * scheme names. The host app (ExtensionsStartup) provides the implementation
+ * via window.superset.colors.
  */
-export function registerCategoricalSchemeRegistry(
-  registry: CategoricalSchemeRegistryLike,
-): void {
-  _registry = registry;
-}
-
-/**
- * Returns the categorical color scheme registry registered by the host app,
- * or null if not yet injected (e.g. in tests or isolated builds).
- */
-export function getCategoricalSchemeRegistry(): CategoricalSchemeRegistryLike | null {
-  return _registry;
-}
-
-/**
- * Returns an alphabetically sorted list of all registered scheme names.
- */
-export function getCategoricalSchemeNames(): string[] {
-  return _registry?.keys().sort() ?? [];
-}
+export declare function getCategoricalSchemeNames(): string[];
 
 /**
  * Returns the color array for a named scheme, or null if not found.
+ * The host app (ExtensionsStartup) provides the implementation
+ * via window.superset.colors.
  */
-export function getSchemeColors(schemeName: string): string[] | null {
-  return _registry?.get(schemeName)?.colors ?? null;
-}
+export declare function getSchemeColors(schemeName: string): string[] | null;
