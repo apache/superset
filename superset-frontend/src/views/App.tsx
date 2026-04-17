@@ -51,10 +51,11 @@ const bootstrapData = getBootstrapData();
 
 // WCAG 3.1.2: Set the HTML lang attribute based on the current locale
 // so screen readers announce the correct language for the page content.
-// Converts locale formats like "pt_BR" or "de-DE" to BCP-47 primary tag ("pt", "de").
+// Normalize to BCP-47 format by replacing underscores with hyphens
+// so region subtags like "pt_BR" become valid "pt-BR" rather than being dropped.
 const locale =
   bootstrapData.common?.locale || window.navigator.language || 'en';
-document.documentElement.lang = String(locale).split(/[_-]/)[0];
+document.documentElement.lang = String(locale).replace(/_/g, '-');
 
 let lastLocationPathname: string;
 
