@@ -53,6 +53,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+
       - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/
@@ -60,12 +61,34 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
-        if: steps.check.outputs.python
+        if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
         uses: ./.github/actions/setup-backend/
 
-      - name: Install msgcat
-        run: sudo apt update && sudo apt install gettext
+      - name: Install gettext tools
+        if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
+        run: sudo apt-get update && sudo apt-get install -y gettext
 
-      - name: Test babel extraction
-        if: steps.check.outputs.python
+      - name: Restore base-branch translations
+        if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
+        run: |
+          # For PRs use the base branch; for direct pushes compare against the previous commit.
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          if [ -n "$BASE_REF" ]; then
+            git fetch --depth=1 origin "$BASE_REF"
+          else
+            git fetch --depth=2 origin "${{ github.ref }}"
+            BASE_REF="HEAD^1"
+          fi
+          git checkout FETCH_HEAD -- superset/translations/
+
+      - name: Record baseline translation counts
+        if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
+        run: python scripts/translations/check_translation_regression.py --count > /tmp/before.json
+
+      - name: Run pybabel extract and update
+        if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
         run: ./scripts/translations/babel_update.sh
+
+      - name: Check for translation regression
+        if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
+        run: python scripts/translations/check_translation_regression.py --compare /tmp/before.json
