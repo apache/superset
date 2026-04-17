@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { setInScopeStatusOfCustomizations } from './chartCustomizationActions';
+import fetchMock from 'fetch-mock';
+import {
+  setInScopeStatusOfCustomizations,
+  saveChartCustomization,
+} from './chartCustomizationActions';
 import { SET_IN_SCOPE_STATUS_OF_FILTERS } from './nativeFilters';
 import { DASHBOARD_INFO_UPDATED } from './dashboardInfo';
 
@@ -137,4 +141,91 @@ test('setInScopeStatusOfCustomizations works with undefined metadata', () => {
   expect(
     infoUpdateCall[0].newInfo.metadata.chart_customization_config,
   ).toHaveLength(0);
+});
+
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+afterEach(() => fetchMock.clearHistory().removeRoutes());
+
+test('saveChartCustomization filters null entries from currentConfig before merging', async () => {
+  const customization = {
+    id: 'CUSTOM-1',
+    name: 'Group By',
+    chartsInScope: [10],
+    tabsInScope: ['TAB-A'],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+  };
+
+  fetchMock.put('glob:*/api/v1/dashboard/1/chart_customizations', {
+    result: [customization],
+  });
+
+  const { getState, dispatch } = setup({
+    nativeFilters: { filters: {} },
+    dashboardInfo: {
+      id: 1,
+      metadata: {
+        chart_customization_config: [
+          null,
+          { id: 'CUSTOM-1', name: 'Group By', chartsInScope: [10] },
+          null,
+        ],
+      },
+    },
+  });
+
+  const thunk = saveChartCustomization(
+    [customization as any],
+    [],
+    [],
+    false,
+  );
+  await thunk(dispatch, getState, null);
+
+  // DASHBOARD_INFO_UPDATED should have merged config without nulls
+  const infoUpdateCall = dispatch.mock.calls.find(
+    ([action]: [{ type: string }]) => action.type === DASHBOARD_INFO_UPDATED,
+  );
+  expect(infoUpdateCall).toBeDefined();
+  const config =
+    infoUpdateCall[0].newInfo.metadata.chart_customization_config;
+  expect(config.every((item: unknown) => item !== null)).toBe(true);
+});
+
+test('saveChartCustomization filters null entries from oldConfig when resetDataMask is true', async () => {
+  const customization = {
+    id: 'CUSTOM-1',
+    name: 'Group By',
+    chartsInScope: [10],
+    tabsInScope: ['TAB-A'],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+  };
+
+  fetchMock.put('glob:*/api/v1/dashboard/1/chart_customizations', {
+    result: [customization],
+  });
+
+  const { getState, dispatch } = setup({
+    nativeFilters: { filters: {} },
+    dashboardInfo: {
+      id: 1,
+      metadata: {
+        chart_customization_config: [
+          null,
+          { id: 'CUSTOM-1', name: 'Group By', chartsInScope: [10] },
+          null,
+        ],
+      },
+    },
+  });
+
+  const thunk = saveChartCustomization(
+    [customization as any],
+    [],
+    [],
+    true,
+  );
+
+  // Should not throw when building oldCustomizationsById from null-containing config
+  await expect(thunk(dispatch, getState, null)).resolves.not.toThrow();
 });

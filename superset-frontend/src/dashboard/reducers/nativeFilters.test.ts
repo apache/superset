@@ -25,6 +25,7 @@ import {
 import nativeFilterReducer, { getInitialState } from './nativeFilters';
 import { SET_NATIVE_FILTERS_CONFIG_COMPLETE } from '../actions/nativeFilters';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+import { migrateChartCustomizationArray } from '../util/migrateChartCustomization';
 
 const createMockFilter = (
   id: string,
@@ -447,4 +448,41 @@ test('getInitialState crashes on null entries in filterConfig (hydrate must pre-
       ],
     }),
   ).toThrow();
+});
+
+test('hydrate pipeline: filter(Boolean) + migrate + getInitialState succeeds with null entries', () => {
+  // Reproduces the exact pipeline in hydrate.ts (lines 296-312):
+  //   rawConfig.filter(Boolean) → migrateChartCustomizationArray → getInitialState
+  const rawConfig = [
+    null,
+    {
+      id: 'CHART_CUSTOMIZATION-1',
+      type: ChartCustomizationType.ChartCustomization,
+      name: 'Dynamic Group By',
+      filterType: 'chart_customization_dynamic_groupby',
+      targets: [{ datasetId: 1, column: { name: 'status' } }],
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+      chartsInScope: [10],
+      defaultDataMask: { filterState: { value: null } },
+      controlValues: {},
+      cascadeParentIds: [],
+      description: '',
+    },
+    null,
+  ];
+
+  // Step 1: filter(Boolean) — as hydrate.ts does
+  const filtered = rawConfig.filter(Boolean);
+  // Step 2: migrate — as hydrate.ts does
+  const migrated = migrateChartCustomizationArray(filtered);
+  // Step 3: combine with native filters and pass to getInitialState
+  const nativeFilters = [createMockFilter('filter1', [1, 2], ['tab1'])];
+  const result = getInitialState({
+    filterConfig: [...nativeFilters, ...migrated] as Filter[],
+  });
+
+  expect(Object.keys(result.filters)).toHaveLength(2);
+  expect(result.filters.filter1).toBeDefined();
+  expect(result.filters['CHART_CUSTOMIZATION-1']).toBeDefined();
+  expect(result.filters['CHART_CUSTOMIZATION-1'].chartsInScope).toEqual([10]);
 });
