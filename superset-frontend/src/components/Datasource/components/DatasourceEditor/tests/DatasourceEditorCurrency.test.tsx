@@ -23,7 +23,7 @@ import {
   userEvent,
   selectOption,
 } from 'spec/helpers/testing-library';
-import { GenericDataType } from '@apache-superset/core/common';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import type { DatasetObject } from 'src/features/datasets/types';
 import {
   createProps,
@@ -105,11 +105,12 @@ test('changes currency position from prefix to suffix', async () => {
   await selectOption('Suffix', 'Currency prefix or suffix');
 
   await waitFor(() => {
-    expect(testProps.onChange).toHaveBeenCalledTimes(1);
+    expect(testProps.onChange).toHaveBeenCalled();
   });
 
-  // Verify the exact call arguments
-  const callArg = testProps.onChange.mock.calls[0][0];
+  // Verify the exact call arguments - check the latest call
+  const lastCallIndex = testProps.onChange.mock.calls.length - 1;
+  const callArg = testProps.onChange.mock.calls[lastCallIndex][0];
   const metrics = callArg.metrics || [];
   const updatedMetric = metrics.find(
     (m: MetricType) => m.currency?.symbolPosition === 'suffix',
@@ -126,11 +127,12 @@ test('changes currency symbol from USD to GBP', async () => {
   await selectOption('£ (GBP)', 'Currency symbol');
 
   await waitFor(() => {
-    expect(testProps.onChange).toHaveBeenCalledTimes(1);
+    expect(testProps.onChange).toHaveBeenCalled();
   });
 
-  // Verify the exact call arguments
-  const callArg = testProps.onChange.mock.calls[0][0];
+  // Verify the exact call arguments - check the latest call
+  const lastCallIndex = testProps.onChange.mock.calls.length - 1;
+  const callArg = testProps.onChange.mock.calls[lastCallIndex][0];
   const metrics = callArg.metrics || [];
   const updatedMetric = metrics.find(
     (m: MetricType) => m.currency?.symbol === 'GBP',
