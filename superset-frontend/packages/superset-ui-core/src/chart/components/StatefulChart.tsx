@@ -35,8 +35,7 @@ import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySin
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import SuperChart from './SuperChart';
-import { SupersetTheme } from '@apache-superset/core/ui';
-
+import { SupersetTheme } from '@apache-superset/core/theme';
 // Using more specific states that align with chart loading process
 type LoadingState = 'uninitialized' | 'loading' | 'loaded' | 'error';
 
