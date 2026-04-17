@@ -34,11 +34,12 @@ from superset.utils import json
 
 
 class SemanticLayerDAO(BaseDAO[SemanticLayer], AbstractSemanticLayerDAO):
-    # SemanticLayer uses uuid as the primary key
-    id_column_name = "uuid"
     """
     Data Access Object for SemanticLayer model.
     """
+
+    # SemanticLayer uses uuid as the primary key
+    id_column_name = "uuid"
 
     model_cls = SemanticLayer
 
