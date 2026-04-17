@@ -20,7 +20,7 @@
 import '@testing-library/jest-dom';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { ChartProps } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import SuperChartCore from '../../../src/chart/components/SuperChartCore';
 import {

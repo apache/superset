@@ -24,7 +24,7 @@ import { triggerResizeObserver } from 'resize-observer-polyfill';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import { promiseTimeout, SuperChart } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { WrapperProps } from '../../../src/chart/components/SuperChart';
 
 import {
