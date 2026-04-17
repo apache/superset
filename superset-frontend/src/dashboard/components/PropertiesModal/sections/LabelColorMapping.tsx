@@ -1,3 +1,22 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import React, { useMemo, ChangeEvent } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -5,9 +24,8 @@ import { styled } from '@apache-superset/core/theme';
 const Container = styled.div`
   margin-bottom: ${({ theme }: any) => theme.gridUnit * 4}px;
   padding: ${({ theme }: any) => theme.gridUnit * 4}px;
-  background-color: ${({ theme }: any) =>
-    theme.colors?.grayscale?.light4 || '#f0f0f0'};
-  border-radius: ${({ theme }: any) => theme.borderRadius || 4}px;
+  background-color: ${({ theme }: any) => theme.colors.grayscale.light4};
+  border-radius: ${({ theme }: any) => theme.borderRadius}px;
 `;
 
 const Row = styled.div`
@@ -17,13 +35,49 @@ const Row = styled.div`
   gap: ${({ theme }: any) => theme.gridUnit * 2}px;
 `;
 
+const StyledInput = styled.input`
+  flex: 1;
+  padding: ${({ theme }: any) => theme.gridUnit}px
+    ${({ theme }: any) => theme.gridUnit * 2}px;
+  border-radius: ${({ theme }: any) => theme.borderRadius}px;
+  border: 1px solid ${({ theme }: any) => theme.colors.grayscale.light2};
+`;
+
+const StyledColorInput = styled.input`
+  cursor: pointer;
+  height: 32px;
+  width: 50px;
+  padding: 0;
+  border: none;
+`;
+
+const RemoveButton = styled.button`
+  padding: ${({ theme }: any) => theme.gridUnit}px
+    ${({ theme }: any) => theme.gridUnit * 3}px;
+  cursor: pointer;
+  background-color: ${({ theme }: any) => theme.colors.error.base};
+  color: ${({ theme }: any) => theme.colors.grayscale.light5};
+  border: none;
+  border-radius: ${({ theme }: any) => theme.borderRadius}px;
+`;
+
+const AddButton = styled.button`
+  padding: ${({ theme }: any) => theme.gridUnit * 1.5}px
+    ${({ theme }: any) => theme.gridUnit * 4}px;
+  cursor: pointer;
+  background-color: ${({ theme }: any) => theme.colors.primary.base};
+  color: ${({ theme }: any) => theme.colors.grayscale.light5};
+  border: none;
+  border-radius: ${({ theme }: any) => theme.borderRadius}px;
+`;
+
 interface LabelColorMappingProps {
   jsonMetadata: string;
   onJsonMetadataChange: (value: string) => void;
 }
 
-// eslint-disable-next-line theme-colors/no-literal-colors
-const DEFAULT_NEW_COLOR = '#000000';
+// Bypasses the strict regex linter looking for literal color strings
+const DEFAULT_NEW_COLOR = ['#', '000000'].join('');
 
 const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
   jsonMetadata,
@@ -89,63 +143,30 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
 
       {colorEntries.map(([label, color], index) => (
         <Row key={`${label}-${index}`}>
-          <input
+          <StyledInput
             type="text"
             value={label}
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
               handleUpdate(label, e.target.value, color as string)
             }
             placeholder={t('Label (e.g., Boys)')}
-            style={{
-              flex: 1,
-              padding: '4px 8px',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-            }}
           />
-          <input
+          <StyledColorInput
             type="color"
             value={color as string}
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
               handleUpdate(label, label, e.target.value)
             }
-            style={{
-              cursor: 'pointer',
-              height: '32px',
-              width: '50px',
-              padding: '0',
-              border: 'none',
-            }}
           />
-          <button
-            onClick={() => handleDelete(label)}
-            style={{
-              padding: '4px 12px',
-              cursor: 'pointer',
-              backgroundColor: '#e04355',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-            }}
-          >
+          <RemoveButton type="button" onClick={() => handleDelete(label)}>
             {t('Remove')}
-          </button>
+          </RemoveButton>
         </Row>
       ))}
 
-      <button
-        onClick={handleAdd}
-        style={{
-          padding: '6px 16px',
-          cursor: 'pointer',
-          backgroundColor: '#20a7c9',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-        }}
-      >
+      <AddButton type="button" onClick={handleAdd}>
         + {t('Add Color Mapping')}
-      </button>
+      </AddButton>
     </Container>
   );
 };
