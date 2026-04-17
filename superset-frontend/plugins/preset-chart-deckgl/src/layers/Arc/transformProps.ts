@@ -74,8 +74,9 @@ function processArcData(
 
       arcPoint = addJsColumnsToExtraProps(arcPoint, record, jsColumns);
 
-      if (dimension && record[dimension] != null) {
-        arcPoint.cat_color = String(record[dimension]);
+      if (dimension) {
+        arcPoint.cat_color =
+          record[dimension] != null ? String(record[dimension]) : '';
       }
 
       // eslint-disable-next-line no-underscore-dangle

@@ -90,8 +90,9 @@ function processScatterData(
       }
     }
 
-    if (categoryColumn && feature[categoryColumn] != null) {
-      scatterPoint.cat_color = String(feature[categoryColumn]);
+    if (categoryColumn) {
+      scatterPoint.cat_color =
+        feature[categoryColumn] != null ? String(feature[categoryColumn]) : '';
     }
 
     scatterPoint = addPropertiesToFeature(

@@ -194,6 +194,49 @@ test('Scatter transformProps should handle dimension for category colors', () =>
   expect(features[1]?.cat_color).toBe('B');
 });
 
+test('Scatter transformProps should assign empty string cat_color for null/undefined dimension values', () => {
+  const propsWithNullCategory = {
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      dimension: 'category',
+      point_radius_fixed: {
+        type: 'fix',
+        value: '1000',
+      },
+    },
+    queriesData: [
+      {
+        data: [
+          {
+            LATITUDE: 37.8,
+            LONGITUDE: -122.4,
+            category: 'A',
+          },
+          {
+            LATITUDE: 37.9,
+            LONGITUDE: -122.3,
+            category: null,
+          },
+          {
+            LATITUDE: 38.0,
+            LONGITUDE: -122.2,
+            category: undefined,
+          },
+        ],
+      },
+    ],
+  };
+
+  const result = transformProps(propsWithNullCategory as ChartProps);
+  const features = result.payload.data.features as ScatterFeature[];
+
+  expect(features).toHaveLength(3);
+  expect(features[0]?.cat_color).toBe('A');
+  expect(features[1]?.cat_color).toBe('');
+  expect(features[2]?.cat_color).toBe('');
+});
+
 test('Scatter transformProps should not include metric labels for fixed radius', () => {
   const fixedProps = {
     ...mockChartProps,
