@@ -18,11 +18,19 @@
  */
 import fetchMock from 'fetch-mock';
 import {
+  ChartCustomization,
+  ChartCustomizationType,
+} from '@superset-ui/core';
+import {
   setInScopeStatusOfCustomizations,
   saveChartCustomization,
 } from './chartCustomizationActions';
 import { SET_IN_SCOPE_STATUS_OF_FILTERS } from './nativeFilters';
 import { DASHBOARD_INFO_UPDATED } from './dashboardInfo';
+
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+afterEach(() => fetchMock.clearHistory().removeRoutes());
 
 function setup(stateOverrides: Record<string, unknown> = {}) {
   const state = {
@@ -143,17 +151,18 @@ test('setInScopeStatusOfCustomizations works with undefined metadata', () => {
   ).toHaveLength(0);
 });
 
-beforeAll(() => fetchMock.mockGlobal());
-afterAll(() => fetchMock.hardReset());
-afterEach(() => fetchMock.clearHistory().removeRoutes());
-
 test('saveChartCustomization filters null entries from currentConfig before merging', async () => {
-  const customization = {
+  const customization: ChartCustomization = {
     id: 'CUSTOM-1',
+    type: ChartCustomizationType.ChartCustomization,
     name: 'Group By',
+    filterType: 'chart_customization_dynamic_groupby',
+    targets: [{}],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
     chartsInScope: [10],
     tabsInScope: ['TAB-A'],
-    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    defaultDataMask: {},
+    controlValues: {},
   };
 
   fetchMock.put('glob:*/api/v1/dashboard/1/chart_customizations', {
@@ -175,7 +184,7 @@ test('saveChartCustomization filters null entries from currentConfig before merg
   });
 
   const thunk = saveChartCustomization(
-    [customization as any],
+    [customization],
     [],
     [],
     false,
@@ -193,12 +202,17 @@ test('saveChartCustomization filters null entries from currentConfig before merg
 });
 
 test('saveChartCustomization filters null entries from oldConfig when resetDataMask is true', async () => {
-  const customization = {
+  const customization: ChartCustomization = {
     id: 'CUSTOM-1',
+    type: ChartCustomizationType.ChartCustomization,
     name: 'Group By',
+    filterType: 'chart_customization_dynamic_groupby',
+    targets: [{}],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
     chartsInScope: [10],
     tabsInScope: ['TAB-A'],
-    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    defaultDataMask: {},
+    controlValues: {},
   };
 
   fetchMock.put('glob:*/api/v1/dashboard/1/chart_customizations', {
@@ -220,12 +234,12 @@ test('saveChartCustomization filters null entries from oldConfig when resetDataM
   });
 
   const thunk = saveChartCustomization(
-    [customization as any],
+    [customization],
     [],
     [],
     true,
   );
 
   // Should not throw when building oldCustomizationsById from null-containing config
-  await expect(thunk(dispatch, getState, null)).resolves.not.toThrow();
+  await expect(thunk(dispatch, getState, null)).resolves.toBeDefined();
 });
