@@ -186,10 +186,7 @@ test('preserveScopes filters out null entries from both existing and incoming co
       null,
       { id: 'FILTER-1', name: 'Region (updated)', targets: [{ datasetId: 1 }] },
     ],
-    chart_customization_config: [
-      null,
-      { id: 'CUSTOM-1' },
-    ],
+    chart_customization_config: [null, { id: 'CUSTOM-1' }],
   } as unknown as DashboardInfo['metadata'];
 
   const action = dashboardInfoChanged({ metadata: serverMetadata });
