@@ -265,6 +265,11 @@ export interface ListViewProps<T extends object = any> {
   columnsForWrapText?: string[];
   enableBulkTag?: boolean;
   bulkTagResourceName?: string;
+  /** Optional ref exposed to callers for programmatic filter control. */
+  filtersRef?: React.RefObject<{
+    clearFilters: () => void;
+    clearFilterById: (id: string) => void;
+  }>;
 }
 
 export function ListView<T extends object = any>({
@@ -291,6 +296,7 @@ export function ListView<T extends object = any>({
   columnsForWrapText,
   enableBulkTag = false,
   bulkTagResourceName,
+  filtersRef,
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
@@ -338,7 +344,17 @@ export function ListView<T extends object = any>({
     });
   }
 
-  const filterControlsRef = useRef<{ clearFilters: () => void }>(null);
+  const filterControlsRef = useRef<{
+    clearFilters: () => void;
+    clearFilterById: (id: string) => void;
+  }>(null);
+
+  // Wire the optional external filtersRef to our internal filterControlsRef.
+  useEffect(() => {
+    if (filtersRef) {
+      (filtersRef as any).current = filterControlsRef.current;
+    }
+  });
 
   const handleClearFilterControls = useCallback(() => {
     if (query.filters) {
