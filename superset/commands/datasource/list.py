@@ -62,14 +62,32 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         order_direction = self._args.get("order_direction", "desc")
         filters = self._args.get("filters", [])
 
-        source_type, name_filter, sql_filter, type_filter = self._parse_filters(filters)
+        (
+            source_type,
+            name_filter,
+            sql_filter,
+            type_filter,
+            database_id,
+            semantic_layer_uuid,
+        ) = self._parse_filters(filters)
+
+        # A connection filter implicitly narrows the source type: selecting a
+        # database ID means "show only datasets", and selecting a semantic layer
+        # UUID means "show only semantic views".  Only apply the implicit
+        # narrowing when the user hasn't already set an explicit source_type.
+        if source_type == "all":
+            if database_id is not None:
+                source_type = "database"
+            elif semantic_layer_uuid is not None:
+                source_type = "semantic_layer"
+
         source_type = self._resolve_source_type(source_type, sql_filter, type_filter)
 
         if source_type == "empty":
             return {"count": 0, "result": []}
 
-        ds_q = DatasourceDAO.build_dataset_query(name_filter, sql_filter)
-        sv_q = DatasourceDAO.build_semantic_view_query(name_filter)
+        ds_q = DatasourceDAO.build_dataset_query(name_filter, sql_filter, database_id)
+        sv_q = DatasourceDAO.build_semantic_view_query(name_filter, semantic_layer_uuid)
 
         if source_type == "database":
             combined = ds_q.subquery()
@@ -126,10 +144,15 @@ class GetCombinedDatasourceListCommand(BaseCommand):
             return "database"
         if not self._can_read_datasets:
             return "semantic_layer"
+        # An explicit source_type selection ("database" or "semantic_layer") always
+        # wins. This prevents e.g. Type="Semantic View" from overriding an explicit
+        # Source="Database" filter and showing inconsistent results.
+        if source_type in ("database", "semantic_layer"):
+            return source_type
         # sql_filter (physical/virtual toggle) only applies to datasets
         if sql_filter is not None:
             return "database"
-        # Explicit semantic-view type filter
+        # Explicit semantic-view type filter (only reached when source_type="all")
         if type_filter == "semantic_view":
             return "semantic_layer"
         return source_type
@@ -137,20 +160,24 @@ class GetCombinedDatasourceListCommand(BaseCommand):
     @staticmethod
     def _parse_filters(
         filters: list[dict[str, Any]],
-    ) -> tuple[str, str | None, bool | None, str | None]:
+    ) -> tuple[str, str | None, bool | None, str | None, int | None, str | None]:
         """
         Translate raw rison filter dicts into typed query parameters.
 
         Returns:
-            source_type:  "all" | "database" | "semantic_layer"
-            name_filter:  substring to match against name/table_name
-            sql_filter:   True → physical only, False → virtual only, None → both
-            type_filter:  "semantic_view" when the caller wants only semantic views
+            source_type:        "all" | "database" | "semantic_layer"
+            name_filter:        substring to match against name/table_name
+            sql_filter:         True → physical only, False → virtual only, None → both
+            type_filter:        "semantic_view" when the caller wants only semantic views
+            database_id:        filter datasets to a specific database ID
+            semantic_layer_uuid: filter semantic views to a specific semantic layer UUID
         """
         source_type = "all"
         name_filter: str | None = None
         sql_filter: bool | None = None
         type_filter: str | None = None
+        database_id: int | None = None
+        semantic_layer_uuid: str | None = None
 
         for f in filters:
             col = f.get("col")
@@ -166,5 +193,19 @@ class GetCombinedDatasourceListCommand(BaseCommand):
                     type_filter = "semantic_view"
                 elif opr == "dataset_is_null_or_empty" and isinstance(value, bool):
                     sql_filter = value
+            elif col == "database" and value is not None:
+                try:
+                    database_id = int(value)
+                except (TypeError, ValueError):
+                    pass
+            elif col == "semantic_layer_uuid" and value is not None:
+                semantic_layer_uuid = str(value)
 
-        return source_type, name_filter, sql_filter, type_filter
+        return (
+            source_type,
+            name_filter,
+            sql_filter,
+            type_filter,
+            database_id,
+            semantic_layer_uuid,
+        )
