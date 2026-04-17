@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, type ReactNode } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Popover, FormLabel, Label } from '@superset-ui/core/components';
 import { decimalToSexagesimal } from 'geolib';
 

@@ -20,7 +20,7 @@ import { useEffect, useCallback, useMemo, useRef } from 'react';
 import { EditableTabs } from '@superset-ui/core/components/Tabs';
 import { connect } from 'react-redux';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/theme';
 import { Logger } from 'src/logger/LogUtils';

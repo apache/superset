@@ -34,7 +34,7 @@ import {
   VizType,
   type QueryFormColumn,
 } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';

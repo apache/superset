@@ -18,7 +18,7 @@
  */
 import { connect } from 'react-redux';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   HandlerFunction,
   JsonObject,
