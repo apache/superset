@@ -151,6 +151,8 @@ const useTreeData = ({
   // preferCacheValue=false on explicit refresh (bypass cache).
   const fetchAndStoreTableSchema = useCallback(
     (id: string, preferCacheValue: boolean) => {
+      if (loadingNodes[id]) return;
+
       const parts = id.split(':');
       const [, databaseId, schema, table] = parts;
       const parsedDbId = Number(databaseId);
@@ -193,7 +195,13 @@ const useTreeData = ({
           dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: false });
         });
     },
-    [catalog, fetchTableExtendedMetadata, fetchTableMetadata, reduxDispatch],
+    [
+      catalog,
+      fetchTableExtendedMetadata,
+      fetchTableMetadata,
+      loadingNodes,
+      reduxDispatch,
+    ],
   );
 
   // Handle async loading when node is toggled open
