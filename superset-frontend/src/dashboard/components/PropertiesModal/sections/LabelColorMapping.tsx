@@ -16,31 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React, { useMemo, ChangeEvent } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 
 const Container = styled.div`
-  margin-bottom: ${({ theme }: any) => theme.gridUnit * 4}px;
-  padding: ${({ theme }: any) => theme.gridUnit * 4}px;
-  background-color: ${({ theme }: any) => theme.colors.grayscale.light4};
-  border-radius: ${({ theme }: any) => theme.borderRadius}px;
+  margin-bottom: ${({ theme }: any) => (theme?.gridUnit || 4) * 4}px;
+  padding: ${({ theme }: any) => (theme?.gridUnit || 4) * 4}px;
+  background-color: ${({ theme }: any) => theme?.colors?.grayscale?.light4};
+  border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
 `;
 
 const Row = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: ${({ theme }: any) => theme.gridUnit * 2}px;
-  gap: ${({ theme }: any) => theme.gridUnit * 2}px;
+  margin-bottom: ${({ theme }: any) => (theme?.gridUnit || 4) * 2}px;
+  gap: ${({ theme }: any) => (theme?.gridUnit || 4) * 2}px;
 `;
 
 const StyledInput = styled.input`
   flex: 1;
-  padding: ${({ theme }: any) => theme.gridUnit}px
-    ${({ theme }: any) => theme.gridUnit * 2}px;
-  border-radius: ${({ theme }: any) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }: any) => theme.colors.grayscale.light2};
+  padding: ${({ theme }: any) => theme?.gridUnit || 4}px
+    ${({ theme }: any) => (theme?.gridUnit || 4) * 2}px;
+  border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
+  border: 1px solid ${({ theme }: any) => theme?.colors?.grayscale?.light2};
 `;
 
 const StyledColorInput = styled.input`
@@ -52,23 +51,23 @@ const StyledColorInput = styled.input`
 `;
 
 const RemoveButton = styled.button`
-  padding: ${({ theme }: any) => theme.gridUnit}px
-    ${({ theme }: any) => theme.gridUnit * 3}px;
+  padding: ${({ theme }: any) => theme?.gridUnit || 4}px
+    ${({ theme }: any) => (theme?.gridUnit || 4) * 3}px;
   cursor: pointer;
-  background-color: ${({ theme }: any) => theme.colors.error.base};
-  color: ${({ theme }: any) => theme.colors.grayscale.light5};
+  background-color: ${({ theme }: any) => theme?.colors?.error?.base};
+  color: ${({ theme }: any) => theme?.colors?.grayscale?.light5};
   border: none;
-  border-radius: ${({ theme }: any) => theme.borderRadius}px;
+  border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
 `;
 
 const AddButton = styled.button`
-  padding: ${({ theme }: any) => theme.gridUnit * 1.5}px
-    ${({ theme }: any) => theme.gridUnit * 4}px;
+  padding: ${({ theme }: any) => (theme?.gridUnit || 4) * 1.5}px
+    ${({ theme }: any) => (theme?.gridUnit || 4) * 4}px;
   cursor: pointer;
-  background-color: ${({ theme }: any) => theme.colors.primary.base};
-  color: ${({ theme }: any) => theme.colors.grayscale.light5};
+  background-color: ${({ theme }: any) => theme?.colors?.primary?.base};
+  color: ${({ theme }: any) => theme?.colors?.grayscale?.light5};
   border: none;
-  border-radius: ${({ theme }: any) => theme.borderRadius}px;
+  border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
 `;
 
 interface LabelColorMappingProps {
@@ -132,8 +131,8 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
       <h4>{t('Label Colors (GUI)')}</h4>
       <p
         css={(theme: any) => ({
-          marginBottom: theme.gridUnit * 4,
-          fontSize: theme.typography?.sizes?.s,
+          marginBottom: (theme?.gridUnit || 4) * 4,
+          fontSize: theme?.typography?.sizes?.s,
         })}
       >
         {t(
