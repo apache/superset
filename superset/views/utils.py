@@ -133,7 +133,9 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
         roles, permissions = get_permissions(user)
         payload["roles"] = roles
         payload["permissions"] = permissions
-        payload["groups"] = [group.name for group in user.groups or []]
+        payload["groups"] = [
+            group.name for group in getattr(user, "groups", [])
+        ]
 
     return payload
 
