@@ -51,7 +51,10 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { dispatchChartCustomizationHoverAction } from './utils';
 import { mergeExtraFormData } from '../../utils';
-import { datasetLabel as getDatasetLabel, datasetLabelLower } from 'src/utils/semanticLayerLabels';
+import {
+  datasetLabel as getDatasetLabel,
+  datasetLabelLower,
+} from 'src/utils/semanticLayerLabels';
 
 interface ColumnApiResponse {
   column_name?: string;
