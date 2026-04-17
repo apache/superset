@@ -203,6 +203,53 @@ test('preserveScopes filters out null entries from both existing and incoming co
   expect(customizations![0].chartsInScope).toEqual([100]);
 });
 
+test('preserveScopes filters out undefined entries from both existing and incoming config', () => {
+  const stateWithUndefined = {
+    id: 1,
+    metadata: {
+      native_filter_configuration: [
+        undefined,
+        {
+          id: 'FILTER-1',
+          name: 'Region',
+          chartsInScope: [10, 20],
+          tabsInScope: ['TAB-A'],
+          targets: [{ datasetId: 1 }],
+        },
+      ],
+      chart_customization_config: [
+        undefined,
+        {
+          id: 'CUSTOM-1',
+          chartsInScope: [100],
+          tabsInScope: ['TAB-X'],
+        },
+      ],
+    },
+  } as unknown as Partial<DashboardInfo>;
+
+  const serverMetadata = {
+    native_filter_configuration: [
+      undefined,
+      { id: 'FILTER-1', name: 'Region (updated)', targets: [{ datasetId: 1 }] },
+    ],
+    chart_customization_config: [undefined, { id: 'CUSTOM-1' }],
+  } as unknown as DashboardInfo['metadata'];
+
+  const action = dashboardInfoChanged({ metadata: serverMetadata });
+  const result = dashboardInfoReducer(stateWithUndefined, action);
+
+  const filters = result.metadata?.native_filter_configuration;
+  expect(filters).toHaveLength(1);
+  expect(filters![0].id).toBe('FILTER-1');
+  expect(filters![0].chartsInScope).toEqual([10, 20]);
+
+  const customizations = result.metadata?.chart_customization_config;
+  expect(customizations).toHaveLength(1);
+  expect(customizations![0].id).toBe('CUSTOM-1');
+  expect(customizations![0].chartsInScope).toEqual([100]);
+});
+
 test('CLEAR_ALL_CHART_CUSTOMIZATIONS filters out null entries before mapping', () => {
   const stateWithNullConfig = {
     id: 1,
@@ -221,6 +268,31 @@ test('CLEAR_ALL_CHART_CUSTOMIZATIONS filters out null entries before mapping', (
 
   const action = { type: CLEAR_ALL_CHART_CUSTOMIZATIONS };
   const result = dashboardInfoReducer(stateWithNullConfig, action);
+
+  const config = result.metadata?.chart_customization_config;
+  expect(config).toHaveLength(1);
+  expect(config![0].id).toBe('CUSTOM-1');
+  expect(config![0].targets).toEqual([{ datasetId: 1 }]);
+});
+
+test('CLEAR_ALL_CHART_CUSTOMIZATIONS filters out undefined entries before mapping', () => {
+  const stateWithUndefinedConfig = {
+    id: 1,
+    metadata: {
+      chart_customization_config: [
+        undefined,
+        {
+          id: 'CUSTOM-1',
+          targets: [{ datasetId: 1, column: { name: 'status' } }],
+          chartsInScope: [10],
+        },
+        undefined,
+      ],
+    },
+  } as unknown as Partial<DashboardInfo>;
+
+  const action = { type: CLEAR_ALL_CHART_CUSTOMIZATIONS };
+  const result = dashboardInfoReducer(stateWithUndefinedConfig, action);
 
   const config = result.metadata?.chart_customization_config;
   expect(config).toHaveLength(1);

@@ -17,10 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  ChartCustomization,
-  ChartCustomizationType,
-} from '@superset-ui/core';
+import { ChartCustomization, ChartCustomizationType } from '@superset-ui/core';
 import {
   setInScopeStatusOfCustomizations,
   saveChartCustomization,
@@ -96,6 +93,48 @@ test('setInScopeStatusOfCustomizations filters null entries from chart_customiza
   expect(updatedConfig[0].id).toBe('CUSTOM-1');
   expect(updatedConfig[0].chartsInScope).toEqual([10, 20]);
   expect(updatedConfig[0].tabsInScope).toEqual(['TAB-A']);
+});
+
+test('setInScopeStatusOfCustomizations filters undefined entries from chart_customization_config', () => {
+  const { getState, dispatch } = setup({
+    nativeFilters: {
+      filters: {
+        'CUSTOM-1': {
+          id: 'CUSTOM-1',
+          name: 'Group By',
+          chartsInScope: [],
+        },
+      },
+    },
+    dashboardInfo: {
+      metadata: {
+        chart_customization_config: [
+          undefined,
+          { id: 'CUSTOM-1', name: 'Group By', chartsInScope: [] },
+          undefined,
+        ],
+      },
+    },
+  });
+
+  const thunk = setInScopeStatusOfCustomizations([
+    {
+      customizationId: 'CUSTOM-1',
+      chartsInScope: [10, 20],
+      tabsInScope: ['TAB-A'],
+    },
+  ]);
+  thunk(dispatch, getState, null);
+
+  const infoUpdateCall = dispatch.mock.calls.find(
+    ([action]: [{ type: string }]) => action.type === DASHBOARD_INFO_UPDATED,
+  );
+  expect(infoUpdateCall).toBeDefined();
+  const updatedConfig =
+    infoUpdateCall[0].newInfo.metadata.chart_customization_config;
+  expect(updatedConfig).toHaveLength(1);
+  expect(updatedConfig[0].id).toBe('CUSTOM-1');
+  expect(updatedConfig[0].chartsInScope).toEqual([10, 20]);
 });
 
 test('setInScopeStatusOfCustomizations handles config that is entirely null entries', () => {
@@ -183,12 +222,7 @@ test('saveChartCustomization filters null entries from currentConfig before merg
     },
   });
 
-  const thunk = saveChartCustomization(
-    [customization],
-    [],
-    [],
-    false,
-  );
+  const thunk = saveChartCustomization([customization], [], [], false);
   await thunk(dispatch, getState, null);
 
   // DASHBOARD_INFO_UPDATED should have merged config without nulls
@@ -196,8 +230,7 @@ test('saveChartCustomization filters null entries from currentConfig before merg
     ([action]: [{ type: string }]) => action.type === DASHBOARD_INFO_UPDATED,
   );
   expect(infoUpdateCall).toBeDefined();
-  const config =
-    infoUpdateCall[0].newInfo.metadata.chart_customization_config;
+  const config = infoUpdateCall[0].newInfo.metadata.chart_customization_config;
   expect(config.every((item: unknown) => item !== null)).toBe(true);
 });
 
@@ -233,12 +266,7 @@ test('saveChartCustomization filters null entries from oldConfig when resetDataM
     },
   });
 
-  const thunk = saveChartCustomization(
-    [customization],
-    [],
-    [],
-    true,
-  );
+  const thunk = saveChartCustomization([customization], [], [], true);
 
   // Should not throw when building oldCustomizationsById from null-containing config
   await expect(thunk(dispatch, getState, null)).resolves.toBeDefined();

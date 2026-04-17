@@ -449,6 +449,25 @@ test('isLegacyChartCustomizationFormat rejects item with customization: undefine
   expect(isLegacyChartCustomizationFormat(item)).toBe(false);
 });
 
+test('migrateChartCustomizationArray passes through undefined entries as-is', () => {
+  const items = [
+    undefined,
+    {
+      id: 'CUSTOMIZATION-VALID',
+      customization: {
+        name: 'Valid',
+        dataset: 1,
+        column: 'country',
+      },
+    },
+  ];
+  const result = migrateChartCustomizationArray(items as unknown[]);
+  expect(result).toHaveLength(2);
+  expect(result[0]).toBeUndefined();
+  expect(result[1].name).toBe('Valid');
+  expect(result[1].type).toBe(ChartCustomizationType.ChartCustomization);
+});
+
 test('migrateChartCustomizationArray handles empty array', () => {
   const result = migrateChartCustomizationArray([]);
   expect(result).toEqual([]);

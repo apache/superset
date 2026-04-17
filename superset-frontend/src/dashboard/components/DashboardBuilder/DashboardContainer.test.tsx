@@ -756,6 +756,21 @@ test('does not crash when chart_customization_config contains a null entry', asy
   expect(screen.getByTestId('mock-dashboard-grid')).toBeInTheDocument();
 });
 
+test('does not crash when chart_customization_config contains an undefined entry', async () => {
+  setup({
+    dashboardInfo: {
+      ...mockState.dashboardInfo,
+      metadata: {
+        ...mockState.dashboardInfo.metadata,
+        native_filter_configuration: [],
+        chart_customization_config: [undefined],
+      },
+    },
+    nativeFilters: { filters: {} },
+  });
+  expect(screen.getByTestId('mock-dashboard-grid')).toBeInTheDocument();
+});
+
 test('does not crash when chart_customization_config mixes null and new-format items', async () => {
   const customizationId = 'CHART_CUSTOMIZATION-new-format-1';
   const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
