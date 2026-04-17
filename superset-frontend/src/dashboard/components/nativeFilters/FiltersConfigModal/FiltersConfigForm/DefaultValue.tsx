@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FC, useMemo } from 'react';
-import { t, SupersetTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
 import {
   Behavior,

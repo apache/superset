@@ -19,7 +19,8 @@
 import { Fragment, useCallback, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { addAlpha } from '@superset-ui/core';
-import { css, styled, t, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { EmptyState } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';

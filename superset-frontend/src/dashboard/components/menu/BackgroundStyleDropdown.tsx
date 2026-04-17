@@ -18,8 +18,7 @@
  */
 import cx from 'classnames';
 import { t } from '@apache-superset/core';
-import { css, styled } from '@apache-superset/core/ui';
-
+import { css, styled } from '@apache-superset/core/theme';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {
   OptionProps,

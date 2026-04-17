@@ -23,7 +23,7 @@ import { FixedSizeList as List } from 'react-window';
 // @ts-expect-error
 import { createFilter } from 'react-search-input';
 import { t } from '@apache-superset/core';
-import { styled, css, useTheme } from '@apache-superset/core/ui';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
 import {
   Button,
   Checkbox,

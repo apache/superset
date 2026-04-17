@@ -32,8 +32,7 @@ import {
   ConnectDropTarget,
 } from 'react-dnd';
 import cx from 'classnames';
-import { css, styled } from '@apache-superset/core/ui';
-
+import { css, styled } from '@apache-superset/core/theme';
 import { dragConfig, dropConfig } from './dragDroppableConfig';
 import type { DragDroppableProps as BaseDragDroppableProps } from './dragDroppableConfig';
 import { DROP_FORBIDDEN } from '../../util/getDropPosition';

@@ -18,8 +18,7 @@
  */
 
 import { useCallback, memo } from 'react';
-import { css, styled } from '@apache-superset/core/ui';
-
+import { css, styled } from '@apache-superset/core/theme';
 import { Draggable } from '../../dnd/DragDroppable';
 import HoverMenu from '../../menu/HoverMenu';
 import DeleteComponentButton from '../../DeleteComponentButton';
