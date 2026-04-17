@@ -155,14 +155,13 @@ function RoleListEditModal({
     })
       .then(response => {
         permissionFetchSucceeded.current = true;
+        const result: Array<{
+          id: number;
+          permission_name: string;
+          view_menu_name: string;
+        }> = response.json?.result ?? [];
         setRolePermissions(
-          (
-            response.json?.result as Array<{
-              id: number;
-              permission_name: string;
-              view_menu_name: string;
-            }>
-          ).map(p => ({
+          result.map(p => ({
             value: p.id,
             label: formatPermissionLabel(p.permission_name, p.view_menu_name),
           })),
