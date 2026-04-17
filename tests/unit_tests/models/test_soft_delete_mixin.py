@@ -149,3 +149,37 @@ def test_skip_visibility_filter_returns_soft_deleted_rows(
     )
     assert visible_result is not None
     assert visible_result.slice_name == "soon_deleted"
+
+
+def test_session_delete_permanently_removes_row(
+    app_context: None, session: Session
+) -> None:
+    """session.delete() should permanently remove the row (hard delete).
+    The mixin does not intercept session.delete() — that is handled by
+    BaseDAO.delete() routing to soft_delete() at the DAO level."""
+    from superset.models.slice import Slice
+
+    Slice.metadata.create_all(session.get_bind())
+
+    chart = Slice(
+        slice_name="hard_delete_test",
+        viz_type="table",
+        datasource_type="table",
+        datasource_id=0,
+    )
+    session.add(chart)
+    session.flush()
+    chart_id = chart.id
+
+    session.delete(chart)
+    session.flush()
+    session.expire_all()
+
+    # Row should be permanently gone
+    result = (
+        session.query(Slice)
+        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .filter(Slice.id == chart_id)
+        .one_or_none()
+    )
+    assert result is None

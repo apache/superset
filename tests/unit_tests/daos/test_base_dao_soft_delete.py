@@ -47,7 +47,9 @@ def test_delete_routes_to_hard_delete_for_non_mixin_models(
         mock_hard.assert_called_once_with(items)
 
 
-def test_hard_delete_is_independently_callable(
+@patch("superset.daos.base.db")
+def test_hard_delete_calls_session_delete(
+    mock_db: MagicMock,
     app_context: None,
 ) -> None:
     """hard_delete() should call db.session.delete() on each item."""
@@ -55,11 +57,11 @@ def test_hard_delete_is_independently_callable(
 
     items = [MagicMock(), MagicMock()]
 
-    with patch("superset.daos.base.db") as mock_db:
-        BaseDAO.hard_delete(items)
-        assert mock_db.session.delete.call_count == 2
-        mock_db.session.delete.assert_any_call(items[0])
-        mock_db.session.delete.assert_any_call(items[1])
+    BaseDAO.hard_delete(items)
+
+    assert mock_db.session.delete.call_count == 2
+    mock_db.session.delete.assert_any_call(items[0])
+    mock_db.session.delete.assert_any_call(items[1])
 
 
 def test_soft_delete_calls_item_soft_delete(
