@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { useCallback, useEffect } from 'react';
 import { HeaderProps } from '../Header/types';
 
 type UndoRedoKeyListenersProps = {
@@ -24,43 +24,38 @@ type UndoRedoKeyListenersProps = {
   onRedo: HeaderProps['onRedo'];
 };
 
-class UndoRedoKeyListeners extends PureComponent<UndoRedoKeyListenersProps> {
-  constructor(props: UndoRedoKeyListenersProps) {
-    super(props);
-    this.handleKeydown = this.handleKeydown.bind(this);
-  }
+function UndoRedoKeyListeners({ onUndo, onRedo }: UndoRedoKeyListenersProps) {
+  const handleKeydown = useCallback(
+    (event: KeyboardEvent) => {
+      const controlOrCommand = event.ctrlKey || event.metaKey;
+      if (controlOrCommand) {
+        const isZChar = event.key === 'z' || event.keyCode === 90;
+        const isYChar = event.key === 'y' || event.keyCode === 89;
+        const isEditingMarkdown = document?.querySelector(
+          '.dashboard-markdown--editing',
+        );
+        const isEditingTitle = document?.querySelector(
+          '.editable-title--editing',
+        );
 
-  componentDidMount() {
-    document.addEventListener('keydown', this.handleKeydown);
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('keydown', this.handleKeydown);
-  }
-
-  handleKeydown(event: KeyboardEvent) {
-    const controlOrCommand = event.ctrlKey || event.metaKey;
-    if (controlOrCommand) {
-      const isZChar = event.key === 'z' || event.keyCode === 90;
-      const isYChar = event.key === 'y' || event.keyCode === 89;
-      const isEditingMarkdown = document?.querySelector(
-        '.dashboard-markdown--editing',
-      );
-      const isEditingTitle = document?.querySelector(
-        '.editable-title--editing',
-      );
-
-      if (!isEditingMarkdown && !isEditingTitle && (isZChar || isYChar)) {
-        event.preventDefault();
-        const func = isZChar ? this.props.onUndo : this.props.onRedo;
-        func();
+        if (!isEditingMarkdown && !isEditingTitle && (isZChar || isYChar)) {
+          event.preventDefault();
+          const func = isZChar ? onUndo : onRedo;
+          func();
+        }
       }
-    }
-  }
+    },
+    [onUndo, onRedo],
+  );
 
-  render() {
-    return null;
-  }
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeydown);
+    return () => {
+      document.removeEventListener('keydown', handleKeydown);
+    };
+  }, [handleKeydown]);
+
+  return null;
 }
 
 export default UndoRedoKeyListeners;
