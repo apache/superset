@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable react/no-array-index-key */
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import TTestTable, { DataEntry } from './TTestTable';
 
 interface PairedTTestProps {
