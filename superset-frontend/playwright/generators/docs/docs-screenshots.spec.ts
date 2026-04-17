@@ -25,7 +25,7 @@
  *
  * Run locally:
  *   cd superset-frontend
- *   PLAYWRIGHT_BASE_URL=http://localhost:9000 npm run docs:screenshots
+ *   PLAYWRIGHT_BASE_URL=http://localhost:9000 PLAYWRIGHT_ADMIN_PASSWORD=admin npm run docs:screenshots
  *
  * Or directly:
  *   npx playwright test --config=playwright/generators/playwright.config.ts docs/
@@ -36,12 +36,22 @@
  */
 
 import path from 'path';
+import { Page } from '@playwright/test';
 import { test, expect } from '@playwright/test';
 import { URL } from '../../utils/urls';
 
 const DOCS_STATIC = path.resolve(__dirname, '../../../../docs/static/img');
 const SCREENSHOTS_DIR = path.join(DOCS_STATIC, 'screenshots');
 const TUTORIAL_DIR = path.join(DOCS_STATIC, 'tutorial');
+
+/**
+ * Waits for animations and async renders to settle before taking a screenshot.
+ * ECharts entry animations, image lazy-loading, and other async UI updates
+ * require a short pause that can't be expressed as a deterministic wait condition.
+ */
+async function settle(page: Page, ms = 1000): Promise<void> {
+  await page.waitForTimeout(ms);
+}
 
 test('chart gallery screenshot', async ({ page }) => {
   await page.goto(URL.CHART_ADD);
@@ -59,6 +69,7 @@ test('chart gallery screenshot', async ({ page }) => {
     vizGallery.locator('[data-test="viztype-selector-container"]').first(),
   ).toBeVisible();
 
+  await settle(page);
   await vizGallery.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'gallery.jpg'),
     type: 'jpeg',
@@ -110,6 +121,8 @@ test('dashboard screenshot', async ({ page }) => {
     ).toBeVisible({ timeout: 5000 });
   }
 
+  // Allow ECharts entry animations to finish before capturing
+  await settle(page);
   await page.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'dashboard.jpg'),
     type: 'jpeg',
@@ -144,6 +157,7 @@ test('chart editor screenshot', async ({ page }) => {
     timeout: 15000,
   });
 
+  await settle(page);
   await page.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'explore.jpg'),
     type: 'jpeg',
@@ -196,6 +210,7 @@ test('SQL Lab screenshot', async ({ page }) => {
   await page.mouse.move(0, 0);
   await expect(page.getByRole('tooltip')).toHaveCount(0, { timeout: 2000 });
 
+  await settle(page);
   await page.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'sql_lab.jpg'),
     type: 'jpeg',
@@ -215,11 +230,13 @@ test('datasets list screenshot', async ({ page }) => {
   // Wait for at least one visible data row (skip ant-table-measure-row which is always hidden)
   await expect(
     table.locator('tbody tr:not(.ant-table-measure-row)').first(),
-  ).toBeVisible({
-    timeout: 10000,
-  });
+  ).toBeVisible({ timeout: 10000 });
 
-  await table.screenshot({
+  // Viewport screenshot (not fullPage) captures the SubMenu — showing the
+  // "Datasets" nav item, Bulk Select button, and + Dataset button — plus the
+  // top of the table. This is more informative than screenshotting the table alone.
+  await settle(page);
+  await page.screenshot({
     path: path.join(TUTORIAL_DIR, 'tutorial_08_sources_tables.png'),
     type: 'png',
   });
@@ -228,18 +245,46 @@ test('datasets list screenshot', async ({ page }) => {
 test('chart type picker screenshot', async ({ page }) => {
   await page.goto(URL.CHART_ADD);
 
-  await expect(page.getByText('Choose chart type')).toBeVisible({
+  // Wait for the dataset step to appear (step title is first match; placeholder is second)
+  await expect(page.getByText('Choose a dataset').first()).toBeVisible({
     timeout: 15000,
   });
-  await page.getByRole('tab', { name: 'All charts' }).click();
 
+  // Open the dataset selector and choose birth_names
+  await page.getByTestId('Dataset').click();
+  await page.keyboard.type('birth_names');
+  // The dataset select uses a hidden ARIA listbox — the visible popup is a portal.
+  // Wait for the first option to appear in the DOM, then select it via keyboard.
+  await expect(
+    page.locator('[role="listbox"] [role="option"]').first(),
+  ).toBeAttached({ timeout: 10000 });
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+
+  // Open the chart gallery and wait for thumbnails to render
+  await expect(page.getByText('Choose chart type')).toBeVisible({
+    timeout: 10000,
+  });
+  await page.getByRole('tab', { name: 'All charts' }).click();
   const vizGallery = page.locator('.viz-gallery');
   await expect(vizGallery).toBeVisible();
   await expect(
     vizGallery.locator('[data-test="viztype-selector-container"]').first(),
   ).toBeVisible();
 
-  await vizGallery.screenshot({
+  // Select the Pivot Table chart type
+  await vizGallery
+    .locator('[data-test="viztype-selector-container"]')
+    .filter({ hasText: 'Pivot Table' })
+    .first()
+    .click();
+
+  // Allow thumbnails to finish loading and selection state to render
+  await settle(page);
+
+  // Viewport screenshot shows the dataset step (birth_names selected) and
+  // the chart type gallery (Pivot Table highlighted)
+  await page.screenshot({
     path: path.join(TUTORIAL_DIR, 'create_pivot.png'),
     type: 'png',
   });
