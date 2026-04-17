@@ -22,7 +22,6 @@ MCP tool: update_chart
 import logging
 import time
 from typing import Any
-from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -31,6 +30,10 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_helpers import (
+    extract_form_data_key_from_url,
+    find_chart_by_identifier,
+)
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -52,18 +55,6 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-
-def _find_chart(identifier: int | str) -> Any | None:
-    """Find a chart by numeric ID or UUID string."""
-    from superset.daos.chart import ChartDAO
-
-    if isinstance(identifier, int) or (
-        isinstance(identifier, str) and identifier.isdigit()
-    ):
-        chart_id = int(identifier) if isinstance(identifier, str) else identifier
-        return ChartDAO.find_by_id(chart_id)
-    return ChartDAO.find_by_id(identifier, id_column="uuid")
 
 
 def _validation_error_response(message: str, details: str) -> GenerateChartResponse:
@@ -267,7 +258,7 @@ async def update_chart(  # noqa: C901
 
     try:
         with event_logger.log_context(action="mcp.update_chart.chart_lookup"):
-            chart = _find_chart(request.identifier)
+            chart = find_chart_by_identifier(request.identifier)
 
         if not chart:
             return GenerateChartResponse.model_validate(
@@ -397,15 +388,19 @@ async def update_chart(  # noqa: C901
                         if hasattr(preview_result, "content"):
                             previews[format_type] = preview_result.content
 
-            except Exception as e:
+            except (
+                CommandException,
+                SQLAlchemyError,
+                KeyError,
+                ValueError,
+                TypeError,
+                AttributeError,
+            ) as e:
                 logger.warning("Preview generation failed: %s", e)
 
         # Fallback: extract form_data_key from explore_url if not set
-        if form_data_key is None and explore_url and "form_data_key=" in explore_url:
-            parsed = urlparse(explore_url)
-            values = parse_qs(parsed.query).get("form_data_key")
-            if values:
-                form_data_key = values[0]
+        if form_data_key is None:
+            form_data_key = extract_form_data_key_from_url(explore_url)
 
         chart_id = updated_chart.id if saved and updated_chart else chart.id
         chart_uuid = (
