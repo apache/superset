@@ -22,7 +22,7 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
 // @ts-expect-error
 import { createFilter } from 'react-search-input';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import {
   Button,

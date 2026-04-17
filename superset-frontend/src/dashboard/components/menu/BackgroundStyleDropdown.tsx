@@ -17,7 +17,7 @@
  * under the License.
  */
 import cx from 'classnames';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {
