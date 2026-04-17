@@ -93,6 +93,17 @@ When `ENABLE_UI_THEME_ADMINISTRATION = True`:
 3. Administrators can change system themes without restarting Superset
 4. Configuration file themes serve as fallbacks when no UI themes are set
 
+### Theme Validation and Fallback
+
+Superset validates theme JSON when it is saved, either through the UI or via configuration. If a theme contains invalid tokens or an unrecognized structure, Superset logs a warning and falls back to the built-in default theme rather than applying a broken configuration. This prevents a bad theme from rendering the application unusable.
+
+The fallback order is:
+1. **UI-configured system theme** (highest priority, if `ENABLE_UI_THEME_ADMINISTRATION = True`)
+2. **`THEME_DEFAULT` / `THEME_DARK`** from `superset_config.py`
+3. **Built-in Superset default theme** (always present as a safety net)
+
+If you see unexpected styling after a config change, check the Superset server logs for theme validation warnings.
+
 ### Copying Themes Between Systems
 
 To export a theme for use in configuration files or another instance:
@@ -114,7 +125,11 @@ Superset supports custom fonts through the theme configuration, allowing you to 
 
 ### Default Fonts
 
-By default, Superset uses Inter and Fira Code fonts which are bundled with the application via `@fontsource` packages. These fonts work offline and require no external network calls.
+By default, Superset uses **Inter** for UI text and **IBM Plex Mono** for code (SQL editors, JSON fields, and other monospace contexts). Both fonts are bundled with the application via `@fontsource` packages and work offline without any external network calls.
+
+:::note
+IBM Plex Mono replaced Fira Code as the default code font in Superset 6.1. If you have an existing theme that explicitly sets `fontFamilyCode: "Fira Code, ..."`, you may want to update it.
+:::
 
 ### Configuring Custom Fonts
 

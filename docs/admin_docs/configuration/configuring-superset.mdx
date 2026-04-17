@@ -444,6 +444,32 @@ FEATURE_FLAGS = {
 
 A current list of feature flags can be found in the [Feature Flags](/admin-docs/configuration/feature-flags) documentation.
 
+## Security Configuration
+
+### HASH_ALGORITHM
+
+Controls the hashing algorithm used for internal checksums and cache keys. The default is `md5` for performance, but `sha256` is available for environments with stricter compliance requirements (e.g., FedRAMP):
+
+```python
+HASH_ALGORITHM = "sha256"  # default: "md5"
+```
+
+:::note
+This setting affects internal Superset operations only, not user passwords or authentication tokens. Changing it in an existing deployment may invalidate cached values but does not require a database migration.
+:::
+
+## SQL Lab Configuration
+
+### SQLLAB_HISTORY_RETENTION_DAYS
+
+Controls how long SQL Lab query history is retained in the metadata database. The default is 30 days:
+
+```python
+SQLLAB_HISTORY_RETENTION_DAYS = 30  # set to None to retain history indefinitely
+```
+
+Old queries are pruned by the `celery beat` scheduler. Set to `None` to disable automatic cleanup, though this may cause the metadata database to grow unbounded over time.
+
 :::resources
 - [Blog: Feature Flags in Apache Superset](https://preset.io/blog/feature-flags-in-apache-superset-and-preset/)
 :::
