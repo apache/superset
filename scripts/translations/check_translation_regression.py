@@ -29,12 +29,16 @@ if any language lost translations:
 
     python check_translation_regression.py --compare /path/to/before.json
 
+Optionally write a markdown report to a file (used by CI to post a PR comment):
+
+    python check_translation_regression.py --compare before.json --report report.md
+
 Typical CI workflow
 -------------------
 1. Restore base-branch translations (git checkout origin/base -- superset/translations/)
 2. Record baseline:  python ... --count > before.json
 3. Run pybabel extract+update (babel_update.sh) against PR source files
-4. Check for regression:  python ... --compare before.json
+4. Check for regression:  python ... --compare before.json [--report report.md]
 """
 
 import json
@@ -42,6 +46,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 TRANSLATIONS_DIR = ROOT / "superset" / "translations"
@@ -76,12 +81,50 @@ def get_counts() -> dict[str, int]:
     return counts
 
 
+def build_regression_report(regressions: list[tuple[str, int, int]]) -> str:
+    """Build a markdown report for posting as a PR comment."""
+    rows = "\n".join(
+        f"| `{lang}` | {b} | {a} | -{b - a} |" for lang, b, a in regressions
+    )
+    affected = ", ".join(f"`{lang}`" for lang, _, _ in regressions)
+    return (
+        "## ⚠️ Translation Regression Detected\n\n"
+        f"This PR causes existing translations to become fuzzy or be removed "
+        f"in {affected}. Please fix the affected `.po` files before merging.\n\n"
+        "| Language | Before | After | Lost |\n"
+        "|----------|-------:|------:|-----:|\n"
+        f"{rows}\n\n"
+        "### How to fix\n\n"
+        "**1. Install dependencies** (if not already set up):\n\n"
+        "```bash\n"
+        "pip install -r superset/translations/requirements.txt\n"
+        "sudo apt-get install gettext   # or: brew install gettext\n"
+        "```\n\n"
+        "**2. Re-extract strings and sync `.po` files:**\n\n"
+        "```bash\n"
+        "./scripts/translations/babel_update.sh\n"
+        "```\n\n"
+        "This rewrites `superset/translations/messages.pot` from the current "
+        "source files and merges the changes into every `.po` file. Strings "
+        "whose `msgid` changed will be marked `#, fuzzy`.\n\n"
+        f"**3. Resolve the fuzzy entries** in the affected language files "
+        f"({affected}):\n\n"
+        "```bash\n"
+        "grep -n '#, fuzzy' superset/translations/<lang>/LC_MESSAGES/messages.po\n"
+        "```\n\n"
+        "For each fuzzy entry, either rewrite the `msgstr` to match the new "
+        "string and remove the `#, fuzzy` line, or clear the `msgstr` to "
+        '`""` if you cannot provide a translation.\n\n'
+        "**4. Commit your changes to the `.po` files.**\n"
+    )
+
+
 def cmd_count() -> None:
     counts = get_counts()
     print(json.dumps(counts, indent=2))
 
 
-def cmd_compare(before_path: str) -> None:
+def cmd_compare(before_path: str, report_path: Optional[str] = None) -> None:
     with open(before_path) as f:
         before: dict[str, int] = json.load(f)
 
@@ -104,6 +147,10 @@ def cmd_compare(before_path: str) -> None:
         print(
             "Update the affected .po files to restore the lost entries before merging."
         )
+        if report_path:
+            Path(report_path).write_text(
+                build_regression_report(regressions), encoding="utf-8"
+            )
         sys.exit(1)
 
     # All good — print a summary so it's easy to read in CI logs.
@@ -131,7 +178,11 @@ def main() -> None:
         if len(sys.argv) < 3:
             print("Usage: check_translation_regression.py --compare before.json")
             sys.exit(1)
-        cmd_compare(sys.argv[2])
+        # Optional: --report path.md after the before.json argument
+        report_path: Optional[str] = None
+        if len(sys.argv) >= 5 and sys.argv[3] == "--report":
+            report_path = sys.argv[4]
+        cmd_compare(sys.argv[2], report_path)
 
 
 if __name__ == "__main__":
