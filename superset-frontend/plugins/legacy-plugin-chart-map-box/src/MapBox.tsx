@@ -166,7 +166,7 @@ function MapBox({
           viewportLongitude,
           viewportLatitude,
           viewportZoom,
-          fitBoundsInputsChanged,
+          fitBoundsInputsChanged || viewportPropsChanged,
         ),
       );
     }
