@@ -42,6 +42,7 @@ from superset.utils.core import (
     QueryStatus,
 )
 from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
+from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import (
     only_postgresql,
@@ -65,6 +66,125 @@ def get_sql_text(payload: dict[str, Any]) -> str:
     assert len(response) == 2
     assert response["language"] == "sql"
     return response["query"]
+
+
+def _time_comparison_offset_queries_payload() -> dict[str, Any]:
+    """Birth-names chart payload with time comparison and x-axis suitable for tests."""
+    payload = get_query_context("birth_names")
+    payload["queries"][0]["columns"] = [
+        {
+            "timeGrain": "P1D",
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "ds",
+            "label": "ds",
+            "expressionType": "SQL",
+        }
+    ]
+    payload["queries"][0]["metrics"] = ["sum__num"]
+    payload["queries"][0]["groupby"] = ["name"]
+    payload["queries"][0]["is_timeseries"] = True
+    payload["queries"][0]["time_range"] = "1990 : 1991"
+    return payload
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@patch("superset.common.query_context.QueryContext.get_query_result")
+def test_time_offset_comparison_queries_use_chart_row_limit(
+    query_result_mock: Mock,
+) -> None:
+    """Comparison SQL uses the chart row_limit when the chart has limit/offset."""
+    payload = _time_comparison_offset_queries_payload()
+    payload["queries"][0]["row_limit"] = 100
+    payload["queries"][0]["row_offset"] = 10
+
+    initial_df = pd.DataFrame(
+        {
+            "__timestamp": ["1990-01-01", "1990-01-01"],
+            "name": ["zban", "ahwb"],
+            "sum__num": [43571, 27225],
+        }
+    )
+    mock_query_result = Mock()
+    mock_query_result.df = initial_df
+    query_result_mock.side_effect = [mock_query_result]
+
+    query_context = ChartDataQueryContextSchema().load(payload)
+    query_object = query_context.queries[0]
+    df = query_context.get_query_result(query_object).df
+
+    payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
+    query_context = ChartDataQueryContextSchema().load(payload)
+    query_object = query_context.queries[0]
+
+    def cache_key_fn(qo: QueryObject, time_offset: str, time_grain: Any) -> str | None:
+        return query_context._processor.query_cache_key(
+            qo, time_offset=time_offset, time_grain=time_grain
+        )
+
+    def cache_timeout_fn() -> int:
+        return query_context._processor.get_cache_timeout()
+
+    time_offsets_obj = query_context.datasource.processing_time_offsets(
+        df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
+    )
+    sqls = time_offsets_obj["queries"]
+    assert len(sqls) == 2
+    assert re.search(r"1989-01-01.+1990-01-01", sqls[0], re.S)
+    assert re.search(r"LIMIT 100", sqls[0], re.S)
+    assert not re.search(r"OFFSET 10", sqls[0], re.S)
+    assert re.search(r"1991-01-01.+1992-01-01", sqls[1], re.S)
+    assert re.search(r"LIMIT 100", sqls[1], re.S)
+    assert not re.search(r"OFFSET 10", sqls[1], re.S)
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@with_config({"ROW_LIMIT": 4242})
+@patch("superset.common.query_context.QueryContext.get_query_result")
+def test_time_offset_comparison_queries_use_config_row_limit_without_chart_limit(
+    query_result_mock: Mock,
+) -> None:
+    """When the chart has row_offset but no row_limit, comparison SQL uses ROW_LIMIT."""
+    payload = _time_comparison_offset_queries_payload()
+    del payload["queries"][0]["row_limit"]
+    payload["queries"][0]["row_offset"] = 10
+
+    initial_df = pd.DataFrame(
+        {
+            "__timestamp": ["1990-01-01", "1990-01-01"],
+            "name": ["zban", "ahwb"],
+            "sum__num": [43571, 27225],
+        }
+    )
+    mock_query_result = Mock()
+    mock_query_result.df = initial_df
+    query_result_mock.side_effect = [mock_query_result]
+
+    query_context = ChartDataQueryContextSchema().load(payload)
+    query_object = query_context.queries[0]
+    df = query_context.get_query_result(query_object).df
+
+    payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
+    query_context = ChartDataQueryContextSchema().load(payload)
+    query_object = query_context.queries[0]
+
+    def cache_key_fn(qo: QueryObject, time_offset: str, time_grain: Any) -> str | None:
+        return query_context._processor.query_cache_key(
+            qo, time_offset=time_offset, time_grain=time_grain
+        )
+
+    def cache_timeout_fn() -> int:
+        return query_context._processor.get_cache_timeout()
+
+    time_offsets_obj = query_context.datasource.processing_time_offsets(
+        df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
+    )
+    sqls = time_offsets_obj["queries"]
+    limit_pattern = re.compile(r"LIMIT\s+4242\b")
+    assert len(sqls) == 2
+    assert limit_pattern.search(sqls[0])
+    assert not re.search(r"OFFSET 10", sqls[0], re.S)
+    assert limit_pattern.search(sqls[1])
+    assert not re.search(r"OFFSET 10", sqls[1], re.S)
 
 
 @pytest.mark.skip(
@@ -795,26 +915,12 @@ class TestQueryContext(SupersetTestCase):
     @patch("superset.common.query_context.QueryContext.get_query_result")
     def test_time_offsets_in_query_object_no_limit(self, query_result_mock):
         """
-        Ensure that time_offsets can generate the correct queries and
-        it doesnt use the row_limit nor row_offset from the original
-        query object
+        Time comparison subqueries drop the chart's row_offset (avoid skewed joins)
+        but keep a cap: use the chart row_limit when set.
         """
-        payload = get_query_context("birth_names")
-        payload["queries"][0]["columns"] = [
-            {
-                "timeGrain": "P1D",
-                "columnType": "BASE_AXIS",
-                "sqlExpression": "ds",
-                "label": "ds",
-                "expressionType": "SQL",
-            }
-        ]
-        payload["queries"][0]["metrics"] = ["sum__num"]
-        payload["queries"][0]["groupby"] = ["name"]
-        payload["queries"][0]["is_timeseries"] = True
+        payload = _time_comparison_offset_queries_payload()
         payload["queries"][0]["row_limit"] = 100
         payload["queries"][0]["row_offset"] = 10
-        payload["queries"][0]["time_range"] = "1990 : 1991"
 
         initial_data = {
             "__timestamp": ["1990-01-01", "1990-01-01"],
@@ -858,6 +964,59 @@ class TestQueryContext(SupersetTestCase):
         # 1 year later
         assert re.search(r"1991-01-01.+1992-01-01", sqls[1], re.S)
         assert re.search(r"LIMIT 100", sqls[1], re.S)
+        assert not re.search(r"OFFSET 10", sqls[1], re.S)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @with_config({"ROW_LIMIT": 4242})
+    @patch("superset.common.query_context.QueryContext.get_query_result")
+    def test_time_offsets_use_config_row_limit_when_chart_has_offset_only(
+        self, query_result_mock
+    ):
+        """
+        If the chart has row_offset but no row_limit, comparison subqueries
+        should use ROW_LIMIT from app config for the cap.
+        """
+        payload = _time_comparison_offset_queries_payload()
+        del payload["queries"][0]["row_limit"]
+        payload["queries"][0]["row_offset"] = 10
+
+        initial_data = {
+            "__timestamp": ["1990-01-01", "1990-01-01"],
+            "name": ["zban", "ahwb"],
+            "sum__num": [43571, 27225],
+        }
+        initial_df = pd.DataFrame(initial_data)
+
+        mock_query_result = Mock()
+        mock_query_result.df = initial_df
+        query_result_mock.side_effect = [mock_query_result]
+
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        query_result = query_context.get_query_result(query_object)
+        df = query_result.df
+
+        payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+
+        def cache_key_fn(qo, time_offset, time_grain):
+            return query_context._processor.query_cache_key(
+                qo, time_offset=time_offset, time_grain=time_grain
+            )
+
+        def cache_timeout_fn():
+            return query_context._processor.get_cache_timeout()
+
+        time_offsets_obj = query_context.datasource.processing_time_offsets(
+            df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
+        )
+        sqls = time_offsets_obj["queries"]
+        limit_pattern = re.compile(r"LIMIT\s+4242\b")
+        assert len(sqls) == 2
+        assert limit_pattern.search(sqls[0])
+        assert not re.search(r"OFFSET 10", sqls[0], re.S)
+        assert limit_pattern.search(sqls[1])
         assert not re.search(r"OFFSET 10", sqls[1], re.S)
 
 
