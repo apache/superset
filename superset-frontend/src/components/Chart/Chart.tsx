@@ -27,6 +27,7 @@ import {
   SqlaFormData,
   ClientErrorObject,
   DataRecordFilters,
+  type FilterState,
   type JsonObject,
   type AgGridChartState,
 } from '@superset-ui/core';
@@ -90,6 +91,7 @@ export interface ChartProps {
   onChartStateChange?: (chartState: AgGridChartState) => void;
   /** Whether to suppress the loading spinner (during auto-refresh) */
   suppressLoadingSpinner?: boolean;
+  filterState?: FilterState;
 }
 
 export type Actions = {
