@@ -361,7 +361,9 @@ class Chart extends PureComponent<ChartProps, {}> {
       width,
     } = this.props;
 
-    const databaseName = datasource?.database?.name as string | undefined;
+    const databaseName =
+      datasource?.parent?.name ??
+      (datasource?.database?.name as string | undefined);
 
     const isLoading = chartStatus === 'loading';
     // Suppress spinner during auto-refresh to avoid visual flicker
