@@ -18,6 +18,7 @@
  */
 
 import { SuperChart } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import data from './data';
 import { dummyDatasource, withResizableChartDemo } from '@storybook-shared';
@@ -100,6 +101,7 @@ export const Basic = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="calendar"
     width={width}
     height={height}

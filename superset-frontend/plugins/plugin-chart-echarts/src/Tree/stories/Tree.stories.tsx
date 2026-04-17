@@ -18,6 +18,7 @@
  */
 
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import {
   EchartsTreeChartPlugin,
   TreeTransformProps,
@@ -106,6 +107,7 @@ export const Tree = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="echarts-tree"
     width={width}
     height={height}

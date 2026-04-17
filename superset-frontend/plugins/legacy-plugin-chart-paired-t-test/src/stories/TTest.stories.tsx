@@ -19,6 +19,7 @@
 
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-test';
 import { withResizableChartDemo } from '@storybook-shared';
 import data from './data';
@@ -63,6 +64,7 @@ export const Basic = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="paired-t-test"
     width={width}
     height={height}

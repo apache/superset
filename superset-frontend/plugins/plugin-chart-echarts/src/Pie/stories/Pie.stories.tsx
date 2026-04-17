@@ -22,6 +22,7 @@ import {
   VizType,
   getChartTransformPropsRegistry,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import {
   EchartsPieChartPlugin,
   PieTransformProps,
@@ -62,6 +63,7 @@ export const WeekdayPie = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={VizType.Pie}
     width={width}
     height={height}
@@ -141,6 +143,7 @@ export const PopulationPie = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={VizType.Pie}
     width={width}
     height={height}
@@ -222,6 +225,7 @@ export const SalesPie = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={VizType.Pie}
     width={width}
     height={height}

@@ -19,6 +19,7 @@
 
 /* eslint-disable no-magic-numbers, sort-keys */
 import { SuperChart, VizType } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import data from './data';
 import { withResizableChartDemo } from '@storybook-shared';
@@ -80,6 +81,7 @@ export const Basic = ({
   roseAreaProportion: boolean;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={VizType.Rose}
     width={width}
     height={height}

@@ -22,6 +22,7 @@ import {
   VizType,
   getChartTransformPropsRegistry,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import {
   EchartsRadarChartPlugin,
   RadarTransformProps,
@@ -94,6 +95,7 @@ export const Radar = ({
   numberFormat: string;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={VizType.Radar}
     width={width}
     height={height}
