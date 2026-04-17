@@ -16,6 +16,9 @@ concurrency:
 jobs:
   frontend-check-translations:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -47,6 +50,9 @@ jobs:
 
   babel-extract:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -90,5 +96,33 @@ jobs:
         run: ./scripts/translations/babel_update.sh
 
       - name: Check for translation regression
+        id: regression
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
-        run: python scripts/translations/check_translation_regression.py --compare /tmp/before.json
+        continue-on-error: true
+        run: |
+          python scripts/translations/check_translation_regression.py \
+            --compare /tmp/before.json \
+            --report /tmp/regression-report.md
+
+      # Save the PR number so the comment workflow can post the report without
+      # needing write permissions on this pull_request-triggered job.
+      - name: Save PR number for comment workflow
+        if: >-
+          github.event_name == 'pull_request' &&
+          steps.regression.outcome == 'failure'
+        run: echo "${{ github.event.pull_request.number }}" > /tmp/pr-number.txt
+
+      - name: Upload regression artifact
+        if: >-
+          github.event_name == 'pull_request' &&
+          steps.regression.outcome == 'failure'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: translation-regression
+          path: |
+            /tmp/regression-report.md
+            /tmp/pr-number.txt
+
+      - name: Fail if regression detected
+        if: steps.regression.outcome == 'failure'
+        run: exit 1
