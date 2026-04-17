@@ -280,6 +280,11 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   }, [treeData, pinnedSchemas]);
 
   const [sortedTables, setSortedTables] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setSortedTables({});
+  }, [dbId, catalog]);
+
   const toggleSortColumns = useCallback((tableId: string) => {
     setSortedTables(prev => ({ ...prev, [tableId]: !prev[tableId] }));
   }, []);
