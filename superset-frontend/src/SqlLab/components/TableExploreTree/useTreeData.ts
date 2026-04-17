@@ -215,7 +215,8 @@ const useTreeData = ({
             { dbId: parsedDbId, catalog, schema, forceRefresh: false },
             true,
           )
-            .then(({ data }) => {
+            .unwrap()
+            .then(data => {
               if (data) {
                 dispatch({ type: 'SET_TABLE_DATA', key: schemaKey, data });
               }
@@ -298,12 +299,6 @@ const useTreeData = ({
 
   const refreshTableSchema = useCallback(
     (id: string) => {
-      const parts = id.split(':');
-      const [, databaseId, schema, table] = parts;
-      const parsedDbId = Number(databaseId);
-      const tableKey = `${parsedDbId}:${schema}:${table}`;
-
-      dispatch({ type: 'CLEAR_TABLE_SCHEMA_DATA', key: tableKey });
       fetchAndStoreTableSchema(id, false);
     },
     [fetchAndStoreTableSchema],

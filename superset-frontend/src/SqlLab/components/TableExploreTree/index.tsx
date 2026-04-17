@@ -131,22 +131,33 @@ const StyledTreeContainer = styled.div`
 
 const ROW_HEIGHT = 28;
 
-const getPinnedSchemasFromStorage = (dbId: number | undefined): Set<string> => {
+const getPinnedSchemasStorageKey = (
+  dbId: number | undefined,
+  catalog: string | null | undefined,
+): string => `${dbId ?? ''}:${catalog ?? ''}`;
+
+const getPinnedSchemasFromStorage = (
+  dbId: number | undefined,
+  catalog: string | null | undefined,
+): Set<string> => {
   if (!dbId) return new Set();
   const stored = getItem(LocalStorageKeys.SqllabPinnedSchemas, {});
-  const schemas = stored[dbId];
+  const key = getPinnedSchemasStorageKey(dbId, catalog);
+  const schemas = stored[key];
   return Array.isArray(schemas) ? new Set<string>(schemas) : new Set();
 };
 
 const savePinnedSchemasToStorage = (
   dbId: number | undefined,
+  catalog: string | null | undefined,
   schemas: Set<string>,
 ) => {
   if (!dbId) return;
   const stored = getItem(LocalStorageKeys.SqllabPinnedSchemas, {});
+  const key = getPinnedSchemasStorageKey(dbId, catalog);
   setItem(LocalStorageKeys.SqllabPinnedSchemas, {
     ...stored,
-    [dbId]: [...schemas],
+    [key]: [...schemas],
   });
 };
 
@@ -225,18 +236,29 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     [dispatch, tables, editorId, dbId],
   );
   const [pinnedSchemas, setPinnedSchemas] = useState<Set<string>>(() =>
-    getPinnedSchemasFromStorage(dbId),
+    getPinnedSchemasFromStorage(dbId, catalog),
   );
 
-  // Reload pinned schemas from localStorage when the database changes
-  useEffect(() => {
-    setPinnedSchemas(getPinnedSchemasFromStorage(dbId));
-  }, [dbId]);
+  const previousDbIdRef = useRef<number | undefined>(dbId);
+  const previousCatalogRef = useRef<string | null | undefined>(catalog);
 
-  // Persist pinned schemas to localStorage keyed by database_id
+  // Single effect handles both loading and persisting pinned schemas.
+  // Using refs to detect source changes avoids the race condition where the
+  // persist branch would run with stale pinnedSchemas right after a dbId/catalog
+  // change, corrupting the new source's stored pins.
   useEffect(() => {
-    savePinnedSchemasToStorage(dbId, pinnedSchemas);
-  }, [dbId, pinnedSchemas]);
+    const dbChanged = previousDbIdRef.current !== dbId;
+    const catalogChanged = previousCatalogRef.current !== catalog;
+
+    if (dbChanged || catalogChanged) {
+      previousDbIdRef.current = dbId;
+      previousCatalogRef.current = catalog;
+      setPinnedSchemas(getPinnedSchemasFromStorage(dbId, catalog));
+      return;
+    }
+
+    savePinnedSchemasToStorage(dbId, catalog, pinnedSchemas);
+  }, [dbId, catalog, pinnedSchemas]);
 
   const handlePinSchema = useCallback((schemaName: string) => {
     setPinnedSchemas(prev => new Set([...prev, schemaName]));

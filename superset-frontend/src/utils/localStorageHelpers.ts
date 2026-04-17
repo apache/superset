@@ -72,7 +72,7 @@ export type LocalStorageValues = {
   homepage_activity_filter: TableTab | null;
   sqllab__is_autocomplete_enabled: boolean;
   sqllab__is_render_html_enabled: boolean;
-  sqllab__pinned_schemas: Record<number, string[]>;
+  sqllab__pinned_schemas: Record<string, string[]>;
   explore__data_table_original_formatted_time_columns: Record<string, string[]>;
   dashboard__custom_filter_bar_widths: Record<string, number>;
   dashboard__explore_context: Record<string, DashboardContextForExplore>;
