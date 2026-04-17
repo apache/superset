@@ -19,6 +19,7 @@
 
 import { ChartProps, DatasourceType } from '@superset-ui/core';
 import transformProps from './transformProps';
+import { NULL_CATEGORY_KEY } from '../../utils';
 
 interface ArcFeature {
   sourcePosition: [number, number];
@@ -115,7 +116,7 @@ test('Arc transformProps should set cat_color when dimension is configured', () 
   expect(features[1]?.cat_color).toBe('B');
 });
 
-test('Arc transformProps should assign empty string cat_color for null/undefined dimension values', () => {
+test('Arc transformProps should assign NULL_CATEGORY_KEY cat_color for null/undefined dimension values', () => {
   const propsWithNullCategory = {
     ...mockChartProps,
     rawFormData: {
@@ -156,8 +157,8 @@ test('Arc transformProps should assign empty string cat_color for null/undefined
 
   expect(features).toHaveLength(3);
   expect(features[0]?.cat_color).toBe('A');
-  expect(features[1]?.cat_color).toBe('');
-  expect(features[2]?.cat_color).toBe('');
+  expect(features[1]?.cat_color).toBe(NULL_CATEGORY_KEY);
+  expect(features[2]?.cat_color).toBe(NULL_CATEGORY_KEY);
 });
 
 test('Arc transformProps should not set cat_color when dimension is not configured', () => {

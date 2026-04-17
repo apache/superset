@@ -27,6 +27,7 @@ import {
 } from '../transformUtils';
 import { DeckScatterFormData } from './buildQuery';
 import { isFixedValue, getFixedValue } from '../utils/metricUtils';
+import { NULL_CATEGORY_KEY } from '../../utils';
 
 interface ScatterPoint {
   position: [number, number];
@@ -92,7 +93,9 @@ function processScatterData(
 
     if (categoryColumn) {
       scatterPoint.cat_color =
-        feature[categoryColumn] != null ? String(feature[categoryColumn]) : '';
+        feature[categoryColumn] != null
+          ? String(feature[categoryColumn])
+          : NULL_CATEGORY_KEY;
     }
 
     scatterPoint = addPropertiesToFeature(

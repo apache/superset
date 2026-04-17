@@ -21,6 +21,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import Legend, { LegendProps } from './Legend';
+import { NULL_CATEGORY_KEY } from '../utils';
 
 const renderLegend = (props: Partial<LegendProps> = {}) => {
   const defaults: LegendProps = {
@@ -45,10 +46,10 @@ test('renders a label for a normal category key', () => {
   expect(screen.getByText('California')).toBeInTheDocument();
 });
 
-test('renders N/A for empty-string category key', () => {
+test('renders N/A for null category key', () => {
   renderLegend({
     categories: {
-      '': { enabled: true, color: [0, 128, 0, 255] },
+      [NULL_CATEGORY_KEY]: { enabled: true, color: [0, 128, 0, 255] },
     },
   });
 
@@ -86,16 +87,16 @@ test('calls toggleCategory when a category link is clicked', async () => {
   expect(toggleCategory).toHaveBeenCalledWith('California');
 });
 
-test('calls toggleCategory with empty string key when N/A link is clicked', async () => {
+test('calls toggleCategory with NULL_CATEGORY_KEY when N/A link is clicked', async () => {
   const toggleCategory = jest.fn();
   renderLegend({
     toggleCategory,
     categories: {
-      '': { enabled: true, color: [0, 128, 0, 255] },
+      [NULL_CATEGORY_KEY]: { enabled: true, color: [0, 128, 0, 255] },
     },
   });
 
   await userEvent.click(screen.getByRole('button'));
 
-  expect(toggleCategory).toHaveBeenCalledWith('');
+  expect(toggleCategory).toHaveBeenCalledWith(NULL_CATEGORY_KEY);
 });

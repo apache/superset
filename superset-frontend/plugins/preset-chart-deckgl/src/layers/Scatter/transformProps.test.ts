@@ -19,6 +19,7 @@
 
 import { ChartProps, DatasourceType } from '@superset-ui/core';
 import transformProps from './transformProps';
+import { NULL_CATEGORY_KEY } from '../../utils';
 
 interface ScatterFeature {
   position: [number, number];
@@ -194,7 +195,7 @@ test('Scatter transformProps should handle dimension for category colors', () =>
   expect(features[1]?.cat_color).toBe('B');
 });
 
-test('Scatter transformProps should assign empty string cat_color for null/undefined dimension values', () => {
+test('Scatter transformProps should assign NULL_CATEGORY_KEY cat_color for null/undefined dimension values', () => {
   const propsWithNullCategory = {
     ...mockChartProps,
     rawFormData: {
@@ -233,8 +234,8 @@ test('Scatter transformProps should assign empty string cat_color for null/undef
 
   expect(features).toHaveLength(3);
   expect(features[0]?.cat_color).toBe('A');
-  expect(features[1]?.cat_color).toBe('');
-  expect(features[2]?.cat_color).toBe('');
+  expect(features[1]?.cat_color).toBe(NULL_CATEGORY_KEY);
+  expect(features[2]?.cat_color).toBe(NULL_CATEGORY_KEY);
 });
 
 test('Scatter transformProps should not include metric labels for fixed radius', () => {
