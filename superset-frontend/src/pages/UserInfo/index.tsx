@@ -193,6 +193,9 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
               <Descriptions.Item label={t('Role')}>
                 {user.roles ? Object.keys(user.roles).join(', ') : t('None')}
               </Descriptions.Item>
+              <Descriptions.Item label={t('Group')}>
+                {user.groups.length ? user.groups.join(', ') : t('None')}
+              </Descriptions.Item>
               <Descriptions.Item label={t('Login count')}>
                 {user.loginCount}
               </Descriptions.Item>
