@@ -299,6 +299,7 @@ class ExplorableData(TypedDict, total=False):
     column_formats: dict[str, str | None]
     description: str | None
     database: dict[str, Any]
+    parent: dict[str, Any]
     default_endpoint: str | None
     filter_select: bool
     filter_select_enabled: bool
