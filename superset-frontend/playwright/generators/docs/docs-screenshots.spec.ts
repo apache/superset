@@ -25,22 +25,23 @@
  *
  * Run locally:
  *   cd superset-frontend
- *   npm run docs:screenshots
+ *   PLAYWRIGHT_BASE_URL=http://localhost:9000 npm run docs:screenshots
  *
  * Or directly:
  *   npx playwright test --config=playwright/generators/playwright.config.ts docs/
  *
- * Screenshots are saved to docs/static/img/screenshots/.
+ * Screenshots are saved under docs/static/img/.
+ * As new screenshots are scripted, entries are removed from screenshot-manifest.yaml
+ * and the output path moves from that manifest into the test below.
  */
 
 import path from 'path';
 import { test, expect } from '@playwright/test';
 import { URL } from '../../utils/urls';
 
-const SCREENSHOTS_DIR = path.resolve(
-  __dirname,
-  '../../../../docs/static/img/screenshots',
-);
+const DOCS_STATIC = path.resolve(__dirname, '../../../../docs/static/img');
+const SCREENSHOTS_DIR = path.join(DOCS_STATIC, 'screenshots');
+const TUTORIAL_DIR = path.join(DOCS_STATIC, 'tutorial');
 
 test('chart gallery screenshot', async ({ page }) => {
   await page.goto(URL.CHART_ADD);
@@ -226,5 +227,45 @@ test('SQL Lab screenshot', async ({ page }) => {
     path: path.join(SCREENSHOTS_DIR, 'sql_lab.jpg'),
     type: 'jpeg',
     fullPage: true,
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tutorial screenshots
+// ---------------------------------------------------------------------------
+
+test('datasets list screenshot', async ({ page }) => {
+  await page.goto(URL.DATASET_LIST);
+
+  const table = page.locator('[data-test="listview-table"]');
+  await expect(table).toBeVisible({ timeout: 15000 });
+  // Wait for at least one data row (not just the header row)
+  await expect(table.locator('tbody tr').first()).toBeVisible({
+    timeout: 10000,
+  });
+
+  await table.screenshot({
+    path: path.join(TUTORIAL_DIR, 'tutorial_08_sources_tables.png'),
+    type: 'png',
+  });
+});
+
+test('chart type picker screenshot', async ({ page }) => {
+  await page.goto(URL.CHART_ADD);
+
+  await expect(page.getByText('Choose chart type')).toBeVisible({
+    timeout: 15000,
+  });
+  await page.getByRole('tab', { name: 'All charts' }).click();
+
+  const vizGallery = page.locator('.viz-gallery');
+  await expect(vizGallery).toBeVisible();
+  await expect(
+    vizGallery.locator('[data-test="viztype-selector-container"]').first(),
+  ).toBeVisible();
+
+  await vizGallery.screenshot({
+    path: path.join(TUTORIAL_DIR, 'create_pivot.png'),
+    type: 'png',
   });
 });

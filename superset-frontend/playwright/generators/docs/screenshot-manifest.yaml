@@ -1,0 +1,1417 @@
+# Superset Documentation Image Manifest
+#
+# This file is the source of truth for images used in the Superset docs.
+# It is consumed by the docs:screenshots npm script to auto-capture UI screenshots.
+#
+# To enable screenshot generation for an entry, fill in:
+#   app_path  - Superset app URL path to navigate to (e.g. chart/add)
+#              relative, no leading slash; resolved against PLAYWRIGHT_BASE_URL
+#   selector  - CSS selector for the element to capture
+#              (null = full-page screenshot)
+#
+# type values: screenshot | tutorial | site-asset | database-logo | badge | external
+# database-logo, badge, external, community: inventory only, no generation.
+
+images:
+  # --- tutorial (42) ---
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/publish_button_dashboard.png"
+    output_path: docs/static/img/tutorial/publish_button_dashboard.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: "[data-test=\"dashboard-header-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_01_add_database_connection.png"
+    output_path: docs/static/img/tutorial/tutorial_01_add_database_connection.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_02_select_database.png"
+    output_path: docs/static/img/tutorial/tutorial_02_select_database.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: .ant-modal-content
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_03a_database_connection_string_link.png"
+    output_path: docs/static/img/tutorial/tutorial_03a_database_connection_string_link.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: .ant-modal-content
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_03b_connection_string_details.png"
+    output_path: docs/static/img/tutorial/tutorial_03b_connection_string_details.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: .ant-modal-content
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_09_add_new_table.png"
+    output_path: docs/static/img/tutorial/tutorial_09_add_new_table.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: .ant-modal-content
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_calculated_column.png"
+    output_path: docs/static/img/tutorial/tutorial_calculated_column.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_chart_resize.png"
+    output_path: docs/static/img/tutorial/tutorial_chart_resize.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: "[data-test=\"dashboard-content-wrapper\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_column_properties.png"
+    output_path: docs/static/img/tutorial/tutorial_column_properties.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_dashboard_access.png"
+    output_path: docs/static/img/tutorial/tutorial_dashboard_access.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: .ant-modal-content
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_edit_button.png"
+    output_path: docs/static/img/tutorial/tutorial_edit_button.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: "[data-test=\"edit-dashboard-button\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_explore_run.jpg"
+    output_path: docs/static/img/tutorial/tutorial_explore_run.jpg
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_explore_settings.jpg"
+    output_path: docs/static/img/tutorial/tutorial_explore_settings.jpg
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_first_dashboard.png"
+    output_path: docs/static/img/tutorial/tutorial_first_dashboard.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: "[data-test=\"dashboard-content-wrapper\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_launch_explore.png"
+    output_path: docs/static/img/tutorial/tutorial_launch_explore.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_save_slice.png"
+    output_path: docs/static/img/tutorial/tutorial_save_slice.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: .ant-modal-content
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_sql_metric.png"
+    output_path: docs/static/img/tutorial/tutorial_sql_metric.png
+    alt: ""
+    source_file: docs/using-superset/creating-your-first-dashboard.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/advanced_analytics_base.png"
+    output_path: docs/static/img/tutorial/advanced_analytics_base.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"slice-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/allow-file-uploads.png"
+    output_path: docs/static/img/tutorial/allow-file-uploads.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: .ant-modal-content
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/annotation.png"
+    output_path: docs/static/img/tutorial/annotation.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"slice-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/annotation_settings.png"
+    output_path: docs/static/img/tutorial/annotation_settings.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/average_aggregate_for_cost.png"
+    output_path: docs/static/img/tutorial/average_aggregate_for_cost.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"slice-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/blue_bar_insert_component.png"
+    output_path: docs/static/img/tutorial/blue_bar_insert_component.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/csv_to_database_configuration.png"
+    output_path: docs/static/img/tutorial/csv_to_database_configuration.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/edit-record.png"
+    output_path: docs/static/img/tutorial/edit-record.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/edit_annotation.png"
+    output_path: docs/static/img/tutorial/edit_annotation.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: .ant-modal-content
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/markdown.png"
+    output_path: docs/static/img/tutorial/markdown.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/no_filter_on_time_filter.png"
+    output_path: docs/static/img/tutorial/no_filter_on_time_filter.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/parse_dates_column.png"
+    output_path: docs/static/img/tutorial/parse_dates_column.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/publish_dashboard.png"
+    output_path: docs/static/img/tutorial/publish_dashboard.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"dashboard-header-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/resample.png"
+    output_path: docs/static/img/tutorial/resample.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"slice-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/resize_tutorial_table_on_dashboard.png"
+    output_path: docs/static/img/tutorial/resize_tutorial_table_on_dashboard.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"dashboard-content-wrapper\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/rolling_mean.png"
+    output_path: docs/static/img/tutorial/rolling_mean.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"slice-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/save_tutorial_table.png"
+    output_path: docs/static/img/tutorial/save_tutorial_table.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: .ant-modal-content
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/select_dates_pivot_table.png"
+    output_path: docs/static/img/tutorial/select_dates_pivot_table.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/sum_cost_column.png"
+    output_path: docs/static/img/tutorial/sum_cost_column.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: null
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/time_comparison_absolute_difference.png"
+    output_path: docs/static/img/tutorial/time_comparison_absolute_difference.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"slice-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/time_comparison_two_series.png"
+    output_path: docs/static/img/tutorial/time_comparison_two_series.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"slice-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_line_chart.png"
+    output_path: docs/static/img/tutorial/tutorial_line_chart.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"slice-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_pivot_table.png"
+    output_path: docs/static/img/tutorial/tutorial_pivot_table.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"slice-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/tutorial_table.png"
+    output_path: docs/static/img/tutorial/tutorial_table.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: "[data-test=\"slice-container\"]"
+  - type: tutorial
+    page_url: "https://superset.apache.org/user-docs/using-superset/exploring-data"
+    image_url: "https://superset.apache.org/img/tutorial/upload_a_csv.png"
+    output_path: docs/static/img/tutorial/upload_a_csv.png
+    alt: ""
+    source_file: docs/using-superset/exploring-data.mdx
+    app_path: null
+    selector: null
+  # --- site-asset (19) ---
+  - type: site-asset
+    page_url: "https://superset.apache.org/admin-docs/installation/docker-compose"
+    image_url: "https://superset.apache.org/img/docker-compose.webp"
+    output_path: docs/static/img/docker-compose.webp
+    alt: ""
+    source_file: admin_docs/installation/docker-compose.mdx
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/admin-docs/installation/kubernetes"
+    image_url: "https://superset.apache.org/img/k8s.png"
+    output_path: docs/static/img/k8s.png
+    alt: ""
+    source_file: admin_docs/installation/kubernetes.mdx
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/admin-docs/installation/pypi"
+    image_url: "https://superset.apache.org/img/pypi.png"
+    output_path: docs/static/img/pypi.png
+    alt: ""
+    source_file: admin_docs/installation/pypi.mdx
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/developer-docs/components"
+    image_url: "https://superset.apache.org/img/atomic-design.png"
+    output_path: docs/static/img/atomic-design.png
+    alt: Atoms = Foundations, Molecules = Components, Organisms = Patterns, Templates = Templates, Pages / Screens = Features
+    source_file: developer_docs/components/index.mdx
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/developer-docs/extensions/registry"
+    image_url: "https://superset.apache.org/img/extensions/api-explorer.png"
+    output_path: docs/static/img/extensions/api-explorer.png
+    alt: Extensions API Explorer
+    source_file: developer_docs/extensions/registry.md
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/developer-docs/extensions/registry"
+    image_url: "https://superset.apache.org/img/extensions/editor-snippets.png"
+    output_path: docs/static/img/extensions/editor-snippets.png
+    alt: Editor Snippets
+    source_file: developer_docs/extensions/registry.md
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/developer-docs/extensions/registry"
+    image_url: "https://superset.apache.org/img/extensions/editors-bundle.png"
+    output_path: docs/static/img/extensions/editors-bundle.png
+    alt: Editors Bundle
+    source_file: developer_docs/extensions/registry.md
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/developer-docs/extensions/registry"
+    image_url: "https://superset.apache.org/img/extensions/gsheets-export.png"
+    output_path: docs/static/img/extensions/gsheets-export.png
+    alt: SQL Lab Export to Google Sheets
+    source_file: developer_docs/extensions/registry.md
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/developer-docs/extensions/registry"
+    image_url: "https://superset.apache.org/img/extensions/parquet-export.png"
+    output_path: docs/static/img/extensions/parquet-export.png
+    alt: SQL Lab Export to Parquet
+    source_file: developer_docs/extensions/registry.md
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/developer-docs/extensions/registry"
+    image_url: "https://superset.apache.org/img/extensions/query-comparison.png"
+    output_path: docs/static/img/extensions/query-comparison.png
+    alt: Query Comparison
+    source_file: developer_docs/extensions/registry.md
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/developer-docs/extensions/registry"
+    image_url: "https://superset.apache.org/img/extensions/query-estimator.png"
+    output_path: docs/static/img/extensions/query-estimator.png
+    alt: Query Estimator
+    source_file: developer_docs/extensions/registry.md
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/developer-docs/extensions/registry"
+    image_url: "https://superset.apache.org/img/extensions/result-stats.png"
+    output_path: docs/static/img/extensions/result-stats.png
+    alt: Result Stats
+    source_file: developer_docs/extensions/registry.md
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/developer-docs/extensions/registry"
+    image_url: "https://superset.apache.org/img/extensions/sql-flow-visualizer.png"
+    output_path: docs/static/img/extensions/sql-flow-visualizer.png
+    alt: SQL Flow Visualizer
+    source_file: developer_docs/extensions/registry.md
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/developer-docs/extensions/registry"
+    image_url: "https://superset.apache.org/img/extensions/your-screenshot.png"
+    output_path: docs/static/img/extensions/your-screenshot.png
+    alt: Your Extension
+    source_file: developer_docs/extensions/registry.md
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/src/pages"
+    image_url: "https://superset.apache.org/img/check-icon.svg"
+    output_path: docs/static/img/check-icon.svg
+    alt: check-icon
+    source_file: src/pages/index.tsx
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/src/pages"
+    image_url: "https://superset.apache.org/img/hero-screenshot.jpg"
+    output_path: docs/static/img/hero-screenshot.jpg
+    alt: hero-screenshot
+    source_file: src/pages/index.tsx
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/src/pages"
+    image_url: "https://superset.apache.org/img/superset-mark-dark.svg"
+    output_path: docs/static/img/superset-mark-dark.svg
+    alt: Superset mark
+    source_file: src/pages/index.tsx
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/src/pages/community"
+    image_url: "https://superset.apache.org/img/calendar-icon.svg"
+    output_path: docs/static/img/calendar-icon.svg
+    alt: calendar-icon
+    source_file: src/pages/community.tsx
+    app_path: null
+    selector: null
+  - type: site-asset
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/superset-logo-horiz-apache.svg"
+    output_path: docs/static/img/superset-logo-horiz-apache.svg
+    alt: Superset logo (light)
+    source_file: docs/index.mdx
+    app_path: null
+    selector: null
+  # --- community (1) ---
+  - type: community
+    page_url: "https://superset.apache.org/src/pages"
+    image_url: "https://superset.apache.org/img/community/line.png"
+    output_path: docs/static/img/community/line.png
+    alt: line
+    source_file: src/pages/index.tsx
+    selector: null
+  # --- external (6) ---
+  - type: external
+    page_url: "https://superset.apache.org/developer-docs/contributing/submitting-pr"
+    image_url: link-to-after-screenshot
+    alt: After
+    source_file: developer_docs/contributing/submitting-pr.md
+    selector: null
+  - type: external
+    page_url: "https://superset.apache.org/developer-docs/contributing/submitting-pr"
+    image_url: link-to-before-screenshot
+    alt: Before
+    source_file: developer_docs/contributing/submitting-pr.md
+    selector: null
+  - type: external
+    page_url: "https://superset.apache.org/developer-docs/extensions/architecture"
+    image_url: "https://github.com/user-attachments/assets/cc2a41df-55a4-48c8-b056-35f7a1e567c6"
+    alt: Extension System Architecture
+    source_file: developer_docs/extensions/architecture.md
+    selector: null
+  - type: external
+    page_url: "https://superset.apache.org/developer-docs/extensions/architecture"
+    image_url: "https://github.com/user-attachments/assets/e5e4d2ae-e8b5-4d17-a2a1-3667c65f25ca"
+    alt: Module Federation Flow
+    source_file: developer_docs/extensions/architecture.md
+    selector: null
+  - type: external
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://github.com/apache/superset/actions/workflows/superset-python-unittest.yml/badge.svg"
+    alt: Build Status
+    source_file: docs/index.mdx
+    selector: null
+  - type: external
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=light"
+    alt: Performance Stats of apache/superset - Last 28 days
+    source_file: docs/index.mdx
+    selector: null
+  # --- database-logo (122) ---
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/amazon-athena.jpg
+    alt: Amazon Athena
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/apache-drill.png
+    alt: Apache Drill
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/apache-hive.svg
+    alt: Apache Hive
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/apache-impala.png
+    alt: Apache Impala
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/apache-kylin.png
+    alt: Apache Kylin
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/apache-pinot.svg
+    alt: Apache Pinot
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/apache-solr.png
+    alt: Apache Solr
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/apache-spark.png
+    alt: Apache Spark SQL
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/ascend.webp
+    alt: Ascend
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/aws.png
+    alt: Amazon DynamoDB
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/azure.svg
+    alt: Azure Synapse
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/clickhouse.png
+    alt: ClickHouse
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/cloudflare.png
+    alt: Cloudflare D1
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/cockroachdb.png
+    alt: CockroachDB
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/couchbase.svg
+    alt: Couchbase
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/cratedb.svg
+    alt: CrateDB
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/databend.png
+    alt: Databend
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/databricks.png
+    alt: Databricks
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/denodo.png
+    alt: Denodo
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/doris.png
+    alt: Apache Doris
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/dremio.png
+    alt: Dremio
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/druid.png
+    alt: Apache Druid
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/duckdb.png
+    alt: DuckDB
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/elasticsearch.png
+    alt: Elasticsearch
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/exasol.png
+    alt: Exasol
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/firebird.png
+    alt: Firebird
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/firebolt.png
+    alt: Firebolt
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/google-big-query.svg
+    alt: Google BigQuery
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/google-sheets.svg
+    alt: Google Sheets
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/greenplum.png
+    alt: Greenplum
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/hologres.png
+    alt: Hologres
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/ibm-db2.svg
+    alt: IBM Db2
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/kusto.png
+    alt: Azure Data Explorer
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/mariadb.png
+    alt: MariaDB
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/monet-db.png
+    alt: MonetDB
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/mongodb.png
+    alt: MongoDB
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/motherduck.png
+    alt: MotherDuck
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/msql.png
+    alt: Microsoft SQL Server
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/mysql.png
+    alt: Aurora MySQL (Data API)
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/netezza.png
+    alt: IBM Netezza Performance Server
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/oceanbase.svg
+    alt: OceanBase
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/oraclelogo.png
+    alt: Oracle
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/postgresql.svg
+    alt: Aurora PostgreSQL (Data API)
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/presto-og.png
+    alt: Presto
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/redshift.png
+    alt: Amazon Redshift
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/risingwave.svg
+    alt: RisingWave
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/sap-hana.png
+    alt: SAP HANA
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/shillelagh.png
+    alt: Shillelagh
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/singlestore.png
+    alt: SingleStore
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/snowflake.svg
+    alt: Snowflake
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/sqlite.png
+    alt: SQLite
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/starrocks.png
+    alt: StarRocks
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/superset.svg
+    alt: Superset meta database
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/sybase.png
+    alt: SAP Sybase
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/tdengine.png
+    alt: TDengine
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/teradata.png
+    alt: Teradata
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/timescale.png
+    alt: TimescaleDB
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/trino.png
+    alt: Trino
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/vertica.png
+    alt: Vertica
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/ydb.svg
+    alt: YDB
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: docs/static/img/databases/yugabyte.png
+    alt: YugabyteDB
+    source_file: docs/intro.md
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/amazon-athena.jpg"
+    output_path: docs/static/img/databases/amazon-athena.jpg
+    alt: Amazon Athena
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/apache-drill.png"
+    output_path: docs/static/img/databases/apache-drill.png
+    alt: Apache Drill
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/apache-hive.svg"
+    output_path: docs/static/img/databases/apache-hive.svg
+    alt: Apache Hive
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/apache-impala.png"
+    output_path: docs/static/img/databases/apache-impala.png
+    alt: Apache Impala
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/apache-kylin.png"
+    output_path: docs/static/img/databases/apache-kylin.png
+    alt: Apache Kylin
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/apache-pinot.svg"
+    output_path: docs/static/img/databases/apache-pinot.svg
+    alt: Apache Pinot
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/apache-solr.png"
+    output_path: docs/static/img/databases/apache-solr.png
+    alt: Apache Solr
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/apache-spark.png"
+    output_path: docs/static/img/databases/apache-spark.png
+    alt: Apache Spark SQL
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/ascend.webp"
+    output_path: docs/static/img/databases/ascend.webp
+    alt: Ascend
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/aws.png"
+    output_path: docs/static/img/databases/aws.png
+    alt: Amazon DynamoDB
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/azure.svg"
+    output_path: docs/static/img/databases/azure.svg
+    alt: Azure Synapse
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/clickhouse.png"
+    output_path: docs/static/img/databases/clickhouse.png
+    alt: ClickHouse
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/cloudflare.png"
+    output_path: docs/static/img/databases/cloudflare.png
+    alt: Cloudflare D1
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/cockroachdb.png"
+    output_path: docs/static/img/databases/cockroachdb.png
+    alt: CockroachDB
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/couchbase.svg"
+    output_path: docs/static/img/databases/couchbase.svg
+    alt: Couchbase
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/cratedb.svg"
+    output_path: docs/static/img/databases/cratedb.svg
+    alt: CrateDB
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/databend.png"
+    output_path: docs/static/img/databases/databend.png
+    alt: Databend
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/databricks.png"
+    output_path: docs/static/img/databases/databricks.png
+    alt: Databricks
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/denodo.png"
+    output_path: docs/static/img/databases/denodo.png
+    alt: Denodo
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/doris.png"
+    output_path: docs/static/img/databases/doris.png
+    alt: Apache Doris
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/dremio.png"
+    output_path: docs/static/img/databases/dremio.png
+    alt: Dremio
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/druid.png"
+    output_path: docs/static/img/databases/druid.png
+    alt: Apache Druid
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/duckdb.png"
+    output_path: docs/static/img/databases/duckdb.png
+    alt: DuckDB
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/elasticsearch.png"
+    output_path: docs/static/img/databases/elasticsearch.png
+    alt: Elasticsearch
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/exasol.png"
+    output_path: docs/static/img/databases/exasol.png
+    alt: Exasol
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/firebird.png"
+    output_path: docs/static/img/databases/firebird.png
+    alt: Firebird
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/firebolt.png"
+    output_path: docs/static/img/databases/firebolt.png
+    alt: Firebolt
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/google-big-query.svg"
+    output_path: docs/static/img/databases/google-big-query.svg
+    alt: Google BigQuery
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/google-sheets.svg"
+    output_path: docs/static/img/databases/google-sheets.svg
+    alt: Google Sheets
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/greenplum.png"
+    output_path: docs/static/img/databases/greenplum.png
+    alt: Greenplum
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/hologres.png"
+    output_path: docs/static/img/databases/hologres.png
+    alt: Hologres
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/ibm-db2.svg"
+    output_path: docs/static/img/databases/ibm-db2.svg
+    alt: IBM Db2
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/kusto.png"
+    output_path: docs/static/img/databases/kusto.png
+    alt: Azure Data Explorer
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/mariadb.png"
+    output_path: docs/static/img/databases/mariadb.png
+    alt: MariaDB
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/monet-db.png"
+    output_path: docs/static/img/databases/monet-db.png
+    alt: MonetDB
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/mongodb.png"
+    output_path: docs/static/img/databases/mongodb.png
+    alt: MongoDB
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/motherduck.png"
+    output_path: docs/static/img/databases/motherduck.png
+    alt: MotherDuck
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/msql.png"
+    output_path: docs/static/img/databases/msql.png
+    alt: Microsoft SQL Server
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/mysql.png"
+    output_path: docs/static/img/databases/mysql.png
+    alt: Aurora MySQL (Data API)
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/netezza.png"
+    output_path: docs/static/img/databases/netezza.png
+    alt: IBM Netezza Performance Server
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/oceanbase.svg"
+    output_path: docs/static/img/databases/oceanbase.svg
+    alt: OceanBase
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/oraclelogo.png"
+    output_path: docs/static/img/databases/oraclelogo.png
+    alt: Oracle
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/postgresql.svg"
+    output_path: docs/static/img/databases/postgresql.svg
+    alt: Aurora PostgreSQL (Data API)
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/presto-og.png"
+    output_path: docs/static/img/databases/presto-og.png
+    alt: Presto
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/redshift.png"
+    output_path: docs/static/img/databases/redshift.png
+    alt: Amazon Redshift
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/risingwave.svg"
+    output_path: docs/static/img/databases/risingwave.svg
+    alt: RisingWave
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/sap-hana.png"
+    output_path: docs/static/img/databases/sap-hana.png
+    alt: SAP HANA
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/shillelagh.png"
+    output_path: docs/static/img/databases/shillelagh.png
+    alt: Shillelagh
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/singlestore.png"
+    output_path: docs/static/img/databases/singlestore.png
+    alt: SingleStore
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/snowflake.svg"
+    output_path: docs/static/img/databases/snowflake.svg
+    alt: Snowflake
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/sqlite.png"
+    output_path: docs/static/img/databases/sqlite.png
+    alt: SQLite
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/starrocks.png"
+    output_path: docs/static/img/databases/starrocks.png
+    alt: StarRocks
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/superset.svg"
+    output_path: docs/static/img/databases/superset.svg
+    alt: Superset meta database
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/sybase.png"
+    output_path: docs/static/img/databases/sybase.png
+    alt: SAP Sybase
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/tdengine.png"
+    output_path: docs/static/img/databases/tdengine.png
+    alt: TDengine
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/teradata.png"
+    output_path: docs/static/img/databases/teradata.png
+    alt: Teradata
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/timescale.png"
+    output_path: docs/static/img/databases/timescale.png
+    alt: TimescaleDB
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/trino.png"
+    output_path: docs/static/img/databases/trino.png
+    alt: Trino
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/vertica.png"
+    output_path: docs/static/img/databases/vertica.png
+    alt: Vertica
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/ydb.svg"
+    output_path: docs/static/img/databases/ydb.svg
+    alt: YDB
+    source_file: docs/index.mdx
+    selector: null
+  - type: database-logo
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://superset.apache.org/img/databases/yugabyte.png"
+    output_path: docs/static/img/databases/yugabyte.png
+    alt: YugabyteDB
+    source_file: docs/index.mdx
+    selector: null
+  # --- badge (12) ---
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://badge.fury.io/py/apache_superset.svg"
+    alt: PyPI version
+    source_file: docs/index.mdx
+    selector: null
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://img.shields.io/badge/License-Apache%202.0-blue.svg"
+    alt: License
+    source_file: docs/index.mdx
+    selector: null
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://img.shields.io/badge/docs-apache.org-blue.svg"
+    alt: Documentation
+    source_file: docs/index.mdx
+    selector: null
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://img.shields.io/badge/slack-join-orange.svg"
+    alt: Get on Slack
+    source_file: docs/index.mdx
+    selector: null
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://img.shields.io/github/contributors/apache/superset"
+    alt: Contributors
+    source_file: docs/index.mdx
+    selector: null
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://img.shields.io/github/issues-pr/apache/superset"
+    alt: Open PRs
+    source_file: docs/index.mdx
+    selector: null
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://img.shields.io/github/issues/apache/superset"
+    alt: Open Issues
+    source_file: docs/index.mdx
+    selector: null
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://img.shields.io/github/last-commit/apache/superset"
+    alt: Last Commit
+    source_file: docs/index.mdx
+    selector: null
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://img.shields.io/github/stars/apache/superset?style=social"
+    alt: GitHub Stars
+    source_file: docs/index.mdx
+    selector: null
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://img.shields.io/github/v/release/apache/superset?sort=semver"
+    alt: Latest Release on Github
+    source_file: docs/index.mdx
+    selector: null
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://img.shields.io/pypi/pyversions/apache_superset.svg?maxAge=2592000"
+    alt: PyPI
+    source_file: docs/index.mdx
+    selector: null
+  - type: badge
+    page_url: "https://superset.apache.org/user-docs"
+    image_url: "https://static.scarf.sh/a.png?x-pxid=bc1c90cd-bc04-4e11-8c7b-289fb2839492"
+    alt: ""
+    source_file: docs/index.mdx
+    selector: null
