@@ -39,7 +39,12 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { t } from '@apache-superset/core/translation';
-import { css, styled, themeObject, useTheme } from '@apache-superset/core/theme';
+import {
+  css,
+  styled,
+  themeObject,
+  useTheme,
+} from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
