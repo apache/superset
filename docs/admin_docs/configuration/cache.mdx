@@ -159,6 +159,20 @@ Then on configuration:
 WEBDRIVER_AUTH_FUNC = auth_driver
 ```
 
+## ETag Support for Thumbnails
+
+Thumbnail and screenshot endpoints return `ETag` response headers based on the cached content digest. Clients can use conditional requests to avoid downloading unchanged images:
+
+```
+GET /api/v1/chart/42/thumbnail/
+If-None-Match: "abc123..."
+
+→ 304 Not Modified  (if unchanged)
+→ 200 OK            (with new image if changed)
+```
+
+This is particularly useful for embedded dashboards and external integrations that periodically poll for updated screenshots — unchanged thumbnails return immediately with no payload.
+
 ## Distributed Coordination Backend
 
 Superset supports an optional distributed coordination (`DISTRIBUTED_COORDINATION_CONFIG`) for
