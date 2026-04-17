@@ -20,7 +20,7 @@ import { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import rison from 'rison';
 import { t } from '@apache-superset/core';
 import { isDefined, JsonResponse, SupersetClient } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, useHistory } from 'react-router-dom';

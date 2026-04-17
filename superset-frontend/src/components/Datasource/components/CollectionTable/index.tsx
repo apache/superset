@@ -19,7 +19,7 @@
 import { ReactNode, useState, useCallback, useEffect, useMemo } from 'react';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core';
-import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
+import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
 import { Icons, Button, InfoTooltip } from '@superset-ui/core/components';
 import { FilterValue } from 'react-table';
 import Table, {

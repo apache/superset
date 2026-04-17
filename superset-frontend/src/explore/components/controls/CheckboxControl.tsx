@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, type ReactNode } from 'react';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { Checkbox } from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
 

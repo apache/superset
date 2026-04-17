@@ -18,7 +18,7 @@
  */
 import { cloneElement, ReactElement, useCallback } from 'react';
 import { t } from '@apache-superset/core';
-import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import copyTextToClipboard from 'src/utils/copy';
 import { Tooltip } from '@superset-ui/core/components';
 import withToasts from '../MessageToasts/withToasts';

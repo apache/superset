@@ -37,7 +37,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import {
   Tag,
   Tooltip,

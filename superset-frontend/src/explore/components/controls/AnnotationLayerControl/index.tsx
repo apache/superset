@@ -25,7 +25,7 @@ import {
   Payload,
   QueryFormData,
 } from '@superset-ui/core';
-import { SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import { SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import {
   AsyncEsmComponent,
   List,
