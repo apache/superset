@@ -26,7 +26,7 @@ import {
 } from 'react';
 import { isEqualArray } from '@superset-ui/core';
 import { t } from '@apache-superset/core';
-import { css } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
 import { Select } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 

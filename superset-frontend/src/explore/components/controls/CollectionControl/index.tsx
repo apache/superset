@@ -20,7 +20,7 @@ import React, { useCallback } from 'react';
 import { IconTooltip, List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core';
-import { useTheme, type SupersetTheme } from '@apache-superset/core/ui';
+import { useTheme, type SupersetTheme } from '@apache-superset/core/theme';
 import {
   SortableContainer,
   SortableHandle,

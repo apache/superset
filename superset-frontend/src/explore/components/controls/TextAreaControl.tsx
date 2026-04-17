@@ -26,8 +26,7 @@ import {
   ModalTrigger,
 } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core';
-import { useTheme } from '@apache-superset/core/ui';
-
+import { useTheme } from '@apache-superset/core/theme';
 import 'ace-builds/src-min-noconflict/mode-handlebars';
 
 import ControlHeader from 'src/explore/components/ControlHeader';

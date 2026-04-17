@@ -45,7 +45,8 @@ import {
 } from '@superset-ui/core/components';
 import { t, logging } from '@apache-superset/core';
 import { DatasourceType, isDefined, SupersetClient } from '@superset-ui/core';
-import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { Alert } from '@apache-superset/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
