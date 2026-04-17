@@ -25,7 +25,6 @@ from fastmcp import Context
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import get_cached_form_data
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset

@@ -990,7 +990,6 @@ async def _get_chart_preview_internal(  # noqa: C901
     """
     try:
         await ctx.report_progress(1, 3, "Looking up chart")
-        from superset.daos.chart import ChartDAO
 
         # Find the chart
         with event_logger.log_context(action="mcp.get_chart_preview.chart_lookup"):
@@ -1063,6 +1062,7 @@ async def _get_chart_preview_internal(  # noqa: C901
                 await ctx.debug(
                     "Looking up chart: identifier=%s" % (request.identifier,)
                 )
+                assert request.identifier is not None  # validated earlier
                 chart = find_chart_by_identifier(request.identifier)
 
                 # If not found and looks like a form_data_key, try transient

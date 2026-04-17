@@ -24,9 +24,8 @@ import time
 from typing import Any, Dict
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool, ToolAnnotations
-
 from sqlalchemy.exc import SQLAlchemyError
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException

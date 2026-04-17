@@ -17,8 +17,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from superset.mcp_service.chart.chart_helpers import (
     extract_form_data_key_from_url,
     find_chart_by_identifier,

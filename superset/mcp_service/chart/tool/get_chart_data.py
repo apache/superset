@@ -116,7 +116,6 @@ async def get_chart_data(  # noqa: C901
 
     try:
         await ctx.report_progress(1, 4, "Looking up chart")
-        from superset.daos.chart import ChartDAO
         from superset.utils import json as utils_json
 
         chart = None
@@ -156,6 +155,7 @@ async def get_chart_data(  # noqa: C901
         # Find the chart by identifier
         with event_logger.log_context(action="mcp.get_chart_data.chart_lookup"):
             await ctx.debug("Looking up chart: identifier=%s" % (request.identifier,))
+            assert request.identifier is not None  # validated earlier
             chart = find_chart_by_identifier(request.identifier)
 
         if not chart:
