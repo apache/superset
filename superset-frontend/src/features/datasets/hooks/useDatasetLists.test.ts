@@ -358,6 +358,64 @@ test('useDatasetsList skips fetching when db.id is undefined', () => {
   expect(result.current.datasetNames).toEqual([]);
 });
 
+test('useDatasetsList fetches datasets for schema-less databases without schema filter', async () => {
+  const schemalessDb = {
+    id: 2,
+    database_name: 'ydb',
+    owners: [1] as [number],
+    supports_schemas: false,
+  };
+
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: {
+      count: 1,
+      result: [{ id: 10, table_name: 'my_table', schema: null }],
+    },
+  } as unknown as JsonResponse);
+
+  const { result } = renderHook(() => useDatasetsList(schemalessDb, null));
+
+  await waitFor(() => {
+    expect(result.current.datasets).toHaveLength(1);
+  });
+
+  expect(result.current.datasetNames).toEqual(['my_table']);
+  expect(getSpy).toHaveBeenCalledTimes(1);
+
+  // Verify the API was called without a schema filter
+  const callArg = getSpy.mock.calls[0]?.[0]?.endpoint;
+  expect(callArg).toBeDefined();
+
+  const risonParam = new URL(callArg!, 'http://localhost').searchParams.get('q');
+  expect(risonParam).toBeTruthy();
+  const decoded = rison.decode(risonParam!) as {
+    filters: Array<{ col: string; opr: string; value: unknown }>;
+  };
+
+  // Only database filter and sql filter — no schema filter
+  const schemaFilter = decoded.filters.find(f => f.col === 'schema');
+  expect(schemaFilter).toBeUndefined();
+
+  const dbFilter = decoded.filters.find(f => f.col === 'database');
+  expect(dbFilter).toEqual({ col: 'database', opr: 'rel_o_m', value: 2 });
+});
+
+test('useDatasetsList skips fetching when schema-less database id is undefined', () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get');
+
+  const schemalessDb = {
+    database_name: 'ydb',
+    owners: [1] as [number],
+    supports_schemas: false,
+  } as (typeof mockDb & { supports_schemas: boolean });
+
+  const { result } = renderHook(() => useDatasetsList(schemalessDb, null));
+
+  // No db.id — should NOT call API even for schema-less DB
+  expect(getSpy).not.toHaveBeenCalled();
+  expect(result.current.datasets).toEqual([]);
+});
+
 test('useDatasetsList encodes schemas with spaces and special characters in endpoint URL', async () => {
   const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { count: 0, result: [] },
