@@ -23,7 +23,7 @@ import {
   SuperChart,
   ContextMenuFilters,
 } from '@superset-ui/core';
-import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
 import { Dataset } from '../types';
 

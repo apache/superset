@@ -45,7 +45,8 @@ import {
   DataRecordFilters,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
-import { t, SupersetTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
