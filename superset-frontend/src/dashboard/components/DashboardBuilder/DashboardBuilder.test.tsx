@@ -487,6 +487,48 @@ test('should render ParentSize wrapper with height 100% for tabs', async () => {
   expect(tabPanels.length).toBeGreaterThan(0);
 });
 
+test('should apply min-height to the top-level tab drop target so tabs can be dropped on dashboards with content', () => {
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+  const { container } = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardLayout: undoableDashboardLayout,
+      dashboardState: { ...mockState.dashboardState, editMode: true },
+    }),
+    useDnd: true,
+    useTheme: true,
+  });
+
+  const headerWrapper = container.querySelector(
+    '[data-test="dashboard-header-wrapper"]',
+  );
+  expect(headerWrapper).toBeInTheDocument();
+
+  // Verify the StyledHeader CSS includes min-height for the empty drop target.
+  // Without this, the drop target has zero height and users cannot drag tabs
+  // onto dashboards that already have content (the Droppable renders an empty
+  // div and needs explicit min-height to be a valid react-dnd hover target).
+  const allRules = Array.from(document.styleSheets).flatMap(sheet => {
+    try {
+      return Array.from(sheet.cssRules).map(rule => rule.cssText);
+    } catch {
+      return [];
+    }
+  });
+  const emptyDroptargetRule = allRules.find(
+    rule =>
+      rule.includes('.empty-droptarget') && rule.includes('min-height'),
+  );
+  expect(emptyDroptargetRule).toBeDefined();
+});
+
 test('should maintain layout when switching between tabs', async () => {
   (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
     100,
