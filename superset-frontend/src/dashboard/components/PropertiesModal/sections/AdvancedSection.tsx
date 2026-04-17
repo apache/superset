@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,6 +22,7 @@ import type { editors } from '@apache-superset/core';
 import { EditorHost } from 'src/core/editors';
 import { ModalFormField } from 'src/components/Modal';
 import { ValidationObject } from 'src/components/Modal/useModalValidation';
+import LabelColorMapping from './LabelColorMapping';
 
 type EditorAnnotation = editors.EditorAnnotation;
 
@@ -60,34 +61,40 @@ const AdvancedSection = ({
   validationStatus,
   onJsonMetadataChange,
 }: AdvancedSectionProps) => (
-  <ModalFormField
-    label={t('JSON Metadata')}
-    testId="dashboard-metadata-field"
-    helperText={t(
-      'This JSON object is generated dynamically when clicking the save ' +
-        'or overwrite button in the dashboard view. It is exposed here for ' +
-        'reference and for power users who may want to alter specific parameters.',
-    )}
-    error={
-      validationStatus.advanced?.hasErrors && jsonAnnotations.length > 0
-        ? t('Invalid JSON metadata')
-        : undefined
-    }
-    bottomSpacing={false}
-  >
-    <StyledEditorHost
-      id="dashboard-json-metadata"
-      data-test="dashboard-metadata-editor"
-      value={jsonMetadata}
-      onChange={onJsonMetadataChange}
-      language="json"
-      tabSize={2}
-      wordWrap
-      width="100%"
-      height="60vh"
-      annotations={toEditorAnnotations(jsonAnnotations)}
+  <>
+    <LabelColorMapping
+      jsonMetadata={jsonMetadata}
+      onJsonMetadataChange={onJsonMetadataChange}
     />
-  </ModalFormField>
+    <ModalFormField
+      label={t('JSON Metadata')}
+      testId="dashboard-metadata-field"
+      helperText={t(
+        'This JSON object is generated dynamically when clicking the save ' +
+          'or overwrite button in the dashboard view. It is exposed here for ' +
+          'reference and for power users who may want to alter specific parameters.',
+      )}
+      error={
+        validationStatus.advanced?.hasErrors && jsonAnnotations.length > 0
+          ? t('Invalid JSON metadata')
+          : undefined
+      }
+      bottomSpacing={false}
+    >
+      <StyledEditorHost
+        id="dashboard-json-metadata"
+        data-test="dashboard-metadata-editor"
+        value={jsonMetadata}
+        onChange={onJsonMetadataChange}
+        language="json"
+        tabSize={2}
+        wordWrap
+        width="100%"
+        height="60vh"
+        annotations={toEditorAnnotations(jsonAnnotations)}
+      />
+    </ModalFormField>
+  </>
 );
 
 export default AdvancedSection;
