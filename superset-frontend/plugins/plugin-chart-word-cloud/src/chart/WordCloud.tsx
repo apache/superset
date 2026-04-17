@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import cloudLayout from 'd3-cloud';
 import { scaleLinear } from 'd3-scale';
 import { seed, CategoricalColorNamespace } from '@superset-ui/core';
@@ -81,18 +81,7 @@ export interface WordCloudProps extends WordCloudVisualProps {
   colorScheme: string;
 }
 
-export interface WordCloudState {
-  words: Word[];
-  scaleFactor: number;
-}
-
-const defaultProps: Required<WordCloudVisualProps> = {
-  encoding: {},
-  rotation: 'flat',
-};
-
-type FullWordCloudProps = WordCloudProps &
-  typeof defaultProps & { theme: SupersetTheme };
+type FullWordCloudProps = WordCloudProps & { theme: SupersetTheme };
 
 const SCALE_FACTOR_STEP = 0.5;
 const MAX_SCALE_FACTOR = 3;
@@ -196,61 +185,80 @@ class SimpleEncoder {
   }
 }
 
-class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
-  static defaultProps = defaultProps;
+function WordCloud({
+  data,
+  encoding = {},
+  width,
+  height,
+  rotation = 'flat',
+  sliceId,
+  colorScheme,
+  theme,
+}: FullWordCloudProps) {
+  const [words, setWords] = useState<Word[]>([]);
+  const [scaleFactor] = useState(1);
+  const isMountedRef = useRef(true);
 
-  isComponentMounted = false;
+  // Store previous props for comparison
+  const prevPropsRef = useRef<{
+    data: PlainObject[];
+    encoding: Partial<WordCloudEncoding>;
+    width: number;
+    height: number;
+    rotation: RotationType;
+  } | null>(null);
 
-  createEncoder = (encoding?: Partial<WordCloudEncoding>): SimpleEncoder =>
-    new SimpleEncoder(encoding ?? {}, {
-      color: this.props.theme.colorTextLabel,
-      fontFamily: this.props.theme.fontFamily,
-      fontSize: 20,
-      fontWeight: 'bold',
-      text: '',
-    });
+  const createEncoder = useCallback(
+    (enc?: Partial<WordCloudEncoding>): SimpleEncoder =>
+      new SimpleEncoder(enc ?? {}, {
+        color: theme.colorTextLabel,
+        fontFamily: theme.fontFamily,
+        fontSize: 20,
+        fontWeight: 'bold',
+        text: '',
+      }),
+    [theme.colorTextLabel, theme.fontFamily],
+  );
 
-  constructor(props: FullWordCloudProps) {
-    super(props);
-    this.state = {
-      words: [],
-      scaleFactor: 1,
-    };
-    this.setWords = this.setWords.bind(this);
-  }
-
-  componentDidMount() {
-    this.isComponentMounted = true;
-    this.update();
-  }
-
-  componentDidUpdate(prevProps: WordCloudProps) {
-    const { data, encoding, width, height, rotation } = this.props;
-    if (
-      !isEqual(prevProps.data, data) ||
-      !isEqual(prevProps.encoding, encoding) ||
-      prevProps.width !== width ||
-      prevProps.height !== height ||
-      prevProps.rotation !== rotation
-    ) {
-      this.update();
+  const setWordsIfMounted = useCallback((newWords: Word[]) => {
+    if (isMountedRef.current) {
+      setWords(newWords);
     }
-  }
+  }, []);
 
-  componentWillUnmount() {
-    this.isComponentMounted = false;
-  }
+  const generateCloud = useCallback(
+    (
+      encoder: SimpleEncoder,
+      currentScaleFactor: number,
+      isValid: (word: Word[]) => boolean,
+    ) => {
+      cloudLayout()
+        .size([width * currentScaleFactor, height * currentScaleFactor])
+        .words(data.map((d: Word) => ({ ...d })))
+        .padding(5)
+        .rotate(ROTATION[rotation] || ROTATION.flat)
+        .text((d: PlainObject) => encoder.getText(d))
+        .font((d: PlainObject) => encoder.getFontFamily(d))
+        .fontWeight((d: PlainObject) => encoder.getFontWeight(d))
+        .fontSize((d: PlainObject) => encoder.getFontSize(d))
+        .on('end', (cloudWords: Word[]) => {
+          if (isValid(cloudWords) || currentScaleFactor > MAX_SCALE_FACTOR) {
+            setWordsIfMounted(cloudWords);
+          } else {
+            generateCloud(
+              encoder,
+              currentScaleFactor + SCALE_FACTOR_STEP,
+              isValid,
+            );
+          }
+        })
+        .start();
+    },
+    [data, width, height, rotation, setWordsIfMounted],
+  );
 
-  setWords(words: Word[]) {
-    if (this.isComponentMounted) {
-      this.setState({ words });
-    }
-  }
-
-  update() {
-    const { data, encoding } = this.props;
-
-    const encoder = this.createEncoder(encoding);
+  const update = useCallback(() => {
+    const encoder = createEncoder(encoding);
     encoder.setDomainFromDataset(data);
 
     const sortedData = [...data].sort(
@@ -262,73 +270,71 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
     );
     const topResults = sortedData.slice(0, topResultsCount);
 
-    this.generateCloud(encoder, 1, (words: Word[]) =>
+    generateCloud(encoder, 1, (cloudWords: Word[]) =>
       topResults.every((d: PlainObject) =>
-        words.find(({ text }) => encoder.getText(d) === text),
+        cloudWords.find(({ text }) => encoder.getText(d) === text),
       ),
     );
-  }
+  }, [data, encoding, createEncoder, generateCloud]);
 
-  generateCloud(
-    encoder: SimpleEncoder,
-    scaleFactor: number,
-    isValid: (word: Word[]) => boolean,
-  ) {
-    const { data, width, height, rotation } = this.props;
+  // Component mount/unmount tracking
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-    cloudLayout()
-      .size([width * scaleFactor, height * scaleFactor])
-      .words(data.map((d: Word) => ({ ...d })))
-      .padding(5)
-      .rotate(ROTATION[rotation] || ROTATION.flat)
-      .text((d: PlainObject) => encoder.getText(d))
-      .font((d: PlainObject) => encoder.getFontFamily(d))
-      .fontWeight((d: PlainObject) => encoder.getFontWeight(d))
-      .fontSize((d: PlainObject) => encoder.getFontSize(d))
-      .on('end', (words: Word[]) => {
-        if (isValid(words) || scaleFactor > MAX_SCALE_FACTOR) {
-          this.setWords(words);
-        } else {
-          this.generateCloud(encoder, scaleFactor + SCALE_FACTOR_STEP, isValid);
-        }
-      })
-      .start();
-  }
+  // Initial update on mount and when dependencies change
+  useEffect(() => {
+    const prevProps = prevPropsRef.current;
+    const shouldUpdate =
+      !prevProps ||
+      !isEqual(prevProps.data, data) ||
+      !isEqual(prevProps.encoding, encoding) ||
+      prevProps.width !== width ||
+      prevProps.height !== height ||
+      prevProps.rotation !== rotation;
 
-  render() {
-    const { scaleFactor, words } = this.state;
-    const { width, height, encoding, sliceId, colorScheme } = this.props;
+    if (shouldUpdate) {
+      update();
+    }
 
-    const encoder = this.createEncoder(encoding);
+    prevPropsRef.current = { data, encoding, width, height, rotation };
+  }, [data, encoding, width, height, rotation, update]);
 
-    const colorFn = CategoricalColorNamespace.getScale(colorScheme);
-    const viewBoxWidth = width * scaleFactor;
-    const viewBoxHeight = height * scaleFactor;
+  const encoder = useMemo(
+    () => createEncoder(encoding),
+    [createEncoder, encoding],
+  );
 
-    return (
-      <svg
-        width={width}
-        height={height}
-        viewBox={`-${viewBoxWidth / 2} -${viewBoxHeight / 2} ${viewBoxWidth} ${viewBoxHeight}`}
-      >
-        <g>
-          {words.map(w => (
-            <text
-              key={w.text}
-              fontSize={`${w.size}px`}
-              fontWeight={w.weight}
-              fontFamily={w.font}
-              fill={colorFn(encoder.getColor(w as PlainObject), sliceId)}
-              textAnchor="middle"
-              transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
-            >
-              {w.text}
-            </text>
-          ))}
-        </g>
-      </svg>
-    );
-  }
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
+  const viewBoxWidth = width * scaleFactor;
+  const viewBoxHeight = height * scaleFactor;
+
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`-${viewBoxWidth / 2} -${viewBoxHeight / 2} ${viewBoxWidth} ${viewBoxHeight}`}
+    >
+      <g>
+        {words.map(w => (
+          <text
+            key={w.text}
+            fontSize={`${w.size}px`}
+            fontWeight={w.weight}
+            fontFamily={w.font}
+            fill={colorFn(encoder.getColor(w as PlainObject), sliceId)}
+            textAnchor="middle"
+            transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
+          >
+            {w.text}
+          </text>
+        ))}
+      </g>
+    </svg>
+  );
 }
 
 export default withTheme(WordCloud);
