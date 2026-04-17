@@ -18,7 +18,7 @@
  */
 import { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import rison from 'rison';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { isDefined, JsonResponse, SupersetClient } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { getUrlParam } from 'src/utils/urlUtils';

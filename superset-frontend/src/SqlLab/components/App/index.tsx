@@ -20,7 +20,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { connect } from 'react-redux';
 import { Redirect } from 'react-router-dom';
 import Mousetrap from 'mousetrap';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { throttle } from 'lodash';
 import {

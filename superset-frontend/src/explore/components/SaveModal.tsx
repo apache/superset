@@ -44,7 +44,8 @@ import {
   Typography,
   TreeSelect,
 } from '@superset-ui/core/components';
-import { t, logging } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import { DatasourceType, isDefined, SupersetClient } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';

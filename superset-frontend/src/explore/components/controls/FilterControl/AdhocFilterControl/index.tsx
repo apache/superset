@@ -24,9 +24,8 @@ import {
   type ReactNode,
 } from 'react';
 import { SupersetClient, ensureIsArray } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
-import { t } from '@apache-superset/core';
-
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import AdhocMetric, {
   isDictionaryForAdhocMetric,
