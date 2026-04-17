@@ -18,7 +18,7 @@
  */
 import { action } from '@storybook/addon-actions';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import RangeFilterPlugin from './index';
 import transformProps from './transformProps';
