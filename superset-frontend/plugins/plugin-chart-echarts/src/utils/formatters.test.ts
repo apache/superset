@@ -26,7 +26,21 @@ import {
   getPercentFormatter,
   getXAxisFormatter,
   withNaNFallback,
-} from '../../src/utils/formatters';
+} from './formatters';
+
+function makeNaNFallbackTestFormatter(
+  output: string | (() => never),
+): TimeFormatter {
+  return new TimeFormatter({
+    id: 'test',
+    formatFunc:
+      typeof output === 'string'
+        ? () => output
+        : () => {
+            throw new Error('boom');
+          },
+  });
+}
 
 test('getPercentFormatter should format as percent if no format is specified', () => {
   const value = 0.6;
@@ -181,60 +195,47 @@ test('getXAxisFormatter without time grain should use standard smart date behavi
   expect(standardResult).toBe(timeGrainResult);
 });
 
-describe('withNaNFallback', () => {
-  const makeFormatter = (output: string | (() => never)) =>
-    new TimeFormatter({
-      id: 'test',
-      formatFunc:
-        typeof output === 'string'
-          ? () => output
-          : () => {
-              throw new Error('boom');
-            },
-    });
+test('withNaNFallback returns primary formatter result when it contains no NaN', () => {
+  const primary = makeNaNFallbackTestFormatter('2025-01-01');
+  const fallback = makeNaNFallbackTestFormatter('fallback');
+  expect(withNaNFallback(primary, fallback)(new Date(0))).toBe('2025-01-01');
+});
 
-  test('returns primary formatter result when it contains no NaN', () => {
-    const primary = makeFormatter('2025-01-01');
-    const fallback = makeFormatter('fallback');
-    expect(withNaNFallback(primary, fallback)(new Date(0))).toBe('2025-01-01');
-  });
+test('withNaNFallback uses fallback when primary output contains NaN', () => {
+  const primary = makeNaNFallbackTestFormatter('NaN/NaN/NaN');
+  const fallback = makeNaNFallbackTestFormatter('2025-01-01');
+  expect(withNaNFallback(primary, fallback)(new Date(0))).toBe('2025-01-01');
+});
 
-  test('uses fallback when primary output contains NaN', () => {
-    const primary = makeFormatter('NaN/NaN/NaN');
-    const fallback = makeFormatter('2025-01-01');
-    expect(withNaNFallback(primary, fallback)(new Date(0))).toBe('2025-01-01');
-  });
+test('withNaNFallback uses String(value) when both primary and fallback produce NaN', () => {
+  const primary = makeNaNFallbackTestFormatter('NaN/NaN/NaN');
+  const fallback = makeNaNFallbackTestFormatter('NaN/NaN/NaN');
+  const date = new Date(1745784000000);
+  expect(withNaNFallback(primary, fallback)(date)).toBe(String(date));
+});
 
-  test('uses String(value) when both primary and fallback produce NaN', () => {
-    const primary = makeFormatter('NaN/NaN/NaN');
-    const fallback = makeFormatter('NaN/NaN/NaN');
-    const date = new Date(1745784000000);
-    expect(withNaNFallback(primary, fallback)(date)).toBe(String(date));
+test('withNaNFallback uses fallback when primary throws', () => {
+  const primary = makeNaNFallbackTestFormatter(() => {
+    throw new Error('boom');
   });
+  const fallback = makeNaNFallbackTestFormatter('2025-01-01');
+  expect(withNaNFallback(primary, fallback)(new Date(0))).toBe('2025-01-01');
+});
 
-  test('uses fallback when primary throws', () => {
-    const primary = makeFormatter(() => {
-      throw new Error('boom');
-    });
-    const fallback = makeFormatter('2025-01-01');
-    expect(withNaNFallback(primary, fallback)(new Date(0))).toBe('2025-01-01');
+test('withNaNFallback uses String(value) when primary throws and fallback produces NaN', () => {
+  const primary = makeNaNFallbackTestFormatter(() => {
+    throw new Error('boom');
   });
+  const fallback = makeNaNFallbackTestFormatter('NaN/NaN/NaN');
+  const date = new Date(42);
+  expect(withNaNFallback(primary, fallback)(date)).toBe(String(date));
+});
 
-  test('uses String(value) when primary throws and fallback produces NaN', () => {
-    const primary = makeFormatter(() => {
-      throw new Error('boom');
-    });
-    const fallback = makeFormatter('NaN/NaN/NaN');
-    const date = new Date(42);
-    expect(withNaNFallback(primary, fallback)(date)).toBe(String(date));
+test('withNaNFallback returns a TimeFormatter with the same id as the primary formatter', () => {
+  const primary = new TimeFormatter({
+    id: 'my-formatter',
+    formatFunc: () => '2025-01-01',
   });
-
-  test('returns a TimeFormatter with the same id as the primary formatter', () => {
-    const primary = new TimeFormatter({
-      id: 'my-formatter',
-      formatFunc: () => '2025-01-01',
-    });
-    const fallback = makeFormatter('fallback');
-    expect(withNaNFallback(primary, fallback).id).toBe('my-formatter');
-  });
+  const fallback = makeNaNFallbackTestFormatter('fallback');
+  expect(withNaNFallback(primary, fallback).id).toBe('my-formatter');
 });
