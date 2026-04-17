@@ -195,28 +195,103 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [lastFetchConfig, setLastFetchConfig] =
     useState<ListViewFetchDataConfig | null>(null);
 
-  const fetchData = useCallback(
-    (config: ListViewFetchDataConfig) => {
-      setLastFetchConfig(config);
-      setLoading(true);
-      const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
+  const currentSourceFilter = useMemo(() => {
+    const sourceTypeFilter = lastFetchConfig?.filters.find(
+      filter => filter.id === 'source_type',
+    );
+    if (
+      sourceTypeFilter?.value &&
+      typeof sourceTypeFilter.value === 'object' &&
+      'value' in sourceTypeFilter.value
+    ) {
+      return sourceTypeFilter.value.value as string;
+    }
+    return (sourceTypeFilter?.value as string | undefined) ?? '';
+  }, [lastFetchConfig]);
 
-      // Separate source_type filter from other filters
-      const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
+  /**
+   * Fetches "Data connection" filter options — a combined list of databases
+   * and semantic layers.
+   *
+   * Semantic layer values are prefixed with "sl:" so that fetchData can tell
+   * them apart from integer database IDs and route to the correct API filter.
+   */
+  const fetchConnectionOptions = useCallback(
+    async (filterValue = '', page: number, pageSize: number) => {
+      const showDatabases = currentSourceFilter !== 'semantic_layer';
+      const showSemanticLayers =
+        isFeatureEnabled(FeatureFlag.SemanticLayers) &&
+        currentSourceFilter !== 'database';
 
-      const otherFilters = filterValues
-        .filter(f => f.id !== 'source_type')
-        .filter(
-          ({ value }) => value !== '' && value !== null && value !== undefined,
-        )
-        .map(({ id, operator: opr, value }) => ({
-          col: id,
-          opr,
-          value:
-            value && typeof value === 'object' && 'value' in value
-              ? value.value
-              : value,
-        }));
+      const [dbResult, slResult] = await Promise.all([
+        showDatabases
+          ? createFetchRelated(
+              'dataset',
+              'database',
+              createErrorHandler(errMsg =>
+                t(
+                  'An error occurred while fetching %s: %s',
+                  datasetsLabelLower(),
+                  errMsg,
+                ),
+              ),
+            )(filterValue, page, pageSize)
+          : Promise.resolve({ data: [], totalCount: 0 }),
+        showSemanticLayers
+          ? SupersetClient.get({
+              endpoint: `/api/v1/semantic_layer/?q=${rison.encode_uri({
+                ...(filterValue
+                  ? { filters: [{ col: 'name', opr: 'ct', value: filterValue }] }
+                  : {}),
+                page: 0,
+                page_size: 100,
+              })}`,
+            })
+              .then(({ json = {} }) => ({
+                data: (json?.result ?? []).map(
+                  (layer: { uuid: string; name: string }) => ({
+                    label: layer.name,
+                    // "sl:" prefix distinguishes semantic layers from DB integer IDs
+                    value: `sl:${layer.uuid}`,
+                  }),
+                ),
+                totalCount: json?.count ?? 0,
+              }))
+              .catch(() => ({ data: [], totalCount: 0 }))
+          : Promise.resolve({ data: [], totalCount: 0 }),
+      ]);
+
+      return {
+        // Semantic layers first, then databases
+        data: [...slResult.data, ...dbResult.data],
+        totalCount: slResult.totalCount + dbResult.totalCount,
+      };
+    },
+    [currentSourceFilter],
+  );
+
+  const fetchData = useCallback((config: ListViewFetchDataConfig) => {
+    setLastFetchConfig(config);
+    setLoading(true);
+    const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
+
+    // Separate source_type and database/connection filters for special handling
+    const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
+    const databaseFilter = filterValues.find(f => f.id === 'database');
+
+    const otherFilters = filterValues
+      .filter(f => f.id !== 'source_type' && f.id !== 'database')
+      .filter(
+        ({ value }) => value !== '' && value !== null && value !== undefined,
+      )
+      .map(({ id, operator: opr, value }) => ({
+        col: id,
+        opr,
+        value:
+          value && typeof value === 'object' && 'value' in value
+            ? value.value
+            : value,
+      }));
 
       // Add source_type filter for the combined endpoint
       const sourceTypeValue =
@@ -231,32 +306,54 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         });
       }
 
-      const queryParams = rison.encode_uri({
-        order_column: sortBy[0].id,
-        order_direction: sortBy[0].desc ? 'desc' : 'asc',
-        page: pageIndex,
-        page_size: pageSize,
-        ...(otherFilters.length ? { filters: otherFilters } : {}),
-      });
+    const queryParams = rison.encode_uri({
+      order_column: sortBy[0].id,
+      order_direction: sortBy[0].desc ? 'desc' : 'asc',
+      page: pageIndex,
+      page_size: pageSize,
+      ...(otherFilters.length ? { filters: otherFilters } : {}),
+    });
 
-      return SupersetClient.get({
-        endpoint: `/api/v1/datasource/?q=${queryParams}`,
-      })
-        .then(({ json = {} }) => {
-          setDatasets(json.result);
-          setDatasetCount(json.count);
-        })
-        .catch(() => {
-          addDangerToast(
-            t('An error occurred while fetching %s', datasetsLabelLower()),
-          );
-        })
-        .finally(() => {
-          setLoading(false);
+    // Translate the "Data connection" filter: values prefixed with "sl:" are
+    // semantic layer UUIDs; plain values are database IDs.
+    if (databaseFilter?.value !== undefined && databaseFilter.value !== '') {
+      const raw =
+        databaseFilter.value &&
+        typeof databaseFilter.value === 'object' &&
+        'value' in databaseFilter.value
+          ? (databaseFilter.value as { value: unknown }).value
+          : databaseFilter.value;
+      if (typeof raw === 'string' && raw.startsWith('sl:')) {
+        otherFilters.push({
+          col: 'semantic_layer_uuid',
+          opr: 'eq',
+          value: raw.slice(3),
         });
-    },
-    [addDangerToast],
-  );
+      } else if (raw !== null && raw !== undefined && raw !== '') {
+        otherFilters.push({
+          col: 'database',
+          opr: databaseFilter.operator,
+          value: raw,
+        });
+      }
+    }
+
+    return SupersetClient.get({
+      endpoint: `/api/v1/datasource/?q=${queryParams}`,
+    })
+      .then(({ json = {} }) => {
+        setDatasets(json.result);
+        setDatasetCount(json.count);
+      })
+      .catch(() => {
+        addDangerToast(
+          t('An error occurred while fetching %s', datasetsLabelLower()),
+        );
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [addDangerToast]);
 
   const refreshData = useCallback(() => {
     if (lastFetchConfig) {
@@ -309,20 +406,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     state =>
       state.common?.conf?.PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET || false,
   );
-
-  const currentSourceFilter = useMemo(() => {
-    const sourceTypeFilter = lastFetchConfig?.filters.find(
-      filter => filter.id === 'source_type',
-    );
-    if (
-      sourceTypeFilter?.value &&
-      typeof sourceTypeFilter.value === 'object' &&
-      'value' in sourceTypeFilter.value
-    ) {
-      return sourceTypeFilter.value.value as string;
-    }
-    return (sourceTypeFilter?.value as string | undefined) ?? '';
-  }, [lastFetchConfig]);
 
   const openDatasetImportModal = () => {
     showImportModal(true);
@@ -773,7 +856,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               operator: FilterOperator.Equals,
               unfilteredLabel: t('All'),
               selects: [
-                { label: databaseLabel(), value: 'database' },
+                { label: t('Database'), value: 'database' },
                 { label: t('Semantic Layer'), value: 'semantic_layer' },
               ],
             },
@@ -826,20 +909,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: databaseLabel(),
         key: 'database',
         id: 'database',
-        input: 'select',
+        input: 'select' as const,
         operator: FilterOperator.RelationOneMany,
         unfilteredLabel: 'All',
-        fetchSelects: createFetchRelated(
-          'dataset',
-          'database',
-          createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching %s: %s',
-              datasetsLabelLower(),
-              errMsg,
-            ),
-          ),
-        ),
+        fetchSelects: fetchConnectionOptions,
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
