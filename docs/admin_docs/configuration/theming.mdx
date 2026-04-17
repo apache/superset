@@ -84,6 +84,33 @@ THEME_DARK = {
 # - OS preference detection is automatically enabled
 ```
 
+### App Branding
+
+The application name shown in the browser title bar, navigation, and email notifications can be
+set via the `brandAppName` theme token:
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "brandAppName": "Acme Analytics",
+        # ... other tokens
+    }
+}
+```
+
+Or in the theme CRUD UI JSON editor:
+
+```json
+{
+  "token": {
+    "brandAppName": "Acme Analytics"
+  }
+}
+```
+
+The existing `APP_NAME` Python config key continues to work for backward compatibility.
+`brandAppName` takes precedence when both are set, and allows different themes to carry different brand names.
+
 ### Migration from Configuration to UI
 
 When `ENABLE_UI_THEME_ADMINISTRATION = True`:

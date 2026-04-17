@@ -138,14 +138,24 @@ THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
 ```
 
 Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`. You can
-override the base URL for selenium using:
+override the base URL for Selenium using:
 
 ```
 WEBDRIVER_BASEURL = "https://superset.company.com"
 ```
 
-Additional selenium web drive configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
-implement a custom function to authenticate selenium. The default function uses the `flask-login`
+To control which user account Selenium authenticates as when rendering thumbnails and warming
+up caches, set:
+
+```python
+SUPERSET_CACHE_WARMUP_USER = "admin"  # default; must have access to all dashboards/charts
+```
+
+Use a dedicated read-only service account here rather than a personal admin account, so that
+cache warmup tasks don't fail if a specific user's credentials change.
+
+Additional Selenium WebDriver configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
+implement a custom function to authenticate Selenium. The default function uses the `flask-login`
 session cookie. Here's an example of a custom function signature:
 
 ```python

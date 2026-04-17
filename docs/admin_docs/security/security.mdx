@@ -52,6 +52,15 @@ only see the objects that they have access to.
 The **sql_lab** role grants access to SQL Lab. Note that while **Admin** users have access
 to all databases by default, both **Alpha** and **Gamma** users need to be given access on a per database basis.
 
+Beyond the base `sql_lab` role, two additional SQL Lab permissions must be explicitly granted for users who need these capabilities:
+
+| Permission | Feature |
+|------------|---------|
+| `can_estimate_query_cost` on `SQL Lab` | Estimate query cost before running |
+| `can_format_sql` on `SQL Lab` | Format SQL using the database's dialect |
+
+Grant these in **Security → List Roles** by adding the permissions to the relevant role.
+
 ### Public
 
 The **Public** role is the most restrictive built-in role, designed specifically for anonymous/unauthenticated

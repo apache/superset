@@ -173,6 +173,26 @@ FROM sales
 GROUP BY category
 ```
 
+## Using Jinja in Calculated Columns
+
+Jinja template macros are available in calculated column expressions in the dataset editor — not just in SQL Lab queries and virtual datasets. This allows column expressions to reference the current user or dynamic context.
+
+**Example: User-scoped calculated column**
+
+```sql
+CASE WHEN sales_rep = '{{ current_username() }}' THEN amount ELSE 0 END
+```
+
+**Example: Conditional display based on role**
+
+```sql
+CASE WHEN '{{ current_user_roles() }}' LIKE '%Finance%' THEN revenue ELSE NULL END
+```
+
+:::note
+The `ENABLE_TEMPLATE_PROCESSING` feature flag must be enabled by your administrator for Jinja in calculated columns to work.
+:::
+
 ## Testing Templates in SQL Lab
 
 Some variables like `from_dttm` and `filter_values()` only work when filters are applied from dashboards or charts. To test in SQL Lab:
@@ -243,6 +263,7 @@ Using `remove_filter=True` applies the filter in the inner query for better perf
 - Use `|tojson` to serialize arrays as JSON strings
 - Test queries with explicit parameter values before relying on filter context
 - For complex templating needs, ask your administrator about custom Jinja macros
+- **Format SQL is Jinja-aware**: The "Format SQL" button in SQL Lab correctly preserves `{{ }}` and `{% %}` template syntax and applies your selected database's SQL dialect when formatting.
 
 :::resources
 - [Admin Guide: SQL Templating Configuration](/admin-docs/configuration/sql-templating)

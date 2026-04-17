@@ -314,6 +314,26 @@ ECharts option overrides bypass Superset's validation layer. Invalid option keys
 
 When the **Search Box** is visible in a Table chart, the **Download** action exports only the rows currently visible after the search filter is applied — not the full underlying dataset. This matches the visual output and is intentional. To export the full dataset regardless of search state, use the **Download as CSV** option from the chart's three-dot menu in the dashboard or from the Explore chart toolbar before applying a search filter.
 
+### Sharing a Specific Tab
+
+When a dashboard has tabs, each tab gets its own shareable URL. Navigate to the tab you want to share and copy the URL from your browser's address bar — the tab anchor is encoded in the URL so that anyone opening the link lands directly on that tab.
+
+### Auto-Refresh
+
+Dashboards can be configured to refresh automatically at a fixed interval without user interaction. Open a dashboard, click the **⋮** (more options) menu in the top-right, and select **Set auto-refresh interval**. Choose an interval (e.g., every 10 seconds, 1 minute, or 10 minutes). The setting is per-session and resets when you close the tab.
+
+:::note
+Auto-refresh triggers a full data reload for all charts on the dashboard. For dashboards with expensive queries, choose longer intervals to avoid overloading your database.
+:::
+
+### Last Queried Timestamp
+
+Charts can display a "Last queried at" timestamp showing when the chart data was last fetched. This is useful on auto-refreshing dashboards to confirm data freshness. Enable it in **Dashboard Properties → Styling → Show last queried time**.
+
+### Saving a Chart to a Specific Tab
+
+When saving or adding a chart to a dashboard from Explore, you can select which tab it should land on using the tab tree-select dropdown in the "Add to dashboard" modal.
+
 :::resources
 - [Dashboard Customization](https://docs.preset.io/docs/dashboard-customization) - Advanced dashboard styling and layout options
 - [Blog: BI Dashboard Best Practices](https://preset.io/blog/bi-dashboard-best-practices/)
