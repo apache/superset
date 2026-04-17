@@ -265,17 +265,17 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
         return None
 
     sm = app.appbuilder.sm
-    # _extract_api_key_from_request is FAB's internal method for reading
+    # extract_api_key_from_request is FAB's method for reading
     # the Bearer token from the Authorization header and matching prefixes.
     # Not all FAB versions include this method, so guard with hasattr.
-    if not hasattr(sm, "_extract_api_key_from_request"):
+    if not hasattr(sm, "extract_api_key_from_request"):
         logger.debug(
-            "FAB SecurityManager does not have _extract_api_key_from_request; "
+            "FAB SecurityManager does not have extract_api_key_from_request; "
             "API key authentication is not available in this FAB version"
         )
         return None
 
-    api_key_string = sm._extract_api_key_from_request()
+    api_key_string = sm.extract_api_key_from_request()
     if api_key_string is None:
         return None
 
