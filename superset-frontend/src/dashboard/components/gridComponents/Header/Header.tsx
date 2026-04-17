@@ -18,8 +18,7 @@
  */
 import { useState, useCallback, memo } from 'react';
 import cx from 'classnames';
-import { css, styled } from '@apache-superset/core/ui';
-
+import { css, styled } from '@apache-superset/core/theme';
 import PopoverDropdown from '@superset-ui/core/components/PopoverDropdown';
 import { EditableTitle } from '@superset-ui/core/components';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';

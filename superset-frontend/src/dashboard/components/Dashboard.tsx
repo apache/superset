@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode, useCallback, useContext, useEffect, useRef } from 'react';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import { JsonObject } from '@superset-ui/core';
 
 import { Loading } from '@superset-ui/core/components';
