@@ -182,6 +182,8 @@ However, it is crucial to understand the following:
 
 By combining Superset's configurable safeguards with strong database-level security practices, you can achieve a more robust and layered security posture.
 
+**Dataset Sample Access**: The `get_samples()` endpoint now enforces datasource-level access control. Users can only fetch sample rows from datasets they have been explicitly granted access to — the same permission check applied when running chart queries. This closes a prior gap where unauthenticated or under-privileged access could retrieve sample data.
+
 ### REST API for user & role management
 
 Flask-AppBuilder supports a REST API for user CRUD,
