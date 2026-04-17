@@ -188,7 +188,7 @@ export function useTables(options: Params) {
 
   const enabled = supportsSchemas
     ? Boolean(dbId && schema && !isFetching && schemaOptionsMap.has(schema))
-    : Boolean(dbId && !isFetching);
+    : Boolean(dbId);
 
   const result = useTablesQuery(
     { dbId, catalog, schema, forceRefresh: false },

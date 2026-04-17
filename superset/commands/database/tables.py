@@ -44,7 +44,7 @@ class TablesDatabaseCommand(BaseCommand):
         self,
         db_id: int,
         catalog_name: str | None,
-        schema_name: str,
+        schema_name: str | None,
         force: bool,
     ):
         self._db_id = db_id
@@ -56,7 +56,7 @@ class TablesDatabaseCommand(BaseCommand):
         self.validate()
         self._catalog_name = self._catalog_name or self._model.get_default_catalog()
         if not self._model.db_engine_spec.supports_schemas:
-            self._schema_name = None  # type: ignore[assignment]
+            self._schema_name = None
         try:
             tables = security_manager.get_datasources_accessible_by_user(
                 database=self._model,

@@ -1067,6 +1067,9 @@ class EngineInformationSchema(Schema):
     supports_oauth2 = fields.Boolean(
         metadata={"description": "The database supports OAuth2"}
     )
+    supports_schemas = fields.Boolean(
+        metadata={"description": "The database uses schemas to organize tables"}
+    )
 
 
 class DatabaseConnectionSchema(Schema):

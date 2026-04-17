@@ -196,7 +196,7 @@ def test_tables_without_schema_support(
     db = mocker.patch("superset.commands.database.tables.db")
     db.session.query().filter().options().all.return_value = []
 
-    # Pass a schema name — it should be overridden to None because supports_schemas=False
+    # Schema name should be overridden to None when supports_schemas=False
     payload = TablesDatabaseCommand(1, None, "any_schema", False).run()
 
     assert payload["count"] == 2

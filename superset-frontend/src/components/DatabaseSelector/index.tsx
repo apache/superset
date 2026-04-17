@@ -256,7 +256,11 @@ export function DatabaseSelector({
             backend: row.backend,
             allow_multi_catalog: row.allow_multi_catalog,
             supports_schemas:
-              (row as any).engine_information?.supports_schemas !== false,
+              (
+                row as DatabaseObject & {
+                  engine_information?: { supports_schemas?: boolean };
+                }
+              ).engine_information?.supports_schemas !== false,
             order,
           }));
 

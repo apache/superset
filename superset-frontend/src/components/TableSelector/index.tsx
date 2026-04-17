@@ -303,8 +303,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
   function renderTableSelect() {
     const disabled =
-      (currentSchema && !formMode && readOnly) ||
-      (database?.supports_schemas !== false && !currentSchema);
+      readOnly || (database?.supports_schemas !== false && !currentSchema);
 
     const label = t('Table');
 
