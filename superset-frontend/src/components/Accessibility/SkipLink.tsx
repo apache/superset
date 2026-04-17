@@ -18,6 +18,7 @@
  */
 import { FC, MouseEvent } from 'react';
 import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 
 /**
  * SkipLink - WCAG 2.4.1 Bypass Blocks
@@ -60,7 +61,7 @@ interface SkipLinkProps {
 
 const SkipLink: FC<SkipLinkProps> = ({
   targetId = 'main-content',
-  children = 'Skip to main content',
+  children = t('Skip to main content'),
 }) => {
   const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
