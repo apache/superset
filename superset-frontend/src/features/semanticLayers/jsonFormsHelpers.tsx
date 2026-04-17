@@ -105,15 +105,21 @@ function ReadOnlyControl({
     }
   }, [defaultValue, data, handleChange, path]);
 
-  return TextControl({ ...rest, data, handleChange, path, schema, enabled: false });
+  return TextControl({
+    ...rest,
+    data,
+    handleChange,
+    path,
+    schema,
+    enabled: false,
+  });
 }
 const ReadOnlyRenderer = withJsonFormsControlProps(ReadOnlyControl);
 const readOnlyEntry = {
   tester: rankWith(
     11,
     schemaMatches(
-      s =>
-        s !== undefined && (s as Record<string, unknown>).readOnly === true,
+      s => s !== undefined && (s as Record<string, unknown>).readOnly === true,
     ),
   ),
   renderer: ReadOnlyRenderer,
@@ -147,7 +153,10 @@ function DynamicFieldControl(props: ControlProps) {
   const refreshing =
     refreshingSchema &&
     Array.isArray(deps) &&
-    areDependenciesSatisfied(deps as string[], (cfgData as Record<string, unknown>) ?? {});
+    areDependenciesSatisfied(
+      deps as string[],
+      (cfgData as Record<string, unknown>) ?? {},
+    );
 
   if (!refreshing) {
     return TextControl(props);
@@ -214,15 +223,13 @@ export function sanitizeSchema(schema: JsonSchema): JsonSchema {
  * Builds a JSON Forms UI schema from a JSON Schema, using the first
  * `examples` entry as placeholder text for each string property.
  */
-export function buildUiSchema(
-  schema: JsonSchema,
-): UISchemaElement | undefined {
+export function buildUiSchema(schema: JsonSchema): UISchemaElement | undefined {
   if (!schema.properties) return undefined;
 
   // Use explicit property order from backend if available,
   // otherwise fall back to the JSON object key order
   const propertyOrder: string[] =
-    (schema as Record<string, unknown>)['x-propertyOrder'] as string[] ??
+    ((schema as Record<string, unknown>)['x-propertyOrder'] as string[]) ??
     Object.keys(schema.properties);
 
   const elements = propertyOrder
@@ -271,9 +278,7 @@ export function getDynamicDependencies(
       'x-dependsOn' in prop &&
       Array.isArray((prop as Record<string, unknown>)['x-dependsOn'])
     ) {
-      deps[key] = (prop as Record<string, unknown>)[
-        'x-dependsOn'
-      ] as string[];
+      deps[key] = (prop as Record<string, unknown>)['x-dependsOn'] as string[];
     }
   }
   return deps;
