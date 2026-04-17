@@ -305,6 +305,7 @@ class SemanticView(AuditMixinNullable, Model):
                 for metric in self.implementation.get_metrics()
             ],
             "database": {},
+            "parent": {"name": self.semantic_layer.name},
             # UI features
             "verbose_map": {},
             "order_by_choices": [],
