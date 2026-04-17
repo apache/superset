@@ -47,6 +47,13 @@ class SemanticView(ABC):
 
     features: frozenset[SemanticViewFeature]
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """
+        Returns the display name of the semantic view.
+        """
+
     @abstractmethod
     def uid(self) -> str:
         """

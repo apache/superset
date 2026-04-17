@@ -24,7 +24,14 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
-import { FunctionComponent, useState, useMemo, useCallback, useRef, Key } from 'react';
+import {
+  FunctionComponent,
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  Key,
+} from 'react';
 import type { CellProps } from 'react-table';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
@@ -218,10 +225,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
    * - Selecting Source=Semantic Layer → clear DB connection + Physical/Virtual type
    */
   const cascadeClear = useCallback(
-    (
-      changed: 'source' | 'type' | 'connection',
-      newValue: unknown,
-    ) => {
+    (changed: 'source' | 'type' | 'connection', newValue: unknown) => {
       if (!isFeatureEnabled(FeatureFlag.SemanticLayers)) return;
 
       const isSlConnection = (v: unknown) =>
@@ -229,23 +233,34 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       const isDbConnection = (v: unknown) =>
         v !== undefined && v !== null && v !== '' && !isSlConnection(v);
       const isSemanticViewType = (v: unknown) => v === 'semantic_view';
-      const isPhysicalVirtualType = (v: unknown) =>
-        v === true || v === false;
+      const isPhysicalVirtualType = (v: unknown) => v === true || v === false;
 
       if (changed === 'connection') {
-        if (isSlConnection(newValue) && isPhysicalVirtualType(currentTypeFilter.current)) {
+        if (
+          isSlConnection(newValue) &&
+          isPhysicalVirtualType(currentTypeFilter.current)
+        ) {
           filtersRef.current?.clearFilterById('sql');
         }
-        if (isDbConnection(newValue) && isSemanticViewType(currentTypeFilter.current)) {
+        if (
+          isDbConnection(newValue) &&
+          isSemanticViewType(currentTypeFilter.current)
+        ) {
           filtersRef.current?.clearFilterById('sql');
         }
       }
 
       if (changed === 'type') {
-        if (isSemanticViewType(newValue) && isDbConnection(currentConnectionFilter.current)) {
+        if (
+          isSemanticViewType(newValue) &&
+          isDbConnection(currentConnectionFilter.current)
+        ) {
           filtersRef.current?.clearFilterById('database');
         }
-        if (isPhysicalVirtualType(newValue) && isSlConnection(currentConnectionFilter.current)) {
+        if (
+          isPhysicalVirtualType(newValue) &&
+          isSlConnection(currentConnectionFilter.current)
+        ) {
           filtersRef.current?.clearFilterById('database');
         }
       }
@@ -305,7 +320,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ? SupersetClient.get({
               endpoint: `/api/v1/semantic_layer/?q=${rison.encode_uri({
                 ...(filterValue
-                  ? { filters: [{ col: 'name', opr: 'ct', value: filterValue }] }
+                  ? {
+                      filters: [{ col: 'name', opr: 'ct', value: filterValue }],
+                    }
                   : {}),
                 page: 0,
                 page_size: 100,
@@ -334,97 +351,100 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     [currentSourceFilter],
   );
 
-  const fetchData = useCallback((config: ListViewFetchDataConfig) => {
-    setLastFetchConfig(config);
-    setLoading(true);
-    const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
+  const fetchData = useCallback(
+    (config: ListViewFetchDataConfig) => {
+      setLastFetchConfig(config);
+      setLoading(true);
+      const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
 
-    // Separate source_type and database/connection filters for special handling
-    const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
-    const databaseFilter = filterValues.find(f => f.id === 'database');
+      // Separate source_type and database/connection filters for special handling
+      const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
+      const databaseFilter = filterValues.find(f => f.id === 'database');
 
-    // Track source filter for conditional Type filter visibility
-    const sourceVal =
-      sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
-        ? (sourceTypeFilter.value as { value: string }).value
-        : ((sourceTypeFilter?.value as string) ?? '');
-    setCurrentSourceFilter(sourceVal);
-
-    const otherFilters = filterValues
-      .filter(f => f.id !== 'source_type' && f.id !== 'database')
-      .filter(
-        ({ value }) => value !== '' && value !== null && value !== undefined,
-      )
-      .map(({ id, operator: opr, value }) => ({
-        col: id,
-        opr,
-        value:
-          value && typeof value === 'object' && 'value' in value
-            ? value.value
-            : value,
-      }));
-
-      // Add source_type filter for the combined endpoint
-      const sourceTypeValue =
+      // Track source filter for conditional Type filter visibility
+      const sourceVal =
         sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
           ? (sourceTypeFilter.value as { value: string }).value
-          : (sourceTypeFilter?.value as string | undefined);
-      if (sourceTypeValue) {
-        otherFilters.push({
-          col: 'source_type',
-          opr: 'eq',
-          value: sourceTypeValue,
+          : ((sourceTypeFilter?.value as string) ?? '');
+      setCurrentSourceFilter(sourceVal);
+
+      const otherFilters = filterValues
+        .filter(f => f.id !== 'source_type' && f.id !== 'database')
+        .filter(
+          ({ value }) => value !== '' && value !== null && value !== undefined,
+        )
+        .map(({ id, operator: opr, value }) => ({
+          col: id,
+          opr,
+          value:
+            value && typeof value === 'object' && 'value' in value
+              ? value.value
+              : value,
+        }));
+
+        // Add source_type filter for the combined endpoint
+        const sourceTypeValue =
+          sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
+            ? (sourceTypeFilter.value as { value: string }).value
+            : (sourceTypeFilter?.value as string | undefined);
+        if (sourceTypeValue) {
+          otherFilters.push({
+            col: 'source_type',
+            opr: 'eq',
+            value: sourceTypeValue,
+          });
+        }
+
+        const queryParams = rison.encode_uri({
+          order_column: sortBy[0].id,
+          order_direction: sortBy[0].desc ? 'desc' : 'asc',
+          page: pageIndex,
+          page_size: pageSize,
+          ...(otherFilters.length ? { filters: otherFilters } : {}),
         });
+
+      // Translate the "Data connection" filter: values prefixed with "sl:" are
+      // semantic layer UUIDs; plain values are database IDs.
+      if (databaseFilter?.value !== undefined && databaseFilter.value !== '') {
+        const raw =
+          databaseFilter.value &&
+          typeof databaseFilter.value === 'object' &&
+          'value' in databaseFilter.value
+            ? (databaseFilter.value as { value: unknown }).value
+            : databaseFilter.value;
+        if (typeof raw === 'string' && raw.startsWith('sl:')) {
+          otherFilters.push({
+            col: 'semantic_layer_uuid',
+            opr: 'eq',
+            value: raw.slice(3),
+          });
+        } else if (raw !== null && raw !== undefined && raw !== '') {
+          otherFilters.push({
+            col: 'database',
+            opr: databaseFilter.operator,
+            value: raw as string | number,
+          });
+        }
       }
 
-      const queryParams = rison.encode_uri({
-        order_column: sortBy[0].id,
-        order_direction: sortBy[0].desc ? 'desc' : 'asc',
-        page: pageIndex,
-        page_size: pageSize,
-        ...(otherFilters.length ? { filters: otherFilters } : {}),
-      });
-
-    // Translate the "Data connection" filter: values prefixed with "sl:" are
-    // semantic layer UUIDs; plain values are database IDs.
-    if (databaseFilter?.value !== undefined && databaseFilter.value !== '') {
-      const raw =
-        databaseFilter.value &&
-        typeof databaseFilter.value === 'object' &&
-        'value' in databaseFilter.value
-          ? (databaseFilter.value as { value: unknown }).value
-          : databaseFilter.value;
-      if (typeof raw === 'string' && raw.startsWith('sl:')) {
-        otherFilters.push({
-          col: 'semantic_layer_uuid',
-          opr: 'eq',
-          value: raw.slice(3),
-        });
-      } else if (raw !== null && raw !== undefined && raw !== '') {
-        otherFilters.push({
-          col: 'database',
-          opr: databaseFilter.operator,
-          value: raw as string | number,
-        });
-      }
-    }
-
-    return SupersetClient.get({
-      endpoint: `/api/v1/datasource/?q=${queryParams}`,
-    })
-      .then(({ json = {} }) => {
-        setDatasets(json.result);
-        setDatasetCount(json.count);
+      return SupersetClient.get({
+        endpoint: `/api/v1/datasource/?q=${queryParams}`,
       })
-      .catch(() => {
-        addDangerToast(
-          t('An error occurred while fetching %s', datasetsLabelLower()),
-        );
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [addDangerToast]);
+        .then(({ json = {} }) => {
+          setDatasets(json.result);
+          setDatasetCount(json.count);
+        })
+        .catch(() => {
+          addDangerToast(
+            t('An error occurred while fetching %s', datasetsLabelLower()),
+          );
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    },
+    [addDangerToast],
+  );
 
   const refreshData = useCallback(() => {
     if (lastFetchConfig) {
