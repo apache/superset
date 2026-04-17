@@ -1119,9 +1119,37 @@ class XYChartConfig(UnknownFieldCheckMixin):
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "XYChartConfig":
         """Ensure all column labels are unique across x, y, and group_by."""
-        # When x is None it will be resolved later via main_dttm_col;
-        # skip duplicate-label validation since the final x is unknown.
         if self.x is None:
+            labels_seen: dict[str, str] = {}
+            duplicates: list[str] = []
+
+            # Still validate Y labels even when x will be resolved later
+            for i, col in enumerate(self.y):
+                label = _metric_display_label(col)
+                if label in labels_seen:
+                    duplicates.append(f"y[{i}]: '{label}' (conflicts with {labels_seen[label]})")
+                else:
+                    labels_seen[label] = f"y[{i}]"
+
+            # Validate group_by labels against Y labels
+            if self.group_by:
+                for i, col in enumerate(self.group_by):
+                    group_label = col.label or col.name
+                    if group_label in labels_seen:
+                        duplicates.append(
+                            f"group_by[{i}]: '{group_label}' "
+                            f"(conflicts with {labels_seen[group_label]})"
+                        )
+                    else:
+                        labels_seen[group_label] = f"group_by[{i}]"
+
+            if duplicates:
+                raise ValueError(
+                    f"Duplicate column/metric labels: {', '.join(duplicates)}. "
+                    f"Please make sure all columns and metrics have a unique label. "
+                    f"Use the 'label' field to provide custom names for columns."
+                )
+
             return self
 
         labels_seen: dict[str, str] = {}
