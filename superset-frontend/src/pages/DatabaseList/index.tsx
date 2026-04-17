@@ -842,7 +842,7 @@ function DatabaseList({
         operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: [
-          { label: databaseLabel(), value: 'database' },
+          { label: t('Database'), value: 'database' },
           { label: t('Semantic Layer'), value: 'semantic_layer' },
         ],
       });
