@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef } from 'react';
-import { t, logging } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import {
   ensureIsArray,
   FeatureFlag,
