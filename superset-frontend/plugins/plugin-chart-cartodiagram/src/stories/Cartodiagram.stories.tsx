@@ -22,7 +22,7 @@ import {
   VizType,
   getChartTransformPropsRegistry,
 } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
 import {
   EchartsPieChartPlugin,

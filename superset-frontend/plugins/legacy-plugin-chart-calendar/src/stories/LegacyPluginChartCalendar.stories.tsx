@@ -18,7 +18,7 @@
  */
 
 import { SuperChart } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import data from './data';
 import { dummyDatasource, withResizableChartDemo } from '@storybook-shared';

@@ -18,7 +18,7 @@
  */
 
 import { SuperChart } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
 import { withResizableChartDemo } from '@storybook-shared';
 import data from './data';

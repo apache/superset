@@ -18,7 +18,7 @@
  */
 
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   EchartsTreeChartPlugin,
   TreeTransformProps,

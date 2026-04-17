@@ -18,7 +18,7 @@
  */
 
 import { SuperChart, VizType } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import PartitionChartPlugin from '@superset-ui/legacy-plugin-chart-partition';
 import data from './data';
 import { dummyDatasource, withResizableChartDemo } from '@storybook-shared';

@@ -18,7 +18,7 @@
  */
 
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { kpiData, leaderboardData, timelineData } from './data';
 import { withResizableChartDemo } from '@storybook-shared';

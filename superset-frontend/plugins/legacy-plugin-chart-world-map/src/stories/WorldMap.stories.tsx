@@ -19,7 +19,7 @@
 
 /* eslint-disable no-magic-numbers, sort-keys */
 import { SuperChart } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 import { withResizableChartDemo } from '@storybook-shared';
 import data from './data';

@@ -19,7 +19,7 @@
 
 import memoizeOne from 'memoize-one';
 import { DataRecord, SuperChart, VizType } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import TableChartPlugin, {
   TableChartProps,
 } from '@superset-ui/plugin-chart-table';

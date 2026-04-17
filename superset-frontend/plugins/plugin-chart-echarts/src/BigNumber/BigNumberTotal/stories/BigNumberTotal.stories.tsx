@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SuperChart, VizType } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { withResizableChartDemo } from '@storybook-shared';
 import data from './data';

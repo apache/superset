@@ -22,7 +22,7 @@ import {
   ChartDataProvider,
   SupersetClient,
 } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { BigNumberChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 

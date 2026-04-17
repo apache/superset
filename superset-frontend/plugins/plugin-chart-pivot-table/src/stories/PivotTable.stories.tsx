@@ -18,7 +18,7 @@
  */
 
 import { SuperChart, VizType } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { PivotTableChartPlugin } from '@superset-ui/plugin-chart-pivot-table';
 import { basicFormData, basicData } from './testData';
 import { withResizableChartDemo } from '@storybook-shared';

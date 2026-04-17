@@ -18,7 +18,7 @@
  */
 
 import { SuperChart } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import { withResizableChartDemo } from '@storybook-shared';
 import data from './data';
