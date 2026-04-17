@@ -41,6 +41,11 @@ import {
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { addTable, removeTables } from 'src/SqlLab/actions/sqlLab';
+import {
+  getItem,
+  setItem,
+  LocalStorageKeys,
+} from 'src/utils/localStorageHelpers';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import TreeNodeRenderer from './TreeNodeRenderer';
@@ -126,6 +131,36 @@ const StyledTreeContainer = styled.div`
 
 const ROW_HEIGHT = 28;
 
+const getPinnedSchemasStorageKey = (
+  dbId: number | undefined,
+  catalog: string | null | undefined,
+): string => `${dbId ?? ''}:${catalog ?? ''}`;
+
+const getPinnedSchemasFromStorage = (
+  dbId: number | undefined,
+  catalog: string | null | undefined,
+): Set<string> => {
+  if (!dbId) return new Set();
+  const stored = getItem(LocalStorageKeys.SqllabPinnedSchemas, {});
+  const key = getPinnedSchemasStorageKey(dbId, catalog);
+  const schemas = stored[key];
+  return Array.isArray(schemas) ? new Set<string>(schemas) : new Set();
+};
+
+const savePinnedSchemasToStorage = (
+  dbId: number | undefined,
+  catalog: string | null | undefined,
+  schemas: Set<string>,
+) => {
+  if (!dbId) return;
+  const stored = getItem(LocalStorageKeys.SqllabPinnedSchemas, {});
+  const key = getPinnedSchemasStorageKey(dbId, catalog);
+  setItem(LocalStorageKeys.SqllabPinnedSchemas, {
+    ...stored,
+    [key]: [...schemas],
+  });
+};
+
 const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -161,6 +196,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     selectStarMap,
     handleToggle,
     handleRefreshTables,
+    refreshTableSchema,
     errorPayload,
   } = useTreeData({
     dbId,
@@ -199,6 +235,83 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     },
     [dispatch, tables, editorId, dbId],
   );
+  const [pinnedSchemas, setPinnedSchemas] = useState<Set<string>>(() =>
+    getPinnedSchemasFromStorage(dbId, catalog),
+  );
+
+  const previousDbIdRef = useRef<number | undefined>(dbId);
+  const previousCatalogRef = useRef<string | null | undefined>(catalog);
+
+  // Single effect handles both loading and persisting pinned schemas.
+  // Using refs to detect source changes avoids the race condition where the
+  // persist branch would run with stale pinnedSchemas right after a dbId/catalog
+  // change, corrupting the new source's stored pins.
+  useEffect(() => {
+    const dbChanged = previousDbIdRef.current !== dbId;
+    const catalogChanged = previousCatalogRef.current !== catalog;
+
+    if (dbChanged || catalogChanged) {
+      previousDbIdRef.current = dbId;
+      previousCatalogRef.current = catalog;
+      setPinnedSchemas(getPinnedSchemasFromStorage(dbId, catalog));
+      return;
+    }
+
+    savePinnedSchemasToStorage(dbId, catalog, pinnedSchemas);
+  }, [dbId, catalog, pinnedSchemas]);
+
+  const handlePinSchema = useCallback((schemaName: string) => {
+    setPinnedSchemas(prev => new Set([...prev, schemaName]));
+  }, []);
+
+  const handleUnpinSchema = useCallback((schemaName: string) => {
+    setPinnedSchemas(prev => {
+      const next = new Set(prev);
+      next.delete(schemaName);
+      return next;
+    });
+  }, []);
+
+  const sortedTreeData = useMemo(() => {
+    if (pinnedSchemas.size === 0) return treeData;
+    const pinned = treeData.filter(node => pinnedSchemas.has(node.name));
+    const rest = treeData.filter(node => !pinnedSchemas.has(node.name));
+    return [...pinned, ...rest];
+  }, [treeData, pinnedSchemas]);
+
+  const [sortedTables, setSortedTables] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setSortedTables({});
+  }, [dbId, catalog]);
+
+  const toggleSortColumns = useCallback((tableId: string) => {
+    setSortedTables(prev => ({ ...prev, [tableId]: !prev[tableId] }));
+  }, []);
+
+  const displayTreeData = useMemo(() => {
+    const activeSorted = Object.keys(sortedTables).filter(
+      id => sortedTables[id],
+    );
+    if (activeSorted.length === 0) return sortedTreeData;
+
+    const sortedSet = new Set(activeSorted);
+    return sortedTreeData.map(schemaNode => ({
+      ...schemaNode,
+      children: schemaNode.children?.map(tableNode => {
+        if (tableNode.type !== 'table' || !sortedSet.has(tableNode.id)) {
+          return tableNode;
+        }
+        const { children } = tableNode;
+        if (!children || children.length <= 1) return tableNode;
+        return {
+          ...tableNode,
+          children: [...children].sort((a, b) => a.name.localeCompare(b.name)),
+        };
+      }),
+    }));
+  }, [sortedTreeData, sortedTables]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const handleSearchChange = useCallback(
     ({ target }: ChangeEvent<HTMLInputElement>) => setSearchTerm(target.value),
@@ -270,8 +383,8 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
       return false;
     };
 
-    return treeData.some(node => checkNode(node));
-  }, [searchTerm, treeData]);
+    return displayTreeData.some(node => checkNode(node));
+  }, [searchTerm, displayTreeData]);
 
   // Node renderer for react-arborist
   const renderNode = useCallback(
@@ -283,19 +396,31 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         searchTerm={searchTerm}
         catalog={catalog}
         pinnedTableKeys={pinnedTableKeys}
+        pinnedSchemas={pinnedSchemas}
         selectStarMap={selectStarMap}
         handleRefreshTables={handleRefreshTables}
         handlePinTable={handlePinTable}
         handleUnpinTable={handleUnpinTable}
+        handlePinSchema={handlePinSchema}
+        handleUnpinSchema={handleUnpinSchema}
+        refreshTableSchema={refreshTableSchema}
+        sortedTables={sortedTables}
+        toggleSortColumns={toggleSortColumns}
       />
     ),
     [
       catalog,
       pinnedTableKeys,
+      pinnedSchemas,
       selectStarMap,
       handleRefreshTables,
       handlePinTable,
       handleUnpinTable,
+      handlePinSchema,
+      handleUnpinSchema,
+      refreshTableSchema,
+      sortedTables,
+      toggleSortColumns,
       loadingNodes,
       manuallyOpenedNodes,
       searchTerm,
@@ -369,7 +494,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
             return (
               <Tree<TreeNodeData>
                 ref={treeRef}
-                data={treeData}
+                data={displayTreeData}
                 width="100%"
                 height={height || 500}
                 rowHeight={ROW_HEIGHT}
