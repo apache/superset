@@ -152,7 +152,7 @@ test('chart editor screenshot', async ({ page }) => {
 });
 
 test('SQL Lab screenshot', async ({ page }) => {
-  // SQL Lab has many interactive steps (schema, table, query, results) — allow extra time
+  // SQL Lab has many interactive steps — allow extra time
   test.setTimeout(90000);
   await page.goto(URL.SQLLAB);
 
@@ -169,34 +169,7 @@ test('SQL Lab screenshot', async ({ page }) => {
   }
   await expect(aceEditor).toBeVisible({ timeout: 15000 });
 
-  // Select the "public" schema so we can pick a table from the left panel
-  const schemaSelect = page.locator('#select-schema');
-  await expect(schemaSelect).toBeEnabled({ timeout: 10000 });
-  await schemaSelect.click({ force: true });
-  await schemaSelect.fill('public');
-  await page.getByRole('option', { name: 'public' }).click();
-
-  // Wait for table list to load after schema change, then select birth_names
-  const tableSelectWrapper = page
-    .locator('.ant-select')
-    .filter({ has: page.locator('#select-table') });
-  await expect(tableSelectWrapper).toBeVisible({ timeout: 10000 });
-  await tableSelectWrapper.click();
-  await page.keyboard.type('birth_names');
-  // Wait for the filtered option to appear in the DOM, then select it
-  const tableOption = page
-    .locator('.ant-select-dropdown [role="option"]')
-    .filter({ hasText: 'birth_names' });
-  await expect(tableOption).toBeAttached({ timeout: 10000 });
-  await page.keyboard.press('Enter');
-
-  // Wait for table schema to load and show columns in the left panel
-  await expect(page.locator('[data-test="col-name"]').first()).toBeVisible({
-    timeout: 15000,
-  });
-
-  // Close the table dropdown by clicking elsewhere, then switch to the query tab
-  await page.locator('[data-test="sql-editor-tabs"]').first().click();
+  // Click the active query tab to ensure focus is on the editor pane
   await page.getByText('Untitled Query').first().click();
 
   // Write a multi-line SELECT with explicit columns to fill the editor
@@ -206,8 +179,8 @@ test('SQL Lab screenshot', async ({ page }) => {
     'SELECT\n  ds,\n  name,\n  gender,\n  state,\n  num\nFROM birth_names\nLIMIT 100',
   );
 
-  // Run the query
-  const runButton = page.getByText('Run', { exact: true });
+  // Run the query — use role to avoid matching "Run" text in other tab panels
+  const runButton = page.getByRole('button', { name: /caret-right Run/i });
   await expect(runButton).toBeVisible();
   await runButton.click();
 
@@ -239,8 +212,10 @@ test('datasets list screenshot', async ({ page }) => {
 
   const table = page.locator('[data-test="listview-table"]');
   await expect(table).toBeVisible({ timeout: 15000 });
-  // Wait for at least one data row (not just the header row)
-  await expect(table.locator('tbody tr').first()).toBeVisible({
+  // Wait for at least one visible data row (skip ant-table-measure-row which is always hidden)
+  await expect(
+    table.locator('tbody tr:not(.ant-table-measure-row)').first(),
+  ).toBeVisible({
     timeout: 10000,
   });
 
