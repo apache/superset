@@ -33,6 +33,9 @@ from superset.mcp_service.chart.tool.get_chart_sql import (
     _extract_sql_from_result,
     _find_chart_by_identifier,
     _resolve_effective_form_data,
+    _resolve_groupby,
+    _resolve_metrics,
+    _resolve_metrics_and_groupby,
 )
 
 _get_chart_sql_mod = importlib.import_module(
@@ -280,6 +283,62 @@ class TestResolveEffectiveFormData:
         assert using_unsaved is False
 
 
+class TestResolveMetricsAndGroupby:
+    """Tests for metric/groupby resolution helpers."""
+
+    def test_bubble_chart_extracts_x_y_size(self):
+        """Bubble charts store measures in x, y, size fields."""
+        form_data = {
+            "viz_type": "bubble",
+            "x": "col_x",
+            "y": "col_y",
+            "size": "col_size",
+        }
+        metrics = _resolve_metrics(form_data, "bubble")
+        assert metrics == ["col_x", "col_y", "col_size"]
+
+    def test_bubble_chart_via_resolve_metrics_and_groupby(self):
+        """Integration: _resolve_metrics_and_groupby handles bubble type."""
+        form_data = {
+            "viz_type": "bubble",
+            "x": "metric_a",
+            "y": "metric_b",
+            "size": "metric_c",
+            "groupby": ["dim1"],
+        }
+        metrics, groupby = _resolve_metrics_and_groupby(form_data, chart=None)
+        assert metrics == ["metric_a", "metric_b", "metric_c"]
+        assert groupby == ["dim1"]
+
+    def test_bubble_chart_missing_fields(self):
+        """Bubble charts with missing x/y/size fields produce partial metrics."""
+        form_data = {"viz_type": "bubble", "x": "only_x"}
+        metrics = _resolve_metrics(form_data, "bubble")
+        assert metrics == ["only_x"]
+
+    def test_string_groupby_normalised_to_list(self):
+        """A scalar string groupby must become a single-item list, not chars."""
+        groupby = _resolve_groupby({"groupby": "country"})
+        assert groupby == ["country"]
+
+    def test_list_groupby_unchanged(self):
+        """A list groupby should pass through normally."""
+        groupby = _resolve_groupby({"groupby": ["col_a", "col_b"]})
+        assert groupby == ["col_a", "col_b"]
+
+    def test_empty_groupby_falls_back_to_entity_series(self):
+        """Missing groupby falls back to entity/series/columns."""
+        form_data = {"entity": "country", "series": "year"}
+        groupby = _resolve_groupby(form_data)
+        assert groupby == ["country", "year"]
+
+    def test_empty_groupby_falls_back_to_columns(self):
+        """Missing groupby falls back to columns list."""
+        form_data = {"columns": ["a", "b"]}
+        groupby = _resolve_groupby(form_data)
+        assert groupby == ["a", "b"]
+
+
 class TestGetChartSqlTool:
     """Integration-style tests for the get_chart_sql MCP tool via Client."""
 
@@ -293,7 +352,7 @@ class TestGetChartSqlTool:
             mock_get_user.return_value = mock_user
             yield mock_get_user
 
-    @pytest.fixture
+    @pytest.fixture()
     def mcp_server(self):
         from superset.mcp_service.app import mcp
 
@@ -301,7 +360,7 @@ class TestGetChartSqlTool:
 
     @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
     @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_chart_not_found(self, mock_find, mock_validate, mcp_server):
         """Test that a not-found chart returns an error."""
         from fastmcp import Client
@@ -322,7 +381,7 @@ class TestGetChartSqlTool:
     @patch.object(_get_chart_sql_mod, "_resolve_effective_form_data")
     @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
     @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_success_via_saved_query_context(
         self,
         mock_find,
@@ -371,7 +430,7 @@ class TestGetChartSqlTool:
     @patch.object(_get_chart_sql_mod, "_resolve_effective_form_data")
     @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
     @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_fallback_to_form_data_when_saved_qc_fails(
         self,
         mock_find,
@@ -418,7 +477,7 @@ class TestGetChartSqlTool:
 
     @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
     @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_dataset_not_accessible(self, mock_find, mock_validate, mcp_server):
         """Test that inaccessible dataset returns error."""
         from fastmcp import Client

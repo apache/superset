@@ -58,6 +58,50 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
         return None
 
 
+def _resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
+    """Extract metrics from form_data, handling chart-type-specific fields."""
+    # Bubble charts store measures in x, y, size fields
+    if viz_type == "bubble":
+        return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
+
+    metrics = form_data.get("metrics", [])
+    # Fallback: some chart types store the measure as singular "metric"
+    if not metrics and (metric := form_data.get("metric")):
+        metrics = [metric]
+    return metrics
+
+
+def _resolve_groupby(form_data: dict[str, Any]) -> list[str]:
+    """Extract groupby columns from form_data with fallback aliases.
+
+    Normalises scalar strings (e.g. heatmap_v2 migrated from legacy
+    ``all_columns_y``) so that ``list("country")`` does not split into
+    individual characters.
+    """
+    raw_groupby = form_data.get("groupby") or []
+    if isinstance(raw_groupby, str):
+        groupby: list[str] = [raw_groupby]
+    else:
+        groupby = list(raw_groupby)
+
+    if groupby:
+        return groupby
+
+    # Fallback: some chart types store dimensions in entity/series/columns
+    for field in ("entity", "series"):
+        value = form_data.get(field)
+        if isinstance(value, str) and value not in groupby:
+            groupby.append(value)
+
+    form_columns = form_data.get("columns")
+    if isinstance(form_columns, list):
+        for col in form_columns:
+            if isinstance(col, str) and col not in groupby:
+                groupby.append(col)
+
+    return groupby
+
+
 def _resolve_metrics_and_groupby(
     form_data: dict[str, Any],
     chart: "Slice | None",
@@ -65,8 +109,8 @@ def _resolve_metrics_and_groupby(
     """Resolve metrics and groupby columns from form_data.
 
     Handles chart-type-specific field names: singular ``metric`` for
-    big-number variants, and fallback fields ``entity``, ``series``,
-    and ``columns`` for dimension resolution.
+    big-number variants, bubble ``x``/``y``/``size``, and fallback
+    fields ``entity``, ``series``, and ``columns`` for dimensions.
     """
     viz_type = form_data.get(
         "viz_type", getattr(chart, "viz_type", "") if chart else ""
@@ -81,26 +125,7 @@ def _resolve_metrics_and_groupby(
         metrics: list[Any] = [metric] if (metric := form_data.get("metric")) else []
         return metrics, []
 
-    metrics = form_data.get("metrics", [])
-    # Fallback: some chart types store the measure as singular "metric"
-    if not metrics and (metric := form_data.get("metric")):
-        metrics = [metric]
-
-    groupby = list(form_data.get("groupby") or [])
-    # Fallback: some chart types store dimensions in entity/series/columns
-    if not groupby:
-        for field in ("entity", "series"):
-            value = form_data.get(field)
-            if isinstance(value, str) and value not in groupby:
-                groupby.append(value)
-
-        form_columns = form_data.get("columns")
-        if isinstance(form_columns, list):
-            for col in form_columns:
-                if isinstance(col, str) and col not in groupby:
-                    groupby.append(col)
-
-    return metrics, groupby
+    return _resolve_metrics(form_data, viz_type), _resolve_groupby(form_data)
 
 
 def _build_query_context_from_form_data(
