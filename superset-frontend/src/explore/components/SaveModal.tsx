@@ -541,7 +541,9 @@ const SaveModal = ({
           return;
         }
         const searchParams = handleRedirect(window.location.search, value);
-        history.replace(`/explore/?${searchParams.toString()}`);
+        history.replace(`/explore/?${searchParams.toString()}`, {
+          saveAction: action,
+        });
 
         setIsLoading(false);
         onHide();
