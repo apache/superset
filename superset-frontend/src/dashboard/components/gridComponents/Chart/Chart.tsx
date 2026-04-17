@@ -775,6 +775,7 @@ const Chart = (props: ChartProps) => {
           emitCrossFilters={emitCrossFilters}
           onChartStateChange={handleChartStateChange}
           suppressLoadingSpinner={suppressLoadingSpinner}
+          filterState={dataMask[props.id]?.filterState}
         />
       </ChartWrapper>
 
