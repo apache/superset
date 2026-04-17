@@ -59,7 +59,7 @@ export interface ChartProps {
   sharedLabelColors?: string;
   width: number;
   height: number;
-  setControlValue: (name: string, value: unknown) => void;
+  setControlValue?: (name: string, value: unknown) => void;
   timeout?: number;
   vizType: string;
   triggerRender?: boolean;
@@ -68,7 +68,7 @@ export interface ChartProps {
   chartAlert?: string;
   chartStatus?: ChartStatus;
   chartStackTrace?: string;
-  queriesResponse: ChartState['queriesResponse'];
+  queriesResponse?: ChartState['queriesResponse'];
   latestQueryFormData?: ChartState['latestQueryFormData'];
   triggerQuery?: boolean;
   chartIsStale?: boolean;
