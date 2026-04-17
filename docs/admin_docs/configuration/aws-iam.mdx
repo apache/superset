@@ -1,0 +1,153 @@
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+---
+title: AWS IAM Authentication
+sidebar_label: AWS IAM Authentication
+sidebar_position: 15
+---
+
+# AWS IAM Authentication for AWS Databases
+
+Superset supports IAM-based authentication for **Amazon Aurora** (PostgreSQL and MySQL) and **Amazon Redshift**. IAM auth eliminates the need for database passwords — Superset generates a short-lived auth token using temporary AWS credentials instead.
+
+Cross-account IAM role assumption via STS `AssumeRole` is supported, allowing a Superset deployment in one AWS account to connect to databases in a different account.
+
+## Prerequisites
+
+- `boto3` must be installed in your Superset environment:
+  ```bash
+  pip install boto3
+  ```
+- The Superset server's IAM role (or static credentials) must have permission to call `sts:AssumeRole` (for cross-account) or `rds-db:connect` / `redshift:GetClusterCredentials` (for same-account).
+- SSL must be enabled on the Aurora / Redshift endpoint (required for IAM token auth).
+
+## Configuration
+
+IAM authentication is configured via the **encrypted_extra** field of the database connection. Access this field in the **Advanced** → **Security** section of the database connection form, under **Secure Extra**.
+
+### Aurora PostgreSQL or Aurora MySQL
+
+```json
+{
+  "aws_iam": {
+    "enabled": true,
+    "role_arn": "arn:aws:iam::222222222222:role/SupersetDatabaseAccess",
+    "external_id": "superset-prod-12345",
+    "region": "us-east-1",
+    "db_username": "superset_iam_user",
+    "session_duration": 3600
+  }
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `enabled` | Yes | Set to `true` to activate IAM auth |
+| `role_arn` | No | ARN of the cross-account IAM role to assume via STS. Omit for same-account auth |
+| `external_id` | No | External ID for the STS `AssumeRole` call, if required by the target role's trust policy |
+| `region` | Yes | AWS region of the database cluster |
+| `db_username` | Yes | The database username associated with the IAM identity |
+| `session_duration` | No | STS session duration in seconds (default: `3600`) |
+
+### Redshift (Serverless)
+
+```json
+{
+  "aws_iam": {
+    "enabled": true,
+    "role_arn": "arn:aws:iam::222222222222:role/SupersetRedshiftAccess",
+    "region": "us-east-1",
+    "workgroup_name": "my-workgroup",
+    "db_name": "dev"
+  }
+}
+```
+
+### Redshift (Provisioned Cluster)
+
+```json
+{
+  "aws_iam": {
+    "enabled": true,
+    "role_arn": "arn:aws:iam::222222222222:role/SupersetRedshiftAccess",
+    "region": "us-east-1",
+    "cluster_identifier": "my-cluster",
+    "db_username": "superset_iam_user",
+    "db_name": "dev"
+  }
+}
+```
+
+## Cross-Account IAM Setup
+
+To connect to a database in Account B from a Superset deployment in Account A:
+
+**1. In Account B — create a database-access role:**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["rds-db:connect"],
+      "Resource": "arn:aws:rds-db:us-east-1:222222222222:dbuser/db-XXXXXXXXXXXX/superset_iam_user"
+    }
+  ]
+}
+```
+
+**Trust policy** (allows Account A's Superset role to assume it):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::111111111111:role/SupersetInstanceRole"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "superset-prod-12345"
+        }
+      }
+    }
+  ]
+}
+```
+
+**2. In Account A — grant Superset's role permission to assume the Account B role:**
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "sts:AssumeRole",
+  "Resource": "arn:aws:iam::222222222222:role/SupersetDatabaseAccess"
+}
+```
+
+**3. Configure the database connection in Superset** using the `role_arn` and `external_id` from the trust policy (as shown in the configuration example above).
+
+## Credential Caching
+
+STS credentials are cached in memory keyed by `(role_arn, region, external_id)` with a 10-minute TTL. This reduces the number of STS API calls when multiple queries are executed with the same connection. Tokens are refreshed automatically before expiry.

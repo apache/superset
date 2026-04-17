@@ -75,6 +75,29 @@ The optional username flag **-u** sets the user used for the datasource import. 
 superset import_datasources -p <path / filename> -u 'admin'
 ```
 
+## Dashboard Import Overwrite Behavior
+
+When importing a dashboard ZIP with the **overwrite** option enabled, any existing charts that are part of the dashboard are **replaced** rather than duplicated. This applies to:
+
+- Charts whose UUID matches a chart already present in the target instance
+- The full chart configuration (query, visualization type, columns, metrics) is replaced by the imported version
+
+If you import without the overwrite flag, existing charts with conflicting UUIDs are left unchanged and the import skips those objects. Use overwrite when you want to push a fully updated dashboard (including chart definitions) from a development or staging environment to production.
+
+## UUIDs in API Responses
+
+The REST API POST endpoints for **datasets**, **charts**, and **dashboards** include the auto-generated `uuid` field in the response body:
+
+```json
+{
+  "id": 42,
+  "uuid": "b8a8d5c3-1234-4abc-8def-0123456789ab",
+  ...
+}
+```
+
+UUIDs remain stable across import/export cycles and can be used for cross-environment workflows — for example, recording a UUID when creating a chart in development and using it to identify the matching chart after importing into production.
+
 ## Legacy Importing Datasources
 
 ### From older versions of Superset to current version

@@ -501,6 +501,7 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_SERVICE_URL` | `None` | Public base URL for MCP-generated links (set this when behind a reverse proxy) |
 | `MCP_DEBUG` | `False` | Enable debug logging |
 | `MCP_DEV_USERNAME` | -- | Superset username for development mode (no auth) |
+| `MCP_PARSE_REQUEST_ENABLED` | `True` | Pre-parse MCP tool inputs from JSON strings into objects. Set to `False` for clients (Claude Desktop, LangChain) that do not double-serialize arguments — this produces cleaner tool schemas for those clients |
 
 ### Authentication
 
@@ -663,6 +664,34 @@ MCP_CSRF_CONFIG = {
 - To disable the guard entirely, set `MCP_RESPONSE_SIZE_CONFIG = {"enabled": False}`
 
 ---
+
+## Audit Events
+
+All MCP tool calls are logged to Superset's event logger, the same system used by the web UI (viewable at **Settings → Action Log**). Each event captures:
+
+- **Action**: `mcp.<tool_name>.<phase>` (e.g., `mcp.list_databases.query`)
+- **User**: the resolved Superset username from the JWT or dev config
+- **Timestamp**: when the operation ran
+
+This means MCP activity is auditable alongside normal user activity. No additional configuration is required — logging is on by default whenever the event logger is enabled in your Superset deployment.
+
+## Tool Pagination
+
+All MCP list tools use **cursor-based pagination** (`cursor` / `next_cursor` fields) rather than offset pagination. To iterate through all results:
+
+```python
+# Example: fetch all charts across pages
+cursor = None
+all_charts = []
+while True:
+    result = mcp.list_charts(cursor=cursor, page_size=50)
+    all_charts.extend(result["charts"])
+    cursor = result.get("next_cursor")
+    if not cursor:
+        break
+```
+
+The `page` parameter from older integrations is no longer supported. Update any tooling that relied on offset pagination to use `cursor` / `next_cursor` instead.
 
 ## Security Best Practices
 

@@ -56,8 +56,8 @@ Ask your AI assistant to browse what's available in your Superset instance:
 Describe the visualization you want and AI creates it for you:
 
 - **Create charts from natural language** -- describe what you want to see and AI picks the right chart type, metrics, and dimensions
-- **Preview before saving** -- AI generates a preview so you can review before committing
-- **Modify existing charts** -- update filters, change chart types, add metrics
+- **Preview before saving** -- `generate_chart` defaults to `save_chart=False`, showing the chart in Explore before it's committed. Ask AI to save once you're satisfied.
+- **Modify existing charts** -- `update_chart` also supports preview mode so you can review changes before saving
 - **Get Explore links** -- open any chart in Superset's Explore view for further refinement
 
 **Example prompts:**
@@ -195,27 +195,116 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 
 ## Available Tools Reference
 
+### Exploration & Discovery
+
 | Tool | Description |
 |------|-------------|
 | `health_check` | Verify the MCP server is running and connected |
 | `get_instance_info` | Get instance statistics (dataset, chart, dashboard counts) |
+| `get_home_page_info` | Get a summary of home page resources |
+| `get_superset_config_info` | Expose active Superset configuration details |
 | `get_schema` | Discover available charts, datasets, and dashboards with schema info |
+| `list_recent_activity` | List recent activity from the activity feed |
+| `list_chart_types` | Enumerate available chart types |
+
+### Datasets
+
+| Tool | Description |
+|------|-------------|
 | `list_datasets` | List datasets with filtering and search |
 | `get_dataset_info` | Get dataset metadata (columns, metrics, filters) |
+| `get_dataset_by_name` | Look up a dataset by name |
+
+### Charts
+
+| Tool | Description |
+|------|-------------|
 | `list_charts` | List charts with filtering and search |
 | `get_chart_info` | Get chart metadata and configuration |
+| `get_chart_by_name` | Look up a chart by name |
 | `get_chart_data` | Retrieve chart data (JSON, CSV, or Excel) |
+| `get_chart_data_by_url` | Retrieve chart data from a chart URL |
+| `get_chart_data_by_explore_url` | Retrieve chart data from an Explore URL |
 | `get_chart_preview` | Generate a chart preview (URL, ASCII, table, or Vega-Lite) |
-| `generate_chart` | Create a new chart from a specification |
-| `update_chart` | Modify an existing chart's configuration |
+| `get_chart_thumbnail` | Fetch the cached thumbnail image for a chart |
+| `generate_chart` | Create a new chart from a specification (defaults to preview mode — review before saving) |
+| `update_chart` | Modify an existing chart's configuration (supports `save_chart=False` for preview mode) |
 | `update_chart_preview` | Update a cached chart preview without saving |
+| `delete_chart` | Delete a chart |
+| `list_chart_owners` | List the owners of a chart |
+| `generate_explore_link` | Generate an Explore URL for interactive visualization |
+| `get_explore_link` | Get an Explore link from MCP context |
+| `get_explore_link_by_url` | Get an Explore link from a chart URL |
+| `get_explore_thumbnail` | Fetch the cached thumbnail for an Explore view |
+| `open_explore_link` | Open an Explore link in the browser |
+
+### Dashboards
+
+| Tool | Description |
+|------|-------------|
 | `list_dashboards` | List dashboards with filtering and search |
 | `get_dashboard_info` | Get dashboard metadata and layout |
+| `get_dashboard_by_name` | Look up a dashboard by name |
+| `get_dashboard_thumbnail` | Fetch the cached thumbnail image for a dashboard |
 | `generate_dashboard` | Create a new dashboard with specified charts |
+| `update_dashboard` | Modify an existing dashboard's metadata |
+| `delete_dashboard` | Delete a dashboard |
 | `add_chart_to_existing_dashboard` | Add a chart to an existing dashboard |
+| `remove_chart_from_dashboard` | Remove a chart from a dashboard |
+| `move_chart_to_dashboard` | Move a chart from one dashboard to another |
+| `update_chart_position` | Reposition a chart within a dashboard |
+| `list_charts_in_dashboard` | List all charts within a specific dashboard |
+| `list_dashboard_owners` | List the owners of a dashboard |
+| `open_dashboard` | Open a dashboard in the browser |
+| `add_filter_to_dashboard` | Add a native filter to a dashboard |
+| `list_dashboard_filters` | List native filters on a dashboard |
+| `update_dashboard_filter` | Update a native filter on a dashboard |
+| `delete_dashboard_filter` | Remove a native filter from a dashboard |
+| `get_dashboard_filter_info` | Get details about a specific dashboard filter |
+| `set_tab_order` | Reorder tabs in a tabbed dashboard |
+| `create_tab` | Add a new tab to a tabbed dashboard |
+| `delete_tab` | Remove a tab from a tabbed dashboard |
+| `rename_tab` | Rename a dashboard tab |
+
+### SQL & Saved Queries
+
+| Tool | Description |
+|------|-------------|
 | `execute_sql` | Run a SQL query with RBAC enforcement |
 | `open_sql_lab_with_context` | Open SQL Lab with a pre-populated query |
-| `generate_explore_link` | Generate an Explore URL for interactive visualization |
+| `open_sql_in_browser` | Open a SQL query in the browser |
+| `list_saved_queries` | List saved SQL queries from SQL Lab |
+| `create_saved_query` | Create a new saved query |
+| `update_saved_query` | Update an existing saved query |
+| `delete_saved_query` | Delete a saved query |
+
+### Databases
+
+| Tool | Description |
+|------|-------------|
+| `list_databases` | List configured database connections |
+| `get_database_info` | Get details about a specific database connection |
+| `get_database_dialect_info` | Get dialect details for a database |
+
+### Reports & Alerts
+
+| Tool | Description |
+|------|-------------|
+| `list_reports` | List configured alerts and reports |
+| `create_report` | Create a new alert or report |
+| `update_report` | Update an existing alert or report |
+| `delete_report` | Delete a report |
+| `get_report_info` | Get details about a specific report |
+
+### Users, Roles & Permissions
+
+| Tool | Description |
+|------|-------------|
+| `get_users` | List users in the Superset instance |
+| `list_roles` | List all roles |
+| `get_role_info` | Get details and permissions for a specific role |
+| `list_permissions` | List all available permissions |
+| `get_permission_info` | Get details about a specific permission |
 
 ---
 
