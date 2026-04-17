@@ -186,8 +186,36 @@ if not os.path.isdir(specs_dir):
     print(json.dumps({"error": f"Directory not found: {specs_dir}", "cwd": os.getcwd()}))
     sys.exit(1)
 
-# First pass: collect all class info (name, bases, metadata)
-class_info = {}  # class_name -> {bases: [], metadata: {}, engine_name: str, filename: str}
+# Capability flag attributes with their defaults from BaseEngineSpec
+CAP_ATTR_DEFAULTS = {
+    'supports_dynamic_schema': False,
+    'supports_catalog': False,
+    'supports_dynamic_catalog': False,
+    'disable_ssh_tunneling': False,
+    'supports_file_upload': True,
+    'allows_joins': True,
+    'allows_subqueries': True,
+}
+
+# Methods that indicate a capability when overridden by a non-BaseEngineSpec class.
+# Mirrors the has_custom_method checks in superset/db_engine_specs/lib.py.
+# cancel_query / get_cancel_query_id / has_implicit_cancel -> query_cancelation
+# estimate_statement_cost / estimate_query_cost -> query_cost_estimation
+# impersonate_user / update_impersonation_config / get_url_for_impersonation -> user_impersonation
+# validate_sql -> sql_validation (not used yet; validation is engine-based)
+CAP_METHODS = {
+    'cancel_query', 'get_cancel_query_id', 'has_implicit_cancel',
+    'estimate_statement_cost', 'estimate_query_cost',
+    'impersonate_user', 'update_impersonation_config', 'get_url_for_impersonation',
+    'validate_sql',
+}
+
+# Only the literal BaseEngineSpec is excluded from method-override tracking.
+# Intermediate base classes (e.g. PrestoBaseEngineSpec) do count as overrides.
+TRUE_BASE_CLASS = 'BaseEngineSpec'
+
+# First pass: collect all class info (name, bases, metadata, cap_attrs, direct_methods)
+class_info = {}  # class_name -> {bases: [], metadata: {}, engine_name: str, filename: str, ...}
 
 for filename in sorted(os.listdir(specs_dir)):
     if not filename.endswith('.py') or filename in ('__init__.py', 'lib.py', 'lint_metadata.py'):
@@ -218,30 +246,38 @@ for filename in sorted(os.listdir(specs_dir)):
 
             # Extract class attributes
             engine_name = None
+            engine_attr = None
             metadata = None
+            cap_attrs = {}   # capability flag attributes defined directly in this class
+            direct_methods = set()  # capability methods defined directly in this class
 
             for item in node.body:
                 if isinstance(item, ast.Assign):
                     for target in item.targets:
-                        if isinstance(target, ast.Name):
-                            if target.id == 'engine_name':
-                                val = eval_node(item.value)
-                                if isinstance(val, str):
-                                    engine_name = val
-                            elif target.id == 'metadata':
-                                metadata = eval_node(item.value)
+                        if not isinstance(target, ast.Name):
+                            continue
+                        if target.id == 'engine_name':
+                            val = eval_node(item.value)
+                            if isinstance(val, str):
+                                engine_name = val
+                        elif target.id == 'engine':
+                            val = eval_node(item.value)
+                            if isinstance(val, str):
+                                engine_attr = val
+                        elif target.id == 'metadata':
+                            metadata = eval_node(item.value)
+                        elif target.id in CAP_ATTR_DEFAULTS:
+                            val = eval_node(item.value)
+                            # Only store if we got a concrete bool value (not None/unevaluable)
+                            if isinstance(val, bool):
+                                cap_attrs[target.id] = val
+                elif isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if item.name in CAP_METHODS:
+                        direct_methods.add(item.name)
 
             # Check for engine attribute with non-empty value to distinguish
             # true base classes from product classes like OceanBaseEngineSpec
-            has_non_empty_engine = False
-            for item in node.body:
-                if isinstance(item, ast.Assign):
-                    for target in item.targets:
-                        if isinstance(target, ast.Name) and target.id == 'engine':
-                            # Check if engine value is non-empty string
-                            if isinstance(item.value, ast.Constant):
-                                has_non_empty_engine = bool(item.value.value)
-                            break
+            has_non_empty_engine = engine_attr is not None and bool(engine_attr)
 
             # True base classes: end with BaseEngineSpec AND don't define engine
             # or have empty engine (like PostgresBaseEngineSpec with engine = "")
@@ -254,13 +290,17 @@ for filename in sorted(os.listdir(specs_dir)):
                 'bases': base_names,
                 'metadata': metadata,
                 'engine_name': engine_name,
+                'engine': engine_attr,
                 'filename': filename,
                 'is_base_or_mixin': is_true_base,
+                'cap_attrs': cap_attrs,
+                'direct_methods': direct_methods,
             }
     except Exception as e:
         errors.append(f"{filename}: {str(e)}")
 
-# Second pass: resolve inheritance and build final metadata
+# Second pass: resolve inheritance and build final metadata + capability flags
+
 def get_inherited_metadata(class_name, visited=None):
     """Recursively get metadata from parent classes."""
     if visited is None:
@@ -286,6 +326,44 @@ def get_inherited_metadata(class_name, visited=None):
 
     return inherited
 
+def get_resolved_caps(class_name, visited=None):
+    """
+    Resolve capability flags and method overrides with inheritance.
+
+    Cap attrs: child values override parent values (same as Python MRO).
+    Methods: track which non-BaseEngineSpec classes define them directly,
+    matching the has_custom_method() logic in superset/db_engine_specs/lib.py.
+    """
+    if visited is None:
+        visited = set()
+    if class_name in visited:
+        return dict(CAP_ATTR_DEFAULTS), set()
+    visited.add(class_name)
+
+    info = class_info.get(class_name)
+    if not info:
+        return dict(CAP_ATTR_DEFAULTS), set()
+
+    # Start from base defaults
+    resolved_attrs = dict(CAP_ATTR_DEFAULTS)
+    resolved_methods = set()
+
+    # Collect from parents first
+    for base_name in info['bases']:
+        parent_attrs, parent_methods = get_resolved_caps(base_name, visited.copy())
+        resolved_attrs.update(parent_attrs)
+        resolved_methods.update(parent_methods)
+
+    # Apply this class's own cap_attrs (override parent values)
+    resolved_attrs.update(info['cap_attrs'])
+
+    # Accumulate method overrides, but skip the literal BaseEngineSpec
+    # (its implementations are stubs; only non-base overrides count)
+    if class_name != TRUE_BASE_CLASS:
+        resolved_methods.update(info['direct_methods'])
+
+    return resolved_attrs, resolved_methods
+
 for class_name, info in class_info.items():
     # Skip base classes and mixins
     if info['is_base_or_mixin']:
@@ -310,6 +388,11 @@ for class_name, info in class_info.items():
 
     if final_metadata and isinstance(final_metadata, dict) and display_name:
         debug_info["classes_with_metadata"] += 1
+
+        # Resolve capability flags from Python source
+        cap_attrs, cap_methods = get_resolved_caps(class_name)
+        engine_attr = info.get('engine') or ''
+
         databases[display_name] = {
             'engine': display_name.lower().replace(' ', '_'),
             'engine_name': display_name,
@@ -318,17 +401,22 @@ for class_name, info in class_info.items():
             'time_grains': {},
             'score': 0,
             'max_score': 0,
-            'joins': True,
-            'subqueries': True,
-            'supports_dynamic_schema': False,
-            'supports_catalog': False,
-            'supports_dynamic_catalog': False,
-            'ssh_tunneling': False,
-            'query_cancelation': False,
-            'supports_file_upload': False,
-            'user_impersonation': False,
-            'query_cost_estimation': False,
-            'sql_validation': False,
+            # Capability flags read from engine spec class attributes/methods
+            'joins': cap_attrs['allows_joins'],
+            'subqueries': cap_attrs['allows_subqueries'],
+            'supports_dynamic_schema': cap_attrs['supports_dynamic_schema'],
+            'supports_catalog': cap_attrs['supports_catalog'],
+            'supports_dynamic_catalog': cap_attrs['supports_dynamic_catalog'],
+            'ssh_tunneling': not cap_attrs['disable_ssh_tunneling'],
+            'supports_file_upload': cap_attrs['supports_file_upload'],
+            # Method-based flags: True only when a non-base class overrides them
+            'query_cancelation': bool({'cancel_query', 'get_cancel_query_id', 'has_implicit_cancel'} & cap_methods),
+            'query_cost_estimation': bool({'estimate_statement_cost', 'estimate_query_cost'} & cap_methods),
+            # SQL validation is implemented in external validator classes keyed by engine name
+            'sql_validation': engine_attr in {'presto', 'postgresql'},
+            'user_impersonation': bool(
+                {'impersonate_user', 'update_impersonation_config', 'get_url_for_impersonation'} & cap_methods
+            ),
         }
 
 if errors and not databases:
@@ -853,22 +941,21 @@ function loadExistingData() {
 
 /**
  * Merge new documentation with existing diagnostics
- * Preserves score, time_grains, and feature flags from existing data
+ * Preserves score, max_score, and time_grains from existing data (these require
+ * Flask context to generate and cannot be derived from static source analysis).
+ * Capability flags (joins, supports_catalog, etc.) are NOT preserved here — they
+ * are now read fresh from the Python engine spec source by extractEngineSpecMetadata().
  */
 function mergeWithExistingDiagnostics(newDatabases, existingData) {
   if (!existingData?.databases) return newDatabases;
 
-  const diagnosticFields = [
-    'score', 'max_score', 'time_grains', 'joins', 'subqueries',
-    'supports_dynamic_schema', 'supports_catalog', 'supports_dynamic_catalog',
-    'ssh_tunneling', 'query_cancelation', 'supports_file_upload',
-    'user_impersonation', 'query_cost_estimation', 'sql_validation'
-  ];
+  // Only preserve fields that require Flask/runtime context to generate
+  const diagnosticFields = ['score', 'max_score', 'time_grains'];
 
   for (const [name, db] of Object.entries(newDatabases)) {
     const existingDb = existingData.databases[name];
     if (existingDb && existingDb.score > 0) {
-      // Preserve diagnostics from existing data
+      // Preserve score/time_grain diagnostics from existing data
       for (const field of diagnosticFields) {
         if (existingDb[field] !== undefined) {
           db[field] = existingDb[field];
@@ -879,7 +966,7 @@ function mergeWithExistingDiagnostics(newDatabases, existingData) {
 
   const preserved = Object.values(newDatabases).filter(d => d.score > 0).length;
   if (preserved > 0) {
-    console.log(`Preserved diagnostics for ${preserved} databases from existing data`);
+    console.log(`Preserved score/time_grains for ${preserved} databases from existing data`);
   }
 
   return newDatabases;
