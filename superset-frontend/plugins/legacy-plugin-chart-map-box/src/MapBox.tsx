@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useMemo, memo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react';
 import MapGL from 'react-map-gl';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
 import ScatterPlotGlowOverlay from './ScatterPlotGlowOverlay';
@@ -59,6 +59,48 @@ interface MapBoxProps {
   renderWhileDragging?: boolean;
   rgb?: (string | number)[];
   bounds?: [[number, number], [number, number]]; // May be undefined for empty datasets
+  viewportLongitude?: number;
+  viewportLatitude?: number;
+  viewportZoom?: number;
+}
+
+function computeFitBounds(
+  width: number,
+  height: number,
+  bounds?: [[number, number], [number, number]],
+): Viewport {
+  if (bounds && bounds[0] && bounds[1]) {
+    const mercator = new WebMercatorViewport({ width, height }).fitBounds(
+      bounds,
+    );
+    return {
+      latitude: mercator.latitude,
+      longitude: mercator.longitude,
+      zoom: mercator.zoom,
+    };
+  }
+  return { latitude: 0, longitude: 0, zoom: 1 };
+}
+
+function mergeViewportWithProps(
+  fitBounds: Viewport,
+  viewport: Viewport,
+  viewportLongitude: number | undefined,
+  viewportLatitude: number | undefined,
+  viewportZoom: number | undefined,
+  useFitBoundsForUnset: boolean,
+): Viewport {
+  return {
+    ...viewport,
+    longitude:
+      viewportLongitude ??
+      (useFitBoundsForUnset ? fitBounds.longitude : viewport.longitude),
+    latitude:
+      viewportLatitude ??
+      (useFitBoundsForUnset ? fitBounds.latitude : viewport.latitude),
+    zoom:
+      viewportZoom ?? (useFitBoundsForUnset ? fitBounds.zoom : viewport.zoom),
+  };
 }
 
 function MapBox({
@@ -76,26 +118,68 @@ function MapBox({
   renderWhileDragging,
   rgb,
   bounds,
+  viewportLongitude,
+  viewportLatitude,
+  viewportZoom,
 }: MapBoxProps) {
-  // Compute initial viewport from bounds
   const initialViewport = useMemo((): Viewport => {
-    let latitude = 0;
-    let longitude = 0;
-    let zoom = 1;
-
-    // Guard against empty datasets where bounds may be undefined
-    if (bounds && bounds[0] && bounds[1]) {
-      const mercator = new WebMercatorViewport({
-        width,
-        height,
-      }).fitBounds(bounds);
-      ({ latitude, longitude, zoom } = mercator);
-    }
-
-    return { longitude, latitude, zoom };
-  }, []); // Only compute once on mount - bounds don't update as we pan/zoom
+    const fitBounds = computeFitBounds(width, height, bounds);
+    return mergeViewportWithProps(
+      fitBounds,
+      fitBounds,
+      viewportLongitude,
+      viewportLatitude,
+      viewportZoom,
+      true,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Compute once on mount; subsequent updates handled via useEffect below
 
   const [viewport, setViewport] = useState<Viewport>(initialViewport);
+
+  const prevRef = useRef({
+    width,
+    height,
+    bounds,
+    viewportLongitude,
+    viewportLatitude,
+    viewportZoom,
+  });
+
+  useEffect(() => {
+    const prev = prevRef.current;
+    const fitBoundsInputsChanged =
+      prev.width !== width ||
+      prev.height !== height ||
+      prev.bounds !== bounds;
+    const viewportPropsChanged =
+      prev.viewportLongitude !== viewportLongitude ||
+      prev.viewportLatitude !== viewportLatitude ||
+      prev.viewportZoom !== viewportZoom;
+
+    if (fitBoundsInputsChanged || viewportPropsChanged) {
+      const fitBounds = computeFitBounds(width, height, bounds);
+      setViewport(prevViewport =>
+        mergeViewportWithProps(
+          fitBounds,
+          prevViewport,
+          viewportLongitude,
+          viewportLatitude,
+          viewportZoom,
+          fitBoundsInputsChanged,
+        ),
+      );
+    }
+
+    prevRef.current = {
+      width,
+      height,
+      bounds,
+      viewportLongitude,
+      viewportLatitude,
+      viewportZoom,
+    };
+  }, [width, height, bounds, viewportLongitude, viewportLatitude, viewportZoom]);
 
   const handleViewportChange = useCallback(
     (newViewport: Viewport) => {
