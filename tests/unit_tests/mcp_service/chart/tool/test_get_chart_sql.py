@@ -352,7 +352,7 @@ class TestGetChartSqlTool:
             mock_get_user.return_value = mock_user
             yield mock_get_user
 
-    @pytest.fixture()
+    @pytest.fixture
     def mcp_server(self):
         from superset.mcp_service.app import mcp
 
@@ -360,7 +360,7 @@ class TestGetChartSqlTool:
 
     @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
     @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_chart_not_found(self, mock_find, mock_validate, mcp_server):
         """Test that a not-found chart returns an error."""
         from fastmcp import Client
@@ -381,7 +381,7 @@ class TestGetChartSqlTool:
     @patch.object(_get_chart_sql_mod, "_resolve_effective_form_data")
     @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
     @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_success_via_saved_query_context(
         self,
         mock_find,
@@ -430,7 +430,7 @@ class TestGetChartSqlTool:
     @patch.object(_get_chart_sql_mod, "_resolve_effective_form_data")
     @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
     @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_fallback_to_form_data_when_saved_qc_fails(
         self,
         mock_find,
@@ -477,7 +477,7 @@ class TestGetChartSqlTool:
 
     @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
     @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_dataset_not_accessible(self, mock_find, mock_validate, mcp_server):
         """Test that inaccessible dataset returns error."""
         from fastmcp import Client
