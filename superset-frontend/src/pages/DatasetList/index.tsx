@@ -24,7 +24,7 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
-import { FunctionComponent, useState, useMemo, useCallback, Key } from 'react';
+import { FunctionComponent, useState, useMemo, useCallback, useRef, Key } from 'react';
 import type { CellProps } from 'react-table';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
@@ -194,6 +194,84 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [loading, setLoading] = useState(true);
   const [lastFetchConfig, setLastFetchConfig] =
     useState<ListViewFetchDataConfig | null>(null);
+  const [currentSourceFilter, setCurrentSourceFilter] = useState<string>('');
+  // Track the current type and connection filter values so cascade-clear logic
+  // can inspect them when a different filter changes.
+  const currentTypeFilter = useRef<unknown>(undefined);
+  const currentConnectionFilter = useRef<unknown>(undefined);
+
+  // Ref wired to ListView's filter controls for programmatic per-filter clearing.
+  const filtersRef = useRef<{
+    clearFilters: () => void;
+    clearFilterById: (id: string) => void;
+  }>(null);
+
+  /**
+   * Cascade-clear incompatible filters when one filter changes.
+   *
+   * Rules:
+   * - Selecting a DB connection → clear "Semantic View" type
+   * - Selecting a SL connection → clear "Physical" / "Virtual" type
+   * - Selecting Physical/Virtual type → clear any SL connection
+   * - Selecting Semantic View type → clear any DB connection
+   * - Selecting Source=Database → clear SL connection + Semantic View type
+   * - Selecting Source=Semantic Layer → clear DB connection + Physical/Virtual type
+   */
+  const cascadeClear = useCallback(
+    (
+      changed: 'source' | 'type' | 'connection',
+      newValue: unknown,
+    ) => {
+      if (!isFeatureEnabled(FeatureFlag.SemanticLayers)) return;
+
+      const isSlConnection = (v: unknown) =>
+        typeof v === 'string' && v.startsWith('sl:');
+      const isDbConnection = (v: unknown) =>
+        v !== undefined && v !== null && v !== '' && !isSlConnection(v);
+      const isSemanticViewType = (v: unknown) => v === 'semantic_view';
+      const isPhysicalVirtualType = (v: unknown) =>
+        v === true || v === false;
+
+      if (changed === 'connection') {
+        if (isSlConnection(newValue) && isPhysicalVirtualType(currentTypeFilter.current)) {
+          filtersRef.current?.clearFilterById('sql');
+        }
+        if (isDbConnection(newValue) && isSemanticViewType(currentTypeFilter.current)) {
+          filtersRef.current?.clearFilterById('sql');
+        }
+      }
+
+      if (changed === 'type') {
+        if (isSemanticViewType(newValue) && isDbConnection(currentConnectionFilter.current)) {
+          filtersRef.current?.clearFilterById('database');
+        }
+        if (isPhysicalVirtualType(newValue) && isSlConnection(currentConnectionFilter.current)) {
+          filtersRef.current?.clearFilterById('database');
+        }
+      }
+
+      if (changed === 'source') {
+        const src = newValue as string;
+        if (src === 'database') {
+          if (isSemanticViewType(currentTypeFilter.current)) {
+            filtersRef.current?.clearFilterById('sql');
+          }
+          if (isSlConnection(currentConnectionFilter.current)) {
+            filtersRef.current?.clearFilterById('database');
+          }
+        }
+        if (src === 'semantic_layer') {
+          if (isPhysicalVirtualType(currentTypeFilter.current)) {
+            filtersRef.current?.clearFilterById('sql');
+          }
+          if (isDbConnection(currentConnectionFilter.current)) {
+            filtersRef.current?.clearFilterById('database');
+          }
+        }
+      }
+    },
+    [],
+  );
 
   /**
    * Fetches "Data connection" filter options — a combined list of databases
@@ -326,7 +404,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         otherFilters.push({
           col: 'database',
           opr: databaseFilter.operator,
-          value: raw,
+          value: raw as string | number,
         });
       }
     }
@@ -866,6 +944,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 { label: t('Database'), value: 'database' },
                 { label: t('Semantic Layer'), value: 'semantic_layer' },
               ],
+              onFilterUpdate: (option: any) => {
+                cascadeClear('source', option?.value);
+              },
             },
           ]
         : []),
@@ -896,6 +977,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   ? [{ label: t('Semantic View'), value: 'semantic_view' }]
                   : []),
               ],
+              onFilterUpdate: (option: any) => {
+                currentTypeFilter.current = option?.value;
+                cascadeClear('type', option?.value);
+              },
             },
           ]
         : [
@@ -922,6 +1007,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         fetchSelects: fetchConnectionOptions,
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        onFilterUpdate: (option: any) => {
+          currentConnectionFilter.current = option?.value;
+          cascadeClear('connection', option?.value);
+        },
       },
       {
         Header: t('Schema'),
@@ -1388,6 +1477,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               pageSize={PAGE_SIZE}
               fetchData={fetchData}
               filters={filterTypes}
+              filtersRef={filtersRef}
               loading={loading}
               initialSort={initialSort}
               bulkActions={bulkActions}
