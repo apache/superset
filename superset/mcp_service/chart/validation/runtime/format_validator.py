@@ -78,7 +78,7 @@ class FormatTypeValidator:
             warnings.extend(y_warnings)
 
         # Validate X-axis format (usually temporal or categorical)
-        if config.x_axis and config.x_axis.format:
+        if config.x_axis and config.x_axis.format and config.x is not None:
             x_warnings = FormatTypeValidator._validate_x_axis_format(
                 config.x_axis.format, config.x
             )

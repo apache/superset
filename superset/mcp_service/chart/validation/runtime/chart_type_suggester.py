@@ -68,6 +68,9 @@ class ChartTypeSuggester:
         issues = []
         suggestions = []
 
+        if config.x is None:
+            return True, None
+
         x_analysis = ChartTypeSuggester._analyze_x_axis(config.x.name)
         y_analysis = ChartTypeSuggester._analyze_y_axis(config.y)
 
