@@ -179,7 +179,13 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        chartRef.current = init(divRef.current, null, { locale });
+        // WCAG 1.4.5: use SVG renderer so chart text remains real text
+        // (scales and recolors via theme) instead of being rasterized into
+        // a canvas bitmap that breaks text resize and contrast adjustments.
+        chartRef.current = init(divRef.current, null, {
+          locale,
+          renderer: 'svg',
+        });
       }
       // did mount
       handleSizeChange({ width, height });
