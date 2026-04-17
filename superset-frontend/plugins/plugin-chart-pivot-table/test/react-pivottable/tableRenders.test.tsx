@@ -19,7 +19,7 @@
 
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { supersetTheme, ThemeProvider } from '@apache-superset/core/ui';
+import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
 import { aggregatorTemplates } from '../../src/react-pivottable/utilities';
 
