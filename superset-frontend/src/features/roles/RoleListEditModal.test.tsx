@@ -233,16 +233,19 @@ describe('RoleListEditModal', () => {
   test('preserves missing IDs as numeric fallbacks on partial hydration', async () => {
     const mockGet = SupersetClient.get as jest.Mock;
     mockGet.mockImplementation(({ endpoint }) => {
-      if (endpoint?.includes('/api/v1/security/permissions-resources/')) {
+      if (
+        endpoint?.includes(
+          `/api/v1/security/roles/${mockRole.id}/permissions/`,
+        )
+      ) {
         // Only return permission id=10, not id=20
         return Promise.resolve({
           json: {
-            count: 1,
             result: [
               {
                 id: 10,
-                permission: { name: 'can_read' },
-                view_menu: { name: 'Dashboard' },
+                permission_name: 'can_read',
+                view_menu_name: 'Dashboard',
               },
             ],
           },
@@ -276,7 +279,11 @@ describe('RoleListEditModal', () => {
     mockToasts.addDangerToast.mockClear();
     const mockGet = SupersetClient.get as jest.Mock;
     mockGet.mockImplementation(({ endpoint }) => {
-      if (endpoint?.includes('/api/v1/security/permissions-resources/')) {
+      if (
+        endpoint?.includes(
+          `/api/v1/security/roles/${mockRole.id}/permissions/`,
+        )
+      ) {
         return Promise.reject(new Error('network error'));
       }
       if (endpoint?.includes('/api/v1/security/groups/')) {
@@ -346,24 +353,26 @@ describe('RoleListEditModal', () => {
     };
 
     mockGet.mockImplementation(({ endpoint }) => {
-      if (endpoint?.includes('/api/v1/security/permissions-resources/')) {
-        const query = rison.decode(endpoint.split('?q=')[1]) as Record<
-          string,
-          unknown
-        >;
-        const filters = query.filters as Array<{
-          col: string;
-          opr: string;
-          value: number[];
-        }>;
-        const ids = filters?.[0]?.value || [];
-        const result = ids.map((id: number) => ({
-          id,
-          permission: { name: `perm_${id}` },
-          view_menu: { name: `view_${id}` },
-        }));
+      if (endpoint?.includes(`/api/v1/security/roles/${roleA.id}/permissions/`)) {
         return Promise.resolve({
-          json: { count: result.length, result },
+          json: {
+            result: roleA.permission_ids.map(pid => ({
+              id: pid,
+              permission_name: `perm_${pid}`,
+              view_menu_name: `view_${pid}`,
+            })),
+          },
+        });
+      }
+      if (endpoint?.includes(`/api/v1/security/roles/${roleB.id}/permissions/`)) {
+        return Promise.resolve({
+          json: {
+            result: roleB.permission_ids.map(pid => ({
+              id: pid,
+              permission_name: `perm_${pid}`,
+              view_menu_name: `view_${pid}`,
+            })),
+          },
         });
       }
       return Promise.resolve({ json: { count: 0, result: [] } });
@@ -380,7 +389,7 @@ describe('RoleListEditModal', () => {
 
     await waitFor(() => {
       const permCall = mockGet.mock.calls.find(([c]) =>
-        c.endpoint.includes('/api/v1/security/permissions-resources/'),
+        c.endpoint.includes(`/api/v1/security/roles/${roleA.id}/permissions/`),
       );
       expect(permCall).toBeTruthy();
     });
@@ -400,26 +409,16 @@ describe('RoleListEditModal', () => {
 
     await waitFor(() => {
       const permCalls = mockGet.mock.calls.filter(([c]) =>
-        c.endpoint.includes('/api/v1/security/permissions-resources/'),
+        c.endpoint.includes(`/api/v1/security/roles/${roleB.id}/permissions/`),
       );
       expect(permCalls.length).toBeGreaterThan(0);
-      // Should request role B's IDs, not role A's
-      const query = rison.decode(
-        permCalls[0][0].endpoint.split('?q=')[1],
-      ) as Record<string, unknown>;
-      const filters = query.filters as Array<{
-        col: string;
-        opr: string;
-        value: number[];
-      }>;
-      expect(filters[0].value).toEqual(roleB.permission_ids);
     });
 
     unmount();
     mockGet.mockReset();
   });
 
-  test('fetches permissions and groups by id for hydration', async () => {
+  test('fetches permissions via role endpoint and groups by id for hydration', async () => {
     const mockGet = SupersetClient.get as jest.Mock;
     mockGet.mockResolvedValue({
       json: {
@@ -434,8 +433,11 @@ describe('RoleListEditModal', () => {
       expect(mockGet).toHaveBeenCalled();
     });
 
+    // Permissions should be fetched via the role's permissions endpoint (no ID list in URL)
     const permissionCall = mockGet.mock.calls.find(([call]) =>
-      call.endpoint.includes('/api/v1/security/permissions-resources/'),
+      call.endpoint.includes(
+        `/api/v1/security/roles/${mockRole.id}/permissions/`,
+      ),
     )?.[0];
     const groupsCall = mockGet.mock.calls.find(([call]) =>
       call.endpoint.includes('/api/v1/security/groups/'),
@@ -447,26 +449,17 @@ describe('RoleListEditModal', () => {
       throw new Error('Expected hydration calls to be defined');
     }
 
-    const permissionQuery = permissionCall.endpoint.match(/\?q=(.+)/);
+    // Permission endpoint has no query params (role ID is in the path)
+    expect(permissionCall.endpoint).toBe(
+      `/api/v1/security/roles/${mockRole.id}/permissions/`,
+    );
+
+    // Groups still use the id-in filter
     const groupsQuery = groupsCall.endpoint.match(/\?q=(.+)/);
-    expect(permissionQuery).toBeTruthy();
     expect(groupsQuery).toBeTruthy();
-    if (!permissionQuery || !groupsQuery) {
-      throw new Error('Expected query params to be present');
+    if (!groupsQuery) {
+      throw new Error('Expected groups query params to be present');
     }
-
-    expect(rison.decode(permissionQuery[1])).toEqual({
-      page_size: 100,
-      page: 0,
-      filters: [
-        {
-          col: 'id',
-          opr: 'in',
-          value: mockRole.permission_ids,
-        },
-      ],
-    });
-
     expect(rison.decode(groupsQuery[1])).toEqual({
       page_size: 100,
       page: 0,
