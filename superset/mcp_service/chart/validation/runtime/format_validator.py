@@ -84,10 +84,6 @@ class FormatTypeValidator:
                 config.x_axis.format, x_column
             )
             warnings.extend(x_warnings)
-            x_warnings = FormatTypeValidator._validate_x_axis_format(
-                config.x_axis.format, config.x
-            )
-            warnings.extend(x_warnings)
 
         return len(warnings) == 0, warnings if warnings else None
 
