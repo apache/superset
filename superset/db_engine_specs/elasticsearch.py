@@ -39,6 +39,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
+    allows_offset_fetch = False
 
     metadata = {
         "description": (
@@ -190,6 +191,7 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
+    allows_offset_fetch = False
 
     _time_grain_expressions = {
         None: "{col}",

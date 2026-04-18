@@ -92,3 +92,22 @@ def test_opendistro_sqla_column_label(original: str, expected: str) -> None:
     from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec
 
     assert OpenDistroEngineSpec.make_label_compatible(original) == expected
+
+
+def test_elasticsearch_spec_opts_out_of_offset_fetch() -> None:
+    """
+    Elasticsearch SQL does not support OFFSET. The spec must opt out so the
+    query builder does not emit OFFSET clauses that crash the parser.
+    """
+    from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
+
+    assert ElasticSearchEngineSpec.allows_offset_fetch is False
+
+
+def test_opendistro_spec_opts_out_of_offset_fetch() -> None:
+    """
+    OpenDistro/OpenSearch SQL also does not support OFFSET.
+    """
+    from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec
+
+    assert OpenDistroEngineSpec.allows_offset_fetch is False
