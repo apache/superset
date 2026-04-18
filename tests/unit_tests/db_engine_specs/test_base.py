@@ -1223,3 +1223,26 @@ def test_start_oauth2_dance_falls_back_to_url_for(mocker: MockerFixture) -> None
     error = exc_info.value.error
 
     assert error.extra["redirect_uri"] == fallback_uri
+
+
+def test_base_spec_allows_offset_fetch_default_true() -> None:
+    """
+    New engines opt-in to OFFSET support by default. Engines that do not
+    support OFFSET (like Elasticsearch SQL) opt out explicitly.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    assert BaseEngineSpec.allows_offset_fetch is True
+
+
+def test_base_spec_public_information_includes_allows_offset_fetch() -> None:
+    """
+    The allows_offset_fetch capability is exposed via get_public_information
+    so the frontend can reason about it (e.g. future UI disablement).
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    info = BaseEngineSpec.get_public_information()
+
+    assert "allows_offset_fetch" in info
+    assert info["allows_offset_fetch"] is True
