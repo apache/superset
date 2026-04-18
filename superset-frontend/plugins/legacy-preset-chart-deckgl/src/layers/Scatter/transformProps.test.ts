@@ -157,12 +157,31 @@ test('Scatter transformProps should handle missing point_radius_fixed', () => {
   expect(features[1]?.radius).toBeUndefined();
 });
 
-test('Scatter transformProps should handle category_name for category colors', () => {
+test('Scatter transformProps should not set cat_color when dimension is not specified', () => {
+  const result = transformProps({
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      point_radius_fixed: {
+        type: 'fix',
+        value: '1000',
+      },
+      // no dimension
+    },
+  } as ChartProps);
+  const features = result.payload.data.features as ScatterFeature[];
+
+  expect(features).toHaveLength(2);
+  expect(features[0]?.cat_color).toBeUndefined();
+  expect(features[1]?.cat_color).toBeUndefined();
+});
+
+test('Scatter transformProps should handle dimension for categorical colors', () => {
   const propsWithCategory = {
     ...mockChartProps,
     rawFormData: {
       ...mockChartProps.rawFormData,
-      category_name: 'category',
+      dimension: 'category',
       point_radius_fixed: {
         type: 'fix',
         value: '1000',

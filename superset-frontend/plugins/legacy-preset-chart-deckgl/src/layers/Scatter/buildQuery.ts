@@ -52,14 +52,14 @@ export interface DeckScatterFormData
   min_radius?: number;
   max_radius?: number;
   color_picker?: { r: number; g: number; b: number; a: number };
-  category_name?: string;
+  dimension?: string;
 }
 
 export default function buildQuery(formData: DeckScatterFormData) {
   const {
     spatial,
     point_radius_fixed,
-    category_name,
+    dimension,
     js_columns,
     tooltip_contents,
   } = formData;
@@ -73,8 +73,8 @@ export default function buildQuery(formData: DeckScatterFormData) {
       const spatialColumns = getSpatialColumns(spatial);
       let columns = [...(baseQueryObject.columns || []), ...spatialColumns];
 
-      if (category_name) {
-        columns.push(category_name);
+      if (dimension) {
+        columns.push(dimension);
       }
 
       const columnStrings = columns.map(col =>

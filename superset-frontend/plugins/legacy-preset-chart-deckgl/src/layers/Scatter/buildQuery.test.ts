@@ -108,10 +108,10 @@ test('Scatter buildQuery should include spatial columns in query', () => {
   expect(query.columns).toContain('LONGITUDE');
 });
 
-test('Scatter buildQuery should include category_name column when specified', () => {
+test('Scatter buildQuery should include dimension column when specified', () => {
   const formData: DeckScatterFormData = {
     ...baseFormData,
-    category_name: 'category',
+    dimension: 'category',
     point_radius_fixed: {
       type: 'fix',
       value: '1000',
@@ -122,6 +122,23 @@ test('Scatter buildQuery should include category_name column when specified', ()
   const [query] = queryContext.queries;
 
   expect(query.columns).toContain('category');
+});
+
+test('Scatter buildQuery should not include extra column when dimension is not set', () => {
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'fix',
+      value: '1000',
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Should only have spatial columns, nothing extra
+  expect(query.columns).not.toContain(undefined);
+  expect(query.columns).toHaveLength(2); // just LATITUDE, LONGITUDE
 });
 
 test('Scatter buildQuery should add spatial null filters', () => {

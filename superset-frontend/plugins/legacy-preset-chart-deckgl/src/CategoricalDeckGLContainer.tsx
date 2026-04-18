@@ -68,7 +68,7 @@ function getCategories(fd: QueryFormData, data: JsonObject[]) {
       if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
         let color;
         if (fd.dimension) {
-          color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
+          color = hexToRGB(colorFn(d.cat_color, fd.slice_id), c.a * 255);
         } else {
           color = fixedColor;
         }
