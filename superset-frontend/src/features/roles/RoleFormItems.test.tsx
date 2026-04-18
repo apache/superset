@@ -46,6 +46,7 @@ test('PermissionsField renders label and select', () => {
     <PermissionsField addDangerToast={addDangerToast} />,
   );
   expect(screen.getByText('Permissions')).toBeInTheDocument();
+  expect(screen.getByTestId('permissions-select')).toBeInTheDocument();
 });
 
 test('PermissionsField renders loading state', () => {
@@ -53,13 +54,15 @@ test('PermissionsField renders loading state', () => {
     <PermissionsField addDangerToast={addDangerToast} loading />,
   );
   expect(screen.getByText('Permissions')).toBeInTheDocument();
+  expect(screen.getByTestId('permissions-select')).toBeInTheDocument();
 });
 
 test('UsersField renders label and select', () => {
   render(
     <UsersField addDangerToast={addDangerToast} loading={false} />,
   );
-  expect(screen.getAllByText('Users')[0]).toBeInTheDocument();
+  expect(screen.getByText('Users')).toBeInTheDocument();
+  expect(screen.getByTestId('roles-select')).toBeInTheDocument();
 });
 
 test('GroupsField renders label and select', () => {
@@ -67,4 +70,5 @@ test('GroupsField renders label and select', () => {
     <GroupsField addDangerToast={addDangerToast} />,
   );
   expect(screen.getByText('Groups')).toBeInTheDocument();
+  expect(screen.getByTestId('groups-select')).toBeInTheDocument();
 });
