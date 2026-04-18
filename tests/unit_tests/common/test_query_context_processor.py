@@ -928,6 +928,7 @@ def test_get_df_payload_validates_before_cache_key_generation():
                 mock_cache.query = "SELECT * FROM table"
                 mock_cache.error_message = None
                 mock_cache.status = "success"
+                mock_cache.bq_memory_limited = False
                 mock_cache_manager.get.return_value = mock_cache
 
                 # Call get_df_payload
@@ -1303,6 +1304,7 @@ def test_force_cached_normalizes_totals_query_row_limit():
                 cache.is_cached = True
                 cache.sql_rowcount = len(df)
                 cache.cache_dttm = "2024-01-01T00:00:00"
+                cache.bq_memory_limited = False
                 return cache
 
             mock_cache_manager.get.side_effect = cache_get
@@ -1359,6 +1361,8 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
             self.applied_template_filters = []
             self.rejected_filter_columns = []
             self.annotation_data = {}
+            self.bq_memory_limited = False
+            self.bq_memory_limited_row_count = 0
             self.set_query_result = MagicMock()
 
     mock_cache = MockCache()
