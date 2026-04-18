@@ -1151,7 +1151,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               items: [
                 {
                   key: 'dataset',
-                  label: datasetLabel(),
+                  label: t('Dataset'),
                   onClick: () => history.push('/dataset/add/'),
                 },
                 {

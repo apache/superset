@@ -47,12 +47,10 @@ class SemanticView(ABC):
 
     features: frozenset[SemanticViewFeature]
 
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """
-        Returns the display name of the semantic view.
-        """
+    # Implementations must expose a display name for the view.
+    # Declared here as a type annotation (not abstract) so that existing
+    # implementations are not required to add a formal @abstractmethod.
+    name: str
 
     @abstractmethod
     def uid(self) -> str:
