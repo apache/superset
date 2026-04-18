@@ -39,6 +39,7 @@ import path from 'path';
 import { Page } from '@playwright/test';
 import { test, expect } from '@playwright/test';
 import { URL } from '../../utils/urls';
+import { apiDelete, apiGet } from '../../helpers/api/requests';
 
 const DOCS_STATIC = path.resolve(__dirname, '../../../../docs/static/img');
 const SCREENSHOTS_DIR = path.join(DOCS_STATIC, 'screenshots');
@@ -82,6 +83,49 @@ async function openSalesDashboard(page: Page): Promise<void> {
   await expect(
     page.locator('.dashboard-component-chart-holder canvas').first(),
   ).toBeVisible({ timeout: 15000 });
+}
+
+/**
+ * Delete all dashboards matching the given exact title, along with the
+ * charts attached to them. Used by the save-flow test to clean up after
+ * itself and to recover from prior failed runs (idempotent pre-cleanup).
+ *
+ * Only safe because the title is unique to the test ("Superset Duper
+ * Sales Dashboard"); don't reuse this against titles that could match
+ * example-data dashboards.
+ */
+async function deleteDashboardByTitle(
+  page: Page,
+  title: string,
+): Promise<void> {
+  const filter = `(filters:!((col:dashboard_title,opr:eq,value:'${title}')))`;
+  const resp = await apiGet(page, 'api/v1/dashboard/', {
+    params: { q: filter },
+    failOnStatusCode: false,
+  });
+  if (!resp.ok()) return;
+  const body = await resp.json();
+  const dashboards: { id: number }[] = body.result || [];
+
+  for (const dash of dashboards) {
+    const chartsResp = await apiGet(
+      page,
+      `api/v1/dashboard/${dash.id}/charts`,
+      { failOnStatusCode: false },
+    );
+    const chartIds: number[] = chartsResp.ok()
+      ? ((await chartsResp.json()).result || [])
+          .map((c: { id?: number }) => c.id)
+          .filter((id: unknown): id is number => typeof id === 'number')
+      : [];
+
+    await apiDelete(page, `api/v1/dashboard/${dash.id}`, {
+      failOnStatusCode: false,
+    });
+    for (const id of chartIds) {
+      await apiDelete(page, `api/v1/chart/${id}`, { failOnStatusCode: false });
+    }
+  }
 }
 
 test('chart gallery screenshot', async ({ page }) => {
@@ -292,60 +336,124 @@ test('chart type picker screenshot', async ({ page }) => {
   });
 });
 
-test('dashboard view tutorial screenshots', async ({ page }) => {
-  // Captures three images from the Sales Dashboard in view mode:
-  // the full dashboard content, the header (publish button), and the edit button.
+test('publish button dashboard screenshot', async ({ page }) => {
+  // Toggle Sales Dashboard to Draft, hover the label so the tooltip renders,
+  // then capture the header area plus enough room below for the tooltip.
+  // Always restores the dashboard to Published at the end.
+  await openSalesDashboard(page);
+
+  const publishedLabel = page.getByText('Published', { exact: true }).first();
+  await expect(publishedLabel).toBeVisible({ timeout: 10000 });
+  await publishedLabel.click();
+
+  const draftLabel = page.getByText('Draft', { exact: true }).first();
+  await expect(draftLabel).toBeVisible({ timeout: 10000 });
+
+  try {
+    await draftLabel.hover();
+    await expect(page.getByRole('tooltip')).toBeVisible({ timeout: 5000 });
+    await settle(page, 500);
+
+    const headerBox = await page
+      .locator('[data-test="dashboard-header-container"]')
+      .boundingBox();
+    if (!headerBox) {
+      throw new Error('Could not locate dashboard header container');
+    }
+    await page.screenshot({
+      path: path.join(TUTORIAL_DIR, 'publish_button_dashboard.png'),
+      type: 'png',
+      clip: {
+        x: headerBox.x,
+        y: headerBox.y,
+        width: headerBox.width,
+        height: headerBox.height + 140,
+      },
+    });
+  } finally {
+    // Restore: click Draft to re-publish so other runs start from a clean state
+    await page.mouse.move(0, 0);
+    await draftLabel.click();
+    await expect(
+      page.getByText('Published', { exact: true }).first(),
+    ).toBeVisible({ timeout: 10000 });
+  }
+});
+
+test('edit button screenshot', async ({ page }) => {
+  // Capture the right-side action buttons (Edit dashboard + "..." menu)
+  // rather than the edit button in isolation.
   await openSalesDashboard(page);
   await settle(page);
 
-  const dashboardWrapper = page.locator(
-    '[data-test="dashboard-content-wrapper"]',
-  );
-  await dashboardWrapper.screenshot({
-    path: path.join(TUTORIAL_DIR, 'tutorial_first_dashboard.png'),
-    type: 'png',
-  });
-
-  const headerContainer = page.locator(
-    '[data-test="dashboard-header-container"]',
-  );
-  await expect(headerContainer).toBeVisible();
-  await headerContainer.screenshot({
-    path: path.join(TUTORIAL_DIR, 'publish_button_dashboard.png'),
-    type: 'png',
-  });
-
-  const editButton = page.locator('[data-test="edit-dashboard-button"]');
-  await expect(editButton).toBeVisible();
-  await editButton.screenshot({
+  const rightPanel = page.locator('.right-button-panel');
+  await expect(rightPanel).toBeVisible({ timeout: 5000 });
+  await rightPanel.screenshot({
     path: path.join(TUTORIAL_DIR, 'tutorial_edit_button.png'),
     type: 'png',
   });
 });
 
-test('dashboard edit mode screenshot', async ({ page }) => {
-  // Captures the dashboard in edit mode, showing chart resize handles and
-  // the "Drag and drop components" side panel.
+test('chart resize screenshot', async ({ page }) => {
+  // Enter edit mode and start (but do not complete) a resize drag on the
+  // bottom-right handle. That puts the chart into `.resizable-container--resizing`,
+  // which renders the blue selection outline in the captured screenshot.
   await openSalesDashboard(page);
 
   const editButton = page.locator('[data-test="edit-dashboard-button"]');
   await expect(editButton).toBeVisible();
   await editButton.click();
 
-  // Edit mode adds a right-side component panel; wait for it to render
   await expect(
     page.locator('[data-test="dashboard-builder-sidepane"]'),
   ).toBeVisible({ timeout: 10000 });
 
-  await settle(page);
-  await page.locator('[data-test="dashboard-content-wrapper"]').screenshot({
+  const chart = page.locator('.dashboard-component-chart-holder').first();
+  await expect(chart).toBeVisible();
+  const chartBox = await chart.boundingBox();
+  if (!chartBox) {
+    throw new Error('Could not locate chart bounding box');
+  }
+
+  // Hover near the bottom-right where the resize handle lives, so it becomes
+  // interactive (CSS sets opacity: 0 → 1 on .resizable-container:hover).
+  const handleX = chartBox.x + chartBox.width - 12;
+  const handleY = chartBox.y + chartBox.height - 12;
+  await page.mouse.move(handleX, handleY);
+
+  // Start a drag (no release) to put the chart into --resizing, which paints
+  // the blue selection outline and keeps the handle visible.
+  await page.mouse.down();
+  await page.mouse.move(handleX + 8, handleY + 8, { steps: 4 });
+  await settle(page, 500);
+
+  await page.locator('[data-test="grid-content"]').screenshot({
     path: path.join(TUTORIAL_DIR, 'tutorial_chart_resize.png'),
     type: 'png',
   });
+
+  // Release near the origin to minimize any size change; the edit-mode state
+  // is not saved so any residual change is discarded when the test ends.
+  await page.mouse.move(handleX, handleY, { steps: 4 });
+  await page.mouse.up();
 });
 
-test('save chart modal screenshot', async ({ page }) => {
-  // Opens an example chart in explore, clicks Save, and captures the Save modal.
+test('save flow and first dashboard screenshots', async ({ page }) => {
+  // Captures two linked tutorial screenshots in a single flow so the second
+  // faithfully shows the dashboard the user just created:
+  //   1. tutorial_save_slice.png — Save modal with the "Add to dashboard"
+  //      dropdown surfacing a creatable option for a new dashboard.
+  //   2. tutorial_first_dashboard.png — the freshly-created dashboard with
+  //      the single saved chart (matches the tutorial narrative).
+  //
+  // Creates and then deletes a "Superset Duper Sales Dashboard" dashboard
+  // plus the duplicate chart it owns. Pre-cleans in case a prior run failed.
+  const NEW_DASHBOARD_NAME = 'Superset Duper Sales Dashboard';
+  await deleteDashboardByTitle(page, NEW_DASHBOARD_NAME);
+
+  // 1100px is wide enough to show the full "Superset Duper Sales Dashboard"
+  // title alongside the header actions without truncation.
+  await page.setViewportSize({ width: 1100, height: 800 });
   await page.goto(URL.CHART_LIST);
 
   const searchInput = page.getByPlaceholder('Type a value');
@@ -364,7 +472,6 @@ test('save chart modal screenshot', async ({ page }) => {
     sliceContainer.locator('[data-test="loading-indicator"]'),
   ).toHaveCount(0, { timeout: 15000 });
 
-  // Click Save to open the Save chart modal
   const saveButton = page.locator('[data-test="query-save-button"]');
   await expect(saveButton).toBeVisible({ timeout: 10000 });
   await saveButton.click();
@@ -374,9 +481,93 @@ test('save chart modal screenshot', async ({ page }) => {
   });
   await expect(modal).toBeVisible({ timeout: 10000 });
 
-  await settle(page);
-  await modal.screenshot({
-    path: path.join(TUTORIAL_DIR, 'tutorial_save_slice.png'),
-    type: 'png',
+  // Open the "Add to dashboard" select and type a new dashboard name so
+  // the dropdown surfaces the creatable option.
+  const dashboardSelect = page.getByRole('combobox', {
+    name: /select a dashboard/i,
   });
+  await dashboardSelect.click();
+  await page.keyboard.type(NEW_DASHBOARD_NAME);
+
+  // Ant Design portals the visible dropdown with the class
+  // `.ant-select-item-option` on each option (distinct from the hidden
+  // ARIA listbox options rendered inside the combobox itself).
+  const createOption = page
+    .locator('.ant-select-item-option')
+    .filter({ hasText: NEW_DASHBOARD_NAME });
+  await expect(createOption).toBeVisible({ timeout: 10000 });
+  await settle(page);
+
+  try {
+    // Screenshot 1: save modal + portaled dropdown.
+    const modalBox = await modal.boundingBox();
+    const optionBox = await createOption.boundingBox();
+    if (!modalBox || !optionBox) {
+      throw new Error('Could not locate save modal or create-option');
+    }
+    const padding = 16;
+    const top = Math.max(0, modalBox.y - padding);
+    const bottom = optionBox.y + optionBox.height + padding;
+    await page.screenshot({
+      path: path.join(TUTORIAL_DIR, 'tutorial_save_slice.png'),
+      type: 'png',
+      clip: {
+        x: Math.max(0, modalBox.x - padding),
+        y: top,
+        width: modalBox.width + padding * 2,
+        height: bottom - top,
+      },
+    });
+
+    // Pick the creatable option, then click "Save & go to dashboard" so the
+    // backend creates the dashboard + slice and redirects us to the new one.
+    await createOption.click();
+    const saveAndGotoBtn = page.locator('#btn_modal_save_goto_dash');
+    await expect(saveAndGotoBtn).toBeEnabled({ timeout: 5000 });
+    await saveAndGotoBtn.click();
+
+    await page.waitForURL(/\/dashboard\/[^/]+\/?/, { timeout: 30000 });
+    await expect(
+      page.locator('[data-test="dashboard-content-wrapper"]'),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(
+      page.locator('.dashboard-component-chart-holder').first(),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(
+      page.locator('.dashboard-component-chart-holder canvas').first(),
+    ).toBeVisible({ timeout: 15000 });
+
+    // Dismiss the "Chart [X] has been saved" toast so it doesn't appear in
+    // the screenshot. The close button is inside the toast container.
+    const toast = page.locator('[data-test="toast-container"]').first();
+    if (await toast.isVisible().catch(() => false)) {
+      await toast.locator('.toast__close').click();
+      await expect(toast).toBeHidden({ timeout: 5000 });
+    }
+    await settle(page);
+
+    // Screenshot 2: the newly-created single-chart dashboard (title + chart).
+    const headerBox = await page
+      .locator('[data-test="dashboard-header-wrapper"]')
+      .boundingBox();
+    const chartBox = await page
+      .locator('.dashboard-component-chart-holder')
+      .first()
+      .boundingBox();
+    if (!headerBox || !chartBox) {
+      throw new Error('Could not locate dashboard header or chart');
+    }
+    await page.screenshot({
+      path: path.join(TUTORIAL_DIR, 'tutorial_first_dashboard.png'),
+      type: 'png',
+      clip: {
+        x: 0,
+        y: headerBox.y,
+        width: 1100,
+        height: chartBox.y + chartBox.height - headerBox.y + 16,
+      },
+    });
+  } finally {
+    await deleteDashboardByTitle(page, NEW_DASHBOARD_NAME);
+  }
 });
