@@ -60,10 +60,7 @@ export interface ReactifiedComponentRef {
 
 type ReactifiedComponent<Props> = ForwardRefExoticComponent<
   PropsWithoutRef<Props & ReactifyProps> & RefAttributes<ReactifiedComponentRef>
-> & {
-  defaultProps?: Partial<Props & ReactifyProps>;
-  propTypes?: WeakValidationMap<Props & ReactifyProps>;
-};
+>;
 
 export default function reactify<Props extends object>(
   renderFn: RenderFuncType<Props>,
@@ -121,7 +118,8 @@ export default function reactify<Props extends object>(
     ReactifiedComponent.displayName = renderFn.displayName;
   }
 
-  const result = ReactifiedComponent as ReactifiedComponent<Props>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- forwardRef static field types don't line up with renderFn's validator types
+  const result = ReactifiedComponent as any;
 
   if (renderFn.propTypes) {
     result.propTypes = {
@@ -134,5 +132,5 @@ export default function reactify<Props extends object>(
     result.defaultProps = renderFn.defaultProps;
   }
 
-  return result;
+  return result as ReactifiedComponent<Props>;
 }
