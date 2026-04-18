@@ -33,14 +33,27 @@ Optionally write a markdown report to a file (used by CI to post a PR comment):
 
     python check_translation_regression.py --compare before.json --report report.md
 
+Use a translations directory other than the repo default (used by CI to count
+against a separate base-branch worktree):
+
+    python check_translation_regression.py --count \\
+        --translations-dir /tmp/base-worktree/superset/translations
+
 Typical CI workflow
 -------------------
-1. Restore base-branch translations (git checkout origin/base -- superset/translations/)
-2. Record baseline:  python ... --count > before.json
-3. Run pybabel extract+update (babel_update.sh) against PR source files
-4. Check for regression:  python ... --compare before.json [--report report.md]
+1. Create a base-branch worktree alongside the PR worktree
+2. Run babel_update.sh in the base worktree (extract from BASE source)
+3. Record baseline:  python ... --count --translations-dir BASE_TREE > before.json
+4. Run babel_update.sh in the PR worktree (extract from PR source) starting
+   from the same pristine BASE translations
+5. Compare:  python ... --compare before.json [--report report.md]
+
+Comparing two babel_update outputs that started from the same BASE .po files
+isolates regressions caused by the PR's source diff from any pre-existing
+drift on the base branch.
 """
 
+import argparse
 import json
 import re
 import subprocess
@@ -48,8 +61,9 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-ROOT = Path(__file__).resolve().parent.parent.parent
-TRANSLATIONS_DIR = ROOT / "superset" / "translations"
+DEFAULT_TRANSLATIONS_DIR = (
+    Path(__file__).resolve().parent.parent.parent / "superset" / "translations"
+)
 
 # English .po files use empty msgstr by convention (source language == target),
 # so they always show 0 translated entries and should not be checked.
@@ -71,9 +85,9 @@ def count_translated(po_file: Path) -> int:
     return int(match.group(1)) if match else 0
 
 
-def get_counts() -> dict[str, int]:
+def get_counts(translations_dir: Path) -> dict[str, int]:
     counts: dict[str, int] = {}
-    for po_file in sorted(TRANSLATIONS_DIR.glob("*/LC_MESSAGES/messages.po")):
+    for po_file in sorted(translations_dir.glob("*/LC_MESSAGES/messages.po")):
         lang = po_file.parent.parent.name
         if lang in SKIP_LANGS:
             continue
@@ -119,16 +133,20 @@ def build_regression_report(regressions: list[tuple[str, int, int]]) -> str:
     )
 
 
-def cmd_count() -> None:
-    counts = get_counts()
+def cmd_count(translations_dir: Path) -> None:
+    counts = get_counts(translations_dir)
     print(json.dumps(counts, indent=2))
 
 
-def cmd_compare(before_path: str, report_path: Optional[str] = None) -> None:
+def cmd_compare(
+    before_path: str,
+    translations_dir: Path,
+    report_path: Optional[str] = None,
+) -> None:
     with open(before_path) as f:
         before: dict[str, int] = json.load(f)
 
-    after = get_counts()
+    after = get_counts(translations_dir)
 
     regressions: list[tuple[str, int, int]] = []
     for lang, before_count in sorted(before.items()):
@@ -168,21 +186,40 @@ def cmd_compare(before_path: str, report_path: Optional[str] = None) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) < 2 or sys.argv[1] not in ("--count", "--compare"):
-        print(__doc__)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Check for translation regressions in .po files."
+    )
+    action = parser.add_mutually_exclusive_group(required=True)
+    action.add_argument(
+        "--count",
+        action="store_true",
+        help="Output translation counts per language as JSON.",
+    )
+    action.add_argument(
+        "--compare",
+        metavar="BEFORE_JSON",
+        help="Compare current counts against a baseline JSON file.",
+    )
+    parser.add_argument(
+        "--report",
+        metavar="REPORT_MD",
+        help="When --compare detects regressions, write a markdown report here.",
+    )
+    parser.add_argument(
+        "--translations-dir",
+        type=Path,
+        default=DEFAULT_TRANSLATIONS_DIR,
+        help=(
+            "Path to the translations directory containing per-language "
+            "LC_MESSAGES/messages.po files (default: <repo>/superset/translations)."
+        ),
+    )
+    args = parser.parse_args()
 
-    if sys.argv[1] == "--count":
-        cmd_count()
+    if args.count:
+        cmd_count(args.translations_dir)
     else:
-        if len(sys.argv) < 3:
-            print("Usage: check_translation_regression.py --compare before.json")
-            sys.exit(1)
-        # Optional: --report path.md after the before.json argument
-        report_path: Optional[str] = None
-        if len(sys.argv) >= 5 and sys.argv[3] == "--report":
-            report_path = sys.argv[4]
-        cmd_compare(sys.argv[2], report_path)
+        cmd_compare(args.compare, args.translations_dir, args.report)
 
 
 if __name__ == "__main__":
