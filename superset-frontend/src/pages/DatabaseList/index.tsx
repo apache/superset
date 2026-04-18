@@ -446,7 +446,7 @@ function DatabaseList({
                 items: [
                   {
                     key: 'database',
-                    label: databaseLabel(),
+                    label: t('Database'),
                     onClick: openDatabaseModal,
                   },
                   {
