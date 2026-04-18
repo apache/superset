@@ -40,6 +40,7 @@ import {
   DatasourceModal,
   ErrorAlert,
 } from 'src/components';
+import SemanticViewEditModal from 'src/features/semanticViews/SemanticViewEditModal';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
@@ -69,6 +70,7 @@ interface ExtendedDatasource extends Datasource {
   }>;
   extra?: string;
   health_check_message?: string;
+  cache_timeout?: number | null;
   database?: {
     id: number;
     database_name: string;
@@ -591,14 +593,31 @@ class DatasourceControl extends PureComponent<
             )}
           </div>
         )}
-        {showEditDatasourceModal && (
-          <DatasourceModal
-            datasource={datasource}
-            show={showEditDatasourceModal}
-            onDatasourceSave={this.onDatasourceSave}
-            onHide={this.toggleEditDatasourceModal}
-          />
-        )}
+        {showEditDatasourceModal &&
+          (datasource.type === DatasourceType.SemanticView ? (
+            <SemanticViewEditModal
+              show={showEditDatasourceModal}
+              onHide={this.toggleEditDatasourceModal}
+              onSave={() => {
+                if (this.props.onDatasourceSave) {
+                  this.props.onDatasourceSave(datasource);
+                }
+              }}
+              semanticView={{
+                id: datasource.id,
+                table_name: datasource.name,
+                description: datasource.description,
+                cache_timeout: datasource.cache_timeout,
+              }}
+            />
+          ) : (
+            <DatasourceModal
+              datasource={datasource}
+              show={showEditDatasourceModal}
+              onDatasourceSave={this.onDatasourceSave}
+              onHide={this.toggleEditDatasourceModal}
+            />
+          ))}
         {showChangeDatasourceModal && (
           <ChangeDatasourceModal
             onDatasourceSave={this.onDatasourceSave}
