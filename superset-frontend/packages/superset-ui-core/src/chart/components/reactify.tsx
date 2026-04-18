@@ -74,6 +74,10 @@ export default function reactify<Props extends object>(
     Props & ReactifyProps
   >(function ReactifiedComponent(props, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
+    // Keep the latest props available to the unmount callback — legacy
+    // consumers read values off `this.props` (e.g. ReactNVD3 uses id).
+    const propsRef = useRef(props);
+    propsRef.current = props;
 
     // Expose container via ref for external access
     useImperativeHandle(
@@ -98,9 +102,10 @@ export default function reactify<Props extends object>(
       () => () => {
         if (callbacks?.componentWillUnmount) {
           // Preserve legacy behavior where `this` was a component instance
-          // exposing a `container` property
+          // exposing `container` and `props`.
           callbacks.componentWillUnmount.call({
             container: containerRef.current,
+            props: propsRef.current,
           });
         }
       },
@@ -116,9 +121,7 @@ export default function reactify<Props extends object>(
     ReactifiedComponent.displayName = renderFn.displayName;
   }
 
-  // Cast to any to assign propTypes and defaultProps since forwardRef
-  // components have complex typing that makes direct assignment difficult
-  const result = ReactifiedComponent as any;
+  const result = ReactifiedComponent as ReactifiedComponent<Props>;
 
   if (renderFn.propTypes) {
     result.propTypes = {
@@ -131,5 +134,5 @@ export default function reactify<Props extends object>(
     result.defaultProps = renderFn.defaultProps;
   }
 
-  return result as ReactifiedComponent<Props>;
+  return result;
 }
