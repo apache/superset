@@ -47,7 +47,7 @@ def test_get_filename(
 
 
 @pytest.mark.parametrize(
-    "raw,expected",
+    ("raw", "expected"),
     [
         ("normal", "normal"),
         ("a\x08b", "ab"),
