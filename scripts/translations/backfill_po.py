@@ -98,7 +98,7 @@ def _lang_name(code: str) -> str:
 
 
 def _plural_key(msgid: str, msgid_plural: str) -> str:
-    return f"{msgid}\x00{msgid_plural}"
+    """Build the translation index key used for pluralized entries."""
 
 
 def _is_missing(entry: polib.POEntry) -> bool:
