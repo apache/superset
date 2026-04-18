@@ -115,7 +115,7 @@ def build_index(translations_dir: Path) -> dict[str, Any]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
+    """Parse arguments, build the translation index, and write it to disk."""
         description="Build cross-language translation index"
     )
     parser.add_argument(
