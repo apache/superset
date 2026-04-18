@@ -1360,3 +1360,26 @@ def test_resolve_column_type_falls_back_to_pa_mapped() -> None:
 def test_resolve_column_type_returns_none_when_both_absent() -> None:
     """None is returned when neither source provides a type."""
     assert BaseEngineSpec.resolve_column_type(None, None) is None
+
+
+def test_base_spec_allows_offset_fetch_default_true() -> None:
+    """
+    New engines opt-in to OFFSET support by default. Engines that do not
+    support OFFSET (like Elasticsearch SQL) opt out explicitly.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    assert BaseEngineSpec.allows_offset_fetch is True
+
+
+def test_base_spec_public_information_includes_allows_offset_fetch() -> None:
+    """
+    The allows_offset_fetch capability is exposed via get_public_information
+    so the frontend can reason about it (e.g. future UI disablement).
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    info = BaseEngineSpec.get_public_information()
+
+    assert "allows_offset_fetch" in info
+    assert info["allows_offset_fetch"] is True

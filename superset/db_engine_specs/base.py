@@ -500,6 +500,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_sql_comments = True
     allows_escaped_colons = True
 
+    # Whether the engine supports OFFSET in SQL queries. Defaults to True;
+    # engines like Elasticsearch SQL that do not support OFFSET set this to
+    # False and are expected to implement `fetch_data_with_cursor` for
+    # pagination via another mechanism (e.g. Elasticsearch's cursor API).
+    allows_offset_fetch = True
+
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
     allows_alias_to_source_column = True
@@ -2596,6 +2602,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
+            "allows_offset_fetch": cls.allows_offset_fetch,
         }
 
     @classmethod
