@@ -213,6 +213,7 @@ function Chart({
     emitCrossFilters,
     onChartStateChange,
     suppressLoadingSpinner,
+    filterState,
   } = restProps;
 
   const renderStartTimeRef = useRef<number>(Logger.getTimestamp());
@@ -382,6 +383,8 @@ function Chart({
             emitCrossFilters={emitCrossFilters}
             onChartStateChange={onChartStateChange}
             latestQueryFormData={latestQueryFormData}
+            filterState={filterState}
+            suppressLoadingSpinner={suppressLoadingSpinner}
             source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
             data-test={vizType}
           />
@@ -401,6 +404,7 @@ function Chart({
       dashboardId,
       datasource,
       emitCrossFilters,
+      filterState,
       formData,
       height,
       initialValues,
@@ -413,6 +417,7 @@ function Chart({
       queriesResponse,
       setControlValue,
       shouldRenderChart,
+      suppressLoadingSpinner,
       triggerQuery,
       triggerRender,
       vizType,
