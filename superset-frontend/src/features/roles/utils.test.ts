@@ -59,11 +59,15 @@ test('fetchPermissionOptions fetches all results on page 0 with large page_size'
   expect(queries).toContainEqual({
     page: 0,
     page_size: 1000,
+    order_column: 'id',
+    order_direction: 'asc',
     filters: [{ col: 'view_menu.name', opr: 'ct', value: 'dataset' }],
   });
   expect(queries).toContainEqual({
     page: 0,
     page_size: 1000,
+    order_column: 'id',
+    order_direction: 'asc',
     filters: [{ col: 'permission.name', opr: 'ct', value: 'dataset' }],
   });
 
