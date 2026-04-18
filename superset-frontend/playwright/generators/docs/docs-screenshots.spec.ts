@@ -53,6 +53,37 @@ async function settle(page: Page, ms = 1000): Promise<void> {
   await page.waitForTimeout(ms);
 }
 
+/**
+ * Navigates to the Sales Dashboard (from example data) and waits for charts
+ * to finish rendering. Used by several tutorial screenshots that show the
+ * dashboard in view or edit mode.
+ */
+async function openSalesDashboard(page: Page): Promise<void> {
+  await page.goto(URL.DASHBOARD_LIST);
+  const searchInput = page.getByPlaceholder('Type a value');
+  await expect(searchInput).toBeVisible({ timeout: 15000 });
+  await searchInput.fill('Sales Dashboard');
+  await searchInput.press('Enter');
+
+  const dashboardLink = page.getByRole('link', { name: /sales dashboard/i });
+  await expect(dashboardLink).toBeVisible({ timeout: 10000 });
+  await dashboardLink.click();
+
+  const dashboardWrapper = page.locator(
+    '[data-test="dashboard-content-wrapper"]',
+  );
+  await expect(dashboardWrapper).toBeVisible({ timeout: 30000 });
+  await expect(
+    page.locator('.dashboard-component-chart-holder').first(),
+  ).toBeVisible({ timeout: 15000 });
+  await expect(
+    dashboardWrapper.locator('[data-test="loading-indicator"]'),
+  ).toHaveCount(0, { timeout: 30000 });
+  await expect(
+    page.locator('.dashboard-component-chart-holder canvas').first(),
+  ).toBeVisible({ timeout: 15000 });
+}
+
 test('chart gallery screenshot', async ({ page }) => {
   await page.goto(URL.CHART_ADD);
 
@@ -77,36 +108,7 @@ test('chart gallery screenshot', async ({ page }) => {
 });
 
 test('dashboard screenshot', async ({ page }) => {
-  // Navigate to Sales Dashboard via the dashboard list (slug is null)
-  await page.goto(URL.DASHBOARD_LIST);
-  const searchInput = page.getByPlaceholder('Type a value');
-  await expect(searchInput).toBeVisible({ timeout: 15000 });
-  await searchInput.fill('Sales Dashboard');
-  await searchInput.press('Enter');
-
-  // Click the Sales Dashboard link
-  const dashboardLink = page.getByRole('link', { name: /sales dashboard/i });
-  await expect(dashboardLink).toBeVisible({ timeout: 10000 });
-  await dashboardLink.click();
-
-  // Wait for dashboard to fully render
-  const dashboardWrapper = page.locator(
-    '[data-test="dashboard-content-wrapper"]',
-  );
-  await expect(dashboardWrapper).toBeVisible({ timeout: 30000 });
-
-  // Wait for chart holders to appear, then wait for all loading spinners to clear
-  await expect(
-    page.locator('.dashboard-component-chart-holder').first(),
-  ).toBeVisible({ timeout: 15000 });
-  await expect(
-    dashboardWrapper.locator('[data-test="loading-indicator"]'),
-  ).toHaveCount(0, { timeout: 30000 });
-
-  // Wait for at least one chart to finish rendering (ECharts renders to canvas)
-  await expect(
-    page.locator('.dashboard-component-chart-holder canvas').first(),
-  ).toBeVisible({ timeout: 15000 });
+  await openSalesDashboard(page);
 
   // Open the filter bar (collapsed by default)
   const expandButton = page.locator('[data-test="filter-bar__expand-button"]');
@@ -286,6 +288,95 @@ test('chart type picker screenshot', async ({ page }) => {
   // the chart type gallery (Pivot Table highlighted)
   await page.screenshot({
     path: path.join(TUTORIAL_DIR, 'create_pivot.png'),
+    type: 'png',
+  });
+});
+
+test('dashboard view tutorial screenshots', async ({ page }) => {
+  // Captures three images from the Sales Dashboard in view mode:
+  // the full dashboard content, the header (publish button), and the edit button.
+  await openSalesDashboard(page);
+  await settle(page);
+
+  const dashboardWrapper = page.locator(
+    '[data-test="dashboard-content-wrapper"]',
+  );
+  await dashboardWrapper.screenshot({
+    path: path.join(TUTORIAL_DIR, 'tutorial_first_dashboard.png'),
+    type: 'png',
+  });
+
+  const headerContainer = page.locator(
+    '[data-test="dashboard-header-container"]',
+  );
+  await expect(headerContainer).toBeVisible();
+  await headerContainer.screenshot({
+    path: path.join(TUTORIAL_DIR, 'publish_button_dashboard.png'),
+    type: 'png',
+  });
+
+  const editButton = page.locator('[data-test="edit-dashboard-button"]');
+  await expect(editButton).toBeVisible();
+  await editButton.screenshot({
+    path: path.join(TUTORIAL_DIR, 'tutorial_edit_button.png'),
+    type: 'png',
+  });
+});
+
+test('dashboard edit mode screenshot', async ({ page }) => {
+  // Captures the dashboard in edit mode, showing chart resize handles and
+  // the "Drag and drop components" side panel.
+  await openSalesDashboard(page);
+
+  const editButton = page.locator('[data-test="edit-dashboard-button"]');
+  await expect(editButton).toBeVisible();
+  await editButton.click();
+
+  // Edit mode adds a right-side component panel; wait for it to render
+  await expect(
+    page.locator('[data-test="dashboard-builder-sidepane"]'),
+  ).toBeVisible({ timeout: 10000 });
+
+  await settle(page);
+  await page.locator('[data-test="dashboard-content-wrapper"]').screenshot({
+    path: path.join(TUTORIAL_DIR, 'tutorial_chart_resize.png'),
+    type: 'png',
+  });
+});
+
+test('save chart modal screenshot', async ({ page }) => {
+  // Opens an example chart in explore, clicks Save, and captures the Save modal.
+  await page.goto(URL.CHART_LIST);
+
+  const searchInput = page.getByPlaceholder('Type a value');
+  await expect(searchInput).toBeVisible({ timeout: 15000 });
+  await searchInput.fill('Scatter Plot');
+  await searchInput.press('Enter');
+
+  const chartLink = page.getByRole('link', { name: /scatter plot/i });
+  await expect(chartLink).toBeVisible({ timeout: 10000 });
+  await chartLink.click();
+
+  await page.waitForURL('**/explore/**', { timeout: 15000 });
+  const sliceContainer = page.locator('[data-test="slice-container"]');
+  await expect(sliceContainer).toBeVisible({ timeout: 15000 });
+  await expect(
+    sliceContainer.locator('[data-test="loading-indicator"]'),
+  ).toHaveCount(0, { timeout: 15000 });
+
+  // Click Save to open the Save chart modal
+  const saveButton = page.locator('[data-test="query-save-button"]');
+  await expect(saveButton).toBeVisible({ timeout: 10000 });
+  await saveButton.click();
+
+  const modal = page.locator('.ant-modal-content').filter({
+    has: page.locator('[data-test="save-modal-body"]'),
+  });
+  await expect(modal).toBeVisible({ timeout: 10000 });
+
+  await settle(page);
+  await modal.screenshot({
+    path: path.join(TUTORIAL_DIR, 'tutorial_save_slice.png'),
     type: 'png',
   });
 });
