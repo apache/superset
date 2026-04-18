@@ -3285,7 +3285,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if row_limit:
             qry = qry.limit(row_limit)
-        if row_offset:
+        if row_offset and self.database.db_engine_spec.allows_offset_fetch:
             qry = qry.offset(row_offset)
 
         if series_limit and groupby_series_columns:
