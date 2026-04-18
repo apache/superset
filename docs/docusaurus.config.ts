@@ -892,10 +892,8 @@ const config: Config = {
           ],
         },
         {
-          href: '/user-docs/',
+          type: 'custom-getStartedSplit',
           position: 'right',
-          className: 'default-button-theme get-started-button',
-          label: 'Get Started',
         },
         {
           href: 'https://github.com/apache/superset',
