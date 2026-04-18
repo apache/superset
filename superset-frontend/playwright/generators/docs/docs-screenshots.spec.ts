@@ -395,9 +395,11 @@ test('edit button screenshot', async ({ page }) => {
 });
 
 test('chart resize screenshot', async ({ page }) => {
-  // Enter edit mode and start (but do not complete) a resize drag on the
-  // bottom-right handle. That puts the chart into `.resizable-container--resizing`,
-  // which renders the blue selection outline in the captured screenshot.
+  // Enter edit mode, start a resize drag on the right-edge handle, then
+  // screenshot the chart mid-drag. While `DashboardGrid` is in the resizing
+  // state it renders vertical `grid-column-guide` overlays across the grid
+  // and the chart gets a blue `--resizing` outline — that's the state the
+  // original tutorial screenshot was capturing.
   await openSalesDashboard(page);
 
   const editButton = page.locator('[data-test="edit-dashboard-button"]');
@@ -415,26 +417,55 @@ test('chart resize screenshot', async ({ page }) => {
     throw new Error('Could not locate chart bounding box');
   }
 
-  // Hover near the bottom-right where the resize handle lives, so it becomes
-  // interactive (CSS sets opacity: 0 → 1 on .resizable-container:hover).
-  const handleX = chartBox.x + chartBox.width - 12;
-  const handleY = chartBox.y + chartBox.height - 12;
-  await page.mouse.move(handleX, handleY);
+  // Hover over the chart so the on-hover action buttons (drag/trash/settings)
+  // and resize handles become visible.
+  await page.mouse.move(
+    chartBox.x + chartBox.width / 2,
+    chartBox.y + chartBox.height / 2,
+  );
+  await settle(page, 200);
 
-  // Start a drag (no release) to put the chart into --resizing, which paints
-  // the blue selection outline and keeps the handle visible.
+  // The right-edge handle is a `<span>` added by re-resizable with our
+  // custom class. Locating it by class is more reliable than computing
+  // coordinates from the chart-holder (which isn't the full resizable box).
+  const rightHandle = page
+    .locator('.resizable-container-handle--right')
+    .first();
+  await expect(rightHandle).toBeVisible();
+  const handleBox = await rightHandle.boundingBox();
+  if (!handleBox) {
+    throw new Error('Could not locate right-edge resize handle');
+  }
+  const handleX = handleBox.x + handleBox.width / 2;
+  const handleY = handleBox.y + handleBox.height / 2;
+
+  await page.mouse.move(handleX, handleY);
   await page.mouse.down();
-  await page.mouse.move(handleX + 8, handleY + 8, { steps: 4 });
+  // Move far enough to snap at least one grid column, which puts
+  // DashboardGrid into isResizing=true so the column guides render.
+  await page.mouse.move(handleX + 80, handleY, { steps: 10 });
   await settle(page, 500);
 
-  await page.locator('[data-test="grid-content"]').screenshot({
+  // Clip to the chart area plus a left gutter for the hover action rail
+  // and right padding that reaches past the dragged handle position.
+  const leftGutter = 32;
+  const rightPadding = 100;
+  const topPadding = 16;
+  const bottomPadding = 24;
+  await page.screenshot({
     path: path.join(TUTORIAL_DIR, 'tutorial_chart_resize.png'),
     type: 'png',
+    clip: {
+      x: Math.max(0, chartBox.x - leftGutter),
+      y: Math.max(0, chartBox.y - topPadding),
+      width: chartBox.width + leftGutter + rightPadding,
+      height: chartBox.height + topPadding + bottomPadding,
+    },
   });
 
-  // Release near the origin to minimize any size change; the edit-mode state
-  // is not saved so any residual change is discarded when the test ends.
-  await page.mouse.move(handleX, handleY, { steps: 4 });
+  // Release back at the start to avoid persisting a size change. Edit-mode
+  // changes aren't saved (we never click the dashboard Save button).
+  await page.mouse.move(handleX, handleY, { steps: 6 });
   await page.mouse.up();
 });
 
@@ -557,13 +588,16 @@ test('save flow and first dashboard screenshots', async ({ page }) => {
     if (!headerBox || !chartBox) {
       throw new Error('Could not locate dashboard header or chart');
     }
+    // Trim right edge to just past the chart so the screenshot isn't padded
+    // with empty grid space.
+    const rightPadding = 16;
     await page.screenshot({
       path: path.join(TUTORIAL_DIR, 'tutorial_first_dashboard.png'),
       type: 'png',
       clip: {
         x: 0,
         y: headerBox.y,
-        width: 1100,
+        width: Math.min(1100, chartBox.x + chartBox.width + rightPadding),
         height: chartBox.y + chartBox.height - headerBox.y + 16,
       },
     });
