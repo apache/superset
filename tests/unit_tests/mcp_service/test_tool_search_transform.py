@@ -27,6 +27,7 @@ from superset.mcp_service.server import (
     _apply_tool_search_transform,
     _compact_schema,
     _create_search_result_serializer,
+    _extract_parameter_names,
     _fix_call_tool_arguments,
     _normalize_call_tool_arguments,
     _serialize_tools_without_output_schema,
@@ -44,6 +45,7 @@ def test_tool_search_config_defaults():
     assert "get_instance_info" in MCP_TOOL_SEARCH_CONFIG["always_visible"]
     assert MCP_TOOL_SEARCH_CONFIG["search_tool_name"] == "search_tools"
     assert MCP_TOOL_SEARCH_CONFIG["call_tool_name"] == "call_tool"
+    assert MCP_TOOL_SEARCH_CONFIG["include_schemas"] is False
 
 
 def test_apply_bm25_transform():
@@ -514,7 +516,9 @@ def test_create_serializer_compacts_schemas():
         },
     )
 
-    serializer = _create_search_result_serializer({"compact_schemas": True})
+    serializer = _create_search_result_serializer(
+        {"include_schemas": True, "compact_schemas": True}
+    )
     result = serializer([tool])
 
     assert len(result) == 1
@@ -550,7 +554,7 @@ def test_create_serializer_disabled():
     )
 
     serializer = _create_search_result_serializer(
-        {"compact_schemas": False, "max_description_length": 0}
+        {"include_schemas": True, "compact_schemas": False, "max_description_length": 0}
     )
     result = serializer([tool])
 
@@ -569,7 +573,9 @@ def test_create_serializer_compact_false_disables_truncation():
         {"type": "object", "$defs": {"Model": {"type": "object"}}},
     )
 
-    serializer = _create_search_result_serializer({"compact_schemas": False})
+    serializer = _create_search_result_serializer(
+        {"include_schemas": True, "compact_schemas": False}
+    )
     result = serializer([tool])
 
     # $defs should still be present (compaction disabled)
@@ -588,7 +594,11 @@ def test_create_serializer_compact_false_explicit_truncation():
     )
 
     serializer = _create_search_result_serializer(
-        {"compact_schemas": False, "max_description_length": 200}
+        {
+            "include_schemas": True,
+            "compact_schemas": False,
+            "max_description_length": 200,
+        }
     )
     result = serializer([tool])
 
@@ -599,7 +609,11 @@ def test_create_serializer_compact_false_explicit_truncation():
 
 
 def test_create_serializer_uses_config_defaults():
-    """Empty config uses defaults (compact=True, max_desc=300)."""
+    """Empty config defaults to summary mode (include_schemas=False).
+
+    The new default omits inputSchema and adds parameters_hint instead.
+    Descriptions are still truncated to 300 chars.
+    """
     long_desc = "First sentence. " + "x" * 500
     tool = _make_mock_tool(
         "test_tool",
@@ -614,7 +628,10 @@ def test_create_serializer_uses_config_defaults():
     serializer = _create_search_result_serializer({})
     result = serializer([tool])
 
-    assert "$defs" not in result[0]["inputSchema"]
+    # Summary mode: no inputSchema, parameters_hint present
+    assert "inputSchema" not in result[0]
+    assert result[0]["parameters_hint"] == "x"
+    # Description still truncated to default 300
     assert len(result[0]["description"]) <= 303
 
 
@@ -640,3 +657,194 @@ def test_apply_transform_uses_compact_serializer():
         transform._search_result_serializer
         is not _serialize_tools_without_output_schema
     )
+
+
+# -- _extract_parameter_names tests --
+
+
+def test_extract_parameter_names_basic():
+    """Returns comma-separated top-level property names."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "page": {"type": "integer"},
+            "page_size": {"type": "integer"},
+            "search": {"type": "string"},
+        },
+    }
+
+    result = _extract_parameter_names(schema)
+
+    assert result == "page, page_size, search"
+
+
+def test_extract_parameter_names_empty_properties():
+    """Returns empty string when properties dict is empty."""
+    schema = {"type": "object", "properties": {}}
+
+    result = _extract_parameter_names(schema)
+
+    assert result == ""
+
+
+def test_extract_parameter_names_no_properties_key():
+    """Returns empty string when properties key is absent."""
+    schema = {"type": "object"}
+
+    result = _extract_parameter_names(schema)
+
+    assert result == ""
+
+
+def test_extract_parameter_names_with_refs():
+    """Extracts names regardless of the shape of property values."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "filters": {"type": "array", "items": {"$ref": "#/$defs/ChartFilter"}},
+            "select_columns": {"type": "array"},
+        },
+        "$defs": {"ChartFilter": {"type": "object"}},
+    }
+
+    result = _extract_parameter_names(schema)
+
+    assert result == "filters, select_columns"
+
+
+# -- _create_search_result_serializer summary mode (include_schemas=False) --
+
+
+def test_create_serializer_summary_mode_strips_input_schema():
+    """When include_schemas=False, inputSchema is absent from results."""
+    tool = _make_mock_tool(
+        "list_charts",
+        "List charts.",
+        {
+            "type": "object",
+            "properties": {
+                "page": {"type": "integer"},
+                "search": {"type": "string"},
+            },
+        },
+    )
+
+    serializer = _create_search_result_serializer({"include_schemas": False})
+    result = serializer([tool])
+
+    assert len(result) == 1
+    assert "inputSchema" not in result[0]
+    assert result[0]["name"] == "list_charts"
+
+
+def test_create_serializer_summary_mode_adds_parameters_hint():
+    """When include_schemas=False, parameters_hint lists top-level param names."""
+    tool = _make_mock_tool(
+        "list_charts",
+        "List charts.",
+        {
+            "type": "object",
+            "properties": {
+                "page": {"type": "integer"},
+                "page_size": {"type": "integer"},
+                "search": {"type": "string"},
+            },
+        },
+    )
+
+    serializer = _create_search_result_serializer({"include_schemas": False})
+    result = serializer([tool])
+
+    assert result[0]["parameters_hint"] == "page, page_size, search"
+
+
+def test_create_serializer_summary_mode_no_hint_when_no_properties():
+    """When inputSchema has no properties, parameters_hint is absent."""
+    tool = _make_mock_tool(
+        "health_check",
+        "Health check.",
+        {"type": "object"},
+    )
+
+    serializer = _create_search_result_serializer({"include_schemas": False})
+    result = serializer([tool])
+
+    assert "inputSchema" not in result[0]
+    assert "parameters_hint" not in result[0]
+
+
+def test_create_serializer_summary_mode_truncates_description():
+    """Summary mode still truncates descriptions to max_description_length."""
+    long_desc = "First sentence. " + "x" * 500
+    tool = _make_mock_tool(
+        "list_charts",
+        long_desc,
+        {"type": "object", "properties": {"page": {"type": "integer"}}},
+    )
+
+    serializer = _create_search_result_serializer(
+        {"include_schemas": False, "max_description_length": 50}
+    )
+    result = serializer([tool])
+
+    assert len(result[0]["description"]) <= 53
+
+
+def test_create_serializer_summary_mode_is_default():
+    """Empty config defaults to summary mode (include_schemas=False)."""
+    tool = _make_mock_tool(
+        "list_charts",
+        "List charts.",
+        {
+            "type": "object",
+            "properties": {"page": {"type": "integer"}},
+        },
+    )
+
+    serializer = _create_search_result_serializer({})
+    result = serializer([tool])
+
+    assert "inputSchema" not in result[0]
+    assert "parameters_hint" in result[0]
+
+
+def test_create_serializer_include_schemas_true_restores_full_schema():
+    """include_schemas=True preserves inputSchema in results."""
+    schema = {
+        "type": "object",
+        "properties": {"page": {"type": "integer"}},
+        "$defs": {"Model": {"type": "object"}},
+    }
+    tool = _make_mock_tool("list_charts", "List charts.", schema)
+
+    serializer = _create_search_result_serializer(
+        {"include_schemas": True, "compact_schemas": False, "max_description_length": 0}
+    )
+    result = serializer([tool])
+
+    assert "inputSchema" in result[0]
+    assert "parameters_hint" not in result[0]
+    assert "$defs" in result[0]["inputSchema"]
+
+
+def test_create_serializer_include_schemas_true_with_compact():
+    """include_schemas=True + compact_schemas=True still compacts the schema."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "filters": {"type": "array", "items": {"$ref": "#/$defs/ChartFilter"}}
+        },
+        "$defs": {"ChartFilter": {"type": "object"}},
+    }
+    tool = _make_mock_tool("list_charts", "List charts.", schema)
+
+    serializer = _create_search_result_serializer(
+        {"include_schemas": True, "compact_schemas": True}
+    )
+    result = serializer([tool])
+
+    assert "inputSchema" in result[0]
+    assert "$defs" not in result[0]["inputSchema"]
+    assert result[0]["inputSchema"]["properties"]["filters"]["items"] == {
+        "type": "object"
+    }

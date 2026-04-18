@@ -493,6 +493,15 @@ class AddChartToDashboardResponse(BaseModel):
         None, description="Position information for the added chart"
     )
     error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the operation failed because the current user does not "
+            "have edit rights on the target dashboard. When True, inform the "
+            "user and ask if they would like a new dashboard created instead. "
+            "Do NOT silently create a new dashboard — always confirm first."
+        ),
+    )
 
 
 class GenerateDashboardRequest(BaseModel):
