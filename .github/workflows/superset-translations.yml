@@ -74,7 +74,11 @@ jobs:
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
         run: sudo apt-get update && sudo apt-get install -y gettext
 
-      - name: Restore base-branch translations
+      # Fetch the base ref so we can compare PR-introduced regressions
+      # against a fair baseline (also runs babel_update against the base
+      # source) — this isolates the PR's contribution from any pre-existing
+      # drift on the base branch.
+      - name: Fetch base ref and create comparison worktree
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
         run: |
           # For PRs use the base branch; for direct pushes compare against the previous commit.
@@ -83,15 +87,34 @@ jobs:
             git fetch --depth=1 origin "$BASE_REF"
           else
             git fetch --depth=2 origin "${{ github.ref }}"
-            BASE_REF="HEAD^1"
           fi
-          git checkout FETCH_HEAD -- superset/translations/
+          git worktree add /tmp/base-worktree FETCH_HEAD
+
+      # Run babel_update against BASE source + BASE translations. Any drift
+      # already present on the base branch (source strings that have changed
+      # without .po updates) shows up here as fuzzies — and will also show
+      # up in the PR run, so it cancels out in the comparison.
+      - name: Baseline — run babel_update against BASE source
+        if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
+        working-directory: /tmp/base-worktree
+        run: ./scripts/translations/babel_update.sh
 
       - name: Record baseline translation counts
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
-        run: python scripts/translations/check_translation_regression.py --count > /tmp/before.json
+        run: |
+          python scripts/translations/check_translation_regression.py \
+            --count \
+            --translations-dir /tmp/base-worktree/superset/translations \
+            > /tmp/before.json
 
-      - name: Run pybabel extract and update
+      # Reset the PR worktree's translations to the pristine BASE state so
+      # both babel_update runs start from the same .po files. The only
+      # difference between the runs is the source code.
+      - name: Reset PR worktree translations to pristine BASE
+        if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
+        run: git checkout FETCH_HEAD -- superset/translations/
+
+      - name: Run babel_update against PR source
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
         run: ./scripts/translations/babel_update.sh
 
