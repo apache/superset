@@ -33,8 +33,8 @@ interface SemanticViewEditModalProps {
   show: boolean;
   onHide: () => void;
   onSave: () => void;
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addDangerToast?: (msg: string) => void;
+  addSuccessToast?: (msg: string) => void;
   semanticView: {
     id: number;
     table_name: string;
@@ -47,8 +47,8 @@ export default function SemanticViewEditModal({
   show,
   onHide,
   onSave,
-  addDangerToast,
-  addSuccessToast,
+  addDangerToast = () => {},
+  addSuccessToast = () => {},
   semanticView,
 }: SemanticViewEditModalProps) {
   const [description, setDescription] = useState<string>('');
