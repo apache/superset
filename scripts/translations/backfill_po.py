@@ -94,7 +94,7 @@ LANGUAGE_NAMES: dict[str, str] = {
 
 
 def _lang_name(code: str) -> str:
-    return LANGUAGE_NAMES.get(code, code)
+    """Return a human-readable language name for an ISO language code."""
 
 
 def _plural_key(msgid: str, msgid_plural: str) -> str:
