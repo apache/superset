@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cloneElement, ReactElement, useCallback } from 'react';
+import { cloneElement, isValidElement, ReactElement, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, SupersetTheme } from '@apache-superset/core/theme';
 import copyTextToClipboard from 'src/utils/copy';
@@ -71,16 +71,30 @@ function CopyToClip({
   }, [disabled, getText, text, copyToClipboard]);
 
   const getDecoratedCopyNode = useCallback(() => {
-    const node = copyNode as ReactElement;
-    return cloneElement(node, {
-      style: {
-        ...node.props.style,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-      },
-      onClick: disabled ? undefined : onClick,
-      'aria-disabled': disabled || undefined,
-      tabIndex: disabled ? -1 : node.props.tabIndex,
-    });
+    const cursor = disabled ? 'not-allowed' : 'pointer';
+    if (isValidElement(copyNode)) {
+      const node = copyNode as ReactElement;
+      return cloneElement(node, {
+        style: {
+          ...node.props.style,
+          cursor,
+        },
+        onClick: disabled ? undefined : onClick,
+        'aria-disabled': disabled || undefined,
+        tabIndex: disabled ? -1 : node.props.tabIndex,
+      });
+    }
+    return (
+      <span
+        style={{ cursor }}
+        onClick={disabled ? undefined : onClick}
+        role="button"
+        aria-disabled={disabled || undefined}
+        tabIndex={disabled ? -1 : undefined}
+      >
+        {copyNode}
+      </span>
+    );
   }, [copyNode, disabled, onClick]);
 
   const renderTooltip = useCallback(
