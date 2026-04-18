@@ -423,6 +423,7 @@ def backfill(
     dry_run: bool = False,
     mark_fuzzy: bool = True,
 ) -> None:
+    """Backfill missing translations in the target language's .po file."""
     po_path = TRANSLATIONS_DIR / lang / "LC_MESSAGES" / "messages.po"
     if not po_path.exists():
         print(f"No .po file found for language '{lang}': {po_path}", file=sys.stderr)
@@ -498,6 +499,7 @@ def backfill(
 
 
 def main() -> None:
+    """Parse CLI arguments and run translation backfill."""
     parser = argparse.ArgumentParser(
         description="Backfill missing .po translations using Claude AI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
