@@ -82,6 +82,14 @@ You can also load the Embedded SDK from a CDN. The SDK will be available as `sup
 </script>
 ```
 
+## Enabling Embedded Dashboard feature in Superset
+
+If not enabled already, this feature can be enabled in Superset by making following modifications in 
+`superset/config.py` file.
+
+1. Set the `EMBEDDED_SUPERSET` key in `DEFAULT_FEATURE_FLAGS` dictionary object to `True`.
+2. Set `HTTP_HEADERS = {}`.
+
 ## Authentication/Authorization with Guest Tokens
 
 Embedded resources use a special auth token called a Guest Token to grant Superset access to your users,
