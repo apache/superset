@@ -95,10 +95,12 @@ LANGUAGE_NAMES: dict[str, str] = {
 
 def _lang_name(code: str) -> str:
     """Return a human-readable language name for an ISO language code."""
+    return LANGUAGE_NAMES.get(code, code)
 
 
 def _plural_key(msgid: str, msgid_plural: str) -> str:
     """Build the translation index key used for pluralized entries."""
+    return f"{msgid}\x00{msgid_plural}"
 
 
 def _is_missing(entry: polib.POEntry) -> bool:
@@ -248,7 +250,19 @@ def parse_response(text: str, batch_size: int) -> dict[int, str]:
     text = re.sub(r"\n```$", "", text)
     try:
         raw = json.loads(text)
-        return {int(k): str(v) for k, v in raw.items() if str(k).isdigit()}
+        # Preserve dict/list values as JSON strings so plural responses
+        # (where v is a dict of plural forms) can be re-parsed downstream
+        # by _apply_translation's json.loads. str(v) on a dict produces
+        # Python repr ({'0': 'x'}) which is not valid JSON.
+        return {
+            int(k): (
+                json.dumps(v, ensure_ascii=False)
+                if isinstance(v, (dict, list))
+                else str(v)
+            )
+            for k, v in raw.items()
+            if str(k).isdigit()
+        }
     except json.JSONDecodeError as exc:
         raise ValueError(
             f"Could not parse response as JSON: {exc}\n\nResponse:\n{text}"

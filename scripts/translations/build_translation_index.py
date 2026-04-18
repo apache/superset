@@ -70,6 +70,7 @@ def _is_translated(entry: polib.POEntry) -> bool:
 
 def _plural_key(entry: polib.POEntry) -> str:
     """Build the combined key used for plural translation entries."""
+    return f"{entry.msgid}\x00{entry.msgid_plural}"
 
 
 def build_index(translations_dir: Path) -> dict[str, Any]:
@@ -94,17 +95,17 @@ def build_index(translations_dir: Path) -> dict[str, Any]:
                 key = _plural_key(entry)
                 if key not in index:
                     index[key] = {}
-                translated = (
-                    dict(entry.msgstr_plural)
-                    if any(v for v in entry.msgstr_plural.values())
-                    else None
+                # Fuzzy entries are unreviewed (often machine-generated drafts),
+                # so excluding them prevents feeding unverified translations
+                # back into the AI backfill prompt as trusted context.
+                index[key][lang] = (
+                    dict(entry.msgstr_plural) if _is_translated(entry) else None
                 )
-                index[key][lang] = translated
             else:
                 key = entry.msgid
                 if key not in index:
                     index[key] = {}
-                index[key][lang] = entry.msgstr or None
+                index[key][lang] = entry.msgstr if _is_translated(entry) else None
 
     # Ensure every entry has a slot for every language (null if missing)
     for key in index:
@@ -116,6 +117,7 @@ def build_index(translations_dir: Path) -> dict[str, Any]:
 
 def main() -> None:
     """Parse arguments, build the translation index, and write it to disk."""
+    parser = argparse.ArgumentParser(
         description="Build cross-language translation index"
     )
     parser.add_argument(
