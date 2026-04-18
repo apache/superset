@@ -69,7 +69,7 @@ def _is_translated(entry: polib.POEntry) -> bool:
 
 
 def _plural_key(entry: polib.POEntry) -> str:
-    return f"{entry.msgid}\x00{entry.msgid_plural}"
+    """Build the combined key used for plural translation entries."""
 
 
 def build_index(translations_dir: Path) -> dict[str, Any]:
