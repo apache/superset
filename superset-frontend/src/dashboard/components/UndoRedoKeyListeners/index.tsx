@@ -29,8 +29,9 @@ function UndoRedoKeyListeners({ onUndo, onRedo }: UndoRedoKeyListenersProps) {
     (event: KeyboardEvent) => {
       const controlOrCommand = event.ctrlKey || event.metaKey;
       if (controlOrCommand) {
-        const isZChar = event.key === 'z' || event.keyCode === 90;
-        const isYChar = event.key === 'y' || event.keyCode === 89;
+        const key = event.key.toLowerCase();
+        const isUndo = key === 'z' && !event.shiftKey;
+        const isRedo = key === 'y' || (key === 'z' && event.shiftKey);
         const isEditingMarkdown = document?.querySelector(
           '.dashboard-markdown--editing',
         );
@@ -38,9 +39,9 @@ function UndoRedoKeyListeners({ onUndo, onRedo }: UndoRedoKeyListenersProps) {
           '.editable-title--editing',
         );
 
-        if (!isEditingMarkdown && !isEditingTitle && (isZChar || isYChar)) {
+        if (!isEditingMarkdown && !isEditingTitle && (isUndo || isRedo)) {
           event.preventDefault();
-          const func = isZChar ? onUndo : onRedo;
+          const func = isUndo ? onUndo : onRedo;
           func();
         }
       }

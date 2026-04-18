@@ -260,6 +260,13 @@ function SliceAdder({
     [fetchSlices, searchUpdated, sortBy, userIdForFetch],
   );
 
+  useEffect(
+    () => () => {
+      handleChange.cancel();
+    },
+    [handleChange],
+  );
+
   const handleSelect = useCallback(
     (newSortBy: keyof Slice) => {
       setSortBy(newSortBy);
