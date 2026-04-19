@@ -44,10 +44,18 @@ from superset.mcp_service.mcp_core import ModelListCore
 logger = logging.getLogger(__name__)
 
 # Minimal defaults for reduced token usage - users can request more via select_columns
+# NOTE: "database" (relationship) is included so the DAO eagerly loads it
+# via joinedload, which avoids N+1 lazy-load queries when the serializer
+# accesses dataset.database.name (via the database_name @property).
 DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
     "schema",
+    "database_name",
+    "database",
+    "description",
+    "certified_by",
+    "certification_details",
     "changed_on",
     "changed_on_humanized",
 ]

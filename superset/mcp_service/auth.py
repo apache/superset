@@ -434,6 +434,10 @@ def _setup_user_context() -> User | None:
     """
     Set up user context for MCP tool execution.
 
+    Includes retry logic for stale database connections (e.g., SSL dropped
+    by proxy/load balancer after idle periods). On OperationalError, the
+    session is reset and the user lookup is retried once.
+
     Returns:
         User object with roles and groups loaded, or None if no Flask context
     """
@@ -446,38 +450,55 @@ def _setup_user_context() -> User | None:
     if not has_request_context():
         g.pop("user", None)
 
-    try:
-        user = get_user_from_request()
-    except RuntimeError as e:
-        # No Flask application context (e.g., prompts before middleware runs)
-        # This is expected for some FastMCP operations - return None gracefully
-        if "application context" in str(e):
-            logger.debug("No Flask app context available for user setup")
-            return None
-        raise
-    except ValueError as e:
-        # JWT user resolution failed (e.g. SAML subject not in DB).
-        # If middleware already set g.user (request context exists),
-        # use that instead of failing closed.
-        from flask import has_request_context
+    from sqlalchemy.exc import OperationalError
 
-        if has_request_context() and hasattr(g, "user") and g.user:
-            logger.warning(
-                "JWT user resolution failed (%s), using middleware-provided g.user=%s",
-                e,
-                g.user.username,
-            )
-            # Assign to local so relationship validation below runs
-            # (same as the normal path) to prevent detached instance errors.
-            user = g.user
-        else:
+    user = None  # Ensure defined before loop in case of unexpected exit
+
+    for attempt in range(2):
+        try:
+            user = get_user_from_request()
+
+            # Validate user has necessary relationships loaded.
+            # Force access to ensure they're loaded if lazy.
+            # This is inside the retry loop because relationship loading
+            # also hits the DB and can fail on stale SSL connections.
+            user_roles = user.roles  # noqa: F841
+            if hasattr(user, "groups"):
+                user_groups = user.groups  # noqa: F841
+
+            break
+        except RuntimeError as e:
+            # No Flask application context (e.g., prompts before middleware runs)
+            if "application context" in str(e):
+                logger.debug("No Flask app context available for user setup")
+                return None
             raise
-
-    # Validate user has necessary relationships loaded
-    # (Force access to ensure they're loaded if lazy)
-    user_roles = user.roles  # noqa: F841
-    if hasattr(user, "groups"):
-        user_groups = user.groups  # noqa: F841
+        except OperationalError as e:
+            if attempt == 0:
+                # Only retry on connection-level errors (SSL drops, server
+                # closed connection). Other OperationalErrors (e.g., lock
+                # timeouts) are unlikely to succeed on immediate retry but
+                # are bounded to one attempt so the cost is acceptable.
+                logger.warning(
+                    "Stale DB connection during user setup (attempt 1), "
+                    "resetting session and retrying: %s",
+                    e,
+                )
+                _cleanup_session_on_error()
+                continue
+            logger.error("DB connection failed on retry during user setup: %s", e)
+            _cleanup_session_on_error()
+            raise
+        except ValueError as e:
+            # User resolution failed — fail closed. Do not fall back to
+            # g.user from middleware, as that could allow a request to
+            # proceed as a different user in multi-tenant deployments.
+            # Clear g.user so error/audit logging doesn't attribute
+            # the denied request to the middleware-provided identity.
+            logger.error("MCP user resolution failed, denying request: %s", e)
+            if has_request_context():
+                g.pop("user", None)
+            raise
 
     g.user = user
     return user
@@ -514,18 +535,36 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     import inspect
     import types
 
-    from flask import has_app_context
-
-    from superset.mcp_service.flask_singleton import get_flask_app
+    from flask import current_app, has_app_context, has_request_context
 
     def _get_app_context_manager() -> AbstractContextManager[None]:
-        """Return app context manager only if not already in one."""
-        if has_app_context():
-            # Already in app context (e.g., in tests), use null context
+        """Push a fresh app context unless a request context is active.
+
+        When a request context is present, external middleware (e.g.
+        Preset's WorkspaceContextMiddleware) has already set ``g.user``
+        on a per-request app context — reuse it via ``nullcontext()``.
+
+        When only a bare app context exists (no request context), we must
+        push a **new** app context. The MCP server typically runs inside
+        a long-lived app context (e.g. ``__main__.py`` wraps
+        ``mcp.run()`` in ``app.app_context()``). When FastMCP dispatches
+        concurrent tool calls via ``asyncio.create_task()``, each task
+        inherits the parent's ``ContextVar`` *value* — a reference to the
+        **same** ``AppContext`` object. Without a fresh push, all tasks
+        share one ``g`` namespace and concurrent ``g.user`` mutations
+        race: one user's identity can overwrite another's before
+        ``get_user_id()`` runs during the SQLAlchemy INSERT flush,
+        attributing the created asset to the wrong user.
+        """
+        if has_request_context():
             return contextlib.nullcontext()
-        # Push new app context for standalone MCP server
-        app = get_flask_app()
-        return app.app_context()
+        if has_app_context():
+            # Push a new context for the CURRENT app (not get_flask_app()
+            # which may return a different instance in test environments).
+            return current_app._get_current_object().app_context()
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        return get_flask_app().app_context()
 
     is_async = inspect.iscoroutinefunction(tool_func)
 

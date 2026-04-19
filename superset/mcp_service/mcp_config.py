@@ -248,9 +248,31 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
 # - "bm25": Natural language search using BM25 ranking (recommended)
 # - "regex": Pattern-based search using regular expressions
 #
+# Schema Compaction:
+# ------------------
+# When compact_schemas=True, search results strip $defs sections and replace
+# $ref pointers with {"type": "object"}, and truncate tool descriptions.
+# This reduces per-search token cost by ~40-60%.  Full schemas remain
+# available when the tool is actually invoked via call_tool.
+#
 # Rollback:
 # ---------
-# Set enabled=False in superset_config.py for instant rollback.
+# - Set enabled=False to disable tool search entirely (full catalog exposed).
+# - Set compact_schemas=False to disable schema compaction only (full $defs
+#   and descriptions in search results, tool search still active).
+# - Set max_description_length=0 to disable description truncation only.
+#
+# Summary Mode (include_schemas):
+# --------------------------------
+# When include_schemas=False (default), search results omit inputSchema
+# entirely and include a lightweight "parameters_hint" field listing
+# top-level parameter names (e.g. "page, page_size, search, filters").
+# This reduces per-search token cost by ~80% vs compact mode while still
+# conveying what parameters a tool accepts.  Full schemas remain available
+# when invoking the tool via call_tool.
+# - Set include_schemas=True to restore full inputSchema in search results.
+# - compact_schemas is ignored when include_schemas=False (no schema to
+#   compact); max_description_length still applies in summary mode.
 # =============================================================================
 MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
     "enabled": True,  # Enabled by default — reduces initial context by ~70%
@@ -262,6 +284,9 @@ MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
     ],
     "search_tool_name": "search_tools",  # Name of the search tool
     "call_tool_name": "call_tool",  # Name of the call proxy tool
+    "compact_schemas": True,  # Strip $defs/$ref (requires include_schemas=True)
+    "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
+    "include_schemas": False,  # False=summary mode (name+hint), True=full inputSchema
 }
 
 

@@ -52,11 +52,12 @@ def mcp_server():
 def mock_auth():
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
-        mock_user.id = 1
-        mock_user.username = "admin"
-        mock_get_user.return_value = mock_user
-        yield mock_get_user
+        with patch("superset.security_manager.raise_for_ownership"):
+            mock_user = Mock()
+            mock_user.id = 1
+            mock_user.username = "admin"
+            mock_get_user.return_value = mock_user
+            yield mock_get_user
 
 
 @pytest.fixture(autouse=True)
@@ -87,6 +88,8 @@ def _mock_chart(id: int = 1, slice_name: str = "Test Chart") -> Mock:
     chart.datasource_name = None
     chart.datasource_type = None
     chart.description = None
+    chart.certified_by = None
+    chart.certification_details = None
     chart.cache_timeout = None
     chart.changed_by = None
     chart.changed_by_name = None
@@ -444,7 +447,34 @@ class TestGenerateDashboard:
                 == "Minimal Dashboard"
             )
 
-            # Verify dashboard was created with default published=True
+            # Verify dashboard was created with default published=False
+            created = mock_dashboard_cls.return_value
+            assert created.published is False
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_explicit_published(
+        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
+    ):
+        """Test dashboard generation with published explicitly set to True."""
+        charts = [_mock_chart(id=3)]
+        mock_dashboard = _mock_dashboard(id=41, title="Published Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, mock_dashboard
+        )
+
+        request = {
+            "chart_ids": [3],
+            "dashboard_title": "Published Dashboard",
+            "published": True,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
             created = mock_dashboard_cls.return_value
             assert created.published is True
 

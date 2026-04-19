@@ -65,7 +65,7 @@ jobs:
       - name: Get event SHA
         id: get-sha
         if: steps.eval-label.outputs.result == 'up'
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -96,7 +96,7 @@ jobs:
             core.setOutput("sha", prSha);
 
       - name: Looking for feature flags in PR description
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         id: eval-feature-flags
         if: steps.eval-label.outputs.result == 'up'
         with:
@@ -118,7 +118,7 @@ jobs:
             return results;
 
       - name: Reply with confirmation comment
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         if: steps.eval-label.outputs.result == 'up'
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -199,7 +199,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@183a1442edf41672e66566b7fc560e297a290896 # v2
+        uses: aws-actions/amazon-ecr-login@376925c9d111252e87ae59691e5a442dd100ef6a # v2
 
       - name: Load, tag and push image to ECR
         id: push-image
@@ -235,7 +235,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@183a1442edf41672e66566b7fc560e297a290896 # v2
+        uses: aws-actions/amazon-ecr-login@376925c9d111252e87ae59691e5a442dd100ef6a # v2
 
       - name: Check target image exists in ECR
         id: check-image
@@ -250,7 +250,7 @@ jobs:
 
       - name: Fail on missing container image
         if: steps.check-image.outcome == 'failure'
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{ github.token }}
           script: |
@@ -324,7 +324,7 @@ jobs:
           echo "ip=$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq -r '.NetworkInterfaces | first | .Association.PublicIp')" >> $GITHUB_OUTPUT
       - name: Comment (success)
         if: ${{ success() }}
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{github.token}}
           script: |
@@ -337,7 +337,7 @@ jobs:
             });
       - name: Comment (failure)
         if: ${{ failure() }}
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{github.token}}
           script: |
