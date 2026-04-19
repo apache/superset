@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, ChangeEvent } from 'react';
+import React, { useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 
 const Container = styled.div`
   margin-bottom: ${({ theme }: any) => (theme?.gridUnit || 4) * 4}px;
   padding: ${({ theme }: any) => (theme?.gridUnit || 4) * 4}px;
-  background-color: ${({ theme }: any) => theme?.colors?.grayscale?.light4};
+  background-color: ${({ theme }: any) => theme?.colors?.grayscale?.light4 || '#f6f6f6'};
   border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
 `;
 
@@ -34,40 +34,69 @@ const Row = styled.div`
   gap: ${({ theme }: any) => (theme?.gridUnit || 4) * 2}px;
 `;
 
+const HeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${({ theme }: any) => (theme?.gridUnit || 4) * 4}px;
+`;
+
+// Bulletproof Styled Components to mimic Ant Design
 const StyledInput = styled.input`
   flex: 1;
-  padding: ${({ theme }: any) => theme?.gridUnit || 4}px
-    ${({ theme }: any) => (theme?.gridUnit || 4) * 2}px;
+  width: 100%;
+  padding: ${({ theme }: any) => (theme?.gridUnit || 4) * 1.5}px ${({ theme }: any) => (theme?.gridUnit || 4) * 2}px;
+  font-size: 14px;
   border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
-  border: 1px solid ${({ theme }: any) => theme?.colors?.grayscale?.light2};
+  border: 1px solid ${({ theme }: any) => theme?.colors?.grayscale?.light2 || '#e0e0e0'};
+  color: ${({ theme }: any) => theme?.colors?.grayscale?.dark1 || '#333333'};
+  outline: none;
+
+  &:focus {
+    border-color: ${({ theme }: any) => theme?.colors?.primary?.base || '#20a7c9'};
+  }
 `;
 
 const StyledColorInput = styled.input`
   cursor: pointer;
-  height: 32px;
-  width: 50px;
+  height: 34px;
+  width: 40px;
   padding: 0;
-  border: none;
+  border: 1px solid ${({ theme }: any) => theme?.colors?.grayscale?.light2 || '#e0e0e0'};
+  border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
+  outline: none;
+  background: none;
+
+  &::-webkit-color-swatch-wrapper {
+    padding: 2px;
+  }
+  &::-webkit-color-swatch {
+    border: none;
+    border-radius: 2px;
+  }
 `;
 
-const RemoveButton = styled.button`
-  padding: ${({ theme }: any) => theme?.gridUnit || 4}px
-    ${({ theme }: any) => (theme?.gridUnit || 4) * 3}px;
+const StyledButton = styled.button<{ variant?: 'danger' | 'primary' }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: ${({ theme }: any) => theme?.gridUnit || 4}px ${({ theme }: any) => (theme?.gridUnit || 4) * 3}px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
   cursor: pointer;
-  background-color: ${({ theme }: any) => theme?.colors?.error?.base};
-  color: ${({ theme }: any) => theme?.colors?.grayscale?.light5};
   border: none;
   border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
-`;
+  background-color: ${({ theme, variant }: any) =>
+    variant === 'danger'
+      ? theme?.colors?.error?.base || '#e04355'
+      : theme?.colors?.primary?.base || '#20a7c9'};
+  color: #ffffff;
+  transition: opacity 0.2s;
 
-const AddButton = styled.button`
-  padding: ${({ theme }: any) => (theme?.gridUnit || 4) * 1.5}px
-    ${({ theme }: any) => (theme?.gridUnit || 4) * 4}px;
-  cursor: pointer;
-  background-color: ${({ theme }: any) => theme?.colors?.primary?.base};
-  color: ${({ theme }: any) => theme?.colors?.grayscale?.light5};
-  border: none;
-  border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
+  &:hover {
+    opacity: 0.8;
+  }
 `;
 
 interface LabelColorMappingProps {
@@ -75,19 +104,20 @@ interface LabelColorMappingProps {
   onJsonMetadataChange: (value: string) => void;
 }
 
-// Bypasses the strict regex linter looking for literal color strings
-const DEFAULT_NEW_COLOR = ['#', '000000'].join('');
+const DEFAULT_NEW_COLOR = '#000000';
 
 const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
   jsonMetadata,
   onJsonMetadataChange,
 }) => {
-  // Safely parse the current JSON metadata
   const metadataObj = useMemo(() => {
     try {
       return jsonMetadata ? JSON.parse(jsonMetadata) : {};
-    } catch (e) {
-      return {}; // Fallback if JSON is currently invalid in the AceEditor
+    } catch (error: unknown) {
+      if (error instanceof SyntaxError) {
+        return {};
+      }
+      throw error;
     }
   }, [jsonMetadata]);
 
@@ -102,11 +132,7 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
     onJsonMetadataChange(JSON.stringify(updatedMetadata, null, 2));
   };
 
-  const handleUpdate = (
-    oldLabel: string,
-    newLabel: string,
-    newColor: string,
-  ) => {
+  const handleUpdate = (oldLabel: string, newLabel: string, newColor: string) => {
     const newColors = { ...labelColors };
     if (oldLabel !== newLabel) {
       delete newColors[oldLabel];
@@ -126,46 +152,54 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
     updateLabelColors(newColors);
   };
 
+
   return (
     <Container>
-      <h4>{t('Label Colors (GUI)')}</h4>
-      <p
-        css={(theme: any) => ({
-          marginBottom: (theme?.gridUnit || 4) * 4,
-          fontSize: theme?.typography?.sizes?.s,
-        })}
-      >
-        {t(
-          'Map specific labels to colors. This automatically updates the JSON below.',
-        )}
-      </p>
+      <HeaderRow>
+        <div>
+          <h4 css={(theme: any) => ({ marginBottom: theme?.gridUnit || 4, marginTop: 0 })}>
+            {t('Label Colors')}
+          </h4>
+          <p
+            css={(theme: any) => ({
+              margin: 0,
+              fontSize: 12,
+              color: theme?.colors?.grayscale?.base || '#666666',
+            })}
+          >
+            {t('Map specific labels to colors. This automatically updates the JSON below.')}
+          </p>
+        </div>
+        <StyledButton variant="primary" onClick={handleAdd} type="button">
+          <i className="fa fa-plus" css={{ marginRight: 8 }} />
+          {t('Add Mapping')}
+        </StyledButton>
+      </HeaderRow>
+
+      {colorEntries.length === 0 && (
+        <p css={(theme: any) => ({ fontStyle: 'italic', color: theme?.colors?.grayscale?.light1 || '#B2B2B2' })}>
+          {t('No color mappings defined. Click "Add Mapping" to get started.')}
+        </p>
+      )}
 
       {colorEntries.map(([label, color], index) => (
         <Row key={`${label}-${index}`}>
           <StyledInput
             type="text"
             value={label}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              handleUpdate(label, e.target.value, color as string)
-            }
-            placeholder={t('Label (e.g., Boys)')}
+            onChange={(e: any) => handleUpdate(label, e.target.value, color as string)}
+            placeholder={t('Label (e.g., Revenue)')}
           />
           <StyledColorInput
             type="color"
             value={color as string}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              handleUpdate(label, label, e.target.value)
-            }
+            onChange={(e: any) => handleUpdate(label, label, e.target.value)}
           />
-          <RemoveButton type="button" onClick={() => handleDelete(label)}>
-            {t('Remove')}
-          </RemoveButton>
+          <StyledButton variant="danger" onClick={() => handleDelete(label)} type="button" title={t('Remove color mapping')}>
+            <i className="fa fa-trash" />
+          </StyledButton>
         </Row>
       ))}
-
-      <AddButton type="button" onClick={handleAdd}>
-        + {t('Add Color Mapping')}
-      </AddButton>
     </Container>
   );
 };
