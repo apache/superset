@@ -76,7 +76,7 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => (
         buttonStyle="link"
         buttonSize="xsmall"
         onClick={() => toggleFiltersBar(false)}
-        aria-expanded
+        aria-expanded="true"
         aria-label={t('Collapse filters')}
       >
         <Icons.VerticalAlignTopOutlined

@@ -82,17 +82,24 @@ const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
 const FILTER_NAME = 'Time filter 1';
 
 const addFilterFlow = async () => {
-  // open filter config modals
-  userEvent.click(screen.getByTestId(getTestId('collapsable')));
-  userEvent.click(screen.getByLabelText('setting'));
-  userEvent.click(screen.getByText('Add or edit filters and controls'));
-  // select filter
-  userEvent.click(screen.getByText('Value'));
-  userEvent.click(screen.getByText('Time range'));
-  userEvent.type(screen.getByTestId(getModalTestId('name-input')), FILTER_NAME);
-  userEvent.click(screen.getByText('Save'));
-  // TODO: fix this flaky test
-  // await screen.findByText('All filters (1)');
+  // Open filter config modal. Each click triggers async UI updates, so the
+  // next lookup must wait for the new content to render to avoid flakes.
+  await userEvent.click(screen.getByTestId(getTestId('collapsable')));
+  await userEvent.click(screen.getByLabelText('setting'));
+  await userEvent.click(
+    await screen.findByText('Add or edit filters and controls'),
+  );
+  // Select filter type and fill in the name.
+  await userEvent.click(await screen.findByText('Value'));
+  await userEvent.click(await screen.findByText('Time range'));
+  await userEvent.type(
+    await screen.findByTestId(getModalTestId('name-input')),
+    FILTER_NAME,
+  );
+  await userEvent.click(screen.getByText('Save'));
+  // Assert the filter actually landed in the bar; skipping this meant the
+  // helper returned before the Save round-trip finished and masked bugs.
+  expect(await screen.findByText('All filters (1)')).toBeInTheDocument();
 };
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -439,6 +446,9 @@ describe('FilterBar', () => {
     });
 
     expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
+    // The test name promises that auto-apply ran; without this assertion the
+    // test passed even when the dispatch was silently skipped.
+    expect(updateDataMaskSpy).toHaveBeenCalled();
 
     updateDataMaskSpy.mockRestore();
   });

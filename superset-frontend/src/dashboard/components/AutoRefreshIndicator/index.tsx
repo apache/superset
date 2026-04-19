@@ -123,7 +123,11 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
           type="button"
           css={iconButtonStyles}
           onClick={onTogglePause}
-          aria-label={tooltipTitle}
+          // WCAG 1.3.3: for a toggle button the accessible name stays
+          // constant and aria-pressed carries the state. A dynamic name
+          // tells screen readers about two different buttons rather than
+          // one button flipping between pressed and unpressed.
+          aria-label={t('Toggle auto-refresh')}
           aria-pressed={isPaused}
           data-test="auto-refresh-toggle"
         >
