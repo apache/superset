@@ -169,11 +169,33 @@ def get_samples(  # pylint: disable=too-many-arguments
         if count_star_data.get("status") == QueryStatus.FAILED:
             raise DatasetSamplesFailedError(count_star_data.get("error"))
 
-        sample_data = samples_instance.get_payload()["queries"][0]
+        engine_spec = datasource.database.db_engine_spec
+        row_offset = limit_clause["row_offset"]
+        row_limit = limit_clause["row_limit"]
 
-        if sample_data.get("status") == QueryStatus.FAILED:
-            QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
-            raise DatasetSamplesFailedError(sample_data.get("error"))
+        if not engine_spec.allows_offset_fetch and row_offset > 0:
+            try:
+                sample_data = _fetch_samples_via_cursor(
+                    datasource=datasource,
+                    samples_instance=samples_instance,
+                    count_star_data=count_star_data,
+                    page_index=row_offset // row_limit,
+                    page_size=row_limit,
+                )
+            except DatasetSamplesFailedError:
+                raise
+            except Exception as exc:
+                QueryCacheManager.delete(
+                    count_star_data.get("cache_key"), CacheRegion.DATA
+                )
+                raise DatasetSamplesFailedError(str(exc)) from exc
+        else:
+            sample_data = samples_instance.get_payload()["queries"][0]
+            if sample_data.get("status") == QueryStatus.FAILED:
+                QueryCacheManager.delete(
+                    count_star_data.get("cache_key"), CacheRegion.DATA
+                )
+                raise DatasetSamplesFailedError(sample_data.get("error") or "")
 
         sample_data["page"] = page
         sample_data["per_page"] = per_page
@@ -181,3 +203,62 @@ def get_samples(  # pylint: disable=too-many-arguments
         return sample_data
     except (IndexError, KeyError) as exc:
         raise DatasetSamplesFailedError from exc
+
+
+def _fetch_samples_via_cursor(
+    datasource: Any,
+    samples_instance: Any,
+    count_star_data: dict[str, Any],
+    page_index: int,
+    page_size: int,
+) -> dict[str, Any]:
+    """
+    Fetch a single page of samples via engine-spec cursor pagination.
+
+    Used when ``datasource.database.db_engine_spec.allows_offset_fetch`` is
+    False and a non-first page is requested. Extracts the compiled SQL from
+    the already-built QueryContext, delegates cursor iteration to the engine
+    spec, and assembles a response dict compatible with the normal samples
+    path.
+
+    The samples payload is also executed (its SQL is OFFSET-stripped by the
+    models/helpers.py guard) to obtain the authoritative ``colnames`` and
+    ``coltypes`` that the frontend grid needs for type-based cell renderers
+    — ensuring page 2+ renders identically to page 1.
+    """
+    # Run the normal samples payload once to source authoritative colnames
+    # and coltypes for the paginated result set. The helpers.py OFFSET guard
+    # keeps this to a single cheap page-1 query for the cursor-path engine.
+    sample_payload = samples_instance.get_payload()["queries"][0]
+    if sample_payload.get("status") == QueryStatus.FAILED:
+        QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
+        raise DatasetSamplesFailedError(sample_payload.get("error") or "")
+
+    query_obj = samples_instance.queries[0]
+    query_obj_dict = query_obj.to_dict()
+    # The engine spec's allows_offset_fetch guard in models/helpers.py keeps
+    # OFFSET out of the SQL already; we ask for a LIMIT large enough for the
+    # cursor to iterate across pages.
+    sample_row_limit = app.config.get("SAMPLES_ROW_LIMIT", 1000)
+    query_obj_dict["row_limit"] = sample_row_limit
+    query_obj_dict["row_offset"] = 0
+
+    sql = datasource.get_query_str(query_obj_dict)
+
+    engine_spec = datasource.database.db_engine_spec
+    rows, cursor_colnames, _ = engine_spec.fetch_data_with_cursor(
+        database=datasource.database,
+        sql=sql,
+        page_index=page_index,
+        page_size=page_size,
+    )
+
+    colnames = sample_payload.get("colnames") or cursor_colnames
+    coltypes = sample_payload.get("coltypes") or []
+
+    return {
+        "data": [dict(zip(colnames, row, strict=False)) for row in rows],
+        "colnames": colnames,
+        "coltypes": coltypes,
+        "status": QueryStatus.SUCCESS,
+    }

@@ -32,6 +32,72 @@ from superset.db_engine_specs.exceptions import (
 logger = logging.getLogger()
 
 
+def _fetch_page_via_cursor(
+    database: Any,
+    sql: str,
+    page_index: int,
+    page_size: int,
+    sql_path: str,
+    close_path: str,
+) -> tuple[list[list[Any]], list[str], None]:
+    """
+    Iterate Elasticsearch/OpenSearch SQL cursor pagination to return a single
+    page of results.
+
+    Executes ``sql`` with ``fetch_size = page_size``, then sends cursor
+    follow-up requests ``page_index`` times to skip earlier pages. Closes the
+    cursor when done to release server-side state. Returns
+    ``(rows, columns, None)``; the third slot is reserved for a future
+    cursor-handle API.
+
+    If the dataset is exhausted before reaching ``page_index``, returns an
+    empty rows list with the column names from the initial request.
+    """
+    with database.get_raw_connection() as conn:
+        transport = conn.es.transport
+        response = transport.perform_request(
+            "POST",
+            sql_path,
+            body={"query": sql, "fetch_size": page_size},
+        )
+        columns = [col["name"] for col in response.get("columns", [])]
+        rows = response.get("rows", [])
+        cursor = response.get("cursor")
+
+        try:
+            for _ in range(page_index):
+                if not cursor:
+                    # Dataset exhausted before reaching the target page —
+                    # no cursor to close (ES returns no cursor on the final
+                    # page). Return immediately with empty rows.
+                    return [], columns, None
+                response = transport.perform_request(
+                    "POST",
+                    sql_path,
+                    body={"cursor": cursor},
+                )
+                rows = response.get("rows", [])
+                cursor = response.get("cursor")
+
+            return rows, columns, None
+        finally:
+            if cursor:
+                # Best-effort cleanup. If close itself fails we don't want
+                # to mask the original error (if any) — swallow and log.
+                try:
+                    transport.perform_request(
+                        "POST",
+                        close_path,
+                        body={"cursor": cursor},
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning(
+                        "Failed to close Elasticsearch SQL cursor at %s",
+                        close_path,
+                        exc_info=True,
+                    )
+
+
 class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "elasticsearch"
     engine_name = "Elasticsearch"
@@ -137,6 +203,30 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
     type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
 
+    SQL_ENDPOINT = "/_sql"
+    SQL_CLOSE_ENDPOINT = "/_sql/close"
+
+    @classmethod
+    def fetch_data_with_cursor(
+        cls,
+        database: Any,
+        sql: str,
+        page_index: int,
+        page_size: int,
+    ) -> tuple[list[list[Any]], list[str], None]:
+        """
+        Fetch a single page of results using Elasticsearch cursor pagination.
+        See ``_fetch_page_via_cursor`` for the protocol.
+        """
+        return _fetch_page_via_cursor(
+            database=database,
+            sql=sql,
+            page_index=page_index,
+            page_size=page_size,
+            sql_path=cls.SQL_ENDPOINT,
+            close_path=cls.SQL_CLOSE_ENDPOINT,
+        )
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-error,import-outside-toplevel
@@ -205,6 +295,30 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     engine = "odelasticsearch"
     engine_name = "OpenSearch (OpenDistro)"
+
+    SQL_ENDPOINT = "/_opendistro/_sql"
+    SQL_CLOSE_ENDPOINT = "/_opendistro/_sql/close"
+
+    @classmethod
+    def fetch_data_with_cursor(
+        cls,
+        database: Any,
+        sql: str,
+        page_index: int,
+        page_size: int,
+    ) -> tuple[list[list[Any]], list[str], None]:
+        """
+        Fetch a single page of results using OpenDistro SQL cursor pagination.
+        Same protocol as ElasticSearchEngineSpec, different endpoint paths.
+        """
+        return _fetch_page_via_cursor(
+            database=database,
+            sql=sql,
+            page_index=page_index,
+            page_size=page_size,
+            sql_path=cls.SQL_ENDPOINT,
+            close_path=cls.SQL_CLOSE_ENDPOINT,
+        )
 
     @classmethod
     def convert_dttm(
