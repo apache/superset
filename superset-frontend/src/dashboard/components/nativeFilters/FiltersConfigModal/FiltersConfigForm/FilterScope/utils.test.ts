@@ -18,7 +18,7 @@
  */
 import { Layout, LayoutItem, Charts } from 'src/dashboard/types';
 import { VizType } from '@superset-ui/core';
-import { buildTree } from './utils';
+import { buildTree, getTreeCheckedItems } from './utils';
 import type { TreeItem } from './types';
 
 // The types defined for Layout and sub elements is not compatible with the data we get back fro a real dashboard layout
@@ -18044,6 +18044,80 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         validNodes,
         initiallyExcludedCharts,
         () => 'Fake title',
+      );
+    }).not.toThrow();
+  });
+
+  test('Does not infinitely recurse when layout contains a cycle (nested tabs circular reference)', () => {
+    // Simulate a corrupted layout where TAB-A → TAB-B → TAB-A (cycle)
+    const circularLayout = {
+      ROOT_ID: {
+        id: 'ROOT_ID',
+        type: 'ROOT',
+        children: ['TAB-A'],
+        parents: [],
+      },
+      'TAB-A': {
+        id: 'TAB-A',
+        type: 'TAB',
+        children: ['TAB-B'],
+        parents: ['ROOT_ID'],
+        meta: { text: 'Tab A' },
+      },
+      'TAB-B': {
+        id: 'TAB-B',
+        type: 'TAB',
+        // Points back to TAB-A, creating a cycle
+        children: ['TAB-A'],
+        parents: ['ROOT_ID', 'TAB-A'],
+        meta: { text: 'Tab B' },
+      },
+    };
+
+    const rootNode = circularLayout.ROOT_ID;
+    const rootTreeItem: TreeItem = { key: 'ROOT_ID', title: 'Root', children: [], nodeType: 'TAB' };
+
+    expect(() => {
+      buildTree(
+        rootNode as unknown as LayoutItem,
+        rootTreeItem,
+        circularLayout as unknown as Layout,
+        {} as Charts,
+        ['ROOT_ID', 'TAB-A', 'TAB-B'],
+        [],
+        () => 'title',
+      );
+    }).not.toThrow();
+  });
+
+  test('getTreeCheckedItems does not infinitely recurse when scope rootPath creates a cycle', () => {
+    // Simulate a corrupted layout where ROW-A → ROW-B → ROW-A (cycle via children)
+    const circularLayout = {
+      ROOT_ID: {
+        id: 'ROOT_ID',
+        type: 'ROOT',
+        children: ['ROW-A'],
+        parents: [],
+      },
+      'ROW-A': {
+        id: 'ROW-A',
+        type: 'ROW',
+        children: ['ROW-B'],
+        parents: ['ROOT_ID'],
+      },
+      'ROW-B': {
+        id: 'ROW-B',
+        type: 'ROW',
+        // Points back to ROW-A, creating a cycle
+        children: ['ROW-A'],
+        parents: ['ROOT_ID', 'ROW-A'],
+      },
+    };
+
+    expect(() => {
+      getTreeCheckedItems(
+        { rootPath: ['ROOT_ID'], excluded: [] },
+        circularLayout as unknown as Layout,
       );
     }).not.toThrow();
   });
