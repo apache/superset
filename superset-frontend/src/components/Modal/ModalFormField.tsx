@@ -132,13 +132,33 @@ export function ModalFormField({
   const errorId = error ? `${uniqueId}-error` : undefined;
 
   // Clone the first child element to inject aria-invalid and aria-describedby
+  // on the real input. Many call sites wrap the input in a FormItem/Row so
+  // the ARIA attrs must hop through wrappers to reach the actual interactive
+  // element, otherwise screen readers never learn about the error.
+  const applyAria = (element: React.ReactElement<any>): React.ReactElement<any> => {
+    const ariaProps = {
+      'aria-invalid': true,
+      'aria-describedby': errorId,
+    };
+    const wrappedChild = element.props?.children;
+    if (
+      isValidElement(wrappedChild) &&
+      Children.count(wrappedChild) === 1
+    ) {
+      return cloneElement(element, {
+        children: cloneElement(
+          wrappedChild as React.ReactElement<any>,
+          ariaProps,
+        ),
+      });
+    }
+    return cloneElement(element, ariaProps);
+  };
+
   const enhancedChildren = error
     ? Children.map(children, (child, index) => {
         if (index === 0 && isValidElement(child)) {
-          return cloneElement(child as React.ReactElement<any>, {
-            'aria-invalid': true,
-            'aria-describedby': errorId,
-          });
+          return applyAria(child as React.ReactElement<any>);
         }
         return child;
       })

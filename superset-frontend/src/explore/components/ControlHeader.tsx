@@ -37,6 +37,10 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
+  // WCAG 3.3.1: error container ID shared with the input's aria-describedby.
+  // Passed in by wrappers like NumberControl/TextControl so there is exactly
+  // one live-region and one DOM id per control (no duplicate ids/alerts).
+  errorId?: string;
 };
 
 const iconStyles = css`
@@ -68,10 +72,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   tooltipOnClick = () => {},
   warning,
   danger,
+  errorId: providedErrorId,
 }) => {
   const theme = useTheme();
   const uniqueId = useId();
-  const errorId = `${name || uniqueId}-error`;
+  const errorId = providedErrorId ?? `${name || uniqueId}-error`;
 
   if (!label) {
     return null;
