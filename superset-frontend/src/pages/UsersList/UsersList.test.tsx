@@ -60,6 +60,7 @@ const mockUsers = Array.from({ length: 5 }, (_, i) => ({
   last_name: `Test${i}`,
   login_count: null,
   roles: [{ id: i % 3, name: `role ${i % 3}` }],
+  groups: [],
   username: `user${i}`,
 }));
 

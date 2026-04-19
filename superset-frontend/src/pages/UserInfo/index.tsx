@@ -163,6 +163,7 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
   return (
     <StyledLayout>
       <StyledHeader>{t('Your user information')}</StyledHeader>
+      <SubMenu buttons={SubMenuButtons} />
       <DescriptionsContainer>
         <Collapse
           defaultActiveKey={[
@@ -249,7 +250,6 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
           user={userDetails}
         />
       )}
-      <SubMenu buttons={SubMenuButtons} />
     </StyledLayout>
   );
 }

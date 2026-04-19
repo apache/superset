@@ -39,6 +39,7 @@ import {
   UserListAddModal,
   UserListEditModal,
 } from 'src/features/users/UserListModal';
+import UserListResetPasswordModal from 'src/features/users/UserListResetPasswordModal';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { deleteUser } from 'src/features/users/utils';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
@@ -49,6 +50,7 @@ const PAGE_SIZE = 25;
 enum ModalType {
   ADD = 'add',
   EDIT = 'edit',
+  RESET_PASSWORD = 'resetPassword',
 }
 
 const isActiveOptions = [
@@ -82,6 +84,7 @@ function UsersList({ user }: UsersListProps) {
   const [modalState, setModalState] = useState({
     edit: false,
     add: false,
+    resetPassword: false,
   });
   const openModal = (type: ModalType) =>
     setModalState(prev => ({ ...prev, [type]: true }));
@@ -335,6 +338,10 @@ function UsersList({ user }: UsersListProps) {
             setCurrentUser(original);
             openModal(ModalType.EDIT);
           };
+          const handleResetPassword = () => {
+            setCurrentUser(original);
+            openModal(ModalType.RESET_PASSWORD);
+          };
           const handleDelete = () => setUserCurrentlyDeleting(original);
           const actions = isAdmin
             ? [
@@ -344,6 +351,13 @@ function UsersList({ user }: UsersListProps) {
                   placement: 'bottom',
                   icon: 'EditOutlined',
                   onClick: handleEdit,
+                },
+                {
+                  label: 'user-list-reset-password-action',
+                  tooltip: t('Reset password'),
+                  placement: 'bottom',
+                  icon: 'KeyOutlined',
+                  onClick: handleResetPassword,
                 },
                 {
                   label: 'role-list-delete-action',
@@ -548,6 +562,21 @@ function UsersList({ user }: UsersListProps) {
           }}
           roles={roles}
           groups={groups}
+        />
+      )}
+      {modalState.resetPassword && currentUser && (
+        <UserListResetPasswordModal
+          user={currentUser}
+          show={modalState.resetPassword}
+          onHide={() => {
+            closeModal(ModalType.RESET_PASSWORD);
+            setCurrentUser(null);
+          }}
+          onSave={() => {
+            refreshData();
+            closeModal(ModalType.RESET_PASSWORD);
+            setCurrentUser(null);
+          }}
         />
       )}
 
