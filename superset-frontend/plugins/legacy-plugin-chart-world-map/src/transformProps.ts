@@ -75,7 +75,7 @@ export default function transformProps(chartProps: ChartProps) {
     maxBubbleSize: parseInt(maxBubbleSize, 10),
     showBubbles,
     linearColorScheme,
-    color: tinycolor({r, g, b}).toHex(),
+    color: tinycolor({ r, g, b }).toHexString(),
     colorBy,
     colorScheme,
     sliceId,
