@@ -21,39 +21,41 @@ import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 
 const Container = styled.div`
-  margin-bottom: ${({ theme }: any) => (theme?.gridUnit || 4) * 4}px;
-  padding: ${({ theme }: any) => (theme?.gridUnit || 4) * 4}px;
-  background-color: ${({ theme }: any) => theme?.colors?.grayscale?.light4 || '#f6f6f6'};
-  border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
+  margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
+  padding: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
+  background-color: ${({ theme }) =>
+    theme?.colors?.grayscale?.light4 || '#f6f6f6'};
+  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
 `;
 
 const Row = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: ${({ theme }: any) => (theme?.gridUnit || 4) * 2}px;
-  gap: ${({ theme }: any) => (theme?.gridUnit || 4) * 2}px;
+  margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
+  gap: ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
 `;
 
 const HeaderRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ theme }: any) => (theme?.gridUnit || 4) * 4}px;
+  margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
 `;
 
-// Bulletproof Styled Components to mimic Ant Design
 const StyledInput = styled.input`
   flex: 1;
   width: 100%;
-  padding: ${({ theme }: any) => (theme?.gridUnit || 4) * 1.5}px ${({ theme }: any) => (theme?.gridUnit || 4) * 2}px;
+  padding: ${({ theme }) => (theme?.gridUnit || 4) * 1.5}px
+    ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
   font-size: 14px;
-  border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
-  border: 1px solid ${({ theme }: any) => theme?.colors?.grayscale?.light2 || '#e0e0e0'};
-  color: ${({ theme }: any) => theme?.colors?.grayscale?.dark1 || '#333333'};
+  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
+  border: 1px solid
+    ${({ theme }) => theme?.colors?.grayscale?.light2 || '#e0e0e0'};
+  color: ${({ theme }) => theme?.colors?.grayscale?.dark1 || '#333333'};
   outline: none;
 
   &:focus {
-    border-color: ${({ theme }: any) => theme?.colors?.primary?.base || '#20a7c9'};
+    border-color: ${({ theme }) => theme?.colors?.primary?.base || '#20a7c9'};
   }
 `;
 
@@ -62,8 +64,9 @@ const StyledColorInput = styled.input`
   height: 34px;
   width: 40px;
   padding: 0;
-  border: 1px solid ${({ theme }: any) => theme?.colors?.grayscale?.light2 || '#e0e0e0'};
-  border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
+  border: 1px solid
+    ${({ theme }) => theme?.colors?.grayscale?.light2 || '#e0e0e0'};
+  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
   outline: none;
   background: none;
 
@@ -80,14 +83,15 @@ const StyledButton = styled.button<{ variant?: 'danger' | 'primary' }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${({ theme }: any) => theme?.gridUnit || 4}px ${({ theme }: any) => (theme?.gridUnit || 4) * 3}px;
+  padding: ${({ theme }) => theme?.gridUnit || 4}px
+    ${({ theme }) => (theme?.gridUnit || 4) * 3}px;
   font-size: 12px;
   font-weight: bold;
   text-transform: uppercase;
   cursor: pointer;
   border: none;
-  border-radius: ${({ theme }: any) => theme?.borderRadius || 4}px;
-  background-color: ${({ theme, variant }: any) =>
+  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
+  background-color: ${({ theme, variant }) =>
     variant === 'danger'
       ? theme?.colors?.error?.base || '#e04355'
       : theme?.colors?.primary?.base || '#20a7c9'};
@@ -110,9 +114,12 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
   jsonMetadata,
   onJsonMetadataChange,
 }) => {
-  const metadataObj = useMemo(() => {
+  const metadataObj = useMemo<Record<string, unknown>>(() => {
     try {
-      return jsonMetadata ? JSON.parse(jsonMetadata) : {};
+      const parsed = jsonMetadata ? JSON.parse(jsonMetadata) : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
     } catch (error: unknown) {
       if (error instanceof SyntaxError) {
         return {};
@@ -121,7 +128,13 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
     }
   }, [jsonMetadata]);
 
-  const labelColors = metadataObj.label_colors || {};
+  const labelColors =
+    metadataObj.label_colors &&
+    typeof metadataObj.label_colors === 'object' &&
+    !Array.isArray(metadataObj.label_colors)
+      ? (metadataObj.label_colors as Record<string, string>)
+      : {};
+
   const colorEntries = Object.entries(labelColors);
 
   const updateLabelColors = (newLabelColors: Record<string, string>) => {
@@ -132,7 +145,11 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
     onJsonMetadataChange(JSON.stringify(updatedMetadata, null, 2));
   };
 
-  const handleUpdate = (oldLabel: string, newLabel: string, newColor: string) => {
+  const handleUpdate = (
+    oldLabel: string,
+    newLabel: string,
+    newColor: string,
+  ) => {
     const newColors = { ...labelColors };
     if (oldLabel !== newLabel) {
       delete newColors[oldLabel];
@@ -148,16 +165,26 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
   };
 
   const handleAdd = () => {
-    const newColors = { ...labelColors, 'New Label': DEFAULT_NEW_COLOR };
+    let labelIndex = 1;
+    let newLabel = 'New Label';
+    while (Object.prototype.hasOwnProperty.call(labelColors, newLabel)) {
+      labelIndex += 1;
+      newLabel = `New Label ${labelIndex}`;
+    }
+    const newColors = { ...labelColors, [newLabel]: DEFAULT_NEW_COLOR };
     updateLabelColors(newColors);
   };
-
 
   return (
     <Container>
       <HeaderRow>
         <div>
-          <h4 css={(theme: any) => ({ marginBottom: theme?.gridUnit || 4, marginTop: 0 })}>
+          <h4
+            css={(theme: any) => ({
+              marginBottom: theme?.gridUnit || 4,
+              marginTop: 0,
+            })}
+          >
             {t('Label Colors')}
           </h4>
           <p
@@ -167,7 +194,9 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
               color: theme?.colors?.grayscale?.base || '#666666',
             })}
           >
-            {t('Map specific labels to colors. This automatically updates the JSON below.')}
+            {t(
+              'Map specific labels to colors. This automatically updates the JSON below.',
+            )}
           </p>
         </div>
         <StyledButton variant="primary" onClick={handleAdd} type="button">
@@ -177,25 +206,39 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
       </HeaderRow>
 
       {colorEntries.length === 0 && (
-        <p css={(theme: any) => ({ fontStyle: 'italic', color: theme?.colors?.grayscale?.light1 || '#B2B2B2' })}>
+        <p
+          css={(theme: any) => ({
+            fontStyle: 'italic',
+            color: theme?.colors?.grayscale?.light1 || '#B2B2B2',
+          })}
+        >
           {t('No color mappings defined. Click "Add Mapping" to get started.')}
         </p>
       )}
 
       {colorEntries.map(([label, color], index) => (
-        <Row key={`${label}-${index}`}>
+        <Row key={`mapping-${index}`}>
           <StyledInput
             type="text"
             value={label}
-            onChange={(e: any) => handleUpdate(label, e.target.value, color as string)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleUpdate(label, e.target.value, color)
+            }
             placeholder={t('Label (e.g., Revenue)')}
           />
           <StyledColorInput
             type="color"
-            value={color as string}
-            onChange={(e: any) => handleUpdate(label, label, e.target.value)}
+            value={color}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              handleUpdate(label, label, e.target.value)
+            }
           />
-          <StyledButton variant="danger" onClick={() => handleDelete(label)} type="button" title={t('Remove color mapping')}>
+          <StyledButton
+            variant="danger"
+            onClick={() => handleDelete(label)}
+            type="button"
+            title={t('Remove color mapping')}
+          >
             <i className="fa fa-trash" />
           </StyledButton>
         </Row>
