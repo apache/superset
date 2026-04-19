@@ -56,10 +56,9 @@ export interface ResultsPaneProps {
 export interface SamplesPaneProps {
   isRequest: boolean;
   datasource: Datasource;
+  queryFormData: LatestQueryFormData;
   queryForce: boolean;
   setForceQuery?: SetForceQueryAction;
-  dataSize?: number;
-  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
 }
@@ -74,6 +73,9 @@ export interface TableControlsProps {
   isLoading: boolean;
   rowcount: number;
   canDownload: boolean;
+  rowLimit?: number;
+  rowLimitOptions?: { value: number; label: string }[];
+  onRowLimitChange?: (limit: number) => void;
 }
 
 export interface QueryResultInterface {
@@ -86,11 +88,11 @@ export interface QueryResultInterface {
 export interface SingleQueryResultPaneProp extends QueryResultInterface {
   // {datasource.id}__{datasource.type}, eg: 1__table
   datasourceId?: string;
-  dataSize?: number;
-  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
   // Optional map of column/metric name -> verbose label
   columnDisplayNames?: Record<string, string>;
-  isPaginationSticky?: boolean;
+  rowLimit?: number;
+  rowLimitOptions?: { value: number; label: string }[];
+  onRowLimitChange?: (limit: number) => void;
 }

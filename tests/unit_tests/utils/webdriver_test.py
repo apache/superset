@@ -530,6 +530,7 @@ class TestWebDriverPlaywrightFallback:
                 "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
                 "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
                 "SCREENSHOT_SELENIUM_HEADSTART": 5,
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
                 "SCREENSHOT_LOCATE_WAIT": 10,
                 "SCREENSHOT_LOAD_WAIT": 10,
                 "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
@@ -546,8 +547,10 @@ class TestWebDriverPlaywrightFallback:
                     "http://example.com", "test-element", mock_user
                 )
 
-        # Should handle timeout gracefully and return None
-        assert result is None
+        # page.goto() timeout is caught and logged without aborting; execution
+        # continues to the element waits, which succeed here, so a screenshot
+        # is taken and returned (not None).
+        assert result is not None
         mock_logger.exception.assert_called()
         exception_call = mock_logger.exception.call_args[0][0]
         assert "Web event %s not detected" in exception_call
@@ -640,10 +643,10 @@ class TestWebDriverPlaywrightErrorHandling:
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver.sync_playwright")
     @patch("superset.utils.webdriver.logger")
-    def test_get_screenshot_logs_multiple_timeouts(
+    def test_get_screenshot_raises_on_element_wait_timeout(
         self, mock_logger, mock_sync_playwright
     ):
-        """Test that multiple timeout scenarios are logged appropriately."""
+        """Test that PlaywrightTimeout propagates when waiting for page elements."""
         from superset.utils.webdriver import PlaywrightTimeout
 
         mock_user = MagicMock()
@@ -663,9 +666,10 @@ class TestWebDriverPlaywrightErrorHandling:
         mock_browser.new_context.return_value = mock_context
         mock_context.new_page.return_value = mock_page
 
-        # Mock locator to raise timeout on element wait
+        # Keep a reference to the exact instance so we can verify identity below.
+        timeout = PlaywrightTimeout()
         mock_page.locator.return_value = mock_element
-        mock_element.wait_for.side_effect = PlaywrightTimeout()
+        mock_element.wait_for.side_effect = timeout
 
         with patch("superset.utils.webdriver.app") as mock_app:
             mock_app.config = {
@@ -686,10 +690,15 @@ class TestWebDriverPlaywrightErrorHandling:
                 mock_auth.return_value = mock_context
 
                 driver = WebDriverPlaywright("chrome")
-                result = driver.get_screenshot(
-                    "http://example.com", "test-element", mock_user
-                )
+                with pytest.raises(PlaywrightTimeout) as exc_info:
+                    driver.get_screenshot(
+                        "http://example.com", "test-element", mock_user
+                    )
 
-        assert result is None
-        # Should log timeout for element wait
-        assert mock_logger.exception.call_count >= 1
+        # The exact injected instance must propagate — guards against the
+        # fallback alias (PlaywrightTimeout = Exception when playwright is
+        # not installed) accepting unrelated exceptions.
+        assert exc_info.value is timeout
+        mock_logger.exception.assert_any_call(
+            "Timed out requesting url %s", "http://example.com"
+        )
