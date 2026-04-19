@@ -32,9 +32,18 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.extensions import stats_logger_manager
 from superset.utils import json
+from superset.utils.backports import StrEnum
 from superset.utils.core import get_user_id, LoggerLevel, to_int
 
 logger = logging.getLogger(__name__)
+
+
+class AuditLogSource(StrEnum):
+    API = "API"
+    MCP = "MCP"
+    CHATBOT = "Chatbot"
+    PRESET = "Preset"
+    EMBEDDED = "Embedded"
 
 
 def collect_request_payload() -> dict[str, Any]:
@@ -399,6 +408,7 @@ class DBEventLogger(AbstractEventLogger):
                 duration_ms=duration_ms,
                 referrer=referrer,
                 user_id=user_id,
+                source=kwargs.get("source"),
             )
             logs.append(log)
         try:

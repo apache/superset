@@ -29,6 +29,7 @@ class LogMixin:  # pylint: disable=too-few-public-methods
     label_columns = {
         "user": _("User"),
         "action": _("Action"),
+        "source": _("Source"),
         "dttm": _("dttm"),
         "json": _("JSON"),
     }

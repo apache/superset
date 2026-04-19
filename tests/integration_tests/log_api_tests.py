@@ -47,6 +47,7 @@ EXPECTED_COLUMNS = [
     "json",
     "referrer",
     "slice_id",
+    "source",
     "user",
     "user_id",
 ]

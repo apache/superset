@@ -16,7 +16,7 @@
 # under the License.
 
 
-from superset.utils.log import get_logger_from_status
+from superset.utils.log import AuditLogSource, get_logger_from_status
 
 
 def test_log_from_status_exception() -> None:
@@ -35,3 +35,11 @@ def test_log_from_status_info() -> None:
     (func, log_level) = get_logger_from_status(300)
     assert func.__name__ == "info"
     assert log_level == "info"
+
+
+def test_audit_log_source_values() -> None:
+    assert AuditLogSource.API == "API"
+    assert AuditLogSource.MCP == "MCP"
+    assert AuditLogSource.CHATBOT == "Chatbot"
+    assert AuditLogSource.PRESET == "Preset"
+    assert AuditLogSource.EMBEDDED == "Embedded"

@@ -38,6 +38,7 @@ export type ActionLogObject = {
   };
 
   action: string;
+  source?: string;
   dttm: string | null;
   dashboard_id?: number;
   slice_id?: number;
@@ -106,6 +107,21 @@ function ActionLogList() {
         operator: ListViewFilterOperator.Contains,
       },
       {
+        Header: t('Source'),
+        key: 'source',
+        id: 'source',
+        input: 'select',
+        operator: ListViewFilterOperator.Equals,
+        unfilteredLabel: t('All'),
+        selects: [
+          { label: t('API'), value: 'API' },
+          { label: t('MCP'), value: 'MCP' },
+          { label: t('Chatbot'), value: 'Chatbot' },
+          { label: t('Preset'), value: 'Preset' },
+          { label: t('Embedded'), value: 'Embedded' },
+        ],
+      },
+      {
         Header: t('JSON'),
         key: 'json',
         id: 'json',
@@ -148,6 +164,15 @@ function ActionLogList() {
             original: { action },
           },
         }: any) => <span>{action}</span>,
+      },
+      {
+        accessor: 'source',
+        Header: t('Source'),
+        Cell: ({
+          row: {
+            original: { source },
+          },
+        }: any) => <span>{source}</span>,
       },
       {
         accessor: 'user',
