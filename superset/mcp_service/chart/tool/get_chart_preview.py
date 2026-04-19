@@ -23,10 +23,10 @@ import logging
 from typing import Any, Dict, List, Protocol
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
@@ -41,7 +41,10 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
@@ -134,12 +137,28 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             groupby_columns = form_data.get("groupby", [])
             metrics = form_data.get("metrics", [])
 
-            columns = groupby_columns.copy()
-            if x_axis_config and isinstance(x_axis_config, str):
-                columns.append(x_axis_config)
-            elif x_axis_config and isinstance(x_axis_config, dict):
-                if "column_name" in x_axis_config:
-                    columns.append(x_axis_config["column_name"])
+            # Table charts in raw mode use all_columns or columns
+            all_columns = form_data.get("all_columns", [])
+            raw_columns = form_data.get("columns", [])
+            if form_data.get("query_mode") == "raw" and (all_columns or raw_columns):
+                columns = list(all_columns or raw_columns)
+            else:
+                columns = groupby_columns.copy()
+                if x_axis_config and isinstance(x_axis_config, str):
+                    columns.append(x_axis_config)
+                elif x_axis_config and isinstance(x_axis_config, dict):
+                    if "column_name" in x_axis_config:
+                        columns.append(x_axis_config["column_name"])
+
+            if not columns and not metrics:
+                return ChartError(
+                    error=(
+                        "Cannot generate ASCII preview: chart has no columns or "
+                        "metrics in its configuration. This chart type may not "
+                        "support ASCII preview."
+                    ),
+                    error_type="UnsupportedChart",
+                )
 
             factory = QueryContextFactory()
             query_context = factory.create(
@@ -2177,8 +2196,15 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
 
-@tool(tags=["data"], class_permission_name="Chart")
-@parse_request(GetChartPreviewRequest)
+@tool(
+    tags=["data"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Get chart preview",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def get_chart_preview(
     request: GetChartPreviewRequest, ctx: Context
 ) -> ChartPreview | ChartError:
@@ -2225,6 +2251,23 @@ async def get_chart_preview(
             )
 
         return result
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Chart preview requires OAuth authentication: identifier=%s"
+            % request.identifier
+        )
+        return ChartError(
+            error=build_oauth2_redirect_message(ex),
+            error_type="OAUTH2_REDIRECT",
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration error: identifier=%s" % request.identifier
+        )
+        return ChartError(
+            error=OAUTH2_CONFIG_ERROR_MESSAGE,
+            error_type="OAUTH2_REDIRECT_ERROR",
+        )
     except Exception as e:
         await ctx.error(
             "Chart preview generation failed: identifier=%s, error=%s, error_type=%s"

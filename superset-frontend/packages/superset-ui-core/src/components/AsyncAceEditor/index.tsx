@@ -283,6 +283,16 @@ export function AsyncAceEditor(
                   color: ${token.colorText} !important;
                 }
 
+                /* Fix cursor misalignment by ensuring consistent font-family */
+                .ace_editor .ace_content {
+                  font-family: ${editorFontFamily} !important;
+                }
+
+                /* Ensure the text layer uses the same font-family */
+                .ace_editor .ace_text-layer {
+                  font-family: ${editorFontFamily} !important;
+                }
+
                 /* Adjust gutter colors */
                 .ace_editor .ace_gutter {
                   background-color: ${token.colorBgElevated} !important;
@@ -307,6 +317,11 @@ export function AsyncAceEditor(
                 .ace_editor .ace_print-margin {
                   background-color: ${token.colorSplit} !important;
                   opacity: 0.5;
+                }
+
+                /* Style bracket matching to blend with theme */
+                .ace_editor .ace_bracket {
+                  border-color: ${token.colorPrimaryBorderHover} !important;
                 }
 
                 /* Adjust cursor color */

@@ -507,6 +507,11 @@ export type ColorFormatters = {
   ) => string | undefined;
 }[];
 
+export type ResolvedColorFormatterResult = {
+  backgroundColor?: string;
+  color?: string;
+};
+
 export default {};
 
 export function isColumnMeta(column: AnyDict): column is ColumnMeta {

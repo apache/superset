@@ -274,7 +274,11 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
 
 test('matrixify_mode_rows enabled should not render component', () => {
   const { container } = renderSubmenu({
-    formData: { ...defaultFormData, matrixify_mode_rows: 'metrics' },
+    formData: {
+      ...defaultFormData,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
+    },
   });
   expect(container).toBeEmptyDOMElement();
 });

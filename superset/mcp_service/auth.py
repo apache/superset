@@ -19,24 +19,41 @@
 Authentication and authorization hooks for MCP tools.
 
 This module provides:
-- User authentication from JWT or configured dev user
+- User authentication from JWT, API key, or configured dev user
 - RBAC permission checking aligned with Superset's REST API permissions
 - Dataset access validation
 - Session lifecycle management
 
 The RBAC enforcement mirrors Flask-AppBuilder's @protect() decorator,
 ensuring MCP tools respect the same permission model as the REST API.
+
+Supports multiple authentication methods:
+1. API Key authentication via FAB SecurityManager (configurable prefix)
+2. JWT token authentication (via FastMCP BearerAuthProvider)
+3. Development mode (MCP_DEV_USERNAME configuration)
+
+API Key Authentication:
+- Users create API keys via FAB's /api/v1/security/api_keys/ endpoints
+- Keys use configurable prefixes (FAB_API_KEY_PREFIXES, default: ["sst_"])
+- Keys are validated by FAB's SecurityManager.validate_api_key()
+- Keys inherit the user's roles and permissions via FAB's RBAC
+
+Configuration:
+- FAB_API_KEY_ENABLED: Flask config key to enable API key auth (default: False)
+- FAB_API_KEY_PREFIXES: Key prefixes (default: ["sst_"])
+- MCP_DEV_USERNAME: Fallback username for development
 """
 
 import logging
 from contextlib import AbstractContextManager
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
-from flask import g
+from flask import g, has_request_context
 from flask_appbuilder.security.sqla.models import Group, User
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
+    from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
@@ -172,13 +189,140 @@ def load_user_with_relationships(
     return query.first()
 
 
+def _resolve_user_from_jwt_context(app: Any) -> User | None:
+    """
+    Resolve the current user from the MCP SDK's per-request JWT context.
+
+    Uses FastMCP's ``get_access_token()`` which returns the JWT AccessToken
+    for the current async task via a ContextVar — safe across concurrent
+    requests, unlike ``g.user`` which can be stale.
+
+    The username is extracted from token claims using a configurable resolver
+    (``MCP_USER_RESOLVER`` config) or the default ``default_user_resolver()``.
+
+    Returns:
+        User object with relationships loaded, or None if no JWT context
+        (i.e. no token present — caller should fall through to next source).
+
+    Raises:
+        ValueError: If JWT resolves a username that doesn't exist in the DB
+            (fail closed — do NOT fall through to weaker auth sources).
+    """
+    try:
+        from fastmcp.server.dependencies import get_access_token
+    except ImportError:
+        logger.debug("fastmcp.server.dependencies not available, skipping JWT context")
+        return None
+
+    access_token = get_access_token()
+    if access_token is None:
+        return None
+
+    # Use configurable resolver or default
+    from superset.mcp_service.mcp_config import default_user_resolver
+
+    resolver = app.config.get("MCP_USER_RESOLVER", default_user_resolver)
+    username = resolver(app, access_token)
+
+    if not username:
+        # Fail closed: JWT is present but identity cannot be determined.
+        # Do NOT fall through to weaker auth sources.
+        raise ValueError(
+            "JWT context present but no username could be extracted from claims"
+        )
+
+    # Try username lookup first, then email fallback for OIDC email claims
+    user = load_user_with_relationships(username)
+    if not user and "@" in username:
+        user = load_user_with_relationships(email=username)
+    if not user:
+        # Fail closed: JWT says this user should exist but they don't.
+        # Do NOT fall through to MCP_DEV_USERNAME or stale g.user.
+        raise ValueError(
+            f"JWT authenticated user '{username}' not found in Superset database. "
+            f"Ensure the user exists before granting MCP access."
+        )
+
+    return user
+
+
+def _resolve_user_from_api_key(app: Any) -> User | None:
+    """
+    Resolve the current user from an API key in the Authorization header.
+
+    Uses FAB SecurityManager's API key validation. Only attempts when
+    FAB_API_KEY_ENABLED is True and a request context is active.
+
+    Returns:
+        User object with relationships loaded, or None if no API key present
+        or API key auth is not enabled/available.
+
+    Raises:
+        PermissionError: If an API key is present but invalid/expired,
+            or if validation is not available in this FAB version.
+    """
+    if not app.config.get("FAB_API_KEY_ENABLED", False) or not has_request_context():
+        return None
+
+    sm = app.appbuilder.sm
+    # _extract_api_key_from_request is FAB's internal method for reading
+    # the Bearer token from the Authorization header and matching prefixes.
+    # Not all FAB versions include this method, so guard with hasattr.
+    if not hasattr(sm, "_extract_api_key_from_request"):
+        logger.debug(
+            "FAB SecurityManager does not have _extract_api_key_from_request; "
+            "API key authentication is not available in this FAB version"
+        )
+        return None
+
+    api_key_string = sm._extract_api_key_from_request()
+    if api_key_string is None:
+        return None
+
+    if not hasattr(sm, "validate_api_key"):
+        logger.warning(
+            "FAB SecurityManager does not have validate_api_key; "
+            "cannot validate API key"
+        )
+        raise PermissionError(
+            "API key validation is not available in this FAB version."
+        )
+
+    user = sm.validate_api_key(api_key_string)
+    if not user:
+        raise PermissionError(
+            "Invalid or expired API key. "
+            "Create a new key at /api/v1/security/api_keys/."
+        )
+
+    # Reload user with all relationships eagerly loaded to avoid
+    # detached-instance errors during later permission checks.
+    user_with_rels = load_user_with_relationships(username=user.username)
+    if user_with_rels is None:
+        logger.warning(
+            "Failed to reload API key user %s with relationships; "
+            "using original user object which may have lazy-loaded "
+            "relationships",
+            user.username,
+        )
+        return user
+    return user_with_rels
+
+
 def get_user_from_request() -> User:
     """
     Get the current user for the MCP tool request.
 
     Priority order:
-    1. g.user if already set (by Preset workspace middleware)
-    2. MCP_DEV_USERNAME from configuration (for development/testing)
+    1. JWT auth context (per-request ContextVar from MCP SDK) — safest
+    2. API key from Authorization header (via FAB SecurityManager)
+    3. MCP_DEV_USERNAME from configuration (for development/testing)
+    4. g.user fallback (for external middleware like Preset's
+       WorkspaceContextMiddleware that sets g.user fresh per request)
+
+    This ordering prevents stale ``g.user`` from a previous tool call
+    from being used in open-source deployments where no middleware
+    refreshes ``g.user`` per request.
 
     Returns:
         User object with roles and groups eagerly loaded
@@ -188,44 +332,51 @@ def get_user_from_request() -> User:
     """
     from flask import current_app
 
-    # First check if user is already set by Preset workspace middleware
+    # Priority 1: JWT context (per-request safe via ContextVar)
+    if (jwt_user := _resolve_user_from_jwt_context(current_app)) is not None:
+        return jwt_user
+
+    # Priority 2: API key authentication via FAB SecurityManager
+    if (api_key_user := _resolve_user_from_api_key(current_app)) is not None:
+        return api_key_user
+
+    # Priority 3: Configured dev username for development/single-user deployments
+    if username := current_app.config.get("MCP_DEV_USERNAME"):
+        user = load_user_with_relationships(username)
+        if not user:
+            raise ValueError(
+                f"User '{username}' not found. "
+                f"Please create admin user with: superset fab create-admin"
+            )
+        return user
+
+    # Priority 4: g.user fallback (set by external middleware, e.g. Preset)
     if hasattr(g, "user") and g.user:
         return g.user
 
-    # Fall back to configured username for development/single-user deployments
-    username = current_app.config.get("MCP_DEV_USERNAME")
-
-    if not username:
-        auth_enabled = current_app.config.get("MCP_AUTH_ENABLED", False)
-        jwt_configured = bool(
-            current_app.config.get("MCP_JWKS_URI")
-            or current_app.config.get("MCP_JWT_PUBLIC_KEY")
-            or current_app.config.get("MCP_JWT_SECRET")
-        )
-        details = []
-        details.append(
-            f"g.user was not set by JWT middleware "
-            f"(MCP_AUTH_ENABLED={auth_enabled}, "
-            f"JWT keys configured={jwt_configured})"
-        )
-        details.append("MCP_DEV_USERNAME is not configured")
-        raise ValueError(
-            "No authenticated user found. Tried:\n"
-            + "\n".join(f"  - {d}" for d in details)
-            + "\n\nEither pass a valid JWT bearer token or configure "
-            "MCP_DEV_USERNAME for development."
-        )
-
-    # Use helper function to load user with all required relationships
-    user = load_user_with_relationships(username)
-
-    if not user:
-        raise ValueError(
-            f"User '{username}' not found. "
-            f"Please create admin user with: superset fab create-admin"
-        )
-
-    return user
+    # No auth source available — raise with diagnostic details
+    auth_enabled = current_app.config.get("MCP_AUTH_ENABLED", False)
+    jwt_configured = bool(
+        current_app.config.get("MCP_JWKS_URI")
+        or current_app.config.get("MCP_JWT_PUBLIC_KEY")
+        or current_app.config.get("MCP_JWT_SECRET")
+    )
+    details = [
+        f"No JWT access token in MCP request context "
+        f"(MCP_AUTH_ENABLED={auth_enabled}, "
+        f"JWT keys configured={jwt_configured})",
+        "No API key in Authorization header",
+        "MCP_DEV_USERNAME is not configured",
+        "g.user was not set by external middleware",
+    ]
+    configured_prefixes = current_app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
+    prefix_example = configured_prefixes[0] if configured_prefixes else "sst_"
+    raise ValueError(
+        "No authenticated user found. Tried:\n"
+        + "\n".join(f"  - {d}" for d in details)
+        + f"\n\nEither pass a valid API key (Bearer {prefix_example}...), "
+        "JWT token, or configure MCP_DEV_USERNAME for development."
+    )
 
 
 def has_dataset_access(dataset: "SqlaTable") -> bool:
@@ -261,28 +412,93 @@ def has_dataset_access(dataset: "SqlaTable") -> bool:
         return False  # Deny access on error
 
 
+def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
+    """Validate that the current user can access a chart's underlying dataset.
+
+    This extends the RBAC system: ``mcp_auth_hook`` enforces class-level
+    permissions before tool execution; this function enforces data-level
+    permissions inside tools after retrieving specific objects.
+
+    Args:
+        chart: A Slice ORM object with datasource_id attribute
+
+    Returns:
+        DatasetValidationResult with is_valid, error, etc.
+    """
+    from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+
+    return validate_chart_dataset(chart, check_access=True)
+
+
 def _setup_user_context() -> User | None:
     """
     Set up user context for MCP tool execution.
 
+    Includes retry logic for stale database connections (e.g., SSL dropped
+    by proxy/load balancer after idle periods). On OperationalError, the
+    session is reset and the user lookup is retried once.
+
     Returns:
         User object with roles and groups loaded, or None if no Flask context
     """
-    try:
-        user = get_user_from_request()
-    except RuntimeError as e:
-        # No Flask application context (e.g., prompts before middleware runs)
-        # This is expected for some FastMCP operations - return None gracefully
-        if "application context" in str(e):
-            logger.debug("No Flask app context available for user setup")
-            return None
-        raise
+    # Clear stale g.user to prevent user impersonation across
+    # tool calls when no per-request middleware refreshes it.
+    # Only clear in app-context-only mode; preserve g.user when
+    # a request context is active (external middleware set it).
+    from flask import has_request_context
 
-    # Validate user has necessary relationships loaded
-    # (Force access to ensure they're loaded if lazy)
-    user_roles = user.roles  # noqa: F841
-    if hasattr(user, "groups"):
-        user_groups = user.groups  # noqa: F841
+    if not has_request_context():
+        g.pop("user", None)
+
+    from sqlalchemy.exc import OperationalError
+
+    user = None  # Ensure defined before loop in case of unexpected exit
+
+    for attempt in range(2):
+        try:
+            user = get_user_from_request()
+
+            # Validate user has necessary relationships loaded.
+            # Force access to ensure they're loaded if lazy.
+            # This is inside the retry loop because relationship loading
+            # also hits the DB and can fail on stale SSL connections.
+            user_roles = user.roles  # noqa: F841
+            if hasattr(user, "groups"):
+                user_groups = user.groups  # noqa: F841
+
+            break
+        except RuntimeError as e:
+            # No Flask application context (e.g., prompts before middleware runs)
+            if "application context" in str(e):
+                logger.debug("No Flask app context available for user setup")
+                return None
+            raise
+        except OperationalError as e:
+            if attempt == 0:
+                # Only retry on connection-level errors (SSL drops, server
+                # closed connection). Other OperationalErrors (e.g., lock
+                # timeouts) are unlikely to succeed on immediate retry but
+                # are bounded to one attempt so the cost is acceptable.
+                logger.warning(
+                    "Stale DB connection during user setup (attempt 1), "
+                    "resetting session and retrying: %s",
+                    e,
+                )
+                _cleanup_session_on_error()
+                continue
+            logger.error("DB connection failed on retry during user setup: %s", e)
+            _cleanup_session_on_error()
+            raise
+        except ValueError as e:
+            # User resolution failed — fail closed. Do not fall back to
+            # g.user from middleware, as that could allow a request to
+            # proceed as a different user in multi-tenant deployments.
+            # Clear g.user so error/audit logging doesn't attribute
+            # the denied request to the middleware-provided identity.
+            logger.error("MCP user resolution failed, denying request: %s", e)
+            if has_request_context():
+                g.pop("user", None)
+            raise
 
     g.user = user
     return user
@@ -319,20 +535,58 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     import inspect
     import types
 
-    from flask import has_app_context
-
-    from superset.mcp_service.flask_singleton import get_flask_app
+    from flask import current_app, has_app_context, has_request_context
 
     def _get_app_context_manager() -> AbstractContextManager[None]:
-        """Return app context manager only if not already in one."""
-        if has_app_context():
-            # Already in app context (e.g., in tests), use null context
+        """Push a fresh app context unless a request context is active.
+
+        When a request context is present, external middleware (e.g.
+        Preset's WorkspaceContextMiddleware) has already set ``g.user``
+        on a per-request app context — reuse it via ``nullcontext()``.
+
+        When only a bare app context exists (no request context), we must
+        push a **new** app context. The MCP server typically runs inside
+        a long-lived app context (e.g. ``__main__.py`` wraps
+        ``mcp.run()`` in ``app.app_context()``). When FastMCP dispatches
+        concurrent tool calls via ``asyncio.create_task()``, each task
+        inherits the parent's ``ContextVar`` *value* — a reference to the
+        **same** ``AppContext`` object. Without a fresh push, all tasks
+        share one ``g`` namespace and concurrent ``g.user`` mutations
+        race: one user's identity can overwrite another's before
+        ``get_user_id()`` runs during the SQLAlchemy INSERT flush,
+        attributing the created asset to the wrong user.
+        """
+        if has_request_context():
             return contextlib.nullcontext()
-        # Push new app context for standalone MCP server
-        app = get_flask_app()
-        return app.app_context()
+        if has_app_context():
+            # Push a new context for the CURRENT app (not get_flask_app()
+            # which may return a different instance in test environments).
+            return current_app._get_current_object().app_context()
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        return get_flask_app().app_context()
 
     is_async = inspect.iscoroutinefunction(tool_func)
+
+    # Detect if the original function expects a ctx: Context parameter.
+    # If so, we inject it via get_context() at call time so tool functions
+    # don't need @parse_request to handle Context injection.
+    from fastmcp import Context as FMContext
+
+    _tool_sig = inspect.signature(tool_func)
+    _needs_ctx = any(
+        p.annotation is FMContext
+        or (hasattr(p.annotation, "__name__") and p.annotation.__name__ == "Context")
+        for p in _tool_sig.parameters.values()
+    )
+
+    def _inject_ctx(kwargs: dict[str, Any]) -> dict[str, Any]:
+        """Inject FastMCP Context into kwargs if the tool function expects it."""
+        if _needs_ctx and "ctx" not in kwargs:
+            from fastmcp.server.dependencies import get_context
+
+            kwargs["ctx"] = get_context()
+        return kwargs
 
     if is_async:
 
@@ -348,7 +602,7 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                         "MCP internal call without Flask context: tool=%s",
                         tool_func.__name__,
                     )
-                    return await tool_func(*args, **kwargs)
+                    return await tool_func(*args, **_inject_ctx(kwargs))
 
                 # RBAC permission check
                 if not check_tool_permission(tool_func):
@@ -366,7 +620,7 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                         user.username,
                         tool_func.__name__,
                     )
-                    result = await tool_func(*args, **kwargs)
+                    result = await tool_func(*args, **_inject_ctx(kwargs))
                     return result
                 except Exception:
                     _cleanup_session_on_error()
@@ -388,7 +642,7 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                         "MCP internal call without Flask context: tool=%s",
                         tool_func.__name__,
                     )
-                    return tool_func(*args, **kwargs)
+                    return tool_func(*args, **_inject_ctx(kwargs))
 
                 # RBAC permission check
                 if not check_tool_permission(tool_func):
@@ -406,7 +660,7 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                         user.username,
                         tool_func.__name__,
                     )
-                    result = tool_func(*args, **kwargs)
+                    result = tool_func(*args, **_inject_ctx(kwargs))
                     return result
                 except Exception:
                     _cleanup_session_on_error()
@@ -445,17 +699,15 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     # Set __signature__ from the original function, but:
     # 1. Remove ctx parameter - FastMCP tools don't expose it to clients
     # 2. Skip if original has *args (parse_request output has its own handling)
-    from fastmcp import Context as FMContext
-
-    tool_sig = inspect.signature(tool_func)
     has_var_positional = any(
-        p.kind == inspect.Parameter.VAR_POSITIONAL for p in tool_sig.parameters.values()
+        p.kind == inspect.Parameter.VAR_POSITIONAL
+        for p in _tool_sig.parameters.values()
     )
 
     if not has_var_positional:
         # For functions without *args, preserve signature but remove ctx
         new_params = []
-        for _name, param in tool_sig.parameters.items():
+        for _name, param in _tool_sig.parameters.items():
             # Skip ctx parameter - FastMCP tools don't expose it to clients
             if param.annotation is FMContext or (
                 hasattr(param.annotation, "__name__")
@@ -463,7 +715,7 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
             ):
                 continue
             new_params.append(param)
-        new_wrapper.__signature__ = tool_sig.replace(  # type: ignore[attr-defined]
+        new_wrapper.__signature__ = _tool_sig.replace(  # type: ignore[attr-defined]
             parameters=new_params
         )
 

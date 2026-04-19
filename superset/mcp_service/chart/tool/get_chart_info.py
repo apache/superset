@@ -23,7 +23,7 @@ import logging
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
@@ -36,7 +36,6 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -115,8 +114,15 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
         )
 
 
-@tool(tags=["discovery"], class_permission_name="Chart")
-@parse_request(GetChartInfoRequest)
+@tool(
+    tags=["discovery"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Get chart info",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context
 ) -> ChartInfo | ChartError:

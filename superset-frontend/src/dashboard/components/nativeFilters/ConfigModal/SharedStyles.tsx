@@ -75,6 +75,7 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
 export const BaseModalBody = styled.div<BaseModalBodyProps>`
   display: flex;
   height: 100%;
+  min-height: 500px;
   flex-direction: row;
   flex: 1;
 

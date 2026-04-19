@@ -26,7 +26,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
@@ -40,7 +40,6 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_dashboard_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,11 @@ DEFAULT_DASHBOARD_COLUMNS = [
     "id",
     "dashboard_title",
     "slug",
+    "description",
+    "certified_by",
+    "certification_details",
     "url",
+    "changed_on",
     "changed_on_humanized",
 ]
 
@@ -63,8 +66,15 @@ SORTABLE_DASHBOARD_COLUMNS = [
 ]
 
 
-@tool(tags=["core"], class_permission_name="Dashboard")
-@parse_request(ListDashboardsRequest)
+@tool(
+    tags=["core"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="List dashboards",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context
 ) -> DashboardList:

@@ -23,14 +23,14 @@ readme = "README.md"
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
 ]
-license = { file="LICENSE.txt" }
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
 requires-python = ">=3.10"
 keywords = ["superset", "apache", "cli", "extensions", "analytics", "business-intelligence", "development-tools"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -49,6 +49,7 @@ dependencies = [
     "jinja2>=3.1.6",
     "semver>=3.0.4",
     "tomli>=2.2.1; python_version < '3.11'",
+    "tomli-w>=1.2.0",
     "watchdog>=6.0.0",
 ]
 
