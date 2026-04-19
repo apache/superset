@@ -106,10 +106,13 @@ export default class TextControl<
     }
     const hasErrors =
       this.props.validationErrors && this.props.validationErrors.length > 0;
-    const errorId = hasErrors ? `${this.props.controlId || this.props.name || 'text'}-error` : undefined;
+    const inputId = this.props.controlId || this.props.name;
+    // WCAG 3.3.1: share a single error container id with ControlHeader so
+    // the input's aria-describedby resolves to one live-region, not two.
+    const errorId = hasErrors && inputId ? `${inputId}-error` : undefined;
     return (
       <div>
-        <ControlHeader {...this.props} />
+        <ControlHeader {...this.props} errorId={errorId} />
         <Input
           type="text"
           data-test="inline-name"
@@ -121,12 +124,10 @@ export default class TextControl<
           aria-label={this.props.label}
           aria-invalid={hasErrors || undefined}
           aria-describedby={errorId}
-          id={this.props.controlId || this.props.name}
+          id={inputId}
         />
         {hasErrors && (
           <span
-            id={errorId}
-            role="alert"
             style={{ color: 'red', fontSize: '12px', display: 'block', marginTop: '4px' }}
           >
             {this.props.validationErrors!.join('. ')}

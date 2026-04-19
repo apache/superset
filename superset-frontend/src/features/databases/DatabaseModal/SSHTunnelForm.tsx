@@ -66,7 +66,11 @@ const SSHTunnelForm = ({
   const markBlurred = (field: string) =>
     setBlurred(prev => ({ ...prev, [field]: true }));
   const fieldError = (field: string, value: string | number | undefined) =>
-    blurred[field] && !value;
+    // WCAG 3.3.1: treat whitespace-only strings as empty so users cannot
+    // bypass required-field validation with a space character.
+    blurred[field] &&
+    (value === undefined ||
+      (typeof value === 'string' && value.trim().length === 0));
 
   return (
     <Form>
