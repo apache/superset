@@ -181,10 +181,7 @@ test('should call exportChart when exportCSV is clicked', async () => {
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: {
-        ...defaultState.dashboardInfo,
-        superset_can_download: true,
-      },
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_download: true },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -214,10 +211,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: {
-        ...defaultState.dashboardInfo,
-        superset_can_download: true,
-      },
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_download: true },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -245,10 +239,7 @@ test('should call exportChart when exportXLSX is clicked', async () => {
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: {
-        ...defaultState.dashboardInfo,
-        superset_can_download: true,
-      },
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_download: true },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -275,10 +266,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: {
-        ...defaultState.dashboardInfo,
-        superset_can_download: true,
-      },
+      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_download: true },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));

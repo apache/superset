@@ -149,9 +149,8 @@ class SqlLabRestApi(BaseSupersetApi):
     @statsd_metrics
     @requires_json
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.estimate_query_cost"
-        ),
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".estimate_query_cost",
         log_to_statsd=False,
     )
     def estimate_query_cost(self) -> Response:
@@ -332,9 +331,9 @@ class SqlLabRestApi(BaseSupersetApi):
     @permission_name("read")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.export_streaming_csv"
-        ),
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.export_streaming_csv",
         log_to_statsd=False,
     )
     def export_streaming_csv(self) -> Response:

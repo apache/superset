@@ -44,8 +44,8 @@ def mock_dataset() -> MagicMock:
     dataset.database.get_sqla_engine.return_value.__exit__.return_value = None
 
     # Mock apply_limit_to_sql to return SQL with LIMIT
-    dataset.database.apply_limit_to_sql = lambda sql, limit, force: (
-        f"{sql} LIMIT {limit}"
+    dataset.database.apply_limit_to_sql = (
+        lambda sql, limit, force: f"{sql} LIMIT {limit}"
     )
 
     return dataset

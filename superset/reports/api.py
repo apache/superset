@@ -533,9 +533,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.slack_channels"
-        ),
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.slack_channels",
         log_to_statsd=False,
     )
     def slack_channels(self, **kwargs: Any) -> Response:

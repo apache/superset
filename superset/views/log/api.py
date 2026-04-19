@@ -108,9 +108,8 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_recent_activity_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.recent_activity"
-        ),
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".recent_activity",
         log_to_statsd=False,
     )
     def recent_activity(self, **kwargs: Any) -> FlaskResponse:

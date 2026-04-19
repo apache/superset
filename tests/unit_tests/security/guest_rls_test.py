@@ -192,8 +192,8 @@ def _make_datasource_with_real_rls(dataset_id: int) -> MagicMock:
     datasource = _make_datasource(dataset_id)
     # Bind real BaseDatasource method so RLS logic executes against mocked
     # security_manager rather than returning MagicMock auto-stub
-    datasource.get_sqla_row_level_filters = lambda **kwargs: (
-        BaseDatasource.get_sqla_row_level_filters(datasource, **kwargs)
+    datasource.get_sqla_row_level_filters = (
+        lambda **kwargs: BaseDatasource.get_sqla_row_level_filters(datasource, **kwargs)
     )
     return datasource
 

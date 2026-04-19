@@ -217,8 +217,8 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_virtual_table_uses_mutator(self):
         self.login(ADMIN_USERNAME)
         with create_and_cleanup_table() as tbl:
-            current_app.config["SQL_QUERY_MUTATOR"] = lambda sql, **kwargs: (
-                "SELECT 456 as intcol, 'def' as mutated_strcol"
+            current_app.config["SQL_QUERY_MUTATOR"] = (
+                lambda sql, **kwargs: "SELECT 456 as intcol, 'def' as mutated_strcol"
             )
 
             params = prison.dumps(
@@ -353,12 +353,10 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             SupersetGenericDBErrorException,
-            lambda: (
-                db.session.query(SqlaTable)
-                .filter_by(id=tbl.id)
-                .one_or_none()
-                .external_metadata()
-            ),
+            lambda: db.session.query(SqlaTable)
+            .filter_by(id=tbl.id)
+            .one_or_none()
+            .external_metadata(),
         )
 
         resp = self.client.get(url)
