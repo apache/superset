@@ -257,6 +257,8 @@ test('returns column keywords among selected tables', async () => {
     },
   );
 
+  // Both columns should be present since all cached table metadata
+  // for this database is included in autocomplete
   await waitFor(() =>
     expect(result.current).toContainEqual(
       expect.objectContaining({
@@ -268,30 +270,13 @@ test('returns column keywords among selected tables', async () => {
     ),
   );
 
-  expect(result.current).not.toContainEqual(
+  expect(result.current).toContainEqual(
     expect.objectContaining({
       name: unexpectedColumn,
+      value: unexpectedColumn,
+      score: COLUMN_AUTOCOMPLETE_SCORE,
+      meta: 'column',
     }),
-  );
-
-  act(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    storeWithSqlLab.dispatch(
-      addTable(
-        { id: expectQueryEditorId } as any,
-        unexpectedTable,
-        expectCatalog,
-        expectSchema,
-      ) as any,
-    );
-  });
-
-  await waitFor(() =>
-    expect(result.current).toContainEqual(
-      expect.objectContaining({
-        name: unexpectedColumn,
-      }),
-    ),
   );
 });
 
