@@ -389,6 +389,8 @@ async def update_chart(  # noqa: C901
                             previews[format_type] = preview_result.content
 
             except (
+                OAuth2RedirectError,
+                OAuth2Error,
                 CommandException,
                 SQLAlchemyError,
                 KeyError,
