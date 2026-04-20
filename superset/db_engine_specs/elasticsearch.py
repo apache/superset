@@ -40,7 +40,7 @@ def _fetch_page_via_cursor(
     page_size: int,
     sql_path: str,
     close_path: str,
-) -> tuple[list[list[Any]], list[str], None]:
+) -> tuple[list[list[Any]], list[str]]:
     """
     Iterate Elasticsearch/OpenSearch SQL cursor pagination to return a single
     page of results.
@@ -48,8 +48,7 @@ def _fetch_page_via_cursor(
     Executes ``sql`` with ``fetch_size = page_size``, then sends cursor
     follow-up requests ``page_index`` times to skip earlier pages. Closes the
     cursor when done to release server-side state. Returns
-    ``(rows, columns, None)``; the third slot is reserved for a future
-    cursor-handle API.
+    ``(rows, columns)``.
 
     If the dataset is exhausted before reaching ``page_index``, returns an
     empty rows list with the column names from the initial request.
@@ -89,7 +88,7 @@ def _fetch_page_via_cursor(
                     # Dataset exhausted before reaching the target page —
                     # no cursor to close (ES returns no cursor on the final
                     # page). Return immediately with empty rows.
-                    return [], columns, None
+                    return [], columns
                 response = transport.perform_request(
                     "POST",
                     sql_path,
@@ -99,7 +98,7 @@ def _fetch_page_via_cursor(
                 rows = response.get("rows", [])
                 cursor = response.get("cursor")
 
-            return rows, columns, None
+            return rows, columns
         finally:
             if cursor:
                 # Best-effort cleanup. If close itself fails we don't want
@@ -234,7 +233,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         sql: str,
         page_index: int,
         page_size: int,
-    ) -> tuple[list[list[Any]], list[str], None]:
+    ) -> tuple[list[list[Any]], list[str]]:
         """
         Fetch a single page of results using Elasticsearch cursor pagination.
         See ``_fetch_page_via_cursor`` for the protocol.
@@ -327,7 +326,7 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         sql: str,
         page_index: int,
         page_size: int,
-    ) -> tuple[list[list[Any]], list[str], None]:
+    ) -> tuple[list[list[Any]], list[str]]:
         """
         Fetch a single page of results using OpenDistro SQL cursor pagination.
         Same protocol as ElasticSearchEngineSpec, different endpoint paths.

@@ -157,7 +157,7 @@ def test_fetch_data_with_cursor_returns_first_page_when_page_index_zero() -> Non
         ]
     )
 
-    rows, cols, _ = ElasticSearchEngineSpec.fetch_data_with_cursor(
+    rows, cols = ElasticSearchEngineSpec.fetch_data_with_cursor(
         database=database,
         sql="SELECT a, b FROM idx",
         page_index=0,
@@ -192,7 +192,7 @@ def test_fetch_data_with_cursor_iterates_to_target_page() -> None:
         ]
     )
 
-    rows, cols, _ = ElasticSearchEngineSpec.fetch_data_with_cursor(
+    rows, cols = ElasticSearchEngineSpec.fetch_data_with_cursor(
         database=database,
         sql="SELECT a FROM idx",
         page_index=2,
@@ -225,7 +225,7 @@ def test_fetch_data_with_cursor_returns_empty_when_dataset_exhausted() -> None:
         ]
     )
 
-    rows, cols, _ = ElasticSearchEngineSpec.fetch_data_with_cursor(
+    rows, cols = ElasticSearchEngineSpec.fetch_data_with_cursor(
         database=database,
         sql="SELECT a FROM idx",
         page_index=5,
@@ -250,7 +250,7 @@ def test_fetch_data_with_cursor_does_not_close_when_no_cursor_present() -> None:
         ]
     )
 
-    rows, _, _ = ElasticSearchEngineSpec.fetch_data_with_cursor(
+    rows, _ = ElasticSearchEngineSpec.fetch_data_with_cursor(
         database=database,
         sql="SELECT a FROM idx",
         page_index=0,
@@ -407,7 +407,7 @@ def test_opendistro_fetch_data_with_cursor_uses_opendistro_endpoints() -> None:
         ]
     )
 
-    rows, cols, _ = OpenDistroEngineSpec.fetch_data_with_cursor(
+    rows, cols = OpenDistroEngineSpec.fetch_data_with_cursor(
         database=database,
         sql="SELECT a FROM idx",
         page_index=0,

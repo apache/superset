@@ -96,7 +96,6 @@ def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
     datasource.database.db_engine_spec.fetch_data_with_cursor.return_value = (
         [[99]],
         ["a"],
-        None,
     )
 
     samples_ctx = MagicMock()
@@ -160,7 +159,6 @@ def test_get_samples_cursor_path_propagates_coltypes_from_samples_payload(
     datasource.database.db_engine_spec.fetch_data_with_cursor.return_value = (
         [["x", 1]],
         ["a", "b"],
-        None,
     )
 
     samples_ctx = MagicMock()
