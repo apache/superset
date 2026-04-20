@@ -870,22 +870,31 @@ def mcp_server():
 @pytest.fixture
 def mock_auth():
     """Mock MCP auth so Client.call_tool() doesn't need a real admin user."""
+    import importlib
     from contextlib import contextmanager
     from unittest.mock import Mock, patch
+
+    _gcd_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
 
     @contextmanager
     def _noop_log_context(*_args: Any, **_kwargs: Any) -> Any:
         yield lambda **_kw: None
 
-    # Also neutralize event_logger.log_context: the default DBEventLogger
-    # would otherwise insert a log row referencing our mock user_id and
-    # fail a FK constraint against the real users table.
+    # Neutralize event_logger.log_context: the default DBEventLogger would
+    # otherwise insert a log row referencing our mock user_id and fail a
+    # FK constraint against the real users table. Patch via the module
+    # object directly — the `tool` package's __init__.py re-exports the
+    # get_chart_data function under the same name, which shadows the
+    # submodule binding in the package namespace, so a dotted-string patch
+    # target resolves to the function and mock.patch cannot find
+    # event_logger on it.
+    mock_event_logger = Mock()
+    mock_event_logger.log_context.side_effect = _noop_log_context
     with (
         patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
-        patch(
-            "superset.mcp_service.chart.tool.get_chart_data.event_logger.log_context",
-            side_effect=_noop_log_context,
-        ),
+        patch.object(_gcd_module, "event_logger", mock_event_logger),
     ):
         user = Mock()
         user.id = 1
