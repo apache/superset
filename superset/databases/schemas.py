@@ -1125,7 +1125,7 @@ class EngineInformationSchema(Schema):
     supports_schemas = fields.Boolean(
         metadata={"description": "The database uses schemas to organize tables"}
     )
-    allows_offset_fetch = fields.Boolean(
+    supports_offset = fields.Boolean(
         metadata={
             "description": (
                 "The database supports OFFSET in SQL queries. "

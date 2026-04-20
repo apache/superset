@@ -23,11 +23,11 @@ import pytest
 def fake_datasource_factory():
     """Builds a MagicMock datasource whose db_engine_spec is configurable."""
 
-    def _build(allows_offset_fetch: bool) -> MagicMock:
+    def _build(supports_offset: bool) -> MagicMock:
         datasource = MagicMock(name="SqlaTable")
         datasource.type = "table"
         datasource.id = 1
-        datasource.database.db_engine_spec.allows_offset_fetch = allows_offset_fetch
+        datasource.database.db_engine_spec.supports_offset = supports_offset
         return datasource
 
     return _build
@@ -37,12 +37,12 @@ def test_get_samples_uses_normal_path_when_engine_supports_offset(
     fake_datasource_factory,
 ):
     """
-    Engines with allows_offset_fetch=True continue to use the existing
+    Engines with supports_offset=True continue to use the existing
     QueryContext/get_payload path. No cursor-method calls.
     """
     from superset.views.datasource import utils
 
-    datasource = fake_datasource_factory(allows_offset_fetch=True)
+    datasource = fake_datasource_factory(supports_offset=True)
     datasource.database.db_engine_spec.fetch_data_with_cursor = MagicMock()
 
     with (
@@ -86,13 +86,13 @@ def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
     fake_datasource_factory,
 ):
     """
-    When the engine reports allows_offset_fetch=False and the requested
+    When the engine reports supports_offset=False and the requested
     page is > 1, get_samples delegates to fetch_data_with_cursor with the
     SQL that Superset already compiled for the normal samples payload.
     """
     from superset.views.datasource import utils
 
-    datasource = fake_datasource_factory(allows_offset_fetch=False)
+    datasource = fake_datasource_factory(supports_offset=False)
     datasource.database.db_engine_spec.fetch_data_with_cursor.return_value = (
         [[99]],
         ["a"],
@@ -155,7 +155,7 @@ def test_get_samples_cursor_path_propagates_coltypes_from_samples_payload(
     """
     from superset.views.datasource import utils
 
-    datasource = fake_datasource_factory(allows_offset_fetch=False)
+    datasource = fake_datasource_factory(supports_offset=False)
     datasource.database.db_engine_spec.fetch_data_with_cursor.return_value = (
         [["x", 1]],
         ["a", "b"],
@@ -210,7 +210,7 @@ def test_get_samples_cursor_path_cleans_count_cache_on_failure(
     from superset.constants import CacheRegion
     from superset.views.datasource import utils
 
-    datasource = fake_datasource_factory(allows_offset_fetch=False)
+    datasource = fake_datasource_factory(supports_offset=False)
     datasource.database.db_engine_spec.fetch_data_with_cursor.side_effect = (
         RuntimeError("boom: internal es stack trace details")
     )
@@ -275,7 +275,7 @@ def test_get_samples_cursor_path_raises_when_sample_payload_has_no_sql(
     from superset.constants import CacheRegion
     from superset.views.datasource import utils
 
-    datasource = fake_datasource_factory(allows_offset_fetch=False)
+    datasource = fake_datasource_factory(supports_offset=False)
 
     samples_ctx = MagicMock()
     samples_ctx.get_payload.return_value = {
@@ -330,7 +330,7 @@ def test_get_samples_cursor_path_unused_for_page_one(fake_datasource_factory):
     """
     from superset.views.datasource import utils
 
-    datasource = fake_datasource_factory(allows_offset_fetch=False)
+    datasource = fake_datasource_factory(supports_offset=False)
     datasource.database.db_engine_spec.fetch_data_with_cursor = MagicMock()
 
     samples_ctx = MagicMock()

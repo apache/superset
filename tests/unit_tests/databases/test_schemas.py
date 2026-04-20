@@ -16,10 +16,10 @@
 # under the License.
 
 
-def test_engine_information_schema_includes_allows_offset_fetch() -> None:
+def test_engine_information_schema_includes_supports_offset() -> None:
     """
     The frontend consumes EngineInformationSchema to know what the engine
-    can do. allows_offset_fetch is a new field that must pass through.
+    can do. supports_offset is a new field that must pass through.
     """
     from superset.databases.schemas import EngineInformationSchema
 
@@ -30,8 +30,8 @@ def test_engine_information_schema_includes_allows_offset_fetch() -> None:
             "disable_ssh_tunneling": False,
             "supports_dynamic_catalog": False,
             "supports_oauth2": False,
-            "allows_offset_fetch": False,
+            "supports_offset": False,
         }
     )
 
-    assert result["allows_offset_fetch"] is False
+    assert result["supports_offset"] is False
