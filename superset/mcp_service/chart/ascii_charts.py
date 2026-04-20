@@ -545,7 +545,6 @@ def _extract_scatter_data(
     return x_values, y_values, x_column, y_column
 
 
-
 def _create_axis_info(
     x_values: list[float],
     y_values: list[float],
