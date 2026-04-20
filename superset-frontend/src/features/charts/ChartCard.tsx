@@ -34,6 +34,7 @@ import Chart from 'src/types/Chart';
 import { FacePile } from 'src/components';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
+import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
 
 interface ChartCardProps {
   chart: Chart;
@@ -42,7 +43,8 @@ interface ChartCardProps {
   bulkSelectEnabled: boolean;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  refreshData: () => void;
+  refreshData: (config?: FetchDataConfig | null) => void;
+  refreshDataConfig?: FetchDataConfig;
   loading?: boolean;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
@@ -60,6 +62,7 @@ export default function ChartCard({
   addDangerToast,
   addSuccessToast,
   refreshData,
+  refreshDataConfig,
   loading,
   showThumbnails,
   saveFavoriteStatus,
@@ -136,6 +139,7 @@ export default function ChartCard({
               refreshData,
               chartFilter,
               userId,
+              refreshDataConfig,
             )
           }
         >

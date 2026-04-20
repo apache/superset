@@ -112,18 +112,21 @@ function ChartTable({
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
 
-  const getData = (tab: TableTab) =>
-    fetchData({
-      pageIndex: 0,
-      pageSize: PAGE_SIZE,
-      sortBy: [
-        {
-          id: 'changed_on_delta_humanized',
-          desc: true,
-        },
-      ],
-      filters: getFilterValues(tab, WelcomeTable.Charts, user, otherTabFilters),
-    });
+  const getChartFetchDataConfig = (tab: TableTab) => ({
+    pageIndex: 0,
+    pageSize: PAGE_SIZE,
+    sortBy: [
+      {
+        id: 'changed_on_delta_humanized',
+        desc: true,
+      },
+    ],
+    filters: getFilterValues(tab, WelcomeTable.Charts, user, otherTabFilters),
+  });
+
+  const getData = (tab: TableTab) => fetchData(getChartFetchDataConfig(tab));
+
+  const chartFetchDataConfig = getChartFetchDataConfig(activeTab);
 
   useEffect(() => {
     if (loaded || activeTab === TableTab.Favorite) {
@@ -232,6 +235,7 @@ function ChartTable({
               showThumbnails={showThumbnails}
               bulkSelectEnabled={bulkSelectEnabled}
               refreshData={refreshData}
+              refreshDataConfig={chartFetchDataConfig}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
               favoriteStatus={favoriteStatus[e.id]}
