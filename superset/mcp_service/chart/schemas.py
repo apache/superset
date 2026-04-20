@@ -1054,13 +1054,25 @@ class TableChartConfig(UnknownFieldCheckMixin):
         return self
 
 
+def _metric_display_label(col: ColumnRef) -> str:
+    """Return the display label for a metric column reference."""
+    if col.saved_metric:
+        return col.label or col.name
+    if col.aggregate:
+        return col.label or f"{col.aggregate}({col.name})"
+    return col.label or col.name
+
+
 class XYChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["xy"] = "xy"
-    x: ColumnRef = Field(
-        ...,
-        description="X-axis column",
+    x: ColumnRef | None = Field(
+        None,
+        description=(
+            "X-axis column. If omitted, defaults to the dataset's "
+            "primary datetime column (main_dttm_col)."
+        ),
         validation_alias=AliasChoices("x", "x_axis", "x_column"),
     )
     y: List[ColumnRef] = Field(
@@ -1107,22 +1119,17 @@ class XYChartConfig(UnknownFieldCheckMixin):
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "XYChartConfig":
         """Ensure all column labels are unique across x, y, and group_by."""
-        labels_seen = {}  # label -> field_name for error reporting
-        duplicates = []
+        labels_seen: dict[str, str] = {}
+        duplicates: list[str] = []
 
-        # Check X-axis label
-        x_label = self.x.label or self.x.name
-        labels_seen[x_label] = "x"
+        # Add x-axis label if present (x may be None, resolved later)
+        if self.x is not None:
+            x_label = self.x.label or self.x.name
+            labels_seen[x_label] = "x"
 
         # Check Y-axis labels
         for i, col in enumerate(self.y):
-            if col.saved_metric:
-                label = col.label or col.name
-            elif col.aggregate:
-                label = col.label or f"{col.aggregate}({col.name})"
-            else:
-                label = col.label or col.name
-
+            label = _metric_display_label(col)
             if label in labels_seen:
                 duplicates.append(
                     f"y[{i}]: '{label}' (conflicts with {labels_seen[label]})"
@@ -1133,7 +1140,7 @@ class XYChartConfig(UnknownFieldCheckMixin):
         # Check group_by labels if present
         if self.group_by:
             for i, col in enumerate(self.group_by):
-                if col.name == self.x.name:
+                if self.x is not None and col.name == self.x.name:
                     # map_xy_config() strips group_by entries that match x
                     # to prevent Superset "duplicate label" errors, so
                     # we allow them through validation.
