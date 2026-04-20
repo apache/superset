@@ -53,6 +53,12 @@ def _fetch_page_via_cursor(
 
     If the dataset is exhausted before reaching ``page_index``, returns an
     empty rows list with the column names from the initial request.
+
+    Note: the Elasticsearch SQL cursor is forward-only, so cost is linear in
+    ``page_index`` — reaching page N issues N round trips to the cluster.
+    Deep pagination (hundreds of pages) will therefore be noticeably slower
+    than on ``OFFSET``-capable engines. This is a protocol limitation, not
+    an implementation choice.
     """
     # The Elasticsearch SQL API rejects trailing semicolons, and any LIMIT
     # in the submitted statement caps the result set before the cursor can
