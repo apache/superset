@@ -26,6 +26,7 @@ import { VizType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
 import handleResourceExport from 'src/utils/export';
+import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import ChartTable from './ChartTable';
 
 // Mock the export module
@@ -62,7 +63,7 @@ fetchMock.get(
 );
 
 fetchMock.get(chartsInfoEndpoint, {
-  permissions: ['can_add', 'can_edit', 'can_delete', 'can_export'],
+  permissions: ['can_add', 'can_write', 'can_delete', 'can_export'],
 });
 
 fetchMock.get(chartFavoriteStatusEndpoint, {
@@ -102,6 +103,10 @@ const renderChartTable = (props: any) =>
   act(async () => {
     render(<ChartTable {...props} />, renderOptions);
   });
+
+beforeEach(() => {
+  window.localStorage.removeItem(LocalStorageKeys.HomepageChartFilter);
+});
 
 test('renders with EmptyState if no data present', async () => {
   await renderChartTable(mockedProps);
