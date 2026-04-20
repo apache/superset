@@ -47,7 +47,7 @@ export interface ResultsPaneProps {
   setForceQuery?: SetForceQueryAction;
   dataSize?: number;
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
-  isVisible: boolean;
+  isVisible?: boolean; // Visibility is managed by the parent tab container
   canDownload: boolean;
   // Optional map of column/metric name -> verbose label
   columnDisplayNames?: Record<string, string>;
