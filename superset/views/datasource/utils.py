@@ -227,10 +227,20 @@ def _fetch_samples_via_cursor(
     — ensuring page 2+ renders identically to page 1. The engine spec is
     responsible for stripping any trailing ``LIMIT`` from the SQL so the
     cursor is not capped to a single page.
+
+    Cost: this path issues one extra "page-1-shaped" samples query on every
+    request for page ≥ 2, on top of the ``page_index + 1`` cursor round
+    trips. The extra query is what provides authoritative ``coltypes``
+    (derived from the DB-API cursor description) — the ES cursor response
+    only carries ES SQL type names, which would need a separate translator
+    to Superset's coltype enum. TODO: extract SQL via
+    ``datasource.get_query_str(query_obj.to_dict())`` and derive coltypes
+    from cursor metadata to eliminate the extra execution.
     """
-    # Run the normal samples payload once to source authoritative colnames
-    # and coltypes for the paginated result set. The helpers.py OFFSET guard
-    # keeps this to a single cheap page-1 query for the cursor-path engine.
+    # Execute the normal samples payload to source authoritative colnames
+    # and coltypes. See the cost note in the docstring — this is deliberate.
+    # The helpers.py OFFSET guard keeps it to a single page-1-shaped query,
+    # not a full-table scan, for engines on the cursor path.
     sample_payload = samples_instance.get_payload()["queries"][0]
     if sample_payload.get("status") == QueryStatus.FAILED:
         QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
