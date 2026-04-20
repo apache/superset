@@ -25,7 +25,7 @@
 #   selector  - CSS selector for the element to capture
 #              (null = full-page screenshot)
 #
-# type values: screenshot | tutorial | site-asset | database-logo | badge | external
+# type values: screenshot | tutorial | site-asset | database-logo | badge | external | community
 # database-logo, badge, external, community: inventory only, no generation.
 
 images:

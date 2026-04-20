@@ -25,7 +25,7 @@
  *
  * Run locally:
  *   cd superset-frontend
- *   PLAYWRIGHT_BASE_URL=http://localhost:9000 PLAYWRIGHT_ADMIN_PASSWORD=admin npm run docs:screenshots
+ *   PLAYWRIGHT_BASE_URL=http://localhost:8088 PLAYWRIGHT_ADMIN_PASSWORD=admin npm run docs:screenshots
  *
  * Or directly:
  *   npx playwright test --config=playwright/generators/playwright.config.ts docs/
@@ -193,8 +193,8 @@ test('SQL Lab screenshot', async ({ page }) => {
     'SELECT\n  ds,\n  name,\n  gender,\n  state,\n  num\nFROM birth_names\nLIMIT 100',
   );
 
-  // Run the query — use role to avoid matching "Run" text in other tab panels
-  const runButton = page.getByRole('button', { name: /caret-right Run/i });
+  // Run the query — use the stable data-test attribute on the action button
+  const runButton = page.locator('[data-test="run-query-action"]');
   await expect(runButton).toBeVisible();
   await runButton.click();
 
