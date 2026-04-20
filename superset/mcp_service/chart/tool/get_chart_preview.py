@@ -30,8 +30,8 @@ from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.ascii_charts import (
-    _generate_ascii_table,
     generate_ascii_chart,
+    generate_ascii_table,
 )
 from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
@@ -268,7 +268,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 data = result["queries"][0].get("data", [])
 
-            table_data = _generate_ascii_table(data, 120)
+            table_data = generate_ascii_table(data, 120)
 
             return TablePreview(
                 table_data=table_data,

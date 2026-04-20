@@ -41,7 +41,7 @@ def find_chart_by_identifier(identifier: int | str) -> Slice | None:
     Accepts an integer ID, a string that looks like a digit (e.g. "123"),
     or a UUID string. Returns the Slice model instance or None.
     """
-    from superset.daos.chart import ChartDAO
+    from superset.daos.chart import ChartDAO  # avoid circular import
 
     if isinstance(identifier, int) or (
         isinstance(identifier, str) and identifier.isdigit()
@@ -56,6 +56,7 @@ def get_cached_form_data(form_data_key: str) -> str | None:
 
     Returns the JSON string of form_data if found, None otherwise.
     """
+    # avoid circular import — commands depend on app initialization
     from superset.commands.exceptions import CommandException
     from superset.commands.explore.form_data.get import GetFormDataCommand
     from superset.commands.explore.form_data.parameters import CommandParameters

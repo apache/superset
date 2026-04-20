@@ -35,33 +35,28 @@ def generate_ascii_chart(
     data: list[Any], chart_type: str, width: int = 80, height: int = 20
 ) -> str:
     """Generate ASCII art chart from data."""
-    if not data or len(data) == 0:
+    if not data:
         return "No data available for ASCII chart"
 
     try:
-        logger.info(
+        logger.debug(
             "generate_ascii_chart: chart_type=%s, data_rows=%s", chart_type, len(data)
         )
 
-        # Generate appropriate ASCII chart based on type
         if chart_type in ["bar", "column", "echarts_timeseries_bar"]:
-            logger.info("Generating bar chart")
             return _generate_ascii_bar_chart(data, width, height)
         elif chart_type in ["line", "echarts_timeseries_line"]:
-            logger.info("Generating line chart")
             return _generate_ascii_line_chart(data, width, height)
         elif chart_type in ["scatter", "echarts_timeseries_scatter"]:
-            logger.info("Generating scatter chart")
             return _generate_ascii_scatter_chart(data, width, height)
         else:
-            # Default to table format for unsupported chart types
-            logger.info(
+            logger.debug(
                 "Unsupported chart type '%s', falling back to table", chart_type
             )
-            return _generate_ascii_table(data, width)
+            return generate_ascii_table(data, width)
     except (TypeError, ValueError, KeyError, IndexError) as e:
         logger.error("ASCII chart generation failed: %s", e, exc_info=True)
-        return f"ASCII chart generation failed: {str(e)}"
+        return "ASCII chart generation failed"
 
 
 def _generate_ascii_bar_chart(data: list[Any], width: int, height: int) -> str:
@@ -486,12 +481,17 @@ def _generate_ascii_scatter_chart(data: list[Any], width: int, height: int) -> s
     # Extract data points
     x_values, y_values, x_column, y_column = _extract_scatter_data(data)
 
-    # Debug info
-    lines.extend(_create_debug_info(x_values, y_values, x_column, y_column, data))
+    # Log debug info server-side only
+    logger.debug(
+        "Scatter chart: x_column=%s, y_column=%s, valid_pairs=%d",
+        x_column,
+        y_column,
+        len(x_values),
+    )
 
     # Check if we have enough data
     if len(x_values) < 2:
-        return _generate_ascii_table(data, width)
+        return generate_ascii_table(data, width)
 
     # Add axis info
     lines.extend(_create_axis_info(x_values, y_values, x_column, y_column))
@@ -544,28 +544,6 @@ def _extract_scatter_data(
 
     return x_values, y_values, x_column, y_column
 
-
-def _create_debug_info(
-    x_values: list[float],
-    y_values: list[float],
-    x_column: str | None,
-    y_column: str | None,
-    data: list[Any],
-) -> list[str]:
-    """Create debug information lines for scatter chart."""
-    numeric_columns = []
-    if data and isinstance(data[0], dict):
-        for key, val in data[0].items():
-            if isinstance(val, (int, float)) and not (
-                isinstance(val, float) and (val != val)
-            ):
-                numeric_columns.append(key)
-
-    return [
-        f"DEBUG: Found {len(numeric_columns)} numeric columns: {numeric_columns}",
-        f"DEBUG: X column: {x_column}, Y column: {y_column}",
-        f"DEBUG: Valid X,Y pairs: {len(x_values)}",
-    ]
 
 
 def _create_axis_info(
@@ -658,7 +636,7 @@ def _render_scatter_grid(
     return lines
 
 
-def _generate_ascii_table(data: list[Any], width: int) -> str:
+def generate_ascii_table(data: list[Any], width: int) -> str:
     """Generate enhanced ASCII table with better formatting."""
     if not data:
         return "No data for table"
