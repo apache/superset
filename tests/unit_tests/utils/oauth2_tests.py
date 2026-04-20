@@ -30,6 +30,7 @@ from superset.superset_typing import OAuth2ClientConfig
 from superset.utils.oauth2 import (
     get_access_token_for_database,
     get_oauth2_access_token,
+    get_oauth2_redirect_uri,
     get_upstream_provider_token,
     refresh_oauth2_token,
 )
@@ -465,3 +466,66 @@ def test_get_access_token_for_database_no_oauth(mocker: MockerFixture) -> None:
     result = get_access_token_for_database(database, user_id=1)
 
     assert result is None
+
+
+def test_get_oauth2_redirect_uri_from_config(mocker: MockerFixture) -> None:
+    """
+    Test that get_oauth2_redirect_uri returns the configured value when set.
+    """
+    custom_uri = "https://proxy.example.com/oauth2/"
+    mocker.patch(
+        "flask.current_app.config",
+        {"DATABASE_OAUTH2_REDIRECT_URI": custom_uri},
+    )
+    assert get_oauth2_redirect_uri() == custom_uri
+
+
+def test_get_oauth2_redirect_uri_falls_back_to_url_for(mocker: MockerFixture) -> None:
+    """
+    Test that get_oauth2_redirect_uri falls back to url_for when config is not set.
+    """
+    fallback_uri = "http://localhost:8088/api/v1/database/oauth2/"
+    mocker.patch("flask.current_app.config", {})
+    mocker.patch(
+        "superset.utils.oauth2.url_for",
+        return_value=fallback_uri,
+    )
+    assert get_oauth2_redirect_uri() == fallback_uri
+
+
+def test_get_oauth2_redirect_uri_raises_on_build_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_oauth2_redirect_uri raises OAuth2Error when url_for raises
+    BuildError (e.g. in headless/MCP contexts).
+    """
+    from werkzeug.routing import BuildError
+
+    from superset.exceptions import OAuth2Error
+
+    mocker.patch("flask.current_app.config", {})
+    mocker.patch(
+        "superset.utils.oauth2.url_for",
+        side_effect=BuildError("DatabaseRestApi.oauth2", {}, ("GET",)),
+    )
+    with pytest.raises(OAuth2Error):
+        get_oauth2_redirect_uri()
+
+
+def test_get_oauth2_redirect_uri_raises_on_runtime_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_oauth2_redirect_uri raises OAuth2Error when url_for raises
+    RuntimeError (e.g. no request context and no SERVER_NAME).
+    """
+    from superset.exceptions import OAuth2Error
+
+    mocker.patch("flask.current_app.config", {})
+    mocker.patch(
+        "superset.utils.oauth2.url_for",
+        side_effect=RuntimeError("Unable to build URL outside of request context"),
+    )
+    with pytest.raises(OAuth2Error):
+        get_oauth2_redirect_uri()

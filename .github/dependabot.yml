@@ -4,6 +4,10 @@ updates:
 
   - package-ecosystem: "github-actions"
     directory: "/"
+    ignore:
+      # Ignore temporarily as release schedule is too mentally taxing for dep-handling maintainers
+      # Additionally, very few PRs are reviewed by this action.
+      - dependency-name: anthropics/claude-code-action
     schedule:
       interval: "daily"
 

@@ -36,6 +36,7 @@ from pydantic import (
     model_serializer,
     model_validator,
     PositiveInt,
+    TypeAdapter,
 )
 from typing_extensions import Self
 
@@ -74,6 +75,8 @@ class ChartLike(Protocol):
     cache_timeout: int | None
     form_data: Dict[str, Any] | None
     query_context: Any | None
+    certified_by: str | None
+    certification_details: str | None
     changed_by: Any | None  # User object
     changed_by_name: str | None
     changed_on: str | datetime | None
@@ -112,6 +115,12 @@ class ChartInfo(BaseModel):
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
+    )
+    certified_by: str | None = Field(
+        None, description="Name of the person or team who certified this chart"
+    )
+    certification_details: str | None = Field(
+        None, description="Certification details or reason"
     )
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
@@ -284,13 +293,24 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
 
-    # Use the chart's native URL (explore URL) instead of screenshot URL
     from superset.mcp_service.utils.url_utils import get_superset_base_url
+    from superset.utils import json as utils_json
 
     chart_id = getattr(chart, "id", None)
     chart_url = None
     if chart_id:
         chart_url = f"{get_superset_base_url()}/explore/?slice_id={chart_id}"
+
+    # Parse form_data from the chart's params JSON string
+    chart_params = getattr(chart, "params", None)
+    chart_form_data = None
+    if chart_params and isinstance(chart_params, str):
+        try:
+            chart_form_data = utils_json.loads(chart_params)
+        except (TypeError, ValueError):
+            pass
+    elif isinstance(chart_params, dict):
+        chart_form_data = chart_params
 
     return ChartInfo(
         id=chart_id,
@@ -300,7 +320,10 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         datasource_type=getattr(chart, "datasource_type", None),
         url=chart_url,
         description=getattr(chart, "description", None),
+        certified_by=getattr(chart, "certified_by", None),
+        certification_details=getattr(chart, "certification_details", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
+        form_data=chart_form_data,
         changed_by=getattr(chart, "changed_by_name", None)
         or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
         changed_by_name=getattr(chart, "changed_by_name", None),
@@ -973,6 +996,17 @@ class TableChartConfig(UnknownFieldCheckMixin):
     viz_type: Literal["table", "ag-grid-table"] = Field(
         "table", description="'ag-grid-table' for interactive features"
     )
+    query_mode: Literal["aggregate", "raw"] | None = Field(
+        None,
+        description=(
+            "Query mode: 'raw' returns individual rows without aggregation, "
+            "'aggregate' groups data using metrics. "
+            "When set to 'raw', all columns are treated as plain columns regardless "
+            "of any aggregate settings. "
+            "Defaults to auto-detection: 'raw' if no column has an aggregate "
+            "function, 'aggregate' otherwise."
+        ),
+    )
     columns: List[ColumnRef] = Field(
         ...,
         min_length=1,
@@ -1123,7 +1157,7 @@ class XYChartConfig(UnknownFieldCheckMixin):
         return self
 
 
-# Discriminated union entry point with custom error handling
+# Discriminated union for runtime validation (not exposed in JSON Schema)
 ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
@@ -1141,6 +1175,66 @@ ChartConfig = Annotated[
         ),
     ),
 ]
+
+# Module-level TypeAdapter avoids repeated schema compilation in
+# parse_chart_config() — safe because ChartConfig is fully defined above.
+_CHART_CONFIG_ADAPTER: TypeAdapter[ChartConfig] = TypeAdapter(ChartConfig)
+
+# Compact description for JSON Schema — keeps tool inputSchema small while
+# giving LLMs enough context to construct valid configs.
+_CHART_CONFIG_DESCRIPTION = (
+    "Chart configuration object. MUST include 'chart_type' to select the "
+    "schema. Types: 'xy' (x, y, kind: line/bar/area/scatter), "
+    "'table' (columns), 'pie' (dimension, metric), "
+    "'pivot_table' (rows, metrics), 'mixed_timeseries' (x, y, y_secondary), "
+    "'handlebars' (columns, handlebars_template), "
+    "'big_number' (metric). "
+    "See chart://configs resource for full field reference and examples."
+)
+
+
+def parse_chart_config(
+    config: Dict[str, Any],
+) -> (
+    XYChartConfig
+    | TableChartConfig
+    | PieChartConfig
+    | PivotTableChartConfig
+    | MixedTimeseriesChartConfig
+    | HandlebarsChartConfig
+    | BigNumberChartConfig
+):
+    """Parse a raw dict into the appropriate typed ChartConfig subclass.
+
+    Validates the dict against the discriminated union using chart_type.
+    Call this in tool function bodies to get a typed config object.
+    """
+    try:
+        return _CHART_CONFIG_ADAPTER.validate_python(config)
+    except Exception as e:
+        raise ValueError(
+            f"{e}\n\n"
+            f"Hint: read the chart://configs resource for valid configuration "
+            f"examples and field reference."
+        ) from e
+
+
+def _coerce_config_to_dict(v: Any) -> Dict[str, Any]:
+    """Accept ChartConfig objects, dicts, or JSON strings for the config field."""
+    if isinstance(v, str):
+        from superset.utils import json as json_utils
+
+        try:
+            v = json_utils.loads(v)
+        except (ValueError, TypeError) as exc:
+            raise ValueError(
+                f"config must be a JSON object string, got: {v!r}"
+            ) from exc
+    if hasattr(v, "model_dump"):
+        return v.model_dump()
+    if isinstance(v, dict):
+        return v
+    raise TypeError(f"config must be a dict or JSON string, got {type(v).__name__}")
 
 
 class ListChartsRequest(MetadataCacheControl):
@@ -1237,7 +1331,7 @@ class ListChartsRequest(MetadataCacheControl):
 # The tool input models
 class GenerateChartRequest(QueryCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="Chart configuration")
+    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
     chart_name: str | None = Field(
         None, description="Auto-generates if omitted", max_length=255
     )
@@ -1246,6 +1340,11 @@ class GenerateChartRequest(QueryCacheControl):
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
+
+    @field_validator("config", mode="before")
+    @classmethod
+    def coerce_config(cls, v: Any) -> Dict[str, Any]:
+        return _coerce_config_to_dict(v)
 
     @field_validator("chart_name")
     @classmethod
@@ -1279,19 +1378,48 @@ class GenerateChartRequest(QueryCacheControl):
 
 class GenerateExploreLinkRequest(FormDataCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="Chart configuration")
+    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
+
+    @field_validator("config", mode="before")
+    @classmethod
+    def coerce_config(cls, v: Any) -> Dict[str, Any]:
+        return _coerce_config_to_dict(v)
 
 
 class UpdateChartRequest(QueryCacheControl):
     identifier: int | str = Field(..., description="Chart ID or UUID")
-    config: ChartConfig
+    config: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            f"{_CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name."
+        ),
+    )
     chart_name: str | None = Field(
         None, description="Auto-generates if omitted", max_length=255
     )
-    generate_preview: bool = True
-    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
-        default_factory=lambda: ["url"],
+    generate_preview: bool = Field(
+        default=True,
+        description=(
+            "When True (default), returns a preview explore URL so the user "
+            "can review changes before saving. When False, persists the "
+            "update immediately."
+        ),
     )
+    preview_formats: list[Literal["url", "ascii", "vega_lite", "table"]] = Field(
+        default_factory=lambda: ["url"],
+        description=(
+            "Extra preview formats to render after saving. Only used when "
+            "generate_preview=False. When generate_preview=True, the preview "
+            "is always an explore URL."
+        ),
+    )
+
+    @field_validator("config", mode="before")
+    @classmethod
+    def coerce_config(cls, v: Any) -> Dict[str, Any] | None:
+        if v is None:
+            return None
+        return _coerce_config_to_dict(v)
 
     @field_validator("chart_name")
     @classmethod
@@ -1303,11 +1431,16 @@ class UpdateChartRequest(QueryCacheControl):
 class UpdateChartPreviewRequest(FormDataCacheControl):
     form_data_key: str = Field(..., description="Existing form_data_key to update")
     dataset_id: int | str = Field(..., description="Dataset ID or UUID")
-    config: ChartConfig
+    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
     generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
+
+    @field_validator("config", mode="before")
+    @classmethod
+    def coerce_config(cls, v: Any) -> Dict[str, Any]:
+        return _coerce_config_to_dict(v)
 
 
 class GetChartDataRequest(QueryCacheControl):

@@ -17,9 +17,33 @@
 
 """Schemas for SQL Lab MCP tools."""
 
-from typing import Any
+from typing import Any, Dict
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+)
+
+
+class _SchemaFieldNormalizer(BaseModel):
+    """Mixin that renames schema_name → schema in JSON output.
+
+    Pydantic serializes using field names by default, but the MCP/API
+    convention uses the alias ``schema``.  Adding this as a base class
+    to any response model that carries a ``schema_name`` field with
+    ``alias="schema"`` keeps the JSON key consistent.
+    """
+
+    @model_serializer(mode="wrap", when_used="json")
+    def _normalize_schema_field(self, serializer: Any, _info: Any) -> Dict[str, Any]:
+        data = serializer(self)
+        if "schema_name" in data:
+            data["schema"] = data.pop("schema_name")
+        return data
 
 
 class ExecuteSqlRequest(BaseModel):
@@ -83,6 +107,27 @@ class ColumnInfo(BaseModel):
     name: str = Field(..., description="Column name")
     type: str = Field(..., description="Column data type")
     is_nullable: bool | None = Field(None, description="Whether column allows NULL")
+
+    @field_validator("is_nullable", mode="before")
+    @classmethod
+    def coerce_is_nullable(cls, v: Any) -> bool | None:
+        """Coerce non-boolean values (e.g. Athena's 'UNKNOWN') to None."""
+        if v is None or isinstance(v, bool):
+            return v
+        if isinstance(v, (int, float)):
+            if v == 1:
+                return True
+            if v == 0:
+                return False
+            return None
+        if isinstance(v, str):
+            lowered = v.strip().lower()
+            if lowered in ("true", "1", "yes"):
+                return True
+            if lowered in ("false", "0", "no"):
+                return False
+            return None
+        return None
 
 
 class StatementData(BaseModel):
@@ -151,6 +196,8 @@ class ExecuteSqlResponse(BaseModel):
 class SaveSqlQueryRequest(BaseModel):
     """Request schema for saving a SQL query."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     database_id: int = Field(
         ..., description="Database connection ID the query runs against"
     )
@@ -189,8 +236,10 @@ class SaveSqlQueryRequest(BaseModel):
         return v.strip()
 
 
-class SaveSqlQueryResponse(BaseModel):
+class SaveSqlQueryResponse(_SchemaFieldNormalizer):
     """Response schema for a saved SQL query."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     id: int = Field(..., description="Saved query ID")
     label: str = Field(..., description="Query name")
@@ -231,7 +280,7 @@ class OpenSqlLabRequest(BaseModel):
     title: str | None = Field(None, description="Title for the SQL Lab tab/query")
 
 
-class SqlLabResponse(BaseModel):
+class SqlLabResponse(_SchemaFieldNormalizer):
     """Response schema for SQL Lab URL generation."""
 
     model_config = ConfigDict(populate_by_name=True)
