@@ -173,7 +173,7 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
         ssl_ca_certs: str | None = None,
         **kwargs: Any,
     ) -> None:
-        # Sentinel dont directly support SSL
+        # Sentinel doesn't directly support SSL
         # Initialize Sentinel without SSL parameters
         self._sentinel = Sentinel(
             sentinels,

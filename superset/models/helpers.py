@@ -1585,7 +1585,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 for metric in metric_names
             }
 
-            # When the original query has limit or offset we wont apply those
+            # When the original query has limit or offset we won't apply those
             # to the subquery so we prevent data inconsistency due to missing records
             # in the dataframes when performing the join
             if query_object.row_limit or query_object.row_offset:
