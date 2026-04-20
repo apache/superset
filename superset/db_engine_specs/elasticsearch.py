@@ -67,6 +67,9 @@ def _fetch_page_via_cursor(
     # The Elasticsearch SQL API rejects trailing semicolons, and any LIMIT
     # in the submitted statement caps the result set before the cursor can
     # page through it. ``fetch_size`` drives pagination instead.
+    # Assumption: Superset only appends a trailing ``LIMIT N`` for engines
+    # with ``allows_offset_fetch=False``. If that ever changes (e.g.
+    # ``FETCH FIRST N ROWS`` or ``TOP N``), extend this sanitizer to match.
     sanitized_sql = sql.strip().rstrip(";").strip()
     sanitized_sql = re.sub(
         r"\s+LIMIT\s+\d+\s*$", "", sanitized_sql, flags=re.IGNORECASE
