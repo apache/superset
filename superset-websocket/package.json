@@ -44,7 +44,7 @@
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "tscw-config": "^1.1.2",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.58.2"
   },
   "engines": {
