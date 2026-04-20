@@ -344,6 +344,16 @@ def extract_filters_from_form_data(
         and isinstance(item.get("col"), str)
         and item.get("col")
     ]
+    # Legacy top-level "filters" payload (older/simpler charts use this
+    # instead of adhoc_filters).
+    raw_filters = form_data.get("filters", [])
+    filters: List[Dict[str, Any]] = [
+        item
+        for item in (raw_filters if isinstance(raw_filters, list) else [])
+        if isinstance(item, dict)
+        and isinstance(item.get("col"), str)
+        and item.get("col")
+    ]
     where = form_data.get("where")
     having = form_data.get("having")
 
@@ -353,6 +363,7 @@ def extract_filters_from_form_data(
         or time_range
         or granularity_sqla
         or extra_filters
+        or filters
         or where
         or having
     )
@@ -364,6 +375,7 @@ def extract_filters_from_form_data(
         time_range=time_range,
         granularity_sqla=granularity_sqla,
         extra_filters=extra_filters,
+        filters=filters,
         where=where,
         having=having,
     )
@@ -1956,7 +1968,7 @@ class AdhocFilter(BaseModel):
         description="Free-form SQL expression (SQL expression type filters only)",
     )
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
 
 class ChartFiltersInfo(BaseModel):
@@ -1983,6 +1995,14 @@ class ChartFiltersInfo(BaseModel):
     extra_filters: List[Dict[str, Any]] = Field(
         default_factory=list,
         description=("Extra filters applied from dashboard context or URL parameters"),
+    )
+    filters: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "Legacy top-level filters payload (older/simpler charts). "
+            "These are plain column-operator-value dicts, distinct from "
+            "adhoc_filters which use the newer expressionType format."
+        ),
     )
     where: str | None = Field(
         None,

@@ -30,6 +30,7 @@ from superset.mcp_service.chart.schemas import (
     GetChartSqlRequest,
 )
 from superset.mcp_service.chart.tool.get_chart_sql import (
+    _build_query_context_from_form_data,
     _extract_sql_from_result,
     _find_chart_by_identifier,
     _resolve_effective_form_data,
@@ -337,6 +338,87 @@ class TestResolveMetricsAndGroupby:
         form_data = {"columns": ["a", "b"]}
         groupby = _resolve_groupby(form_data)
         assert groupby == ["a", "b"]
+
+
+class TestBuildQueryContextFromFormData:
+    """Regression tests for fallback query context construction.
+
+    Verifies that temporal fields, adhoc_filters, and legacy filters from
+    form_data are passed through to QueryContextFactory (not dropped).
+    """
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_temporal_fields_passed_to_factory(self, mock_factory_cls):
+        """time_range, granularity_sqla, adhoc_filters from form_data are
+        forwarded via form_data= to the factory, not dropped."""
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "metrics": ["count"],
+            "groupby": ["country"],
+            "time_range": "Last 7 days",
+            "granularity_sqla": "created_at",
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "status",
+                    "operator": "==",
+                    "comparator": "active",
+                }
+            ],
+            "where": "region = 'US'",
+            "having": "count > 10",
+            "filters": [{"col": "city", "op": "==", "val": "NYC"}],
+        }
+
+        with patch(
+            "superset.mcp_service.chart.tool.get_chart_sql.ChartDataResultType"
+        ) as mock_result_type:
+            mock_result_type.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        # Verify factory.create was called with form_data containing all fields
+        call_kwargs = mock_factory.create.call_args[1]
+        assert call_kwargs["form_data"] is form_data
+        assert call_kwargs["form_data"]["time_range"] == "Last 7 days"
+        assert call_kwargs["form_data"]["granularity_sqla"] == "created_at"
+        assert call_kwargs["form_data"]["adhoc_filters"] is not None
+        assert call_kwargs["form_data"]["where"] == "region = 'US'"
+        assert call_kwargs["form_data"]["having"] == "count > 10"
+        assert call_kwargs["form_data"]["filters"] == [
+            {"col": "city", "op": "==", "val": "NYC"}
+        ]
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_metrics_and_groupby_in_queries(self, mock_factory_cls):
+        """Resolved metrics and groupby are passed in queries parameter."""
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "metrics": ["sum_revenue"],
+            "groupby": ["product"],
+        }
+
+        with patch(
+            "superset.mcp_service.chart.tool.get_chart_sql.ChartDataResultType"
+        ) as mock_result_type:
+            mock_result_type.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        call_kwargs = mock_factory.create.call_args[1]
+        queries = call_kwargs["queries"]
+        assert len(queries) == 1
+        assert queries[0]["metrics"] == ["sum_revenue"]
+        assert queries[0]["columns"] == ["product"]
 
 
 class TestGetChartSqlTool:
