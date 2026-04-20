@@ -31,7 +31,6 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
-from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -41,6 +40,7 @@ from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardRequest,
     AddChartToDashboardResponse,
     DashboardInfo,
+    serialize_chart_summary,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -315,6 +315,47 @@ def _ensure_layout_structure(
         layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
+def _find_and_authorize_dashboard(
+    dashboard_id: int,
+) -> tuple[Any, AddChartToDashboardResponse | None]:
+    """Return (dashboard, None) on success or (None, error_response) on failure.
+
+    Handles both the not-found case and the ownership check so the main tool
+    function doesn't need two separate branches for these pre-conditions.
+    """
+    from superset import security_manager
+    from superset.daos.dashboard import DashboardDAO
+    from superset.exceptions import SupersetSecurityException
+
+    dashboard = DashboardDAO.find_by_id(dashboard_id)
+    if not dashboard:
+        return None, AddChartToDashboardResponse(
+            dashboard=None,
+            dashboard_url=None,
+            position=None,
+            error=f"Dashboard with ID {dashboard_id} not found",
+        )
+
+    try:
+        security_manager.raise_for_ownership(dashboard)
+    except SupersetSecurityException:
+        return None, AddChartToDashboardResponse(
+            dashboard=None,
+            dashboard_url=None,
+            position=None,
+            permission_denied=True,
+            error=(
+                f"You don't have permission to edit dashboard "
+                f"'{dashboard.dashboard_title}' (ID: {dashboard_id}). "
+                "Ask the user if they would like a new dashboard "
+                "created with this chart instead, and only proceed "
+                "if they confirm."
+            ),
+        )
+
+    return dashboard, None
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -333,18 +374,12 @@ def add_chart_to_existing_dashboard(
     """
     try:
         from superset.commands.dashboard.update import UpdateDashboardCommand
-        from superset.daos.dashboard import DashboardDAO
 
-        # Validate dashboard and chart exist
+        # Validate dashboard exists and user has edit permission
         with event_logger.log_context(action="mcp.add_chart_to_dashboard.validation"):
-            dashboard = DashboardDAO.find_by_id(request.dashboard_id)
-            if not dashboard:
-                return AddChartToDashboardResponse(
-                    dashboard=None,
-                    dashboard_url=None,
-                    position=None,
-                    error=(f"Dashboard with ID {request.dashboard_id} not found"),
-                )
+            dashboard, auth_error = _find_and_authorize_dashboard(request.dashboard_id)
+            if auth_error is not None:
+                return auth_error
 
             # Get chart object for SQLAlchemy relationships and validation
             from superset import db
@@ -442,6 +477,7 @@ def add_chart_to_existing_dashboard(
         # trigger lazy-loading on the same dead session.
         from sqlalchemy.orm import subqueryload
 
+        from superset.daos.dashboard import DashboardDAO
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
@@ -525,7 +561,7 @@ def add_chart_to_existing_dashboard(
             charts=[
                 obj
                 for chart in getattr(updated_dashboard, "slices", [])
-                if (obj := serialize_chart_object(chart)) is not None
+                if (obj := serialize_chart_summary(chart)) is not None
             ],
         )
 

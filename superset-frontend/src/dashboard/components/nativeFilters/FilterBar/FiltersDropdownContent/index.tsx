@@ -61,7 +61,7 @@ export const FiltersDropdownContent = ({
       ),
     )}
     {filtersInScope.map(renderer)}
-    {showCollapsePanel && (
+    {showCollapsePanel && filtersOutOfScope.length > 0 && (
       <FiltersOutOfScopeCollapsible
         filtersOutOfScope={filtersOutOfScope}
         renderer={renderer}

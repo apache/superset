@@ -388,63 +388,80 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     if not config.columns:
         raise ValueError("Table chart must have at least one column")
 
-    # Separate columns with aggregates from raw columns
-    raw_columns = []
-    aggregated_metrics = []
-
-    for col in config.columns:
-        if col.is_metric:
-            # Saved metric or column with aggregation - treat as metric
-            aggregated_metrics.append(create_metric_object(col))
-        else:
-            # No aggregation - treat as raw column
-            raw_columns.append(col.name)
-
-    # Final validation - ensure we have some data to display
-    if not raw_columns and not aggregated_metrics:
-        raise ValueError("Table chart configuration resulted in no displayable columns")
-
     # Use the viz_type from config (defaults to "table", can be "ag-grid-table")
     form_data: Dict[str, Any] = {
         "viz_type": config.viz_type,
     }
 
-    # Handle raw columns (no aggregation)
-    if raw_columns and not aggregated_metrics:
-        # Pure raw columns - show individual rows
-        # Include both "all_columns" (Superset table viz) and "columns"
-        # (QueryContextFactory validation) to avoid "Empty query?" errors
+    # When query_mode is explicitly set to "raw", force raw mode for all columns.
+    # Aggregate settings on individual columns are ignored in this case.
+    if config.query_mode == "raw":
+        column_names = [col.name for col in config.columns]
         form_data.update(
             {
-                "all_columns": raw_columns,
-                "columns": raw_columns,
+                "all_columns": column_names,
+                "columns": column_names,
                 "query_mode": "raw",
                 "include_time": False,
                 "order_desc": True,
             }
         )
+    else:
+        # Auto-detect or explicit "aggregate": separate columns with aggregates
+        # from raw columns and build the appropriate form_data.
+        raw_columns = []
+        aggregated_metrics = []
 
-    # Handle aggregated columns only
-    elif aggregated_metrics and not raw_columns:
-        # Pure aggregation - show totals
-        form_data.update(
-            {
-                "metrics": aggregated_metrics,
-                "query_mode": "aggregate",
-            }
-        )
+        for col in config.columns:
+            if col.is_metric:
+                # Saved metric or column with aggregation - treat as metric
+                aggregated_metrics.append(create_metric_object(col))
+            else:
+                # No aggregation - treat as raw column
+                raw_columns.append(col.name)
 
-    # Handle mixed columns (raw + aggregated)
-    elif raw_columns and aggregated_metrics:
-        # Mixed mode - group by raw columns, aggregate metrics
-        form_data.update(
-            {
-                "all_columns": raw_columns,
-                "metrics": aggregated_metrics,
-                "groupby": raw_columns,
-                "query_mode": "aggregate",
-            }
-        )
+        # Final validation - ensure we have some data to display
+        if not raw_columns and not aggregated_metrics:
+            raise ValueError(
+                "Table chart configuration resulted in no displayable columns"
+            )
+
+        # Handle raw columns (no aggregation)
+        if raw_columns and not aggregated_metrics:
+            # Pure raw columns - show individual rows
+            # Include both "all_columns" (Superset table viz) and "columns"
+            # (QueryContextFactory validation) to avoid "Empty query?" errors
+            form_data.update(
+                {
+                    "all_columns": raw_columns,
+                    "columns": raw_columns,
+                    "query_mode": "raw",
+                    "include_time": False,
+                    "order_desc": True,
+                }
+            )
+
+        # Handle aggregated columns only
+        elif aggregated_metrics and not raw_columns:
+            # Pure aggregation - show totals
+            form_data.update(
+                {
+                    "metrics": aggregated_metrics,
+                    "query_mode": "aggregate",
+                }
+            )
+
+        # Handle mixed columns (raw + aggregated)
+        else:
+            # Mixed mode - group by raw columns, aggregate metrics
+            form_data.update(
+                {
+                    "all_columns": raw_columns,
+                    "metrics": aggregated_metrics,
+                    "groupby": raw_columns,
+                    "query_mode": "aggregate",
+                }
+            )
 
     _add_adhoc_filters(form_data, config.filters)
 
