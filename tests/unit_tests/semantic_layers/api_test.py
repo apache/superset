@@ -1890,7 +1890,7 @@ def test_get_views_exception(
     )
 
     assert response.status_code == 400
-    assert "Connection failed" in response.json["message"]
+    assert "Unable to fetch semantic views" in response.json["message"]
 
 
 @SEMANTIC_LAYERS_APP
