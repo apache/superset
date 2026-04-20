@@ -146,19 +146,21 @@ class TestDatasetSoftDelete(SupersetTestCase):
 class TestDatasetRestore(SupersetTestCase):
     """Tests for dataset restore behaviour (T027)."""
 
-    def _get_example_dataset_id(self) -> int:
+    def _get_example_dataset(self) -> SqlaTable:
         dataset = db.session.query(SqlaTable).first()
         assert dataset is not None
-        return dataset.id
+        return dataset
 
     def test_restore_soft_deleted_dataset(self):
-        """POST /api/v1/dataset/<pk>/restore should make it visible again."""
-        dataset_id = self._get_example_dataset_id()
+        """POST /api/v1/dataset/<uuid>/restore should make it visible again."""
+        dataset = self._get_example_dataset()
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
         self.login(ADMIN_USERNAME)
 
         self.client.delete(f"/api/v1/dataset/{dataset_id}")
 
-        rv = self.client.post(f"/api/v1/dataset/{dataset_id}/restore")
+        rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
         assert rv.status_code == 200
 
         rv = self.client.get(f"/api/v1/dataset/{dataset_id}")

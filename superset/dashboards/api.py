@@ -1192,7 +1192,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         except DashboardDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>/restore", methods=("POST",))
+    @expose("/<uuid>/restore", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -1200,7 +1200,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.restore",
         log_to_statsd=False,
     )
-    def restore(self, pk: int) -> Response:
+    def restore(self, uuid: str) -> Response:
         """Restore a soft-deleted dashboard.
         ---
         post:
@@ -1208,8 +1208,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
           parameters:
           - in: path
             schema:
-              type: integer
-            name: pk
+              type: string
+              format: uuid
+            name: uuid
           responses:
             200:
               description: Dashboard restored
@@ -1232,7 +1233,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            RestoreDashboardCommand(pk).run()
+            RestoreDashboardCommand(uuid).run()
             return self.response(200, message="OK")
         except DashboardNotFoundError:
             return self.response_404()

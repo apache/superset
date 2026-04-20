@@ -19,15 +19,15 @@
 import logging
 from functools import partial
 
-from superset import db, security_manager
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartNotFoundError,
     ChartRestoreFailedError,
 )
+from superset.daos.chart import ChartDAO
 from superset.exceptions import SupersetSecurityException
-from superset.models.helpers import SKIP_VISIBILITY_FILTER
 from superset.models.slice import Slice
 from superset.utils.decorators import on_error, transaction
 
@@ -37,8 +37,8 @@ logger = logging.getLogger(__name__)
 class RestoreChartCommand(BaseCommand):
     """Restore a soft-deleted chart by clearing its ``deleted_at`` field."""
 
-    def __init__(self, model_id: int):
-        self._model_id = model_id
+    def __init__(self, model_uuid: str):
+        self._model_uuid = model_uuid
         self._model: Slice | None = None
 
     @transaction(on_error=partial(on_error, reraise=ChartRestoreFailedError))
@@ -48,12 +48,11 @@ class RestoreChartCommand(BaseCommand):
         self._model.restore()
 
     def validate(self) -> None:
-        # Query with skip_visibility_filter to find soft-deleted charts
-        self._model = (
-            db.session.query(Slice)
-            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
-            .filter(Slice.id == self._model_id)
-            .one_or_none()
+        self._model = ChartDAO.find_by_id(
+            self._model_uuid,
+            id_column="uuid",
+            skip_base_filter=True,
+            skip_visibility_filter=True,
         )
 
         if self._model is None or self._model.deleted_at is None:

@@ -384,6 +384,11 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         if not ids:
             return {}
 
+        # Uses a raw session query rather than the DAO because this method lives
+        # on the base API class, which has no DAO reference — the DAO is only
+        # defined on concrete subclasses (ChartRestApi, DashboardRestApi, etc.).
+        # This is a read-only projection of two columns on already-known IDs, not
+        # a general entity lookup, so bypassing the DAO is acceptable here.
         rows = (
             db.session.query(self.datamodel.obj.id, self.datamodel.obj.deleted_at)
             .execution_options(**{SKIP_VISIBILITY_FILTER: True})

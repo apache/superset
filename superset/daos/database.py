@@ -69,6 +69,7 @@ class DatabaseDAO(BaseDAO[Database]):
         cls,
         model_id: str | int,
         skip_base_filter: bool = False,
+        skip_visibility_filter: bool = False,
         id_column: str | None = None,
         query_options: list[Any] | None = None,
     ) -> Database | None:

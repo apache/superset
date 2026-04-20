@@ -48,6 +48,7 @@ from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
+from superset.models.helpers import SKIP_VISIBILITY_FILTER
 
 T = TypeVar("T", bound=CoreModel)
 
@@ -181,11 +182,14 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         cls,
         model_id_or_uuid: str,
         skip_base_filter: bool = False,
+        skip_visibility_filter: bool = False,
     ) -> T | None:
         """
         Find a model by id or uuid, if defined applies `base_filter`
         """
         query = db.session.query(cls.model_cls)
+        if skip_visibility_filter:
+            query = query.execution_options(**{SKIP_VISIBILITY_FILTER: True})
         if cls.base_filter and not skip_base_filter:
             data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
@@ -248,6 +252,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         column_name: str,
         value: str | int,
         skip_base_filter: bool = False,
+        skip_visibility_filter: bool = False,
         query_options: list[Any] | None = None,
     ) -> T | None:
         """
@@ -257,6 +262,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             column_name: Name of the column to search by
             value: Value to search for
             skip_base_filter: Whether to skip base filtering
+            skip_visibility_filter: Whether to skip the soft-delete visibility filter
             query_options: SQLAlchemy query options (e.g., joinedload,
                 subqueryload) to apply to the query for eager loading
 
@@ -264,6 +270,8 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             Model instance or None if not found
         """
         query = db.session.query(cls.model_cls)
+        if skip_visibility_filter:
+            query = query.execution_options(**{SKIP_VISIBILITY_FILTER: True})
         query = cls._apply_base_filter(query, skip_base_filter)
 
         if query_options:
@@ -288,6 +296,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         cls,
         model_id: str | int,
         skip_base_filter: bool = False,
+        skip_visibility_filter: bool = False,
         id_column: str | None = None,
         query_options: list[Any] | None = None,
     ) -> T | None:
@@ -297,6 +306,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         Args:
             model_id: ID value to search for
             skip_base_filter: Whether to skip base filtering
+            skip_visibility_filter: Whether to skip the soft-delete visibility filter
             id_column: Column name to use (defaults to cls.id_column_name)
             query_options: SQLAlchemy query options (e.g., joinedload,
                 subqueryload) to apply to the query for eager loading
@@ -305,7 +315,9 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             Model instance or None if not found
         """
         column = id_column or cls.id_column_name
-        return cls._find_by_column(column, model_id, skip_base_filter, query_options)
+        return cls._find_by_column(
+            column, model_id, skip_base_filter, skip_visibility_filter, query_options
+        )
 
     @classmethod
     def find_by_ids(

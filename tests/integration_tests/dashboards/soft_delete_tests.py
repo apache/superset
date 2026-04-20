@@ -128,13 +128,14 @@ class TestDashboardRestore(SupersetTestCase):
         return dashboard
 
     def test_restore_soft_deleted_dashboard(self):
-        """POST /api/v1/dashboard/<pk>/restore makes it visible again."""
+        """POST /api/v1/dashboard/<uuid>/restore makes it visible again."""
         dashboard = self._create_dashboard("restore_sd_test")
         dashboard_id = dashboard.id
+        dashboard_uuid = str(dashboard.uuid)
         self.login(ADMIN_USERNAME)
 
         self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
-        rv = self.client.post(f"/api/v1/dashboard/{dashboard_id}/restore")
+        rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/restore")
         assert rv.status_code == 200
 
         rv = self.client.get(f"/api/v1/dashboard/{dashboard_id}")
@@ -163,11 +164,12 @@ class TestDashboardRestore(SupersetTestCase):
         db.session.commit()
 
         dashboard_id = dashboard.id
+        dashboard_uuid = str(dashboard.uuid)
         chart_id = chart.id
         self.login(ADMIN_USERNAME)
 
         self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
-        rv = self.client.post(f"/api/v1/dashboard/{dashboard_id}/restore")
+        rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/restore")
         assert rv.status_code == 200
 
         restored = (

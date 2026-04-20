@@ -918,7 +918,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose("/<pk>/restore", methods=("POST",))
+    @expose("/<uuid>/restore", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -926,7 +926,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.restore",
         log_to_statsd=False,
     )
-    def restore(self, pk: int) -> Response:
+    def restore(self, uuid: str) -> Response:
         """Restore a soft-deleted dataset.
         ---
         post:
@@ -934,8 +934,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
           parameters:
           - in: path
             schema:
-              type: integer
-            name: pk
+              type: string
+              format: uuid
+            name: uuid
           responses:
             200:
               description: Dataset restored
@@ -958,7 +959,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            RestoreDatasetCommand(pk).run()
+            RestoreDatasetCommand(uuid).run()
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()
