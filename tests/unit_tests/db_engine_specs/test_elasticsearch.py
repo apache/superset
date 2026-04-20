@@ -102,7 +102,7 @@ def test_elasticsearch_spec_opts_out_of_offset_fetch() -> None:
     """
     from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
 
-    assert ElasticSearchEngineSpec.allows_offset_fetch is False
+    assert ElasticSearchEngineSpec.supports_offset is False
 
 
 def test_opendistro_spec_opts_out_of_offset_fetch() -> None:
@@ -111,7 +111,7 @@ def test_opendistro_spec_opts_out_of_offset_fetch() -> None:
     """
     from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec
 
-    assert OpenDistroEngineSpec.allows_offset_fetch is False
+    assert OpenDistroEngineSpec.supports_offset is False
 
 
 def _build_fake_database(transport_responses: list[dict[str, Any]]) -> MagicMock:

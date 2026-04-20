@@ -179,7 +179,7 @@ def get_samples(  # pylint: disable=too-many-arguments
         row_offset = limit_clause["row_offset"]
         row_limit = limit_clause["row_limit"]
 
-        if not engine_spec.allows_offset_fetch and row_offset > 0:
+        if not engine_spec.supports_offset and row_offset > 0:
             try:
                 sample_data = _fetch_samples_via_cursor(
                     datasource=datasource,
@@ -224,7 +224,7 @@ def _fetch_samples_via_cursor(
     """
     Fetch a single page of samples via engine-spec cursor pagination.
 
-    Used when ``datasource.database.db_engine_spec.allows_offset_fetch`` is
+    Used when ``datasource.database.db_engine_spec.supports_offset`` is
     False and a non-first page is requested. Reuses the SQL that Superset
     already compiled for the normal samples payload, delegates cursor
     iteration to the engine spec, and assembles a response dict compatible

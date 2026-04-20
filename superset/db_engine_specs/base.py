@@ -498,7 +498,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # engines like Elasticsearch SQL that do not support OFFSET set this to
     # False and are expected to implement `fetch_data_with_cursor` for
     # pagination via another mechanism (e.g. Elasticsearch's cursor API).
-    allows_offset_fetch = True
+    supports_offset = True
 
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
@@ -1250,12 +1250,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Fetch a single page of results via engine-native cursor pagination.
 
-        Only called when ``cls.allows_offset_fetch`` is False and a non-first
+        Only called when ``cls.supports_offset`` is False and a non-first
         page is requested (see ``superset/views/datasource/utils.py``).
-        Engines that set ``allows_offset_fetch = False`` must override this.
+        Engines that set ``supports_offset = False`` must override this.
         """
         raise NotImplementedError(
-            f"{cls.__name__} sets allows_offset_fetch=False but does not "
+            f"{cls.__name__} sets supports_offset=False but does not "
             "implement fetch_data_with_cursor()"
         )
 
@@ -2541,7 +2541,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
-            "allows_offset_fetch": cls.allows_offset_fetch,
+            "supports_offset": cls.supports_offset,
         }
 
     @classmethod

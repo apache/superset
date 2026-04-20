@@ -68,7 +68,7 @@ def _fetch_page_via_cursor(
     # in the submitted statement caps the result set before the cursor can
     # page through it. ``fetch_size`` drives pagination instead.
     # Assumption: Superset only appends a trailing ``LIMIT N`` for engines
-    # with ``allows_offset_fetch=False``. If that ever changes (e.g.
+    # with ``supports_offset=False``. If that ever changes (e.g.
     # ``FETCH FIRST N ROWS`` or ``TOP N``), extend this sanitizer to match.
     sanitized_sql = sql.strip().rstrip(";").strip()
     sanitized_sql = re.sub(
@@ -133,7 +133,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
-    allows_offset_fetch = False
+    supports_offset = False
 
     metadata = {
         "description": (
@@ -309,7 +309,7 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
-    allows_offset_fetch = False
+    supports_offset = False
 
     _time_grain_expressions = {
         None: "{col}",

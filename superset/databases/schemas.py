@@ -1067,7 +1067,7 @@ class EngineInformationSchema(Schema):
     supports_oauth2 = fields.Boolean(
         metadata={"description": "The database supports OAuth2"}
     )
-    allows_offset_fetch = fields.Boolean(
+    supports_offset = fields.Boolean(
         metadata={
             "description": (
                 "The database supports OFFSET in SQL queries. "

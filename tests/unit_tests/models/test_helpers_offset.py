@@ -22,10 +22,10 @@ HELPERS_PATH = (
 )
 
 
-def _uses_allows_offset_fetch(node: ast.AST) -> bool:
-    """True if any attribute access on `node` references 'allows_offset_fetch'."""
+def _uses_supports_offset(node: ast.AST) -> bool:
+    """True if any attribute access on `node` references 'supports_offset'."""
     return any(
-        isinstance(child, ast.Attribute) and child.attr == "allows_offset_fetch"
+        isinstance(child, ast.Attribute) and child.attr == "supports_offset"
         for child in ast.walk(node)
     )
 
@@ -41,10 +41,10 @@ def _is_qry_offset_assignment(stmt: ast.AST) -> bool:
     return isinstance(func, ast.Attribute) and func.attr == "offset"
 
 
-def test_helpers_guards_offset_with_allows_offset_fetch_flag() -> None:
+def test_helpers_guards_offset_with_supports_offset_flag() -> None:
     """
     Regression guard: the `.offset()` call in get_sqla_query must be wrapped
-    in an `if` that checks `allows_offset_fetch`. Without this guard,
+    in an `if` that checks `supports_offset`. Without this guard,
     engines that do not support OFFSET (Elasticsearch SQL) crash drill-
     to-detail on page 2+.
 
@@ -52,8 +52,8 @@ def test_helpers_guards_offset_with_allows_offset_fetch_flag() -> None:
     Black-style reformatting and trivial refactors.
     """
     source = HELPERS_PATH.read_text()
-    assert "allows_offset_fetch" in source, (
-        "helpers.py no longer references allows_offset_fetch; the OFFSET "
+    assert "supports_offset" in source, (
+        "helpers.py no longer references supports_offset; the OFFSET "
         "guard is gone — Elasticsearch drill-to-detail will crash on page 2+."
     )
 
@@ -65,7 +65,7 @@ def test_helpers_guards_offset_with_allows_offset_fetch_flag() -> None:
             self._in_guarded_if = 0
 
         def visit_If(self, node: ast.If) -> None:  # noqa: N802
-            if _uses_allows_offset_fetch(node.test):
+            if _uses_supports_offset(node.test):
                 self._in_guarded_if += 1
                 for child in node.body:
                     self.visit(child)
@@ -83,6 +83,6 @@ def test_helpers_guards_offset_with_allows_offset_fetch_flag() -> None:
     Visitor().visit(tree)
     assert not unguarded, (
         f"Unguarded .offset() call(s) in helpers.py at line(s) {unguarded}. "
-        "Wrap with `if ... allows_offset_fetch:` to prevent OFFSET emission "
+        "Wrap with `if ... supports_offset:` to prevent OFFSET emission "
         "on engines that cannot parse it (e.g. Elasticsearch SQL)."
     )
