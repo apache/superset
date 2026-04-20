@@ -1240,6 +1240,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
+    def fetch_data_with_cursor(
+        cls,
+        database: Database,
+        sql: str,
+        page_index: int,
+        page_size: int,
+    ) -> tuple[list[list[Any]], list[str]]:
+        """
+        Fetch a single page of results via engine-native cursor pagination.
+
+        Only called when ``cls.allows_offset_fetch`` is False and a non-first
+        page is requested (see ``superset/views/datasource/utils.py``).
+        Engines that set ``allows_offset_fetch = False`` must override this.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__} sets allows_offset_fetch=False but does not "
+            "implement fetch_data_with_cursor()"
+        )
+
+    @classmethod
     def expand_data(
         cls, columns: list[ResultSetColumnType], data: list[dict[Any, Any]]
     ) -> tuple[

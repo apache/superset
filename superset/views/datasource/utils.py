@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, TYPE_CHECKING
 
 from flask import current_app as app
 
@@ -27,6 +29,10 @@ from superset.constants import CacheRegion
 from superset.daos.datasource import DatasourceDAO
 from superset.utils.core import QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
+
+if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
+    from superset.daos.datasource import Datasource
 
 logger = logging.getLogger(__name__)
 
@@ -206,8 +212,8 @@ def get_samples(  # pylint: disable=too-many-arguments
 
 
 def _fetch_samples_via_cursor(
-    datasource: Any,
-    samples_instance: Any,
+    datasource: Datasource,
+    samples_instance: QueryContext,
     count_star_data: dict[str, Any],
     page_index: int,
     page_size: int,

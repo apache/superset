@@ -14,10 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from packaging.version import Version
 from sqlalchemy import types
@@ -30,11 +32,14 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIProgrammingError,
 )
 
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
 logger = logging.getLogger()
 
 
 def _fetch_page_via_cursor(
-    database: Any,
+    database: Database,
     sql: str,
     page_index: int,
     page_size: int,
@@ -229,7 +234,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     @classmethod
     def fetch_data_with_cursor(
         cls,
-        database: Any,
+        database: Database,
         sql: str,
         page_index: int,
         page_size: int,
@@ -322,7 +327,7 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     @classmethod
     def fetch_data_with_cursor(
         cls,
-        database: Any,
+        database: Database,
         sql: str,
         page_index: int,
         page_size: int,
