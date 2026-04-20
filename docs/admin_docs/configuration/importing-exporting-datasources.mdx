@@ -10,6 +10,10 @@ version: 1
 The superset cli allows you to import and export datasources from and to YAML. Datasources include
 databases. The data is expected to be organized in the following hierarchy:
 
+:::info
+Superset's ZIP-based import/export also covers **dashboards**, **charts**, and **saved queries**, exercised through the UI and REST API. The [Dashboard Import Overwrite Behavior](#dashboard-import-overwrite-behavior) and [UUIDs in API Responses](#uuids-in-api-responses) sections below document the behavior shared across all asset types.
+:::
+
 ```text
 ├──databases
 |  ├──database_1

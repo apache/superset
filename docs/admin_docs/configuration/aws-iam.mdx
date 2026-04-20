@@ -31,11 +31,20 @@ Cross-account IAM role assumption via STS `AssumeRole` is supported, allowing a 
 
 ## Prerequisites
 
+- Enable the `AWS_DATABASE_IAM_AUTH` feature flag in `superset_config.py`. IAM authentication is gated behind this flag; if it is disabled, connections using `aws_iam` fail with *"AWS IAM database authentication is not enabled."*
+  ```python
+  FEATURE_FLAGS = {
+      "AWS_DATABASE_IAM_AUTH": True,
+  }
+  ```
 - `boto3` must be installed in your Superset environment:
   ```bash
   pip install boto3
   ```
-- The Superset server's IAM role (or static credentials) must have permission to call `sts:AssumeRole` (for cross-account) or `rds-db:connect` / `redshift:GetClusterCredentials` (for same-account).
+- The Superset server's IAM role (or static credentials) must have permission to call `sts:AssumeRole` (for cross-account) or the same-account permissions for the target service:
+  - **Aurora (RDS)**: `rds-db:connect`
+  - **Redshift provisioned**: `redshift:GetClusterCredentials`
+  - **Redshift Serverless**: `redshift-serverless:GetCredentials` and `redshift-serverless:GetWorkgroup`
 - SSL must be enabled on the Aurora / Redshift endpoint (required for IAM token auth).
 
 ## Configuration

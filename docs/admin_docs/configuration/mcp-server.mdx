@@ -677,21 +677,19 @@ This means MCP activity is auditable alongside normal user activity. No addition
 
 ## Tool Pagination
 
-All MCP list tools use **cursor-based pagination** (`cursor` / `next_cursor` fields) rather than offset pagination. To iterate through all results:
+MCP list tools (`list_datasets`, `list_charts`, `list_dashboards`, `list_databases`) use **offset pagination** via `page` (1-based) and `page_size` parameters. Responses include `page`, `page_size`, `total_count`, `total_pages`, `has_previous`, and `has_next`. To iterate through all results:
 
 ```python
 # Example: fetch all charts across pages
-cursor = None
 all_charts = []
+page = 1
 while True:
-    result = mcp.list_charts(cursor=cursor, page_size=50)
+    result = mcp.list_charts(page=page, page_size=50)
     all_charts.extend(result["charts"])
-    cursor = result.get("next_cursor")
-    if not cursor:
+    if not result.get("has_next"):
         break
+    page += 1
 ```
-
-The `page` parameter from older integrations is no longer supported. Update any tooling that relied on offset pagination to use `cursor` / `next_cursor` instead.
 
 ## Security Best Practices
 
