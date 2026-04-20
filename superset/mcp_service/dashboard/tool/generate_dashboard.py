@@ -204,6 +204,11 @@ def generate_dashboard(  # noqa: C901
     from pydantic import ValidationError
     from sqlalchemy.exc import SQLAlchemyError
 
+    # Advisory messages (e.g. title sanitization) surfaced to the caller
+    # alongside the created dashboard so they can tell when their input
+    # was altered.
+    sanitization_warnings = list(getattr(request, "sanitization_warnings", []) or [])
+
     try:
         # Get chart objects from IDs (required for SQLAlchemy relationships)
         from superset import db
@@ -393,6 +398,7 @@ def generate_dashboard(  # noqa: C901
                 ),
                 dashboard_url=dashboard_url,
                 error=None,
+                warnings=sanitization_warnings,
             )
 
         # Convert to our response format
@@ -440,7 +446,10 @@ def generate_dashboard(  # noqa: C901
         )
 
         return GenerateDashboardResponse(
-            dashboard=dashboard_info, dashboard_url=dashboard_url, error=None
+            dashboard=dashboard_info,
+            dashboard_url=dashboard_url,
+            error=None,
+            warnings=sanitization_warnings,
         )
 
     except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:

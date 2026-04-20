@@ -521,6 +521,54 @@ class GenerateDashboardRequest(BaseModel):
     published: bool = Field(
         default=False, description="Whether to publish the dashboard"
     )
+    sanitization_warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Internal: warnings emitted when user input was altered by "
+            "sanitization. Populated by the ``mode='before'`` validator "
+            "before dashboard_title is rewritten, so the tool can surface "
+            "a notice to the caller instead of silently dropping content."
+        ),
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _detect_dashboard_title_sanitization(cls, data: Any) -> Any:
+        """Reject empty-after-sanitization titles and warn on partial strip.
+
+        Runs before the ``dashboard_title`` field validator rewrites the
+        value. If the caller supplied a non-empty title and sanitization
+        would strip it entirely (XSS-only content), we raise so the caller
+        gets a clear error instead of a blank-titled dashboard. When the
+        sanitizer only trims part of the title, we record a warning the
+        tool can return alongside the successful result.
+
+        Uses the same strip+unicode sanitizer the field validator applies,
+        so detection matches the value that will actually be stored.
+        """
+        if not isinstance(data, dict):
+            return data
+        raw = data.get("dashboard_title")
+        if not isinstance(raw, str) or not raw.strip():
+            return data
+        stripped = raw.strip()
+        sanitized = _remove_dangerous_unicode(_strip_html_tags(stripped))
+        if not sanitized:
+            raise ValueError(
+                "dashboard_title contained only disallowed content "
+                "(HTML/script) and was removed entirely by sanitization. "
+                "Provide a dashboard_title with plain text, or omit it "
+                "to auto-generate one from chart names."
+            )
+        if sanitized != stripped:
+            warnings = data.setdefault("sanitization_warnings", [])
+            if isinstance(warnings, list):
+                warnings.append(
+                    "dashboard_title was modified during sanitization to "
+                    "remove potentially unsafe content; the stored title "
+                    "differs from the input."
+                )
+        return data
 
     @field_validator("dashboard_title")
     @classmethod
@@ -541,6 +589,14 @@ class GenerateDashboardResponse(BaseModel):
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
     error: str | None = Field(None, description="Error message, if creation failed")
+    warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Non-fatal advisory messages about the created dashboard — "
+            "for example, that the supplied title was altered by "
+            "sanitization."
+        ),
+    )
 
 
 def _parse_json_metadata(json_metadata_str: str | None) -> Dict[str, Any] | None:

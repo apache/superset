@@ -710,3 +710,43 @@ class TestParseChartConfig:
     def test_coerce_invalid_json_string_raises(self) -> None:
         with pytest.raises(ValidationError):
             GenerateChartRequest(dataset_id=1, config="not valid json")
+
+
+class TestGenerateChartRequestChartNameSanitization:
+    """XSS / sanitization behavior for the chart_name field."""
+
+    def _config(self) -> dict[str, object]:
+        return {
+            "chart_type": "table",
+            "columns": [{"name": "a"}],
+        }
+
+    def test_plain_chart_name_passes_without_warning(self) -> None:
+        req = GenerateChartRequest(
+            dataset_id=1, config=self._config(), chart_name="Sales Report"
+        )
+        assert req.chart_name == "Sales Report"
+        assert req.sanitization_warnings == []
+
+    def test_chart_name_script_only_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            GenerateChartRequest(
+                dataset_id=1,
+                config=self._config(),
+                chart_name="<script>alert(1)</script>",
+            )
+
+    def test_chart_name_partial_strip_emits_warning(self) -> None:
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config=self._config(),
+            chart_name="Q1 <b>Report</b>",
+        )
+        assert req.chart_name == "Q1 Report"
+        assert len(req.sanitization_warnings) == 1
+        assert "chart_name" in req.sanitization_warnings[0]
+
+    def test_chart_name_omitted_does_not_warn(self) -> None:
+        req = GenerateChartRequest(dataset_id=1, config=self._config())
+        assert req.chart_name is None
+        assert req.sanitization_warnings == []
