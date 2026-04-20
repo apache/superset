@@ -511,17 +511,17 @@ class Database(
         from superset.utils.oauth2 import get_access_token_for_database
 
         has_g_user = hasattr(g, "user") and hasattr(g.user, "id")
+        can_lookup_token = has_g_user and self.id is not None
         access_token = (
             get_access_token_for_database(self, g.user.id)
-            if has_g_user
+            if can_lookup_token
             else None
         )
         if not has_g_user:
-            logger.warning(
-                "Database._get_sqla_engine() database='%s' (id=%d): "
+            logger.debug(
+                "Database._get_sqla_engine() database='%s': "
                 "g.user is not set, skipping OAuth token lookup",
                 self.database_name,
-                self.id,
             )
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
