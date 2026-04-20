@@ -301,8 +301,9 @@ export const hydrateDashboard =
       rawChartCustomizations,
     );
 
-    const filters =
-      (metadata?.native_filter_configuration as JsonObject[]) || [];
+    const filters = (
+      (metadata?.native_filter_configuration as JsonObject[]) || []
+    ).filter(Boolean);
     const combinedFilters = [...filters, ...chartCustomizations];
 
     const nativeFilters = getInitialNativeFilterState({

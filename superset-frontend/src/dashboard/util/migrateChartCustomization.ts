@@ -147,10 +147,17 @@ export function migrateChartCustomization(
 export function migrateChartCustomizationArray(
   items: unknown[],
 ): ChartCustomization[] {
-  return items.map(item => {
-    if (isLegacyChartCustomizationFormat(item)) {
-      return migrateChartCustomization(item);
-    }
-    return item as ChartCustomization;
-  });
+  return items
+    .filter(
+      item =>
+        item != null &&
+        (isLegacyChartCustomizationFormat(item) ||
+          (typeof item === 'object' && 'type' in item)),
+    )
+    .map(item => {
+      if (isLegacyChartCustomizationFormat(item)) {
+        return migrateChartCustomization(item);
+      }
+      return item as ChartCustomization;
+    });
 }

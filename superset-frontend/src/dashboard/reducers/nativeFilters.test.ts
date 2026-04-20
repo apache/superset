@@ -486,3 +486,24 @@ test('hydrate pipeline: filter(Boolean) + migrate + getInitialState succeeds wit
   expect(result.filters['CHART_CUSTOMIZATION-1']).toBeDefined();
   expect(result.filters['CHART_CUSTOMIZATION-1'].chartsInScope).toEqual([10]);
 });
+
+test('hydrate pipeline: native_filter_configuration with null entries does not crash getInitialState', () => {
+  // Reproduces the native_filter_configuration path in hydrate.ts (L305):
+  //   native_filter_configuration may contain null entries from corrupted metadata.
+  //   Without .filter(Boolean), these nulls reach getInitialState which reads .id → crash.
+  const nativeFilters = [
+    null,
+    createMockFilter('filter1', [1, 2], ['tab1']),
+    null,
+  ];
+
+  // After .filter(Boolean), only valid filters remain
+  const filtered = nativeFilters.filter(Boolean);
+  const result = getInitialState({
+    filterConfig: filtered as Filter[],
+  });
+
+  expect(Object.keys(result.filters)).toHaveLength(1);
+  expect(result.filters.filter1).toBeDefined();
+  expect(result.filters.filter1.chartsInScope).toEqual([1, 2]);
+});

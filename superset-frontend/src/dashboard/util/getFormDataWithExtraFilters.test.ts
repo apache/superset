@@ -505,6 +505,75 @@ test('object-typed groupby entries (AdhocColumn) are recognized as existing colu
   expectGroupBy(result, ['new_col']);
 });
 
+test('AdhocColumn with sqlExpression (no column_name) is recognized as existing column', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+  const result = getFormDataWithExtraFilters({
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'table',
+        datasource: '3__table',
+        groupby: [
+          {
+            sqlExpression: 'CASE WHEN status = 1 THEN "active" END',
+            label: 'status_label',
+            expressionType: 'SQL',
+          },
+          'category',
+        ],
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['status_label', 'new_col'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({ id: customizationId }),
+    ],
+  });
+  // 'status_label' matches the AdhocColumn's label, so only 'new_col' passes through
+  expectGroupBy(result, ['new_col']);
+});
+
+test('AdhocColumn with empty label falls back to sqlExpression for identity', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+  const sqlExpr = 'CASE WHEN status = 1 THEN "active" END';
+  const result = getFormDataWithExtraFilters({
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'table',
+        datasource: '3__table',
+        groupby: [
+          { sqlExpression: sqlExpr, label: '', expressionType: 'SQL' },
+          'category',
+        ],
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: [sqlExpr, 'new_col'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({ id: customizationId }),
+    ],
+  });
+  // Empty label → falls back to sqlExpression; sqlExpr is in existingColumns, only 'new_col' passes
+  expectGroupBy(result, ['new_col']);
+});
+
 test('Scope boundary: display control with chartsInScope:[] does not affect the chart', () => {
   const customizationId = 'CHART_CUSTOMIZATION-groupby-out-of-scope';
   const argsOutOfScope: GetFormDataWithExtraFiltersArguments = {

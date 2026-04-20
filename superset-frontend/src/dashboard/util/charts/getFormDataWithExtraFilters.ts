@@ -22,9 +22,11 @@ import {
   DataRecordFilters,
   DataRecordValue,
   ensureIsArray,
+  getColumnLabel,
   JsonObject,
   PartialFilters,
   ChartCustomization,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import {
   ChartConfiguration,
@@ -122,8 +124,13 @@ function extractColumnNames(columns: unknown[]): string[] {
     columns.forEach((col: unknown) => {
       if (typeof col === 'string') {
         columnNames.push(col);
-      } else if (col && typeof col === 'object' && 'column_name' in col) {
-        columnNames.push((col as { column_name: string }).column_name);
+      } else if (col && typeof col === 'object') {
+        if ('column_name' in col) {
+          columnNames.push((col as { column_name: string }).column_name);
+        } else if ('sqlExpression' in col) {
+          const label = getColumnLabel(col as QueryFormColumn);
+          if (label) columnNames.push(label);
+        }
       }
     });
   }
