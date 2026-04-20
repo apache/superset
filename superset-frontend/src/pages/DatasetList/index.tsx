@@ -1045,17 +1045,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       );
     }
 
-    Promise.all(promises).then(
-      () => {
-        refreshData();
+    Promise.allSettled(promises).then(results => {
+      const failures = results.filter(r => r.status === 'rejected');
+      // Always refresh so the list reflects whatever actually got deleted.
+      refreshData();
+      if (failures.length === 0) {
         addSuccessToast(t('Deleted %s item(s)', datasetsToDelete.length));
-      },
-      createErrorHandler(errMsg =>
+      } else {
         addDangerToast(
-          t('There was an issue deleting the selected datasets: %s', errMsg),
-        ),
-      ),
-    );
+          t('There was an issue deleting the selected items'),
+        );
+      }
+    });
   };
 
   const handleDatasetDuplicate = (newDatasetName: string) => {
