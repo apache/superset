@@ -511,10 +511,9 @@ class Database(
         from superset.utils.oauth2 import get_access_token_for_database
 
         has_g_user = hasattr(g, "user") and hasattr(g.user, "id")
-        can_lookup_token = has_g_user and self.id is not None
         access_token = (
             get_access_token_for_database(self, g.user.id)
-            if can_lookup_token
+            if has_g_user
             else None
         )
         if not has_g_user:
