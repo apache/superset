@@ -250,23 +250,29 @@ def parse_response(text: str, batch_size: int) -> dict[int, str]:
     text = re.sub(r"\n```$", "", text)
     try:
         raw = json.loads(text)
-        # Preserve dict/list values as JSON strings so plural responses
-        # (where v is a dict of plural forms) can be re-parsed downstream
-        # by _apply_translation's json.loads. str(v) on a dict produces
-        # Python repr ({'0': 'x'}) which is not valid JSON.
-        return {
-            int(k): (
-                json.dumps(v, ensure_ascii=False)
-                if isinstance(v, (dict, list))
-                else str(v)
-            )
-            for k, v in raw.items()
-            if str(k).isdigit()
-        }
     except json.JSONDecodeError as exc:
         raise ValueError(
             f"Could not parse response as JSON: {exc}\n\nResponse:\n{text}"
         ) from exc
+    # _process_batches only catches ValueError/RuntimeError, so a non-object
+    # response (list, scalar, null) must surface as ValueError rather than
+    # bubbling up an AttributeError from .items() and aborting the whole run.
+    if not isinstance(raw, dict):
+        raise ValueError(
+            f"Expected a JSON object mapping indices to translations, "
+            f"got {type(raw).__name__}.\n\nResponse:\n{text}"
+        )
+    # Preserve dict/list values as JSON strings so plural responses (where
+    # v is a dict of plural forms) can be re-parsed downstream by
+    # _apply_translation's json.loads. str(v) on a dict produces Python
+    # repr ({'0': 'x'}) which is not valid JSON.
+    return {
+        int(k): (
+            json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else str(v)
+        )
+        for k, v in raw.items()
+        if str(k).isdigit()
+    }
 
 
 def translate_batch(
