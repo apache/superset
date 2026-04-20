@@ -21,17 +21,68 @@ import { VizType } from '@superset-ui/core';
 import { WordCloudFormData } from '../src';
 import buildQuery from '../src/plugin/buildQuery';
 
-describe('WordCloud buildQuery', () => {
-  const formData: WordCloudFormData = {
-    datasource: '5__table',
-    granularity_sqla: 'ds',
-    series: 'foo',
-    viz_type: VizType.WordCloud,
-  };
+const basicFormData: WordCloudFormData = {
+  datasource: '5__table',
+  granularity_sqla: 'ds',
+  series: 'foo',
+  viz_type: VizType.WordCloud,
+};
 
+describe('WordCloud buildQuery', () => {
   it('should build columns from series in form data', () => {
-    const queryContext = buildQuery(formData);
+    const queryContext = buildQuery(basicFormData);
     const [query] = queryContext.queries;
     expect(query.columns).toEqual(['foo']);
+  });
+
+  it('should not include orderby when neither sort option is enabled', () => {
+    const queryContext = buildQuery({
+      ...basicFormData,
+      metric: 'count',
+      sort_by_metric: false,
+      sort_by_series: false,
+      row_limit: 100,
+    });
+    const [query] = queryContext.queries;
+    expect(query.orderby).toBeUndefined();
+  });
+
+  it('should order by metric DESC only when sort_by_metric is true', () => {
+    const queryContext = buildQuery({
+      ...basicFormData,
+      metric: 'count',
+      sort_by_metric: true,
+      sort_by_series: false,
+      row_limit: 100,
+    });
+    const [query] = queryContext.queries;
+    expect(query.orderby).toEqual([['count', false]]);
+  });
+
+  it('should order by series ASC only when sort_by_series is true', () => {
+    const queryContext = buildQuery({
+      ...basicFormData,
+      metric: 'count',
+      sort_by_metric: false,
+      sort_by_series: true,
+      row_limit: 100,
+    });
+    const [query] = queryContext.queries;
+    expect(query.orderby).toEqual([['foo', true]]);
+  });
+
+  it('should order by metric DESC then series ASC when both are true', () => {
+    const queryContext = buildQuery({
+      ...basicFormData,
+      metric: 'count',
+      sort_by_metric: true,
+      sort_by_series: true,
+      row_limit: 100,
+    });
+    const [query] = queryContext.queries;
+    expect(query.orderby).toEqual([
+      ['count', false],
+      ['foo', true],
+    ]);
   });
 });
