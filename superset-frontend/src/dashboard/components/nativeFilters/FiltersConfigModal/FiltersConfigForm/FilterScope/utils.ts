@@ -98,10 +98,19 @@ export const buildTree = (
   initiallyExcludedCharts: number[],
   buildTreeLeafTitle: BuildTreeLeafTitle,
   sliceEntities?: Record<number, Slice>,
+  visited: Set<string> = new Set(),
 ) => {
   if (!node) {
     return;
   }
+
+  if (visited.has(node.id)) {
+    logging.warn(
+      `Cycle detected in dashboard layout at node: ${node.id}. Skipping to prevent infinite recursion.`,
+    );
+    return;
+  }
+  visited.add(node.id);
 
   let itemToPass: TreeItem = treeItem;
   if (
@@ -163,6 +172,7 @@ export const buildTree = (
           initiallyExcludedCharts,
           buildTreeLeafTitle,
           sliceEntities,
+          visited,
         );
       } else {
         logging.warn(

@@ -22,10 +22,12 @@ import {
   DataRecordFilters,
   DataRecordValue,
   ensureIsArray,
+  getColumnLabel,
   JsonObject,
   PartialFilters,
   QueryFormExtraFilter,
   ChartCustomization,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import {
   ChartConfiguration,
@@ -123,8 +125,13 @@ function extractColumnNames(columns: unknown[]): string[] {
     columns.forEach((col: unknown) => {
       if (typeof col === 'string') {
         columnNames.push(col);
-      } else if (col && typeof col === 'object' && 'column_name' in col) {
-        columnNames.push((col as { column_name: string }).column_name);
+      } else if (col && typeof col === 'object') {
+        if ('column_name' in col) {
+          columnNames.push((col as { column_name: string }).column_name);
+        } else if ('sqlExpression' in col) {
+          const label = getColumnLabel(col as QueryFormColumn);
+          if (label) columnNames.push(label);
+        }
       }
     });
   }
@@ -136,7 +143,7 @@ function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
   const chartType = chart.form_data?.viz_type;
 
   const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
-  existingGroupBy.forEach((col: string) => existingColumns.add(col));
+  extractColumnNames(existingGroupBy).forEach(col => existingColumns.add(col));
 
   const xAxisColumn = chart.form_data?.x_axis;
   if (xAxisColumn && chartType !== 'heatmap' && chartType !== 'heatmap_v2') {

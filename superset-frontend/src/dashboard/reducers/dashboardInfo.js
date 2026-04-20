@@ -35,7 +35,10 @@ import {
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 const preserveScopes = (existingConfig, incomingConfig) => {
-  const existingScopesMap = (existingConfig || []).reduce((acc, item) => {
+  const truthyExistingConfig = (existingConfig || []).filter(Boolean);
+  const truthyIncomingConfig = (incomingConfig || []).filter(Boolean);
+
+  const existingScopesMap = truthyExistingConfig.reduce((acc, item) => {
     if (item.chartsInScope != null || item.tabsInScope != null) {
       acc[item.id] = {
         chartsInScope: item.chartsInScope,
@@ -45,7 +48,7 @@ const preserveScopes = (existingConfig, incomingConfig) => {
     return acc;
   }, {});
 
-  return (incomingConfig || []).map(item => {
+  return truthyIncomingConfig.map(item => {
     const existingScopes = existingScopesMap[item.id];
     if (item.chartsInScope == null && existingScopes) {
       return {
@@ -210,21 +213,26 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         pendingChartCustomizations: {},
       };
-    case CLEAR_ALL_CHART_CUSTOMIZATIONS:
+    case CLEAR_ALL_CHART_CUSTOMIZATIONS: {
+      const customizationConfig = (
+        state.metadata?.chart_customization_config || []
+      ).filter(Boolean);
       return {
         ...state,
         metadata: {
           ...state.metadata,
-          chart_customization_config:
-            state.metadata?.chart_customization_config?.map(customization => ({
+          chart_customization_config: customizationConfig.map(
+            customization => ({
               ...customization,
               targets: customization.targets?.map(target => ({
                 datasetId: target.datasetId,
               })),
-            })) || [],
+            }),
+          ),
         },
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
+    }
     default:
       return state;
   }

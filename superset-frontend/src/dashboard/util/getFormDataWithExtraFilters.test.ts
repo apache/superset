@@ -20,7 +20,51 @@ import getFormDataWithExtraFilters, {
   CachedFormDataWithExtraControls,
   GetFormDataWithExtraFiltersArguments,
 } from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
+import { ChartCustomizationType } from '@superset-ui/core';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
+
+type ChartCustomizationItem = NonNullable<
+  GetFormDataWithExtraFiltersArguments['chartCustomizationItems']
+>[number];
+
+function createChartCustomization(
+  overrides: Partial<ChartCustomizationItem> = {},
+): ChartCustomizationItem {
+  return {
+    id: 'CHART_CUSTOMIZATION-1',
+    type: ChartCustomizationType.ChartCustomization,
+    name: 'Dynamic Group By',
+    filterType: 'chart_customization_dynamic_groupby',
+    targets: [{ datasetId: 3, column: { name: 'status' } }],
+    scope: { rootPath: [], excluded: [] },
+    chartsInScope: [chartId],
+    defaultDataMask: {},
+    controlValues: {},
+    ...overrides,
+  };
+}
+
+const expectGroupBy = (
+  result: CachedFormDataWithExtraControls,
+  expected: unknown,
+) => {
+  expect('groupby' in result).toBe(true);
+  if (!('groupby' in result)) {
+    throw new Error('Expected groupby to be present in form data');
+  }
+  expect(result.groupby).toEqual(expected);
+};
+
+const expectGroupByLength = (
+  result: CachedFormDataWithExtraControls,
+  length: number,
+) => {
+  expect('groupby' in result).toBe(true);
+  if (!('groupby' in result)) {
+    throw new Error('Expected groupby to be present in form data');
+  }
+  expect(result.groupby).toHaveLength(length);
+};
 
 describe('getFormDataWithExtraFilters', () => {
   const filterId = 'native-filter-1';
@@ -205,5 +249,287 @@ describe('getFormDataWithExtraFilters', () => {
     const result = getFormDataWithExtraFilters(argsWithBoth);
     expect((result as any).time_grain_sqla).toEqual('PT1H');
     expect(result.extra_form_data).toBeDefined();
+  });
+
+  const makeGroupByArgs = (
+    selectedValue: string | string[],
+    baseGroupby: string[] = [],
+  ): GetFormDataWithExtraFiltersArguments => {
+    const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+    return {
+      ...mockArgs,
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'table',
+          datasource: '3__table',
+          groupby: baseGroupby,
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          extraFormData: {},
+          filterState: { value: selectedValue },
+          ownState: {},
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+        }),
+      ],
+    };
+  };
+
+  test('structural conflict: metric column blocks groupby override (nonConflictingColumns guard)', () => {
+    const customizationId = 'CHART_CUSTOMIZATION-groupby-conflict';
+    const argsWithMetricConflict: GetFormDataWithExtraFiltersArguments = {
+      ...mockArgs,
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'table',
+          datasource: '3__table',
+          groupby: ['original_column'],
+          metrics: ['revenue'],
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          extraFormData: {},
+          filterState: { value: ['revenue'] },
+          ownState: {},
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+          targets: [{ datasetId: 3, column: { name: 'revenue' } }],
+        }),
+      ],
+    };
+
+    const result = getFormDataWithExtraFilters(argsWithMetricConflict);
+    expectGroupBy(result, ['original_column']);
+  });
+
+  test('multi-column selection: all selected columns appear in result groupby', () => {
+    const result = getFormDataWithExtraFilters(
+      makeGroupByArgs(['status', 'product_line']),
+    );
+    expectGroupBy(result, expect.arrayContaining(['status', 'product_line']));
+    expectGroupByLength(result, 2);
+  });
+
+  test('dataset mismatch: display control for a different dataset does not affect the chart', () => {
+    const customizationId = 'CHART_CUSTOMIZATION-wrong-dataset';
+    const argsWrongDataset: GetFormDataWithExtraFiltersArguments = {
+      ...mockArgs,
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'table',
+          datasource: '3__table',
+          groupby: ['original_column'],
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          extraFormData: {},
+          filterState: { value: ['status'] },
+          ownState: {},
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+          targets: [{ datasetId: 999, column: { name: 'status' } }],
+        }),
+      ],
+    };
+
+    const result = getFormDataWithExtraFilters(argsWrongDataset);
+    expectGroupBy(result, ['original_column']);
+  });
+
+  test('dynamic group by with overlapping selection preserves multi-column base groupby', () => {
+    const result = getFormDataWithExtraFilters(
+      makeGroupByArgs(['status'], ['status', 'category']),
+    );
+    expectGroupBy(result, ['status', 'category']);
+  });
+
+  test('timeseries chart: overlapping selection preserves multi-column base groupby', () => {
+    const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'echarts_timeseries_line',
+          datasource: '3__table',
+          groupby: ['series_col', 'breakdown_col'],
+          x_axis: 'time_col',
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          extraFormData: {},
+          filterState: { value: ['series_col'] },
+          ownState: {},
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({ id: customizationId }),
+      ],
+    });
+    expectGroupBy(result, ['series_col', 'breakdown_col']);
+  });
+
+  test('partial overlap: only non-existing columns pass through as customization override', () => {
+    const result = getFormDataWithExtraFilters(
+      makeGroupByArgs(['status', 'new_col'], ['status', 'category']),
+    );
+    expectGroupBy(result, ['new_col']);
+  });
+
+  test('object-typed groupby entries (AdhocColumn) are recognized as existing columns', () => {
+    const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'table',
+          datasource: '3__table',
+          groupby: [{ column_name: 'status' }, 'category'],
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          extraFormData: {},
+          filterState: { value: ['status', 'new_col'] },
+          ownState: {},
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({ id: customizationId }),
+      ],
+    });
+    // 'status' is already in groupby (as an object with column_name), so only 'new_col' passes through
+    expectGroupBy(result, ['new_col']);
+  });
+
+  test('AdhocColumn with sqlExpression (no column_name) is recognized as existing column', () => {
+    const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'table',
+          datasource: '3__table',
+          groupby: [
+            {
+              sqlExpression: 'CASE WHEN status = 1 THEN "active" END',
+              label: 'status_label',
+              expressionType: 'SQL',
+            },
+            'category',
+          ],
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          extraFormData: {},
+          filterState: { value: ['status_label', 'new_col'] },
+          ownState: {},
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({ id: customizationId }),
+      ],
+    });
+    // 'status_label' matches the AdhocColumn's label, so only 'new_col' passes through
+    expectGroupBy(result, ['new_col']);
+  });
+
+  test('AdhocColumn with empty label falls back to sqlExpression for identity', () => {
+    const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+    const sqlExpr = 'CASE WHEN status = 1 THEN "active" END';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'table',
+          datasource: '3__table',
+          groupby: [
+            { sqlExpression: sqlExpr, label: '', expressionType: 'SQL' },
+            'category',
+          ],
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          extraFormData: {},
+          filterState: { value: [sqlExpr, 'new_col'] },
+          ownState: {},
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({ id: customizationId }),
+      ],
+    });
+    // Empty label → falls back to sqlExpression; sqlExpr is in existingColumns, only 'new_col' passes
+    expectGroupBy(result, ['new_col']);
+  });
+
+  test('Scope boundary: display control with chartsInScope:[] does not affect the chart', () => {
+    const customizationId = 'CHART_CUSTOMIZATION-groupby-out-of-scope';
+    const argsOutOfScope: GetFormDataWithExtraFiltersArguments = {
+      ...mockArgs,
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'table',
+          datasource: '3__table',
+          groupby: ['original_column'],
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          extraFormData: {},
+          filterState: { value: ['replacement_column'] },
+          ownState: {},
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+          name: 'Out Of Scope Group By',
+          chartsInScope: [],
+        }),
+      ],
+    };
+
+    const result = getFormDataWithExtraFilters(argsOutOfScope);
+    expectGroupBy(result, ['original_column']);
   });
 });

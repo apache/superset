@@ -226,8 +226,9 @@ const dataMaskReducer = produce(
           loadedDataMask,
         );
 
-        const rawChartCustomizationConfig =
-          metadata?.chart_customization_config || [];
+        const rawChartCustomizationConfig = (
+          metadata?.chart_customization_config || []
+        ).filter(Boolean);
 
         const hasLegacyFormat = rawChartCustomizationConfig.some(item =>
           isLegacyChartCustomizationFormat(item),

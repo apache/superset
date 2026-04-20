@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Layout } from 'src/dashboard/types';
+import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import { VizType } from '@superset-ui/core';
 import { buildTree } from './utils';
+import { TreeItem } from './types';
 
 // The types defined for Layout and sub elements is not compatible with the data we get back fro a real dashboard layout
 // This test file is using data from a real example dashboard to test real world data sets.  ts-ignore is set for this entire file
@@ -18058,6 +18059,53 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         validNodes,
         initiallyExcludedCharts,
         () => 'Fake title',
+      );
+    }).not.toThrow();
+  });
+
+  test('Does not infinitely recurse when layout contains a cycle (nested tabs circular reference)', () => {
+    // Simulate a corrupted layout where TAB-A → TAB-B → TAB-A (cycle)
+    const circularLayout = {
+      ROOT_ID: {
+        id: 'ROOT_ID',
+        type: 'ROOT',
+        children: ['TAB-A'],
+        parents: [],
+      },
+      'TAB-A': {
+        id: 'TAB-A',
+        type: 'TAB',
+        children: ['TAB-B'],
+        parents: ['ROOT_ID'],
+        meta: { text: 'Tab A' },
+      },
+      'TAB-B': {
+        id: 'TAB-B',
+        type: 'TAB',
+        // Points back to TAB-A, creating a cycle
+        children: ['TAB-A'],
+        parents: ['ROOT_ID', 'TAB-A'],
+        meta: { text: 'Tab B' },
+      },
+    };
+
+    const rootNode = circularLayout.ROOT_ID;
+    const rootTreeItem: TreeItem = {
+      key: 'ROOT_ID',
+      title: 'Root',
+      children: [],
+      nodeType: 'TAB',
+    };
+
+    expect(() => {
+      buildTree(
+        rootNode as unknown as LayoutItem,
+        rootTreeItem,
+        circularLayout as unknown as Layout,
+        {} as Charts,
+        ['ROOT_ID', 'TAB-A', 'TAB-B'],
+        [],
+        () => 'title',
       );
     }).not.toThrow();
   });
