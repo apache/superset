@@ -363,6 +363,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             return self.response(200, message="OK")
         except SemanticViewNotFoundError:
             return self.response_404()
+        except SemanticViewForbiddenError:
+            return self.response_403()
         except SemanticViewDeleteFailedError as ex:
             logger.error(
                 "Error deleting semantic view: %s",
@@ -423,6 +425,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             )
         except SemanticViewNotFoundError:
             return self.response_404()
+        except SemanticViewForbiddenError:
+            return self.response_403()
         except SemanticViewDeleteFailedError as ex:
             logger.error(
                 "Error bulk deleting semantic views: %s",
