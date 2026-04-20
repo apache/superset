@@ -377,7 +377,7 @@ class TestBuildQueryContextFromFormData:
         }
 
         with patch(
-            "superset.mcp_service.chart.tool.get_chart_sql.ChartDataResultType"
+            "superset.common.chart_data.ChartDataResultType"
         ) as mock_result_type:
             mock_result_type.QUERY = "QUERY"
             _build_query_context_from_form_data(form_data, chart=None)
@@ -409,7 +409,7 @@ class TestBuildQueryContextFromFormData:
         }
 
         with patch(
-            "superset.mcp_service.chart.tool.get_chart_sql.ChartDataResultType"
+            "superset.common.chart_data.ChartDataResultType"
         ) as mock_result_type:
             mock_result_type.QUERY = "QUERY"
             _build_query_context_from_form_data(form_data, chart=None)
