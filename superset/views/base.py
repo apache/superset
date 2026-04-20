@@ -30,6 +30,7 @@ from flask import (
     current_app as app,
     g,
     redirect,
+    request,
     Response,
     session,
     url_for,
@@ -522,6 +523,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         ],
         "menu_data": menu_data(g.user),
         "pdf_compression_level": app.config["PDF_COMPRESSION_LEVEL"],
+        "csp_nonce": getattr(request, "csp_nonce", ""),
     }
 
     bootstrap_data.update(app.config["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))

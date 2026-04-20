@@ -19,6 +19,7 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 type Extension = core.Extension;
 
@@ -100,6 +101,11 @@ class ExtensionsLoader {
       element.src = remoteEntry;
       element.type = 'text/javascript';
       element.async = true;
+      // Apply CSP nonce so the script is allowed under strict-dynamic CSP
+      const cspNonce = (getBootstrapData() as any)?.csp_nonce;
+      if (cspNonce) {
+        element.setAttribute('nonce', cspNonce);
+      }
       element.onload = () => resolve();
       element.onerror = (
         event: Event | string,
