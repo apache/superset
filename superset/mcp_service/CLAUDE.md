@@ -297,28 +297,9 @@ def my_function(
 
 **MCP tools accept both JSON string and native object formats for parameters** using utilities from `superset.mcp_service.utils.schema_utils`. This makes tools flexible for different client types (LLM clients send objects, CLI tools send JSON strings).
 
-**PREFERRED: Use the `@parse_request` decorator** for tool functions to automatically handle request parsing:
+FastMCP 3.1+ handles Pydantic `BaseModel` parameters natively, so tools should define their parameters directly as Pydantic models without any wrapper decorator.
 
-```python
-from superset.mcp_service.utils.schema_utils import parse_request
-
-@mcp.tool
-@mcp_auth_hook
-@parse_request(ListChartsRequest)  # Automatically parses string requests!
-async def list_charts(request: ListChartsRequest | str, ctx: Context) -> ChartList:
-    """List charts with filtering and search."""
-    # request is guaranteed to be ListChartsRequest here - no manual parsing needed!
-    await ctx.info(f"Listing charts: page={request.page}")
-    ...
-```
-
-**Benefits:**
-- Eliminates 5 lines of boilerplate code per tool
-- Handles both async and sync functions automatically
-- Works with Claude Code bug (GitHub issue #5504)
-- Cleaner, more maintainable code
-
-**Available utilities for other use cases:**
+**Available utilities for flexible input parsing:**
 
 #### parse_json_or_passthrough
 Parse JSON string or return object as-is:
