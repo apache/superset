@@ -194,7 +194,10 @@ def get_samples(  # pylint: disable=too-many-arguments
                 QueryCacheManager.delete(
                     count_star_data.get("cache_key"), CacheRegion.DATA
                 )
-                raise DatasetSamplesFailedError(str(exc)) from exc
+                logger.exception("Cursor-based samples pagination failed")
+                raise DatasetSamplesFailedError(
+                    "Failed to fetch samples via cursor pagination"
+                ) from exc
         else:
             sample_data = samples_instance.get_payload()["queries"][0]
             if sample_data.get("status") == QueryStatus.FAILED:

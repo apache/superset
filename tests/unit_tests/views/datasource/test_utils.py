@@ -212,7 +212,7 @@ def test_get_samples_cursor_path_cleans_count_cache_on_failure(
 
     datasource = fake_datasource_factory(allows_offset_fetch=False)
     datasource.database.db_engine_spec.fetch_data_with_cursor.side_effect = (
-        RuntimeError("boom")
+        RuntimeError("boom: internal es stack trace details")
     )
 
     samples_ctx = MagicMock()
@@ -247,7 +247,7 @@ def test_get_samples_cursor_path_cleans_count_cache_on_failure(
     ):
         qcf.return_value.create.side_effect = [samples_ctx, count_ctx]
 
-        with pytest.raises(DatasetSamplesFailedError):
+        with pytest.raises(DatasetSamplesFailedError) as excinfo:
             utils.get_samples(
                 datasource_type="table",
                 datasource_id=1,
@@ -256,6 +256,10 @@ def test_get_samples_cursor_path_cleans_count_cache_on_failure(
             )
 
     cache_mgr.delete.assert_called_once_with("count-cache-key", CacheRegion.DATA)
+    # Backend-internal error text must not leak into the user-facing message;
+    # only the original exception (chained via ``from exc``) retains the detail.
+    assert "internal es stack trace details" not in str(excinfo.value)
+    assert isinstance(excinfo.value.__cause__, RuntimeError)
 
 
 def test_get_samples_cursor_path_raises_when_sample_payload_has_no_sql(
