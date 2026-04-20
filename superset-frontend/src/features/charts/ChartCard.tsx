@@ -52,6 +52,7 @@ interface ChartCardProps {
   userId?: string | number;
   showThumbnails?: boolean;
   handleBulkChartExport: (chartsToExport: Chart[]) => void;
+  onDelete?: (chart: Chart) => void;
 }
 
 export default function ChartCard({
@@ -70,6 +71,7 @@ export default function ChartCard({
   chartFilter,
   userId,
   handleBulkChartExport,
+  onDelete,
 }: ChartCardProps) {
   const history = useHistory();
   const canEdit = hasPerm('can_write');
@@ -123,7 +125,23 @@ export default function ChartCard({
   if (canDelete) {
     menuItems.push({
       key: 'delete',
-      label: (
+      label: onDelete ? (
+        <div
+          data-test="chart-list-delete-option"
+          role="button"
+          tabIndex={0}
+          className="action-button"
+          onClick={() => onDelete(chart)}
+        >
+          <Icons.DeleteOutlined
+            iconSize="l"
+            css={css`
+              vertical-align: text-top;
+            `}
+          />{' '}
+          {t('Delete')}
+        </div>
+      ) : (
         <ConfirmStatusChange
           title={t('Please confirm')}
           description={
