@@ -25,6 +25,7 @@ from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
 from flask import current_app
+from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -164,7 +165,18 @@ async def get_chart_data(  # noqa: C901
                 # Build query context entirely from cached form_data
                 return await _query_from_form_data(cached_form_data_dict, request, ctx)
 
-        # Find the chart by identifier
+        # Find the chart by identifier.
+        # Eagerly load the dataset's metrics relationship so Excel export
+        # (which may run after the request-scoped session is detached) can
+        # access dataset.metrics without triggering a lazy load. See
+        # apache/superset#39206 for the analogous database eager-load fix.
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.slice import Slice
+
+        chart_query_options = [
+            subqueryload(Slice.table).subqueryload(SqlaTable.metrics),
+        ]
+
         with event_logger.log_context(action="mcp.get_chart_data.chart_lookup"):
             if isinstance(request.identifier, int) or (
                 isinstance(request.identifier, str) and request.identifier.isdigit()
@@ -177,14 +189,18 @@ async def get_chart_data(  # noqa: C901
                 await ctx.debug(
                     "Performing ID-based chart lookup: chart_id=%s" % (chart_id,)
                 )
-                chart = ChartDAO.find_by_id(chart_id)
+                chart = ChartDAO.find_by_id(chart_id, query_options=chart_query_options)
             elif isinstance(request.identifier, str):
                 await ctx.debug(
                     "Performing UUID-based chart lookup: uuid=%s"
                     % (request.identifier,)
                 )
                 # Try UUID lookup using DAO flexible method
-                chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
+                chart = ChartDAO.find_by_id(
+                    request.identifier,
+                    id_column="uuid",
+                    query_options=chart_query_options,
+                )
 
         if not chart:
             await ctx.error("Chart not found: identifier=%s" % (request.identifier,))
