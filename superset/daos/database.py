@@ -28,7 +28,7 @@ from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
-from superset.models.core import Database, DatabaseUserOAuth2Tokens
+from superset.models.core import Database, DatabaseUserOAuth2Tokens, UpstreamOAuthToken
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
@@ -259,3 +259,19 @@ class DatabaseUserOAuth2TokensDAO(BaseDAO[DatabaseUserOAuth2Tokens]):
         database access (which is necessary for OAuth2).
         """
         return db.session.query(Database).filter_by(id=database_id).one_or_none()
+
+
+class UpstreamOAuthTokenDAO(BaseDAO[UpstreamOAuthToken]):
+    """
+    DAO for upstream (login) OAuth tokens.
+    """
+
+    @classmethod
+    def find_by_user_provider(
+        cls, user_id: int, provider: str
+    ) -> UpstreamOAuthToken | None:
+        return (
+            db.session.query(UpstreamOAuthToken)
+            .filter_by(user_id=user_id, provider=provider)
+            .one_or_none()
+        )
