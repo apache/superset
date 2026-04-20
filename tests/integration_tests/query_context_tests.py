@@ -913,7 +913,7 @@ class TestQueryContext(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @patch("superset.common.query_context.QueryContext.get_query_result")
-    def test_time_offsets_in_query_object_no_limit(self, query_result_mock):
+    def test_time_offsets_in_query_object_uses_chart_row_limit(self, query_result_mock):
         """
         Time comparison subqueries drop the chart's row_offset (avoid skewed joins)
         but keep a cap: use the chart row_limit when set.
@@ -944,12 +944,14 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
 
-        def cache_key_fn(qo, time_offset, time_grain):
+        def cache_key_fn(
+            qo: QueryObject, time_offset: str, time_grain: Any
+        ) -> str | None:
             return query_context._processor.query_cache_key(
                 qo, time_offset=time_offset, time_grain=time_grain
             )
 
-        def cache_timeout_fn():
+        def cache_timeout_fn() -> int:
             return query_context._processor.get_cache_timeout()
 
         time_offsets_obj = query_context.datasource.processing_time_offsets(
@@ -1000,12 +1002,14 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
 
-        def cache_key_fn(qo, time_offset, time_grain):
+        def cache_key_fn(
+            qo: QueryObject, time_offset: str, time_grain: Any
+        ) -> str | None:
             return query_context._processor.query_cache_key(
                 qo, time_offset=time_offset, time_grain=time_grain
             )
 
-        def cache_timeout_fn():
+        def cache_timeout_fn() -> int:
             return query_context._processor.get_cache_timeout()
 
         time_offsets_obj = query_context.datasource.processing_time_offsets(
