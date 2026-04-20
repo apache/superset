@@ -31,6 +31,12 @@ export default function Expandable({ children, expandableWhat }: Props) {
     setOpen(prevOpen => !prevOpen);
   }, []);
 
+  const label = expandableWhat
+    ? `${open ? 'Hide' : 'Show'} ${expandableWhat}`
+    : open
+      ? 'Hide'
+      : 'Show';
+
   return (
     <div>
       <button
@@ -38,7 +44,7 @@ export default function Expandable({ children, expandableWhat }: Props) {
         className="btn btn-primary btn-sm"
         onClick={handleToggle}
       >
-        {`${open ? 'Hide' : 'Show'} ${expandableWhat}`}
+        {label}
       </button>
       <br />
       <br />
