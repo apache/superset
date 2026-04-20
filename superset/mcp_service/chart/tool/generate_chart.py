@@ -403,6 +403,12 @@ async def generate_chart(  # noqa: C901
                             "Chart creation failed - no chart ID returned"
                         )
 
+                    # Reload server-generated timestamps (created_on,
+                    # changed_on) so the serializer sees real values.
+                    from superset import db
+
+                    db.session.refresh(chart)
+
                 await ctx.info(
                     "Chart created successfully: chart_id=%s, chart_name=%s"
                     % (
