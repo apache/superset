@@ -318,6 +318,81 @@ def test_fetch_data_with_cursor_closes_cursor_even_if_iteration_raises() -> None
     )
 
 
+@pytest.mark.parametrize(
+    "sql_in,expected_query",
+    [
+        # Superset's SQL builder terminates statements with `;` for DB-API
+        # execution; the ES SQL API rejects that.
+        ("SELECT a FROM idx;", "SELECT a FROM idx"),
+        # A trailing LIMIT from the normal samples pipeline would cap the
+        # cursor to a single fetch; it must be stripped so `fetch_size`
+        # drives pagination instead.
+        ("SELECT a FROM idx LIMIT 50", "SELECT a FROM idx"),
+        ("SELECT a FROM idx LIMIT 50;", "SELECT a FROM idx"),
+        ("SELECT a FROM idx LIMIT 50 ;  ", "SELECT a FROM idx"),
+        # Case-insensitive LIMIT recognition, since the builder's output is
+        # not guaranteed to be uppercase across backends.
+        ("SELECT a FROM idx limit 100", "SELECT a FROM idx"),
+        # LIMIT that is *not* the final clause (e.g. inside a subquery) must
+        # not be mangled.
+        (
+            "SELECT * FROM (SELECT a FROM idx LIMIT 10) sub",
+            "SELECT * FROM (SELECT a FROM idx LIMIT 10) sub",
+        ),
+    ],
+)
+def test_fetch_data_with_cursor_sanitizes_sql(sql_in: str, expected_query: str) -> None:
+    """
+    The Elasticsearch SQL API has two ergonomic landmines for Superset SQL:
+    a trailing ``;`` is rejected, and a trailing ``LIMIT N`` caps the cursor
+    to a single fetch. ``_fetch_page_via_cursor`` must strip both before
+    submitting the query.
+    """
+    from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
+
+    database = _build_fake_database([{"columns": [{"name": "a"}], "rows": []}])
+
+    ElasticSearchEngineSpec.fetch_data_with_cursor(
+        database=database,
+        sql=sql_in,
+        page_index=0,
+        page_size=25,
+    )
+
+    first_call = database._transport.perform_request.call_args_list[0]
+    assert first_call.kwargs["body"]["query"] == expected_query
+    # fetch_size is independent of the SQL rewrite — it's what actually
+    # controls the page window.
+    assert first_call.kwargs["body"]["fetch_size"] == 25
+
+
+def test_fetch_data_with_cursor_sets_json_content_type_header() -> None:
+    """
+    The raw ES transport does not auto-set Content-Type the way the DB-API
+    driver does; without it the cluster responds with HTTP 406. Every
+    perform_request issued by the cursor helper must carry the JSON header.
+    """
+    from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
+
+    database = _build_fake_database(
+        [
+            {"columns": [{"name": "a"}], "rows": [[0]], "cursor": "C1"},
+            {"rows": [[1]], "cursor": "C2"},
+            {},  # close
+        ]
+    )
+
+    ElasticSearchEngineSpec.fetch_data_with_cursor(
+        database=database,
+        sql="SELECT a FROM idx",
+        page_index=1,
+        page_size=1,
+    )
+
+    for call in database._transport.perform_request.call_args_list:
+        assert call.kwargs.get("headers") == {"Content-Type": "application/json"}
+
+
 def test_opendistro_fetch_data_with_cursor_uses_opendistro_endpoints() -> None:
     """
     OpenDistro's SQL plugin historically lives at /_opendistro/_sql rather

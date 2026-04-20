@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 from datetime import datetime
 from typing import Any, Optional
 
@@ -53,12 +54,24 @@ def _fetch_page_via_cursor(
     If the dataset is exhausted before reaching ``page_index``, returns an
     empty rows list with the column names from the initial request.
     """
+    # The Elasticsearch SQL API rejects trailing semicolons, and any LIMIT
+    # in the submitted statement caps the result set before the cursor can
+    # page through it. ``fetch_size`` drives pagination instead.
+    sanitized_sql = sql.strip().rstrip(";").strip()
+    sanitized_sql = re.sub(
+        r"\s+LIMIT\s+\d+\s*$", "", sanitized_sql, flags=re.IGNORECASE
+    )
+
+    # The raw transport does not auto-set Content-Type the way the Python
+    # DB-API driver does; ES rejects POSTs without a JSON content type.
+    json_headers = {"Content-Type": "application/json"}
     with database.get_raw_connection() as conn:
         transport = conn.es.transport
         response = transport.perform_request(
             "POST",
             sql_path,
-            body={"query": sql, "fetch_size": page_size},
+            headers=json_headers,
+            body={"query": sanitized_sql, "fetch_size": page_size},
         )
         columns = [col["name"] for col in response.get("columns", [])]
         rows = response.get("rows", [])
@@ -74,6 +87,7 @@ def _fetch_page_via_cursor(
                 response = transport.perform_request(
                     "POST",
                     sql_path,
+                    headers=json_headers,
                     body={"cursor": cursor},
                 )
                 rows = response.get("rows", [])
@@ -88,6 +102,7 @@ def _fetch_page_via_cursor(
                     transport.perform_request(
                         "POST",
                         close_path,
+                        headers=json_headers,
                         body={"cursor": cursor},
                     )
                 except Exception:  # pylint: disable=broad-except

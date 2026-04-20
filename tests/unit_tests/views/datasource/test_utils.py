@@ -87,14 +87,12 @@ def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
 ):
     """
     When the engine reports allows_offset_fetch=False and the requested
-    page is > 1, get_samples delegates to fetch_data_with_cursor.
+    page is > 1, get_samples delegates to fetch_data_with_cursor with the
+    SQL that Superset already compiled for the normal samples payload.
     """
-    from flask import current_app
-
     from superset.views.datasource import utils
 
     datasource = fake_datasource_factory(allows_offset_fetch=False)
-    datasource.get_query_str.return_value = "SELECT a FROM idx LIMIT 1000"
     datasource.database.db_engine_spec.fetch_data_with_cursor.return_value = (
         [[99]],
         ["a"],
@@ -102,7 +100,6 @@ def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
     )
 
     samples_ctx = MagicMock()
-    samples_ctx.queries = [MagicMock(to_dict=MagicMock(return_value={}))]
     samples_ctx.get_payload.return_value = {
         "queries": [
             {
@@ -110,6 +107,7 @@ def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
                 "colnames": ["a"],
                 "coltypes": [2],
                 "status": "success",
+                "query": "SELECT a FROM idx LIMIT 50",
             }
         ]
     }
@@ -137,16 +135,9 @@ def test_get_samples_uses_cursor_path_when_engine_disallows_offset(
     kwargs = datasource.database.db_engine_spec.fetch_data_with_cursor.call_args.kwargs
     assert kwargs["page_index"] == 2
     assert kwargs["page_size"] == 50
-
-    # Lock in the SQL-rewrite contract: cursor path must ask datasource for
-    # SQL with row_offset=0 and row_limit=SAMPLES_ROW_LIMIT, so the compiled
-    # SQL contains the full page-scan window (no OFFSET).
-    expected_row_limit = current_app.config.get("SAMPLES_ROW_LIMIT", 1000)
-    get_query_str_args = datasource.get_query_str.call_args.args
-    assert len(get_query_str_args) == 1
-    query_obj_dict = get_query_str_args[0]
-    assert query_obj_dict["row_offset"] == 0
-    assert query_obj_dict["row_limit"] == expected_row_limit
+    # The cursor path reuses the already-compiled samples SQL verbatim; the
+    # engine spec is responsible for any sanitation (strip ``;``/``LIMIT``).
+    assert kwargs["sql"] == "SELECT a FROM idx LIMIT 50"
 
     assert result["data"] == [{"a": 99}]
     assert result["colnames"] == ["a"]
@@ -166,7 +157,6 @@ def test_get_samples_cursor_path_propagates_coltypes_from_samples_payload(
     from superset.views.datasource import utils
 
     datasource = fake_datasource_factory(allows_offset_fetch=False)
-    datasource.get_query_str.return_value = "SELECT a, b FROM idx LIMIT 1000"
     datasource.database.db_engine_spec.fetch_data_with_cursor.return_value = (
         [["x", 1]],
         ["a", "b"],
@@ -174,7 +164,6 @@ def test_get_samples_cursor_path_propagates_coltypes_from_samples_payload(
     )
 
     samples_ctx = MagicMock()
-    samples_ctx.queries = [MagicMock(to_dict=MagicMock(return_value={}))]
     samples_ctx.get_payload.return_value = {
         "queries": [
             {
@@ -182,6 +171,7 @@ def test_get_samples_cursor_path_propagates_coltypes_from_samples_payload(
                 "colnames": ["a", "b"],
                 "coltypes": [2, 1],
                 "status": "success",
+                "query": "SELECT a, b FROM idx LIMIT 50",
             }
         ]
     }
@@ -223,13 +213,11 @@ def test_get_samples_cursor_path_cleans_count_cache_on_failure(
     from superset.views.datasource import utils
 
     datasource = fake_datasource_factory(allows_offset_fetch=False)
-    datasource.get_query_str.return_value = "SELECT a FROM idx LIMIT 1000"
     datasource.database.db_engine_spec.fetch_data_with_cursor.side_effect = (
         RuntimeError("boom")
     )
 
     samples_ctx = MagicMock()
-    samples_ctx.queries = [MagicMock(to_dict=MagicMock(return_value={}))]
     samples_ctx.get_payload.return_value = {
         "queries": [
             {
@@ -237,6 +225,7 @@ def test_get_samples_cursor_path_cleans_count_cache_on_failure(
                 "colnames": ["a"],
                 "coltypes": [2],
                 "status": "success",
+                "query": "SELECT a FROM idx LIMIT 50",
             }
         ]
     }
@@ -269,6 +258,66 @@ def test_get_samples_cursor_path_cleans_count_cache_on_failure(
             )
 
     cache_mgr.delete.assert_called_once_with("count-cache-key", CacheRegion.DATA)
+
+
+def test_get_samples_cursor_path_raises_when_sample_payload_has_no_sql(
+    fake_datasource_factory,
+):
+    """
+    If the samples payload is ``success`` but carries no compiled ``query``
+    string, the cursor path has nothing to submit. Fail fast with a
+    descriptive error and evict the count cache, instead of handing an empty
+    statement to the engine driver.
+    """
+    from superset.commands.dataset.exceptions import DatasetSamplesFailedError
+    from superset.constants import CacheRegion
+    from superset.views.datasource import utils
+
+    datasource = fake_datasource_factory(allows_offset_fetch=False)
+
+    samples_ctx = MagicMock()
+    samples_ctx.get_payload.return_value = {
+        "queries": [
+            {
+                "data": [],
+                "colnames": ["a"],
+                "coltypes": [2],
+                "status": "success",
+                # No ``query`` key — simulates a backend that reports success
+                # without emitting SQL (e.g. fully cached empty result).
+            }
+        ]
+    }
+    count_ctx = MagicMock()
+    count_ctx.get_payload.return_value = {
+        "queries": [
+            {
+                "data": [{"COUNT(*)": 200}],
+                "status": "success",
+                "cache_key": "count-cache-key",
+            }
+        ]
+    }
+
+    with (
+        patch.object(
+            utils, "DatasourceDAO", MagicMock(get_datasource=lambda **kw: datasource)
+        ),
+        patch.object(utils, "QueryContextFactory") as qcf,
+        patch.object(utils, "QueryCacheManager") as cache_mgr,
+    ):
+        qcf.return_value.create.side_effect = [samples_ctx, count_ctx]
+
+        with pytest.raises(DatasetSamplesFailedError):
+            utils.get_samples(
+                datasource_type="table",
+                datasource_id=1,
+                page=2,
+                per_page=50,
+            )
+
+    cache_mgr.delete.assert_called_once_with("count-cache-key", CacheRegion.DATA)
+    datasource.database.db_engine_spec.fetch_data_with_cursor.assert_not_called()
 
 
 def test_get_samples_cursor_path_unused_for_page_one(fake_datasource_factory):

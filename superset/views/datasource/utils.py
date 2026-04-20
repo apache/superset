@@ -216,15 +216,17 @@ def _fetch_samples_via_cursor(
     Fetch a single page of samples via engine-spec cursor pagination.
 
     Used when ``datasource.database.db_engine_spec.allows_offset_fetch`` is
-    False and a non-first page is requested. Extracts the compiled SQL from
-    the already-built QueryContext, delegates cursor iteration to the engine
-    spec, and assembles a response dict compatible with the normal samples
-    path.
+    False and a non-first page is requested. Reuses the SQL that Superset
+    already compiled for the normal samples payload, delegates cursor
+    iteration to the engine spec, and assembles a response dict compatible
+    with the normal samples path.
 
     The samples payload is also executed (its SQL is OFFSET-stripped by the
     models/helpers.py guard) to obtain the authoritative ``colnames`` and
     ``coltypes`` that the frontend grid needs for type-based cell renderers
-    — ensuring page 2+ renders identically to page 1.
+    — ensuring page 2+ renders identically to page 1. The engine spec is
+    responsible for stripping any trailing ``LIMIT`` from the SQL so the
+    cursor is not capped to a single page.
     """
     # Run the normal samples payload once to source authoritative colnames
     # and coltypes for the paginated result set. The helpers.py OFFSET guard
@@ -234,16 +236,10 @@ def _fetch_samples_via_cursor(
         QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
         raise DatasetSamplesFailedError(sample_payload.get("error") or "")
 
-    query_obj = samples_instance.queries[0]
-    query_obj_dict = query_obj.to_dict()
-    # The engine spec's allows_offset_fetch guard in models/helpers.py keeps
-    # OFFSET out of the SQL already; we ask for a LIMIT large enough for the
-    # cursor to iterate across pages.
-    sample_row_limit = app.config.get("SAMPLES_ROW_LIMIT", 1000)
-    query_obj_dict["row_limit"] = sample_row_limit
-    query_obj_dict["row_offset"] = 0
-
-    sql = datasource.get_query_str(query_obj_dict)
+    sql = sample_payload.get("query")
+    if not sql:
+        QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
+        raise DatasetSamplesFailedError("Empty samples query")
 
     engine_spec = datasource.database.db_engine_spec
     rows, cursor_colnames, _ = engine_spec.fetch_data_with_cursor(
