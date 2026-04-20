@@ -38,7 +38,6 @@ from superset.mcp_service.chart.schemas import (
     ChartSql,
     GetChartSqlRequest,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -356,7 +355,6 @@ def _extract_sql_from_result(
         destructiveHint=False,
     ),
 )
-@parse_request(GetChartSqlRequest)
 async def get_chart_sql(
     request: GetChartSqlRequest, ctx: Context
 ) -> ChartSql | ChartError:
