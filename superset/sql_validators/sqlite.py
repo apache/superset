@@ -57,10 +57,17 @@ class SQLiteSQLValidator(BaseSQLValidator):  # pylint: disable=too-few-public-me
         annotations: list[SQLValidationAnnotation] = []
 
         if get_binary_path is None:
-            raise ImportError(
-                "syntaqlite is not installed. Install it with: "
-                'pip install "apache-superset[sqlite]"'
-            )
+            return [
+                SQLValidationAnnotation(
+                    message=(
+                        "syntaqlite is not installed. Install it with: "
+                        'pip install "apache-superset[sqlite]"'
+                    ),
+                    line_number=None,
+                    start_column=None,
+                    end_column=None,
+                )
+            ]
 
         try:
             result = subprocess.run(  # noqa: S603
@@ -77,8 +84,8 @@ class SQLiteSQLValidator(BaseSQLValidator):  # pylint: disable=too-few-public-me
                 timeout=10,
             )
         except FileNotFoundError:
-            logger.exception("syntaqlite binary not found")
-            annotations.append(
+            logger.warning("syntaqlite binary not found")
+            return [
                 SQLValidationAnnotation(
                     message=(
                         "syntaqlite binary not found. Ensure it is correctly installed "
@@ -89,11 +96,17 @@ class SQLiteSQLValidator(BaseSQLValidator):  # pylint: disable=too-few-public-me
                     start_column=None,
                     end_column=None,
                 )
-            )
-            return annotations
+            ]
         except subprocess.TimeoutExpired:
             logger.warning("syntaqlite timed out validating SQL")
-            return annotations
+            return [
+                SQLValidationAnnotation(
+                    message="SQL validation timed out — the query may be too complex.",
+                    line_number=None,
+                    start_column=None,
+                    end_column=None,
+                )
+            ]
 
         if result.returncode == 0:
             return annotations

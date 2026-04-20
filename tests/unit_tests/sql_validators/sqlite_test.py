@@ -17,10 +17,9 @@
 
 from __future__ import annotations
 
+import subprocess
 from subprocess import CompletedProcess
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from superset.sql_validators.sqlite import SQLiteSQLValidator
 
@@ -97,6 +96,8 @@ def test_invalid_syntax_single_error() -> None:
     annotation = annotations[0]
     assert annotation.line_number == 1
     assert annotation.start_column == 1
+    # "SELEC" is 5 chars → caret + 4 tildes → end_column = 1 + 1 + 4 = 6
+    assert annotation.end_column == 6
     assert "SELEC" in annotation.message
 
 
@@ -133,6 +134,11 @@ def test_invalid_syntax_multiple_errors() -> None:
 
     assert len(annotations) == 2
     assert "SELEC" in annotations[0].message
+    # "SELEC" is 5 chars → caret + 4 tildes → end_column = start_column + 1 + 4
+    assert isinstance(annotations[0].start_column, int)
+    assert annotations[0].end_column == annotations[0].start_column + 5
+    assert isinstance(annotations[1].start_column, int)
+    assert annotations[1].end_column == annotations[1].start_column + 5
 
 
 def test_multiline_error_reports_correct_line() -> None:
@@ -251,16 +257,43 @@ def test_annotation_to_dict() -> None:
     assert "message" in result
 
 
-def test_missing_syntaqlite_raises_import_error() -> None:
+def test_missing_syntaqlite_returns_annotation() -> None:
     mock_database = MagicMock()
     with patch("superset.sql_validators.sqlite.get_binary_path", None):
-        with pytest.raises(ImportError, match="syntaqlite is not installed"):
-            SQLiteSQLValidator.validate(
-                sql="SELECT 1",
-                catalog=None,
-                schema="",
-                database=mock_database,
-            )
+        annotations = SQLiteSQLValidator.validate(
+            sql="SELECT 1",
+            catalog=None,
+            schema="",
+            database=mock_database,
+        )
+
+    assert len(annotations) == 1
+    assert "syntaqlite is not installed" in annotations[0].message
+    assert annotations[0].line_number is None
+
+
+def test_timeout_returns_annotation() -> None:
+    mock_database = MagicMock()
+
+    with (
+        patch(
+            "superset.sql_validators.sqlite.get_binary_path", return_value="syntaqlite"
+        ),
+        patch(
+            "superset.sql_validators.sqlite.subprocess.run",
+            side_effect=subprocess.TimeoutExpired(cmd="syntaqlite", timeout=10),
+        ),
+    ):
+        annotations = SQLiteSQLValidator.validate(
+            sql="SELECT 1",
+            catalog=None,
+            schema="",
+            database=mock_database,
+        )
+
+    assert len(annotations) == 1
+    assert "timed out" in annotations[0].message
+    assert annotations[0].line_number is None
 
 
 def test_get_validator_by_name() -> None:
