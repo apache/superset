@@ -31,6 +31,7 @@ from superset.utils.core import QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
 
 if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
     from superset.daos.datasource import Datasource
 
 logger = logging.getLogger(__name__)
@@ -213,8 +214,8 @@ def get_samples(  # pylint: disable=too-many-arguments
 
 
 def _fetch_samples_via_cursor(
-    datasource: Any,
-    samples_instance: Any,
+    datasource: Datasource,
+    samples_instance: QueryContext,
     count_star_data: dict[str, Any],
     page_index: int,
     page_size: int,
