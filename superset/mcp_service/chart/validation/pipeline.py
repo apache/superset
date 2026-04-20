@@ -23,6 +23,8 @@ Orchestrates schema, dataset, and runtime validations.
 import logging
 from typing import Any, Dict, List, Tuple
 
+from pydantic import ValidationError as PydanticValidationError
+
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     GenerateChartRequest,
@@ -71,6 +73,79 @@ def _get_generic_error_message(error_str: str) -> str | None:
     if "timeout" in error_lower:
         return "Validation timed out"
     return None
+
+
+def _unwrap_pydantic_error(error: Exception) -> PydanticValidationError | None:
+    """Return the underlying PydanticValidationError, walking the cause chain.
+
+    parse_chart_config() re-raises Pydantic failures as ValueError with a hint
+    appended, so the structured error sits in ``__cause__``.
+    """
+    cur: BaseException | None = error
+    while cur is not None:
+        if isinstance(cur, PydanticValidationError):
+            return cur
+        cur = cur.__cause__
+    return None
+
+
+def _build_chart_config_validation_error(
+    pydantic_error: PydanticValidationError,
+    chart_type: str | None,
+) -> ChartGenerationError:
+    """Translate a Pydantic config-level failure into a structured error.
+
+    Surfaces the real field path, message, and (when possible) the offending
+    value so callers can self-correct instead of seeing an opaque
+    VALIDATION_PIPELINE_ERROR.
+    """
+    errors = pydantic_error.errors()
+    messages: list[str] = []
+    validation_errors_list = []
+    from superset.mcp_service.common.error_schemas import ValidationError
+
+    for err in errors[:5]:
+        # Strip the discriminator tag ('big_number', 'xy', etc.) from loc — it
+        # is part of the tagged-union machinery, not a user-facing field path.
+        loc_parts = [p for p in err.get("loc", ()) if p != chart_type]
+        loc = " -> ".join(str(p) for p in loc_parts) or "config"
+        msg = err.get("msg", "Validation failed")
+        # Pydantic prefixes value errors with "Value error, " — drop it.
+        if msg.startswith("Value error, "):
+            msg = msg[len("Value error, ") :]
+        messages.append(f"{loc}: {msg}" if loc != "config" else msg)
+        validation_errors_list.append(
+            ValidationError(
+                field=loc,
+                provided_value=err.get("input", None),
+                error_type=err.get("type", "value_error"),
+                message=msg,
+            )
+        )
+
+    details = " | ".join(messages) if messages else str(pydantic_error)
+    first_msg = messages[0] if messages else "Chart configuration validation failed"
+
+    suggestions = [
+        "Review the error message above — it identifies the offending field",
+        "Call get_chart_type_schema with your chart_type to see valid fields",
+        "Check that field names match exactly (case-sensitive)",
+    ]
+    if chart_type:
+        suggestions.insert(
+            0,
+            f"Inspect the '{chart_type}' schema with "
+            f"get_chart_type_schema(chart_type='{chart_type}')",
+        )
+
+    return ChartGenerationError(
+        error_type="chart_config_validation_error",
+        message=first_msg,
+        details=details,
+        suggestions=suggestions,
+        validation_errors=validation_errors_list,
+        error_code="CHART_CONFIG_VALIDATION_ERROR",
+    )
 
 
 def _sanitize_validation_error(error: Exception) -> str:
@@ -173,8 +248,22 @@ class ValidationPipeline:
                 return ValidationResult(is_valid=False, error=error)
 
             # Parse the raw config dict into a typed ChartConfig for
-            # downstream validators that need typed access.
-            typed_config = parse_chart_config(request.config)
+            # downstream validators that need typed access.  Handle the
+            # Pydantic failure explicitly so field-level errors surface as
+            # structured responses instead of opaque VALIDATION_PIPELINE_ERROR.
+            try:
+                typed_config = parse_chart_config(request.config)
+            except ValueError as config_exc:
+                pydantic_err = _unwrap_pydantic_error(config_exc)
+                if pydantic_err is None:
+                    raise
+                chart_type = (
+                    request.config.get("chart_type")
+                    if isinstance(request.config, dict)
+                    else None
+                )
+                error = _build_chart_config_validation_error(pydantic_err, chart_type)
+                return ValidationResult(is_valid=False, error=error)
 
             # Fetch dataset context once and reuse across validation layers
             dataset_context = ValidationPipeline._get_dataset_context(

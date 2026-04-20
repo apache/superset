@@ -174,6 +174,19 @@ class ChartErrorBuilder:
                 "Modify your data selection or aggregation",
             ],
         },
+        # Validation system fallback — used by the pipeline catch-all.
+        # Keeping {reason} in the template lets the sanitized message flow
+        # through so callers never receive an empty error body.
+        "validation_error": {
+            "message": "Chart validation failed: {reason}",
+            "details": "{reason}",
+            "suggestions": [
+                "Check the reported field names, types, and required values",
+                "Call get_chart_type_schema with your chart_type to see the "
+                "full schema",
+                "Refer to the chart://configs resource for config examples",
+            ],
+        },
         # Chart generation errors
         "generation_failed": {
             "message": "Chart generation failed: {reason}",
