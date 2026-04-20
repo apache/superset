@@ -275,24 +275,19 @@ def test_fetch_data_with_cursor_closes_cursor_even_if_iteration_raises() -> None
     responses = [
         {"columns": [{"name": "a"}], "rows": [[0]], "cursor": "C1"},
     ]
-    raises_on_call_index = 1
 
     call_count = {"n": 0}
     recorded_close = {}
 
     def perform_request(method, path, body=None, **_kwargs):
         call_count["n"] += 1
-        # calls: 0=initial query, 1=cursor follow-up (raises), 2=close
-        if call_count["n"] - 1 == raises_on_call_index:
+        # calls: 1=initial query, 2=cursor follow-up (raises), 3=close
+        if call_count["n"] == 2:
             raise BoomError("transport blew up")
         if path.endswith("/close"):
             recorded_close["body"] = body
             return {}
         return responses[call_count["n"] - 1]
-
-    from unittest.mock import MagicMock
-
-    import pytest
 
     transport = MagicMock()
     transport.perform_request.side_effect = perform_request
