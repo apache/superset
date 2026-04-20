@@ -1,11 +1,11 @@
 {
-  "publisher": "superset_extensions",
+  "publisher": "superset-extensions",
   "name": "databricks-metric-views",
   "displayName": "Databricks Metric Views",
   "version": "0.1.0",
   "dependencies": [],
   "permissions": [],
-  "id": "superset_extensions.databricks-metric-views",
+  "id": "superset-extensions.databricks-metric-views",
   "frontend": {
     "remoteEntry": "remoteEntry.stub.js",
     "moduleFederationName": "superset_extensions_databricksMetricViews"
