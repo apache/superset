@@ -137,14 +137,15 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
     """Tests for chart restore behaviour (T025)."""
 
     def test_restore_soft_deleted_chart(self):
-        """POST /api/v1/chart/<pk>/restore makes the chart visible again."""
+        """POST /api/v1/chart/<uuid>/restore makes the chart visible again."""
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("restore_test", [admin_id], 1)
         chart_id = chart.id
+        chart_uuid = str(chart.uuid)
         self.login(ADMIN_USERNAME)
 
         self.client.delete(f"/api/v1/chart/{chart_id}")
-        rv = self.client.post(f"/api/v1/chart/{chart_id}/restore")
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/restore")
         assert rv.status_code == 200
 
         rv = self.client.get(f"/api/v1/chart/{chart_id}")
@@ -154,19 +155,22 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         _hard_delete_chart(chart_id)
 
     def test_restore_nonexistent_chart_returns_404(self):
-        """POST /api/v1/chart/99999/restore should return 404."""
+        """POST /api/v1/chart/<uuid>/restore returns 404 for unknown UUID."""
         self.login(ADMIN_USERNAME)
-        rv = self.client.post("/api/v1/chart/99999/restore")
+        rv = self.client.post(
+            "/api/v1/chart/00000000-0000-0000-0000-000000000000/restore"
+        )
         assert rv.status_code == 404
 
     def test_restore_active_chart_returns_404(self):
-        """POST /api/v1/chart/<pk>/restore on active chart returns 404."""
+        """POST /api/v1/chart/<uuid>/restore on active chart returns 404."""
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("active_restore_test", [admin_id], 1)
         chart_id = chart.id
+        chart_uuid = str(chart.uuid)
         self.login(ADMIN_USERNAME)
 
-        rv = self.client.post(f"/api/v1/chart/{chart_id}/restore")
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/restore")
         assert rv.status_code == 404
 
         # Cleanup
