@@ -252,7 +252,7 @@ def _fetch_samples_via_cursor(
         raise DatasetSamplesFailedError("Empty samples query")
 
     engine_spec = datasource.database.db_engine_spec
-    rows, cursor_colnames, _ = engine_spec.fetch_data_with_cursor(
+    rows, cursor_colnames = engine_spec.fetch_data_with_cursor(
         database=datasource.database,
         sql=sql,
         page_index=page_index,
