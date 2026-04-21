@@ -97,8 +97,8 @@ function ChartTable({
     [],
     false,
   );
-  const handleRefreshData = () => {
-    refreshData();
+  const handleRefreshData = (config?: Parameters<typeof refreshData>[0]) => {
+    refreshData(config);
     onActivityRefresh?.();
   };
 
