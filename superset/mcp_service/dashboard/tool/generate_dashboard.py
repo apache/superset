@@ -326,7 +326,15 @@ def generate_dashboard(  # noqa: C901
 
                 db.session.add(dashboard)
                 db.session.commit()  # pylint: disable=consider-using-transaction
-                db.session.refresh(dashboard)
+                try:
+                    db.session.refresh(dashboard)
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Dashboard %s created but refresh failed; "
+                        "continuing with current values",
+                        dashboard.id,
+                        exc_info=True,
+                    )
             except SQLAlchemyError as db_err:
                 try:
                     db.session.rollback()  # pylint: disable=consider-using-transaction
