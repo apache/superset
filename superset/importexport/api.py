@@ -157,6 +157,12 @@ class ImportExportRestApi(BaseSupersetApi):
                     sparse:
                       description: allow sparse update of resources
                       type: boolean
+                    overwrite:
+                      description: >-
+                        overwrite existing assets? Defaults to ``true`` for
+                        backwards compatibility. When ``false``, the import
+                        fails if any of the assets already exist.
+                      type: boolean
           responses:
             200:
               description: Assets import result
@@ -188,6 +194,9 @@ class ImportExportRestApi(BaseSupersetApi):
         if not contents:
             raise NoValidFilesFoundError()
         sparse = request.form.get("sparse") == "true"
+        # Defaults to True for backwards compatibility: historically this
+        # endpoint always overwrote existing assets.
+        overwrite = request.form.get("overwrite", "true").lower() == "true"
 
         passwords = (
             json.loads(request.form["passwords"])
@@ -218,6 +227,7 @@ class ImportExportRestApi(BaseSupersetApi):
         command = ImportAssetsCommand(
             contents,
             sparse=sparse,
+            overwrite=overwrite,
             passwords=passwords,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
