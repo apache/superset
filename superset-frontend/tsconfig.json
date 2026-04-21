@@ -43,6 +43,9 @@
     /* Completeness */
     "skipLibCheck": true,
 
+    /* TS 6.0 deprecated baseUrl; silence the deprecation until a migration happens. */
+    "ignoreDeprecations": "6.0",
+
     "baseUrl": ".",
     "paths": {
       "@storybook-shared": ["./.storybook/shared"],

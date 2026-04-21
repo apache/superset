@@ -38,9 +38,11 @@ import {
 import { normalizeThemeConfig, serializeThemeConfig } from './utils';
 
 export class Theme {
-  theme: SupersetTheme;
+  // Initialized via setConfig() in the constructor; TypeScript 6's
+  // stricter property-initialization analysis can't follow the indirection.
+  theme!: SupersetTheme;
 
-  private antdConfig: AntdThemeConfig;
+  private antdConfig!: AntdThemeConfig;
 
   private constructor({ config }: { config?: AnyThemeConfig }) {
     this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);

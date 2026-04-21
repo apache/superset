@@ -20,3 +20,10 @@
  * Stub for the untyped jed module.
  */
 declare module 'jed';
+
+/**
+ * Side-effect CSS imports (e.g. from @fontsource/*). TypeScript 6
+ * tightened TS2882 on side-effect imports of untyped modules, so we
+ * provide a catch-all ambient declaration.
+ */
+declare module '*.css';

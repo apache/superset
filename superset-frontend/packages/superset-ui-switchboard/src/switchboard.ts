@@ -88,7 +88,11 @@ function isError(message: Message): message is ErrorMessage {
  * Calling methods on the switchboard causes messages to be sent through the channel.
  */
 export class Switchboard {
-  port: MessagePort;
+  // The following three fields are assigned in init(), which may be
+  // called either from the constructor or later by the caller.
+  // TypeScript 6's property-initialization checks can't follow that
+  // flow, so we use definite-assignment assertions.
+  port!: MessagePort;
 
   name = '';
 
@@ -97,9 +101,9 @@ export class Switchboard {
   // used to make unique ids
   incrementor = 1;
 
-  debugMode: boolean;
+  debugMode!: boolean;
 
-  private isInitialised: boolean;
+  private isInitialised!: boolean;
 
   constructor(params?: Params) {
     if (!params) {
