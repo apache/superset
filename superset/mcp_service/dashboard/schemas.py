@@ -94,8 +94,8 @@ from superset.mcp_service.system.schemas import (
     UserInfo,
 )
 from superset.mcp_service.utils.sanitization import (
-    _remove_dangerous_unicode,
-    _strip_html_tags,
+    sanitize_user_input,
+    sanitize_user_input_with_changes,
 )
 from superset.utils.json import loads as json_loads
 
@@ -542,25 +542,23 @@ class GenerateDashboardRequest(BaseModel):
         gets a clear error instead of a blank-titled dashboard. When the
         sanitizer only trims part of the title, we record a warning the
         tool can return alongside the successful result.
-
-        Uses the same strip+unicode sanitizer the field validator applies,
-        so detection matches the value that will actually be stored.
         """
         if not isinstance(data, dict):
             return data
         raw = data.get("dashboard_title")
         if not isinstance(raw, str) or not raw.strip():
             return data
-        stripped = raw.strip()
-        sanitized = _remove_dangerous_unicode(_strip_html_tags(stripped))
-        if not sanitized:
+        sanitized, was_modified = sanitize_user_input_with_changes(
+            raw, "Dashboard title", max_length=500, allow_empty=True
+        )
+        if was_modified and not sanitized:
             raise ValueError(
                 "dashboard_title contained only disallowed content "
-                "(HTML/script) and was removed entirely by sanitization. "
-                "Provide a dashboard_title with plain text, or omit it "
-                "to auto-generate one from chart names."
+                "(HTML/script/URL schemes) and was removed entirely by "
+                "sanitization. Provide a dashboard_title with plain text, "
+                "or omit it to auto-generate one from chart names."
             )
-        if sanitized != stripped:
+        if was_modified:
             warnings = data.setdefault("sanitization_warnings", [])
             if isinstance(warnings, list):
                 warnings.append(
@@ -573,12 +571,18 @@ class GenerateDashboardRequest(BaseModel):
     @field_validator("dashboard_title")
     @classmethod
     def sanitize_dashboard_title(cls, v: str | None) -> str | None:
-        """Strip HTML tags from dashboard title to prevent XSS."""
-        if v is None:
-            return None
-        v = _strip_html_tags(v.strip())
-        v = _remove_dangerous_unicode(v)
-        return v
+        """Sanitize dashboard title to prevent XSS.
+
+        Preserves an explicit empty string (caller-provided ``""``) rather
+        than collapsing it to ``None``, since the tool treats ``None`` as
+        "auto-generate a title from charts" but an explicit empty string
+        as an intentional blank title.
+        """
+        if v is None or v == "":
+            return v
+        return sanitize_user_input(
+            v, "Dashboard title", max_length=500, allow_empty=True
+        )
 
 
 class GenerateDashboardResponse(BaseModel):
