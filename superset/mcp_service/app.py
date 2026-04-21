@@ -68,6 +68,7 @@ Chart Management:
 - get_chart_info: Get detailed chart information by ID
 - get_chart_preview: Get a visual preview of a chart with image URL
 - get_chart_data: Get underlying chart data in text-friendly format
+- get_chart_sql: Get the rendered SQL query for a chart (without executing it)
 - generate_chart: Create and save a new chart permanently
 - generate_explore_link: Create an interactive explore URL (preferred for exploration)
 - update_chart: Update existing saved chart configuration
@@ -121,6 +122,12 @@ Some tools do not use a request wrapper, so follow each tool's schema
 (for example: get_chart_type_schema(chart_type="xy")).
 
 Recommended Workflows:
+
+To add a chart to an existing dashboard:
+1. add_chart_to_existing_dashboard(dashboard_id, chart_id) -> updates dashboard directly
+   - If permission_denied=True is returned: inform the user they lack edit rights,
+     then ask if they want a new dashboard created instead. Only call generate_dashboard
+     after they confirm. Never silently create a new dashboard without asking first.
 
 To create a chart:
 1. list_datasets(request={{}}) -> find a dataset
@@ -224,6 +231,11 @@ CRITICAL RULES - NEVER VIOLATE:
 - NEVER fabricate or invent URLs. ALL URLs must come from tool call results.
   If you need a link, call the appropriate tool (generate_explore_link, generate_chart,
   open_sql_lab_with_context, etc.) and use the URL it returns.
+- NEVER call generate_dashboard when the user wants to add a chart to an EXISTING
+  dashboard. Always use add_chart_to_existing_dashboard. Only call generate_dashboard
+  to create a brand-new dashboard, or after the user explicitly confirms they want
+  a new one (e.g., after a permission_denied=True response from
+  add_chart_to_existing_dashboard).
 - To modify an existing chart's filters, metrics, or dimensions, use update_chart.
   Do NOT use execute_sql for chart modifications.
 - Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
@@ -468,6 +480,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_data,
     get_chart_info,
     get_chart_preview,
+    get_chart_sql,
     get_chart_type_schema,
     list_charts,
     update_chart,
