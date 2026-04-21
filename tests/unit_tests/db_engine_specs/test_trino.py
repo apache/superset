@@ -1473,3 +1473,17 @@ def test_handle_boolean_filter() -> None:
         str(result_false.compile(compile_kwargs={"literal_binds": True}))
         == "test_col = false"
     )
+
+    # Regression: the original bug was on computed boolean columns like
+    # `(expiration = 1) AS expiration`. Verify the equality operator also
+    # compiles correctly when the "column" is a computed expression.
+    from sqlalchemy import literal_column
+
+    computed_col = literal_column("(expiration = 1)")
+    result_computed = TrinoEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_computed.compile(compile_kwargs={"literal_binds": True}))
+        == "(expiration = 1) = true"
+    )
