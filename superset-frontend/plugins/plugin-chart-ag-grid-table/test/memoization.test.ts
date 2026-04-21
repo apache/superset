@@ -22,18 +22,19 @@
  *
  * memoize-one v6 changed the signature of the (optional) custom `isEqual`
  * callback from per-argument `(a, b) => bool` to arg-array
- * `(newArgs, lastArgs) => bool`. plugin-chart-ag-grid-table does NOT pass a
- * custom `isEqual` at any of its four memoizeOne callsites in
+ * `(newArgs, lastArgs) => bool`. Of the four memoizeOne callsites in
  * `src/transformProps.ts` (`processComparisonDataRecords`,
- * `processDataRecords`, `processColumns`, `getBasicColorFormatter`), so it
- * relies on memoize-one's default referential-equality comparator — which is
- * unchanged between v5 and v6.
+ * `processDataRecords`, `processColumns`, `getBasicColorFormatter`), only
+ * `processColumns` passes a custom comparator (`isEqualColumns`); its
+ * signature already takes arg-arrays and is compatible with v6. The other
+ * three rely on memoize-one's default referential-equality comparator, which
+ * is unchanged between v5 and v6.
  *
- * These tests lock that assumption in by observing the memoization behavior
- * through the public `transformProps` API: identical chart-props input
- * references should produce referentially-equal `data` and `columns` arrays
- * (cache hit), while a fresh props reference should produce fresh arrays
- * (cache miss).
+ * These tests lock those assumptions in by observing the memoization
+ * behavior through the public `transformProps` API: identical chart-props
+ * input references should produce referentially-equal `data` and `columns`
+ * arrays (cache hit), while inputs that differ on the sub-fields each
+ * memoizer actually compares should produce fresh arrays (cache miss).
  */
 import transformProps from '../src/transformProps';
 import testData from '../../plugin-chart-table/test/testData';
@@ -49,16 +50,31 @@ test('transformProps returns referentially-equal data/columns on identical input
   expect(second.data).toBe(first.data);
 });
 
-test('transformProps busts its memoization caches when the props reference changes (cache miss)', () => {
+test('transformProps busts its memoization caches when sub-field inputs change (cache miss)', () => {
   const first = transformProps(testData.basic);
 
-  // Structurally identical but freshly-constructed props object. memoize-one's
-  // default equality is referential, so this must miss at `processColumns`,
-  // which in turn invalidates `processDataRecords` (it receives a new `columns`
-  // array reference as its second argument).
+  // `processColumns` is wrapped with a custom equality (`isEqualColumns`) that
+  // compares specific chartProps sub-fields by identity — mutating only the
+  // top-level props reference is NOT enough to bust it. Here we supply a fresh
+  // `datasource.columnFormats` reference, which `isEqualColumns` compares with
+  // `===`, forcing `processColumns` to recompute and return a new `columns`
+  // array.
+  //
+  // `processDataRecords` uses memoize-one's default referential equality on
+  // `(data, columns)`. We also hand it a fresh `queriesData[0].data` array, so
+  // together with the recomputed `columns` reference it too cache-misses.
   const freshProps = {
     ...testData.basic,
-    queriesData: [...testData.basic.queriesData],
+    datasource: {
+      ...testData.basic.datasource,
+      columnFormats: {},
+    },
+    queriesData: [
+      {
+        ...testData.basic.queriesData[0],
+        data: [...(testData.basic.queriesData[0].data || [])],
+      },
+    ],
   };
   const second = transformProps(freshProps);
 
