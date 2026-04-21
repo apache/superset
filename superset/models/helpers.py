@@ -1882,8 +1882,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
 
         if not time_grain:
-            has_temporal_join_key = bool(join_keys) and pd.api.types.is_datetime64_any_dtype(
-                df[join_keys[0]]
+            has_temporal_join_key = any(
+                pd.api.types.is_datetime64_any_dtype(df[key])
+                for key in join_keys
+                if key in df.columns
             )
             if has_temporal_join_key:
                 has_relative_offset = any(

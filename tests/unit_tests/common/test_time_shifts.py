@@ -270,3 +270,21 @@ def test_join_offset_dfs_allows_non_temporal_join_without_time_grain():
         df, offset_dfs, time_grain=None, join_keys=["country"]
     )
     assert "metric__1 year ago" in result.columns
+
+
+def test_join_offset_dfs_raises_when_temporal_key_not_first():
+    """Temporal join key detection works even when it's not the first key."""
+    df = DataFrame(
+        {"country": ["US", "UK"], "ds": [Timestamp("2021-01-01"), Timestamp("2021-02-01")], "D": [1, 2]}
+    )
+    offset_df = DataFrame(
+        {"country": ["US", "UK"], "ds": [Timestamp("2021-03-01"), Timestamp("2021-04-01")], "B": [5, 6]}
+    )
+    offset_dfs = {"1 year ago": offset_df}
+
+    with pytest.raises(
+        QueryObjectValidationError, match="Time Grain must be specified"
+    ):
+        query_context_processor.join_offset_dfs(
+            df, offset_dfs, time_grain=None, join_keys=["country", "ds"]
+        )
