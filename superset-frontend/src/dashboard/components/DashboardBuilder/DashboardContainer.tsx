@@ -93,11 +93,13 @@ function normalizeChartCustomizationsForScopeCalculation(
   chartCustomizations: ChartCustomizationConfiguration,
   chartIds: number[],
 ): ChartCustomizationConfiguration {
-  if (!chartCustomizations.some(isLegacyChartCustomizationFormat)) {
-    return chartCustomizations;
+  const truthyCustomizations = chartCustomizations.filter(Boolean);
+
+  if (!truthyCustomizations.some(isLegacyChartCustomizationFormat)) {
+    return truthyCustomizations;
   }
 
-  return chartCustomizations.map(item => {
+  return truthyCustomizations.map(item => {
     if (!isLegacyChartCustomizationFormat(item)) {
       return item;
     }

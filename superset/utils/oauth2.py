@@ -82,6 +82,8 @@ def generate_code_challenge(code_verifier: str) -> str:
     factor=10,
     base=2,
     max_tries=5,
+    raise_on_giveup=False,
+    giveup_log_level=logging.DEBUG,
 )
 def get_oauth2_access_token(
     config: OAuth2ClientConfig,

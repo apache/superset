@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,21 +17,10 @@
  * under the License.
  */
 
-import { memo, ReactNode } from 'react';
-
-type Props = {
-  className?: string;
-  children: ReactNode;
+export const PROPORTION = {
+  METRIC_NAME: 0.125,
+  KICKER: 0.1,
+  HEADER: 0.3,
+  SUBHEADER: 0.125,
+  TRENDLINE: 0.3,
 };
-
-const CONTAINER_STYLE = { padding: 8 };
-
-function TooltipFrame({ className = '', children }: Props) {
-  return (
-    <div className={className} style={CONTAINER_STYLE}>
-      {children}
-    </div>
-  );
-}
-
-export default memo(TooltipFrame);
