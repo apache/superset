@@ -535,18 +535,36 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     import inspect
     import types
 
-    from flask import has_app_context
-
-    from superset.mcp_service.flask_singleton import get_flask_app
+    from flask import current_app, has_app_context, has_request_context
 
     def _get_app_context_manager() -> AbstractContextManager[None]:
-        """Return app context manager only if not already in one."""
-        if has_app_context():
-            # Already in app context (e.g., in tests), use null context
+        """Push a fresh app context unless a request context is active.
+
+        When a request context is present, external middleware (e.g.
+        Preset's WorkspaceContextMiddleware) has already set ``g.user``
+        on a per-request app context — reuse it via ``nullcontext()``.
+
+        When only a bare app context exists (no request context), we must
+        push a **new** app context. The MCP server typically runs inside
+        a long-lived app context (e.g. ``__main__.py`` wraps
+        ``mcp.run()`` in ``app.app_context()``). When FastMCP dispatches
+        concurrent tool calls via ``asyncio.create_task()``, each task
+        inherits the parent's ``ContextVar`` *value* — a reference to the
+        **same** ``AppContext`` object. Without a fresh push, all tasks
+        share one ``g`` namespace and concurrent ``g.user`` mutations
+        race: one user's identity can overwrite another's before
+        ``get_user_id()`` runs during the SQLAlchemy INSERT flush,
+        attributing the created asset to the wrong user.
+        """
+        if has_request_context():
             return contextlib.nullcontext()
-        # Push new app context for standalone MCP server
-        app = get_flask_app()
-        return app.app_context()
+        if has_app_context():
+            # Push a new context for the CURRENT app (not get_flask_app()
+            # which may return a different instance in test environments).
+            return current_app._get_current_object().app_context()
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        return get_flask_app().app_context()
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
