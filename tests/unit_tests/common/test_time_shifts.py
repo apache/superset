@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
 from pandas import DataFrame, Series, Timestamp
 from pandas.testing import assert_frame_equal
 from pytest import fixture, mark  # noqa: PT013
@@ -23,6 +24,7 @@ from superset.common.query_context import QueryContext
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import TimeGrain
+from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import ExploreMixin
 
 # Create processor and bind ExploreMixin methods to datasource
@@ -242,3 +244,17 @@ def test_join_offset_dfs_totals_query_no_dimensions():
     )
 
     assert_frame_equal(expected, result)
+
+
+def test_join_offset_dfs_raises_without_time_grain():
+    """Time comparison with relative offsets requires a time grain."""
+    df = DataFrame({"A": ["2021-01-01"], "D": [1]})
+    offset_df = DataFrame({"A": ["2021-02-01"], "B": [5]})
+    offset_dfs = {"1 year ago": offset_df}
+
+    with pytest.raises(
+        QueryObjectValidationError, match="Time Grain must be specified"
+    ):
+        query_context_processor.join_offset_dfs(
+            df, offset_dfs, time_grain=None, join_keys=["A"]
+        )
