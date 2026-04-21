@@ -169,7 +169,7 @@ croniter==6.0.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-cryptography==46.0.6
+cryptography==46.0.7
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -492,7 +492,7 @@ limits==5.1.0
     # via
     #   -c requirements/base.txt
     #   flask-limiter
-mako==1.3.10
+mako==1.3.11
     # via
     #   -c requirements/base.txt
     #   alembic
@@ -699,7 +699,7 @@ psycopg2-binary==2.9.6
     # via apache-superset
 py-key-value-aio==0.4.4
     # via fastmcp
-pyarrow==16.1.0
+pyarrow==20.0.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -766,7 +766,7 @@ pynacl==1.6.2
     # via
     #   -c requirements/base.txt
     #   paramiko
-pyopenssl==25.3.0
+pyopenssl==26.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
@@ -852,7 +852,7 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
-requests==2.32.4
+requests==2.33.0
     # via
     #   -c requirements/base.txt
     #   docker
