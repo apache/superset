@@ -16,6 +16,7 @@
 # under the License.
 
 import copy
+from typing import Any
 
 import yaml
 from marshmallow.exceptions import ValidationError
@@ -31,6 +32,18 @@ from tests.unit_tests.fixtures.assets_configs import (
     databases_config,
     datasets_config,
 )
+
+saved_queries_config: dict[str, Any] = {
+    "queries/examples/my_query.yaml": {
+        "schema": "main",
+        "label": "My saved query",
+        "description": None,
+        "sql": "SELECT 1",
+        "uuid": "e3e4f1f0-5c9d-4a4c-a4e4-0000000000aa",
+        "version": "1.0.0",
+        "database_uuid": "a2dc77af-e654-49bb-b321-40f6b559a1ee",
+    },
+}
 
 
 def test_import_new_assets(mocker: MockerFixture, session: Session) -> None:
@@ -391,6 +404,80 @@ def test_prevent_overwrite_noop_when_overwrite_true(
     command._prevent_overwrite_existing_assets(exceptions)
 
     assert exceptions == []
+
+
+def test_prevent_overwrite_flags_existing_saved_queries(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Saved queries (``queries/`` prefix) must also be covered by the
+    "already exists" validation when ``overwrite=False`` — otherwise
+    ``import_saved_query`` silently returns existing rows and the endpoint
+    would appear to succeed despite the conflict.
+    """
+    from superset import db, security_manager
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.models.slice import Slice
+    from superset.models.sql_lab import SavedQuery
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    engine = db.session.get_bind()
+    Slice.metadata.create_all(engine)  # pylint: disable=no-member
+    SavedQuery.metadata.create_all(engine)  # pylint: disable=no-member
+
+    # seed a saved query with a UUID that matches the fixture below
+    saved_query_uuid = next(iter(saved_queries_config.values()))["uuid"]
+    db.session.add(SavedQuery(uuid=saved_query_uuid, label="seeded"))
+    db.session.flush()
+
+    command = ImportAssetsCommand({}, overwrite=False)
+    command._configs = copy.deepcopy(saved_queries_config)
+
+    exceptions: list[ValidationError] = []
+    command._prevent_overwrite_existing_assets(exceptions)
+
+    assert len(exceptions) == 1
+    [(file_name, message)] = exceptions[0].messages.items()
+    assert file_name.startswith("queries/")
+    assert "SavedQuery already exists" in message
+
+
+def test_prevent_overwrite_partial_conflict(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    When only some of the incoming assets already exist, validation must flag
+    exactly the conflicting ones and leave brand-new assets untouched.
+    """
+    from superset import db, security_manager
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.models.slice import Slice
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    engine = db.session.get_bind()
+    Slice.metadata.create_all(engine)  # pylint: disable=no-member
+
+    # seed only databases + datasets; charts and dashboards stay new
+    ImportAssetsCommand._import(
+        {
+            **copy.deepcopy(databases_config),
+            **copy.deepcopy(datasets_config),
+        }
+    )
+
+    command = ImportAssetsCommand({}, overwrite=False)
+    command._configs = {
+        **copy.deepcopy(databases_config),
+        **copy.deepcopy(datasets_config),
+        **copy.deepcopy(charts_config_1),
+        **copy.deepcopy(dashboards_config_1),
+    }
+
+    exceptions: list[ValidationError] = []
+    command._prevent_overwrite_existing_assets(exceptions)
+
+    flagged_files = {next(iter(exc.messages)) for exc in exceptions}
+    assert flagged_files == set(databases_config) | set(datasets_config)
 
 
 def test_import_removes_dashboard_charts(
