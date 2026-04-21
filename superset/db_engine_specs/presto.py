@@ -165,6 +165,10 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+    # Presto/Trino don't reliably support IS true/false on computed boolean
+    # expressions (e.g. columns defined as `(expiration = 1) AS expiration`),
+    # which raises a query error. Use = true/false instead.
+    use_equality_for_boolean_filters = True
 
     column_type_mappings = (
         (
