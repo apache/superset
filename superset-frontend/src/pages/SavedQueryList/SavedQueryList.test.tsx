@@ -25,10 +25,18 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import SavedQueryList from '.';
+
+// Renders the current router pathname+search so tests can assert navigation.
+function LocationDisplay() {
+  const location = useLocation();
+  return (
+    <div data-test="location-display">{`${location.pathname}${location.search}`}</div>
+  );
+}
 
 // Increase default timeout
 jest.setTimeout(30000);
@@ -88,6 +96,7 @@ const renderList = (props = {}, storeOverrides = {}) =>
     <MemoryRouter>
       <QueryParamProvider adapter={ReactRouter5Adapter}>
         <SavedQueryList user={mockUser} {...props} />
+        <LocationDisplay />
       </QueryParamProvider>
     </MemoryRouter>,
     {
@@ -241,5 +250,27 @@ describe('SavedQueryList', () => {
 
     // Verify delete buttons are not shown
     expect(screen.queryByTestId('delete-action')).not.toBeInTheDocument();
+  });
+
+  test('"+ Query" button pushes a router-relative path (subdirectory deployment)', async () => {
+    // React Router's basename already includes the application root, so
+    // history.push must receive a relative path. If the path were prefixed
+    // with the application root again, navigation would end up at
+    // /superset/superset/sqllab and show a blank page (sc-103661).
+    renderList();
+
+    await screen.findByTestId('saved_query-list-view');
+
+    const queryButton = await screen.findByRole('button', { name: /query/i });
+    fireEvent.click(queryButton);
+
+    await waitFor(() => {
+      // pathname+search from useLocation reflects what was pushed, with
+      // basename stripped. Under the default (root) basename this equals the
+      // exact string passed to history.push, which must not include any
+      // application-root prefix.
+      const location = screen.getByTestId('location-display').textContent;
+      expect(location).toBe('/sqllab?new=true');
+    });
   });
 });
