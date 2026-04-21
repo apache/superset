@@ -263,8 +263,7 @@ General usage tips:
 
 Input format:
 - Tool request parameters accept structured objects (dicts/JSON)
-- When MCP_PARSE_REQUEST_ENABLED is True (default), string-serialized JSON is also
-  accepted as input, which works around double-serialization bugs in some MCP clients
+- FastMCP 3.1+ handles Pydantic BaseModel parameters natively
 
 Feature Availability:
 - Call get_instance_info to discover accessible menus for the current user.
