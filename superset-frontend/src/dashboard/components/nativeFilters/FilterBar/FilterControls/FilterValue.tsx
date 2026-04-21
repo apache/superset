@@ -84,6 +84,35 @@ const StyledDiv = styled.div<{
 
 const queriesDataPlaceholder = [{ data: [{}] }];
 
+type TimeGrainFilterConfig = {
+  time_grains?: string[];
+};
+
+export const applyTimeGrainAllowlist = (
+  filterType: string,
+  allowedTimeGrains: string[] | undefined,
+  results: ChartDataResponseResult[],
+): ChartDataResponseResult[] => {
+  if (filterType !== 'filter_timegrain' || !allowedTimeGrains?.length) {
+    return results;
+  }
+
+  return results.map(result => {
+    if (!Array.isArray(result.data)) {
+      return result;
+    }
+
+    return {
+      ...result,
+      data: result.data.filter(row =>
+        allowedTimeGrains.includes(
+          (row as { duration?: string }).duration ?? '',
+        ),
+      ),
+    };
+  });
+};
+
 const useShouldFilterRefresh = () => {
   const isDashboardRefreshing = useSelector<RootState, boolean>(
     state => state.dashboardState.isRefreshing,
@@ -114,6 +143,9 @@ const FilterValue: FC<FilterValueProps> = ({
 }) => {
   const { id, targets, filterType } = filter;
   const isCustomization = isChartCustomization(filter);
+  const allowedTimeGrains = isCustomization
+    ? undefined
+    : (filter as TimeGrainFilterConfig).time_grains;
   const adhocFilters = isCustomization ? undefined : filter.adhoc_filters;
   const timeRange = isCustomization ? undefined : filter.time_range;
   const granularitySqla = isCustomization ? undefined : filter.granularity_sqla;
@@ -247,12 +279,24 @@ const FilterValue: FC<FilterValueProps> = ({
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
             if (response.status === 200) {
-              setState([result as ChartDataResponseResult]);
+              setState(
+                applyTimeGrainAllowlist(filterType, allowedTimeGrains, [
+                  result as ChartDataResponseResult,
+                ]),
+              );
+              setError(undefined);
               handleFilterLoadFinish();
             } else if (response.status === 202) {
               waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
                 .then((asyncResult: ChartDataResponseResult[]) => {
-                  setState(asyncResult);
+                  setState(
+                    applyTimeGrainAllowlist(
+                      filterType,
+                      allowedTimeGrains,
+                      asyncResult,
+                    ),
+                  );
+                  setError(undefined);
                   handleFilterLoadFinish();
                 })
                 .catch((error: Response) => {
@@ -267,7 +311,13 @@ const FilterValue: FC<FilterValueProps> = ({
               );
             }
           } else {
-            setState(json.result as ChartDataResponseResult[]);
+            setState(
+              applyTimeGrainAllowlist(
+                filterType,
+                allowedTimeGrains,
+                json.result as ChartDataResponseResult[],
+              ),
+            );
             setError(undefined);
             handleFilterLoadFinish();
           }
@@ -286,6 +336,7 @@ const FilterValue: FC<FilterValueProps> = ({
     groupby,
     handleFilterLoadFinish,
     filter,
+    allowedTimeGrains,
     hasDataSource,
     isRefreshing,
     shouldRefresh,
