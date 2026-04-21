@@ -542,9 +542,14 @@ class GenerateDashboardRequest(BaseModel):
         gets a clear error instead of a blank-titled dashboard. When the
         sanitizer only trims part of the title, we record a warning the
         tool can return alongside the successful result.
+
+        ``sanitization_warnings`` is a server-only field — any value the
+        caller supplied is discarded here so the tool cannot be tricked
+        into echoing attacker-controlled text back through the response.
         """
         if not isinstance(data, dict):
             return data
+        data["sanitization_warnings"] = []
         raw = data.get("dashboard_title")
         if not isinstance(raw, str) or not raw.strip():
             return data
@@ -559,13 +564,11 @@ class GenerateDashboardRequest(BaseModel):
                 "or omit it to auto-generate one from chart names."
             )
         if was_modified:
-            warnings = data.setdefault("sanitization_warnings", [])
-            if isinstance(warnings, list):
-                warnings.append(
-                    "dashboard_title was modified during sanitization to "
-                    "remove potentially unsafe content; the stored title "
-                    "differs from the input."
-                )
+            data["sanitization_warnings"].append(
+                "dashboard_title was modified during sanitization to "
+                "remove potentially unsafe content; the stored title "
+                "differs from the input."
+            )
         return data
 
     @field_validator("dashboard_title")

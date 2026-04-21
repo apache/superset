@@ -382,3 +382,24 @@ class TestGenerateDashboardRequestTitleSanitization:
         req = GenerateDashboardRequest(chart_ids=[1])
         assert req.dashboard_title is None
         assert req.sanitization_warnings == []
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only; client input is dropped."""
+        req = GenerateDashboardRequest(
+            chart_ids=[1],
+            dashboard_title="Plain Title",
+            sanitization_warnings=["<script>fake notice</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+    def test_client_warnings_discarded_even_when_server_also_warns(self) -> None:
+        """Client-supplied warnings must not survive, even when the server
+        appends one of its own during the same request."""
+        req = GenerateDashboardRequest(
+            chart_ids=[1],
+            dashboard_title="Q1 <b>Review</b>",
+            sanitization_warnings=["injected attacker text"],
+        )
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+        assert "injected" not in req.sanitization_warnings[0]

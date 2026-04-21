@@ -750,3 +750,26 @@ class TestGenerateChartRequestChartNameSanitization:
         req = GenerateChartRequest(dataset_id=1, config=self._config())
         assert req.chart_name is None
         assert req.sanitization_warnings == []
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only; client input is dropped."""
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config=self._config(),
+            chart_name="Plain Name",
+            sanitization_warnings=["<script>fake notice</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+    def test_client_warnings_discarded_even_when_server_also_warns(self) -> None:
+        """Client-supplied warnings must not survive, even when the server
+        appends one of its own during the same request."""
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config=self._config(),
+            chart_name="Q1 <b>Report</b>",
+            sanitization_warnings=["injected attacker text"],
+        )
+        assert len(req.sanitization_warnings) == 1
+        assert "chart_name" in req.sanitization_warnings[0]
+        assert "injected" not in req.sanitization_warnings[0]

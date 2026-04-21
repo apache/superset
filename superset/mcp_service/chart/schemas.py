@@ -1366,9 +1366,14 @@ class GenerateChartRequest(QueryCacheControl):
         and tell the tool whether to notify the caller. Empty-after-
         sanitization is rejected with a ValueError so the caller gets a
         clear error instead of a silently auto-generated name.
+
+        ``sanitization_warnings`` is a server-only field — any value the
+        caller supplied is discarded here so the tool cannot be tricked
+        into echoing attacker-controlled text back through the response.
         """
         if not isinstance(data, dict):
             return data
+        data["sanitization_warnings"] = []
         raw = data.get("chart_name")
         if not isinstance(raw, str) or not raw.strip():
             return data
@@ -1383,13 +1388,11 @@ class GenerateChartRequest(QueryCacheControl):
                 "omit it to auto-generate one."
             )
         if was_modified:
-            warnings = data.setdefault("sanitization_warnings", [])
-            if isinstance(warnings, list):
-                warnings.append(
-                    "chart_name was modified during sanitization to remove "
-                    "potentially unsafe content; the stored name differs "
-                    "from the input."
-                )
+            data["sanitization_warnings"].append(
+                "chart_name was modified during sanitization to remove "
+                "potentially unsafe content; the stored name differs "
+                "from the input."
+            )
         return data
 
     @field_validator("chart_name")
