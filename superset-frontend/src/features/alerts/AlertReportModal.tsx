@@ -1156,7 +1156,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
-  }, [dashboard, tabsEnabled, filtersEnabled, currentAlert?.extra, addDangerToast]);
+  }, [
+    dashboard,
+    tabsEnabled,
+    filtersEnabled,
+    currentAlert?.extra,
+    addDangerToast,
+  ]);
 
   const databaseLabel = currentAlert?.database && !currentAlert.database.label;
   useEffect(() => {
