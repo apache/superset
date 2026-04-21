@@ -1557,7 +1557,7 @@ def sanitize_clause(clause: str, engine: str) -> str:
         return Dialect.get_or_raise(dialect).generate(
             statement._parsed,  # pylint: disable=protected-access
             copy=True,
-            comments=False,
+            comments=True,
             pretty=False,
         )
     except SupersetParseError as ex:

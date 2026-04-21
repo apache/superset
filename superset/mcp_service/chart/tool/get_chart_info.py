@@ -32,6 +32,7 @@ from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartInfo,
+    extract_filters_from_form_data,
     GetChartInfoRequest,
     serialize_chart_object,
 )
@@ -82,6 +83,7 @@ def _build_unsaved_chart_info(form_data_key: str) -> ChartInfo | ChartError:
         viz_type=form_data.get("viz_type"),
         datasource_name=form_data.get("datasource_name"),
         datasource_type=form_data.get("datasource_type"),
+        filters=extract_filters_from_form_data(form_data),
         form_data=form_data,
         form_data_key=form_data_key,
         is_unsaved_state=True,
@@ -101,6 +103,9 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
             # Update viz_type from cached form_data if present
             if result.form_data and "viz_type" in result.form_data:
                 result.viz_type = result.form_data["viz_type"]
+
+            # Update filters from cached form_data
+            result.filters = extract_filters_from_form_data(result.form_data)
         except (TypeError, ValueError) as e:
             logger.warning(
                 "Failed to parse cached form_data: %s. "
