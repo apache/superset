@@ -19,7 +19,7 @@
 import logging
 from typing import Any, Optional
 
-import prison
+import rison
 from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -227,7 +227,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                     warnings.append(filter_warning)
                 params = {**params, **filter_config}
         # hack(hughhh): workaround for escaping prison not handling quotes right
-        rison = prison.dumps(params)
+        rison = rison.dumps(params)
         rison = rison.replace("'", "%27")
         return rison, warnings
 
