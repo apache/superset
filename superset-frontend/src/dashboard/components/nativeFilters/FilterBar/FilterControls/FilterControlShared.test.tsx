@@ -16,25 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData, FilterState } from '@superset-ui/core';
-import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
-import { RefObject } from 'react';
-import type { RefSelectProps } from '@superset-ui/core/components';
-import { ColumnData, ColumnOption } from '../DynamicGroupBy/types';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { DeckglLayerVisibilityTooltip } from './FilterControlShared';
 
-export interface DeckglLayerVisibilityFormData extends QueryFormData {
-  defaultToAllLayersVisible?: boolean;
-}
+test('renders DeckglLayerVisibilityTooltip with icon button', () => {
+  render(<DeckglLayerVisibilityTooltip />);
+  expect(screen.getByRole('button')).toBeInTheDocument();
+});
 
-export interface LayerInfo {
-  sliceId: number;
-  name: string;
-  type: string;
-}
-
-export type PluginDeckglLayerVisibilityProps = PluginFilterStylesProps & {
-  data: (ColumnOption | ColumnData)[];
-  filterState: FilterState;
-  formData: DeckglLayerVisibilityFormData;
-  inputRef: RefObject<RefSelectProps>;
-} & PluginFilterHooks;
+test('shows tooltip content on hover for DeckglLayerVisibilityTooltip', async () => {
+  render(<DeckglLayerVisibilityTooltip />);
+  userEvent.hover(screen.getByRole('button'));
+  const tooltip = await screen.findByRole('tooltip');
+  expect(tooltip).toHaveTextContent(
+    'Choose layers to hide from all deck.gl Multiple Layer charts in this dashboard.',
+  );
+});
