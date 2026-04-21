@@ -267,7 +267,7 @@
     "@storybook/preview-api": "^8.6.18",
     "@storybook/react": "^8.6.18",
     "@storybook/react-webpack5": "^8.6.18",
-    "@storybook/test": "^8.6.15",
+    "@storybook/test": "^8.6.18",
     "@storybook/test-runner": "^0.17.0",
     "@svgr/webpack": "^8.1.0",
     "@swc/core": "^1.15.24",
