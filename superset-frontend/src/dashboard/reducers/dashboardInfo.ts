@@ -57,7 +57,7 @@ interface DashboardInfoAction {
   [key: string]: unknown;
 }
 
-interface HydrateDashboardAction {
+export interface HydrateDashboardAction {
   type: typeof HYDRATE_DASHBOARD;
   data: {
     dashboardInfo: DashboardInfo;

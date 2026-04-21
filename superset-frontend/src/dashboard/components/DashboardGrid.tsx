@@ -32,7 +32,7 @@ import { Droppable } from './dnd/DragDroppable';
 import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT } from '../util/constants';
 import { TAB_TYPE } from '../util/componentTypes';
 
-interface DashboardGridProps {
+export interface DashboardGridProps {
   depth: number;
   editMode?: boolean;
   canEdit?: boolean;

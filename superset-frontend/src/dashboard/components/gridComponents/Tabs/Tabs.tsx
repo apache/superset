@@ -44,7 +44,7 @@ import TabsRenderer from '../TabsRenderer';
 import type { LayoutItem, RootState } from 'src/dashboard/types';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 
-interface TabsProps {
+export interface TabsProps {
   id: string;
   parentId: string;
   component: LayoutItem;

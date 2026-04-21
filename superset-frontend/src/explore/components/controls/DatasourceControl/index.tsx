@@ -91,7 +91,7 @@ interface FormData {
   [key: string]: unknown;
 }
 
-interface DatasourceControlProps {
+export interface DatasourceControlProps {
   actions: DatasourceControlActions;
   onChange?: () => void;
   value?: string | null;

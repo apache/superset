@@ -66,7 +66,7 @@ interface DashboardMetadata {
   chart_customization_config?: ChartCustomization[];
 }
 
-interface HydrateDashboardAction {
+export interface HydrateDashboardAction {
   type: typeof HYDRATE_DASHBOARD;
   data: {
     dashboardInfo: {
