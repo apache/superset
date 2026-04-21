@@ -31,6 +31,7 @@ from superset.utils.core import (
     cast_to_boolean,
     check_is_safe_zip,
     DateColumn,
+    extract_dataframe_dtypes,
     FilterOperator,
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
@@ -646,8 +647,9 @@ def test_get_user_agent(mocker: MockerFixture, app_context: None) -> None:
 
 @with_config(
     {
-        "USER_AGENT_FUNC": lambda database,
-        source: f"{database.database_name} {source.name}"
+        "USER_AGENT_FUNC": lambda database, source: (
+            f"{database.database_name} {source.name}"
+        )
     }
 )
 def test_get_user_agent_custom(mocker: MockerFixture, app_context: None) -> None:
@@ -1688,3 +1690,10 @@ def test_sanitize_url_blocks_dangerous():
     """Test that dangerous URL schemes are blocked."""
     assert sanitize_url("javascript:alert('xss')") == ""
     assert sanitize_url("data:text/html,<script>alert(1)</script>") == ""
+
+
+def test_extract_dataframe_dtypes_with_duplicate_columns():
+    """extract_dataframe_dtypes should not crash on duplicate column names."""
+    df = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "a"])
+    result = extract_dataframe_dtypes(df)
+    assert len(result) == 3
