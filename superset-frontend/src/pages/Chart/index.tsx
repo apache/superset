@@ -50,10 +50,14 @@ const isValidResult = (rv: JsonObject): boolean =>
 const hasDatasetId = (rv: JsonObject): boolean =>
   isDefined(rv?.result?.dataset?.id);
 
-const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
+const fetchExploreData = async (
+  exploreUrlParams: URLSearchParams,
+  signal?: AbortSignal,
+) => {
   const rv = await makeApi<{}, ExploreResponsePayload>({
     method: 'GET',
     endpoint: 'api/v1/explore/',
+    signal,
   })(exploreUrlParams);
   if (isValidResult(rv)) {
     if (hasDatasetId(rv)) {
@@ -130,6 +134,7 @@ const getDashboardContextFormData = (search: string) => {
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const fetchGeneration = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const dispatch = useDispatch();
   const history = useHistory();
 
@@ -138,6 +143,11 @@ export default function ExplorePage() {
       loc: { search: string; pathname: string },
       saveAction?: SaveActionType | null,
     ) => {
+      // Abort any in-flight request before starting a new one
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       fetchGeneration.current += 1;
       const generation = fetchGeneration.current;
       const exploreUrlParams = getParsedExploreURLParams(loc);
@@ -145,7 +155,7 @@ export default function ExplorePage() {
 
       const isStale = () => generation !== fetchGeneration.current;
 
-      fetchExploreData(exploreUrlParams)
+      fetchExploreData(exploreUrlParams, controller.signal)
         .then(({ result }) => {
           if (isStale()) {
             return;
@@ -183,7 +193,19 @@ export default function ExplorePage() {
             }),
           );
         })
-        .catch(err => Promise.all([getClientErrorObject(err), err]))
+        .catch(err => {
+          // Silently ignore aborted requests - AbortError may be wrapped in SupersetApiError by makeApi
+          // or come through with statusText === 'abort' from SupersetClient
+          if (
+            err.name === 'AbortError' ||
+            err.statusText === 'abort' ||
+            err.originalError?.name === 'AbortError' ||
+            err.originalError?.statusText === 'abort'
+          ) {
+            return;
+          }
+          return Promise.all([getClientErrorObject(err), err]);
+        })
         .then(resolved => {
           if (isStale()) {
             return;
@@ -251,12 +273,20 @@ export default function ExplorePage() {
           return Promise.resolve();
         })
         .finally(() => {
-          if (!isStale()) {
+          if (!isStale() && !controller.signal.aborted) {
             setIsLoaded(true);
           }
         });
     },
     [dispatch],
+  );
+
+  // Cleanup: abort in-flight requests on unmount
+  useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+    },
+    [],
   );
 
   // Initial fetch on mount

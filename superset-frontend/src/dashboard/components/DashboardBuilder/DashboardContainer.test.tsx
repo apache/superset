@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
-import { NativeFilterType } from '@superset-ui/core';
+import { ChartCustomizationType, NativeFilterType } from '@superset-ui/core';
 import { CHART_TYPE } from '../../util/componentTypes';
 import DashboardContainer from './DashboardContainer';
 import * as nativeFiltersActions from '../../actions/nativeFilters';
+import * as chartCustomizationActions from '../../actions/chartCustomizationActions';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 fetchMock.put('glob:*/api/v1/dashboard/*/colors*', {});
@@ -41,6 +42,16 @@ jest.mock('@visx/responsive', () => ({
 jest.mock('src/dashboard/containers/DashboardGrid', () => ({
   __esModule: true,
   default: () => <div data-test="mock-dashboard-grid" />,
+}));
+
+// DashboardContainer dispatches these on mount, so unit tests stub them.
+jest.mock('src/dashboard/actions/dashboardState', () => ({
+  ...jest.requireActual('src/dashboard/actions/dashboardState'),
+  applyDashboardLabelsColorOnLoad: jest.fn(() => () => undefined),
+  updateDashboardLabelsColor: jest.fn(() => () => undefined),
+  persistDashboardLabelsColor: jest.fn(() => () => undefined),
+  ensureSyncedSharedLabelsColors: jest.fn(() => () => undefined),
+  ensureSyncedLabelsColorMap: jest.fn(() => () => undefined),
 }));
 
 const defaultTestFilter = {
@@ -437,4 +448,412 @@ test('calculates tabsInScope for filters with tab-scoped charts', async () => {
       }),
     ]),
   );
+});
+
+// Chart customization scope tests.
+
+test('calculates chartsInScope correctly for new-format chart customizations', async () => {
+  const customizationId = 'CHART_CUSTOMIZATION-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  try {
+    const state = {
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [
+            {
+              id: customizationId,
+              type: 'CHART_CUSTOMIZATION',
+              name: 'Dynamic Group By',
+              filterType: 'chart_customization_dynamic_groupby',
+              targets: [{ datasetId: 1, column: { name: 'status' } }],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [],
+              defaultDataMask: {},
+              controlValues: {},
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [customizationId]: {
+            id: customizationId,
+            type: 'CHART_CUSTOMIZATION',
+            chartsInScope: [],
+          },
+        },
+      },
+    };
+    setup(state);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            customizationId,
+            chartsInScope: [sliceId],
+          }),
+        ]),
+      );
+    });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test('migrates legacy-format customizations before scope calculation for scope-less items', async () => {
+  const legacyCustomizationId = 'CHART_CUSTOMIZATION-legacy-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  try {
+    const state = {
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [
+            {
+              id: legacyCustomizationId,
+              customization: {
+                dataset: 1,
+                column: 'status',
+                filterType: 'chart_customization_dynamic_groupby',
+                name: 'Legacy Group By',
+              },
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [legacyCustomizationId]: {
+            id: legacyCustomizationId,
+            chartsInScope: [],
+          },
+        },
+      },
+    };
+    setup(state);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            customizationId: legacyCustomizationId,
+            chartsInScope: [sliceId],
+          }),
+        ]),
+      );
+    });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test('preserves legacy chart-specific customizations during scope calculation', async () => {
+  const legacyCustomizationId = 'CHART_CUSTOMIZATION-legacy-chart-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  const baseDashboardLayout = mockState.dashboardLayout.present;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { CHART_ID: _removed, ...cleanLayout } = baseDashboardLayout;
+
+  try {
+    const state = {
+      dashboardState: {
+        ...mockState.dashboardState,
+        sliceIds: [18, 19],
+      },
+      dashboardLayout: {
+        ...mockState.dashboardLayout,
+        present: {
+          ...cleanLayout,
+          CHART_ID_1: {
+            id: 'CHART_ID_1',
+            type: CHART_TYPE,
+            meta: { chartId: 18, width: 4, height: 10 },
+            parents: ['ROOT_ID', 'GRID_ID', 'ROW_ID'],
+          },
+          CHART_ID_2: {
+            id: 'CHART_ID_2',
+            type: CHART_TYPE,
+            meta: { chartId: 19, width: 4, height: 10 },
+            parents: ['ROOT_ID', 'GRID_ID', 'ROW_ID'],
+          },
+        },
+      },
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [
+            {
+              id: legacyCustomizationId,
+              chartId: 18,
+              customization: {
+                dataset: 1,
+                column: 'status',
+                filterType: 'chart_customization_dynamic_groupby',
+                name: 'Legacy Chart Scoped Group By',
+              },
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [legacyCustomizationId]: {
+            id: legacyCustomizationId,
+            chartsInScope: [],
+          },
+        },
+      },
+    };
+    setup(state);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            customizationId: legacyCustomizationId,
+            chartsInScope: [18],
+          }),
+        ]),
+      );
+    });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test('returns empty scope data for chart customization dividers', async () => {
+  const dividerId = 'CHART_CUSTOMIZATION_DIVIDER-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  try {
+    const state = {
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [
+            {
+              id: dividerId,
+              type: ChartCustomizationType.Divider,
+              title: 'Divider',
+              description: 'Section divider',
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [dividerId]: {
+            id: dividerId,
+            type: ChartCustomizationType.Divider,
+          },
+        },
+      },
+    };
+    setup(state);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            customizationId: dividerId,
+            chartsInScope: [],
+            tabsInScope: [],
+          }),
+        ]),
+      );
+    });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test('does not crash when chart_customization_config contains a legacy item with customization: null', async () => {
+  const nullCustomizationId = 'CHART_CUSTOMIZATION-null-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  try {
+    const state = {
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [
+            {
+              id: nullCustomizationId,
+              customization: null,
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [nullCustomizationId]: {
+            id: nullCustomizationId,
+            chartsInScope: [],
+          },
+        },
+      },
+    };
+
+    setup(state);
+    expect(screen.getByTestId('mock-dashboard-grid')).toBeInTheDocument();
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test('does not crash when chart_customization_config contains a null entry', async () => {
+  setup({
+    dashboardInfo: {
+      ...mockState.dashboardInfo,
+      metadata: {
+        ...mockState.dashboardInfo.metadata,
+        native_filter_configuration: [],
+        chart_customization_config: [null],
+      },
+    },
+    nativeFilters: { filters: {} },
+  });
+  expect(screen.getByTestId('mock-dashboard-grid')).toBeInTheDocument();
+});
+
+test('does not crash when chart_customization_config contains an undefined entry', async () => {
+  setup({
+    dashboardInfo: {
+      ...mockState.dashboardInfo,
+      metadata: {
+        ...mockState.dashboardInfo.metadata,
+        native_filter_configuration: [],
+        chart_customization_config: [undefined],
+      },
+    },
+    nativeFilters: { filters: {} },
+  });
+  expect(screen.getByTestId('mock-dashboard-grid')).toBeInTheDocument();
+});
+
+test('does not crash when chart_customization_config mixes null and new-format items', async () => {
+  const customizationId = 'CHART_CUSTOMIZATION-new-format-1';
+  const originalFn = chartCustomizationActions.setInScopeStatusOfCustomizations;
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+  spy.mockImplementation(args => originalFn(args));
+
+  try {
+    setup({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [
+            null,
+            {
+              id: customizationId,
+              type: 'CHART_CUSTOMIZATION',
+              name: 'Dynamic Group By',
+              filterType: 'chart_customization_dynamic_groupby',
+              targets: [{ datasetId: 1, column: { name: 'status' } }],
+              scope: { rootPath: ['ROOT_ID'], excluded: [] },
+              chartsInScope: [],
+              defaultDataMask: {},
+              controlValues: {},
+            },
+          ],
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [customizationId]: {
+            id: customizationId,
+            type: 'CHART_CUSTOMIZATION',
+            chartsInScope: [],
+          },
+        },
+      },
+    });
+    expect(screen.getByTestId('mock-dashboard-grid')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            customizationId,
+            chartsInScope: [sliceId],
+          }),
+        ]),
+      );
+    });
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+test('does not dispatch setInScopeStatusOfCustomizations when chart_customization_config is empty', async () => {
+  const spy = jest.spyOn(
+    chartCustomizationActions,
+    'setInScopeStatusOfCustomizations',
+  );
+
+  try {
+    const state = {
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          native_filter_configuration: [],
+          chart_customization_config: [],
+        },
+      },
+      nativeFilters: { filters: {} },
+    };
+    setup(state);
+
+    await waitFor(() => {
+      expect(spy).not.toHaveBeenCalled();
+    });
+  } finally {
+    spy.mockRestore();
+  }
 });
