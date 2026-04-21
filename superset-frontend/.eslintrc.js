@@ -318,9 +318,7 @@ module.exports = {
       plugins: ['@typescript-eslint/eslint-plugin'],
       rules: {
         // TypeScript-specific rule overrides
-        '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/ban-ts-comment': 0,
-        '@typescript-eslint/ban-types': 0,
         '@typescript-eslint/naming-convention': [
           'error',
           {
