@@ -76,6 +76,7 @@ from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
+from superset.utils.file import sanitize_title
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.slack import get_channels_with_search, SlackChannelTypes
@@ -651,7 +652,7 @@ class BaseReportState:
                     error_text = "Unexpected missing csv file"
             if error_text:
                 return NotificationContent(
-                    name=self._report_schedule.name,
+                    name=sanitize_title(self._report_schedule.name),
                     text=error_text,
                     header_data=header_data,
                     url=url,
@@ -664,15 +665,15 @@ class BaseReportState:
             embedded_data = self._get_embedded_data()
 
         if self._report_schedule.email_subject:
-            name = self._report_schedule.email_subject
+            name = sanitize_title(self._report_schedule.email_subject)
         else:
             if self._report_schedule.chart:
-                name = (
+                name = sanitize_title(
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.chart.slice_name}"
                 )
             else:
-                name = (
+                name = sanitize_title(
                     f"{self._report_schedule.name}: "
                     f"{self._report_schedule.dashboard.dashboard_title}"
                 )
@@ -771,7 +772,7 @@ class BaseReportState:
             self._execution_id,
         )
         notification_content = NotificationContent(
-            name=name, text=message, header_data=header_data, url=url
+            name=sanitize_title(name), text=message, header_data=header_data, url=url
         )
 
         # filter recipients to recipients who are also owners

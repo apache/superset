@@ -41,6 +41,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import {
   getFilterValue,
@@ -233,7 +234,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   // Update document title when dashboard title changes
   useEffect(() => {
     if (dashboard_title) {
-      document.title = dashboard_title;
+      document.title = sanitizeDocumentTitle(dashboard_title);
     }
   }, [dashboard_title]);
 
