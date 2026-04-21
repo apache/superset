@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import TYPE_CHECKING
+from typing import cast, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -33,6 +33,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from superset.superset_typing import AdhocColumn
 
 if TYPE_CHECKING:
+    from superset.jinja_context import BaseTemplateProcessor
     from superset.models.core import Database
 
 
@@ -1427,6 +1428,79 @@ def test_adhoc_column_to_sqla_with_column_reference(database: Database) -> None:
 
     # The column name should be present (may or may not be quoted depending on dialect)
     assert "Customer Name" in result_str or '"Customer Name"' in result_str
+
+
+def test_virtual_dataset_calculated_column_selected_via_templated_adhoc_dimension(
+    database: Database,
+) -> None:
+    """
+    Calculated columns on virtual datasets must be resolvable when the column
+    reference comes from a templated `sqlExpression` (e.g. using `filter_values`).
+
+    Regression test for cases where selecting a calculated column by name would
+    fall back to treating the resolved name as a bare identifier (breaking SQL
+    execution because the calculated expression is not present in the virtual
+    dataset's FROM subquery).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="virtual_t",
+        # Non-empty `sql` makes the table a virtual dataset.
+        sql="SELECT random_value, category FROM t",
+        columns=[
+            TableColumn(column_name="random_value", type="INTEGER"),
+            TableColumn(column_name="category", type="TEXT"),
+            TableColumn(
+                column_name="gt_or_lt_50",
+                type="TEXT",
+                expression=(
+                    "CASE WHEN random_value > 50 THEN 'GT 50' ELSE 'LT 50' END"
+                ),
+            ),
+        ],
+    )
+
+    class DummyTemplateProcessor:
+        def process_template(self, sql_expression: str) -> str:
+            # Only resolve the templated column name; leave other expressions
+            # (like the calculated column's CASE expression) untouched.
+            if "filter_values('aggregation')" in sql_expression:
+                return "gt_or_lt_50"
+            return sql_expression
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": (
+            "{{ filter_values('aggregation')[0] if "
+            "filter_values('aggregation') else \"'Total'\" }}"
+        ),
+        "label": "breakdown_by",
+        "isColumnReference": True,
+    }
+
+    result = table.adhoc_column_to_sqla(
+        adhoc_col,
+        template_processor=cast("BaseTemplateProcessor", DummyTemplateProcessor()),
+    )
+    assert result is not None
+
+    # The calculated column expression should be inlined (not treated as a bare
+    # identifier), so SQL must contain the CASE expression.
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "CASE WHEN" in sql
+    assert "random_value" in sql
+    assert "'GT 50'" in sql
+    assert "'LT 50'" in sql
+    assert "gt_or_lt_50" not in sql
 
 
 def test_adhoc_column_to_sqla_preserves_column_type_for_time_grain(
