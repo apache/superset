@@ -431,6 +431,11 @@ const processColumns = memoizeOne(function processColumns(
         formatter,
         config,
       };
+    })
+    .sort((a, b) => {
+      const aIsMetric = a.isMetric || a.isPercentMetric ? 1 : 0;
+      const bIsMetric = b.isMetric || b.isPercentMetric ? 1 : 0;
+      return aIsMetric - bIsMetric;
     });
   return [metrics, percentMetrics, columns] as [
     typeof metrics,
