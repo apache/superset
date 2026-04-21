@@ -615,6 +615,8 @@ class TestBuildUpdatePayload:
         assert result["slice_name"] == "My Custom Name"
         assert "viz_type" in result
         assert "params" in result
+        # query_context must be cleared so get_chart_data uses updated params
+        assert result["query_context"] is None
 
     def test_config_update_keeps_existing_name(self):
         """When config is provided but no chart_name, keeps existing slice_name."""
@@ -631,6 +633,8 @@ class TestBuildUpdatePayload:
 
         assert isinstance(result, dict)
         assert result["slice_name"] == "Existing Name"
+        # query_context must be cleared so get_chart_data uses updated params
+        assert result["query_context"] is None
 
 
 class TestUpdateChartNameOnly:
@@ -690,6 +694,8 @@ class TestUpdateChartNameOnly:
             assert result.structured_content["success"] is True
             assert result.structured_content["chart"]["slice_name"] == "Renamed Chart"
             assert result.structured_content["chart"]["is_unsaved_state"] is False
+            # Rename-only: form_data should be empty (visualization unchanged)
+            assert result.structured_content["form_data"] == {}
 
             # Verify UpdateChartCommand was called with name-only payload
             mock_update_cmd_cls.assert_called_once_with(
@@ -990,6 +996,15 @@ class TestUpdateChartSaveWithConfig:
         assert chart["slice_name"] == "After-save"
         assert "slice_id=77" in result.structured_content["explore_url"]
         mock_update_cmd_cls.assert_called_once()
+
+        # Verify query_context is cleared so get_chart_data uses updated params
+        payload = mock_update_cmd_cls.call_args[0][1]
+        assert payload["query_context"] is None
+
+        # Verify form_data is returned in the response
+        form_data = result.structured_content["form_data"]
+        assert isinstance(form_data, dict)
+        assert "viz_type" in form_data
 
 
 class TestUpdateChartErrorPaths:
