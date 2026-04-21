@@ -70,6 +70,7 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
         daily_seasonality=daily_seasonality,
     )
     if df["ds"].dt.tz:
+        df = df.copy()
         df["ds"] = df["ds"].dt.tz_convert(None)
     model.fit(df)
     future = model.make_future_dataframe(periods=periods, freq=freq)

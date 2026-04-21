@@ -65,7 +65,7 @@ def geohash_encode(
     :return: DataFrame with decoded longitudes and latitudes
     """
     try:
-        encode_df = df[[latitude, longitude]]
+        encode_df = df[[latitude, longitude]].copy()
         encode_df.columns = ["latitude", "longitude"]
         encode_df["geohash"] = encode_df.apply(
             lambda row: geohash_lib.encode(

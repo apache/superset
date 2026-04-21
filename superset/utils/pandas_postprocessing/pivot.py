@@ -71,6 +71,7 @@ def pivot(  # pylint: disable=too-many-arguments
         )
 
     if columns and column_fill_value:
+        df = df.copy()
         df[columns] = df[columns].fillna(value=column_fill_value)
 
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)

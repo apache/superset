@@ -32,6 +32,7 @@ def rank(
     :param group_by: The column to group by.
     :return: a flat DataFrame
     """
+    df = df.copy()
     if group_by:
         gb = df.groupby(group_by, group_keys=False)
         df["rank"] = gb.apply(lambda x: x[metric].rank(pct=True))
