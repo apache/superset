@@ -858,3 +858,154 @@ class TestChartDataCommandValidation:
                 )
 
             mock_command.run.assert_not_called()
+
+
+@pytest.fixture
+def mcp_server():
+    from superset.mcp_service.app import mcp
+
+    return mcp
+
+
+@pytest.fixture
+def mock_auth():
+    """Mock MCP auth so Client.call_tool() doesn't need a real admin user."""
+    import importlib
+    from contextlib import contextmanager
+    from unittest.mock import Mock, patch
+
+    _gcd_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+
+    @contextmanager
+    def _noop_log_context(*_args: Any, **_kwargs: Any) -> Any:
+        yield lambda **_kw: None
+
+    # Neutralize event_logger.log_context: the default DBEventLogger would
+    # otherwise insert a log row referencing our mock user_id and fail a
+    # FK constraint against the real users table. Patch via the module
+    # object directly — the `tool` package's __init__.py re-exports the
+    # get_chart_data function under the same name, which shadows the
+    # submodule binding in the package namespace, so a dotted-string patch
+    # target resolves to the function and mock.patch cannot find
+    # event_logger on it.
+    mock_event_logger = Mock()
+    mock_event_logger.log_context.side_effect = _noop_log_context
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
+        patch.object(_gcd_module, "event_logger", mock_event_logger),
+    ):
+        user = Mock()
+        user.id = 1
+        user.username = "admin"
+        mock_get_user.return_value = user
+        yield mock_get_user
+
+
+def _extract_metrics_load_path(load_opt: Any) -> list[str]:
+    """Walk a SQLAlchemy Load option and return the attr chain.
+
+    e.g. subqueryload(Slice.table).subqueryload(SqlaTable.metrics)
+    -> ["table", "metrics"]
+    """
+    path = getattr(load_opt, "path", ())
+    return [elem.key for elem in path if hasattr(elem, "key")]
+
+
+class TestChartLookupEagerLoading:
+    """Tests that get_chart_data eager-loads dataset.metrics on chart lookup.
+
+    Regression tests for the Excel export DetachedInstanceError on
+    dataset.metrics. The chart's dataset metrics relationship must be
+    eager-loaded at fetch time so it remains accessible during Excel export
+    after the request-scoped session is detached.
+    """
+
+    @pytest.mark.asyncio
+    async def test_numeric_id_lookup_passes_metrics_eager_load(
+        self, mcp_server, mock_auth
+    ):
+        """Integer identifier lookup must eager-load Slice.table.metrics."""
+        from unittest.mock import patch
+
+        from fastmcp import Client
+
+        with patch(
+            "superset.daos.chart.ChartDAO.find_by_id", return_value=None
+        ) as mock_find:
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "get_chart_data",
+                    {"request": {"identifier": 42, "format": "excel"}},
+                )
+
+            mock_find.assert_called_once()
+            call = mock_find.call_args
+            assert call.args == (42,)
+            query_options = call.kwargs.get("query_options")
+            assert query_options is not None, (
+                "Chart lookup must pass query_options for eager-loading."
+            )
+            assert len(query_options) == 1
+            load_path = _extract_metrics_load_path(query_options[0])
+            assert load_path == ["table", "metrics"], (
+                f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
+            )
+
+    @pytest.mark.asyncio
+    async def test_uuid_lookup_passes_metrics_eager_load(self, mcp_server, mock_auth):
+        """UUID identifier lookup must also eager-load Slice.table.metrics."""
+        from unittest.mock import patch
+
+        from fastmcp import Client
+
+        uuid = "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+
+        with patch(
+            "superset.daos.chart.ChartDAO.find_by_id", return_value=None
+        ) as mock_find:
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "get_chart_data",
+                    {"request": {"identifier": uuid, "format": "excel"}},
+                )
+
+            mock_find.assert_called_once()
+            call = mock_find.call_args
+            assert call.args == (uuid,)
+            assert call.kwargs.get("id_column") == "uuid"
+            query_options = call.kwargs.get("query_options")
+            assert query_options is not None, (
+                "UUID chart lookup must pass query_options for eager-loading."
+            )
+            load_path = _extract_metrics_load_path(query_options[0])
+            assert load_path == ["table", "metrics"], (
+                f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
+            )
+
+    @pytest.mark.asyncio
+    async def test_json_format_also_eager_loads_metrics(self, mcp_server, mock_auth):
+        """Eager-load is applied for every format, not just Excel.
+
+        Applying unconditionally keeps the fix robust if additional code paths
+        start touching dataset.metrics, and avoids branching behavior that
+        would be easy to regress on.
+        """
+        from unittest.mock import patch
+
+        from fastmcp import Client
+
+        with patch(
+            "superset.daos.chart.ChartDAO.find_by_id", return_value=None
+        ) as mock_find:
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "get_chart_data",
+                    {"request": {"identifier": 7, "format": "json"}},
+                )
+
+            call = mock_find.call_args
+            query_options = call.kwargs.get("query_options")
+            assert query_options is not None
+            assert _extract_metrics_load_path(query_options[0]) == ["table", "metrics"]
