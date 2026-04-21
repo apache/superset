@@ -254,6 +254,20 @@ def _truncate_description(text: str, max_length: int) -> str:
     return truncated.rstrip() + "..."
 
 
+def _extract_parameter_names(input_schema: dict[str, Any]) -> str:
+    """Extract top-level parameter names from a JSON Schema as a hint string.
+
+    Returns a comma-separated string of property names from the schema's
+    ``properties`` key, or an empty string if none are found.
+
+    Example: ``"page, page_size, search, filters, select_columns"``
+    """
+    properties = input_schema.get("properties", {})
+    if not properties:
+        return ""
+    return ", ".join(properties.keys())
+
+
 def _serialize_tools_without_output_schema(
     tools: Sequence[Any],
 ) -> list[dict[str, Any]]:
@@ -265,7 +279,9 @@ def _serialize_tools_without_output_schema(
     """
     results = []
     for tool in tools:
-        data = tool.to_mcp_tool().model_dump(mode="json", exclude_none=True)
+        data = tool.to_mcp_tool().model_dump(
+            mode="json", exclude_none=True, exclude={"outputSchema"}
+        )
         data.pop("outputSchema", None)
         if input_schema := data.get("inputSchema"):
             data["inputSchema"] = _strip_titles(input_schema)
@@ -273,22 +289,62 @@ def _serialize_tools_without_output_schema(
     return results
 
 
+def _build_summary_serializer(max_desc: int) -> Any:
+    """Build a summary-mode serializer that omits ``inputSchema``.
+
+    Returns a callable that serializes each tool to ``name``,
+    ``description`` (optionally truncated), and a ``parameters_hint``
+    string listing top-level parameter names.  ``inputSchema`` and
+    ``outputSchema`` are stripped entirely.
+    """
+
+    def _summary_serializer(tools: Sequence[Any]) -> list[dict[str, Any]]:
+        results = []
+        for tool in tools:
+            data = tool.to_mcp_tool().model_dump(
+                mode="json", exclude_none=True, exclude={"outputSchema"}
+            )
+            data.pop("outputSchema", None)
+            if input_schema := data.pop("inputSchema", None):
+                hint = _extract_parameter_names(input_schema)
+                if hint:
+                    data["parameters_hint"] = hint
+            if max_desc and (desc := data.get("description")):
+                data["description"] = _truncate_description(desc, max_desc)
+            results.append(data)
+        return results
+
+    return _summary_serializer
+
+
 def _create_search_result_serializer(
     config: dict[str, Any],
 ) -> Any:
     """Build a search-result serializer from the tool-search config.
 
-    When ``compact_schemas`` is enabled (default), the serializer applies
-    additional compaction on top of the base serialization:
+    When ``include_schemas`` is False (default), delegates to
+    :func:`_build_summary_serializer`, which strips ``inputSchema``
+    entirely and adds a ``parameters_hint`` field with comma-separated
+    top-level parameter names.  This reduces per-search token cost by
+    ~80% vs compact mode while still conveying what parameters a tool
+    accepts.
 
-    * ``$defs`` sections and ``$ref`` pointers are collapsed
-      (see :func:`_compact_schema`).
+    When ``include_schemas`` is True, the full ``compact_schemas``/
+    ``max_description_length`` pipeline applies (existing behavior):
+
+    * ``$defs`` sections and ``$ref`` pointers are collapsed when
+      ``compact_schemas`` is True (see :func:`_compact_schema`).
     * Tool descriptions are truncated to ``max_description_length`` chars.
 
-    This reduces per-search-call token cost by ~40-60 % while keeping
-    enough detail for the LLM to identify the right tool and construct
-    a basic invocation.
+    Full schemas remain available when the tool is invoked via ``call_tool``.
     """
+    include_schemas = config.get("include_schemas", False)
+
+    if not include_schemas:
+        max_desc = config.get("max_description_length", 300)
+        return _build_summary_serializer(max_desc)
+
+    # include_schemas=True: apply full compact_schemas/max_description_length pipeline
     compact = config.get("compact_schemas", True)
     # Description truncation defaults to 300 when compact_schemas is on,
     # but is disabled when compact_schemas is off (unless explicitly set).
@@ -304,10 +360,8 @@ def _create_search_result_serializer(
             if compact:
                 if input_schema := data.get("inputSchema"):
                     data["inputSchema"] = _compact_schema(input_schema)
-            if max_desc and "description" in data:
-                data["description"] = _truncate_description(
-                    data["description"], max_desc
-                )
+            if max_desc and (desc := data.get("description")):
+                data["description"] = _truncate_description(desc, max_desc)
         return results
 
     return _serializer
