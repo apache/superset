@@ -160,7 +160,6 @@
     "chrono-node": "^2.9.0",
     "classnames": "^2.2.5",
     "content-disposition": "^1.0.1",
-    "d3-color": "^3.1.0",
     "d3-scale": "^4.0.2",
     "dayjs": "^1.11.20",
     "dom-to-image-more": "^3.7.2",
