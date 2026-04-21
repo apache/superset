@@ -68,8 +68,6 @@ import {
   extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
-  sampleNumericXValuesFromData,
-  shouldCoerceNumericXAxisToTemporal,
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
@@ -100,12 +98,9 @@ import {
 import { TIMEGRAIN_TO_TIMESTAMP, TIMESERIES_CONSTANTS } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
-  getSmartDateFormatter,
-  getSmartDateVerboseFormatter,
   getTooltipTimeFormatter,
   getXAxisFormatter,
   getYAxisFormatter,
-  withNaNFallback,
 } from '../utils/formatters';
 import { getMetricDisplayName } from '../utils/metricDisplayName';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
@@ -263,22 +258,7 @@ export default function transformProps(
 
   const dataTypes = getColtypesMapping(queriesData[0]);
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const sampledNumericX = sampleNumericXValuesFromData(rebasedDataA, [
-    xAxisLabel,
-    xAxisOrig,
-  ]);
-  const effectiveXAxisDataType = shouldCoerceNumericXAxisToTemporal(
-    xAxisDataType,
-    xAxisForceCategorical,
-    sampledNumericX,
-  )
-    ? GenericDataType.Temporal
-    : xAxisDataType;
-  const xAxisType = getAxisType(
-    stack,
-    xAxisForceCategorical,
-    effectiveXAxisDataType,
-  );
+  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
 
   const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
@@ -593,18 +573,12 @@ export default function transformProps(
   }
 
   const tooltipFormatter =
-    effectiveXAxisDataType === GenericDataType.Temporal
-      ? withNaNFallback(
-          getTooltipTimeFormatter(tooltipTimeFormat),
-          getSmartDateVerboseFormatter(),
-        )
+    xAxisDataType === GenericDataType.Temporal
+      ? getTooltipTimeFormatter(tooltipTimeFormat)
       : String;
   const xAxisFormatter =
-    effectiveXAxisDataType === GenericDataType.Temporal
-      ? withNaNFallback(
-          getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)!,
-          getSmartDateFormatter(timeGrainSqla),
-        )
+    xAxisDataType === GenericDataType.Temporal
+      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
       : String;
 
   const showMaxLabel = xAxisType === AxisType.Time && xAxisLabelRotation === 0;

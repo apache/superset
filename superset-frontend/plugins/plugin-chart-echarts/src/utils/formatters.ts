@@ -160,62 +160,27 @@ export const getYAxisFormatter = (
   return defaultFormatter ?? getNumberFormatter();
 };
 
-export function getTooltipTimeFormatter(format?: string): TimeFormatter {
+export function getTooltipTimeFormatter(
+  format?: string,
+): TimeFormatter | StringConstructor {
   if (format === SMART_DATE_ID) {
     return getSmartDateVerboseFormatter();
   }
   if (format) {
     return getTimeFormatter(format);
   }
-  return getSmartDateVerboseFormatter();
+  return String;
 }
 
 export function getXAxisFormatter(
   format?: string,
   timeGrain?: string,
-): TimeFormatter | undefined {
+): TimeFormatter | StringConstructor | undefined {
   if (format === SMART_DATE_ID || !format) {
     return getSmartDateFormatter(timeGrain);
   }
-  return getTimeFormatter(format);
-}
-
-/**
- * Wraps a TimeFormatter so that if its output contains "NaN" (e.g. "NaN/NaN/NaN"
- * from d3-time-format on an Invalid Date), the fallback formatter is tried
- * instead. If the fallback also produces NaN, String(value) is returned so the
- * axis label is never visibly broken.
- */
-export function withNaNFallback(
-  formatter: TimeFormatter,
-  fallback: TimeFormatter,
-): TimeFormatter {
-  return new TimeFormatter({
-    id: formatter.id,
-    label: formatter.label,
-    description: formatter.description,
-    useLocalTime: formatter.useLocalTime,
-    formatFunc: (value: Date) => {
-      try {
-        const result = formatter.format(value);
-        if (typeof result === 'string' && !result.includes('NaN')) {
-          return result;
-        }
-      } catch {
-        // fall through
-      }
-      try {
-        const fallbackResult = fallback.format(value);
-        if (
-          typeof fallbackResult === 'string' &&
-          !fallbackResult.includes('NaN')
-        ) {
-          return fallbackResult;
-        }
-      } catch {
-        // fall through
-      }
-      return String(value);
-    },
-  });
+  if (format) {
+    return getTimeFormatter(format);
+  }
+  return String;
 }

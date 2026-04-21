@@ -80,8 +80,6 @@ import {
   extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
-  sampleNumericXValuesFromData,
-  shouldCoerceNumericXAxisToTemporal,
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
@@ -119,12 +117,9 @@ import {
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
   getPercentFormatter,
-  getSmartDateFormatter,
-  getSmartDateVerboseFormatter,
   getTooltipTimeFormatter,
   getXAxisFormatter,
   getYAxisFormatter,
-  withNaNFallback,
 } from '../utils/formatters';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
@@ -319,22 +314,7 @@ export default function transformProps(
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const sampledNumericX = sampleNumericXValuesFromData(rebasedData, [
-    xAxisLabel,
-    xAxisOrig,
-  ]);
-  const effectiveXAxisDataType = shouldCoerceNumericXAxisToTemporal(
-    xAxisDataType,
-    xAxisForceCategorical,
-    sampledNumericX,
-  )
-    ? GenericDataType.Temporal
-    : xAxisDataType;
-  const xAxisType = getAxisType(
-    stack,
-    xAxisForceCategorical,
-    effectiveXAxisDataType,
-  );
+  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -731,19 +711,13 @@ export default function transformProps(
   }
 
   const tooltipFormatter =
-    effectiveXAxisDataType === GenericDataType.Temporal
-      ? withNaNFallback(
-          getTooltipTimeFormatter(tooltipTimeFormat),
-          getSmartDateVerboseFormatter(),
-        )
+    xAxisDataType === GenericDataType.Temporal
+      ? getTooltipTimeFormatter(tooltipTimeFormat)
       : String;
   const xAxisFormatter =
-    effectiveXAxisDataType === GenericDataType.Temporal
-      ? withNaNFallback(
-          getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)!,
-          getSmartDateFormatter(timeGrainSqla),
-        )
-      : effectiveXAxisDataType === GenericDataType.Numeric
+    xAxisDataType === GenericDataType.Temporal
+      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
+      : xAxisDataType === GenericDataType.Numeric
         ? getNumberFormatter(xAxisNumberFormat)
         : String;
 

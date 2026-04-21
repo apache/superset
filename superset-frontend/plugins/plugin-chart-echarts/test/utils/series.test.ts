@@ -35,9 +35,6 @@ import {
   formatSeriesName,
   getAxisType,
   getChartPadding,
-  isLikelyEpochMilliseconds,
-  sampleNumericXValuesFromData,
-  shouldCoerceNumericXAxisToTemporal,
   getLegendProps,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
@@ -1403,56 +1400,20 @@ test('getAxisType with forced categorical', () => {
   );
 });
 
-test('isLikelyEpochMilliseconds', () => {
-  expect(isLikelyEpochMilliseconds(1745784000000)).toBe(true);
-  expect(isLikelyEpochMilliseconds(100)).toBe(false);
-  expect(isLikelyEpochMilliseconds(1e15)).toBe(false);
-  expect(isLikelyEpochMilliseconds(Number.NaN)).toBe(false);
-});
-
-test('sampleNumericXValuesFromData prefers first matching column key', () => {
-  const data: DataRecord[] = [
-    { ts: 1745784000000, v: 1 },
-    { ts: 1745870400000, v: 2 },
-  ];
-  expect(sampleNumericXValuesFromData(data, ['ts'], 4)).toEqual([
-    1745784000000, 1745870400000,
-  ]);
-  expect(sampleNumericXValuesFromData(data, ['missing', 'ts'], 4)).toEqual([
-    1745784000000, 1745870400000,
-  ]);
-});
-
-test('shouldCoerceNumericXAxisToTemporal', () => {
-  const epochSamples = [1745784000000, 1745870400000, 1745956800000];
-  expect(
-    shouldCoerceNumericXAxisToTemporal(
-      GenericDataType.Numeric,
-      false,
-      epochSamples,
-    ),
-  ).toBe(true);
-  expect(
-    shouldCoerceNumericXAxisToTemporal(
-      GenericDataType.Numeric,
-      false,
-      [100, 200, 300],
-    ),
-  ).toBe(false);
-  expect(
-    shouldCoerceNumericXAxisToTemporal(
-      GenericDataType.Temporal,
-      false,
-      epochSamples,
-    ),
-  ).toBe(false);
-  expect(
-    shouldCoerceNumericXAxisToTemporal(
-      GenericDataType.Numeric,
-      true,
-      epochSamples,
-    ),
-  ).toBe(false);
+test('getAxisType does not coerce Numeric x-axis to Time regardless of values', () => {
+  // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation:
+  // getAxisType only considers the coltype reported by the query, never the
+  // actual values. Numeric coltype must stay on a Value axis so a future
+  // change that introduces implicit temporal coercion is surfaced here.
+  expect(getAxisType(false, false, GenericDataType.Numeric)).toEqual(
+    AxisType.Value,
+  );
+  expect(getAxisType(false, false, GenericDataType.Temporal)).toEqual(
+    AxisType.Time,
+  );
+  expect(getAxisType(false, false, GenericDataType.String)).toEqual(
+    AxisType.Category,
+  );
 });
 
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {
