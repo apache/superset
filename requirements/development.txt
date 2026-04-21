@@ -186,6 +186,7 @@ cryptography==46.0.7
     #   paramiko
     #   pyjwt
     #   pyopenssl
+    #   secretstorage
 cycler==0.12.1
     # via matplotlib
 cyclopts==4.2.4
@@ -377,6 +378,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -451,6 +453,10 @@ jaraco-context==6.0.1
     # via keyring
 jaraco-functools==4.3.0
     # via keyring
+jeepney==0.9.0
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==3.1.6
     # via
     #   -c requirements/base-constraint.txt
@@ -574,6 +580,7 @@ numpy==1.26.4
     #   pandas
     #   pandas-gbq
     #   prophet
+    #   pyarrow
 oauthlib==3.2.2
     # via requests-oauthlib
 odfpy==1.4.1
@@ -903,6 +910,8 @@ ruff==0.9.7
     # via apache-superset
 s3transfer==0.16.0
     # via boto3
+secretstorage==3.5.0
+    # via keyring
 selenium==4.32.0
     # via
     #   -c requirements/base-constraint.txt
@@ -911,6 +920,7 @@ semver==3.0.4
     # via apache-superset-extensions-cli
 setuptools==80.9.0
     # via
+    #   -c requirements/base-constraint.txt
     #   nodeenv
     #   pandas-gbq
     #   pydata-google-auth
