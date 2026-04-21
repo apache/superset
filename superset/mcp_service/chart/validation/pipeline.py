@@ -73,9 +73,49 @@ def _get_generic_error_message(error_str: str) -> str | None:
     return None
 
 
-def _sanitize_validation_error(error: Exception) -> str:
-    """SECURITY FIX: Sanitize validation errors to prevent disclosure."""
-    error_str = str(error)
+def _extract_config_validation_message(error: Exception) -> str | None:
+    """Extract the meaningful validation message from a config parsing error.
+
+    Pydantic's TypeAdapter for discriminated unions produces very long type names
+    in error strings (all variant names listed), which causes the 200-char
+    truncation to cut off the actual error message. This function extracts just
+    the user-actionable part.
+    """
+    from pydantic import ValidationError as PydanticValidationError
+
+    # Check the __cause__ chain for a Pydantic ValidationError
+    cause = getattr(error, "__cause__", None)
+    if not isinstance(cause, PydanticValidationError):
+        return None
+
+    # Extract just the message parts from Pydantic's structured errors
+    messages = []
+    for err in cause.errors()[:3]:
+        msg = err.get("msg", "")
+        # Pydantic prefixes model_validator errors with "Value error, "
+        if msg.startswith("Value error, "):
+            msg = msg[len("Value error, ") :]
+        if msg:
+            messages.append(msg)
+
+    return " | ".join(messages) if messages else None
+
+
+def _sanitize_validation_error(error: Exception, *, skip_generic: bool = False) -> str:
+    """SECURITY FIX: Sanitize validation errors to prevent disclosure.
+
+    Args:
+        error: The exception to sanitize.
+        skip_generic: When True, skip the generic-message replacement.
+            Use this for config validation errors where the specific message
+            (e.g. "Unknown field 'X' — did you mean 'Y'?") is more useful
+            than a generic "Validation failed due to ..." message.
+    """
+    # For config validation errors, try to extract the meaningful message
+    # before falling back to the raw string (which may be very long due to
+    # Pydantic's discriminated union type names).
+    extracted = _extract_config_validation_message(error)
+    error_str = extracted if extracted else str(error)
 
     # SECURITY FIX: Limit length FIRST to prevent ReDoS attacks
     if len(error_str) > 200:
@@ -98,9 +138,10 @@ def _sanitize_validation_error(error: Exception) -> str:
     error_str = _redact_sql_select(error_str, error_str_upper)
     error_str = _redact_sql_where(error_str, error_str_upper)
 
-    # Return generic message for common error types
-    if generic := _get_generic_error_message(error_str):
-        return generic
+    # Return generic message for common error types (unless caller opted out)
+    if not skip_generic:
+        if generic := _get_generic_error_message(error_str):
+            return generic
 
     return error_str
 
@@ -174,7 +215,27 @@ class ValidationPipeline:
 
             # Parse the raw config dict into a typed ChartConfig for
             # downstream validators that need typed access.
-            typed_config = parse_chart_config(request.config)
+            try:
+                typed_config = parse_chart_config(request.config)
+            except (ValueError, TypeError) as config_err:
+                from superset.mcp_service.utils.error_builder import (
+                    ChartErrorBuilder,
+                )
+
+                sanitized_reason = _sanitize_validation_error(
+                    config_err, skip_generic=True
+                )
+                error = ChartErrorBuilder.build_error(
+                    error_type="config_validation_error",
+                    template_key="validation_error",
+                    template_vars={"reason": sanitized_reason},
+                    custom_suggestions=[
+                        "Use the 'filters' field for structured filters "
+                        "(column/op/value) — do NOT use 'adhoc_filters'",
+                    ],
+                    error_code="CONFIG_VALIDATION_ERROR",
+                )
+                return ValidationResult(is_valid=False, request=request, error=error)
 
             # Fetch dataset context once and reuse across validation layers
             dataset_context = ValidationPipeline._get_dataset_context(
