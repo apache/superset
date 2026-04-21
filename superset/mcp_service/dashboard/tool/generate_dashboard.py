@@ -189,9 +189,12 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
 def generate_dashboard(  # noqa: C901
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:
-    """Create dashboard from chart IDs.
+    """Create a NEW dashboard from chart IDs.
 
     IMPORTANT:
+    - Use this tool ONLY when creating a brand-new dashboard.
+    - To add a chart to an EXISTING dashboard, use add_chart_to_existing_dashboard.
+      Never use this tool as a fallback when add_chart_to_existing_dashboard fails.
     - All charts must exist and be accessible to current user
     - Charts arranged automatically in 2-column grid layout
 
