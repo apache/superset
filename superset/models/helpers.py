@@ -1882,19 +1882,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
 
         if not time_grain:
-            has_relative_offset = any(
-                not (
-                    self.is_valid_date_range(offset)
-                    and feature_flag_manager.is_feature_enabled(
-                        "DATE_RANGE_TIMESHIFTS_ENABLED"
-                    )
-                )
-                for offset in offset_dfs
+            has_temporal_join_key = bool(join_keys) and pd.api.types.is_datetime64_any_dtype(
+                df[join_keys[0]]
             )
-            if has_relative_offset:
-                raise QueryObjectValidationError(
-                    _("Time Grain must be specified when using Time Comparison.")
+            if has_temporal_join_key:
+                has_relative_offset = any(
+                    not (
+                        self.is_valid_date_range(offset)
+                        and feature_flag_manager.is_feature_enabled(
+                            "DATE_RANGE_TIMESHIFTS_ENABLED"
+                        )
+                    )
+                    for offset in offset_dfs
                 )
+                if has_relative_offset:
+                    raise QueryObjectValidationError(
+                        _("Time Grain must be specified when using Time Comparison.")
+                    )
 
         for offset, offset_df in offset_dfs.items():
             is_date_range_offset = self.is_valid_date_range(

@@ -247,14 +247,26 @@ def test_join_offset_dfs_totals_query_no_dimensions():
 
 
 def test_join_offset_dfs_raises_without_time_grain():
-    """Time comparison with relative offsets requires a time grain."""
-    df = DataFrame({"A": ["2021-01-01"], "D": [1]})
-    offset_df = DataFrame({"A": ["2021-02-01"], "B": [5]})
+    """Time comparison with relative offsets requires a time grain when join key is temporal."""
+    df = DataFrame({"ds": [Timestamp("2021-01-01")], "D": [1]})
+    offset_df = DataFrame({"ds": [Timestamp("2021-02-01")], "B": [5]})
     offset_dfs = {"1 year ago": offset_df}
 
     with pytest.raises(
         QueryObjectValidationError, match="Time Grain must be specified"
     ):
         query_context_processor.join_offset_dfs(
-            df, offset_dfs, time_grain=None, join_keys=["A"]
+            df, offset_dfs, time_grain=None, join_keys=["ds"]
         )
+
+
+def test_join_offset_dfs_allows_non_temporal_join_without_time_grain():
+    """Time comparison without time grain is valid when join keys are non-temporal."""
+    df = DataFrame({"country": ["US", "UK"], "metric": [10, 20]})
+    offset_df = DataFrame({"country": ["US", "UK"], "metric__1 year ago": [8, 15]})
+    offset_dfs = {"1 year ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain=None, join_keys=["country"]
+    )
+    assert "metric__1 year ago" in result.columns
