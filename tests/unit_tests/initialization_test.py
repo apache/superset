@@ -16,6 +16,7 @@
 # under the License.
 
 import os
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sqlalchemy.exc import OperationalError
@@ -188,6 +189,75 @@ class TestSupersetAppInitializer:
             app_initializer._db_uri_cache
             == "postgresql://realuser:realpass@realhost:5432/realdb"
         )
+
+
+class TestAuditSourceHook:
+    """Tests for the tag_audit_source_from_api_key before_request hook."""
+
+    def _make_test_app(self, fab_api_key_enabled: bool, sm_mock: object) -> Any:
+        """Create a minimal Flask app with the audit source hook registered."""
+        from flask import Flask
+
+        from superset.initialization import SupersetAppInitializer
+
+        flask_app = Flask(__name__)
+        flask_app.config["FAB_API_KEY_ENABLED"] = fab_api_key_enabled
+        flask_app.config["SECRET_KEY"] = "test"  # noqa: S105
+
+        # Build a mock SupersetAppInitializer that has the minimal attributes needed
+        initializer = SupersetAppInitializer.__new__(SupersetAppInitializer)
+        initializer.superset_app = flask_app
+        mock_appbuilder = MagicMock()
+        mock_appbuilder.sm = sm_mock
+        flask_app.appbuilder = mock_appbuilder
+
+        initializer.register_request_handlers()
+        return flask_app
+
+    def test_hook_disabled_when_flag_is_false(self) -> None:
+        sm = MagicMock(spec=["_extract_api_key_from_request"])
+        sm._extract_api_key_from_request.return_value = "some-key"
+        app = self._make_test_app(fab_api_key_enabled=False, sm_mock=sm)
+
+        with app.test_request_context("/"):
+            from flask import g
+
+            app.preprocess_request()
+            assert not hasattr(g, "audit_source")
+
+    def test_hook_does_nothing_when_sm_lacks_method(self) -> None:
+        sm = MagicMock(spec=[])  # no _extract_api_key_from_request
+        app = self._make_test_app(fab_api_key_enabled=True, sm_mock=sm)
+
+        with app.test_request_context("/"):
+            from flask import g
+
+            app.preprocess_request()
+            assert not hasattr(g, "audit_source")
+
+    def test_hook_does_not_set_source_when_no_api_key(self) -> None:
+        sm = MagicMock(spec=["_extract_api_key_from_request"])
+        sm._extract_api_key_from_request.return_value = None
+        app = self._make_test_app(fab_api_key_enabled=True, sm_mock=sm)
+
+        with app.test_request_context("/"):
+            from flask import g
+
+            app.preprocess_request()
+            assert not hasattr(g, "audit_source")
+
+    def test_hook_sets_api_source_when_api_key_present(self) -> None:
+        from superset.utils.log import AuditLogSource
+
+        sm = MagicMock(spec=["_extract_api_key_from_request"])
+        sm._extract_api_key_from_request.return_value = "valid-api-key"
+        app = self._make_test_app(fab_api_key_enabled=True, sm_mock=sm)
+
+        with app.test_request_context("/"):
+            from flask import g
+
+            app.preprocess_request()
+            assert g.audit_source == AuditLogSource.API
 
 
 class TestCreateAppRoot:

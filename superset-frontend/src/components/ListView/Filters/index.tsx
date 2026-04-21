@@ -30,7 +30,6 @@ import type {
   ListViewFilterValue as FilterValue,
   ListViewFilters as Filters,
   InternalFilter,
-  SelectOption,
 } from '../types';
 import type { FilterHandler } from './types';
 import SearchFilter from './Search';
@@ -72,6 +71,7 @@ function UIFilters(
             key,
             id,
             input,
+            mode,
             optionFilterProps,
             paginate,
             selects,
@@ -96,19 +96,20 @@ function UIFilters(
                 fetchSelects={fetchSelects}
                 initialValue={initialValue}
                 key={key}
+                mode={mode}
                 name={id}
-                onSelect={(
-                  option: SelectOption | undefined,
-                  isClear?: boolean,
-                ) => {
+                onSelect={(option, isClear) => {
                   if (onFilterUpdate) {
                     // Filter change triggers both onChange AND onClear, only want to track onChange
                     if (!isClear) {
                       onFilterUpdate(option);
                     }
                   }
-
-                  updateFilterValue(index, option);
+                  // For multiselect, extract scalar values so the API receives string[]
+                  const filterValue = Array.isArray(option)
+                    ? option.map(o => o.value)
+                    : option;
+                  updateFilterValue(index, filterValue);
                 }}
                 optionFilterProps={optionFilterProps}
                 paginate={paginate}

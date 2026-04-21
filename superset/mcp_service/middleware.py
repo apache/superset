@@ -16,9 +16,10 @@
 # under the License.
 
 import logging
+import re
 import time
 from collections import defaultdict
-from typing import Any, Awaitable, Callable, Dict, Protocol, Sequence
+from typing import Any, Awaitable, Callable, Dict, NoReturn, Protocol, Sequence
 
 import mcp.types as mt
 from fastmcp.exceptions import ToolError
@@ -36,12 +37,21 @@ from superset.mcp_service.constants import (
     DEFAULT_WARN_THRESHOLD_PCT,
 )
 from superset.utils.core import get_user_id
+from superset.utils.log import AuditLogSource
 
 logger = logging.getLogger(__name__)
 
 
 def _sanitize_error_for_logging(error: Exception) -> str:
     """Sanitize error messages to prevent information disclosure in logs."""
+    # Short-circuit for well-known error types before any string processing
+    if isinstance(error, (OperationalError, TimeoutError)):
+        return "Database operation failed"
+    if isinstance(error, PermissionError):
+        return "Access denied"
+    if isinstance(error, ValidationError):
+        return "Request validation failed"
+
     error_str = str(error)
 
     # SECURITY FIX: Limit error message length FIRST to prevent ReDoS attacks
@@ -49,8 +59,6 @@ def _sanitize_error_for_logging(error: Exception) -> str:
         error_str = error_str[:500] + "...[truncated]"
 
     # SECURITY FIX: Use bounded patterns to prevent ReDoS
-    import re
-
     # Database connection strings - bounded patterns with word boundaries
     # Use case-insensitive flag to handle both cases
     error_str = re.sub(
@@ -83,14 +91,6 @@ def _sanitize_error_for_logging(error: Exception) -> str:
 
     # IP addresses - already safe pattern, keep as-is
     error_str = re.sub(r"\b(\d+)\.\d+\.\d+\.\d+\b", r"\1.xxx.xxx.xxx", error_str)
-
-    # For certain error types, provide generic messages
-    if isinstance(error, (OperationalError, TimeoutError)):
-        return "Database operation failed"
-    elif isinstance(error, PermissionError):
-        return "Access denied"
-    elif isinstance(error, ValidationError):
-        return "Request validation failed"
 
     return error_str
 
@@ -176,6 +176,16 @@ class LoggingMiddleware(Middleware):
         finally:
             duration_ms = int((time.time() - start_time) * 1000)
             if has_app_context():
+                _payload = {
+                    "tool": tool_name,
+                    "agent_id": agent_id,
+                    "params": _sanitize_params(params),
+                    "method": context.method,
+                    "dashboard_id": dashboard_id,
+                    "slice_id": slice_id,
+                    "dataset_id": dataset_id,
+                    "success": success,
+                }
                 event_logger.log(
                     user_id=user_id,
                     action="mcp_tool_call",
@@ -183,16 +193,9 @@ class LoggingMiddleware(Middleware):
                     duration_ms=duration_ms,
                     slice_id=slice_id,
                     referrer=None,
-                    curated_payload={
-                        "tool": tool_name,
-                        "agent_id": agent_id,
-                        "params": _sanitize_params(params),
-                        "method": context.method,
-                        "dashboard_id": dashboard_id,
-                        "slice_id": slice_id,
-                        "dataset_id": dataset_id,
-                        "success": success,
-                    },
+                    source=AuditLogSource.MCP,
+                    records=[_payload],
+                    curated_payload=_payload,
                 )
             logger.info(
                 "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
@@ -218,15 +221,16 @@ class LoggingMiddleware(Middleware):
         agent_id, user_id, dashboard_id, slice_id, dataset_id, params = (
             self._extract_context_info(context)
         )
-        if has_app_context():
-            event_logger.log(
-                user_id=user_id,
-                action="mcp_message",
-                dashboard_id=dashboard_id,
-                duration_ms=None,
-                slice_id=slice_id,
-                referrer=None,
-                curated_payload={
+        start_time = time.time()
+        success = False
+        try:
+            result = await call_next(context)
+            success = True
+            return result
+        finally:
+            duration_ms = int((time.time() - start_time) * 1000)
+            if has_app_context():
+                _payload = {
                     "tool": getattr(context.message, "name", None),
                     "agent_id": agent_id,
                     "params": _sanitize_params(params),
@@ -234,16 +238,26 @@ class LoggingMiddleware(Middleware):
                     "dashboard_id": dashboard_id,
                     "slice_id": slice_id,
                     "dataset_id": dataset_id,
-                },
+                    "success": success,
+                }
+                event_logger.log(
+                    user_id=user_id,
+                    action="mcp_message",
+                    dashboard_id=dashboard_id,
+                    duration_ms=duration_ms,
+                    slice_id=slice_id,
+                    referrer=None,
+                    source=AuditLogSource.MCP,
+                    records=[_payload],
+                    curated_payload=_payload,
+                )
+            logger.info(
+                "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
+                getattr(context.message, "name", None),
+                agent_id,
+                user_id,
+                context.method,
             )
-        logger.info(
-            "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
-            getattr(context.message, "name", None),
-            agent_id,
-            user_id,
-            context.method,
-        )
-        return await call_next(context)
 
 
 class PrivateToolMiddleware(Middleware):
@@ -345,7 +359,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
         context: MiddlewareContext,
         tool_name: str,
         duration_ms: int,
-    ) -> None:
+    ) -> NoReturn:
         """Handle different types of errors with appropriate responses"""
         # Extract user context for logging
         user_id = None
@@ -368,16 +382,22 @@ class GlobalErrorHandlerMiddleware(Middleware):
 
         # Log to Superset's event system
         try:
+            _payload = {
+                "tool": tool_name,
+                "error_type": type(error).__name__,
+                "error_message": sanitized_error,
+                "method": context.method,
+            }
             event_logger.log(
                 user_id=user_id,
                 action="mcp_tool_error",
+                dashboard_id=None,
                 duration_ms=duration_ms,
-                curated_payload={
-                    "tool": tool_name,
-                    "error_type": type(error).__name__,
-                    "error_message": str(error),
-                    "method": context.method,
-                },
+                slice_id=None,
+                referrer=None,
+                source=AuditLogSource.MCP,
+                records=[_payload],
+                curated_payload=_payload,
             )
         except Exception as log_error:
             logger.warning("Failed to log error event: %s", log_error)
@@ -414,7 +434,8 @@ class GlobalErrorHandlerMiddleware(Middleware):
         elif isinstance(error, FileNotFoundError):
             # File/resource not found errors
             raise ToolError(
-                f"Resource not found in {tool_name}: {str(error)}"
+                f"Resource not found in {tool_name}: "
+                "The requested resource does not exist."
             ) from error
         elif isinstance(error, ValueError):
             # Value/parameter errors
@@ -743,15 +764,22 @@ class RateLimitMiddleware(Middleware):
             # Log rate limit event
             try:
                 user_id = get_user_id() if hasattr(context, "session") else None
+                _payload = {
+                    "tool": tool_name,
+                    "rate_limit_key": key,
+                    "limit": limit,
+                    "window_seconds": 60,
+                }
                 event_logger.log(
                     user_id=user_id,
                     action="mcp_rate_limit_exceeded",
-                    curated_payload={
-                        "tool": tool_name,
-                        "rate_limit_key": key,
-                        "limit": limit,
-                        "window_seconds": 60,
-                    },
+                    dashboard_id=None,
+                    duration_ms=None,
+                    slice_id=None,
+                    referrer=None,
+                    source=AuditLogSource.MCP,
+                    records=[_payload],
+                    curated_payload=_payload,
                 )
             except Exception as log_error:
                 logger.warning("Failed to log rate limit event: %s", log_error)
@@ -982,16 +1010,23 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         try:
             user_id = get_user_id()
+            _payload = {
+                "tool": tool_name,
+                "original_tokens": estimated_tokens,
+                "truncated_tokens": truncated_tokens,
+                "token_limit": self.token_limit,
+                "truncation_notes": notes,
+            }
             event_logger.log(
                 user_id=user_id,
                 action="mcp_response_truncated",
-                curated_payload={
-                    "tool": tool_name,
-                    "original_tokens": estimated_tokens,
-                    "truncated_tokens": truncated_tokens,
-                    "token_limit": self.token_limit,
-                    "truncation_notes": notes,
-                },
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
+                source=AuditLogSource.MCP,
+                records=[_payload],
+                curated_payload=_payload,
             )
         except Exception as log_error:  # noqa: BLE001
             logger.warning("Failed to log truncation event: %s", log_error)
@@ -1073,15 +1108,22 @@ class ResponseSizeGuardMiddleware(Middleware):
             # Log to event logger for monitoring
             try:
                 user_id = get_user_id()
+                _payload = {
+                    "tool": tool_name,
+                    "estimated_tokens": estimated_tokens,
+                    "token_limit": self.token_limit,
+                    "params": _sanitize_params(params),
+                }
                 event_logger.log(
                     user_id=user_id,
                     action="mcp_response_size_exceeded",
-                    curated_payload={
-                        "tool": tool_name,
-                        "estimated_tokens": estimated_tokens,
-                        "token_limit": self.token_limit,
-                        "params": params,
-                    },
+                    dashboard_id=None,
+                    duration_ms=None,
+                    slice_id=None,
+                    referrer=None,
+                    source=AuditLogSource.MCP,
+                    records=[_payload],
+                    curated_payload=_payload,
                 )
             except Exception as log_error:  # noqa: BLE001
                 logger.warning("Failed to log size exceeded event: %s", log_error)

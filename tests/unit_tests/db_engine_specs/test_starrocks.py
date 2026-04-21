@@ -224,8 +224,8 @@ def test_get_catalog_names(mocker: MockerFixture) -> None:
     # StarRocks returns rows with keys: ['Catalog', 'Type', 'Comment']
     mock_row_1 = mocker.MagicMock()
     mock_row_1.keys.return_value = ["Catalog", "Type", "Comment"]
-    mock_row_1.__getitem__ = (
-        lambda self, key: "default_catalog" if key == "Catalog" else None
+    mock_row_1.__getitem__ = lambda self, key: (
+        "default_catalog" if key == "Catalog" else None
     )
 
     mock_row_2 = mocker.MagicMock()

@@ -456,16 +456,17 @@ const Select = forwardRef(
       const currentValues = ensureIsArray(selectValue);
       const currentValuesSet = new Set(currentValues.map(getValue));
 
-      const newValues = [...currentValues] as RawValue[];
-      optionsToSelect.forEach(option => {
-        if (
+      const optionsToAdd = optionsToSelect.filter(
+        option =>
           option.value &&
           !option.disabled &&
-          !currentValuesSet.has(option.value)
-        ) {
-          newValues.push(option.value);
-        }
-      });
+          !currentValuesSet.has(option.value),
+      );
+
+      const newValues = [
+        ...currentValues,
+        ...mapValues(optionsToAdd, labelInValue),
+      ] as RawValue[];
 
       setSelectValue(newValues);
       fireOnChange();
@@ -476,6 +477,7 @@ const Select = forwardRef(
       enabledOptions,
       selectValue,
       fireOnChange,
+      labelInValue,
     ]);
 
     const handleDeselectAll = useCallback(() => {

@@ -47,6 +47,7 @@ EXPECTED_COLUMNS = [
     "json",
     "referrer",
     "slice_id",
+    "source",
     "user",
     "user_id",
 ]
@@ -61,6 +62,7 @@ class TestLogApi(SupersetTestCase):
         slice_id: Optional[int] = 0,
         json: Optional[str] = "",
         duration_ms: Optional[int] = 0,
+        source: Optional[str] = None,
     ):
         log = Log(
             action=action,
@@ -69,6 +71,7 @@ class TestLogApi(SupersetTestCase):
             slice_id=slice_id,
             json=json,
             duration_ms=duration_ms,
+            source=source,
         )
         db.session.add(log)
         db.session.commit()
@@ -100,6 +103,33 @@ class TestLogApi(SupersetTestCase):
         assert response["result"][0]["action"] == "some_action"
         assert response["result"][0]["user"]["username"] == "admin"
         db.session.delete(log)
+        db.session.commit()
+
+    def test_get_list_filtered_by_source(self):
+        """
+        Log API: filtering by source returns only matching entries.
+        """
+        admin_user = self.get_user("admin")
+        self.login(ADMIN_USERNAME)
+
+        mcp_log = self.insert_log("src_filter_marker", admin_user, source="MCP")
+        no_source_log = self.insert_log("src_filter_marker", admin_user)
+
+        arguments = {
+            "filters": [
+                {"col": "action", "opr": "sw", "value": "src_filter_marker"},
+                {"col": "source", "opr": "in", "value": ["MCP"]},
+            ]
+        }
+        uri = f"api/v1/log/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] == 1
+        assert response["result"][0]["source"] == "MCP"
+
+        db.session.delete(mcp_log)
+        db.session.delete(no_source_log)
         db.session.commit()
 
     def test_get_list_not_allowed(self):

@@ -646,8 +646,9 @@ def test_get_user_agent(mocker: MockerFixture, app_context: None) -> None:
 
 @with_config(
     {
-        "USER_AGENT_FUNC": lambda database,
-        source: f"{database.database_name} {source.name}"
+        "USER_AGENT_FUNC": lambda database, source: (
+            f"{database.database_name} {source.name}"
+        )
     }
 )
 def test_get_user_agent_custom(mocker: MockerFixture, app_context: None) -> None:

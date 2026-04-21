@@ -33,13 +33,49 @@ import { SELECT_WIDTH } from '../utils';
 
 interface SelectFilterProps extends BaseFilter {
   fetchSelects?: Filter['fetchSelects'];
+  mode?: 'single' | 'multiple';
   name?: string;
-  onSelect: (selected: SelectOption | undefined, isClear?: boolean) => void;
+  onSelect: (
+    selected: SelectOption | SelectOption[] | undefined,
+    isClear?: boolean,
+  ) => void;
   optionFilterProps?: string[];
   paginate?: boolean;
   selects: Filter['selects'];
   loading?: boolean;
   dropdownStyle?: React.CSSProperties;
+}
+
+function normalizeMultiSelectValue(
+  initialValue: unknown,
+  selects: SelectOption[],
+): SelectOption[] {
+  if (!Array.isArray(initialValue)) {
+    return [];
+  }
+
+  return initialValue
+    .filter(value => value !== null && value !== undefined)
+    .map(value => {
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        'value' in value &&
+        'label' in value
+      ) {
+        return value as SelectOption;
+      }
+
+      const matchedOption = selects.find(option => option.value === value);
+      if (matchedOption) {
+        return matchedOption;
+      }
+
+      return {
+        label: String(value),
+        value,
+      };
+    });
 }
 
 function SelectFilter(
@@ -48,6 +84,7 @@ function SelectFilter(
     name,
     fetchSelects,
     initialValue,
+    mode = 'single',
     onSelect,
     optionFilterProps,
     selects = [],
@@ -56,7 +93,12 @@ function SelectFilter(
   }: SelectFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
-  const [selectedOption, setSelectedOption] = useState(initialValue);
+  const [selectedOption, setSelectedOption] = useState(
+    mode === 'single' ? initialValue : undefined,
+  );
+  const [selectedOptions, setSelectedOptions] = useState<SelectOption[]>(
+    mode === 'multiple' ? normalizeMultiSelectValue(initialValue, selects) : [],
+  );
 
   const onChange = (selected: SelectOption) => {
     onSelect(
@@ -78,9 +120,24 @@ function SelectFilter(
     setSelectedOption(undefined);
   };
 
+  const onMultiChange = (selected: SelectOption[]) => {
+    const valid = (selected ?? []).filter(Boolean);
+    setSelectedOptions(valid);
+    onSelect(valid.length ? valid : undefined, valid.length === 0);
+  };
+
+  const onMultiClear = () => {
+    setSelectedOptions([]);
+    onSelect(undefined, true);
+  };
+
   useImperativeHandle(ref, () => ({
     clearFilter: () => {
-      onClear();
+      if (mode === 'multiple') {
+        onMultiClear();
+      } else {
+        onClear();
+      }
     },
   }));
 
@@ -123,6 +180,22 @@ function SelectFilter(
           dropdownStyle={dropdownStyle}
           showSearch
           value={selectedOption}
+        />
+      ) : mode === 'multiple' ? (
+        <Select
+          allowClear
+          ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
+          data-test="filters-select"
+          labelInValue
+          mode="multiple"
+          onChange={onMultiChange as any}
+          onClear={onMultiClear}
+          options={selects}
+          placeholder={placeholder}
+          dropdownStyle={dropdownStyle}
+          showSearch
+          value={selectedOptions}
+          loading={loading}
         />
       ) : (
         <Select

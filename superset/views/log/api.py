@@ -19,7 +19,7 @@ from typing import Any, Optional
 from flask import current_app as app
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
-from flask_appbuilder.models.sqla.filters import FilterRelationOneToManyEqual
+from flask_appbuilder.models.sqla.filters import FilterIn, FilterRelationOneToManyEqual
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 import superset.models.core as models
@@ -51,6 +51,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         "user.username",
         "user_id",
         "action",
+        "source",
         "dttm",
         "json",
         "slice_id",
@@ -62,6 +63,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         "user",
         "user_id",
         "action",
+        "source",
         "dttm",
         "json",
         "slice_id",
@@ -71,6 +73,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     ]
     search_filters = {
         "user": [FilterRelationOneToManyEqual],
+        "source": [FilterIn],
     }
     show_columns = list_columns
     page_size = 20
@@ -108,8 +111,9 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     @statsd_metrics
     @rison(get_recent_activity_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".recent_activity",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.recent_activity"
+        ),
         log_to_statsd=False,
     )
     def recent_activity(self, **kwargs: Any) -> FlaskResponse:

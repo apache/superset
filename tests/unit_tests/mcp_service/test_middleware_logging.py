@@ -22,14 +22,23 @@ Tests verify that:
 - on_call_tool() captures duration_ms and success status
 - on_message() logs non-tool messages without duration
 - _extract_context_info() extracts entity IDs from params
+- Event logger calls always include required positional args
 """
 
+import contextlib
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastmcp.exceptions import ToolError
 
-from superset.mcp_service.middleware import LoggingMiddleware
+from superset.mcp_service.middleware import (
+    GlobalErrorHandlerMiddleware,
+    LoggingMiddleware,
+    RateLimitMiddleware,
+    ResponseSizeGuardMiddleware,
+)
+from superset.utils.log import AuditLogSource, DBEventLogger
 
 
 def _make_context(
@@ -37,7 +46,7 @@ def _make_context(
     name: str = "list_charts",
     params: dict[str, Any] | None = None,
     metadata: dict[str, Any] | None = None,
-):
+) -> MagicMock:
     """Create a mock MiddlewareContext."""
     ctx = MagicMock()
     ctx.method = method
@@ -134,10 +143,10 @@ class TestLoggingMiddlewareOnMessage:
     @patch("superset.mcp_service.middleware.event_logger")
     @patch("superset.mcp_service.middleware.get_user_id", return_value=1)
     @pytest.mark.asyncio
-    async def test_on_message_logs_without_duration(
+    async def test_on_message_logs_with_duration(
         self, mock_get_user_id, mock_event_logger
     ):
-        """on_message logs with action=mcp_message and duration_ms=None."""
+        """on_message logs after call_next with duration_ms and success=True."""
         middleware = LoggingMiddleware()
         ctx = _make_context(method="resources/read", name="instance/metadata")
         call_next = AsyncMock(return_value="resource_data")
@@ -150,9 +159,9 @@ class TestLoggingMiddlewareOnMessage:
         mock_event_logger.log.assert_called_once()
         call_kwargs = mock_event_logger.log.call_args[1]
         assert call_kwargs["action"] == "mcp_message"
-        assert call_kwargs["duration_ms"] is None
-        # on_message should NOT have success field
-        assert "success" not in call_kwargs["curated_payload"]
+        assert isinstance(call_kwargs["duration_ms"], int)
+        assert call_kwargs["duration_ms"] >= 0
+        assert call_kwargs["curated_payload"]["success"] is True
 
 
 class TestExtractContextInfo:
@@ -205,3 +214,230 @@ class TestExtractContextInfo:
         _, _, _, slice_id, _, _ = middleware._extract_context_info(ctx)
 
         assert slice_id == 66
+
+
+class TestLoggingMiddlewareMCPSource:
+    """Tests that LoggingMiddleware passes source=AuditLogSource.MCP."""
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=1)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_passes_mcp_source(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value="result")
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["source"] == AuditLogSource.MCP
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=1)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_failure_still_passes_mcp_source(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="execute_sql")
+        call_next = AsyncMock(side_effect=ValueError("fail"))
+
+        with pytest.raises(ValueError, match="fail"):
+            await middleware.on_call_tool(ctx, call_next)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["source"] == AuditLogSource.MCP
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=1)
+    @pytest.mark.asyncio
+    async def test_on_message_passes_mcp_source(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        middleware = LoggingMiddleware()
+        ctx = _make_context(method="resources/read", name="instance/metadata")
+        call_next = AsyncMock(return_value="data")
+
+        await middleware.on_message(ctx, call_next)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["source"] == AuditLogSource.MCP
+
+
+class TestEventLoggerRequiredArgs:
+    """
+    Tests that all event_logger.log() call sites pass the four required
+    positional args (dashboard_id, duration_ms, slice_id, referrer).
+    Without these, DBEventLogger.log() raises TypeError silently swallowed
+    by the surrounding try/except, causing audit events to never be stored.
+    """
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=5)
+    @pytest.mark.asyncio
+    async def test_error_event_includes_required_positional_args(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """_handle_error() passes dashboard_id, duration_ms, slice_id, referrer."""
+        middleware = GlobalErrorHandlerMiddleware()
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(side_effect=RuntimeError("db connection failed"))
+
+        with pytest.raises(ToolError):
+            await middleware.on_message(ctx, call_next)
+
+        mock_event_logger.log.assert_called_once()
+        kw = mock_event_logger.log.call_args[1]
+        assert kw["action"] == "mcp_tool_error"
+        assert "dashboard_id" in kw
+        assert "slice_id" in kw
+        assert "referrer" in kw
+        assert "duration_ms" in kw
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=5)
+    @pytest.mark.asyncio
+    async def test_error_event_uses_sanitized_error_message(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """_handle_error() writes sanitized_error (not str(error)) to audit payload."""
+        middleware = GlobalErrorHandlerMiddleware()
+        ctx = _make_context(name="list_charts")
+        conn_string = "postgresql://user:p%40ssword@host/db"  # noqa: S105
+        call_next = AsyncMock(side_effect=RuntimeError(conn_string))
+
+        with pytest.raises(ToolError):
+            await middleware.on_message(ctx, call_next)
+
+        mock_event_logger.log.assert_called_once()
+        kw = mock_event_logger.log.call_args[1]
+        payload = kw["curated_payload"]
+        assert conn_string not in payload["error_message"]
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=None)
+    @pytest.mark.asyncio
+    async def test_rate_limit_event_includes_required_positional_args(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """RateLimitMiddleware passes dashboard_id, duration_ms, slice_id, referrer."""
+        middleware = RateLimitMiddleware(default_requests_per_minute=1)
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value="ok")
+
+        # First call should succeed; trigger rate limit on second
+        with contextlib.suppress(ToolError):
+            await middleware.on_call_tool(ctx, call_next)
+
+        # Second call hits the rate limit
+        with pytest.raises(ToolError, match="Rate limit exceeded"):
+            await middleware.on_call_tool(ctx, call_next)
+
+        mock_event_logger.log.assert_called()
+        kw = mock_event_logger.log.call_args[1]
+        assert kw["action"] == "mcp_rate_limit_exceeded"
+        assert "dashboard_id" in kw
+        assert "duration_ms" in kw
+        assert "slice_id" in kw
+        assert "referrer" in kw
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=2)
+    @pytest.mark.asyncio
+    async def test_size_exceeded_event_includes_required_positional_args(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """ResponseSizeGuardMiddleware size-exceeded log includes all required args."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=100)
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value={"data": "x" * 10000})
+
+        with pytest.raises(ToolError):
+            await middleware.on_call_tool(ctx, call_next)
+
+        mock_event_logger.log.assert_called()
+        kw = mock_event_logger.log.call_args[1]
+        assert kw["action"] == "mcp_response_size_exceeded"
+        assert "dashboard_id" in kw
+        assert "duration_ms" in kw
+        assert "slice_id" in kw
+        assert "referrer" in kw
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=2)
+    @pytest.mark.asyncio
+    async def test_truncation_event_includes_required_positional_args(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """ResponseSizeGuardMiddleware truncation log includes all required args."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        ctx = _make_context(name="get_dashboard_info")
+        large_response = {"id": 1, "description": "x" * 50000}
+        call_next = AsyncMock(return_value=large_response)
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        mock_event_logger.log.assert_called()
+        kw = mock_event_logger.log.call_args[1]
+        assert kw["action"] == "mcp_response_truncated"
+        assert "dashboard_id" in kw
+        assert "duration_ms" in kw
+        assert "slice_id" in kw
+        assert "referrer" in kw
+
+
+class TestDBEventLoggerBulkSave:
+    """Verify that the records= kwarg actually reaches bulk_save_objects.
+
+    Uses a real DBEventLogger (not mocked) with only db.session patched,
+    confirming that omitting records= produces zero writes while including
+    it produces exactly one.
+    """
+
+    def test_log_with_records_calls_bulk_save_objects(self) -> None:
+        """DBEventLogger.log() with records=[payload] passes a non-empty list
+        to bulk_save_objects."""
+        db_event_logger = DBEventLogger()
+        payload = {"tool": "list_charts", "success": True}
+
+        with patch("superset.db") as mock_db:
+            db_event_logger.log(
+                user_id=1,
+                action="mcp_tool_call",
+                dashboard_id=None,
+                duration_ms=100,
+                slice_id=None,
+                referrer=None,
+                source=AuditLogSource.MCP,
+                records=[payload],
+                curated_payload=payload,
+            )
+
+        mock_db.session.bulk_save_objects.assert_called_once()
+        saved = mock_db.session.bulk_save_objects.call_args[0][0]
+        assert len(saved) == 1
+        assert saved[0].action == "mcp_tool_call"
+
+    def test_log_without_records_writes_nothing(self) -> None:
+        """DBEventLogger.log() without records= kwarg passes an empty list
+        to bulk_save_objects."""
+        db_event_logger = DBEventLogger()
+        payload = {"tool": "list_charts", "success": True}
+
+        with patch("superset.db") as mock_db:
+            db_event_logger.log(
+                user_id=1,
+                action="mcp_tool_call",
+                dashboard_id=None,
+                duration_ms=100,
+                slice_id=None,
+                referrer=None,
+                source=AuditLogSource.MCP,
+                curated_payload=payload,
+            )
+
+        mock_db.session.bulk_save_objects.assert_called_once()
+        saved = mock_db.session.bulk_save_objects.call_args[0][0]
+        assert len(saved) == 0

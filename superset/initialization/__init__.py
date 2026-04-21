@@ -65,7 +65,11 @@ from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.decorators import transaction
-from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.utils.log import (
+    AuditLogSource,
+    DBEventLogger,
+    get_event_logger_from_cfg_value,
+)
 
 if TYPE_CHECKING:
     from superset.app import SupersetApp
@@ -658,9 +662,20 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if self.config["SESSION_SERVER_SIDE"]:
             Session(self.superset_app)
 
-    def register_request_handlers(self) -> None:
+    def register_request_handlers(self) -> None:  # noqa: C901
         """Register app-level request handlers"""
-        from flask import request, Response
+        from flask import g, request, Response
+
+        @self.superset_app.before_request
+        def tag_audit_source_from_api_key() -> None:
+            if not current_app.config.get("FAB_API_KEY_ENABLED", False):
+                return
+            sm = self.superset_app.appbuilder.sm
+            if not hasattr(sm, "_extract_api_key_from_request"):
+                return
+            api_key = sm._extract_api_key_from_request()
+            if api_key is not None:
+                g.audit_source = AuditLogSource.API
 
         @self.superset_app.after_request
         def apply_http_headers(response: Response) -> Response:

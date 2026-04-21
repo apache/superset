@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import { ListViewFilterOperator } from '../types';
 import UIFilters from './index';
 
@@ -129,4 +130,65 @@ test('renders multiple search filters with different inputName values', () => {
   expect(inputs).toHaveLength(2);
   expect(inputs[0].name).toBe('filter_name_search');
   expect(inputs[1].name).toBe('description');
+});
+
+test('"Select all" in multiselect filter emits scalar option values, not undefined', async () => {
+  render(
+    <UIFilters
+      filters={[
+        {
+          Header: 'Source',
+          key: 'source',
+          id: 'source',
+          input: 'select',
+          mode: 'multiple' as const,
+          operator: ListViewFilterOperator.In,
+          selects: [
+            { label: 'API', value: 'API' },
+            { label: 'MCP', value: 'MCP' },
+          ],
+        },
+      ]}
+      internalFilters={[]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('combobox'));
+  await userEvent.click(await screen.findByText('Select all (2)'));
+
+  expect(mockUpdateFilterValue).toHaveBeenCalledWith(0, ['API', 'MCP']);
+});
+
+test('multiselect filters restore scalar query values as selected options', async () => {
+  render(
+    <UIFilters
+      filters={[
+        {
+          Header: 'Source',
+          key: 'source',
+          id: 'source',
+          input: 'select',
+          mode: 'multiple' as const,
+          operator: ListViewFilterOperator.In,
+          selects: [
+            { label: 'API', value: 'API' },
+            { label: 'MCP', value: 'MCP' },
+          ],
+        },
+      ]}
+      internalFilters={[
+        {
+          id: 'source',
+          operator: ListViewFilterOperator.In,
+          value: ['API', 'MCP'],
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole('combobox'));
+
+  expect(screen.getAllByRole('option', { selected: true })).toHaveLength(2);
 });

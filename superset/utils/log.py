@@ -32,7 +32,17 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.extensions import stats_logger_manager
 from superset.utils import json
+from superset.utils.backports import StrEnum
 from superset.utils.core import get_user_id, LoggerLevel, to_int
+
+
+class AuditLogSource(StrEnum):
+    API = "API"
+    MCP = "MCP"
+    CHATBOT = "Chatbot"
+    PRESET = "Preset"
+    EMBEDDED = "Embedded"
+
 
 logger = logging.getLogger(__name__)
 
@@ -245,6 +255,7 @@ class AbstractEventLogger(ABC):
             referrer=referrer,
             curated_payload=self.curate_payload(payload),
             curated_form_data=self.curate_form_data(form_data),
+            source=g.get("audit_source") if has_request_context() else None,
             **database_params,
         )
 
@@ -399,6 +410,7 @@ class DBEventLogger(AbstractEventLogger):
                 duration_ms=duration_ms,
                 referrer=referrer,
                 user_id=user_id,
+                source=kwargs.get("source"),
             )
             logs.append(log)
         try:

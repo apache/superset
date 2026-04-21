@@ -43,6 +43,7 @@ export interface ListViewFilter {
   toolTipDescription?: string;
   urlDisplay?: string;
   operator?: ListViewFilterOperator;
+  mode?: 'single' | 'multiple';
   input?:
     | 'text'
     | 'textarea'
@@ -109,6 +110,7 @@ export enum ListViewFilterOperator {
   EndsWith = 'ew',
   Contains = 'ct',
   Equals = 'eq',
+  In = 'in',
   NotStartsWith = 'nsw',
   NotEndsWith = 'new',
   NotContains = 'nct',

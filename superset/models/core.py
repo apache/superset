@@ -1377,6 +1377,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     dttm = Column(DateTime, default=datetime.utcnow)
     duration_ms = Column(Integer)
     referrer = Column(String(1024))
+    source = Column(String(32), nullable=True)
 
 
 class FavStarClassName(StrEnum):

@@ -140,8 +140,8 @@ class TestQueryContextFactory:
         existing_columns = {"existing_col"}
 
         with patch.object(self.factory, "_find_column_definition") as mock_find:
-            mock_find.side_effect = (
-                lambda qo, col: f"def_{col}" if col != "tooltip_col2" else None
+            mock_find.side_effect = lambda qo, col: (
+                f"def_{col}" if col != "tooltip_col2" else None
             )
 
             self.factory._append_missing_tooltip_columns(
