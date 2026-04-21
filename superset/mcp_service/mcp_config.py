@@ -59,12 +59,6 @@ MCP_RBAC_ENABLED = True
 # per RFC 6750 Section 3.1. This flag NEVER affects client-facing output.
 MCP_JWT_DEBUG_ERRORS = False
 
-# Enable parse_request decorator for MCP tools.
-# When True (default), tool requests are automatically parsed from JSON strings
-# to Pydantic models, working around a Claude Code double-serialization bug
-# (https://github.com/anthropics/claude-code/issues/5504).
-# Set to False to disable and let FastMCP handle request parsing natively.
-MCP_PARSE_REQUEST_ENABLED = True
 
 # Session configuration for local development
 MCP_SESSION_CONFIG = {
