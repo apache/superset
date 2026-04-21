@@ -23,12 +23,12 @@ import {
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { isEqual } from 'lodash';
 
 import {
   CellClickedEvent,
-  IMenuActionParams,
+  SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import {
   AgGridTableChartTransformedProps,
@@ -40,7 +40,7 @@ import AgGridDataTable from './AgGridTable';
 import { updateTableOwnState } from './utils/externalAPIs';
 import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVisibility';
 import { useColDefs } from './utils/useColDefs';
-import { getCrossFilterDataMask } from './utils/getCrossFilterDataMask';
+import { buildSelectionCrossFilterDataMask } from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
 import type { FilterState } from './utils/filterStateManager';
 
@@ -252,7 +252,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const isActiveFilterValue = useCallback(
     function isActiveFilterValue(key: string, val: DataRecordValue) {
-      return !!filters && filters[key]?.includes(val);
+      if (!filters || !filters[key]) return false;
+      return filters[key].some(filterVal => {
+        if (filterVal === val) return true;
+        if (filterVal instanceof Date && val instanceof Date) {
+          return filterVal.getTime() === val.getTime();
+        }
+        return false;
+      });
     },
     [filters],
   );
@@ -267,35 +274,66 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [timeGrain, isRawRecords],
   );
 
-  const toggleFilter = useCallback(
-    (event: CellClickedEvent | IMenuActionParams) => {
+  const activeColumnRef = useRef<string | null>(null);
+
+  const handleCellClicked = useCallback(
+    (event: CellClickedEvent) => {
+      if (!emitCrossFilters || !event.column) return;
+      const colDef = event.column.getColDef();
+      if (colDef.context?.isMetric || colDef.context?.isPercentMetric) return;
+
+      const key = event.column.getColId();
+      activeColumnRef.current = key;
+
+      // Re-click on already-filtered single selection → untoggle
+      // AG Grid doesn't change selection when re-clicking the same row,
+      // so onSelectionChanged won't fire — handle clear directly here
+      const selectedNodes = event.api.getSelectedNodes();
       if (
-        emitCrossFilters &&
-        event.column &&
-        !(
-          event.column.getColDef().context?.isMetric ||
-          event.column.getColDef().context?.isPercentMetric
-        )
+        selectedNodes.length === 1 &&
+        selectedNodes[0] === event.node &&
+        isActiveFilterValue(key, event.value)
       ) {
-        const crossFilterProps = {
-          key: event.column.getColId(),
-          value: event.value,
-          filters,
-          timeGrain,
-          isActiveFilterValue,
-          timestampFormatter,
-        };
-        setDataMask(getCrossFilterDataMask(crossFilterProps).dataMask);
+        event.node.setSelected(false);
+        setDataMask(
+          buildSelectionCrossFilterDataMask({
+            key,
+            values: [],
+            timeGrain,
+            timestampFormatter,
+          }).dataMask,
+        );
       }
     },
     [
       emitCrossFilters,
-      setDataMask,
-      filters,
-      timeGrain,
       isActiveFilterValue,
+      setDataMask,
+      timeGrain,
       timestampFormatter,
     ],
+  );
+
+  const handleSelectionChanged = useCallback(
+    (event: SelectionChangedEvent) => {
+      if (!emitCrossFilters || !activeColumnRef.current) return;
+
+      const key = activeColumnRef.current;
+      const selectedRows = event.api.getSelectedRows();
+      const values = selectedRows
+        .map(row => row[key] as DataRecordValue)
+        .filter(v => v != null);
+
+      setDataMask(
+        buildSelectionCrossFilterDataMask({
+          key,
+          values,
+          timeGrain,
+          timestampFormatter,
+        }).dataMask,
+      );
+    },
+    [emitCrossFilters, setDataMask, timeGrain, timestampFormatter],
   );
 
   const handleServerPaginationChange = useCallback(
@@ -399,11 +437,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onFilterChanged={handleFilterChanged}
         metricColumns={metricColumns}
         id={slice_id}
-        handleCrossFilter={toggleFilter}
+        handleCellClicked={handleCellClicked}
+        handleSelectionChanged={handleSelectionChanged}
+        filters={filters}
         percentMetrics={percentMetrics}
         serverPageLength={serverPageLength}
         hasServerPageLengthChanged={hasServerPageLengthChanged}
-        isActiveFilterValue={isActiveFilterValue}
         renderTimeComparisonDropdown={
           isUsingTimeComparison ? renderTimeComparisonVisibility : () => null
         }
