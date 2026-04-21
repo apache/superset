@@ -97,7 +97,6 @@ export function createWrapper(options?: Options) {
     }
 
     if (useDnd) {
-      // @ts-expect-error react-dnd types not updated for React 18
       result = <DndProvider backend={HTML5Backend}>{result}</DndProvider>;
     }
 
