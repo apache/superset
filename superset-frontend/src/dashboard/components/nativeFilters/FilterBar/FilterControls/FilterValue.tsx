@@ -61,7 +61,7 @@ import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
-import { useFilterDependencies } from './state';
+import { useFilterDependencies, useTransitiveParentIds } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
 
 const HEIGHT = 32;
@@ -119,6 +119,7 @@ const FilterValue: FC<FilterValueProps> = ({
   const granularitySqla = isCustomization ? undefined : filter.granularity_sqla;
   const metadata = getChartMetadataRegistry().get(filterType);
   const dependencies = useFilterDependencies(id, dataMaskSelected);
+  const transitiveParentIds = useTransitiveParentIds(id);
   const shouldRefresh = useShouldFilterRefresh();
 
   const behaviors = useMemo(
@@ -187,12 +188,15 @@ const FilterValue: FC<FilterValueProps> = ({
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
-    if ((filter.cascadeParentIds ?? []).length) {
-      // Prevent unnecessary backend requests by validating parent filter selections first
+    if (transitiveParentIds.length) {
+      // Prevent unnecessary backend requests by validating ancestor filter
+      // selections first. We walk the full transitive ancestor chain (not just
+      // direct parents) so the counts line up with `dependencies`, which is
+      // itself built from the transitive chain by `useFilterDependencies`.
 
       let selectedParentFilterValueCounts = 0;
       let isTimeRangeSelected = false;
-      (filter.cascadeParentIds ?? []).forEach(pId => {
+      transitiveParentIds.forEach(pId => {
         const extraFormData = dataMaskSelected?.[pId]?.extraFormData;
         if (extraFormData?.filters?.length) {
           selectedParentFilterValueCounts += extraFormData.filters.length;
@@ -202,7 +206,7 @@ const FilterValue: FC<FilterValueProps> = ({
         }
       });
 
-      // check if all parent filters with defaults have a value selected
+      // check if all ancestor filters with defaults have a value selected
 
       const depsCount = dependencies.filters?.length ?? 0;
       const hasTimeRangeDeps = Boolean(dependencies?.time_range);
@@ -212,7 +216,7 @@ const FilterValue: FC<FilterValueProps> = ({
         (hasTimeRangeDeps && !isTimeRangeSelected)
       ) {
         // child filter should not request backend until it
-        // has all the required information from parent filters
+        // has all the required information from ancestor filters
         return;
       }
       setHasDepsFilterValue(false);
@@ -291,6 +295,7 @@ const FilterValue: FC<FilterValueProps> = ({
     shouldRefresh,
     dataMaskSelected,
     setHasDepsFilterValue,
+    transitiveParentIds,
   ]);
 
   useEffect(() => {
