@@ -701,7 +701,7 @@ test('does not show screenshot width when csv is selected', async () => {
   expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });
 
-test('clearing the chart selection removes it from the combobox', async () => {
+test('clearing the chart selection resets the combobox value', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
@@ -715,11 +715,14 @@ test('clearing the chart selection removes it from the combobox', async () => {
   await userEvent.click(
     within(chartSelectRoot as HTMLElement).getByLabelText('close-circle'),
   );
-  await waitFor(() =>
+  await waitFor(() => {
     expect(
-      screen.queryByRole('combobox', { name: /Chart: Test Chart/i }),
-    ).not.toBeInTheDocument(),
-  );
+      within(chartSelectRoot as HTMLElement).queryByText(/test chart/i),
+    ).not.toBeInTheDocument();
+    expect(
+      within(chartSelectRoot as HTMLElement).getByText(/select chart to use/i),
+    ).toBeInTheDocument();
+  });
 });
 
 test('shows screenshot width when PDF is selected', async () => {
