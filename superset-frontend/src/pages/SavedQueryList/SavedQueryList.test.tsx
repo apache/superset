@@ -28,6 +28,7 @@ import {
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 import SavedQueryList from '.';
 
 // Renders the current router pathname+search so tests can assert navigation.
@@ -253,24 +254,37 @@ describe('SavedQueryList', () => {
   });
 
   test('"+ Query" button pushes a router-relative path (subdirectory deployment)', async () => {
-    // React Router's basename already includes the application root, so
-    // history.push must receive a relative path. If the path were prefixed
-    // with the application root again, navigation would end up at
-    // /superset/superset/sqllab and show a blank page (sc-103661).
-    renderList();
+    // Simulate SUPERSET_APP_ROOT=/superset. ensureAppRoot/makeUrl read
+    // applicationRoot() dynamically, so mocking it here makes the buggy code
+    // path (makeUrl() around history.push) produce '/superset/sqllab?new=true'
+    // instead of being a no-op. React Router's <Router basename> prefixes the
+    // app root on its own, so history.push MUST receive a path without the
+    // app-root prefix — otherwise navigation lands at /superset/superset/sqllab
+    // and shows a blank page (sc-103661).
+    const applicationRootSpy = jest
+      .spyOn(getBootstrapData, 'applicationRoot')
+      .mockReturnValue('/superset');
 
-    await screen.findByTestId('saved_query-list-view');
+    try {
+      renderList();
 
-    const queryButton = await screen.findByRole('button', { name: /query/i });
-    fireEvent.click(queryButton);
+      await screen.findByTestId('saved_query-list-view');
 
-    await waitFor(() => {
-      // pathname+search from useLocation reflects what was pushed, with
-      // basename stripped. Under the default (root) basename this equals the
-      // exact string passed to history.push, which must not include any
-      // application-root prefix.
-      const location = screen.getByTestId('location-display').textContent;
-      expect(location).toBe('/sqllab?new=true');
-    });
+      const queryButton = await screen.findByRole('button', {
+        name: /query/i,
+      });
+      fireEvent.click(queryButton);
+
+      await waitFor(() => {
+        // The MemoryRouter in renderList uses the default ('/') basename, so
+        // useLocation reflects exactly what history.push received. A correct
+        // router-relative push produces '/sqllab?new=true'; a buggy push that
+        // re-applied the app root would produce '/superset/sqllab?new=true'.
+        const location = screen.getByTestId('location-display').textContent;
+        expect(location).toBe('/sqllab?new=true');
+      });
+    } finally {
+      applicationRootSpy.mockRestore();
+    }
   });
 });

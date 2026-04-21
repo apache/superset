@@ -44,7 +44,7 @@ import {
   TelemetryPixel,
 } from '@superset-ui/core/components';
 import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
-import { ensureAppRoot, makeUrl } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
@@ -213,7 +213,10 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: makeUrl('/sqllab?new=true'),
+      // Keep the URL relative so isFrontendRoute() matches and Link navigates
+      // via React Router; the <Typography.Link> fallback applies ensureAppRoot
+      // exactly once for non-frontend routes.
+      url: '/sqllab?new=true',
       icon: <Icons.SearchOutlined data-test={`menu-item-${t('SQL query')}`} />,
       perm: 'can_sqllab',
       view: 'Superset',
