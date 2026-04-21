@@ -156,6 +156,7 @@ const updateDataset = async (
   columns: Array<Record<string, any>>,
   owners: [number],
   overrideColumns: boolean,
+  templateParams?: string,
 ) => {
   const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
   const headers = { 'Content-Type': 'application/json' };
@@ -164,6 +165,7 @@ const updateDataset = async (
     columns,
     owners,
     database_id: dbId,
+    ...(templateParams !== undefined && { template_params: templateParams }),
   });
 
   const data: JsonResponse = await SupersetClient.put({
@@ -178,6 +180,29 @@ const updateDataset = async (
 };
 
 const UNTITLED = t('Untitled Dataset');
+
+// The filters param is only used to test jinja templates.
+// Remove the special filters entry from the templateParams
+// before saving the dataset.
+const sanitizeTemplateParams = (
+  templateParams: string | object | null | undefined,
+): string | undefined => {
+  if (typeof templateParams !== 'string') {
+    return undefined;
+  }
+  try {
+    const p = JSON.parse(templateParams);
+    /* eslint-disable-next-line no-underscore-dangle */
+    if (p._filters) {
+      /* eslint-disable-next-line no-underscore-dangle */
+      delete p._filters;
+    }
+    return JSON.stringify(p);
+  } catch (e) {
+    // malformed templateParams, do not include it
+    return undefined;
+  }
+};
 
 export const SaveDatasetModal = ({
   visible,
@@ -232,6 +257,10 @@ export const SaveDatasetModal = ({
     }
     setLoading(true);
 
+    const templateParams = includeTemplateParameters
+      ? sanitizeTemplateParams(datasource?.templateParams)
+      : undefined;
+
     try {
       const [, key] = await Promise.all([
         updateDataset(
@@ -247,6 +276,7 @@ export const SaveDatasetModal = ({
           ),
           datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
           true,
+          templateParams,
         ),
         postFormData(datasetToOverwrite.datasetid, 'table', {
           ...formDataWithDefaults,
@@ -319,27 +349,9 @@ export const SaveDatasetModal = ({
     setLoading(true);
     const selectedColumns = datasource?.columns ?? [];
 
-    // The filters param is only used to test jinja templates.
-    // Remove the special filters entry from the templateParams
-    // before saving the dataset.
-    let templateParams;
-    if (
-      typeof datasource?.templateParams === 'string' &&
-      includeTemplateParameters
-    ) {
-      try {
-        const p = JSON.parse(datasource.templateParams);
-        /* eslint-disable-next-line no-underscore-dangle */
-        if (p._filters) {
-          /* eslint-disable-next-line no-underscore-dangle */
-          delete p._filters;
-        }
-        templateParams = JSON.stringify(p);
-      } catch (e) {
-        // malformed templateParams, do not include it
-        templateParams = undefined;
-      }
-    }
+    const templateParams = includeTemplateParameters
+      ? sanitizeTemplateParams(datasource?.templateParams)
+      : undefined;
 
     dispatch(
       createDatasource({
