@@ -149,15 +149,25 @@ const Styles = styled.div`
     }
   `}
 `;
-const updateDataset = async (
-  dbId: number,
-  datasetId: number,
-  sql: string,
-  columns: Array<Record<string, any>>,
-  owners: [number],
-  overrideColumns: boolean,
-  templateParams?: string,
-) => {
+type UpdateDatasetPayload = {
+  dbId: number;
+  datasetId: number;
+  sql: string;
+  columns: Array<Record<string, any>>;
+  owners: number[];
+  overrideColumns: boolean;
+  templateParams?: string;
+};
+
+const updateDataset = async ({
+  dbId,
+  datasetId,
+  sql,
+  columns,
+  owners,
+  overrideColumns,
+  templateParams,
+}: UpdateDatasetPayload) => {
   const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
   const headers = { 'Content-Type': 'application/json' };
   const body = JSON.stringify({
@@ -191,13 +201,10 @@ const sanitizeTemplateParams = (
     return undefined;
   }
   try {
-    const p = JSON.parse(templateParams);
-    /* eslint-disable-next-line no-underscore-dangle */
-    if (p._filters) {
-      /* eslint-disable-next-line no-underscore-dangle */
-      delete p._filters;
-    }
-    return JSON.stringify(p);
+    const parsed = JSON.parse(templateParams) as Record<string, unknown>;
+    // Remove the special _filters entry — it is only used to test jinja templates.
+    const { _filters: _ignored, ...clean } = parsed;
+    return JSON.stringify(clean);
   } catch (e) {
     // malformed templateParams, do not include it
     return undefined;
@@ -263,21 +270,21 @@ export const SaveDatasetModal = ({
 
     try {
       const [, key] = await Promise.all([
-        updateDataset(
-          datasource?.dbId,
-          datasetToOverwrite?.datasetid,
-          datasource?.sql,
-          datasource?.columns?.map(
+        updateDataset({
+          dbId: datasource?.dbId,
+          datasetId: datasetToOverwrite?.datasetid,
+          sql: datasource?.sql,
+          columns: datasource?.columns?.map(
             (d: { column_name: string; type: string; is_dttm: boolean }) => ({
               column_name: d.column_name,
               type: d.type,
               is_dttm: d.is_dttm,
             }),
           ),
-          datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
-          true,
+          owners: datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
+          overrideColumns: true,
           templateParams,
-        ),
+        }),
         postFormData(datasetToOverwrite.datasetid, 'table', {
           ...formDataWithDefaults,
           datasource: `${datasetToOverwrite.datasetid}__table`,

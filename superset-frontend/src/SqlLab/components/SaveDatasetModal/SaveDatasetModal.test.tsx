@@ -391,10 +391,19 @@ describe('SaveDatasetModal', () => {
     await setupOverwriteFlow();
 
     await waitFor(() => {
-      expect(putSpy).toHaveBeenCalled();
+      expect(
+        putSpy.mock.calls.some(([req]) =>
+          req.endpoint?.includes('api/v1/dataset/'),
+        ),
+      ).toBe(true);
     });
 
-    const body = JSON.parse(putSpy.mock.calls[0][0].body as string);
+    const datasetPutCall = putSpy.mock.calls.find(([req]) =>
+      req.endpoint?.includes('api/v1/dataset/'),
+    )!;
+    const [req] = datasetPutCall;
+    expect(req.endpoint).toContain('override_columns=true');
+    const body = JSON.parse(req.body as string);
     // _filters should be stripped, but my_param should be preserved
     expect(body.template_params).toEqual(JSON.stringify({ my_param: 12 }));
 
@@ -430,10 +439,18 @@ describe('SaveDatasetModal', () => {
     await setupOverwriteFlow();
 
     await waitFor(() => {
-      expect(putSpy).toHaveBeenCalled();
+      expect(
+        putSpy.mock.calls.some(([req]) =>
+          req.endpoint?.includes('api/v1/dataset/'),
+        ),
+      ).toBe(true);
     });
 
-    const body = JSON.parse(putSpy.mock.calls[0][0].body as string);
+    const datasetPutCall = putSpy.mock.calls.find(([req]) =>
+      req.endpoint?.includes('api/v1/dataset/'),
+    )!;
+    const [req] = datasetPutCall;
+    const body = JSON.parse(req.body as string);
     expect(body.template_params).toBeUndefined();
 
     putSpy.mockRestore();
