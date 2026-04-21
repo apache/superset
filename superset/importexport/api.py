@@ -30,6 +30,7 @@ from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.extensions import event_logger
 from superset.utils import json
+from superset.utils.core import parse_boolean_string
 from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
 
 
@@ -196,7 +197,7 @@ class ImportExportRestApi(BaseSupersetApi):
         sparse = request.form.get("sparse") == "true"
         # Defaults to True for backwards compatibility: historically this
         # endpoint always overwrote existing assets.
-        overwrite = request.form.get("overwrite", "true").lower() == "true"
+        overwrite = parse_boolean_string(request.form.get("overwrite", "true"))
 
         passwords = (
             json.loads(request.form["passwords"])

@@ -51,6 +51,7 @@ from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
+from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
 from superset.utils.decorators import on_error, transaction
 
@@ -219,6 +220,7 @@ class ImportAssetsCommand(BaseCommand):
         "datasets/": SqlaTable,
         "charts/": Slice,
         "dashboards/": Dashboard,
+        "queries/": SavedQuery,
     }
 
     def _prevent_overwrite_existing_assets(
