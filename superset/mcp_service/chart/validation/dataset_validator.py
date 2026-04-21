@@ -204,7 +204,8 @@ class DatasetValidator:
         if isinstance(config, TableChartConfig):
             refs.extend(config.columns)
         elif isinstance(config, XYChartConfig):
-            refs.append(config.x)
+            if config.x is not None:
+                refs.append(config.x)
             refs.extend(config.y)
             if config.group_by:
                 refs.extend(config.group_by)
