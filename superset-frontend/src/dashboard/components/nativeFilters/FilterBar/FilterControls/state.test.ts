@@ -21,15 +21,16 @@ import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import { createElement } from 'react';
 import type { ReactNode } from 'react';
+import type { DataMaskStateWithId } from '@superset-ui/core';
 import {
+  FilterConfigMap,
   resolveTransitiveParentIds,
-  useFilterDependencies,
-  useTransitiveParentIds,
-} from './state';
+} from '../../dependencyGraph';
+import { useFilterDependencies, useTransitiveParentIds } from './state';
 
 const mockStore = configureStore([]);
 
-const buildWrapper = (filters: Record<string, any>) => {
+const buildWrapper = (filters: FilterConfigMap) => {
   const store = mockStore({ nativeFilters: { filters } });
   return ({ children }: { children: ReactNode }) =>
     createElement(Provider, { store }, children);
@@ -113,7 +114,7 @@ test('useFilterDependencies merges extraFormData across the full chain', () => {
     C: { cascadeParentIds: ['B'] },
     D: { cascadeParentIds: ['C'] },
   });
-  const dataMaskSelected = {
+  const dataMaskSelected: DataMaskStateWithId = {
     A: {
       id: 'A',
       extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
@@ -128,13 +129,40 @@ test('useFilterDependencies merges extraFormData across the full chain', () => {
     },
   };
   const { result } = renderHook(
-    () => useFilterDependencies('D', dataMaskSelected as any),
+    () => useFilterDependencies('D', dataMaskSelected),
     { wrapper },
   );
   const cols = (result.current.filters ?? []).map(f => f.col);
   // All three ancestor clauses must be present.
   expect(cols).toEqual(expect.arrayContaining(['country', 'region', 'state']));
   expect(result.current.filters ?? []).toHaveLength(3);
+});
+
+test('useFilterDependencies lets the closest ancestor override scalar fields', () => {
+  // `mergeExtraFormData` appends filter arrays but overrides scalar fields
+  // like `time_range`. Topological order must put the closest parent last so
+  // its scalar overrides win over further ancestors.
+  const wrapper = buildWrapper({
+    A: { cascadeParentIds: [] },
+    B: { cascadeParentIds: ['A'] },
+    C: { cascadeParentIds: ['B'] },
+  });
+  const dataMaskSelected: DataMaskStateWithId = {
+    A: {
+      id: 'A',
+      extraFormData: { time_range: 'Last year' },
+    },
+    B: {
+      id: 'B',
+      extraFormData: { time_range: 'Last month' },
+    },
+  };
+  const { result } = renderHook(
+    () => useFilterDependencies('C', dataMaskSelected),
+    { wrapper },
+  );
+  // B is C's closest ancestor with a time_range, so it should win over A.
+  expect(result.current.time_range).toBe('Last month');
 });
 
 test('useFilterDependencies returns empty object when parent state is missing', () => {
