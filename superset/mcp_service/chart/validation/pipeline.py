@@ -75,15 +75,25 @@ def _get_generic_error_message(error_str: str) -> str | None:
 
 def _sanitize_validation_error(error: Exception) -> str:
     """SECURITY FIX: Sanitize validation errors to prevent disclosure."""
+    import re
+
     error_str = str(error)
+
+    # Pydantic tagged-union errors prefix the message with a long
+    # ``1 validation error for tagged-union[...]`` header before the
+    # actionable ``Value error, ...`` body — extract the body so the
+    # 200-char truncation below doesn't swallow the useful part.
+    if "tagged-union[" in error_str and "Value error," in error_str:
+        idx = error_str.find("Value error,")
+        footer = error_str.find("\n    For further information")
+        end = footer if footer != -1 else len(error_str)
+        error_str = error_str[idx:end].strip()
 
     # SECURITY FIX: Limit length FIRST to prevent ReDoS attacks
     if len(error_str) > 200:
         error_str = error_str[:200] + "...[truncated]"
 
     # Remove potentially sensitive schema information
-    import re
-
     sensitive_patterns = [
         (r'\btable\s+[\'"`]?(\w+)[\'"`]?', "table [REDACTED]"),
         (r'\bcolumn\s+[\'"`]?(\w+)[\'"`]?', "column [REDACTED]"),
