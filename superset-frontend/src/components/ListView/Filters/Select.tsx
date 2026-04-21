@@ -70,9 +70,7 @@ function SelectFilter(
             label:
               typeof selected.label === 'string'
                 ? selected.label
-                : typeof selected.title === 'string'
-                  ? selected.title
-                  : String(selected.value),
+                : (selected.title ?? String(selected.value)),
             value: selected.value,
           }
         : undefined,
