@@ -39,6 +39,10 @@ def generate_ascii_chart(
         return "No data available for ASCII chart"
 
     try:
+        # Clamp to safe minimums to prevent negative plot sizes
+        width = max(width, 21)
+        height = max(height, 9)
+
         logger.debug(
             "generate_ascii_chart: chart_type=%s, data_rows=%s", chart_type, len(data)
         )

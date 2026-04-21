@@ -127,6 +127,18 @@ def update_chart_preview(
 
         # Extract new form_data_key from the explore URL
         new_form_data_key = extract_form_data_key_from_url(explore_url)
+        if not new_form_data_key:
+            return {
+                "chart": None,
+                "error": {
+                    "error_type": "PreviewError",
+                    "message": "Failed to generate preview: missing form_data_key",
+                    "details": "The explore URL did not contain a form_data_key",
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
 
         with event_logger.log_context(action="mcp.update_chart_preview.metadata"):
             # Generate semantic analysis
