@@ -21,6 +21,7 @@ Orchestrates schema, dataset, and runtime validations.
 """
 
 import logging
+import re
 from typing import Any, Dict, List, Tuple
 
 from superset.mcp_service.chart.schemas import (
@@ -75,19 +76,23 @@ def _get_generic_error_message(error_str: str) -> str | None:
 
 def _sanitize_validation_error(error: Exception) -> str:
     """SECURITY FIX: Sanitize validation errors to prevent disclosure."""
-    import re
-
     error_str = str(error)
 
     # Pydantic tagged-union errors prefix the message with a long
     # ``1 validation error for tagged-union[...]`` header before the
-    # actionable ``Value error, ...`` body — extract the body so the
-    # 200-char truncation below doesn't swallow the useful part.
-    if "tagged-union[" in error_str and "Value error," in error_str:
-        idx = error_str.find("Value error,")
-        footer = error_str.find("\n    For further information")
-        end = footer if footer != -1 else len(error_str)
-        error_str = error_str[idx:end].strip()
+    # per-field body (e.g. ``Value error, ...``, ``Field required``,
+    # ``Input should be ...``). The body always lives on a line indented
+    # by exactly two spaces — pull it out so the 200-char truncation
+    # below doesn't swallow the actionable part. The pydantic footer
+    # ``\n    For further information ...`` uses four-space indent and
+    # is dropped here.
+    if "tagged-union[" in error_str:
+        body_match = re.search(r"\n  (?! )", error_str)
+        if body_match:
+            idx = body_match.end()
+            footer_idx = error_str.find("\n    For further information", idx)
+            end = footer_idx if footer_idx != -1 else len(error_str)
+            error_str = error_str[idx:end].strip()
 
     # SECURITY FIX: Limit length FIRST to prevent ReDoS attacks
     if len(error_str) > 200:

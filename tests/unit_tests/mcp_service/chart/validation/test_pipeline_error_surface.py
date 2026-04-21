@@ -138,3 +138,58 @@ def test_valid_mixed_timeseries_config_passes() -> None:
 
     assert result.is_valid is True
     assert result.error is None
+
+
+def test_non_value_error_pydantic_body_is_surfaced() -> None:
+    """The tagged-union cleanup must also handle non-``Value error`` bodies
+    like ``Input should be ...`` (literal_error from Pydantic enums).
+
+    Regression for the case where the sanitizer only matched ``Value error,``
+    and left the long tagged-union header attached, causing the 200-char
+    truncation to swallow the actionable message.
+    """
+    # Invalid aggregate value — triggers a Pydantic literal_error whose body
+    # starts with ``Input should be 'SUM', 'COUNT', ...``, not ``Value error,``.
+    request_data = {
+        "dataset_id": 1,
+        "config": {
+            "chart_type": "pie",
+            "dimension": {"name": "product"},
+            "metric": {"name": "revenue", "aggregate": "BOGUS"},
+        },
+    }
+
+    with (
+        patch.object(ValidationPipeline, "_get_dataset_context", return_value=None),
+        patch.object(
+            ValidationPipeline, "_validate_dataset", return_value=(True, None)
+        ),
+        patch.object(
+            ValidationPipeline, "_validate_runtime", return_value=(True, None)
+        ),
+        patch.object(
+            ValidationPipeline,
+            "_normalize_column_names",
+            side_effect=_passthrough_normalize,
+        ),
+    ):
+        result = ValidationPipeline.validate_request_with_warnings(request_data)
+
+    assert result.is_valid is False
+    assert result.error is not None
+    dumped = result.error.model_dump()
+    assert dumped["error_code"] == "VALIDATION_PIPELINE_ERROR"
+    assert "tagged-union" not in dumped["message"]
+    assert "tagged-union" not in dumped["details"]
+    # The actionable body must survive the 200-char truncation.
+    assert "Input should be" in dumped["details"]
+
+
+def test_validation_error_template_suggestions_are_chart_type_agnostic() -> None:
+    """The ``validation_error`` template fires for every chart type, so its
+    suggestions must not mention specific chart-type field names."""
+    template = ChartErrorBuilder.TEMPLATES["validation_error"]
+    joined = " ".join(template["suggestions"]).lower()
+    assert "mixed_timeseries" not in joined
+    assert "primary_kind" not in joined
+    assert "secondary_kind" not in joined

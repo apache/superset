@@ -194,8 +194,8 @@ class ChartErrorBuilder:
                 "chart_type's schema",
                 "Call get_chart_type_schema or read the chart://configs resource "
                 "for valid fields and examples",
-                "For mixed_timeseries charts, use 'primary_kind' and "
-                "'secondary_kind' (not 'kind' / 'kind_secondary')",
+                "Replace any unknown field names with the ones listed in the "
+                "error details above",
             ],
         },
     }
