@@ -144,6 +144,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
                   onRemove(id);
                 }}
                 alt="RemoveFilter"
+                data-test="filter-remove-button"
               />
             )}
           </div>
