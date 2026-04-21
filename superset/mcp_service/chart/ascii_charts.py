@@ -581,16 +581,16 @@ def _create_scatter_grid(
         try:
             grid_x = int(((x - x_min) / x_range) * (plot_width - 1))
             grid_y = int(((y - y_min) / y_range) * (plot_height - 1))
-            grid_y = plot_height - 1 - grid_y  # Flip Y axis for display
-
-            if 0 <= grid_x < plot_width and 0 <= grid_y < plot_height:
-                if grid[grid_y][grid_x] == " ":
-                    grid[grid_y][grid_x] = "•"
-                else:
-                    grid[grid_y][grid_x] = "█"  # Multiple points
         except (ValueError, OverflowError):
             # Skip points that can't be converted to integers (NaN, inf, etc.)
             continue
+        grid_y = plot_height - 1 - grid_y  # Flip Y axis for display
+
+        if 0 <= grid_x < plot_width and 0 <= grid_y < plot_height:
+            if grid[grid_y][grid_x] == " ":
+                grid[grid_y][grid_x] = "•"
+            else:
+                grid[grid_y][grid_x] = "█"  # Multiple points
 
     return grid
 

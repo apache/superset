@@ -155,7 +155,11 @@ async def get_chart_data(  # noqa: C901
         # Find the chart by identifier
         with event_logger.log_context(action="mcp.get_chart_data.chart_lookup"):
             await ctx.debug("Looking up chart: identifier=%s" % (request.identifier,))
-            assert request.identifier is not None  # validated earlier
+            if request.identifier is None:
+                return ChartError(
+                    error="Chart identifier is required",
+                    error_type="ValidationError",
+                )
             chart = find_chart_by_identifier(request.identifier)
 
         if not chart:

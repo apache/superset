@@ -1062,7 +1062,11 @@ async def _get_chart_preview_internal(  # noqa: C901
                 await ctx.debug(
                     "Looking up chart: identifier=%s" % (request.identifier,)
                 )
-                assert request.identifier is not None  # validated earlier
+                if request.identifier is None:
+                    return ChartError(
+                        error="Chart identifier is required",
+                        error_type="ValidationError",
+                    )
                 chart = find_chart_by_identifier(request.identifier)
 
                 # If not found and looks like a form_data_key, try transient
