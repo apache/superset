@@ -1598,6 +1598,7 @@ def transpile_to_dialect(
             copy=True,
             comments=False,
             pretty=False,
+            identify=True,
         )
     except ParseError as ex:
         raise QueryClauseValidationException(f"Cannot parse SQL clause: {sql}") from ex

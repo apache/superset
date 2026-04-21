@@ -363,8 +363,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                         clause = transpile_to_dialect(clause, engine)
 
                     sanitized_clause = sanitize_clause(clause, engine)
-                    if sanitized_clause != clause:
-                        self.extras[param] = sanitized_clause
+                    self.extras[param] = sanitized_clause
                 except QueryClauseValidationException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
 
