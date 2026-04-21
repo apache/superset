@@ -55,6 +55,7 @@ function DashboardTable({
   otherTabData,
   otherTabFilters,
   otherTabTitle,
+  onActivityRefresh,
 }: DashboardTableProps) {
   const history = useHistory();
   const defaultTab = getItem(
@@ -248,6 +249,7 @@ function DashboardTable({
               getData,
             );
             setDashboardToDelete(null);
+            onActivityRefresh?.();
           }}
           onHide={() => setDashboardToDelete(null)}
           open={!!dashboardToDelete}
