@@ -195,7 +195,7 @@
     "query-string": "9.3.1",
     "re-resizable": "^6.11.2",
     "react": "^17.0.2",
-    "react-arborist": "^3.4.3",
+    "react-arborist": "^3.5.0",
     "react-checkbox-tree": "^1.8.0",
     "react-diff-viewer-continued": "^4.2.0",
     "react-dnd": "^11.1.3",
