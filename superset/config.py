@@ -1971,6 +1971,10 @@ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
 ALERT_REPORTS_DEFAULT_RETENTION = 90
 ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 0 * * *"  # every day
+# Minimum elapsed time (seconds) before a WORKING state is considered stale
+# (e.g. due to a crashed Celery worker) and eligible for reset + retry.
+# Must be less than working_timeout on any schedule.
+ALERT_REPORTS_STALE_WORKING_TIMEOUT = 300
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
