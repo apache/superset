@@ -283,10 +283,10 @@ test('Click on Edit dataset', async () => {
     useRedux: true,
     useRouter: true,
   });
-  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   await act(async () => {
-    userEvent.click(screen.getByText('Edit dataset'));
+    await userEvent.click(screen.getByText('Edit dataset'));
   });
 
   expect(screen.getByTestId('mock-datasource-editor')).toBeInTheDocument();
