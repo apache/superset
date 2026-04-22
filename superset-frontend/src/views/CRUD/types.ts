@@ -49,6 +49,7 @@ export interface DashboardTableProps {
   otherTabData?: Array<Dashboard>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
+  onDeleteSuccess?: () => void;
 }
 
 export interface Dashboard {

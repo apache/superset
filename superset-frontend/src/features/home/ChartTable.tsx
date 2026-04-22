@@ -59,6 +59,7 @@ interface ChartTableProps {
   otherTabData?: Array<object>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
+  onDeleteSuccess?: () => void;
 }
 
 function ChartTable({
@@ -70,6 +71,7 @@ function ChartTable({
   otherTabData,
   otherTabFilters,
   otherTabTitle,
+  onDeleteSuccess,
 }: ChartTableProps) {
   const history = useHistory();
   const initialTab = getItem(
@@ -234,6 +236,7 @@ function ChartTable({
               refreshData={refreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
+              onDeleteSuccess={onDeleteSuccess}
               favoriteStatus={favoriteStatus[e.id]}
               saveFavoriteStatus={saveFavoriteStatus}
               handleBulkChartExport={handleBulkChartExport}

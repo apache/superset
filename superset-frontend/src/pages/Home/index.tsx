@@ -208,6 +208,30 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     ];
   }, []);
 
+  const fetchRecentActivity = () => {
+    getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
+      .then(res => {
+        const data: ActivityData = {};
+        data[TableTab.Other] = res.other;
+        if (res.viewed) {
+          const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
+          data[TableTab.Viewed] = filtered;
+        }
+        setActivityData(prev => ({ ...prev, ...data }));
+      })
+      .catch(
+        createErrorHandler((errMsg: unknown) => {
+          setActivityData(prev => ({
+            ...prev,
+            [TableTab.Viewed]: [],
+          }));
+          addDangerToast(
+            t('There was an issue fetching your recent activity: %s', errMsg),
+          );
+        }),
+      );
+  };
+
   useEffect(() => {
     if (!otherTabFilters || WelcomeMainExtension) {
       return;
@@ -394,6 +418,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         otherTabData={activityData?.[TableTab.Other]}
                         otherTabFilters={otherTabFilters}
                         otherTabTitle={otherTabTitle}
+                        onDeleteSuccess={fetchRecentActivity}
                       />
                     ),
                 },
@@ -411,6 +436,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         otherTabData={activityData?.[TableTab.Other]}
                         otherTabFilters={otherTabFilters}
                         otherTabTitle={otherTabTitle}
+                        onDeleteSuccess={fetchRecentActivity}
                       />
                     ),
                 },

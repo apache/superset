@@ -55,6 +55,7 @@ function DashboardTable({
   otherTabData,
   otherTabFilters,
   otherTabTitle,
+  onDeleteSuccess,
 }: DashboardTableProps) {
   const history = useHistory();
   const defaultTab = getItem(
@@ -246,6 +247,7 @@ function DashboardTable({
               activeTab,
               user?.userId,
               getData,
+              onDeleteSuccess,
             );
             setDashboardToDelete(null);
           }}

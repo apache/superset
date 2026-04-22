@@ -50,6 +50,7 @@ interface ChartCardProps {
   userId?: string | number;
   showThumbnails?: boolean;
   handleBulkChartExport: (chartsToExport: Chart[]) => void;
+  onDeleteSuccess?: () => void;
 }
 
 export default function ChartCard({
@@ -67,6 +68,7 @@ export default function ChartCard({
   chartFilter,
   userId,
   handleBulkChartExport,
+  onDeleteSuccess,
 }: ChartCardProps) {
   const history = useHistory();
   const canEdit = hasPerm('can_write');
@@ -136,6 +138,7 @@ export default function ChartCard({
               refreshData,
               chartFilter,
               userId,
+              onDeleteSuccess,
             )
           }
         >
