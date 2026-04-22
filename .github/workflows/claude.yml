@@ -44,7 +44,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Comment access denied
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const message = `👋 Hi @${{ github.event.comment.user.login || github.event.review.user.login || github.event.issue.user.login }}!
@@ -76,7 +76,7 @@ jobs:
         fetch-depth: 1
 
     - name: Run Claude PR Action
-      uses: anthropics/claude-code-action@6062f3709600659be5e47fcddf2cf76993c235c2 # beta
+      uses: anthropics/claude-code-action@5fb899572b81d2bb648d4d187173a2f423a9677c # beta
       with:
         anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
         timeout_minutes: "60"

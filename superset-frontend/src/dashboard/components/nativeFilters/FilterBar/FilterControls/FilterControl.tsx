@@ -24,6 +24,7 @@ import {
 } from 'react-reverse-portal';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { isChartCustomization } from '@superset-ui/core';
+import { ChartCustomizationPlugins } from 'src/constants';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
@@ -35,6 +36,7 @@ import {
   FilterStyledIcon,
   RequiredFieldIndicator,
   DescriptionToolTip,
+  DeckglLayerVisibilityTooltip,
   useFilterControlDisplay,
 } from './FilterControlShared';
 import GroupByFilterCard from './GroupByFilterCard';
@@ -85,6 +87,10 @@ const FilterControl = ({
         {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
         )}
+        {filter.filterType ===
+          ChartCustomizationPlugins.DeckglLayerVisibility && (
+          <DeckglLayerVisibilityTooltip />
+        )}
         <FilterStyledIcon data-test="filter-icon">{icon}</FilterStyledIcon>
       </FilterControlTitleBox>
     ),
@@ -94,6 +100,7 @@ const FilterControl = ({
       name,
       isRequired,
       filter.description,
+      filter.filterType,
       icon,
     ],
   );

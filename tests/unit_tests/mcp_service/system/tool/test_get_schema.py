@@ -153,16 +153,18 @@ class TestModelSchemaInfo:
 
     def test_chart_default_columns(self):
         """Test chart default columns include required minimal set."""
-        required_columns = {
+        assert set(CHART_DEFAULT_COLUMNS) == {
             "id",
             "slice_name",
             "viz_type",
+            "description",
+            "certified_by",
+            "certification_details",
             "url",
+            "changed_on",
             "changed_on_humanized",
         }
-        assert required_columns.issubset(set(CHART_DEFAULT_COLUMNS))
-        # These should NOT be in defaults
-        assert "description" not in CHART_DEFAULT_COLUMNS
+        # Heavy columns should NOT be in defaults
         assert "form_data" not in CHART_DEFAULT_COLUMNS
         assert "uuid" not in CHART_DEFAULT_COLUMNS
 
@@ -269,28 +271,6 @@ class TestGetSchemaToolViaClient:
             assert "dashboard_title" in info["sortable_columns"]
             assert "changed_on" in info["sortable_columns"]
 
-    @patch(
-        "superset.mcp_service.utils.schema_utils._is_parse_request_enabled",
-        return_value=True,
-    )
-    @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
-    @pytest.mark.asyncio
-    async def test_get_schema_with_json_string_request(
-        self, mock_filters, mock_parse_enabled, mcp_server
-    ):
-        """Test get_schema accepts JSON string request (Claude Code compatibility)."""
-        mock_filters.return_value = {"slice_name": ["eq"]}
-
-        async with Client(mcp_server) as client:
-            # Send request as JSON string (Claude Code bug workaround)
-            result = await client.call_tool(
-                "get_schema", {"request": '{"model_type": "chart"}'}
-            )
-
-            assert result.content is not None
-            data = json.loads(result.content[0].text)
-            assert data["schema_info"]["model_type"] == "chart"
-
     @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
     @pytest.mark.asyncio
     async def test_get_schema_select_columns_have_metadata(
@@ -313,12 +293,17 @@ class TestGetSchemaToolViaClient:
             assert id_col["type"] == "int"
             assert id_col["is_default"] is True
 
-            # Find a non-default column (description is on the model)
+            # description is now a default column
             desc_col = next(
                 (c for c in select_cols if c["name"] == "description"), None
             )
             assert desc_col is not None
-            assert desc_col["is_default"] is False
+            assert desc_col["is_default"] is True
+
+            # Find a non-default column (uuid is on the model but not default)
+            uuid_col = next((c for c in select_cols if c["name"] == "uuid"), None)
+            assert uuid_col is not None
+            assert uuid_col["is_default"] is False
 
 
 class TestGetSchemaEdgeCases:

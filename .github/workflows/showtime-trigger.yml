@@ -37,7 +37,7 @@ jobs:
     steps:
       - name: Security Check - Authorize Maintainers Only
         id: auth
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -102,10 +102,12 @@ jobs:
       - name: Install Superset Showtime
         if: steps.auth.outputs.authorized == 'true'
         run: |
-          echo "::notice::Maintainer ${{ github.actor }} triggered deploy for PR ${{ github.event.pull_request.number || github.event.inputs.pr_number }}"
+          echo "::notice::Maintainer ${{ github.actor }} triggered deploy for PR ${PULL_REQUEST_NUMBER}"
           pip install --upgrade superset-showtime
           showtime version
 
+        env:
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
       - name: Check what actions are needed
         if: steps.auth.outputs.authorized == 'true'
         id: check
@@ -113,12 +115,14 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          INPUT_SHA: ${{ github.event.inputs.sha }}
         run: |
           # Bulletproof PR number extraction
           if [[ -n "${{ github.event.pull_request.number }}" ]]; then
             PR_NUM="${{ github.event.pull_request.number }}"
-          elif [[ -n "${{ github.event.inputs.pr_number }}" ]]; then
-            PR_NUM="${{ github.event.inputs.pr_number }}"
+          elif [[ -n "${INPUT_PR_NUMBER}" ]]; then
+            PR_NUM="${INPUT_PR_NUMBER}"
           else
             echo "❌ No PR number found in event or inputs"
             exit 1
@@ -127,8 +131,8 @@ jobs:
           echo "Using PR number: $PR_NUM"
 
           # Run sync check-only with optional SHA override
-          if [[ -n "${{ github.event.inputs.sha }}" ]]; then
-            OUTPUT=$(python -m showtime sync $PR_NUM --check-only --sha "${{ github.event.inputs.sha }}")
+          if [[ -n "${INPUT_SHA}" ]]; then
+            OUTPUT=$(python -m showtime sync $PR_NUM --check-only --sha "${INPUT_SHA}")
           else
             OUTPUT=$(python -m showtime sync $PR_NUM --check-only)
           fi
