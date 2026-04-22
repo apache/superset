@@ -49,6 +49,7 @@ export interface DashboardTableProps {
   otherTabData?: Array<Dashboard>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
+  refreshActivityData?: () => void;
 }
 
 export interface Dashboard {

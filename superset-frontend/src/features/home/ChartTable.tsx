@@ -59,6 +59,7 @@ interface ChartTableProps {
   otherTabData?: Array<object>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
+  refreshActivityData?: () => void;
 }
 
 function ChartTable({
@@ -70,6 +71,7 @@ function ChartTable({
   otherTabData,
   otherTabFilters,
   otherTabTitle,
+  refreshActivityData,
 }: ChartTableProps) {
   const history = useHistory();
   const initialTab = getItem(
@@ -231,7 +233,10 @@ function ChartTable({
               hasPerm={hasPerm}
               showThumbnails={showThumbnails}
               bulkSelectEnabled={bulkSelectEnabled}
-              refreshData={refreshData}
+              refreshData={() => {
+                refreshData();
+                refreshActivityData?.();
+              }}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
               favoriteStatus={favoriteStatus[e.id]}

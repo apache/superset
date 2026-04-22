@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
@@ -208,12 +208,11 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     ];
   }, []);
 
-  useEffect(() => {
+  const refreshActivityData = useCallback(() => {
     if (!otherTabFilters || WelcomeMainExtension) {
       return;
     }
     const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);
-    setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
     getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {
         const data: ActivityData | null = {};
@@ -241,6 +240,14 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           );
         }),
       );
+  }, [otherTabFilters, WelcomeMainExtension, user.userId, recent, addDangerToast]);
+
+  useEffect(() => {
+    if (!otherTabFilters || WelcomeMainExtension) {
+      return;
+    }
+    setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
+    refreshActivityData();
 
     // Sets other activity data in parallel with recents api call
     const ownSavedQueryFilters = [
@@ -394,6 +401,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         otherTabData={activityData?.[TableTab.Other]}
                         otherTabFilters={otherTabFilters}
                         otherTabTitle={otherTabTitle}
+                        refreshActivityData={refreshActivityData}
                       />
                     ),
                 },
@@ -411,6 +419,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         otherTabData={activityData?.[TableTab.Other]}
                         otherTabFilters={otherTabFilters}
                         otherTabTitle={otherTabTitle}
+                        refreshActivityData={refreshActivityData}
                       />
                     ),
                 },

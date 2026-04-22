@@ -55,6 +55,7 @@ function DashboardTable({
   otherTabData,
   otherTabFilters,
   otherTabTitle,
+  refreshActivityData,
 }: DashboardTableProps) {
   const history = useHistory();
   const defaultTab = getItem(
@@ -240,7 +241,10 @@ function DashboardTable({
           onConfirm={() => {
             handleDashboardDelete(
               dashboardToDelete,
-              refreshData,
+              () => {
+                refreshData();
+                refreshActivityData?.();
+              },
               addSuccessToast,
               addDangerToast,
               activeTab,
