@@ -30,6 +30,7 @@ import {
   ON_REFRESH_SUCCESS,
   TOGGLE_FAVE_STAR,
   fetchFaveStar,
+  saveFaveStar,
 } from 'src/dashboard/actions/dashboardState';
 import { refreshChart } from 'src/components/Chart/chartAction';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
@@ -492,6 +493,131 @@ describe('dashboardState actions', () => {
         .mockRejectedValue(new Error('network'));
 
       await fetchFaveStar(requestedId)(dispatch, getState);
+
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('saveFaveStar race condition', () => {
+    let deleteStub: jest.SpyInstance;
+
+    beforeEach(() => {
+      deleteStub = jest
+        .spyOn(SupersetClient, 'delete')
+        .mockResolvedValue({} as any);
+    });
+
+    afterEach(() => {
+      deleteStub.mockRestore();
+    });
+
+    test('dispatches TOGGLE_FAVE_STAR when the dashboard ID still matches (starring)', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      postStub.mockRestore();
+      postStub = jest
+        .spyOn(SupersetClient, 'post')
+        .mockResolvedValue({} as any);
+
+      await saveFaveStar(id, false)(dispatch, getState);
+
+      expect(postStub).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledWith({
+        type: TOGGLE_FAVE_STAR,
+        isStarred: true,
+      });
+    });
+
+    test('dispatches TOGGLE_FAVE_STAR when the dashboard ID still matches (unstarring)', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      await saveFaveStar(id, true)(dispatch, getState);
+
+      expect(deleteStub).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledWith({
+        type: TOGGLE_FAVE_STAR,
+        isStarred: false,
+      });
+    });
+
+    test('does NOT dispatch when the dashboard ID changed before the response resolved', async () => {
+      const requestedId = 123;
+      // User navigated to a different dashboard by the time the response comes back
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id: 456,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      postStub.mockRestore();
+      postStub = jest
+        .spyOn(SupersetClient, 'post')
+        .mockResolvedValue({} as any);
+
+      await saveFaveStar(requestedId, false)(dispatch, getState);
+
+      expect(postStub).toHaveBeenCalledTimes(1);
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    test('dispatches a danger toast on error when the dashboard ID still matches', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      postStub.mockRestore();
+      postStub = jest
+        .spyOn(SupersetClient, 'post')
+        .mockRejectedValue(new Error('network'));
+
+      await saveFaveStar(id, false)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
+          }),
+        }),
+      );
+    });
+
+    test('does NOT dispatch a danger toast on error when the dashboard ID changed', async () => {
+      const requestedId = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id: 456,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      postStub.mockRestore();
+      postStub = jest
+        .spyOn(SupersetClient, 'post')
+        .mockRejectedValue(new Error('network'));
+
+      await saveFaveStar(requestedId, false)(dispatch, getState);
 
       expect(dispatch).not.toHaveBeenCalled();
     });
