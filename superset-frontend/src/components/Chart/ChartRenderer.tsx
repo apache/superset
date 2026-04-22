@@ -46,8 +46,7 @@ import {
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
-import { SupersetTheme } from '@apache-superset/core/theme';
-import { useTheme } from '@emotion/react';
+import { useTheme } from '@apache-superset/core/theme';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
@@ -236,7 +235,7 @@ function ChartRendererComponent({
     onChartStateChange,
   } = restProps;
 
-  const theme = useTheme() as SupersetTheme;
+  const theme = useTheme();
 
   const suppressContextMenu = getChartMetadataRegistry().get(
     formData.viz_type ?? propVizType,
