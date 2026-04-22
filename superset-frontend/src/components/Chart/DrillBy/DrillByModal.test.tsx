@@ -593,6 +593,7 @@ describe('Table view with pagination', () => {
       expect.objectContaining({
         resultFormat: 'csv',
         resultType: 'full',
+        formData: expect.objectContaining({ slice_id: 0 }),
       }),
     );
   });
@@ -623,6 +624,7 @@ describe('Table view with pagination', () => {
       expect.objectContaining({
         resultFormat: 'xlsx',
         resultType: 'full',
+        formData: expect.objectContaining({ slice_id: 0 }),
       }),
     );
   });
