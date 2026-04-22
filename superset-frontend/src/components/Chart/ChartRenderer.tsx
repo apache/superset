@@ -431,8 +431,11 @@ function ChartRendererComponent({
         const nextFormData = formData as JsonObject;
         const currentFormData = prevProps.formData as JsonObject;
         const isMatrixifyEnabled =
-          nextFormData.matrixify_enable_vertical_layout === true ||
-          nextFormData.matrixify_enable_horizontal_layout === true;
+          nextFormData.matrixify_enable === true &&
+          ((nextFormData.matrixify_mode_rows !== undefined &&
+            nextFormData.matrixify_mode_rows !== 'disabled') ||
+            (nextFormData.matrixify_mode_columns !== undefined &&
+              nextFormData.matrixify_mode_columns !== 'disabled'));
         if (!isMatrixifyEnabled) return false;
 
         // Check all matrixify-related properties
