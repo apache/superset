@@ -57,7 +57,7 @@ const StyledDatasourceModal = styled(Modal)`
   && .ant-modal-content {
     display: flex;
     flex-direction: column;
-    height: ${MODAL_HEIGHT_VH}vh;
+    height: 100%;
     max-height: ${MODAL_HEIGHT_VH}vh;
     margin-top: 0;
     margin-bottom: 0;
