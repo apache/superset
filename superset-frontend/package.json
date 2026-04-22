@@ -170,7 +170,7 @@
     "fs-extra": "^11.3.4",
     "fuse.js": "^7.3.0",
     "geolib": "^3.3.14",
-    "geostyler": "^18.3.1",
+    "geostyler": "^18.5.0",
     "geostyler-data": "^1.1.0",
     "geostyler-openlayers-parser": "^5.7.0",
     "geostyler-style": "11.0.2",
