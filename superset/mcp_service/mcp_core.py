@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
@@ -27,6 +28,23 @@ from pydantic import BaseModel
 from superset.daos.base import BaseDAO
 from superset.mcp_service.constants import ModelType
 from superset.mcp_service.utils import _is_uuid
+
+
+def _slugify(value: str) -> str:
+    """Normalize a string to a slug-like form for comparison.
+
+    Lowercases, drops apostrophes so possessives collapse
+    ("World Bank's" → "worldbanks" territory), then collapses any
+    remaining non-alphanumerics to single hyphens and trims
+    leading/trailing hyphens. Mirrors how agents typically guess slugs
+    from a dashboard title (e.g. "World Bank's Data" → "world-banks-data").
+    """
+    lowered = value.lower()
+    # Drop apostrophes entirely so "bank's" collapses to "banks" rather than
+    # splitting into "bank-s". Covers straight and curly variants.
+    stripped = re.sub(r"['’]", "", lowered)
+    return re.sub(r"[^a-z0-9]+", "-", stripped).strip("-")
+
 
 # Type variables for generic model tools
 T = TypeVar("T")  # For model objects
@@ -262,6 +280,7 @@ class ModelGetInfoCore(BaseCore):
         supports_slug: bool = False,
         logger: logging.Logger | None = None,
         query_options: list[Any] | None = None,
+        title_column_name: str | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
@@ -270,6 +289,49 @@ class ModelGetInfoCore(BaseCore):
         self.serializer = serializer
         self.supports_slug = supports_slug
         self.query_options = query_options or []
+        # When set, enables a slugified-title fallback after slug lookup
+        # fails, so identifiers like "world-banks-data" still resolve to
+        # "World Bank's Data" when the dashboard's slug field is empty.
+        # Defaults to the DAO's `title_column` attribute when not overridden.
+        self.title_column_name = title_column_name or getattr(
+            dao_class, "title_column", None
+        )
+
+    def _find_by_slugified_title(self, identifier: str) -> Any:
+        """Resolve a slug-like identifier by matching against slugified titles.
+
+        Loads all rows and compares `_slugify(row.title)` to `_slugify(identifier)`.
+        If multiple rows match, logs a warning and returns the first one —
+        collisions in real dashboards are rare and the caller can always
+        disambiguate by id or UUID.
+        """
+        if not self.title_column_name:
+            return None
+        target = _slugify(identifier)
+        if not target:
+            return None
+
+        from superset.extensions import db
+
+        model_class = self.dao_class.model_cls
+        query = db.session.query(model_class)
+        if self.query_options:
+            query = query.options(*self.query_options)
+        matches = [
+            obj
+            for obj in query.all()
+            if _slugify(getattr(obj, self.title_column_name, "") or "") == target
+        ]
+        if not matches:
+            return None
+        if len(matches) > 1:
+            ids = [getattr(m, "id", None) for m in matches]
+            self._log_warning(
+                f"Identifier '{identifier}' matched {len(matches)} rows by "
+                f"slugified title (ids={ids}); returning the first. Pass an "
+                "id or UUID to disambiguate."
+            )
+        return matches[0]
 
     def _find_object(self, identifier: int | str) -> Any:
         """Find object by identifier using appropriate method."""
@@ -309,7 +371,14 @@ class ModelGetInfoCore(BaseCore):
             query = db.session.query(model_class).filter(id_or_slug_filter(identifier))
             if opts:
                 query = query.options(*opts)
-            return query.one_or_none()
+            slug_result = query.one_or_none()
+            if slug_result is not None:
+                return slug_result
+
+            # Many dashboards have empty slugs, so slug lookup alone silently
+            # fails when agents pass a slug-like string derived from the
+            # dashboard title. Fall back to slugified-title matching.
+            return self._find_by_slugified_title(identifier)
 
         # If we get here, it's an invalid identifier
         return None
