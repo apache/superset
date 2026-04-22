@@ -99,9 +99,12 @@ export default function reactify<Props extends object>(
       () => () => {
         if (callbacks?.componentWillUnmount) {
           // Preserve legacy behavior where `this` was a component instance
-          // exposing `container` and `props`.
+          // exposing `props`. The class version cleared `this.container`
+          // before invoking componentWillUnmount, so mirror that here to
+          // prevent callbacks from touching a DOM node that's being torn
+          // down.
           callbacks.componentWillUnmount.call({
-            container: containerRef.current,
+            container: undefined,
             props: propsRef.current,
           });
         }
