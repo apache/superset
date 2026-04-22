@@ -74,7 +74,7 @@
     "@types/d3-scale": "^2.1.1",
     "@types/d3-time": "^3.0.4",
     "@types/d3-time-format": "^4.0.3",
-    "@types/jquery": "^3.5.33",
+    "@types/jquery": "^4.0.0",
     "@types/lodash": "^4.17.24",
     "@types/node": "^25.6.0",
     "@types/prop-types": "^15.7.15",
