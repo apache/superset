@@ -296,11 +296,11 @@ function Dashboard({
         ts: new Date().getTime(),
       };
     }
-    window.addEventListener('visibilitychange', onVisibilityChange);
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     // componentWillUnmount equivalent
     return () => {
-      window.removeEventListener('visibilitychange', onVisibilityChange);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       onBeforeUnload(false); // Remove beforeunload listener on unmount
       actions.clearDataMaskState();
       actions.clearAllChartStates();
