@@ -32,17 +32,17 @@ This replay migration safely re-runs the table creation using idempotent
 utilities, ensuring the user_favorite_tag table exists regardless of the
 upgrade path taken.
 
-Revision ID: a1b2c3d4e5f6
-Revises: 4b2a8c9d3e1f
-Create Date: 2026-02-21 22:00:00.000000
+Revision ID: 31dae2559c05
+Revises: fd0c8583b46d
+Create Date: 2026-04-22 19:00:00.000000
 
 """
 
 from importlib import import_module
 
 # revision identifiers, used by Alembic.
-revision = "a1b2c3d4e5f6"
-down_revision = "4b2a8c9d3e1f"
+revision = "31dae2559c05"
+down_revision = "fd0c8583b46d"
 
 # Import the original migration module
 module = import_module(
