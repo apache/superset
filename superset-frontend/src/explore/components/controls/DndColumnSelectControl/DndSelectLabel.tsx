@@ -90,7 +90,14 @@ export default function DndSelectLabel({
   // Check if the active dragged item can be dropped here
   const canDrop = useMemo(() => {
     if (!active?.data.current) return false;
-    const activeData = active.data.current as { type: string; value: unknown };
+    const activeData = active.data.current as {
+      type: string;
+      value: unknown;
+      dragIndex?: number;
+    };
+    // Skip sortable reorder drags (they carry a dragIndex) - those are handled
+    // as list reorders in ExploreDndContext, not as external drops.
+    if (typeof activeData.dragIndex === 'number') return false;
     if (!acceptTypes.includes(activeData.type as DndItemType)) return false;
     return dropValidator({
       type: activeData.type as DndItemType,
