@@ -141,6 +141,7 @@ export default function ActivityTable({
 
     return () => {
       isMounted = false;
+      setIsFetchingEditedCards(false);
     };
   }, [activeChild, user.userId]);
 
