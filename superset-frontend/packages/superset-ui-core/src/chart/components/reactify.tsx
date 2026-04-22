@@ -19,6 +19,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import type {
+  ComponentType,
   WeakValidationMap,
   ForwardRefExoticComponent,
   PropsWithoutRef,
@@ -58,14 +59,18 @@ export interface ReactifiedComponentRef {
   container?: HTMLDivElement;
 }
 
-type ReactifiedComponent<Props> = ForwardRefExoticComponent<
+export type ReactifiedComponent<Props> = ForwardRefExoticComponent<
   PropsWithoutRef<Props & ReactifyProps> & RefAttributes<ReactifiedComponentRef>
 >;
 
+// Return the widest public type that covers "use it as a React component" so
+// TypeScript consumers who previously relied on `ComponentClass<...>` still
+// compile. Callers that want the new ref-aware surface can narrow to
+// `ReactifiedComponent<Props>` explicitly.
 export default function reactify<Props extends object>(
   renderFn: RenderFuncType<Props>,
   callbacks?: LifeCycleCallbacks,
-): ReactifiedComponent<Props> {
+): ComponentType<Props & ReactifyProps> {
   const ReactifiedComponent = forwardRef<
     ReactifiedComponentRef,
     Props & ReactifyProps
@@ -135,5 +140,5 @@ export default function reactify<Props extends object>(
     result.defaultProps = renderFn.defaultProps;
   }
 
-  return result as ReactifiedComponent<Props>;
+  return result as unknown as ComponentType<Props & ReactifyProps>;
 }
