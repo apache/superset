@@ -714,6 +714,38 @@ dashboard_config: dict[str, Any] = {
     },
     "version": "1.0.0",
 }
+
+annotation_layer_metadata_config: dict[str, Any] = {
+    "version": "1.0.0",
+    "type": "AnnotationLayer",
+    "timestamp": "2024-01-01T00:00:00.000000+00:00",
+}
+
+annotation_layer_config: dict[str, Any] = {
+    "name": "imported_layer",
+    "descr": "A test annotation layer",
+    "uuid": "b8c5e2a0-3f1d-4e6a-9b7c-1d2e3f4a5b6c",
+    "version": "1.0.0",
+    "annotation": [
+        {
+            "short_descr": "annotation 1",
+            "long_descr": "First test annotation",
+            "start_dttm": "2024-01-01T00:00:00",
+            "end_dttm": "2024-06-01T00:00:00",
+            "json_metadata": {"color": "red", "opacity": 0.5},
+            "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        },
+        {
+            "short_descr": "annotation 2",
+            "long_descr": "Second test annotation",
+            "start_dttm": "2024-02-01T00:00:00",
+            "end_dttm": "2024-07-01T00:00:00",
+            "json_metadata": None,
+            "uuid": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        },
+    ],
+}
+
 saved_queries_config = {
     "schema": "public",
     "label": "Test Saved Query",
