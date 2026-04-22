@@ -173,6 +173,9 @@ function AdhocFilterControl({
   );
 
   useEffect(() => {
+    // Clear stale partition state before (re)resolving; only 1-partition-key
+    // datasources end up setting a value below.
+    setPartitionColumn(null);
     if (datasource && datasource.type === 'table') {
       const dbId = datasource.database?.id;
       const {
@@ -195,8 +198,8 @@ function AdhocFilterControl({
           .then(({ json }) => {
             if (json && json.partitions) {
               const { partitions } = json;
-              // for now only show latest_partition option
-              // when table datasource has only 1 partition key.
+              // only show latest_partition option when the table datasource
+              // has exactly 1 partition key.
               if (
                 partitions &&
                 partitions.cols &&
