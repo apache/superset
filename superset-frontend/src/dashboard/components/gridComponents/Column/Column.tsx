@@ -116,7 +116,7 @@ const ColumnStyles = styled.div<{ editMode: boolean }>`
         width: 100%;
         height: 100%;
       }
-      &:not(:first-child):not(.droptarget-edge) {
+      &:not(:first-of-type):not(.droptarget-edge) {
         width: 100%;
         min-height: ${theme.sizeUnit * 4}px;
       }
