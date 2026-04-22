@@ -493,6 +493,7 @@ test('passes correct parameters to handleDashboardDelete for Other tab', async (
     'Other',
     mockUser.userId,
     expect.any(Function),
+    undefined,
   );
 
   const lastCall = mockHandleDashboardDelete.mock.calls[0];
