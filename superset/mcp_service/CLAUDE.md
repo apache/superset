@@ -444,8 +444,6 @@ MCP_USER_RESOLVER = None         # Custom function to extract username from JWT
 # RBAC
 MCP_RBAC_ENABLED = True          # Enable permission checking (default: True)
 
-# Request Parsing
-MCP_PARSE_REQUEST_ENABLED = True # Accept JSON string requests (workaround for client bugs)
 
 # Response Caching (optional, uses in-memory store by default; Redis when MCP_STORE_CONFIG enabled)
 MCP_CACHE_CONFIG = {
