@@ -454,9 +454,6 @@ const StyledTableTabWrapper = styled.div`
       width: 30%;
     }
 
-    .datasource-label-cell {
-      width: 20%;
-    }
 
     .datasource-sql-cell {
       width: 50%;
