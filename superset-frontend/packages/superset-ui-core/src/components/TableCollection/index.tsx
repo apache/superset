@@ -27,7 +27,12 @@ import {
 } from 'react-table';
 import { styled } from '@apache-superset/core/theme';
 import { Table, TableSize } from '@superset-ui/core/components/Table';
-import { TableRowSelection, SorterResult } from 'antd/es/table/interface';
+import {
+  ColumnsType,
+  TableRowSelection,
+  SorterResult,
+} from 'antd/es/table/interface';
+import type { TableProps } from 'antd/es/table';
 import { mapColumns, mapRows } from './utils';
 
 interface TableCollectionProps<T extends object> {
@@ -290,7 +295,10 @@ function TableCollection<T extends object>({
     <StyledTable
       loading={loading}
       sticky={sticky ?? false}
-      columns={mappedColumns}
+      // Forward-compat: TS 6.0 tightens antd Table's generic inference so our
+      // typed-against-react-table mapped columns must be widened to the antd
+      // ColumnsType<object> surface the Table expects here.
+      columns={mappedColumns as unknown as ColumnsType<object>}
       data={mappedRows}
       size={size}
       data-test="listview-table"
@@ -303,7 +311,9 @@ function TableCollection<T extends object>({
       sortDirections={['ascend', 'descend', 'ascend']}
       isPaginationSticky={isPaginationSticky}
       showRowCount={showRowCount}
-      rowClassName={getRowClassName}
+      rowClassName={
+        getRowClassName as unknown as TableProps<object>['rowClassName']
+      }
       components={{
         header: {
           cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
@@ -319,7 +329,7 @@ function TableCollection<T extends object>({
           ),
         },
       }}
-      onChange={handleTableChange}
+      onChange={handleTableChange as unknown as TableProps<object>['onChange']}
     />
   );
 }

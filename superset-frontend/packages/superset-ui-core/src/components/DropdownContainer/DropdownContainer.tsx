@@ -19,7 +19,7 @@
 import {
   cloneElement,
   forwardRef,
-  RefObject,
+  ForwardedRef,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
@@ -54,7 +54,7 @@ export const DropdownContainer = forwardRef(
       forceRender,
       style,
     }: DropdownContainerProps,
-    outerRef: RefObject<DropdownRef>,
+    outerRef: ForwardedRef<DropdownRef>,
   ) => {
     const theme = useTheme();
     const { ref, width = 0 } = useResizeDetector<HTMLDivElement>();
