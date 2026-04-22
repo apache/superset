@@ -351,6 +351,18 @@ const StyledDashboardContent = styled.div<{
   `}
 `;
 
+const SrOnlyH2 = styled.h2`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
+
 const ELEMENT_ON_SCREEN_OPTIONS = {
   threshold: [1],
 };
@@ -509,10 +521,13 @@ const DashboardBuilder = () => {
         {!hideDashboardHeader && <DashboardHeader />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
-            <FilterBar
-              orientation={FilterBarOrientation.Horizontal}
-              hidden={isReport}
-            />
+            <>
+              <SrOnlyH2>{t('Filters')}</SrOnlyH2>
+              <FilterBar
+                orientation={FilterBarOrientation.Horizontal}
+                hidden={isReport}
+              />
+            </>
           )}
       </>
     ),
@@ -581,6 +596,7 @@ const DashboardBuilder = () => {
           hidden={isReport}
           data-test="dashboard-filters-panel"
         >
+          <SrOnlyH2>{t('Filters')}</SrOnlyH2>
           <StickyPanel ref={containerRef} width={filterBarWidth}>
             <ErrorBoundary>
               <FilterBar
@@ -616,6 +632,8 @@ const DashboardBuilder = () => {
   return (
     <DashboardWrapper>
       {isVerticalFilterBarVisible && (
+        <>
+        <SrOnlyH2>{t('Filters')}</SrOnlyH2>
         <ResizableSidebar
           id={`dashboard:${dashboardId}`}
           enable={dashboardFiltersOpen}
@@ -625,6 +643,7 @@ const DashboardBuilder = () => {
         >
           {renderChild}
         </ResizableSidebar>
+        </>
       )}
       <StyledHeader
         data-test="dashboard-header-wrapper"
@@ -649,6 +668,7 @@ const DashboardBuilder = () => {
           {renderDraggableContent}
         </Droppable>
       </StyledHeader>
+      <SrOnlyH2>{t('Dashboard content')}</SrOnlyH2>
       <StyledContent fullSizeChartId={fullSizeChartId}>
         {!editMode &&
           !topLevelTabs &&
