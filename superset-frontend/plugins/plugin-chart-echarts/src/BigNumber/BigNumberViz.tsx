@@ -30,19 +30,10 @@ import {
 import { styled, useTheme } from '@apache-superset/core/theme';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
+import { PROPORTION } from './constants';
 import { EventHandlers } from '../types';
 
 const defaultNumberFormatter = getNumberFormatter();
-
-const PROPORTION = {
-  // text size: proportion of the chart container sans trendline
-  METRIC_NAME: 0.125,
-  KICKER: 0.1,
-  HEADER: 0.3,
-  SUBHEADER: 0.125,
-  // trendline size: proportion of the whole chart container
-  TRENDLINE: 0.3,
-};
 
 function BigNumberVis({
   className = '',

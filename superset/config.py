@@ -2074,6 +2074,15 @@ DEFAULT_RELATIVE_END_TIME = "today"
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
+    # SQLite-based engines (SQLite, GSheets, Shillelagh) can use the
+    # SQLiteSQLValidator, but it requires the optional syntaqlite package:
+    #
+    #   pip install "apache-superset[sqlite]"
+    #
+    # Once installed, enable validation by uncommenting the lines below:
+    # "sqlite": "SQLiteSQLValidator",
+    # "gsheets": "SQLiteSQLValidator",
+    # "shillelagh": "SQLiteSQLValidator",
 }
 
 # A list of preferred databases, in order. These databases will be
