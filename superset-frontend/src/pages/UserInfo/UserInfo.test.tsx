@@ -108,7 +108,7 @@ describe('UserInfo', () => {
   test('renders "None" when the user has no groups', async () => {
     await renderPage({ ...mockUser, groups: [] });
 
-    expect(await screen.findByText('Group')).toBeInTheDocument();
+    expect(await screen.findByText('Groups')).toBeInTheDocument();
     expect(screen.getByText('None')).toBeInTheDocument();
   });
 
