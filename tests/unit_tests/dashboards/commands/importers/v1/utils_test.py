@@ -123,7 +123,7 @@ def test_update_native_filter_config_scope_excluded():
     }
 
 
-def test_update_native_filter_charts_in_scope():
+def test_update_native_filter_charts_in_scope() -> None:
     """
     Test that chartsInScope references in native filters are updated during import.
 
@@ -333,7 +333,7 @@ def test_update_id_refs_handles_missing_time_grains():
     assert "time_grains" not in filter_config
 
 
-def test_update_id_refs_cross_filter_uuid_keyed_config_remapped():
+def test_update_id_refs_cross_filter_uuid_keyed_config_remapped() -> None:
     """
     Test that UUID-keyed chart_configuration entries (from example exports) are
     properly remapped to new integer IDs during import, including UUID values in
@@ -397,7 +397,7 @@ def test_update_id_refs_cross_filter_uuid_keyed_config_remapped():
     assert chart_cfg["2"]["crossFilters"]["chartsInScope"] == [1]
 
 
-def test_update_id_refs_cross_filter_uuid_keyed_unknown_preserved():
+def test_update_id_refs_cross_filter_uuid_keyed_unknown_preserved() -> None:
     """
     Test that UUID-keyed chart_configuration entries with no matching position
     entry are preserved unchanged rather than silently dropped.
@@ -434,7 +434,7 @@ def test_update_id_refs_cross_filter_uuid_keyed_unknown_preserved():
     assert unknown_uuid in chart_cfg
 
 
-def test_update_id_refs_cross_filter_charts_in_scope():
+def test_update_id_refs_cross_filter_charts_in_scope() -> None:
     """
     Test that chartsInScope references in cross-filter configurations are updated.
 
