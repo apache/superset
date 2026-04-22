@@ -304,12 +304,18 @@ var CalHeatMap = function () {
       // standard-time offset). This prevents data from landing in phantom hours
       // during DST transitions and keeps the offset consistent with what
       // getFormattedUTCTime undoes when formatting the tooltip.
+      //
+      // Around DST transitions two distinct UTC timestamps can shift to the
+      // same adjusted key (e.g. the "spring forward" hour that doesn't exist
+      // locally). Accumulate values on collision so no datapoints are silently
+      // dropped in hourly/minutely views.
       let results = {};
       for (let timestamp in timestamps) {
         const value = timestamps[timestamp];
         const ts = parseInt(timestamp, 10);
         const offset = new Date(ts * 1000).getTimezoneOffset() * 60;
-        results[ts + offset] = value;
+        const adjustedTs = ts + offset;
+        results[adjustedTs] = (results[adjustedTs] || 0) + value;
       }
       return results;
     },
