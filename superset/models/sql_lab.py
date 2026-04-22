@@ -70,6 +70,7 @@ from superset.sqllab.limiting_factor import LimitingFactor
 from superset.superset_typing import ExplorableData, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
+    GenericDataType,
     get_column_name,
     LongText,
     MediumText,
@@ -399,13 +400,15 @@ class Query(
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> ColumnElement:
+    ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         """
         Turn an adhoc column into a sqlalchemy column.
         :param col: Adhoc column definition
         :param template_processor: template_processor instance
-        :returns: The metric defined as a sqlalchemy column
-        :rtype: sqlalchemy.sql.column
+        :returns: A tuple of (SQLAlchemy column, generic column type). The
+            generic type is always ``None`` for SavedQuery-backed adhoc
+            columns since no physical column metadata is available.
+        :rtype: tuple[sqlalchemy.sql.ColumnElement, Optional[GenericDataType]]
         """
         label = get_column_name(col)
         expression = self._process_sql_expression(
@@ -416,7 +419,7 @@ class Query(
             template_processor=template_processor,
         )
         sqla_column = literal_column(expression)
-        return self.make_sqla_column_compatible(sqla_column, label)
+        return self.make_sqla_column_compatible(sqla_column, label), None
 
 
 class SavedQuery(

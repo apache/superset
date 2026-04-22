@@ -1620,7 +1620,7 @@ class SqlaTable(
         col: AdhocColumn,
         force_type_check: bool = False,
         template_processor: BaseTemplateProcessor | None = None,
-    ) -> ColumnElement:
+    ) -> tuple[ColumnElement, "utils.GenericDataType | None"]:
         """
         Turn an adhoc column into a sqlalchemy column.
 
@@ -1629,8 +1629,13 @@ class SqlaTable(
                This is needed to validate if a filter with an adhoc column
                is applicable.
         :param template_processor: template_processor instance
-        :returns: The metric defined as a sqlalchemy column
-        :rtype: sqlalchemy.sql.column
+        :returns: A tuple of (SQLAlchemy column, generic column type). The
+            generic type is populated when the column type is resolved
+            (either because the adhoc column matches a physical column, or
+            because ``force_type_check`` triggered a DB probe); otherwise
+            ``None``. Callers use it to coerce filter values to the correct
+            Python type (e.g. numeric casts for numeric adhoc expressions).
+        :rtype: tuple[sqlalchemy.sql.ColumnElement, Optional[GenericDataType]]
         """
         label = utils.get_column_name(col)
         sql_expression = col["sqlExpression"]
@@ -1639,6 +1644,7 @@ class SqlaTable(
         is_dttm = False
         pdf = None
         is_column_reference = col.get("isColumnReference", False)
+        generic_type: "utils.GenericDataType | None" = None
 
         metadata_lookup_key = self._render_adhoc_expression_for_metadata_lookup(
             sql_expression, template_processor
@@ -1652,6 +1658,11 @@ class SqlaTable(
             )
             is_dttm = col_in_metadata.is_temporal
             pdf = col_in_metadata.python_date_format
+            col_spec = self.db_engine_spec.get_column_spec(
+                native_type=col_in_metadata.type
+            )
+            if col_spec:
+                generic_type = col_spec.generic_type
         else:
             # Column doesn't exist in metadata or is not a reference - treat as ad-hoc
             # expression Note: If isColumnReference=true but column not found, we still
@@ -1707,6 +1718,12 @@ class SqlaTable(
                     if not col_desc:
                         raise SupersetGenericDBErrorException("Column not found")
                     is_dttm = col_desc[0]["is_dttm"]  # type: ignore
+                    # ResultSet already resolves the generic type from the
+                    # driver's cursor.description; reuse it so callers can
+                    # coerce filter values correctly (e.g. numeric IN-lists
+                    # stay unquoted for numeric adhoc expressions like
+                    # CAST(... AS BIGINT)).
+                    generic_type = col_desc[0].get("type_generic")
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex
 
@@ -1716,7 +1733,7 @@ class SqlaTable(
                 pdf=pdf,
                 time_grain=time_grain,
             )
-        return self.make_sqla_column_compatible(sqla_column, label)
+        return self.make_sqla_column_compatible(sqla_column, label), generic_type
 
     def _get_series_orderby(
         self,
