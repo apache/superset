@@ -145,10 +145,12 @@ function ChartDataProvider({
     handleError,
   ]);
 
-  // Fetch data on mount and when formData or sliceId changes
-  // Note: handleFetchData depends on callback props, so changing callbacks
-  // will also trigger a refetch. This mirrors the original class behavior
-  // where componentDidMount always fetched.
+  // Fetch on mount and only refetch when formData or sliceId changes.
+  // This preserves the original class component's componentDidUpdate
+  // semantics (which compared only formData and sliceId). Other
+  // fetch-related inputs referenced by handleFetchData (callbacks and
+  // request option props) are intentionally excluded from the dependency
+  // array, so the exhaustive-deps rule is suppressed here.
   useEffect(() => {
     handleFetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
