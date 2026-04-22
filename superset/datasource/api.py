@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import hashlib
 import logging
 from typing import Any
 
@@ -27,7 +28,9 @@ from superset.connectors.sqla.models import BaseDatasource
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import cache_manager
 from superset.superset_typing import FlaskResponse
+from superset.utils import json
 from superset.utils.core import apply_max_row_limit, DatasourceType, SqlExpressionType
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
@@ -398,17 +401,37 @@ class DatasourceRestApi(BaseSupersetApi):
         selected_metrics = body.get("selected_metrics", [])
         selected_dimensions = body.get("selected_dimensions", [])
 
-        return self.response(
-            200,
-            result={
-                "compatible_metrics": datasource.get_compatible_metrics(
-                    selected_metrics, selected_dimensions
-                ),
-                "compatible_dimensions": datasource.get_compatible_dimensions(
-                    selected_metrics, selected_dimensions
-                ),
-            },
+        # Build a stable cache key from the datasource identity and the
+        # (sorted) selection so that order differences don't cause cache misses.
+        cache_key = "compatible:" + hashlib.md5(
+            json.dumps(
+                {
+                    "uid": datasource.uid,
+                    "m": sorted(selected_metrics),
+                    "d": sorted(selected_dimensions),
+                },
+                sort_keys=True,
+            ).encode()
+        ).hexdigest()
+
+        if (cached := cache_manager.data_cache.get(cache_key)) is not None:
+            return self.response(200, result=cached)
+
+        result = {
+            "compatible_metrics": datasource.get_compatible_metrics(
+                selected_metrics, selected_dimensions
+            ),
+            "compatible_dimensions": datasource.get_compatible_dimensions(
+                selected_metrics, selected_dimensions
+            ),
+        }
+
+        timeout = datasource.cache_timeout or app.config.get(
+            "CACHE_DEFAULT_TIMEOUT", 300
         )
+        cache_manager.data_cache.set(cache_key, result, timeout=timeout)
+
+        return self.response(200, result=result)
 
     @expose("/", methods=("GET",))
     @protect()

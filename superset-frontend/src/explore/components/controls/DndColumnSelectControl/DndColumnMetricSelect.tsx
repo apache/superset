@@ -130,6 +130,16 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
     formData,
   } = props;
 
+  // Semantic views do not support arbitrary SQL expressions as dimensions.
+  // Merge 'sqlExpression' into disabledTabs so the Custom SQL tab is hidden.
+  const effectiveDisabledTabs = useMemo(
+    () =>
+      datasource?.type === 'semantic_view'
+        ? new Set([...(disabledTabs ?? []), 'sqlExpression'])
+        : disabledTabs,
+    [datasource?.type, disabledTabs],
+  );
+
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
   const combinedOptionsMap = useMemo(() => {
@@ -304,7 +314,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
               }}
               editedColumn={column}
               isTemporal={isTemporal}
-              disabledTabs={disabledTabs}
+              disabledTabs={effectiveDisabledTabs}
             >
               <OptionWrapper
                 key={`column-${idx}`}
@@ -444,7 +454,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
         togglePopover={toggleColumnPopover}
         closePopover={closeColumnPopover}
         isTemporal={false}
-        disabledTabs={disabledTabs}
+        disabledTabs={effectiveDisabledTabs}
         metrics={savedMetrics}
         selectedMetrics={selectedMetrics}
       >
