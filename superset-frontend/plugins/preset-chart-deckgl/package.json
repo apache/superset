@@ -50,7 +50,7 @@
     "mousetrap": "^1.6.5",
     "ngeohash": "^0.6.3",
     "prop-types": "^15.8.1",
-    "react-map-gl": "^8.0.0",
+    "react-map-gl": "^8.1.1",
     "underscore": "^1.13.7",
     "urijs": "^1.19.11",
     "xss": "^1.0.15"
