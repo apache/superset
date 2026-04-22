@@ -192,8 +192,11 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
               <Descriptions.Item label="Is Active?">
                 {user.isActive ? 'Yes' : 'No'}
               </Descriptions.Item>
-              <Descriptions.Item label="Role">
+              <Descriptions.Item label="Roles">
                 {user.roles ? Object.keys(user.roles).join(', ') : 'None'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Groups">
+                {user.groups.length ? user.groups.join(', ') : 'None'}
               </Descriptions.Item>
               <Descriptions.Item label="Login count">
                 {user.loginCount}

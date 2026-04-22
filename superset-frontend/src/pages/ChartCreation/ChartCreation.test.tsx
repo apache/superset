@@ -64,6 +64,7 @@ const mockUser: UserWithPermissionsAndRoles = {
   userId: 1,
   username: 'admin',
   isAnonymous: false,
+  groups: [],
 };
 
 const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
@@ -77,6 +78,7 @@ const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
   userId: 1,
   username: 'admin',
   isAnonymous: false,
+  groups: [],
 };
 const history = createMemoryHistory();
 
