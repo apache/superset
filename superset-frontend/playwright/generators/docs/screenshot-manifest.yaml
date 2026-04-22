@@ -29,15 +29,7 @@
 # database-logo, badge, external, community: inventory only, no generation.
 
 images:
-  # --- tutorial (42) ---
-  - type: tutorial
-    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
-    image_url: "https://superset.apache.org/img/tutorial/publish_button_dashboard.png"
-    output_path: docs/static/img/tutorial/publish_button_dashboard.png
-    alt: ""
-    source_file: docs/using-superset/creating-your-first-dashboard.mdx
-    app_path: null
-    selector: "[data-test=\"dashboard-header-container\"]"
+  # --- tutorial (37) ---
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
     image_url: "https://superset.apache.org/img/tutorial/tutorial_01_add_database_connection.png"
@@ -88,14 +80,6 @@ images:
     selector: null
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
-    image_url: "https://superset.apache.org/img/tutorial/tutorial_chart_resize.png"
-    output_path: docs/static/img/tutorial/tutorial_chart_resize.png
-    alt: ""
-    source_file: docs/using-superset/creating-your-first-dashboard.mdx
-    app_path: null
-    selector: "[data-test=\"dashboard-content-wrapper\"]"
-  - type: tutorial
-    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
     image_url: "https://superset.apache.org/img/tutorial/tutorial_column_properties.png"
     output_path: docs/static/img/tutorial/tutorial_column_properties.png
     alt: ""
@@ -110,14 +94,6 @@ images:
     source_file: docs/using-superset/creating-your-first-dashboard.mdx
     app_path: null
     selector: .ant-modal-content
-  - type: tutorial
-    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
-    image_url: "https://superset.apache.org/img/tutorial/tutorial_edit_button.png"
-    output_path: docs/static/img/tutorial/tutorial_edit_button.png
-    alt: ""
-    source_file: docs/using-superset/creating-your-first-dashboard.mdx
-    app_path: null
-    selector: "[data-test=\"edit-dashboard-button\"]"
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
     image_url: "https://superset.apache.org/img/tutorial/tutorial_explore_run.jpg"
@@ -136,28 +112,12 @@ images:
     selector: null
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
-    image_url: "https://superset.apache.org/img/tutorial/tutorial_first_dashboard.png"
-    output_path: docs/static/img/tutorial/tutorial_first_dashboard.png
-    alt: ""
-    source_file: docs/using-superset/creating-your-first-dashboard.mdx
-    app_path: null
-    selector: "[data-test=\"dashboard-content-wrapper\"]"
-  - type: tutorial
-    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
     image_url: "https://superset.apache.org/img/tutorial/tutorial_launch_explore.png"
     output_path: docs/static/img/tutorial/tutorial_launch_explore.png
     alt: ""
     source_file: docs/using-superset/creating-your-first-dashboard.mdx
     app_path: null
     selector: null
-  - type: tutorial
-    page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
-    image_url: "https://superset.apache.org/img/tutorial/tutorial_save_slice.png"
-    output_path: docs/static/img/tutorial/tutorial_save_slice.png
-    alt: ""
-    source_file: docs/using-superset/creating-your-first-dashboard.mdx
-    app_path: null
-    selector: .ant-modal-content
   - type: tutorial
     page_url: "https://superset.apache.org/user-docs/using-superset/creating-your-first-dashboard"
     image_url: "https://superset.apache.org/img/tutorial/tutorial_sql_metric.png"
