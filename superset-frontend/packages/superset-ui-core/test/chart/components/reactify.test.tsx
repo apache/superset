@@ -121,7 +121,7 @@ describe('reactify(renderFn)', () => {
     expect(anotherRenderFn).toHaveBeenCalled();
     unmount();
   });
-  test('calls willUnmount hook when it is provided', async () => {
+  test('calls willUnmount hook when it is provided', () => {
     const { unmount } = render(<AnotherTestComponent />);
     unmount();
     expect(willUnmountCb).toHaveBeenCalledTimes(1);
