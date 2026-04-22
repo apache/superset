@@ -297,6 +297,45 @@ export const DropdownContainer = forwardRef(
       };
     }, [popoverVisible]);
 
+    const triggerButton = (
+      <Tooltip title={dropdownTriggerTooltip}>
+        <Button
+          buttonStyle="secondary"
+          data-test="dropdown-container-btn"
+          icon={dropdownTriggerIcon}
+          disabled={!popoverContent}
+          css={css`
+            padding-left: ${theme.paddingXS}px;
+            padding-right: ${theme.paddingXXS}px;
+            gap: ${theme.sizeXXS}px;
+          `}
+        >
+          {dropdownTriggerText}
+          <Badge
+            count={dropdownTriggerCount ?? overflowingCount}
+            color={
+              (dropdownTriggerCount ?? overflowingCount) > 0
+                ? theme.colorPrimary
+                : theme.colorTextSecondary
+            }
+            showZero
+            css={css`
+              margin-left: ${theme.sizeUnit * 2}px;
+            `}
+          />
+          <Icons.DownOutlined
+            iconSize="m"
+            iconColor={theme.colorIcon}
+            css={css`
+              .anticon {
+                display: flex;
+              }
+            `}
+          />
+        </Button>
+      </Tooltip>
+    );
+
     return (
       <div
         ref={ref}
@@ -343,57 +382,27 @@ export const DropdownContainer = forwardRef(
               `}
             />
 
-            <Popover
-              styles={{
-                body: {
-                  maxHeight: `${MAX_HEIGHT}px`,
-                  overflow: showOverflow ? 'auto' : 'visible',
-                },
-              }}
-              content={popoverContent}
-              trigger="click"
-              open={popoverVisible}
-              onOpenChange={visible => setPopoverVisible(visible)}
-              placement="bottom"
-              forceRender={forceRender}
-              fresh // This prop prevents caching and stale data for filter scoping.
-            >
-              <Tooltip title={dropdownTriggerTooltip}>
-                <Button
-                  buttonStyle="secondary"
-                  data-test="dropdown-container-btn"
-                  icon={dropdownTriggerIcon}
-                  css={css`
-                    padding-left: ${theme.paddingXS}px;
-                    padding-right: ${theme.paddingXXS}px;
-                    gap: ${theme.sizeXXS}px;
-                  `}
-                >
-                  {dropdownTriggerText}
-                  <Badge
-                    count={dropdownTriggerCount ?? overflowingCount}
-                    color={
-                      (dropdownTriggerCount ?? overflowingCount) > 0
-                        ? theme.colorPrimary
-                        : theme.colorTextSecondary
-                    }
-                    showZero
-                    css={css`
-                      margin-left: ${theme.sizeUnit * 2}px;
-                    `}
-                  />
-                  <Icons.DownOutlined
-                    iconSize="m"
-                    iconColor={theme.colorIcon}
-                    css={css`
-                      .anticon {
-                        display: flex;
-                      }
-                    `}
-                  />
-                </Button>
-              </Tooltip>
-            </Popover>
+            {popoverContent ? (
+              <Popover
+                styles={{
+                  body: {
+                    maxHeight: `${MAX_HEIGHT}px`,
+                    overflow: showOverflow ? 'auto' : 'visible',
+                  },
+                }}
+                content={popoverContent}
+                trigger="click"
+                open={popoverVisible}
+                onOpenChange={visible => setPopoverVisible(visible)}
+                placement="bottom"
+                forceRender={forceRender}
+                fresh // This prop prevents caching and stale data for filter scoping.
+              >
+                {triggerButton}
+              </Popover>
+            ) : (
+              triggerButton
+            )}
           </>
         )}
       </div>
