@@ -48,7 +48,7 @@ import {
   SunburstChart,
   CustomChart,
 } from 'echarts/charts';
-import { CanvasRenderer } from 'echarts/renderers';
+import { SVGRenderer } from 'echarts/renderers';
 import {
   TooltipComponent,
   TitleComponent,
@@ -85,7 +85,7 @@ const Styles = styled.div<EchartsStylesProps>`
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- This is ECharts' use function, not a React hook
 use([
-  CanvasRenderer,
+  SVGRenderer,
   BarChart,
   BoxplotChart,
   CustomChart,
@@ -179,7 +179,13 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        chartRef.current = init(divRef.current, null, { locale });
+        // WCAG 1.4.5: use SVG renderer so chart text remains real text
+        // (scales and recolors via theme) instead of being rasterized into
+        // a canvas bitmap that breaks text resize and contrast adjustments.
+        chartRef.current = init(divRef.current, null, {
+          locale,
+          renderer: 'svg',
+        });
       }
       // did mount
       handleSizeChange({ width, height });
