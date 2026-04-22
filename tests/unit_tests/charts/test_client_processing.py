@@ -2830,10 +2830,15 @@ def test_apply_client_processing_csv_format_custom_separator():
     lines = output_data.strip().split("\n")
 
     # With sep=";", columns should be separated by semicolon
-    assert "name;value" in lines[0]
-    # With decimal=",", decimal values should use comma as separator
-    assert "Alice;1,5" in lines[1] or "Alice;1.5" in lines[1]
-    assert "Bob;2,75" in lines[2] or "Bob;2.75" in lines[2]
+    assert lines[0] == "name;value"
+    # With decimal=",", decimal values must use comma as separator.
+    # Asserting the exact formatted value ensures a regression that drops
+    # the `decimal` option (so floats keep a dot) will be caught.
+    assert "Alice;1,5" in lines[1]
+    assert "Bob;2,75" in lines[2]
+    # Guard explicitly against the dot form slipping through.
+    assert "1.5" not in lines[1]
+    assert "2.75" not in lines[2]
 
 
 @with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
@@ -2883,7 +2888,14 @@ def test_apply_client_processing_csv_pivot_table_custom_separator():
     processed_result = apply_client_processing(result, form_data)
 
     output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
 
-    # The output should use semicolon as separator and comma as decimal
-    # After pivoting, the format should reflect CSV_EXPORT settings
-    assert ";" in output_data or "," in output_data
+    # After pivoting a single metric with no groupby rows/columns, the
+    # CSV for the "COUNT(metric)" column and "Total (Sum)" row should
+    # reflect the CSV_EXPORT config: semicolons as field separators and
+    # commas as the decimal separator.
+    assert lines[0] == ";COUNT(metric)"
+    assert "Total (Sum);1234,56" in lines[1]
+    # Guard explicitly against the dot form slipping through, which is
+    # what the previous (broken) implementation produced.
+    assert "1234.56" not in output_data

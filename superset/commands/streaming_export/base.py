@@ -24,6 +24,8 @@ import logging
 import time
 from abc import abstractmethod
 from contextlib import contextmanager
+from decimal import Decimal
+from numbers import Real
 from typing import Any, Callable, Generator
 
 from flask import current_app as app, g, has_app_context
@@ -123,10 +125,16 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         if not decimal_separator or decimal_separator == ".":
             return list(row)
 
-        formatted = []
+        formatted: list[Any] = []
         for value in row:
-            if isinstance(value, float):
-                # Format float with custom decimal separator
+            # Apply the custom decimal separator to any real numeric value
+            # (float, decimal.Decimal, numpy numeric types, ...). Booleans are
+            # technically a numeric type in Python but should never be rewritten
+            # as numbers in CSV output.
+            if isinstance(value, bool):
+                formatted.append(value)
+            elif isinstance(value, (float, Decimal, Real)):
+                # Format numeric values with custom decimal separator
                 formatted.append(str(value).replace(".", decimal_separator))
             else:
                 formatted.append(value)
