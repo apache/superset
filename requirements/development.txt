@@ -740,10 +740,6 @@ pydruid==0.6.9
     # via apache-superset
 pyfakefs==5.3.5
     # via apache-superset
-pygeohash==3.2.2
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 pygments==2.20.0
     # via
     #   -c requirements/base.txt
@@ -1054,11 +1050,6 @@ vine==5.1.0
     #   kombu
 virtualenv==20.29.2
     # via pre-commit
-watchdog==6.0.0
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
-    #   apache-superset-extensions-cli
 watchfiles==1.1.1
     # via fastmcp
 wcwidth==0.2.13

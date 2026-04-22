@@ -306,8 +306,6 @@ pydantic==2.11.7
     # via apache-superset (pyproject.toml)
 pydantic-core==2.33.2
     # via pydantic
-pygeohash==3.2.2
-    # via apache-superset (pyproject.toml)
 pygments==2.20.0
     # via rich
 pyjwt==2.12.0
