@@ -170,13 +170,13 @@ export default function SemanticLayerModal({
         setSelectedType(layer.type);
         setFormData(layer.configuration ?? {});
         setHasErrors(false);
-        // Fetch base schema (no configuration -> no Snowflake connection) to
-        // show the form immediately. The existing maybeRefreshSchema machinery
-        // will trigger an enriched fetch in the background once deps are
-        // satisfied, and DynamicFieldControl will show per-field spinners.
+        // In edit mode, fetch the enriched schema using the full saved
+        // configuration so that dynamic dropdowns (account, project,
+        // environment) show their human-readable labels immediately rather
+        // than flashing raw IDs while the background refresh completes.
         const { json: schemaJson } = await SupersetClient.post({
           endpoint: '/api/v1/semantic_layer/schema/configuration',
-          jsonPayload: { type: layer.type },
+          jsonPayload: { type: layer.type, configuration: layer.configuration },
         });
         applySchema(schemaJson.result);
         setStep('config');
@@ -283,7 +283,7 @@ export default function SemanticLayerModal({
 
       // Check if any dynamic field has all dependencies satisfied
       const hasSatisfiedDeps = Object.values(dynamicDeps).some(deps =>
-        areDependenciesSatisfied(deps, data),
+        areDependenciesSatisfied(deps, data, configSchema ?? undefined),
       );
       if (!hasSatisfiedDeps) return;
 
@@ -297,7 +297,7 @@ export default function SemanticLayerModal({
         fetchConfigSchema(selectedType, data);
       }, SCHEMA_REFRESH_DEBOUNCE_MS);
     },
-    [selectedType, fetchConfigSchema],
+    [selectedType, fetchConfigSchema, configSchema],
   );
 
   const handleFormChange = useCallback(
