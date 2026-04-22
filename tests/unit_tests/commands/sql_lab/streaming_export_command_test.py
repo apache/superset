@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for SQL Lab Streaming CSV Export Command."""
 
+from decimal import Decimal
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -681,3 +682,53 @@ def test_csv_export_config_combined_sep_and_decimal(mocker, mock_query):
     # Verify data uses semicolon separator and comma decimal
     assert "1;Widget;99,99" in csv_data
     assert "2;Gadget;149,5" in csv_data or "2;Gadget;149,50" in csv_data
+
+
+def test_csv_export_config_custom_decimal_for_decimal_type(mocker, mock_query):
+    """
+    Streaming CSV export must respect the custom decimal separator for
+    ``decimal.Decimal`` values too — SQLAlchemy commonly returns NUMERIC /
+    DECIMAL columns as ``Decimal`` rather than ``float``.
+
+    Regression test for GitHub issue #32371 / PR #38170 review feedback.
+    """
+    mock_query.select_sql = "SELECT * FROM test"
+
+    mock_result = MagicMock()
+    mock_result.keys.return_value = ["id", "price"]
+    mock_result.fetchmany.side_effect = [
+        [(1, Decimal("12.34")), (2, Decimal("56.78"))],
+        [],
+    ]
+
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
+
+    mock_connection = MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    mocker.patch(
+        "superset.commands.streaming_export.base.app.config.get",
+        return_value={"sep": ";", "decimal": ",", "encoding": "utf-8"},
+    )
+
+    command = StreamingSqlResultExportCommand("test_client_123")
+    command.validate()
+
+    csv_generator_callable = command.run()
+    generator = csv_generator_callable()
+    csv_data = "".join(generator)
+
+    # Decimal values must be formatted with the custom separator, not left
+    # with the default ``.`` which would slip through a ``float``-only check.
+    assert "1;12,34" in csv_data
+    assert "2;56,78" in csv_data
+    assert "12.34" not in csv_data
+    assert "56.78" not in csv_data
