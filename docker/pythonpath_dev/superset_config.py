@@ -142,3 +142,12 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+# Включаем языковую панель и русский язык
+LANGUAGES = {
+    'en': {'flag': 'us', 'name': 'English'},
+    'ru': {'flag': 'ru', 'name': 'Russian'},
+}
+
+# Принудительный русский по умолчанию
+BABEL_DEFAULT_LOCALE = "ru"
