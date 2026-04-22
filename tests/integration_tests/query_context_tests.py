@@ -143,7 +143,12 @@ def test_time_offset_comparison_queries_use_chart_row_limit(
 def test_time_offset_comparison_queries_use_config_row_limit_without_chart_limit(
     query_result_mock: Mock,
 ) -> None:
-    """When the chart has row_offset but no row_limit, comparison SQL uses ROW_LIMIT."""
+    """Chart with row_offset only: subquery widens the config ROW_LIMIT by row_offset.
+
+    The schema fills `row_limit` with `app.config["ROW_LIMIT"]` when the payload
+    omits it, so the query_object arrives with row_limit=4242. The subquery then
+    covers the window via row_limit + row_offset = 4252.
+    """
     payload = _time_comparison_offset_queries_payload()
     del payload["queries"][0]["row_limit"]
     payload["queries"][0]["row_offset"] = 10
@@ -179,7 +184,7 @@ def test_time_offset_comparison_queries_use_config_row_limit_without_chart_limit
         df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
     )
     sqls = time_offsets_obj["queries"]
-    limit_pattern = re.compile(r"LIMIT\s+4242\b")
+    limit_pattern = re.compile(r"LIMIT\s+4252\b")
     assert len(sqls) == 2
     assert limit_pattern.search(sqls[0])
     assert not re.search(r"OFFSET 10", sqls[0], re.S)
@@ -976,8 +981,10 @@ class TestQueryContext(SupersetTestCase):
         self, query_result_mock
     ):
         """
-        If the chart has row_offset but no row_limit, comparison subqueries
-        should use ROW_LIMIT from app config for the cap.
+        Chart with row_offset only: subquery widens the config ROW_LIMIT by row_offset.
+
+        The schema fills row_limit with app.config["ROW_LIMIT"] (4242) when the
+        payload omits it, so the subquery covers the window via 4242 + 10 = 4252.
         """
         payload = _time_comparison_offset_queries_payload()
         del payload["queries"][0]["row_limit"]
@@ -1017,7 +1024,7 @@ class TestQueryContext(SupersetTestCase):
             df, query_object, cache_key_fn, cache_timeout_fn, query_context.force
         )
         sqls = time_offsets_obj["queries"]
-        limit_pattern = re.compile(r"LIMIT\s+4242\b")
+        limit_pattern = re.compile(r"LIMIT\s+4252\b")
         assert len(sqls) == 2
         assert limit_pattern.search(sqls[0])
         assert not re.search(r"OFFSET 10", sqls[0], re.S)
