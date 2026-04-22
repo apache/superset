@@ -142,6 +142,10 @@ const ColumnSelectPopover = ({
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
+  const compatibleDimensions = useSelector<
+    ExplorePageState,
+    string[] | null | undefined
+  >(state => state.explore.compatibleDimensions);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -551,6 +555,11 @@ const ColumnSelectPopover = ({
                           key: `column-${simpleColumn.column_name}`,
                           column_name: simpleColumn.column_name,
                           verbose_name: simpleColumn.verbose_name ?? '',
+                          disabled:
+                            compatibleDimensions != null &&
+                            !compatibleDimensions.includes(
+                              simpleColumn.column_name,
+                            ),
                         })),
                         ...availableMetrics.map(metric => ({
                           value: metric.metric_name,
@@ -565,6 +574,9 @@ const ColumnSelectPopover = ({
                           key: `metric-${metric.metric_name}`,
                           metric_name: metric.metric_name,
                           verbose_name: metric.verbose_name ?? '',
+                          disabled:
+                            compatibleDimensions != null &&
+                            !compatibleDimensions.includes(metric.metric_name),
                         })),
                       ]}
                       optionFilterProps={[
