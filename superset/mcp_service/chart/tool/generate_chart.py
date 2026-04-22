@@ -22,15 +22,16 @@ import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
-from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
+from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -45,6 +46,10 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartResponse,
     parse_chart_config,
     PerformanceMetadata,
+)
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -535,13 +540,8 @@ async def generate_chart(  # noqa: C901
             explore_url = generate_explore_link(request.dataset_id, form_data)
             await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
 
-            # Extract form_data_key from the explore URL using proper URL parsing
-            if explore_url:
-                parsed = urlparse(explore_url)
-                query_params = parse_qs(parsed.query)
-                form_data_key_list = query_params.get("form_data_key", [])
-                if form_data_key_list:
-                    form_data_key = form_data_key_list[0]
+            # Extract form_data_key from the explore URL
+            form_data_key = extract_form_data_key_from_url(explore_url)
 
             # Compile check for preview-only mode
             # Validate dataset existence and user access before running queries
@@ -826,6 +826,37 @@ async def generate_chart(  # noqa: C901
         )
         return GenerateChartResponse.model_validate(result)
 
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Chart generation requires OAuth authentication: dataset_id=%s"
+            % request.dataset_id
+        )
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "success": False,
+                "error": {
+                    "error_type": "OAUTH2_REDIRECT",
+                    "message": build_oauth2_redirect_message(ex),
+                    "details": "OAuth2 authentication required",
+                },
+            }
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration error: dataset_id=%s" % request.dataset_id
+        )
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "success": False,
+                "error": {
+                    "error_type": "OAUTH2_REDIRECT_ERROR",
+                    "message": OAUTH2_CONFIG_ERROR_MESSAGE,
+                    "details": "OAuth2 configuration or provider error",
+                },
+            }
+        )
     except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
         from superset import db
 

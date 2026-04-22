@@ -696,56 +696,59 @@ test.skip('updates sidebar title when filter name changes', async () => {
 
 test('modifies the name of a filter', async () => {
   jest.useFakeTimers();
-  try {
-    const nativeFilterConfig = [
-      buildNativeFilter('NATIVE_FILTER-1', 'state', []),
-      buildNativeFilter('NATIVE_FILTER-2', 'country', []),
-    ];
 
-    const state = {
-      ...defaultState(),
-      dashboardInfo: {
-        metadata: {
-          native_filter_configuration: nativeFilterConfig,
-        },
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
       },
-      dashboardLayout,
-    };
+    },
+    dashboardLayout,
+  };
 
-    const onSave = jest.fn();
+  const onSave = jest.fn();
 
-    defaultRender(state, {
-      ...props,
-      createNewOnOpen: false,
-      onSave,
-    });
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    onSave,
+  });
 
-    const filterNameInput = screen.getByRole('textbox', {
-      name: FILTER_NAME_REGEX,
-    });
+  const filterNameInput = screen.getByRole('textbox', {
+    name: FILTER_NAME_REGEX,
+  });
 
-    await userEvent.clear(filterNameInput);
-    await userEvent.type(filterNameInput, 'New Filter Name');
+  await userEvent.clear(filterNameInput);
+  await userEvent.type(filterNameInput, 'New Filter Name');
 
-    jest.runAllTimers();
+  // Flush the 500ms debounce on the filter name input.
+  // Using advanceTimersByTime instead of runAllTimers to avoid infinite
+  // loops caused by recursive antd animation timers.
+  jest.advanceTimersByTime(1000);
 
-    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  // Switch back to real timers so waitFor polling works
+  jest.useRealTimers();
 
-    await waitFor(() =>
-      expect(onSave).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filterChanges: expect.objectContaining({
-            modified: expect.arrayContaining([
-              expect.objectContaining({ name: 'New Filter Name' }),
-            ]),
-          }),
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterChanges: expect.objectContaining({
+          modified: expect.arrayContaining([
+            expect.objectContaining({ name: 'New Filter Name' }),
+          ]),
         }),
-      ),
-    );
-  } finally {
-    jest.useRealTimers();
-  }
-});
+      }),
+    ),
+  );
+}, 30000);
 
 test('renders a filter with a chart containing BigInt values', async () => {
   const nativeFilterConfig = [
@@ -767,5 +770,60 @@ test('renders a filter with a chart containing BigInt values', async () => {
     createNewOnOpen: false,
   });
 
+  expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
+});
+
+test('displays empty state when modal opens with no filters and createNewOnOpen is false', () => {
+  defaultRender(defaultState(), { ...props, createNewOnOpen: false });
+
+  // Check left panel empty state
+  expect(
+    screen.getByText('No filters or customizations created yet'),
+  ).toBeInTheDocument();
+
+  // Check right panel empty state
+  expect(
+    screen.getByText(
+      /Manage filters and customizations to set scoping, descriptions, and limitations/,
+    ),
+  ).toBeInTheDocument();
+
+  // Verify no filter form is rendered (no "Untitled" filter created)
+  expect(screen.queryByText(FILTER_TYPE_REGEX)).not.toBeInTheDocument();
+});
+
+test('does not auto-create a filter when createNewOnOpen is false', () => {
+  defaultRender(defaultState(), { ...props, createNewOnOpen: false });
+
+  // The filter configuration form should not be visible
+  expect(screen.queryByText(FILTER_NAME_REGEX)).not.toBeInTheDocument();
+  expect(screen.queryByText(DATASET_REGEX)).not.toBeInTheDocument();
+});
+
+test('empty state disappears when a filter is added via dropdown', async () => {
+  defaultRender(defaultState(), {
+    ...props,
+    createNewOnOpen: false,
+  });
+
+  // Verify empty state is shown initially
+  expect(
+    screen.getByText('No filters or customizations created yet'),
+  ).toBeInTheDocument();
+
+  // Add a filter via the dropdown
+  const dropdownButton = screen.getByTestId('new-item-dropdown-button');
+  fireEvent.mouseEnter(dropdownButton);
+  const addFilterMenuItem = await screen.findByRole('menuitem', {
+    name: /add filter/i,
+  });
+  fireEvent.click(addFilterMenuItem);
+
+  // Verify empty state is gone and filter form is shown
+  await waitFor(() => {
+    expect(
+      screen.queryByText('No filters or customizations created yet'),
+    ).not.toBeInTheDocument();
+  });
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
 });

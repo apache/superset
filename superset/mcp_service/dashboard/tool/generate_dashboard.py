@@ -29,7 +29,6 @@ from flask import g
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
-from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -190,9 +189,12 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
 def generate_dashboard(  # noqa: C901
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:
-    """Create dashboard from chart IDs.
+    """Create a NEW dashboard from chart IDs.
 
     IMPORTANT:
+    - Use this tool ONLY when creating a brand-new dashboard.
+    - To add a chart to an EXISTING dashboard, use add_chart_to_existing_dashboard.
+      Never use this tool as a fallback when add_chart_to_existing_dashboard fails.
     - All charts must exist and be accessible to current user
     - Charts arranged automatically in 2-column grid layout
 
@@ -395,6 +397,7 @@ def generate_dashboard(  # noqa: C901
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
+            serialize_chart_summary,
             serialize_tag_object,
             serialize_user_object,
         )
@@ -426,7 +429,7 @@ def generate_dashboard(  # noqa: C901
             charts=[
                 obj
                 for chart in getattr(dashboard, "slices", [])
-                if (obj := serialize_chart_object(chart)) is not None
+                if (obj := serialize_chart_summary(chart)) is not None
             ],
         )
 
