@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@apache-superset/core/theme';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
-import { Select } from 'antd';
+import { Select, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
   CopyToClipboardButton,
   FilterInput,
@@ -28,6 +30,7 @@ import {
 import { applyFormattingToTabularData } from 'src/utils/common';
 import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
 import RowCountLabel from 'src/components/RowCountLabel';
+import DownloadDropdown from 'src/components/Chart/DrillDetail/DownloadDropdown';
 import { TableControlsProps } from '../types';
 
 export const ROW_LIMIT_OPTIONS = [
@@ -64,7 +67,11 @@ export const TableControls = ({
   rowLimit,
   rowLimitOptions,
   onRowLimitChange,
+  onDownloadCSV,
+  onDownloadXLSX,
+  onReload,
 }: TableControlsProps) => {
+  const theme = useTheme();
   const originalTimeColumns = getTimeColumns(datasourceId);
   const formattedTimeColumns = zip<string, GenericDataType>(
     columnNames,
@@ -96,8 +103,7 @@ export const TableControls = ({
           <Select
             value={rowLimit}
             onChange={onRowLimitChange}
-            options={rowLimitOptions}
-            size="small"
+            options={rowLimitOptions ?? []}
             css={css`
               min-width: 110px;
             `}
@@ -106,8 +112,25 @@ export const TableControls = ({
         {(!onRowLimitChange || rowcount < (rowLimit ?? Infinity)) && (
           <RowCountLabel rowcount={rowcount} loading={isLoading} />
         )}
+        {canDownload && onDownloadCSV && onDownloadXLSX && (
+          <DownloadDropdown
+            onDownloadCSV={onDownloadCSV}
+            onDownloadXLSX={onDownloadXLSX}
+          />
+        )}
         {canDownload && (
           <CopyToClipboardButton data={formattedData} columns={columnNames} />
+        )}
+        {onReload && (
+          <Tooltip title={t('Reload')}>
+            <Icons.ReloadOutlined
+              iconColor={theme.colorIcon}
+              iconSize="l"
+              aria-label={t('Reload')}
+              role="button"
+              onClick={onReload}
+            />
+          </Tooltip>
         )}
       </div>
     </TableControlsWrapper>
