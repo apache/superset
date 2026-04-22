@@ -27,10 +27,12 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [ -n "${{ (secrets.SUPERSET_SITE_BUILD != '' && secrets.SUPERSET_SITE_BUILD != '') || '' }}" ]; then
+          if [ -n "${SUPERSET_SITE_BUILD}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
 
+        env:
+          SUPERSET_SITE_BUILD: ${{ (secrets.SUPERSET_SITE_BUILD != '' && secrets.SUPERSET_SITE_BUILD != '') || '' }}
   build-deploy:
     needs: config
     if: needs.config.outputs.has-secrets
@@ -38,18 +40,18 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.event.workflow_run.head_sha || github.sha }}"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: './docs/.nvmrc'
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
         with:
           distribution: 'zulu'
           java-version: '21'
@@ -68,7 +70,7 @@ jobs:
           yarn install --check-cache
       - name: Download database diagnostics (if triggered by integration tests)
         if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
-        uses: dawidd6/action-download-artifact@v17
+        uses: dawidd6/action-download-artifact@8305c0f1062bb0d184d09ef4493ecb9288447732 # v20
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml
@@ -77,7 +79,7 @@ jobs:
           path: docs/src/data/
       - name: Try to download latest diagnostics (for push/dispatch triggers)
         if: github.event_name != 'workflow_run'
-        uses: dawidd6/action-download-artifact@v17
+        uses: dawidd6/action-download-artifact@8305c0f1062bb0d184d09ef4493ecb9288447732 # v20
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml
