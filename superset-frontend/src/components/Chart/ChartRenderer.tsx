@@ -18,7 +18,6 @@
  */
 import { snakeCase, isEqual, cloneDeep } from 'lodash';
 import {
-  createRef,
   useCallback,
   useState,
   useRef,
@@ -256,7 +255,7 @@ function ChartRendererComponent({
   const mutableQueriesResponseRef = useRef<QueryData[] | null | undefined>(
     cloneDeep(queriesResponse),
   );
-  const contextMenuRef = createRef<ChartContextMenuRef>();
+  const contextMenuRef = useRef<ChartContextMenuRef>(null);
 
   // Track previous props for shouldComponentUpdate logic
   const prevPropsRef = useRef<PrevPropsRef>({
