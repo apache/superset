@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, useState, ReactNode, MouseEvent } from 'react';
+import {
+  forwardRef,
+  ForwardedRef,
+  useState,
+  ReactNode,
+  MouseEvent,
+} from 'react';
 
 import { Button } from '../Button';
 import { Modal } from '../Modal';
@@ -51,7 +57,7 @@ export interface ModalTriggerRef {
 }
 
 export const ModalTrigger = forwardRef(
-  (props: ModalTriggerProps, ref: ModalTriggerRef | null) => {
+  (props: ModalTriggerProps, ref: ForwardedRef<ModalTriggerRef['current']>) => {
     const [showModal, setShowModal] = useState(false);
     const {
       beforeOpen = () => {},
@@ -84,7 +90,7 @@ export const ModalTrigger = forwardRef(
       setShowModal(true);
     };
 
-    if (ref) {
+    if (ref && typeof ref !== 'function') {
       ref.current = { close, open, showModal }; // eslint-disable-line
     }
 

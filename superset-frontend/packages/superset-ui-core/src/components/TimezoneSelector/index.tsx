@@ -26,6 +26,7 @@ import {
   getOffsetKey,
   DEFAULT_TIMEZONE,
 } from './TimezoneOptionsCache';
+import type { LabeledValue } from 'antd/es/select';
 import type { TimezoneOption } from './types';
 
 // Import dayjs plugin types for TypeScript support
@@ -156,7 +157,16 @@ export default function TimezoneSelector({
       onOpenChange={handleOpenChange}
       value={selectValue}
       options={timezoneOptions || []}
-      sortComparator={sortComparator}
+      // Forward-compat: TS 6.0 resolves sortComparator against antd's
+      // LabeledValue; our comparator only reads properties that always exist
+      // on TimezoneOption, so the broader shape is safe at runtime.
+      sortComparator={
+        sortComparator as unknown as (
+          a: LabeledValue,
+          b: LabeledValue,
+          search?: string,
+        ) => number
+      }
       loading={isLoadingOptions}
       placeholder={isLoadingOptions ? t('Loading timezones...') : placeholder}
       {...{ placement: 'topLeft', ...rest }}
