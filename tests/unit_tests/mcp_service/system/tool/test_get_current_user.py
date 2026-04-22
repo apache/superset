@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Tests for current_user in get_instance_info and created_by_fk filtering."""
+"""Tests for current_user in get_instance_info and user-directory filtering."""
 
 from unittest.mock import Mock, patch
 
@@ -304,24 +304,14 @@ class TestGetInstanceInfoCurrentUserViaMCP:
 
 
 # ---------------------------------------------------------------------------
-# Filter schema tests: created_by_fk
+# Filter schema tests: user-directory fields
 # ---------------------------------------------------------------------------
 
 
-def test_chart_filter_accepts_created_by_fk():
-    """Test that ChartFilter accepts created_by_fk as a valid column."""
-    f = ChartFilter(col="created_by_fk", opr="eq", value=42)
-    assert f.col == "created_by_fk"
-    assert f.opr == "eq"
-    assert f.value == 42
-
-
-def test_chart_filter_created_by_fk_with_ne_operator():
-    """Test created_by_fk with 'ne' (not equal) operator."""
-    f = ChartFilter(col="created_by_fk", opr="ne", value=1)
-    assert f.col == "created_by_fk"
-    assert f.opr == "ne"
-    assert f.value == 1
+def test_chart_filter_rejects_created_by_fk():
+    """Test that ChartFilter rejects user-directory columns."""
+    with pytest.raises(ValidationError):
+        ChartFilter(col="created_by_fk", opr="eq", value=42)
 
 
 def test_chart_filter_rejects_invalid_column():
@@ -330,20 +320,10 @@ def test_chart_filter_rejects_invalid_column():
         ChartFilter(col="nonexistent_column", opr="eq", value=42)
 
 
-def test_dashboard_filter_accepts_created_by_fk():
-    """Test that DashboardFilter accepts created_by_fk as a valid column."""
-    f = DashboardFilter(col="created_by_fk", opr="eq", value=42)
-    assert f.col == "created_by_fk"
-    assert f.opr == "eq"
-    assert f.value == 42
-
-
-def test_dashboard_filter_created_by_fk_with_ne_operator():
-    """Test created_by_fk with 'ne' (not equal) operator on dashboards."""
-    f = DashboardFilter(col="created_by_fk", opr="ne", value=1)
-    assert f.col == "created_by_fk"
-    assert f.opr == "ne"
-    assert f.value == 1
+def test_dashboard_filter_rejects_created_by_fk():
+    """Test that DashboardFilter rejects user-directory columns."""
+    with pytest.raises(ValidationError):
+        DashboardFilter(col="created_by_fk", opr="eq", value=42)
 
 
 def test_dashboard_filter_rejects_invalid_column():
@@ -366,6 +346,6 @@ def test_chart_filter_existing_columns_still_work():
 
 def test_dashboard_filter_existing_columns_still_work():
     """Test that pre-existing dashboard filter columns are not broken."""
-    for col in ("dashboard_title", "published", "created_by_fk"):
+    for col in ("dashboard_title", "published", "favorite"):
         f = DashboardFilter(col=col, opr="eq", value="test")
         assert f.col == col

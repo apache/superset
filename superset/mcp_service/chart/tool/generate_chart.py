@@ -735,18 +735,17 @@ async def generate_chart(  # noqa: C901
             from superset.models.slice import Slice
 
             # Re-fetch with eager-loaded relationships to avoid detached
-            # instance errors when serialize_chart_object accesses .tags
-            # and .owners.  The preceding commit may invalidate the session
+            # instance errors when serialize_chart_object accesses .tags.
+            # The preceding commit may invalidate the session
             # in multi-tenant environments; on failure, build a minimal
             # chart_data dict from scalar attributes that are already loaded
-            # — relationship fields (owners, tags) would trigger
-            # lazy-loading on the same dead session.
+            # — relationship fields like tags would trigger lazy-loading on
+            # the same dead session.
             try:
                 chart = (
                     ChartDAO.find_by_id(
                         chart.id,
                         query_options=[
-                            joinedload(Slice.owners),
                             joinedload(Slice.tags),
                         ],
                     )
@@ -781,7 +780,7 @@ async def generate_chart(  # noqa: C901
         # Safely serialize chart_info - handle both Pydantic models and dicts
         if chart_data is None and chart_info is not None:
             if hasattr(chart_info, "model_dump"):
-                chart_data = chart_info.model_dump()
+                chart_data = chart_info.model_dump(mode="json")
             elif isinstance(chart_info, dict):
                 chart_data = chart_info
             else:

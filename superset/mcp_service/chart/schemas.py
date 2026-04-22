@@ -51,9 +51,9 @@ from superset.mcp_service.common.cache_schemas import (
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
-    serialize_user_object,
     TagInfo,
     UserInfo,
 )
@@ -102,9 +102,11 @@ class ChartInfo(BaseModel):
     url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
     cache_timeout: int | None = Field(None, description="Cache timeout")
-    changed_by: str | None = Field(None, description="Last modifier (username)")
+    changed_by: str | None = Field(
+        None, description="Omitted from MCP responses to protect user privacy"
+    )
     changed_by_name: str | None = Field(
-        None, description="Last modifier (display name)"
+        None, description="Omitted from MCP responses to protect user privacy"
     )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
@@ -112,7 +114,9 @@ class ChartInfo(BaseModel):
     changed_on_humanized: str | None = Field(
         None, description="Humanized modification time"
     )
-    created_by: str | None = Field(None, description="Chart creator (username)")
+    created_by: str | None = Field(
+        None, description="Omitted from MCP responses to protect user privacy"
+    )
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
@@ -125,7 +129,10 @@ class ChartInfo(BaseModel):
     )
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
-    owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
+    owners: List[UserInfo] = Field(
+        default_factory=list,
+        description="Omitted from MCP responses to protect user privacy",
+    )
 
     # Filters extracted from form_data for easy inspection
     filters: ChartFiltersInfo | None = Field(
@@ -164,7 +171,7 @@ class ChartInfo(BaseModel):
 
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
-    @model_serializer(mode="wrap", when_used="json")
+    @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
         """Filter fields based on serialization context.
 
@@ -172,7 +179,7 @@ class ChartInfo(BaseModel):
         Otherwise, include all fields (default behavior).
         """
         # Get full serialization
-        data = serializer(self)
+        data = filter_user_directory_fields(serializer(self))
 
         # Check if we have a context with select_columns
         if info.context and isinstance(info.context, dict):
@@ -181,7 +188,6 @@ class ChartInfo(BaseModel):
                 # Filter to only requested fields
                 return {k: v for k, v in data.items() if k in select_columns}
 
-        # No filtering - return all fields
         return data
 
 
@@ -420,13 +426,11 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         cache_timeout=getattr(chart, "cache_timeout", None),
         form_data=chart_form_data,
         filters=filters_info,
-        changed_by=getattr(chart, "changed_by_name", None)
-        or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
-        changed_by_name=getattr(chart, "changed_by_name", None),
+        changed_by=None,
+        changed_by_name=None,
         changed_on=getattr(chart, "changed_on", None),
         changed_on_humanized=_humanize_timestamp(getattr(chart, "changed_on", None)),
-        created_by=getattr(chart, "created_by_name", None)
-        or (str(chart.created_by) if getattr(chart, "created_by", None) else None),
+        created_by=None,
         created_on=getattr(chart, "created_on", None),
         created_on_humanized=_humanize_timestamp(getattr(chart, "created_on", None)),
         uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
@@ -436,13 +440,7 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         ]
         if getattr(chart, "tags", None)
         else [],
-        owners=[
-            info
-            for owner in getattr(chart, "owners", [])
-            if (info := serialize_user_object(owner)) is not None
-        ]
-        if getattr(chart, "owners", None)
-        else [],
+        owners=[],
     )
 
 
@@ -458,12 +456,10 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
-        "created_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='chart') for "
-        "available filter columns. Use created_by_fk with the user ID from "
-        "get_instance_info's current_user to find charts created by a specific user.",
+        "available filter columns.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,

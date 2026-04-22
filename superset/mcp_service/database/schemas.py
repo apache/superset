@@ -38,6 +38,7 @@ from pydantic import (
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import PaginationInfo
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
@@ -58,14 +59,10 @@ class DatabaseFilter(ColumnOperator):
         "database_name",
         "expose_in_sqllab",
         "allow_file_upload",
-        "created_by_fk",
-        "changed_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='database') for "
-        "available filter columns. Use created_by_fk with the user "
-        "ID from get_instance_info's current_user to find "
-        "databases created by a specific user.",
+        "available filter columns.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -119,14 +116,18 @@ class DatabaseInfo(BaseModel):
         None, description="URL of the external management system"
     )
     extra: Dict[str, Any | None] | None = Field(None, description="Extra configuration")
-    changed_by: str | None = Field(None, description="Last modifier (username)")
+    changed_by: str | None = Field(
+        None, description="Omitted from MCP responses to protect user privacy"
+    )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
     changed_on_humanized: str | None = Field(
         None, description="Humanized modification time"
     )
-    created_by: str | None = Field(None, description="Database creator (username)")
+    created_by: str | None = Field(
+        None, description="Omitted from MCP responses to protect user privacy"
+    )
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
@@ -137,14 +138,14 @@ class DatabaseInfo(BaseModel):
         populate_by_name=True,
     )
 
-    @model_serializer(mode="wrap", when_used="json")
+    @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
         """Filter fields based on serialization context.
 
         If context contains 'select_columns', only include those fields.
         Otherwise, include all fields (default behavior).
         """
-        data = serializer(self)
+        data = filter_user_directory_fields(serializer(self))
 
         if info.context and isinstance(info.context, dict):
             select_columns = info.context.get("select_columns")
@@ -349,16 +350,10 @@ def serialize_database_object(database: Any) -> DatabaseInfo | None:
         is_managed_externally=getattr(database, "is_managed_externally", None),
         external_url=getattr(database, "external_url", None),
         extra=_parse_json_field(database, "extra"),
-        changed_by=getattr(database, "changed_by_name", None)
-        or (
-            str(database.changed_by) if getattr(database, "changed_by", None) else None
-        ),
+        changed_by=None,
         changed_on=getattr(database, "changed_on", None),
         changed_on_humanized=_humanize_timestamp(getattr(database, "changed_on", None)),
-        created_by=getattr(database, "created_by_name", None)
-        or (
-            str(database.created_by) if getattr(database, "created_by", None) else None
-        ),
+        created_by=None,
         created_on=getattr(database, "created_on", None),
         created_on_humanized=_humanize_timestamp(getattr(database, "created_on", None)),
     )

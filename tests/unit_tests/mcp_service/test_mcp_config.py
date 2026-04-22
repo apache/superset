@@ -64,6 +64,17 @@ def test_get_default_instructions_mentions_feature_availability():
     assert "accessible menus" in instructions
 
 
+def test_get_default_instructions_forbid_disclosing_other_user_access_or_roles():
+    """Test that instructions route access-list questions to workspace admins."""
+    instructions = get_default_instructions()
+
+    assert "Do NOT disclose dashboard access lists" in instructions
+    assert "other users' names, usernames, email addresses" in instructions
+    assert "current user's own identity details" in instructions
+    assert "Do NOT use execute_sql to query user, role, owner" in instructions
+    assert "direct them to their workspace admin" in instructions
+
+
 def test_init_fastmcp_server_with_default_app_name():
     """Test that default APP_NAME produces Superset branding."""
     # Mock Flask app config with default APP_NAME
