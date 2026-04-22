@@ -360,6 +360,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     engine = database.db_engine_spec.engine
 
                     if needs_transpilation:
+                        # source_engine=engine ensures idempotency: this
+                        # method can run more than once (validate() is called
+                        # from both raise_for_access and get_df_payload), so
+                        # the second pass must be able to re-parse the
+                        # dialect-specific output (e.g. BigQuery backticks)
+                        # produced by the first pass.
                         clause = transpile_to_dialect(
                             clause, engine, source_engine=engine, identify=True
                         )
