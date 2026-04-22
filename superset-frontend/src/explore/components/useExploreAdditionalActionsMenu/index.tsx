@@ -52,6 +52,7 @@ import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
+import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { logEvent } from 'src/logger/actions';
 import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
@@ -174,6 +175,7 @@ interface ExploreState {
   charts?: Record<number, ChartState>;
   explore?: ExploreSlice & {
     chartStates?: Record<number, JsonObject>;
+    can_export_image?: boolean;
   };
   common?: {
     conf?: {
@@ -231,6 +233,36 @@ export const useExploreAdditionalActionsMenu = (
         : undefined;
     },
   );
+  const canExportImage = useSelector<ExploreState, boolean>(
+    state => state.explore?.can_export_image ?? false,
+  );
+
+  const dataExportDisabled = !canDownloadCSV;
+  const imageExportDisabled = !canExportImage;
+
+  const dataExportLabel = (text: string) =>
+    dataExportDisabled ? (
+      <span>
+        {text}
+        <MenuItemTooltip
+          title={t("You don't have permission to export data")}
+        />
+      </span>
+    ) : (
+      text
+    );
+
+  const imageExportLabel = (text: string) =>
+    imageExportDisabled ? (
+      <span>
+        {text}
+        <MenuItemTooltip
+          title={t("You don't have permission to export images")}
+        />
+      </span>
+    ) : (
+      text
+    );
 
   // Streaming export state and handlers
   const [isStreamingModalVisible, setIsStreamingModalVisible] = useState(false);
@@ -644,7 +676,7 @@ export const useExploreAdditionalActionsMenu = (
       allDataChildren.push(
         {
           key: MENU_KEYS.EXPORT_TO_CSV,
-          label: t('Export to original .CSV'),
+          label: dataExportLabel(t('Export to original .CSV')),
           icon: <Icons.FileOutlined />,
           disabled: !canDownloadCSV,
           onClick: () => {
@@ -660,7 +692,7 @@ export const useExploreAdditionalActionsMenu = (
         },
         {
           key: MENU_KEYS.EXPORT_TO_CSV_PIVOTED,
-          label: t('Export to pivoted .CSV'),
+          label: dataExportLabel(t('Export to pivoted .CSV')),
           icon: <Icons.FileOutlined />,
           disabled: !canDownloadCSV,
           onClick: () => {
@@ -676,7 +708,7 @@ export const useExploreAdditionalActionsMenu = (
         },
         {
           key: MENU_KEYS.EXPORT_TO_PIVOT_XLSX,
-          label: t('Export to Pivoted Excel'),
+          label: dataExportLabel(t('Export to Pivoted Excel')),
           icon: <Icons.FileOutlined />,
           disabled: !canDownloadCSV,
           onClick: () => {
@@ -698,7 +730,7 @@ export const useExploreAdditionalActionsMenu = (
     } else {
       allDataChildren.push({
         key: MENU_KEYS.EXPORT_TO_CSV,
-        label: t('Export to .CSV'),
+        label: dataExportLabel(t('Export to .CSV')),
         icon: <Icons.FileOutlined />,
         disabled: !canDownloadCSV,
         onClick: () => {
@@ -717,7 +749,7 @@ export const useExploreAdditionalActionsMenu = (
     allDataChildren.push(
       {
         key: MENU_KEYS.EXPORT_TO_JSON,
-        label: t('Export to .JSON'),
+        label: dataExportLabel(t('Export to .JSON')),
         icon: <Icons.FileOutlined />,
         disabled: !canDownloadCSV,
         onClick: () => {
@@ -733,8 +765,9 @@ export const useExploreAdditionalActionsMenu = (
       },
       {
         key: MENU_KEYS.EXPORT_ALL_SCREENSHOT,
-        label: t('Export screenshot (jpeg)'),
+        label: imageExportLabel(t('Export screenshot (jpeg)')),
         icon: <Icons.FileImageOutlined />,
+        disabled: imageExportDisabled,
         onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
             '.panel-body .chart-container',
@@ -753,7 +786,7 @@ export const useExploreAdditionalActionsMenu = (
       },
       {
         key: MENU_KEYS.EXPORT_TO_XLSX,
-        label: t('Export to Excel'),
+        label: dataExportLabel(t('Export to Excel')),
         icon: <Icons.FileOutlined />,
         disabled: !canDownloadCSV,
         onClick: () => {
@@ -772,7 +805,7 @@ export const useExploreAdditionalActionsMenu = (
     const currentViewChildren = [
       {
         key: MENU_KEYS.EXPORT_CURRENT_TO_CSV,
-        label: t('Export to .CSV'),
+        label: dataExportLabel(t('Export to .CSV')),
         icon: <Icons.FileOutlined />,
         disabled: !canDownloadCSV,
         onClick: () => {
@@ -808,7 +841,7 @@ export const useExploreAdditionalActionsMenu = (
       },
       {
         key: MENU_KEYS.EXPORT_CURRENT_TO_JSON,
-        label: t('Export to .JSON'),
+        label: dataExportLabel(t('Export to .JSON')),
         icon: <Icons.FileOutlined />,
         disabled: !canDownloadCSV,
         onClick: () => {
@@ -837,8 +870,9 @@ export const useExploreAdditionalActionsMenu = (
       },
       {
         key: MENU_KEYS.EXPORT_CURRENT_SCREENSHOT,
-        label: t('Export screenshot (jpeg)'),
+        label: imageExportLabel(t('Export screenshot (jpeg)')),
         icon: <Icons.FileImageOutlined />,
+        disabled: imageExportDisabled,
         onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsImage(
             '.panel-body .chart-container',
@@ -857,7 +891,7 @@ export const useExploreAdditionalActionsMenu = (
       },
       {
         key: MENU_KEYS.EXPORT_CURRENT_XLSX,
-        label: t('Export to Excel'),
+        label: dataExportLabel(t('Export to Excel')),
         icon: <Icons.FileOutlined />,
         disabled: !canDownloadCSV,
         onClick: async () => {
@@ -1037,6 +1071,7 @@ export const useExploreAdditionalActionsMenu = (
     theme.sizeUnit,
     ownState,
     hasExportCurrentView,
+    canExportImage,
   ]);
 
   // Return streaming modal state and handlers for parent to render
