@@ -386,7 +386,6 @@ function Chart({
             filterState={filterState}
             suppressLoadingSpinner={suppressLoadingSpinner}
             source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
-            data-test={vizType}
           />
         ) : (
           <Loading size={dashboardId ? 's' : 'm'} muted={!!dashboardId} />
