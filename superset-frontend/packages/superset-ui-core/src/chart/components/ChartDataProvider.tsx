@@ -77,7 +77,7 @@ function ChartDataProvider({
   formDataRequestOptions,
   datasourceRequestOptions,
   queryRequestOptions,
-}: ChartDataProviderProps): JSX.Element | null {
+}: ChartDataProviderProps): ReactNode {
   const [state, setState] = useState<ChartDataProviderState>({
     status: 'uninitialized',
   });
@@ -158,11 +158,11 @@ function ChartDataProvider({
 
   switch (status) {
     case 'loading':
-      return children({ loading: true }) as JSX.Element;
+      return children({ loading: true });
     case 'loaded':
-      return children({ payload }) as JSX.Element;
+      return children({ payload });
     case 'error':
-      return children({ error }) as JSX.Element;
+      return children({ error });
     case 'uninitialized':
     default:
       return null;
