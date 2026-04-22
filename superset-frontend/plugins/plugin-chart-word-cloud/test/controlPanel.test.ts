@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isCustomControlItem } from '@superset-ui/chart-controls';
 import controlPanel from '../src/plugin/controlPanel';
 import React, { ReactElement } from 'react';
 
@@ -58,14 +59,11 @@ test('sort_by_series defaults to true to preserve legacy ordering', () => {
 
   const sortBySeriesEntry = querySection.controlSetRows
     .flat()
-    .find(
-      (item): item is { name: string; config: { default?: unknown } } =>
-        typeof item === 'object' &&
-        item !== null &&
-        'name' in item &&
-        (item as { name: string }).name === 'sort_by_series',
-    );
+    .find(item => isCustomControlItem(item) && item.name === 'sort_by_series');
 
-  expect(sortBySeriesEntry).toBeDefined();
-  expect(sortBySeriesEntry?.config.default).toBe(true);
+  expect(isCustomControlItem(sortBySeriesEntry)).toBe(true);
+  if (!isCustomControlItem(sortBySeriesEntry)) {
+    throw new Error('sort_by_series control missing');
+  }
+  expect(sortBySeriesEntry.config.default).toBe(true);
 });
