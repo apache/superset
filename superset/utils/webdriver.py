@@ -561,7 +561,8 @@ class WebDriverSelenium(WebDriverProxy):
 
     def _auth(self, user: User) -> None:
         """Authenticate the persistent driver in-place."""
-        assert self._driver is not None
+        if self._driver is None:
+            raise RuntimeError("WebDriver is not initialized")
         machine_auth_provider_factory.instance.authenticate_webdriver(
             self._driver, user
         )
