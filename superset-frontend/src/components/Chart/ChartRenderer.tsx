@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase, isEqual, cloneDeep } from 'lodash';
+import { snakeCase, cloneDeep } from 'lodash';
 import {
   useCallback,
+  useEffect,
   useState,
   useRef,
   useMemo,
@@ -183,23 +184,6 @@ interface ChartRendererState {
   legendIndex: number;
 }
 
-interface PrevPropsRef {
-  queriesResponse: QueryData[] | null | undefined;
-  datasource: Datasource | undefined;
-  annotationData: AnnotationData | undefined;
-  ownState: OwnState | undefined;
-  filterState: FilterState | undefined;
-  height: number | undefined;
-  width: number | undefined;
-  triggerRender: boolean;
-  labelsColor: Record<string, string> | undefined;
-  labelsColorMap: Record<string, string> | undefined;
-  formData: QueryFormData;
-  cacheBusterProp: string | undefined;
-  emitCrossFilters: boolean | undefined;
-  postTransformProps: ((props: JsonObject) => JsonObject) | undefined;
-}
-
 function ChartRendererComponent({
   addFilter = () => BLANK,
   onFilterMenuOpen = () => BLANK,
@@ -252,28 +236,37 @@ function ChartRendererComponent({
 
   const hasQueryResponseChangeRef = useRef(false);
   const renderStartTimeRef = useRef(0);
-  const mutableQueriesResponseRef = useRef<QueryData[] | null | undefined>(
-    cloneDeep(queriesResponse),
-  );
   const contextMenuRef = useRef<ChartContextMenuRef>(null);
 
-  // Track previous props for shouldComponentUpdate logic
-  const prevPropsRef = useRef<PrevPropsRef>({
+  // Results are "ready" when we have a non-error queriesResponse and the
+  // chartStatus reflects it. This mirrors the gating logic from the former
+  // shouldComponentUpdate implementation.
+  const resultsReady =
+    queriesResponse &&
+    ['success', 'rendered'].indexOf(chartStatus as string) > -1 &&
+    !queriesResponse?.[0]?.error;
+
+  // Track whether queriesResponse changed since the previous render so that
+  // handleRenderSuccess / handleRenderFailure know whether to log render time.
+  // Updating a ref during render is safe when the value doesn't affect the
+  // render output (here it's read asynchronously from SuperChart callbacks).
+  const prevQueriesResponseRef = useRef<QueryData[] | null | undefined>(
     queriesResponse,
-    datasource,
-    annotationData,
-    ownState,
-    filterState,
-    height,
-    width,
-    triggerRender,
-    labelsColor,
-    labelsColorMap,
-    formData,
-    cacheBusterProp,
-    emitCrossFilters,
-    postTransformProps,
-  });
+  );
+  if (resultsReady) {
+    hasQueryResponseChangeRef.current =
+      queriesResponse !== prevQueriesResponseRef.current;
+  }
+  useEffect(() => {
+    prevQueriesResponseRef.current = queriesResponse;
+  }, [queriesResponse]);
+
+  // Clone queriesResponse to protect against plugin mutation of Redux state.
+  // TODO: remove once reducers use Redux Toolkit with Immer.
+  const mutableQueriesResponse = useMemo(
+    () => cloneDeep(queriesResponse),
+    [queriesResponse],
+  );
 
   // Handler functions
   const handleAddFilter = useCallback(
@@ -408,107 +401,6 @@ function ChartRendererComponent({
     ],
   );
 
-  // shouldComponentUpdate logic - implemented as a useMemo that tracks if we should render
-  // Note: The return value is not used directly, but the useMemo contains necessary
-  // side effects (updating refs).
-  useMemo(() => {
-    const prevProps = prevPropsRef.current;
-    const resultsReady =
-      queriesResponse &&
-      ['success', 'rendered'].indexOf(chartStatus as string) > -1 &&
-      !queriesResponse?.[0]?.error;
-
-    if (resultsReady) {
-      hasQueryResponseChangeRef.current =
-        queriesResponse !== prevProps.queriesResponse;
-
-      if (hasQueryResponseChangeRef.current) {
-        mutableQueriesResponseRef.current = cloneDeep(queriesResponse);
-      }
-
-      // Check if any matrixify-related properties have changed
-      const hasMatrixifyChanges = (): boolean => {
-        const nextFormData = formData as JsonObject;
-        const currentFormData = prevProps.formData as JsonObject;
-        const isMatrixifyEnabled =
-          nextFormData.matrixify_enable === true &&
-          ((nextFormData.matrixify_mode_rows !== undefined &&
-            nextFormData.matrixify_mode_rows !== 'disabled') ||
-            (nextFormData.matrixify_mode_columns !== undefined &&
-              nextFormData.matrixify_mode_columns !== 'disabled'));
-        if (!isMatrixifyEnabled) return false;
-
-        // Check all matrixify-related properties
-        const matrixifyKeys = Object.keys(nextFormData).filter(key =>
-          key.startsWith('matrixify_'),
-        );
-
-        return matrixifyKeys.some(
-          key => !isEqual(nextFormData[key], currentFormData[key]),
-        );
-      };
-
-      const nextFormData = formData as JsonObject;
-      const currentFormData = prevProps.formData as JsonObject;
-
-      const shouldRender =
-        hasQueryResponseChangeRef.current ||
-        !isEqual(datasource, prevProps.datasource) ||
-        annotationData !== prevProps.annotationData ||
-        ownState !== prevProps.ownState ||
-        filterState !== prevProps.filterState ||
-        height !== prevProps.height ||
-        width !== prevProps.width ||
-        triggerRender === true ||
-        labelsColor !== prevProps.labelsColor ||
-        labelsColorMap !== prevProps.labelsColorMap ||
-        nextFormData.color_scheme !== currentFormData.color_scheme ||
-        nextFormData.stack !== currentFormData.stack ||
-        nextFormData.subcategories !== currentFormData.subcategories ||
-        cacheBusterProp !== prevProps.cacheBusterProp ||
-        emitCrossFilters !== prevProps.emitCrossFilters ||
-        postTransformProps !== prevProps.postTransformProps ||
-        hasMatrixifyChanges();
-
-      // Update prev props ref
-      prevPropsRef.current = {
-        queriesResponse,
-        datasource,
-        annotationData,
-        ownState,
-        filterState,
-        height,
-        width,
-        triggerRender,
-        labelsColor,
-        labelsColorMap,
-        formData,
-        cacheBusterProp,
-        emitCrossFilters,
-        postTransformProps,
-      };
-
-      return shouldRender;
-    }
-    return false;
-  }, [
-    annotationData,
-    cacheBusterProp,
-    chartStatus,
-    datasource,
-    emitCrossFilters,
-    filterState,
-    formData,
-    height,
-    labelsColor,
-    labelsColorMap,
-    ownState,
-    postTransformProps,
-    queriesResponse,
-    triggerRender,
-    width,
-  ]);
-
   const hasAnyErrors = queriesResponse?.some(item => item?.error);
   const hasValidPreviousData =
     (queriesResponse?.length ?? 0) > 0 && !hasAnyErrors;
@@ -632,7 +524,7 @@ function ChartRendererComponent({
           filterState={filterState}
           hooks={hooks as unknown as Parameters<typeof SuperChart>[0]['hooks']}
           behaviors={behaviors}
-          queriesData={mutableQueriesResponseRef.current ?? undefined}
+          queriesData={mutableQueriesResponse ?? undefined}
           onRenderSuccess={handleRenderSuccess}
           onRenderFailure={handleRenderFailure}
           noResults={noResultsComponent}
