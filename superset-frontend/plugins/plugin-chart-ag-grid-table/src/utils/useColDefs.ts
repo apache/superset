@@ -451,43 +451,59 @@ export const useColDefs = ({
     ? currentPage * pageSize + data.length
     : data.length;
   const rowIndexLength = `${Math.max(maxVisibleRowNumber, 1)}`.length;
-  const rowNumberCol: ColDef = {
-    headerName: '№',
-    headerClass: 'ag-header-center',
-    field: PIVOT_COL_ID,
-    valueGetter: params => {
-      if (serverPagination && serverPaginationData) {
-        return currentPage * pageSize + (params.node?.rowIndex ?? 0) + 1;
-      }
-      return (params.node?.rowIndex ?? 0) + 1;
-    },
-    headerStyle: {
-      backgroundColor: theme.colorFillTertiary,
-      fontSize: '1em',
-      color: theme.colorTextTertiary,
-    },
-    width: 30 + rowIndexLength * 6,
-    sortable: false,
-    filter: false,
-    pinned: 'left' as const,
-    lockPosition: true,
-    suppressNavigable: true,
-    resizable: false,
-    suppressMovable: true,
-    context: {
-      isMetric: true,
-    },
-    cellStyle: {
-      backgroundColor: theme.colorFillTertiary,
-      padding: '0',
-      textAlign: 'center',
-      fontSize: '0.9em',
-      color: theme.colorTextTertiary,
-    },
-  };
+  const currentmaxPageNumber = serverPagination
+    ? Math.ceil(data.length / pageSize)
+    : rowIndexLength;
+  const rowNumberCol = useMemo<ColDef>(
+    () => ({
+      headerName: '№',
+      headerClass: 'ag-header-center',
+      field: PIVOT_COL_ID,
+      valueGetter: params => {
+        if (serverPagination && serverPaginationData) {
+          return currentPage * pageSize + (params.node?.rowIndex ?? 0) + 1;
+        }
+        return (params.node?.rowIndex ?? 0) + 1;
+      },
+      headerStyle: {
+        backgroundColor: theme.colorFillTertiary,
+        fontSize: '1em',
+        color: theme.colorTextTertiary,
+      },
+      width: 30 + rowIndexLength * 6,
+      minWidth: currentmaxPageNumber,
+      sortable: false,
+      filter: false,
+      pinned: 'left' as const,
+      lockPosition: true,
+      suppressNavigable: true,
+      resizable: false,
+      suppressMovable: true,
+      suppressSizeToFit: true,
+      context: {
+        isMetric: true,
+      },
+      cellStyle: {
+        backgroundColor: theme.colorFillTertiary,
+        padding: '0',
+        textAlign: 'center',
+        fontSize: '0.9em',
+        color: theme.colorTextTertiary,
+      },
+    }),
+    [
+      currentPage,
+      pageSize,
+      rowIndexLength,
+      serverPagination,
+      serverPaginationData,
+      theme.colorFillTertiary,
+      theme.colorTextTertiary,
+    ],
+  );
 
-  if (showNumberedColumn) {
-    return [rowNumberCol, ...colDefs];
-  }
-  return colDefs;
+  return useMemo(
+    () => (showNumberedColumn ? [rowNumberCol, ...colDefs] : colDefs),
+    [showNumberedColumn, rowNumberCol, colDefs],
+  );
 };

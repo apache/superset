@@ -954,6 +954,7 @@ test('has correct static column properties', () => {
   expect(colDef.pinned).toBe('left');
   expect(colDef.lockPosition).toBe(true);
   expect(colDef.suppressNavigable).toBe(true);
+  expect(colDef.suppressSizeToFit).toBe(true);
   expect(colDef.resizable).toBe(false);
   expect(colDef.suppressMovable).toBe(true);
   expect(colDef.context).toEqual({ isMetric: true });
