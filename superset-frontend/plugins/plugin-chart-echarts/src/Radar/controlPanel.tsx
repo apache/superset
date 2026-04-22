@@ -35,6 +35,7 @@ import {
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
+import { RADAR_LABEL_POSITION } from '../constants';
 import { LabelPositionEnum } from '../types';
 import { legendSection } from '../controls';
 
@@ -152,7 +153,7 @@ const config: ControlPanelConfig = {
               freeForm: false,
               label: t('Label position'),
               renderTrigger: true,
-              choices: getLabelPositionOptions(),
+              choices: RADAR_LABEL_POSITION,
               default: labelPosition,
               description: D3_FORMAT_DOCS,
             },
