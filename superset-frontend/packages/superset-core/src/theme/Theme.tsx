@@ -38,9 +38,13 @@ import {
 import { normalizeThemeConfig, serializeThemeConfig } from './utils';
 
 export class Theme {
-  theme: SupersetTheme;
+  // Forward-compat: TS 6.0 enforces strictPropertyInitialization here;
+  // both fields are assigned via setConfig() during construction, so we
+  // use a definite-assignment assertion rather than hoisting the logic
+  // out of setConfig().
+  theme!: SupersetTheme;
 
-  private antdConfig: AntdThemeConfig;
+  private antdConfig!: AntdThemeConfig;
 
   private constructor({ config }: { config?: AnyThemeConfig }) {
     this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);
