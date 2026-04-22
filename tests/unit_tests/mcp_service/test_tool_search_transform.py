@@ -601,6 +601,25 @@ def test_compact_schema_inline_optional_ref():
     assert col["description"] == "Optional column"
 
 
+def test_compact_schema_inlines_empty_def():
+    """Empty $defs entry ({}) is inlined as-is, not downgraded to {"type": "object"}."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "anything": {"$ref": "#/$defs/Anything"},
+        },
+        "$defs": {
+            "Anything": {},
+        },
+    }
+
+    result = _compact_schema(schema)
+
+    assert "$defs" not in result
+    # Empty dict is a valid schema — should be inlined as {}, not {"type": "object"}
+    assert result["properties"]["anything"] == {}
+
+
 # -- _truncate_description tests --
 
 

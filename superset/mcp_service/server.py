@@ -215,7 +215,7 @@ def _resolve_ref(
     ref_name = ref_path.rsplit("/", 1)[-1] if "/" in ref_path else ""
     definition = defs.get(ref_name) if ref_name else None
 
-    if definition and ref_name not in resolving:
+    if definition is not None and ref_name not in resolving:
         inlined = _compact_schema(
             definition,
             _defs=defs,
