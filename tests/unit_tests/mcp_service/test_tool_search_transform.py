@@ -445,7 +445,7 @@ def test_compact_schema_handles_non_dict():
     assert _compact_schema([1, 2]) == [1, 2]
 
 
-def test_compact_schema_inlines_columnref_like_model():
+def test_compact_schema_inlines_columnref_like_model() -> None:
     """$ref to a model with fields is inlined, preserving field structure."""
     schema = {
         "type": "object",
@@ -479,7 +479,7 @@ def test_compact_schema_inlines_columnref_like_model():
     assert inlined["required"] == ["name"]
 
 
-def test_compact_schema_inlines_nested_refs():
+def test_compact_schema_inlines_nested_refs() -> None:
     """Nested $ref chains are resolved transitively."""
     schema = {
         "type": "object",
@@ -516,7 +516,7 @@ def test_compact_schema_inlines_nested_refs():
     assert "name" in col_ref["properties"]
 
 
-def test_compact_schema_circular_ref_fallback():
+def test_compact_schema_circular_ref_fallback() -> None:
     """Circular $ref falls back to {"type": "object"} to avoid infinite recursion."""
     schema = {
         "type": "object",
@@ -545,7 +545,7 @@ def test_compact_schema_circular_ref_fallback():
     assert node["properties"]["children"]["items"] == {"type": "object"}
 
 
-def test_compact_schema_inline_with_sibling_description():
+def test_compact_schema_inline_with_sibling_description() -> None:
     """Inlined $ref preserves sibling description via setdefault."""
     schema = {
         "type": "object",
@@ -571,7 +571,7 @@ def test_compact_schema_inline_with_sibling_description():
     assert col["description"] == "The column to use"
 
 
-def test_compact_schema_inline_optional_ref():
+def test_compact_schema_inline_optional_ref() -> None:
     """anyOf with $ref and null inlines the definition, not just {"type": "object"}."""
     schema = {
         "type": "object",
@@ -601,7 +601,7 @@ def test_compact_schema_inline_optional_ref():
     assert col["description"] == "Optional column"
 
 
-def test_compact_schema_inlines_empty_def():
+def test_compact_schema_inlines_empty_def() -> None:
     """Empty $defs entry ({}) is inlined as-is, not downgraded to {"type": "object"}."""
     schema = {
         "type": "object",
