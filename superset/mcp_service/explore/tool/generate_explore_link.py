@@ -23,12 +23,12 @@ chart configuration.
 """
 
 from typing import Any, Dict
-from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
     map_config_to_form_data,
@@ -175,14 +175,8 @@ async def generate_explore_link(
                 dataset_id=request.dataset_id, form_data=form_data
             )
 
-        # Extract form_data_key from the explore URL using proper URL parsing
-        form_data_key = None
-        if explore_url:
-            parsed = urlparse(explore_url)
-            query_params = parse_qs(parsed.query)
-            form_data_key_list = query_params.get("form_data_key", [])
-            if form_data_key_list:
-                form_data_key = form_data_key_list[0]
+        # Extract form_data_key from the explore URL
+        form_data_key = extract_form_data_key_from_url(explore_url)
 
         await ctx.report_progress(4, 4, "URL generation complete")
         await ctx.info(
