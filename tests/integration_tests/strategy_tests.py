@@ -83,7 +83,7 @@ class TestCacheWarmUp(SupersetTestCase):
 
         strategy = TopNDashboardsStrategy(1)
         result = sorted(strategy.get_urls())
-        expected = sorted([f"{get_url_host()}{dash.url}"])
+        expected = sorted([f"{get_url_host().rstrip('/')}{dash.url}"])
         assert result == expected
 
     def reset_tag(self, tag):
@@ -109,7 +109,7 @@ class TestCacheWarmUp(SupersetTestCase):
         # tag dashboard 'births' with `tag1`
         tag1 = get_tag("tag1", db.session, TagType.custom)
         dash = self.get_dash_by_slug("births")
-        tag1_urls = [f"{get_url_host()}{dash.url}"]
+        tag1_urls = [f"{get_url_host().rstrip('/')}{dash.url}"]
         tagged_object = TaggedObject(
             tag_id=tag1.id, object_id=dash.id, object_type=ObjectType.dashboard
         )
