@@ -27,22 +27,22 @@ from superset.sql.parse import transpile_to_dialect
 @pytest.mark.parametrize(
     "sql,dialect,expected",
     [
-        # PostgreSQL - double-quoted identifiers, SQL-92 double single quotes
-        ("name = 'O''Hara'", "postgresql", "\"name\" = 'O''Hara'"),
-        # MySQL - backtick-quoted identifiers, SQL-92 double single quotes
-        ("name = 'O''Hara'", "mysql", "`name` = 'O''Hara'"),
-        # SQLite - double-quoted identifiers, SQL-92 double single quotes
-        ("name = 'O''Hara'", "sqlite", "\"name\" = 'O''Hara'"),
-        # Snowflake - double-quoted identifiers, backslash escaping
-        ("name = 'O''Hara'", "snowflake", "\"name\" = 'O\\'Hara'"),
-        # BigQuery - backtick-quoted identifiers, backslash escaping
-        ("name = 'O''Hara'", "bigquery", "`name` = 'O\\'Hara'"),
-        # Databricks - backtick-quoted identifiers, backslash escaping
-        ("name = 'O''Hara'", "databricks", "`name` = 'O\\'Hara'"),
-        # Presto - double-quoted identifiers, SQL-92 double single quotes
-        ("name = 'O''Hara'", "presto", "\"name\" = 'O''Hara'"),
-        # Trino - double-quoted identifiers, SQL-92 double single quotes
-        ("name = 'O''Hara'", "trino", "\"name\" = 'O''Hara'"),
+        # PostgreSQL - SQL-92 standard double single quotes
+        ("name = 'O''Hara'", "postgresql", "name = 'O''Hara'"),
+        # MySQL - SQL-92 standard double single quotes
+        ("name = 'O''Hara'", "mysql", "name = 'O''Hara'"),
+        # SQLite - SQL-92 standard double single quotes
+        ("name = 'O''Hara'", "sqlite", "name = 'O''Hara'"),
+        # Snowflake - backslash escaping
+        ("name = 'O''Hara'", "snowflake", "name = 'O\\'Hara'"),
+        # BigQuery - backslash escaping
+        ("name = 'O''Hara'", "bigquery", "name = 'O\\'Hara'"),
+        # Databricks - backslash escaping
+        ("name = 'O''Hara'", "databricks", "name = 'O\\'Hara'"),
+        # Presto - SQL-92 standard double single quotes
+        ("name = 'O''Hara'", "presto", "name = 'O''Hara'"),
+        # Trino - SQL-92 standard double single quotes
+        ("name = 'O''Hara'", "trino", "name = 'O''Hara'"),
     ],
 )
 def test_single_quote_escaping(sql: str, dialect: str, expected: str) -> None:
@@ -56,22 +56,22 @@ def test_single_quote_escaping(sql: str, dialect: str, expected: str) -> None:
         (
             "(name = 'O''Hara' AND status = 'active')",
             "postgresql",
-            "(\"name\" = 'O''Hara' AND \"status\" = 'active')",
+            "(name = 'O''Hara' AND status = 'active')",
         ),
         (
             "(name = 'O''Hara' AND status = 'active')",
             "mysql",
-            "(`name` = 'O''Hara' AND `status` = 'active')",
+            "(name = 'O''Hara' AND status = 'active')",
         ),
         (
             "(name = 'O''Hara' AND status = 'active')",
             "snowflake",
-            "(\"name\" = 'O\\'Hara' AND \"status\" = 'active')",
+            "(name = 'O\\'Hara' AND status = 'active')",
         ),
         (
             "(name = 'O''Hara' AND status = 'active')",
             "databricks",
-            "(`name` = 'O\\'Hara' AND `status` = 'active')",
+            "(name = 'O\\'Hara' AND status = 'active')",
         ),
     ],
 )
@@ -83,10 +83,10 @@ def test_compound_filter_with_quotes(sql: str, dialect: str, expected: str) -> N
 @pytest.mark.parametrize(
     "sql,dialect,expected",
     [
-        ("name LIKE '%O''Hara%'", "postgresql", "\"name\" LIKE '%O''Hara%'"),
-        ("name LIKE '%O''Hara%'", "mysql", "`name` LIKE '%O''Hara%'"),
-        ("name LIKE '%O''Hara%'", "snowflake", "\"name\" LIKE '%O\\'Hara%'"),
-        ("name LIKE '%O''Hara%'", "databricks", "`name` LIKE '%O\\'Hara%'"),
+        ("name LIKE '%O''Hara%'", "postgresql", "name LIKE '%O''Hara%'"),
+        ("name LIKE '%O''Hara%'", "mysql", "name LIKE '%O''Hara%'"),
+        ("name LIKE '%O''Hara%'", "snowflake", "name LIKE '%O\\'Hara%'"),
+        ("name LIKE '%O''Hara%'", "databricks", "name LIKE '%O\\'Hara%'"),
     ],
 )
 def test_like_with_special_chars(sql: str, dialect: str, expected: str) -> None:
@@ -98,21 +98,21 @@ def test_like_with_special_chars(sql: str, dialect: str, expected: str) -> None:
     "sql,dialect,expected",
     [
         # PostgreSQL keeps ILIKE
-        ("name ILIKE '%test%'", "postgresql", "\"name\" ILIKE '%test%'"),
+        ("name ILIKE '%test%'", "postgresql", "name ILIKE '%test%'"),
         # MySQL converts ILIKE to LOWER(col) LIKE LOWER(pattern)
-        ("name ILIKE '%test%'", "mysql", "LOWER(`name`) LIKE LOWER('%test%')"),
+        ("name ILIKE '%test%'", "mysql", "LOWER(name) LIKE LOWER('%test%')"),
         # SQLite converts ILIKE to LOWER(col) LIKE LOWER(pattern)
-        ("name ILIKE '%test%'", "sqlite", "LOWER(\"name\") LIKE LOWER('%test%')"),
+        ("name ILIKE '%test%'", "sqlite", "LOWER(name) LIKE LOWER('%test%')"),
         # Snowflake keeps ILIKE
-        ("name ILIKE '%test%'", "snowflake", "\"name\" ILIKE '%test%'"),
+        ("name ILIKE '%test%'", "snowflake", "name ILIKE '%test%'"),
         # BigQuery converts ILIKE to LOWER(col) LIKE LOWER(pattern)
-        ("name ILIKE '%test%'", "bigquery", "LOWER(`name`) LIKE LOWER('%test%')"),
+        ("name ILIKE '%test%'", "bigquery", "LOWER(name) LIKE LOWER('%test%')"),
         # Databricks keeps ILIKE
-        ("name ILIKE '%test%'", "databricks", "`name` ILIKE '%test%'"),
+        ("name ILIKE '%test%'", "databricks", "name ILIKE '%test%'"),
         # Presto converts ILIKE to LOWER(col) LIKE LOWER(pattern)
-        ("name ILIKE '%test%'", "presto", "LOWER(\"name\") LIKE LOWER('%test%')"),
+        ("name ILIKE '%test%'", "presto", "LOWER(name) LIKE LOWER('%test%')"),
         # Trino converts ILIKE to LOWER(col) LIKE LOWER(pattern)
-        ("name ILIKE '%test%'", "trino", "LOWER(\"name\") LIKE LOWER('%test%')"),
+        ("name ILIKE '%test%'", "trino", "LOWER(name) LIKE LOWER('%test%')"),
     ],
 )
 def test_ilike_transpilation(sql: str, dialect: str, expected: str) -> None:
@@ -126,22 +126,22 @@ def test_ilike_transpilation(sql: str, dialect: str, expected: str) -> None:
         (
             "name IN ('O''Hara', 'D''Angelo')",
             "postgresql",
-            "\"name\" IN ('O''Hara', 'D''Angelo')",
+            "name IN ('O''Hara', 'D''Angelo')",
         ),
         (
             "name IN ('O''Hara', 'D''Angelo')",
             "mysql",
-            "`name` IN ('O''Hara', 'D''Angelo')",
+            "name IN ('O''Hara', 'D''Angelo')",
         ),
         (
             "name IN ('O''Hara', 'D''Angelo')",
             "snowflake",
-            "\"name\" IN ('O\\'Hara', 'D\\'Angelo')",
+            "name IN ('O\\'Hara', 'D\\'Angelo')",
         ),
         (
             "name IN ('O''Hara', 'D''Angelo')",
             "databricks",
-            "`name` IN ('O\\'Hara', 'D\\'Angelo')",
+            "name IN ('O\\'Hara', 'D\\'Angelo')",
         ),
     ],
 )
@@ -156,17 +156,13 @@ def test_in_clause_with_quoted_strings(sql: str, dialect: str, expected: str) ->
         (
             "price > 100 AND quantity <= 50",
             "postgresql",
-            '"price" > 100 AND "quantity" <= 50',
-        ),
-        (
             "price > 100 AND quantity <= 50",
-            "mysql",
-            "`price` > 100 AND `quantity` <= 50",
         ),
+        ("price > 100 AND quantity <= 50", "mysql", "price > 100 AND quantity <= 50"),
         (
             "price > 100 AND quantity <= 50",
             "snowflake",
-            '"price" > 100 AND "quantity" <= 50',
+            "price > 100 AND quantity <= 50",
         ),
     ],
 )
@@ -178,9 +174,9 @@ def test_number_comparison(sql: str, dialect: str, expected: str) -> None:
 @pytest.mark.parametrize(
     "sql,dialect,expected",
     [
-        ("created_at > '2024-01-01'", "postgresql", "\"created_at\" > '2024-01-01'"),
-        ("created_at > '2024-01-01'", "mysql", "`created_at` > '2024-01-01'"),
-        ("created_at > '2024-01-01'", "snowflake", "\"created_at\" > '2024-01-01'"),
+        ("created_at > '2024-01-01'", "postgresql", "created_at > '2024-01-01'"),
+        ("created_at > '2024-01-01'", "mysql", "created_at > '2024-01-01'"),
+        ("created_at > '2024-01-01'", "snowflake", "created_at > '2024-01-01'"),
     ],
 )
 def test_date_comparison(sql: str, dialect: str, expected: str) -> None:
@@ -191,9 +187,9 @@ def test_date_comparison(sql: str, dialect: str, expected: str) -> None:
 @pytest.mark.parametrize(
     "sql,dialect,expected",
     [
-        ("price BETWEEN 10 AND 100", "postgresql", '"price" BETWEEN 10 AND 100'),
-        ("price BETWEEN 10 AND 100", "mysql", "`price` BETWEEN 10 AND 100"),
-        ("price BETWEEN 10 AND 100", "snowflake", '"price" BETWEEN 10 AND 100'),
+        ("price BETWEEN 10 AND 100", "postgresql", "price BETWEEN 10 AND 100"),
+        ("price BETWEEN 10 AND 100", "mysql", "price BETWEEN 10 AND 100"),
+        ("price BETWEEN 10 AND 100", "snowflake", "price BETWEEN 10 AND 100"),
     ],
 )
 def test_between_clause(sql: str, dialect: str, expected: str) -> None:
@@ -204,9 +200,9 @@ def test_between_clause(sql: str, dialect: str, expected: str) -> None:
 @pytest.mark.parametrize(
     "sql,dialect,expected",
     [
-        ("name IS NULL", "postgresql", '"name" IS NULL'),
-        ("name IS NULL", "mysql", "`name` IS NULL"),
-        ("name IS NULL", "snowflake", '"name" IS NULL'),
+        ("name IS NULL", "postgresql", "name IS NULL"),
+        ("name IS NULL", "mysql", "name IS NULL"),
+        ("name IS NULL", "snowflake", "name IS NULL"),
     ],
 )
 def test_is_null(sql: str, dialect: str, expected: str) -> None:
@@ -218,9 +214,9 @@ def test_is_null(sql: str, dialect: str, expected: str) -> None:
     "sql,dialect,expected",
     [
         # SQLGlot normalizes "IS NOT NULL" to "NOT ... IS NULL"
-        ("name IS NOT NULL", "postgresql", 'NOT "name" IS NULL'),
-        ("name IS NOT NULL", "mysql", "NOT `name` IS NULL"),
-        ("name IS NOT NULL", "snowflake", 'NOT "name" IS NULL'),
+        ("name IS NOT NULL", "postgresql", "NOT name IS NULL"),
+        ("name IS NOT NULL", "mysql", "NOT name IS NULL"),
+        ("name IS NOT NULL", "snowflake", "NOT name IS NULL"),
     ],
 )
 def test_is_not_null(sql: str, dialect: str, expected: str) -> None:
@@ -234,12 +230,12 @@ def test_is_not_null(sql: str, dialect: str, expected: str) -> None:
         (
             "status = 'active' OR status = 'pending'",
             "postgresql",
-            "\"status\" = 'active' OR \"status\" = 'pending'",
+            "status = 'active' OR status = 'pending'",
         ),
         (
             "status = 'active' OR status = 'pending'",
             "mysql",
-            "`status` = 'active' OR `status` = 'pending'",
+            "status = 'active' OR status = 'pending'",
         ),
     ],
 )
@@ -254,13 +250,9 @@ def test_or_condition(sql: str, dialect: str, expected: str) -> None:
         (
             "((a > 1 AND b < 2) OR (c = 3))",
             "postgresql",
-            '(("a" > 1 AND "b" < 2) OR ("c" = 3))',
-        ),
-        (
             "((a > 1 AND b < 2) OR (c = 3))",
-            "mysql",
-            "((`a` > 1 AND `b` < 2) OR (`c` = 3))",
         ),
+        ("((a > 1 AND b < 2) OR (c = 3))", "mysql", "((a > 1 AND b < 2) OR (c = 3))"),
     ],
 )
 def test_nested_conditions(sql: str, dialect: str, expected: str) -> None:
@@ -305,6 +297,7 @@ def test_transpilation_does_not_error(dialect: str) -> None:
         "unknown_database_engine",
         "crate",
         "databend",
+        "db2",
         "denodo",
         "dynamodb",
         "elasticsearch",
@@ -363,21 +356,21 @@ def test_sqlglot_generation_error_raises_exception() -> None:
             "SELECT created_at::DATE FROM orders",
             "postgresql",
             "mysql",
-            "SELECT CAST(`created_at` AS DATE) FROM `orders`",
+            "SELECT CAST(created_at AS DATE) FROM orders",
         ),
-        # Same dialect - should preserve SQL (with quoting)
+        # Same dialect - should preserve SQL
         (
             "SELECT * FROM orders",
             "postgresql",
             "postgresql",
-            'SELECT * FROM "orders"',
+            "SELECT * FROM orders",
         ),
         # PostgreSQL to DuckDB - DuckDB supports similar syntax (uppercases date part)
         (
             "SELECT DATE_TRUNC('month', ts) FROM orders",
             "postgresql",
             "duckdb",
-            'SELECT DATE_TRUNC(\'MONTH\', "ts") FROM "orders"',
+            "SELECT DATE_TRUNC('MONTH', ts) FROM orders",
         ),
     ],
 )
@@ -391,13 +384,111 @@ def test_transpile_with_source_engine(
 
 def test_transpile_source_engine_none_uses_generic() -> None:
     """Test that source_engine=None uses generic dialect (backward compatible)."""
+    # Simple SQL that doesn't require dialect-specific parsing
     result = transpile_to_dialect("SELECT * FROM orders", "postgresql", None)
-    assert result == 'SELECT * FROM "orders"'
+    assert result == "SELECT * FROM orders"
 
 
 def test_transpile_unknown_source_engine_uses_generic() -> None:
     """Test that unknown source_engine falls back to generic dialect."""
+    # Unknown engine should be treated as None (generic)
     result = transpile_to_dialect(
         "SELECT * FROM orders", "postgresql", "unknown_engine"
     )
-    assert result == 'SELECT * FROM "orders"'
+    assert result == "SELECT * FROM orders"
+
+
+# Tests for identify=True (identifier quoting)
+@pytest.mark.parametrize(
+    "sql,dialect,expected",
+    [
+        # PostgreSQL - double-quoted identifiers
+        (
+            "STATE ILIKE '%AL%'",
+            "postgresql",
+            "\"STATE\" ILIKE '%AL%'",
+        ),
+        # MySQL - backtick-quoted identifiers, ILIKE transpiled
+        (
+            "STATE ILIKE '%AL%'",
+            "mysql",
+            "LOWER(`STATE`) LIKE LOWER('%AL%')",
+        ),
+        # BigQuery - backtick-quoted identifiers, ILIKE transpiled
+        (
+            "STATE ILIKE '%AL%'",
+            "bigquery",
+            "LOWER(`STATE`) LIKE LOWER('%AL%')",
+        ),
+        # Snowflake - double-quoted identifiers
+        (
+            "STATE ILIKE '%AL%'",
+            "snowflake",
+            "\"STATE\" ILIKE '%AL%'",
+        ),
+        # MSSQL - bracket-quoted identifiers
+        (
+            "STATE = 'CA'",
+            "mssql",
+            "[STATE] = 'CA'",
+        ),
+        # Compound filter with multiple identifiers
+        (
+            "STATE = 'CA' AND AIRLINE = 'Delta'",
+            "postgresql",
+            "\"STATE\" = 'CA' AND \"AIRLINE\" = 'Delta'",
+        ),
+        # Lowercase identifiers also get quoted
+        (
+            "name = 'test'",
+            "postgresql",
+            "\"name\" = 'test'",
+        ),
+    ],
+)
+def test_identify_quotes_identifiers(sql: str, dialect: str, expected: str) -> None:
+    """Test that identify=True quotes identifiers per target dialect."""
+    assert transpile_to_dialect(sql, dialect, identify=True) == expected
+
+
+def test_identify_unknown_engine_returns_unchanged() -> None:
+    """Test that identify=True has no effect on unknown engines."""
+    sql = "STATE = 'CA'"
+    assert transpile_to_dialect(sql, "unknown_engine", identify=True) == sql
+
+
+@pytest.mark.parametrize(
+    "sql,engine,expected",
+    [
+        (
+            "STATE ILIKE '%AL%'",
+            "postgresql",
+            "\"STATE\" ILIKE '%AL%'",
+        ),
+        (
+            "country ILIKE '%Italy%'",
+            "bigquery",
+            "LOWER(`country`) LIKE LOWER('%Italy%')",
+        ),
+    ],
+)
+def test_identify_with_source_engine(sql: str, engine: str, expected: str) -> None:
+    """Test identify=True with source_engine matching target engine."""
+    result = transpile_to_dialect(sql, engine, source_engine=engine, identify=True)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "engine",
+    ["postgresql", "bigquery", "mysql", "snowflake"],
+)
+def test_identify_transpilation_is_idempotent(engine: str) -> None:
+    """Test that transpiling twice produces the same result (idempotent).
+
+    This matters because _sanitize_filters() can be called multiple times
+    via validate().
+    """
+    clause = "STATE ILIKE '%AL%'"
+    pass1 = transpile_to_dialect(clause, engine, source_engine=engine, identify=True)
+    pass2 = transpile_to_dialect(pass1, engine, source_engine=engine, identify=True)
+    assert pass1 == pass2

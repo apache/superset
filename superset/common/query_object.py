@@ -360,7 +360,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     engine = database.db_engine_spec.engine
 
                     if needs_transpilation:
-                        clause = transpile_to_dialect(clause, engine)
+                        clause = transpile_to_dialect(
+                            clause, engine, source_engine=engine, identify=True
+                        )
 
                     sanitized_clause = sanitize_clause(clause, engine)
                     self.extras[param] = sanitized_clause
