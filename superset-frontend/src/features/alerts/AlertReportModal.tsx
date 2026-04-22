@@ -2628,6 +2628,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       <>
                         <div className="control-label">
                           {t('Working timeout')}
+                          <InfoTooltip
+                            tooltip={t(
+                              'Maximum time in seconds this job is allowed to run before being considered stuck and marked as failed. Set this to at least 2-3x the typical execution time of this report.',
+                            )}
+                          />
                           <span className="required">*</span>
                         </div>
                         <div className="input-container">

@@ -99,8 +99,10 @@ grace_period_description = (
     "Superset nags you again. (in seconds)"
 )
 working_timeout_description = (
-    "If an alert is staled at a working state, how long until it's state is reset to"
-    " error"
+    "Maximum time in seconds a report or alert job is allowed to run before it is "
+    "considered stuck and its state is reset to error. Set this to at least 2-3x the "
+    "typical execution time of this report. Jobs that exceed this limit are terminated "
+    "and marked as failed."
 )
 creation_method_description = (
     "Creation method is used to inform the frontend whether the report/alert was "
