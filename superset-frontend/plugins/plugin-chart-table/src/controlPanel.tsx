@@ -796,45 +796,65 @@ const config: ControlPanelConfig = {
                     },
                   );
                 }
-                const { colnames, coltypes } =
+                const { colnames: queryColnames, coltypes: queryColtypes } =
                   chart?.queriesResponse?.[0] ?? {};
-                const allColumns =
-                  Array.isArray(colnames) && Array.isArray(coltypes)
-                    ? [
-                        {
-                          value: ObjectFormattingEnum.ENTIRE_ROW,
-                          label: t('entire row'),
-                          dataType: GenericDataType.String,
-                        },
-                        ...colnames.map((colname: string, index: number) => ({
+                const hasQueryColumns =
+                  Array.isArray(queryColnames) &&
+                  Array.isArray(queryColtypes) &&
+                  queryColnames.length > 0;
+
+                // Fall back to datasource columns when query results are empty
+                const datasourceColumns = ensureIsArray(
+                  (explore?.datasource as Dataset)?.columns,
+                );
+                const colnames = hasQueryColumns
+                  ? queryColnames
+                  : datasourceColumns.map(
+                      (col: ColumnMeta) => col.column_name,
+                    );
+                const coltypes = hasQueryColumns
+                  ? queryColtypes
+                  : datasourceColumns.map(
+                      (col: ColumnMeta) =>
+                        col.type_generic ?? GenericDataType.String,
+                    );
+
+                const hasColumns = colnames.length > 0;
+                const allColumns = hasColumns
+                  ? [
+                      {
+                        value: ObjectFormattingEnum.ENTIRE_ROW,
+                        label: t('entire row'),
+                        dataType: GenericDataType.String,
+                      },
+                      ...colnames.map((colname: string, index: number) => ({
+                        value: colname,
+                        label: Array.isArray(verboseMap)
+                          ? colname
+                          : (verboseMap[colname] ?? colname),
+                        dataType: coltypes[index],
+                      })),
+                    ]
+                  : [];
+                const numericColumns = hasColumns
+                  ? colnames.reduce((acc, colname, index) => {
+                      if (
+                        coltypes[index] === GenericDataType.Numeric ||
+                        (!hasTimeComparison &&
+                          (coltypes[index] === GenericDataType.String ||
+                            coltypes[index] === GenericDataType.Boolean))
+                      ) {
+                        acc.push({
                           value: colname,
                           label: Array.isArray(verboseMap)
                             ? colname
                             : (verboseMap[colname] ?? colname),
                           dataType: coltypes[index],
-                        })),
-                      ]
-                    : [];
-                const numericColumns =
-                  Array.isArray(colnames) && Array.isArray(coltypes)
-                    ? colnames.reduce((acc, colname, index) => {
-                        if (
-                          coltypes[index] === GenericDataType.Numeric ||
-                          (!hasTimeComparison &&
-                            (coltypes[index] === GenericDataType.String ||
-                              coltypes[index] === GenericDataType.Boolean))
-                        ) {
-                          acc.push({
-                            value: colname,
-                            label: Array.isArray(verboseMap)
-                              ? colname
-                              : (verboseMap[colname] ?? colname),
-                            dataType: coltypes[index],
-                          });
-                        }
-                        return acc;
-                      }, [])
-                    : [];
+                        });
+                      }
+                      return acc;
+                    }, [])
+                  : [];
                 const columnOptions = hasTimeComparison
                   ? processComparisonColumns(
                       numericColumns || [],
