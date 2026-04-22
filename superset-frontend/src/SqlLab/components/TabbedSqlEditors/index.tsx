@@ -114,21 +114,23 @@ function TabbedSqlEditors({
     return queryEditors.find(qe => qe.id === qeid) || null;
   }, [tabHistory, queryEditors]);
 
-  // Track whether the initial mount effect has run
-  const hasRunInitialEffect = useRef(false);
+  // Track the last persisted resultsKey we fetched, so the effect retries when
+  // the active query editor resolves after mount (or its latest query changes)
+  // but dedupes when the same resultsKey has already been fetched.
+  const fetchedResultsKeyRef = useRef<string | null>(null);
 
-  // Fetch query results on initial mount if needed (equivalent to componentDidMount)
+  // Fetch query results for the active editor's latest query when its
+  // persisted resultsKey changes (equivalent to componentDidMount, but resilient
+  // to async hydration of activeQueryEditor).
   useEffect(() => {
-    if (hasRunInitialEffect.current) {
-      return;
-    }
-    hasRunInitialEffect.current = true;
-
     const latestQuery = queries[activeQueryEditor?.latestQueryId || ''];
+    const resultsKey = latestQuery?.resultsKey;
     if (
       isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
-      latestQuery?.resultsKey
+      resultsKey &&
+      fetchedResultsKeyRef.current !== resultsKey
     ) {
+      fetchedResultsKeyRef.current = resultsKey;
       // when results are not stored in localStorage they need to be
       // fetched from the results backend (if configured)
       actions.fetchQueryResults(latestQuery, displayLimit);
