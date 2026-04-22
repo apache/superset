@@ -184,7 +184,37 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
           return;
         }
 
-        // Handle external drop (from DatasourcePanel to dropzone)
+        // Handle external drop (from DatasourcePanel to dropzone).
+        // Droppable zones (e.g., DndSelectLabel) register their drop callbacks
+        // via `data` on useDroppable, which surfaces here as `over.data.current`.
+        // Prefer that inline metadata; fall back to the registered handler map
+        // for any consumers that don't attach data to their droppable.
+        const droppableData = over.data.current as
+          | {
+              accept?: string[];
+              onDrop?: (item: { type: string; value?: unknown }) => void;
+              onDropValue?: (value: unknown) => void;
+            }
+          | undefined;
+
+        if (activeDataCurrent && droppableData) {
+          const { accept, onDrop, onDropValue } = droppableData;
+          const typeAccepted =
+            !accept || accept.includes(activeDataCurrent.type);
+
+          if (typeAccepted && (onDrop || onDropValue)) {
+            const item = {
+              type: activeDataCurrent.type,
+              value: activeDataCurrent.value,
+            };
+            onDrop?.(item);
+            if (activeDataCurrent.value !== undefined) {
+              onDropValue?.(activeDataCurrent.value);
+            }
+            return;
+          }
+        }
+
         const overId = String(over.id);
         const handler = dropHandlers[overId];
 
