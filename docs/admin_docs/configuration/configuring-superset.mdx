@@ -460,17 +460,21 @@ A companion `HASH_ALGORITHM_FALLBACKS` list (default: `["md5"]`) lets UUID looku
 This setting affects internal Superset operations only, not user passwords or authentication tokens. Changing it in an existing deployment may invalidate cached values but does not require a database migration.
 :::
 
-## SQL Lab Configuration
+## SQL Lab Query History Pruning
 
-### SQLLAB_HISTORY_RETENTION_DAYS
-
-Controls how long SQL Lab query history is retained in the metadata database. The default is 30 days:
+SQL Lab query history is stored in the metadata database and is **not** pruned by default. To trim older rows, enable the `prune_query` Celery beat task by uncommenting it in `CELERY_BEAT_SCHEDULE` and choosing a retention window:
 
 ```python
-SQLLAB_HISTORY_RETENTION_DAYS = 30  # set to None to retain history indefinitely
+CELERY_BEAT_SCHEDULE = {
+    "prune_query": {
+        "task": "prune_query",
+        "schedule": crontab(minute=0, hour=0, day_of_month=1),
+        "kwargs": {"retention_period_days": 180},
+    },
+}
 ```
 
-Old queries are pruned by the `celery beat` scheduler. Set to `None` to disable automatic cleanup, though this may cause the metadata database to grow unbounded over time.
+Adjust `retention_period_days` to control how long query rows are kept. Companion opt-in tasks (`prune_logs`, `prune_tasks`) exist for pruning the logs and tasks tables; see the commented-out examples in `superset/config.py`. Without enabling these tasks, the metadata database will grow unbounded over time.
 
 :::resources
 - [Blog: Feature Flags in Apache Superset](https://preset.io/blog/feature-flags-in-apache-superset-and-preset/)
