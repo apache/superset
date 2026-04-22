@@ -175,11 +175,19 @@ def _remap_chart_ids(
 
 
 def _update_cross_filter_scope(
-    cross_filter_config: dict[str, Any],
+    cross_filter_config: Any,
     id_map: dict[int, int],
     uuid_to_new_id: dict[str, int] | None = None,
 ) -> None:
-    """Update scope.excluded and chartsInScope in a cross-filter configuration."""
+    """Update scope.excluded and chartsInScope in a cross-filter configuration.
+
+    Imported dashboard metadata is loosely validated, so malformed payloads may
+    supply ``null`` or non-dict values where a cross-filter config is expected.
+    Skip anything that isn't a dict rather than raising ``AttributeError``.
+    """
+    if not isinstance(cross_filter_config, dict):
+        return
+
     scope = cross_filter_config.get("scope", {})
     if isinstance(scope, dict):
         if excluded := scope.get("excluded", []):
