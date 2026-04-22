@@ -22,7 +22,7 @@ import {
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { SingleQueryResultPane } from '../components/SingleQueryResultPane';
 
 // Mock data matching what useFilteredTableData expects: Record<string, any>[]
