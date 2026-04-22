@@ -213,7 +213,7 @@ class BaseScreenshot:
     ) -> bytes | None:
         driver = self.driver(window_size, user)
         try:
-            self.screenshot = driver.get_screenshot(self.url, self.element)
+            self.screenshot = driver.get_screenshot(self.url, self.element, user)
         finally:
             if isinstance(driver, WebDriverSelenium):
                 driver.destroy()
