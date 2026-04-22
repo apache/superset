@@ -25,11 +25,10 @@ from fastmcp import Context
 from mcp.types import ToolAnnotations
 from sqlalchemy.orm import subqueryload
 
-from superset.commands.exceptions import CommandException
-from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.chart.chart_helpers import get_cached_form_data
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartError,
@@ -44,21 +43,6 @@ from superset.mcp_service.privacy import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def _get_cached_form_data(form_data_key: str) -> str | None:
-    """Retrieve form_data from cache using form_data_key.
-
-    Returns the JSON string of form_data if found, None otherwise.
-    """
-    from superset.commands.explore.form_data.get import GetFormDataCommand
-
-    try:
-        cmd_params = CommandParameters(key=form_data_key)
-        return GetFormDataCommand(cmd_params).run()
-    except (KeyError, ValueError, CommandException) as e:
-        logger.warning("Failed to retrieve form_data from cache: %s", e)
-        return None
 
 
 @mcp.tool(
@@ -141,7 +125,7 @@ async def get_chart_info(  # noqa: C901
                 "Retrieving unsaved chart state from cache: form_data_key=%s"
                 % (request.form_data_key,)
             )
-            cached_form_data = _get_cached_form_data(request.form_data_key)
+            cached_form_data = get_cached_form_data(request.form_data_key)
 
             if cached_form_data:
                 try:
