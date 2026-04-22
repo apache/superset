@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { AdhocColumn, QueryFormColumn, isAdhocColumn } from '@superset-ui/core';
 import { tn } from '@apache-superset/core/translation';
@@ -27,6 +28,7 @@ import OptionWrapper from 'src/explore/components/controls/DndColumnSelectContro
 import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
+import { ExplorePageState } from 'src/explore/types';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
 import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
@@ -50,6 +52,19 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     isTemporal,
     disabledTabs,
   } = props;
+
+  // Semantic views do not support arbitrary SQL expressions as dimensions.
+  const datasourceType = useSelector<ExplorePageState, string | undefined>(
+    state => state.explore.datasource?.type,
+  );
+  const effectiveDisabledTabs = useMemo(
+    () =>
+      datasourceType === 'semantic_view'
+        ? new Set([...(disabledTabs ?? []), 'sqlExpression'])
+        : disabledTabs,
+    [datasourceType, disabledTabs],
+  );
+
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
   const optionSelector = useMemo(() => {
@@ -125,7 +140,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
             }}
             editedColumn={column}
             isTemporal={isTemporal}
-            disabledTabs={disabledTabs}
+            disabledTabs={effectiveDisabledTabs}
           >
             <OptionWrapper
               key={idx}
@@ -209,7 +224,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
         closePopover={closePopover}
         visible={newColumnPopoverVisible}
         isTemporal={isTemporal}
-        disabledTabs={disabledTabs}
+        disabledTabs={effectiveDisabledTabs}
       >
         <div />
       </ColumnSelectPopoverTrigger>
