@@ -132,6 +132,10 @@ const DndMetricSelect = (props: any) => {
     return extra;
   }, [datasource?.extra]);
 
+  // Semantic views do not support arbitrary SQL expressions as metrics.
+  const disallowAdhocMetrics =
+    extra.disallow_adhoc_metrics || datasource?.type === 'semantic_view';
+
   const savedMetricSet = useMemo(
     () =>
       new Set(
@@ -184,7 +188,7 @@ const DndMetricSelect = (props: any) => {
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
       if (
-        extra.disallow_adhoc_metrics &&
+        disallowAdhocMetrics &&
         (item.type !== DndItemType.Metric ||
           !savedMetricSet.has(item.value.metric_name))
       ) {
