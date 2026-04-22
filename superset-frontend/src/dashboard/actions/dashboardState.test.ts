@@ -28,9 +28,13 @@ import {
   ON_FILTERS_REFRESH,
   ON_REFRESH,
   ON_REFRESH_SUCCESS,
+  TOGGLE_FAVE_STAR,
+  fetchFaveStar,
 } from 'src/dashboard/actions/dashboardState';
 import { refreshChart } from 'src/components/Chart/chartAction';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+import { ToastType } from 'src/components/MessageToasts/types';
 import {
   DASHBOARD_GRID_ID,
   SAVE_TYPE_OVERWRITE,
@@ -399,5 +403,97 @@ describe('dashboardState actions', () => {
     expect(dispatchedTypes).toContain(ON_REFRESH_SUCCESS);
     expect(dispatchedTypes).not.toContain(ON_REFRESH);
     expect(dispatchedTypes).not.toContain(ON_FILTERS_REFRESH);
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('fetchFaveStar race condition', () => {
+    test('dispatches TOGGLE_FAVE_STAR when the dashboard ID still matches', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      getStub.mockRestore();
+      getStub = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+        json: { result: [{ value: true }] },
+      } as any);
+
+      await fetchFaveStar(id)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledWith({
+        type: TOGGLE_FAVE_STAR,
+        isStarred: true,
+      });
+    });
+
+    test('does NOT dispatch when the dashboard ID changed before the response resolved', async () => {
+      const requestedId = 123;
+      // User navigated to a different dashboard by the time the response comes back
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id: 456,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      getStub.mockRestore();
+      getStub = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+        json: { result: [{ value: true }] },
+      } as any);
+
+      await fetchFaveStar(requestedId)(dispatch, getState);
+
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    test('dispatches a danger toast on error when the dashboard ID still matches', async () => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      getStub.mockRestore();
+      getStub = jest
+        .spyOn(SupersetClient, 'get')
+        .mockRejectedValue(new Error('network'));
+
+      await fetchFaveStar(id)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
+          }),
+        }),
+      );
+    });
+
+    test('does NOT dispatch a danger toast on error when the dashboard ID changed', async () => {
+      const requestedId = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: {
+          id: 456,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      });
+
+      getStub.mockRestore();
+      getStub = jest
+        .spyOn(SupersetClient, 'get')
+        .mockRejectedValue(new Error('network'));
+
+      await fetchFaveStar(requestedId)(dispatch, getState);
+
+      expect(dispatch).not.toHaveBeenCalled();
+    });
   });
 });
