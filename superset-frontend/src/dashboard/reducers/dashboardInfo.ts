@@ -57,7 +57,7 @@ interface DashboardInfoAction {
   [key: string]: unknown;
 }
 
-export interface HydrateDashboardAction {
+export interface HydrateDashboardInfoAction {
   type: typeof HYDRATE_DASHBOARD;
   data: {
     dashboardInfo: DashboardInfo;
@@ -65,7 +65,9 @@ export interface HydrateDashboardAction {
   };
 }
 
-type DashboardInfoReducerAction = DashboardInfoAction | HydrateDashboardAction;
+type DashboardInfoReducerAction =
+  | DashboardInfoAction
+  | HydrateDashboardInfoAction;
 
 type DashboardInfoState = Partial<DashboardInfo> & {
   last_modified_time?: number;
@@ -74,7 +76,7 @@ type DashboardInfoState = Partial<DashboardInfo> & {
 
 function isHydrateAction(
   action: DashboardInfoReducerAction,
-): action is HydrateDashboardAction {
+): action is HydrateDashboardInfoAction {
   return action.type === HYDRATE_DASHBOARD;
 }
 
