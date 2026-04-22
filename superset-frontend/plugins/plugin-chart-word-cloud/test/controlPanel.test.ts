@@ -45,3 +45,27 @@ test('control panel has rotation and color_scheme controls', () => {
   );
   expect(colorSchemeRow).toBeDefined();
 });
+
+test('sort_by_series defaults to true to preserve legacy ordering', () => {
+  const querySection = controlPanel.controlPanelSections.find(
+    (section): section is NonNullable<typeof section> =>
+      Boolean(section && section.label === 'Query'),
+  );
+  expect(querySection).toBeDefined();
+  if (!querySection) {
+    throw new Error('Query section missing');
+  }
+
+  const sortBySeriesEntry = querySection.controlSetRows
+    .flat()
+    .find(
+      (item): item is { name: string; config: { default?: unknown } } =>
+        typeof item === 'object' &&
+        item !== null &&
+        'name' in item &&
+        (item as { name: string }).name === 'sort_by_series',
+    );
+
+  expect(sortBySeriesEntry).toBeDefined();
+  expect(sortBySeriesEntry?.config.default).toBe(true);
+});

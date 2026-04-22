@@ -41,12 +41,13 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Sort by series'),
-              default: false,
+              default: true,
               description: t(
                 'Sort results by series name in ascending order. ' +
                   'When combined with "Sort by metric", this acts as a tiebreaker ' +
-                  'for equal metric values. Adding this sort may reduce query ' +
-                  'performance on some databases.',
+                  'for equal metric values. Disabling this on Druid enables the ' +
+                  'TopN query optimization and can significantly speed up ' +
+                  'high-cardinality queries.',
               ),
             },
           },
