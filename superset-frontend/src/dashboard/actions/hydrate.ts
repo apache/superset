@@ -293,15 +293,17 @@ export const hydrateDashboard =
       directPathToChild.push(directLinkComponentId);
     }
 
-    const rawChartCustomizations =
-      (metadata?.chart_customization_config as JsonObject[]) || [];
+    const rawChartCustomizations = (
+      (metadata?.chart_customization_config as JsonObject[]) || []
+    ).filter(Boolean);
 
     const chartCustomizations = migrateChartCustomizationArray(
       rawChartCustomizations,
     );
 
-    const filters =
-      (metadata?.native_filter_configuration as JsonObject[]) || [];
+    const filters = (
+      (metadata?.native_filter_configuration as JsonObject[]) || []
+    ).filter(Boolean);
     const combinedFilters = [...filters, ...chartCustomizations];
 
     const nativeFilters = getInitialNativeFilterState({
