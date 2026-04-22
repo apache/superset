@@ -361,12 +361,14 @@ const SaveModal = ({
   );
 
   const onDashboardChange = useCallback(
-    async (newDashboard: { label: string; value: string | number }) => {
-      setDashboard(newDashboard);
+    async (
+      newDashboard: { label: string; value: string | number } | null,
+    ) => {
+      setDashboard(newDashboard ?? undefined);
       setTabsData([]);
       setSelectedTab(undefined);
 
-      if (typeof newDashboard.value === 'number') {
+      if (newDashboard && typeof newDashboard.value === 'number') {
         await loadTabs(newDashboard.value);
       }
     },
@@ -533,7 +535,9 @@ const SaveModal = ({
         // Go to new dashboard url
         if (gotodash && dashboardResult) {
           let { url } = dashboardResult;
-          if (selectedTab?.value) {
+          // OUT_OF_TAB is a synthetic 'no tab' sentinel — it isn't a real
+          // dashboard anchor, so skip appending it as a URL fragment.
+          if (selectedTab?.value && selectedTab.value !== 'OUT_OF_TAB') {
             url += `#${selectedTab.value}`;
           }
           dispatch(removeChartState(value.id));
