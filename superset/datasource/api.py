@@ -307,6 +307,109 @@ class DatasourceRestApi(BaseSupersetApi):
                 f"Valid types are: column, metric, where, having"
             ) from None
 
+    @expose(
+        "/<datasource_type>/<int:datasource_id>/compatible",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".compatible",
+        log_to_statsd=False,
+    )
+    def compatible(
+        self, datasource_type: str, datasource_id: int
+    ) -> FlaskResponse:
+        """Return metrics and dimensions compatible with the current selection.
+        ---
+        post:
+          summary: Get compatible metrics and dimensions
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: datasource_type
+          - in: path
+            schema:
+              type: integer
+            name: datasource_id
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    selected_metrics:
+                      type: array
+                      items:
+                        type: string
+                    selected_dimensions:
+                      type: array
+                      items:
+                        type: string
+          responses:
+            200:
+              description: Compatible metrics and dimensions
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          compatible_metrics:
+                            type: array
+                            items:
+                              type: string
+                          compatible_dimensions:
+                            type: array
+                            items:
+                              type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            datasource = DatasourceDAO.get_datasource(
+                DatasourceType(datasource_type), datasource_id
+            )
+            datasource.raise_for_access()
+        except ValueError:
+            return self.response(
+                400, message=f"Invalid datasource type: {datasource_type}"
+            )
+        except DatasourceTypeNotSupportedError as ex:
+            return self.response(400, message=ex.message)
+        except DatasourceNotFound as ex:
+            return self.response(404, message=ex.message)
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
+
+        body = request.get_json(silent=True) or {}
+        selected_metrics = body.get("selected_metrics", [])
+        selected_dimensions = body.get("selected_dimensions", [])
+
+        return self.response(
+            200,
+            result={
+                "compatible_metrics": datasource.get_compatible_metrics(
+                    selected_metrics, selected_dimensions
+                ),
+                "compatible_dimensions": datasource.get_compatible_dimensions(
+                    selected_metrics, selected_dimensions
+                ),
+            },
+        )
+
     @expose("/", methods=("GET",))
     @protect()
     @safe
