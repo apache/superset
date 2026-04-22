@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   useChartEditModal,
@@ -59,6 +59,7 @@ interface ChartTableProps {
   otherTabData?: Array<object>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
+  onDelete?: () => void;
 }
 
 function ChartTable({
@@ -70,6 +71,7 @@ function ChartTable({
   otherTabData,
   otherTabFilters,
   otherTabTitle,
+  onDelete,
 }: ChartTableProps) {
   const history = useHistory();
   const initialTab = getItem(
@@ -93,6 +95,14 @@ function ChartTable({
     initialTab === TableTab.Mine ? mine : filteredOtherTabData,
     [],
     false,
+  );
+
+  const refreshDataAndNotify = useCallback(
+    (...args: Parameters<typeof refreshData>) => {
+      refreshData(...args);
+      onDelete?.();
+    },
+    [refreshData, onDelete],
   );
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
@@ -231,7 +241,7 @@ function ChartTable({
               hasPerm={hasPerm}
               showThumbnails={showThumbnails}
               bulkSelectEnabled={bulkSelectEnabled}
-              refreshData={refreshData}
+              refreshData={refreshDataAndNotify}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
               favoriteStatus={favoriteStatus[e.id]}

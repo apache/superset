@@ -168,6 +168,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     null,
   );
   const [isFetchingActivityData, setIsFetchingActivityData] = useState(true);
+  const [deleteCount, setDeleteCount] = useState(0);
 
   const collapseState = getItem(LocalStorageKeys.HomepageCollapseState, []);
   const [activeState, setActiveState] = useState<Array<string>>(collapseState);
@@ -290,7 +291,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     ]).then(() => {
       setIsFetchingActivityData(false);
     });
-  }, [otherTabFilters]);
+  }, [otherTabFilters, deleteCount]);
 
   const handleToggle = () => {
     setChecked(!checked);
@@ -394,6 +395,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         otherTabData={activityData?.[TableTab.Other]}
                         otherTabFilters={otherTabFilters}
                         otherTabTitle={otherTabTitle}
+                        onDelete={() => setDeleteCount(c => c + 1)}
                       />
                     ),
                 },
@@ -411,6 +413,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                         otherTabData={activityData?.[TableTab.Other]}
                         otherTabFilters={otherTabFilters}
                         otherTabTitle={otherTabTitle}
+                        onDelete={() => setDeleteCount(c => c + 1)}
                       />
                     ),
                 },
