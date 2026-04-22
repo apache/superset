@@ -404,6 +404,9 @@ class SemanticView(AuditMixinNullable, Model):
     def is_rls_supported(self) -> bool:
         return False
 
+    def raise_for_access(self) -> None:
+        """No-op: semantic view access control is not yet implemented."""
+
     @property
     def query_language(self) -> str | None:
         return None
