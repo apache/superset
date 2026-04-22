@@ -270,7 +270,7 @@
     "@storybook/test": "^8.6.18",
     "@storybook/test-runner": "^0.17.0",
     "@svgr/webpack": "^8.1.0",
-    "@swc/core": "^1.15.24",
+    "@swc/core": "^1.15.30",
     "@swc/plugin-emotion": "^14.8.0",
     "@swc/plugin-transform-imports": "^12.5.0",
     "@testing-library/dom": "^8.20.1",
