@@ -313,7 +313,7 @@ const DndMetricSelect = (props: any) => {
         columns={props.columns}
         savedMetrics={props.savedMetrics}
         savedMetricsOptions={getSavedMetricOptionsForMetric(index)}
-        datasource={props.datasource}
+        datasource={datasourceForPopover}
         onMoveLabel={moveLabel}
         onDropLabel={handleDropLabel}
         type={`${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`}
