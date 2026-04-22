@@ -247,7 +247,7 @@ def test_join_offset_dfs_totals_query_no_dimensions():
 
 
 def test_join_offset_dfs_raises_without_time_grain():
-    """Time comparison with relative offsets requires a time grain when join key is temporal."""
+    """Time comparison with relative offsets requires a time grain."""
     df = DataFrame({"ds": [Timestamp("2021-01-01")], "D": [1]})
     offset_df = DataFrame({"ds": [Timestamp("2021-02-01")], "B": [5]})
     offset_dfs = {"1 year ago": offset_df}
