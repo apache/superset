@@ -448,11 +448,13 @@ A current list of feature flags can be found in the [Feature Flags](/admin-docs/
 
 ### HASH_ALGORITHM
 
-Controls the hashing algorithm used for internal checksums and cache keys. The default is `md5` for performance, but `sha256` is available for environments with stricter compliance requirements (e.g., FedRAMP):
+Controls the hashing algorithm used for internal checksums and cache keys (thumbnails, cache keys, etc.). The default is `sha256`, which satisfies environments with stricter compliance requirements (e.g., FedRAMP). Set it to `md5` to retain the legacy behavior from older Superset deployments:
 
 ```python
-HASH_ALGORITHM = "sha256"  # default: "md5"
+HASH_ALGORITHM = "sha256"  # default; set to "md5" for legacy behavior
 ```
+
+A companion `HASH_ALGORITHM_FALLBACKS` list (default: `["md5"]`) lets UUID lookups fall back to older algorithms, which enables gradual migration without breaking existing entries. Set it to `[]` for strict mode (use only `HASH_ALGORITHM`).
 
 :::note
 This setting affects internal Superset operations only, not user passwords or authentication tokens. Changing it in an existing deployment may invalidate cached values but does not require a database migration.
