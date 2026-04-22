@@ -34,7 +34,7 @@ import { t } from '@apache-superset/core/translation';
 import { usePrevious } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { useResizeDetector } from 'react-resize-detector';
-import { Badge, Icons, Button, Tooltip, Popover } from '..';
+import { Badge, Icons, Button, Popover } from '..';
 import { DropdownContainerProps, DropdownItem, DropdownRef } from './types';
 
 const MAX_HEIGHT = 500;
@@ -298,42 +298,41 @@ export const DropdownContainer = forwardRef(
     }, [popoverVisible]);
 
     const triggerButton = (
-      <Tooltip title={dropdownTriggerTooltip}>
-        <Button
-          buttonStyle="secondary"
-          data-test="dropdown-container-btn"
-          icon={dropdownTriggerIcon}
-          disabled={!popoverContent}
+      <Button
+        buttonStyle="secondary"
+        data-test="dropdown-container-btn"
+        icon={dropdownTriggerIcon}
+        disabled={!popoverContent}
+        tooltip={dropdownTriggerTooltip}
+        css={css`
+          padding-left: ${theme.paddingXS}px;
+          padding-right: ${theme.paddingXXS}px;
+          gap: ${theme.sizeXXS}px;
+        `}
+      >
+        {dropdownTriggerText}
+        <Badge
+          count={dropdownTriggerCount ?? overflowingCount}
+          color={
+            (dropdownTriggerCount ?? overflowingCount) > 0
+              ? theme.colorPrimary
+              : theme.colorTextSecondary
+          }
+          showZero
           css={css`
-            padding-left: ${theme.paddingXS}px;
-            padding-right: ${theme.paddingXXS}px;
-            gap: ${theme.sizeXXS}px;
+            margin-left: ${theme.sizeUnit * 2}px;
           `}
-        >
-          {dropdownTriggerText}
-          <Badge
-            count={dropdownTriggerCount ?? overflowingCount}
-            color={
-              (dropdownTriggerCount ?? overflowingCount) > 0
-                ? theme.colorPrimary
-                : theme.colorTextSecondary
+        />
+        <Icons.DownOutlined
+          iconSize="m"
+          iconColor={theme.colorIcon}
+          css={css`
+            .anticon {
+              display: flex;
             }
-            showZero
-            css={css`
-              margin-left: ${theme.sizeUnit * 2}px;
-            `}
-          />
-          <Icons.DownOutlined
-            iconSize="m"
-            iconColor={theme.colorIcon}
-            css={css`
-              .anticon {
-                display: flex;
-              }
-            `}
-          />
-        </Button>
-      </Tooltip>
+          `}
+        />
+      </Button>
     );
 
     return (
