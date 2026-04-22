@@ -92,7 +92,7 @@ def _time_comparison_offset_queries_payload() -> dict[str, Any]:
 def test_time_offset_comparison_queries_use_chart_row_limit(
     query_result_mock: Mock,
 ) -> None:
-    """Comparison SQL uses the chart row_limit when the chart has limit/offset."""
+    """Comparison SQL covers the main query's window (row_limit + row_offset)."""
     payload = _time_comparison_offset_queries_payload()
     payload["queries"][0]["row_limit"] = 100
     payload["queries"][0]["row_offset"] = 10
@@ -130,10 +130,10 @@ def test_time_offset_comparison_queries_use_chart_row_limit(
     sqls = time_offsets_obj["queries"]
     assert len(sqls) == 2
     assert re.search(r"1989-01-01.+1990-01-01", sqls[0], re.S)
-    assert re.search(r"LIMIT 100", sqls[0], re.S)
+    assert re.search(r"LIMIT 110", sqls[0], re.S)
     assert not re.search(r"OFFSET 10", sqls[0], re.S)
     assert re.search(r"1991-01-01.+1992-01-01", sqls[1], re.S)
-    assert re.search(r"LIMIT 100", sqls[1], re.S)
+    assert re.search(r"LIMIT 110", sqls[1], re.S)
     assert not re.search(r"OFFSET 10", sqls[1], re.S)
 
 
@@ -916,7 +916,8 @@ class TestQueryContext(SupersetTestCase):
     def test_time_offsets_in_query_object_uses_chart_row_limit(self, query_result_mock):
         """
         Time comparison subqueries drop the chart's row_offset (avoid skewed joins)
-        but keep a cap: use the chart row_limit when set.
+        and widen row_limit to row_limit + row_offset so the subquery covers the
+        main query's window.
         """
         payload = _time_comparison_offset_queries_payload()
         payload["queries"][0]["row_limit"] = 100
@@ -959,13 +960,13 @@ class TestQueryContext(SupersetTestCase):
         )
         sqls = time_offsets_obj["queries"]
         assert len(sqls) == 2
-        # 1 year ago — comparison query uses chart row_limit (100), not config ROW_LIMIT
+        # 1 year ago — subquery widens row_limit to cover main window (100 + 10)
         assert re.search(r"1989-01-01.+1990-01-01", sqls[0], re.S)
-        assert re.search(r"LIMIT 100", sqls[0], re.S)
+        assert re.search(r"LIMIT 110", sqls[0], re.S)
         assert not re.search(r"OFFSET 10", sqls[0], re.S)
         # 1 year later
         assert re.search(r"1991-01-01.+1992-01-01", sqls[1], re.S)
-        assert re.search(r"LIMIT 100", sqls[1], re.S)
+        assert re.search(r"LIMIT 110", sqls[1], re.S)
         assert not re.search(r"OFFSET 10", sqls[1], re.S)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

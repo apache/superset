@@ -1585,13 +1585,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 for metric in metric_names
             }
 
-            # When the original query has limit or offset we wont apply those
-            # to the subquery so we prevent data inconsistency due to missing records
-            # in the dataframes when performing the join
+            # The subquery drops row_offset (the offset period's own row ordering
+            # differs from the main query's, so applying the same offset would skew
+            # the join). It must still fetch enough rows to cover the main query's
+            # window, hence row_limit + row_offset when a chart limit is set.
             if query_object.row_limit or query_object.row_offset:
-                query_object_clone_dct["row_limit"] = (
-                    query_object.row_limit or app.config["ROW_LIMIT"]
-                )
+                if query_object.row_limit:
+                    query_object_clone_dct["row_limit"] = (
+                        query_object.row_limit + query_object.row_offset
+                    )
+                else:
+                    query_object_clone_dct["row_limit"] = app.config["ROW_LIMIT"]
                 query_object_clone_dct["row_offset"] = 0
 
             # Call the unified query method on the datasource
