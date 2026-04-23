@@ -16,6 +16,7 @@
 # under the License.
 
 import copy
+import re
 import time
 import unittest
 from contextlib import contextmanager
@@ -402,6 +403,34 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 200
         assert rv.mimetype == mimetype
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_csv_export_filename_contains_chart_name(self):
+        """
+        Chart data API: Test CSV export filename includes chart name and timestamp
+        """
+        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["form_data"] = {"slice_name": "My Test Chart"}
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        content_disposition = rv.headers.get("Content-Disposition", "")
+        assert re.search(
+            r"filename=My_Test_Chart_\d{8}_\d{6}\.csv", content_disposition
+        )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_xlsx_export_filename_contains_chart_name(self):
+        """
+        Chart data API: Test Excel export filename includes chart name and timestamp
+        """
+        self.query_context_payload["result_format"] = "xlsx"
+        self.query_context_payload["form_data"] = {"slice_name": "My Test Chart"}
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        content_disposition = rv.headers.get("Content-Disposition", "")
+        assert re.search(
+            r"filename=My_Test_Chart_\d{8}_\d{6}\.xlsx", content_disposition
+        )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_multi_query_csv_result_format(self):
