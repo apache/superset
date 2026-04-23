@@ -61,6 +61,11 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
             font-weight: ${theme.fontWeightNormal};
             margin: 0;
             color: ${theme.colorText};
+
+            /* WCAG 1.4.10 Reflow: allow full width at narrow viewports */
+            @media (max-width: 480px) {
+              max-width: 100%;
+            }
           `}
         >
           {title}

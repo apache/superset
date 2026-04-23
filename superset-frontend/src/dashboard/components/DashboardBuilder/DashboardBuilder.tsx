@@ -80,6 +80,13 @@ const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
   z-index: 11;
   width: ${({ width }) => width}px;
   ${({ hidden }) => hidden && `display: none;`}
+
+  /* WCAG 1.4.10 Reflow: collapse filter bar at narrow viewports but keep accessible */
+  @media (max-width: 768px) {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
 `;
 
 const StickyPanel = styled.div<{ width: number }>`
@@ -87,6 +94,11 @@ const StickyPanel = styled.div<{ width: number }>`
   top: -1px;
   width: ${({ width }) => width}px;
   flex: 0 0 ${({ width }) => width}px;
+
+  /* WCAG 1.4.10 Reflow: hide with filter panel at narrow viewports */
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
@@ -98,6 +110,11 @@ const StyledHeader = styled.div<{ filterBarWidth: number }>`
     top: 0;
     z-index: 99;
     max-width: calc(100vw - ${filterBarWidth}px);
+
+    /* WCAG 1.4.10 Reflow: full width when filter bar is hidden */
+    @media (max-width: 768px) {
+      max-width: 100%;
+    }
 
     .empty-droptarget:before {
       position: absolute;
@@ -295,6 +312,11 @@ const StyledDashboardContent = styled.div<{
       max-width: calc(100% - ${
         BUILDER_SIDEPANEL_WIDTH + theme.sizeUnit * 16
       }px);
+
+      /* WCAG 1.4.10 Reflow: full width when sidepanel overlays */
+      @media (max-width: 768px) {
+        max-width: 100%;
+      }
     `}
 
       /* this is the ParentSize wrapper */
@@ -306,6 +328,16 @@ const StyledDashboardContent = styled.div<{
     .dashboard-builder-sidepane {
       width: ${BUILDER_SIDEPANEL_WIDTH}px;
       z-index: 1;
+
+      /* WCAG 1.4.10 Reflow: overlay as full-width panel at narrow viewports */
+      @media (max-width: 768px) {
+        width: 100%;
+        position: fixed;
+        top: 64px;
+        left: 0;
+        z-index: 100;
+        height: calc(100vh - 64px);
+      }
     }
 
     .dashboard-component-chart-holder {

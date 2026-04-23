@@ -47,6 +47,16 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
       top: ${topOffset}px;
       height: calc(100vh - ${topOffset}px);
       width: ${BUILDER_PANE_WIDTH}px;
+
+      /* WCAG 1.4.10 Reflow: overlay as full-width panel at narrow viewports */
+      @media (max-width: 768px) {
+        position: fixed;
+        width: 100%;
+        z-index: 100;
+        top: ${topOffset}px;
+        right: 0;
+        height: calc(100vh - ${topOffset}px);
+      }
     `}
   >
     <div
@@ -54,6 +64,11 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
         position: absolute;
         height: 100%;
         width: ${BUILDER_PANE_WIDTH}px;
+
+        /* WCAG 1.4.10 Reflow: full width at narrow viewports */
+        @media (max-width: 768px) {
+          width: 100%;
+        }
         box-shadow: -${theme.sizeUnit}px 0 ${theme.sizeUnit}px 0
           ${tinycolor(theme.colorBorder).setAlpha(0.1).toRgbString()};
         background-color: ${theme.colorBgBase};

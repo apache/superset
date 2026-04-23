@@ -161,6 +161,18 @@ const HorizontalFormItem = styled(FormItem)`
     min-width: 200px !important;
     max-width: 400px !important;
   }
+
+  /* WCAG 1.4.10 Reflow: full-width filter controls at narrow viewports */
+  @media (max-width: 480px) {
+    .ant-form-item-control {
+      min-width: 100%;
+    }
+
+    .ant-select-dropdown {
+      min-width: 100% !important;
+      max-width: 100% !important;
+    }
+  }
 `;
 
 const ToolTipContainer = styled.div`

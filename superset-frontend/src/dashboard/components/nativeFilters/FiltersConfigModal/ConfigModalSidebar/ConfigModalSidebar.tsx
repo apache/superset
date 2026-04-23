@@ -45,6 +45,14 @@ const StyledSidebarFlex = styled(Flex)`
   max-width: 290px;
   max-height: 70vh;
   border-right: 1px solid ${({ theme }) => theme.colorBorderSecondary};
+
+  /* WCAG 1.4.10 Reflow: stack sidebar above content at narrow viewports */
+  @media (max-width: 768px) {
+    width: 100%;
+    max-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid ${({ theme }) => theme.colorBorderSecondary};
+  }
 `;
 
 const StyledHeaderFlex = styled(Flex)`
