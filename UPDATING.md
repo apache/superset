@@ -53,6 +53,28 @@ DELETE API endpoints for charts, dashboards, and datasets now perform **soft del
 - External tooling that queries the database directly (bypassing the API) may see "deleted" rows that are still present with `deleted_at IS NOT NULL`
 - The import/export pipeline uses `skip_visibility_filter` to handle soft-deleted rows during re-import
 
+### Aggregated soft-deleted items listing
+
+A new `GET /api/v1/deleted/` endpoint returns the union of soft-deleted charts, dashboards, and datasets the caller is authorised to see, in a single paginated response. Powers the frontend "Archive" view.
+
+**Query parameters** (passed via a rison-encoded `q=(...)` envelope, matching every other Superset list endpoint):
+
+- `types` — rison list; subset of `!(chart,dashboard,dataset)` (default: all three)
+- `search` — case-insensitive substring match on the normalised `name` field
+- `deleted_from`, `deleted_to` — inclusive ISO-8601 bounds on `deleted_at`
+- `order_column` — `deleted_at` (default), `deleted_by`, `type`, or `name`
+- `order_direction` — `asc` or `desc` (default: `desc` for `deleted_at`, `asc` otherwise)
+- `page` — zero-based page index (default `0`)
+- `page_size` — rows per page (default `25`, maximum `100`)
+
+Example: `GET /api/v1/deleted/?q=(types:!(chart),order_column:name,order_direction:asc,page:0,page_size:25)`
+
+**Response shape** (full details in `specs/sc-103157-soft-deletes/contracts/rest-api.md`):
+
+Each row carries `type`, `id`, `uuid`, `name` (normalised from `slice_name` / `dashboard_title` / `table_name`), `deleted_at`, and `deleted_by` (user object joined from `AuditMixinNullable.changed_by_fk`). Response includes a top-level `count` reflecting the total matching rows across all pages after filters and authorisation.
+
+**Authorisation**: authenticated callers only; row-level access mirrors the corresponding active list endpoints — only the soft-delete visibility filter is bypassed, not the base security filter. A user with no accessible rows gets a `200` with empty `result` and `count: 0`, not `403`.
+
 ### Deck.gl MapBox viewport and opacity controls are functional
 
 The Deck.gl MapBox chart's **Opacity**, **Default longitude**, **Default latitude**, and **Zoom** controls were previously non-functional — changing them had no effect on the rendered map. These controls are now wired up correctly.
