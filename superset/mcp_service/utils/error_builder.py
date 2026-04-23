@@ -174,6 +174,15 @@ class ChartErrorBuilder:
                 "Modify your data selection or aggregation",
             ],
         },
+        # Validation pipeline errors
+        "validation_error": {
+            "message": "Configuration validation failed: {reason}",
+            "details": "{reason}",
+            "suggestions": [
+                "Check field names in your chart configuration",
+                "Read the chart://configs resource for valid fields and examples",
+            ],
+        },
         # Chart generation errors
         "generation_failed": {
             "message": "Chart generation failed: {reason}",
