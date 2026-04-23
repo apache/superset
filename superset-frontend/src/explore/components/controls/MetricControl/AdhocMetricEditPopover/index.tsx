@@ -441,8 +441,13 @@ class AdhocMetricEditPopover extends PureComponent<
                 ensureIsArray(savedMetricsOptions).length > 0 ? (
                   <FormItem label={t('Saved metric')}>
                     <StyledSelect
-                      options={ensureIsArray(savedMetricsOptions).map(
-                        savedMetric => ({
+                      options={[...ensureIsArray(savedMetricsOptions)]
+                        .sort((a, b) =>
+                          (a.metric_name ?? '').localeCompare(
+                            b.metric_name ?? '',
+                          ),
+                        )
+                        .map(savedMetric => ({
                           value: savedMetric.metric_name,
                           label: this.renderMetricOption(savedMetric),
                           key: savedMetric.id,
@@ -453,8 +458,7 @@ class AdhocMetricEditPopover extends PureComponent<
                             !this.props.compatibleMetrics.includes(
                               savedMetric.metric_name,
                             ),
-                        }),
-                      )}
+                        }))}
                       optionFilterProps={['metric_name', 'verbose_name']}
                       {...savedSelectProps}
                     />
@@ -609,11 +613,10 @@ AdhocMetricEditPopover.defaultProps = defaultProps;
 // Thin functional wrapper that injects compatibility data from Redux.
 // AdhocMetricEditPopover is a class component and cannot use hooks directly.
 // ---------------------------------------------------------------------------
-function AdhocMetricEditPopoverWithRedux(
-  props: AdhocMetricEditPopoverProps,
-) {
+function AdhocMetricEditPopoverWithRedux(props: AdhocMetricEditPopoverProps) {
   const compatibleMetrics = useSelector(
-    (state: any) => state.explore?.compatibleMetrics as string[] | null | undefined,
+    (state: any) =>
+      state.explore?.compatibleMetrics as string[] | null | undefined,
   );
   return (
     <AdhocMetricEditPopover {...props} compatibleMetrics={compatibleMetrics} />
@@ -622,4 +625,3 @@ function AdhocMetricEditPopoverWithRedux(
 
 export { AdhocMetricEditPopover };
 export default AdhocMetricEditPopoverWithRedux;
-
