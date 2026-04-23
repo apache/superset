@@ -25,6 +25,7 @@ import {
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { FunctionComponent, useState, useMemo, useCallback, Key } from 'react';
+import type { CellProps } from 'react-table';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
@@ -46,8 +47,9 @@ import {
   Loading,
   List,
 } from '@superset-ui/core/components';
-import { DatasourceModal, GenericLink } from 'src/components';
 import {
+  DatasourceModal,
+  GenericLink,
   FacePile,
   ImportModal as ImportModelsModal,
   ModifiedInfo,
@@ -78,6 +80,7 @@ import SemanticViewEditModal from 'src/features/semanticViews/SemanticViewEditMo
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import type { BootstrapData } from 'src/types/bootstrapTypes';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
@@ -123,25 +126,28 @@ const Actions = styled.div`
 
 type Dataset = {
   changed_by_name: string;
-  changed_by: string;
+  changed_by: Owner;
   changed_on_delta_humanized: string;
   database: {
     id: string;
     database_name: string;
   } | null;
-  kind: string;
+  kind: 'physical' | 'virtual' | 'semantic_view';
   source_type?: 'database' | 'semantic_layer';
   explore_url: string;
   id: number;
   owners: Array<Owner>;
-  schema: string;
+  schema: string | null;
   table_name: string;
   description?: string | null;
   cache_timeout?: number | null;
+  extra?: string | Record<string, any> | null;
+  sql?: string | null;
 };
 
 interface VirtualDataset extends Dataset {
-  extra: Record<string, any>;
+  kind: 'virtual';
+  extra: string | Record<string, any>;
   sql: string;
 }
 
@@ -174,71 +180,67 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [loading, setLoading] = useState(true);
   const [lastFetchConfig, setLastFetchConfig] =
     useState<ListViewFetchDataConfig | null>(null);
-  const [currentSourceFilter, setCurrentSourceFilter] = useState<string>('');
 
-  const fetchData = useCallback((config: ListViewFetchDataConfig) => {
-    setLastFetchConfig(config);
-    setLoading(true);
-    const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
+  const fetchData = useCallback(
+    (config: ListViewFetchDataConfig) => {
+      setLastFetchConfig(config);
+      setLoading(true);
+      const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
 
-    // Separate source_type filter from other filters
-    const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
+      // Separate source_type filter from other filters
+      const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
 
-    // Track source filter for conditional Type filter visibility
-    const sourceVal =
-      sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
-        ? (sourceTypeFilter.value as { value: string }).value
-        : ((sourceTypeFilter?.value as string) ?? '');
-    setCurrentSourceFilter(sourceVal);
-    const otherFilters = filterValues
-      .filter(f => f.id !== 'source_type')
-      .filter(
-        ({ value }) => value !== '' && value !== null && value !== undefined,
-      )
-      .map(({ id, operator: opr, value }) => ({
-        col: id,
-        opr,
-        value:
-          value && typeof value === 'object' && 'value' in value
-            ? value.value
-            : value,
-      }));
+      const otherFilters = filterValues
+        .filter(f => f.id !== 'source_type')
+        .filter(
+          ({ value }) => value !== '' && value !== null && value !== undefined,
+        )
+        .map(({ id, operator: opr, value }) => ({
+          col: id,
+          opr,
+          value:
+            value && typeof value === 'object' && 'value' in value
+              ? value.value
+              : value,
+        }));
 
-    // Add source_type filter for the combined endpoint
-    const sourceTypeValue =
-      sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
-        ? (sourceTypeFilter.value as { value: string }).value
-        : (sourceTypeFilter?.value as string | undefined);
-    if (sourceTypeValue) {
-      otherFilters.push({
-        col: 'source_type',
-        opr: 'eq',
-        value: sourceTypeValue,
+      // Add source_type filter for the combined endpoint
+      const sourceTypeValue =
+        sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
+          ? (sourceTypeFilter.value as { value: string }).value
+          : (sourceTypeFilter?.value as string | undefined);
+      if (sourceTypeValue) {
+        otherFilters.push({
+          col: 'source_type',
+          opr: 'eq',
+          value: sourceTypeValue,
+        });
+      }
+
+      const queryParams = rison.encode_uri({
+        order_column: sortBy[0].id,
+        order_direction: sortBy[0].desc ? 'desc' : 'asc',
+        page: pageIndex,
+        page_size: pageSize,
+        ...(otherFilters.length ? { filters: otherFilters } : {}),
       });
-    }
 
-    const queryParams = rison.encode_uri({
-      order_column: sortBy[0].id,
-      order_direction: sortBy[0].desc ? 'desc' : 'asc',
-      page: pageIndex,
-      page_size: pageSize,
-      ...(otherFilters.length ? { filters: otherFilters } : {}),
-    });
-
-    return SupersetClient.get({
-      endpoint: `/api/v1/datasource/?q=${queryParams}`,
-    })
-      .then(({ json = {} }) => {
-        setDatasets(json.result);
-        setDatasetCount(json.count);
+      return SupersetClient.get({
+        endpoint: `/api/v1/datasource/?q=${queryParams}`,
       })
-      .catch(() => {
-        addDangerToast(t('An error occurred while fetching datasets'));
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [addDangerToast]);
+        .then(({ json = {} }) => {
+          setDatasets(json.result);
+          setDatasetCount(json.count);
+        })
+        .catch(() => {
+          addDangerToast(t('An error occurred while fetching datasets'));
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    },
+    [addDangerToast],
+  );
 
   const refreshData = useCallback(() => {
     if (lastFetchConfig) {
@@ -279,10 +281,27 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
 
-  const PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = useSelector<any, boolean>(
+  const PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = useSelector<
+    BootstrapData,
+    boolean
+  >(
     state =>
       state.common?.conf?.PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET || false,
   );
+
+  const currentSourceFilter = useMemo(() => {
+    const sourceTypeFilter = lastFetchConfig?.filters.find(
+      filter => filter.id === 'source_type',
+    );
+    if (
+      sourceTypeFilter?.value &&
+      typeof sourceTypeFilter.value === 'object' &&
+      'value' in sourceTypeFilter.value
+    ) {
+      return sourceTypeFilter.value.value as string;
+    }
+    return (sourceTypeFilter?.value as string | undefined) ?? '';
+  }, [lastFetchConfig]);
 
   const openDatasetImportModal = () => {
     showImportModal(true);
@@ -375,7 +394,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         await handleResourceExport('dataset', ids, () => {
           setPreparingExport(false);
         });
-      } catch (error) {
+      } catch {
         setPreparingExport(false);
         addDangerToast(t('There was an issue exporting the selected datasets'));
       }
@@ -402,7 +421,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               explore_url: exploreURL,
             },
           },
-        }: any) => {
+        }: CellProps<Dataset>) => {
           let titleLink: JSX.Element;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
             titleLink = (
@@ -418,7 +437,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             );
           }
           try {
-            const parsedExtra = JSON.parse(extra);
+            const parsedExtra =
+              typeof extra === 'string'
+                ? JSON.parse(extra)
+                : (extra as Record<string, any> | null);
             return (
               <FlexRowContainer>
                 {parsedExtra?.certification && (
@@ -451,7 +473,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: any) => <DatasetTypeLabel datasetType={kind} />,
+        }: CellProps<Dataset>) => <DatasetTypeLabel datasetType={kind} />,
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
@@ -463,7 +485,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { database },
           },
-        }: any) => database?.database_name || '-',
+        }: CellProps<Dataset>) => database?.database_name || '-',
         Header: t('Database'),
         accessor: 'database.database_name',
         size: 'xl',
@@ -474,7 +496,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { schema },
           },
-        }: any) => schema || '-',
+        }: CellProps<Dataset>) => schema || '-',
         Header: t('Schema'),
         accessor: 'schema',
         size: 'lg',
@@ -491,7 +513,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { owners = [] },
           },
-        }: any) => <FacePile users={owners} />,
+        }: CellProps<Dataset>) => <FacePile users={owners} />,
         Header: t('Owners'),
         id: 'owners',
         disableSortBy: true,
@@ -505,7 +527,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               changed_by: changedBy,
             },
           },
-        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
+        }: CellProps<Dataset>) => (
+          <ModifiedInfo date={changedOn} user={changedBy} />
+        ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
@@ -524,7 +548,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         id: 'source_type',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellProps<Dataset>) => {
           const isSemanticView = original.kind === 'semantic_view';
 
           // Semantic view: only show edit button
@@ -552,13 +576,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
           // Dataset: full set of actions
           const allowEdit =
-            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
-            isUserAdmin(user);
+            original.owners
+              .map((o: Owner) => o.id)
+              .includes(Number(user.userId)) || isUserAdmin(user);
 
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
           const handleExport = () => handleBulkDatasetExport([original]);
-          const handleDuplicate = () => openDatasetDuplicateModal(original);
+          const handleDuplicate = () => {
+            if (original.kind === 'virtual' && original.sql) {
+              openDatasetDuplicateModal(original as VirtualDataset);
+            }
+          };
           if (!canEdit && !canDelete && !canExport && !canDuplicate) {
             return null;
           }

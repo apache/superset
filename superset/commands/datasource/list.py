@@ -141,6 +141,7 @@ class GetCombinedDatasourceListCommand(BaseCommand):
 
         for f in filters:
             col = f.get("col")
+            opr = f.get("opr")
             value = f.get("value")
 
             if col == "source_type":
@@ -148,9 +149,9 @@ class GetCombinedDatasourceListCommand(BaseCommand):
             elif col == "table_name" and f.get("opr") == "ct":
                 name_filter = value
             elif col == "sql":
-                if value == "semantic_view":
+                if opr == "dataset_is_null_or_empty" and value == "semantic_view":
                     type_filter = "semantic_view"
-                else:
+                elif opr == "dataset_is_null_or_empty" and isinstance(value, bool):
                     sql_filter = value
 
         return source_type, name_filter, sql_filter, type_filter
