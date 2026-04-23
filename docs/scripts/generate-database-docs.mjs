@@ -348,8 +348,11 @@ def get_resolved_caps(class_name, visited=None):
     resolved_attrs = dict(CAP_ATTR_DEFAULTS)
     resolved_methods = set()
 
-    # Collect from parents first
-    for base_name in info['bases']:
+    # Collect from parents, iterating right-to-left so leftmost bases win
+    # (matches Python MRO: for class C(A, B), A's attributes take precedence).
+    # update() keeps the LAST value written, so reversing makes the leftmost
+    # base the final writer.
+    for base_name in reversed(info['bases']):
         parent_attrs, parent_methods = get_resolved_caps(base_name, visited.copy())
         resolved_attrs.update(parent_attrs)
         resolved_methods.update(parent_methods)
