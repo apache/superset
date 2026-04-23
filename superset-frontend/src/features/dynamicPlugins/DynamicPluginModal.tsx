@@ -23,7 +23,7 @@ interface DynamicPluginModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   plugin?: DynamicPluginObject | null;
-  onPluginAdd?: (plugin?: DynamicPluginObject) => void;
+  onPluginAdd: () => void;
   onHide: () => void;
   show: boolean;
 }
@@ -104,14 +104,14 @@ const DynamicPluginModal: FunctionComponent<DynamicPluginModalProps> = ({
       updateResource(id, { ...rest, key: key_id }).then(response => {
         if (!response) return;
         addSuccessToast(t('Dynamic plugin updated'));
-        if (onPluginAdd) onPluginAdd();
+        onPluginAdd();
         hide();
       });
     } else {
       createResource({ ...rest, key: key_id }).then(response => {
         if (!response) return;
         addSuccessToast(t('Dynamic plugin created'));
-        if (onPluginAdd) onPluginAdd(response);
+        onPluginAdd();
         hide();
       });
     }
