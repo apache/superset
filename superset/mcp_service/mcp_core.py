@@ -158,8 +158,13 @@ class ModelListCore(BaseCore, Generic[L]):
         return columns_to_load, list(columns_to_load)
 
     def _validate_order_column(self, order_column: str | None) -> None:
-        """Reject unknown or privacy-filtered sort columns."""
-        if order_column and order_column not in self._sortable_columns:
+        """Reject privacy-filtered or unknown sort columns.
+
+        Validation is skipped when no sortable_columns were declared, to preserve
+        backward-compatible passthrough behaviour for tools that rely on DAO-level
+        sort handling.
+        """
+        if order_column and self._sortable_columns and order_column not in self._sortable_columns:
             raise ValueError(
                 f"Invalid order_column '{order_column}'. "
                 f"Allowed columns: {', '.join(self._sortable_columns)}"
