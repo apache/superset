@@ -34,6 +34,7 @@ import {
   MenuObjectProps,
   MenuData,
 } from 'src/types/bootstrapTypes';
+import { datasetsLabel } from 'src/utils/semanticLayerLabels';
 import RightMenu from './RightMenu';
 import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
@@ -221,7 +222,7 @@ export function Menu({
         setActiveTabs(['Charts']);
         break;
       case path.startsWith(Paths.Datasets):
-        setActiveTabs(['Datasets']);
+        setActiveTabs([datasetsLabel()]);
         break;
       case path.startsWith(Paths.SqlLab) || path.startsWith(Paths.SavedQueries):
         setActiveTabs(['SQL']);
@@ -399,6 +400,12 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
     Manage: true,
   };
 
+  // Remap labels that depend on feature flags so they stay in sync with
+  // the active-tab key used in the Menu component above.
+  const labelOverrides: Record<string, () => string> = {
+    Datasets: datasetsLabel,
+  };
+
   // Cycle through menu.menu to build out cleanedMenu and settings
   const cleanedMenu: MenuObjectProps[] = [];
   const settings: MenuObjectProps[] = [];
@@ -410,6 +417,10 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
     const children: (MenuObjectProps | string)[] = [];
     const newItem = {
       ...item,
+      // Apply any label override for this item (keyed by FAB internal name).
+      ...(item.name && labelOverrides[item.name]
+        ? { label: labelOverrides[item.name]() }
+        : {}),
     };
 
     // Filter childs

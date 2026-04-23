@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject } from 'react';
+import { RefObject, useMemo } from 'react';
 import { useDrag } from 'react-dnd';
+import { useSelector } from 'react-redux';
 import { Metric } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { ColumnMeta } from '@superset-ui/chart-controls';
@@ -27,6 +28,7 @@ import {
   StyledMetricOption,
 } from 'src/explore/components/optionRenderers';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { ExplorePageState } from 'src/explore/types';
 
 import { DatasourcePanelDndItem } from '../types';
 
@@ -70,11 +72,40 @@ export default function DatasourcePanelDragOption(
 ) {
   const { labelRef, showTooltip, type, value } = props;
   const theme = useTheme();
+
+  // Read compatibility lists from Redux.
+  // `null` means no filtering is active (SQL datasets, or no selection yet).
+  const compatibleMetrics = useSelector<
+    ExplorePageState,
+    string[] | null | undefined
+  >(state => state.explore.compatibleMetrics);
+  const compatibleDimensions = useSelector<
+    ExplorePageState,
+    string[] | null | undefined
+  >(state => state.explore.compatibleDimensions);
+
+  // An item is compatible when the list is null (no filter) or when its
+  // name explicitly appears in the list returned by the backend.
+  const isCompatible = useMemo(() => {
+    if (type === DndItemType.Metric) {
+      if (!compatibleMetrics) return true;
+      return compatibleMetrics.includes((value as Metric).metric_name);
+    }
+    if (type === DndItemType.Column) {
+      if (!compatibleDimensions) return true;
+      return compatibleDimensions.includes(
+        (value as ColumnMeta).column_name,
+      );
+    }
+    return true;
+  }, [type, value, compatibleMetrics, compatibleDimensions]);
+
   const [{ isDragging }, drag] = useDrag({
     item: {
       value: props.value,
       type: props.type,
     },
+    canDrag: isCompatible,
     collect: monitor => ({
       isDragging: monitor.isDragging(),
     }),
@@ -87,7 +118,14 @@ export default function DatasourcePanelDragOption(
   };
 
   return (
-    <DatasourceItemContainer data-test="DatasourcePanelDragOption" ref={drag}>
+    <DatasourceItemContainer
+      data-test="DatasourcePanelDragOption"
+      ref={drag}
+      style={{
+        opacity: isCompatible ? 1 : 0.35,
+        cursor: isCompatible ? 'grab' : 'not-allowed',
+      }}
+    >
       {type === DndItemType.Column ? (
         <StyledColumnOption column={value as ColumnMeta} {...optionProps} />
       ) : (
