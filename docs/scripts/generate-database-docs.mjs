@@ -156,11 +156,16 @@ def static_return_bool(func_node):
     """
     returns = []
     other_logic = False
+    docstring_skipped = False
     for stmt in func_node.body:
-        # Skip docstring (first expression statement that's a string constant)
-        if (isinstance(stmt, ast.Expr)
+        # Skip docstring (only the FIRST expression statement that is a
+        # string constant — later bare string literals are not docstrings
+        # and should count as non-trivial logic).
+        if (not docstring_skipped
+                and isinstance(stmt, ast.Expr)
                 and isinstance(stmt.value, ast.Constant)
                 and isinstance(stmt.value.value, str)):
+            docstring_skipped = True
             continue
         if isinstance(stmt, ast.Pass):
             continue
