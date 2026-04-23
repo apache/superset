@@ -403,9 +403,7 @@ class TestExtractPayloadFromToolResult:
         )
 
         assert result is not None
-        extracted_payload, flag = result
-        assert extracted_payload == payload
-        assert flag is True
+        assert result == payload
 
     def test_returns_none_for_plain_dict(self) -> None:
         """Should return None when given a plain dict (not a ToolResult)."""

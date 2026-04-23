@@ -954,7 +954,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     @staticmethod
     def _extract_payload_from_tool_result(
         response: Any,
-    ) -> tuple[dict[str, Any], bool] | None:
+    ) -> dict[str, Any] | None:
         """Extract the JSON payload dict from a ToolResult's content[0].text.
 
         FastMCP converts tool return values into ToolResult before middleware
@@ -963,8 +963,8 @@ class ResponseSizeGuardMiddleware(Middleware):
         on that parsed dict — not on the ToolResult wrapper — otherwise
         phases like "truncate charts list" never find the right keys.
 
-        Returns ``(payload_dict, True)`` when extraction succeeds, or
-        ``None`` when the response is not a ToolResult or cannot be parsed.
+        Returns the payload dict when extraction succeeds, or ``None`` when
+        the response is not a ToolResult or cannot be parsed.
         """
         from fastmcp.tools.tool import ToolResult
 
@@ -988,7 +988,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         if not isinstance(payload, dict):
             return None
 
-        return payload, True
+        return payload
 
     @staticmethod
     def _rewrap_as_tool_result(payload: dict[str, Any], original: Any) -> Any:
@@ -1027,9 +1027,13 @@ class ResponseSizeGuardMiddleware(Middleware):
         # Unwrap ToolResult so truncation operates on the real payload
         extracted = self._extract_payload_from_tool_result(response)
         if extracted is not None:
-            payload, _ = extracted
-            truncation_target = payload
+            truncation_target = extracted
         else:
+            logger.debug(
+                "Could not extract dict payload from response for %s; "
+                "falling back to truncating the raw response object",
+                tool_name,
+            )
             truncation_target = response
 
         try:
@@ -1112,7 +1116,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         # payload inside content[0].text rather than on the ToolResult
         # wrapper (which would double-serialize the JSON string).
         extracted = self._extract_payload_from_tool_result(response)
-        estimation_target = extracted[0] if extracted is not None else response
+        estimation_target = extracted if extracted is not None else response
 
         try:
             estimated_tokens = estimate_response_tokens(estimation_target)
