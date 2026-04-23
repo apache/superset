@@ -16521,4 +16521,3 @@ msgstr "tālummaiņas zona"
 
 msgid "© Layer attribution"
 msgstr "© Slāņa attiecinājums"
-
