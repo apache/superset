@@ -164,7 +164,11 @@ class ModelListCore(BaseCore, Generic[L]):
         backward-compatible passthrough behaviour for tools that rely on DAO-level
         sort handling.
         """
-        if order_column and self._sortable_columns and order_column not in self._sortable_columns:
+        if (
+            order_column
+            and self._sortable_columns
+            and order_column not in self._sortable_columns
+        ):
             raise ValueError(
                 f"Invalid order_column '{order_column}'. "
                 f"Allowed columns: {', '.join(self._sortable_columns)}"
