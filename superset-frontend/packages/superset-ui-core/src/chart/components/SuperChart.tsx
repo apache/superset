@@ -22,6 +22,7 @@ import {
   RefObject,
   ComponentType,
   Fragment,
+  memo,
   useCallback,
   useMemo,
   useRef,
@@ -365,4 +366,6 @@ function SuperChart({
   return renderChart(widthInfo.value, heightInfo.value);
 }
 
-export default SuperChart;
+// Wrap in memo to preserve the shallow-prop-comparison behavior
+// of the original PureComponent implementation.
+export default memo(SuperChart);
