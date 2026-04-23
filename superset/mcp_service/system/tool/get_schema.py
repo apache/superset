@@ -53,6 +53,12 @@ from superset.mcp_service.common.schema_discovery import (
 )
 from superset.mcp_service.constants import ModelType
 from superset.mcp_service.mcp_core import ModelGetSchemaCore
+from superset.mcp_service.privacy import (
+    PrivacyError,
+    remove_chart_data_model_columns,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -149,13 +155,17 @@ _SCHEMA_CORE_FACTORIES: dict[
 
 @tool(
     tags=["discovery"],
+    class_permission_name="Dataset",
     annotations=ToolAnnotations(
         title="Get schema",
         readOnlyHint=True,
         destructiveHint=False,
     ),
 )
-async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaResponse:
+@requires_data_model_metadata_access
+async def get_schema(
+    request: GetSchemaRequest, ctx: Context
+) -> GetSchemaResponse | PrivacyError:
     """
     Get comprehensive schema metadata for a model type.
 
@@ -177,6 +187,17 @@ async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaRespon
     """
     await ctx.info(f"Getting schema for model_type={request.model_type}")
 
+    can_view_data_model_metadata = user_can_view_data_model_metadata()
+    if not can_view_data_model_metadata and request.model_type in {
+        "dataset",
+        "database",
+    }:
+        await ctx.warning(
+            "Schema discovery blocked by data-model privacy controls: model_type=%s",
+            request.model_type,
+        )
+        return PrivacyError.create_data_model_metadata_denied()
+
     # Get the appropriate core factory with defensive lookup
     factory = _SCHEMA_CORE_FACTORIES.get(request.model_type)
     if factory is None:
@@ -190,6 +211,25 @@ async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaRespon
     with event_logger.log_context(action="mcp.get_schema.discovery"):
         core = factory()
         schema_info = core.run_tool()
+
+    if not can_view_data_model_metadata and request.model_type == "chart":
+        schema_info = schema_info.model_copy(deep=True)
+        schema_info.select_columns = [
+            column
+            for column in schema_info.select_columns
+            if column.name in remove_chart_data_model_columns([column.name])
+        ]
+        schema_info.filter_columns = {
+            column: operators
+            for column, operators in schema_info.filter_columns.items()
+            if column in remove_chart_data_model_columns([column])
+        }
+        schema_info.sortable_columns = remove_chart_data_model_columns(
+            schema_info.sortable_columns
+        )
+        schema_info.search_columns = remove_chart_data_model_columns(
+            schema_info.search_columns
+        )
 
     await ctx.debug(
         f"Schema for {request.model_type}: "

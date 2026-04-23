@@ -29,6 +29,10 @@ from superset.mcp_service.dataset.schemas import (
     CreateVirtualDatasetRequest,
     ListDatasetsRequest,
 )
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    tool_requires_data_model_metadata_access,
+)
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -78,6 +82,63 @@ def create_mock_dataset(
     return dataset
 
 
+def test_dataset_discovery_tools_require_drill_permission() -> None:
+    from superset.mcp_service.dataset.tool.get_dataset_info import get_dataset_info
+    from superset.mcp_service.dataset.tool.list_datasets import list_datasets
+
+    assert tool_requires_data_model_metadata_access(list_datasets) is True
+    assert tool_requires_data_model_metadata_access(get_dataset_info) is True
+
+
+@pytest.mark.asyncio
+async def test_list_datasets_returns_structured_privacy_error(mcp_server) -> None:
+    with patch(
+        "superset.mcp_service.dataset.tool.list_datasets.user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_datasets",
+                {"request": ListDatasetsRequest().model_dump()},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+@pytest.mark.asyncio
+async def test_list_datasets_without_request_returns_structured_privacy_error(
+    mcp_server,
+) -> None:
+    with patch(
+        "superset.mcp_service.dataset.tool.list_datasets.user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("list_datasets", {})
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+@pytest.mark.asyncio
+async def test_get_dataset_info_returns_structured_privacy_error(mcp_server) -> None:
+    from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+    with patch(
+        "superset.mcp_service.dataset.tool.get_dataset_info.user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dataset_info",
+                {"request": GetDatasetInfoRequest(identifier=1).model_dump()},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
 @pytest.fixture
 def mcp_server():
     return mcp
@@ -94,6 +155,22 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def allow_data_model_metadata():
+    """Keep dataset tests in the normal metadata-allowed path by default."""
+    with (
+        patch(
+            "superset.mcp_service.dataset.tool.list_datasets.user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.dataset.tool.get_dataset_info.user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+    ):
+        yield
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")

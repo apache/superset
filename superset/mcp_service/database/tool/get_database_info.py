@@ -36,6 +36,11 @@ from superset.mcp_service.database.schemas import (
     serialize_database_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +54,7 @@ logger = logging.getLogger(__name__)
         destructiveHint=False,
     ),
 )
+@requires_data_model_metadata_access
 async def get_database_info(
     request: GetDatabaseInfoRequest, ctx: Context
 ) -> DatabaseInfo | DatabaseError:
@@ -86,6 +92,13 @@ async def get_database_info(
             request.force_refresh,
         )
     )
+
+    if not user_can_view_data_model_metadata():
+        await ctx.warning("Database metadata lookup blocked by privacy controls")
+        return DatabaseError.create(
+            error="You don't have permission to access database details for your role.",
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
 
     try:
         from superset.daos.database import DatabaseDAO
