@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
-
+import { SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
