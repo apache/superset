@@ -214,7 +214,7 @@ async def test_get_schema_redacts_chart_data_model_fields(mcp_server):
         ],
         filter_columns={"slice_name": ["eq"], "datasource_name": ["like"]},
         sortable_columns=["slice_name", "datasource_name"],
-        default_select=["id", "slice_name"],
+        default_select=["id", "datasource_name", "slice_name"],
         default_sort="changed_on",
         default_sort_direction="desc",
         search_columns=["slice_name", "description", "datasource_name"],
@@ -249,6 +249,7 @@ async def test_get_schema_redacts_chart_data_model_fields(mcp_server):
     )
     assert "datasource_name" not in schema_info["filter_columns"]
     assert "datasource_name" not in schema_info["sortable_columns"]
+    assert "datasource_name" not in schema_info["default_select"]
     assert "datasource_name" not in schema_info["search_columns"]
 
 

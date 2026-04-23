@@ -232,6 +232,11 @@ async def get_schema(
             for column in schema_info.sortable_columns
             if column in allowed_chart_columns
         ]
+        schema_info.default_select = [
+            column
+            for column in schema_info.default_select
+            if column in allowed_chart_columns
+        ]
         schema_info.search_columns = [
             column
             for column in schema_info.search_columns
