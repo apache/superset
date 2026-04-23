@@ -20,11 +20,14 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import StylingSection from './StylingSection';
 
-var mockIsFeatureEnabled = jest.fn();
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: (feature: string) => mockIsFeatureEnabled(feature),
-}));
+const mockIsFeatureEnabled = jest.fn();
+jest.mock('@superset-ui/core', () => {
+  const actual = jest.requireActual('@superset-ui/core');
+  return {
+    ...actual,
+    isFeatureEnabled: (feature: string) => mockIsFeatureEnabled(feature),
+  };
+});
 
 jest.mock('src/dashboard/components/ColorSchemeSelect', () => ({
   __esModule: true,
