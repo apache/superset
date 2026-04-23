@@ -18,8 +18,7 @@
  */
 import { useState, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { Input, InputNumber } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
@@ -28,9 +27,7 @@ import {
   MODAL_STANDARD_WIDTH,
 } from 'src/components/Modal';
 
-const ModalContent = styled.div`
-  padding: ${({ theme }) => theme.sizeUnit * 4}px;
-`;
+type InputNumberValue = number | null;
 
 interface SemanticViewEditModalProps {
   show: boolean;
@@ -79,8 +76,12 @@ export default function SemanticViewEditModal({
       addSuccessToast(t('Semantic view updated'));
       onSave();
       onHide();
-    } catch {
-      addDangerToast(t('An error occurred while saving the semantic view'));
+    } catch (error) {
+      const clientError = await getClientErrorObject(error);
+      addDangerToast(
+        clientError.error ||
+          t('An error occurred while saving the semantic view'),
+      );
     } finally {
       setSaving(false);
     }
@@ -97,24 +98,22 @@ export default function SemanticViewEditModal({
       width={MODAL_STANDARD_WIDTH}
       saveLoading={saving}
     >
-      <ModalContent>
-        <ModalFormField label={t('Description')}>
-          <Input.TextArea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            rows={4}
-          />
-        </ModalFormField>
-        <ModalFormField label={t('Cache timeout')}>
-          <InputNumber
-            value={cacheTimeout}
-            onChange={value => setCacheTimeout(value as number | null)}
-            min={0}
-            placeholder={t('Duration in seconds')}
-            style={{ width: '100%' }}
-          />
-        </ModalFormField>
-      </ModalContent>
+      <ModalFormField label={t('Description')}>
+        <Input.TextArea
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          rows={4}
+        />
+      </ModalFormField>
+      <ModalFormField label={t('Cache timeout')}>
+        <InputNumber
+          value={cacheTimeout}
+          onChange={value => setCacheTimeout(value as InputNumberValue)}
+          min={0}
+          placeholder={t('Duration in seconds')}
+          style={{ width: '100%' }}
+        />
+      </ModalFormField>
     </StandardModal>
   );
 }

@@ -42,6 +42,10 @@ logger = logging.getLogger(__name__)
 Datasource = Union[SqlaTable, Query, SavedQuery, SemanticView]
 
 
+def _escape_ilike_fragment(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 class DatasourceDAO(BaseDAO[Datasource]):
     sources: dict[Union[DatasourceType, str], type[Datasource]] = {
         DatasourceType.TABLE: SqlaTable,
@@ -108,7 +112,8 @@ class DatasourceDAO(BaseDAO[Datasource]):
             ds_q = ds_q.where(get_dataset_access_filters(SqlaTable))
 
         if name_filter:
-            ds_q = ds_q.where(SqlaTable.table_name.ilike(f"%{name_filter}%"))
+            escaped = _escape_ilike_fragment(name_filter)
+            ds_q = ds_q.where(SqlaTable.table_name.ilike(f"%{escaped}%", escape="\\"))
 
         if sql_filter is not None:
             if sql_filter:
@@ -129,7 +134,8 @@ class DatasourceDAO(BaseDAO[Datasource]):
         ).select_from(SemanticView.__table__)
 
         if name_filter:
-            sv_q = sv_q.where(SemanticView.name.ilike(f"%{name_filter}%"))
+            escaped = _escape_ilike_fragment(name_filter)
+            sv_q = sv_q.where(SemanticView.name.ilike(f"%{escaped}%", escape="\\"))
 
         return sv_q
 
@@ -143,10 +149,13 @@ class DatasourceDAO(BaseDAO[Datasource]):
     ) -> tuple[int, list[Any]]:
         """Count, sort, and paginate the combined dataset/semantic-view query."""
         sort_col_map = {
+            "changed_on": "changed_on",
             "changed_on_delta_humanized": "changed_on",
             "table_name": "table_name",
         }
-        sort_col_name = sort_col_map.get(order_column, "changed_on")
+        if order_column not in sort_col_map:
+            raise ValueError(f"Invalid order column: {order_column}")
+        sort_col_name = sort_col_map[order_column]
 
         total_count = (
             db.session.execute(select(func.count()).select_from(combined)).scalar() or 0

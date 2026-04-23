@@ -346,10 +346,13 @@ class DatasourceRestApi(BaseSupersetApi):
         if not can_read_datasets and not can_read_sv:
             return self.response(403, message="Access denied")
 
-        result = GetCombinedDatasourceListCommand(
-            args=kwargs.get("rison", {}),
-            can_read_datasets=can_read_datasets,
-            can_read_semantic_views=can_read_sv,
-        ).run()
+        try:
+            result = GetCombinedDatasourceListCommand(
+                args=kwargs.get("rison", {}),
+                can_read_datasets=can_read_datasets,
+                can_read_semantic_views=can_read_sv,
+            ).run()
+        except ValueError as ex:
+            return self.response(400, message=str(ex))
 
         return self.response(200, **result)
