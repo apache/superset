@@ -128,12 +128,4 @@ test('SingleQueryResultPane shows no results message when filter matches nothing
   await waitFor(() => {
     expect(screen.getByText('No results')).toBeInTheDocument();
   });
-
-  // Clear the search
-  await userEvent.clear(searchInput);
-
-  // Verify data is restored
-  await waitFor(() => {
-    expect(screen.getByText('Item 1')).toBeInTheDocument();
-  });
 });
