@@ -85,6 +85,7 @@ const dbConfigExtraExtension = extensionsRegistry.get(
 );
 
 const PAGE_SIZE = 25;
+const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 
 type ConnectionItem = DatabaseObject & {
   source_type?: 'database' | 'semantic_layer';
@@ -132,7 +133,7 @@ function DatabaseList({
   user,
 }: DatabaseListProps) {
   const theme = useTheme();
-  const showSemanticLayers = isFeatureEnabled(FeatureFlag.SemanticLayers);
+  const showSemanticLayers = isFeatureEnabled(SEMANTIC_LAYERS_FLAG);
 
   // Standard database list view resource (used when SL flag is OFF)
   const {
@@ -439,7 +440,7 @@ function DatabaseList({
     const openDatabaseModal = () =>
       handleDatabaseEditModal({ modalOpen: true });
 
-    if (isFeatureEnabled(FeatureFlag.SemanticLayers)) {
+    if (isFeatureEnabled(SEMANTIC_LAYERS_FLAG)) {
       menuData.buttons = [
         {
           name: t('New'),
@@ -677,7 +678,7 @@ function DatabaseList({
         id: 'changed_on_delta_humanized',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellProps<ConnectionItem>) => {
           const isSemanticLayer = original.source_type === 'semantic_layer';
 
           if (isSemanticLayer) {
@@ -710,7 +711,9 @@ function DatabaseList({
                       role="button"
                       tabIndex={0}
                       className="action-button"
-                      onClick={() => setSlCurrentlyEditing(original.uuid)}
+                      onClick={() =>
+                        setSlCurrentlyEditing(original.uuid ?? null)
+                      }
                     >
                       <Icons.EditOutlined iconSize="l" />
                     </span>

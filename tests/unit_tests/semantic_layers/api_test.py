@@ -67,7 +67,7 @@ def test_put_semantic_view(
     assert response.status_code == 200
     assert response.json["id"] == 1
     assert response.json["result"] == payload
-    mock_command.assert_called_once_with("1", payload)
+    mock_command.assert_called_once_with(1, payload)
 
 
 @SEMANTIC_LAYERS_APP
@@ -1664,7 +1664,7 @@ def test_delete_semantic_view(
     response = client.delete("/api/v1/semantic_view/1")
 
     assert response.status_code == 200
-    mock_command.assert_called_once_with("1")
+    mock_command.assert_called_once_with(1)
 
 
 @SEMANTIC_LAYERS_APP
@@ -1766,6 +1766,43 @@ def test_bulk_delete_semantic_view_failed(
     response = client.delete(f"/api/v1/semantic_view/?q={q}")
 
     assert response.status_code == 422
+
+
+def test_semantic_view_delete_invalid_pk_returns_404(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    response = client.delete("/api/v1/semantic_view/not-an-int")
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": False}}],
+    indirect=True,
+)
+def test_semantic_view_post_flag_off_returns_404(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    response = client.post("/api/v1/semantic_view/", json={"views": []})
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": False}}],
+    indirect=True,
+)
+def test_semantic_view_bulk_delete_flag_off_returns_404(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    import prison as rison_lib
+
+    q = rison_lib.dumps([1])
+    response = client.delete(f"/api/v1/semantic_view/?q={q}")
+    assert response.status_code == 404
 
 
 # =============================================================================
@@ -1923,3 +1960,19 @@ def test_get_views_existing_dict_config(
     assert response.status_code == 200
     result = response.json["result"]
     assert result[0]["already_added"] is True
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": False}}],
+    indirect=True,
+)
+def test_get_views_flag_off_returns_404(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    response = client.post(
+        f"/api/v1/semantic_layer/{uuid_lib.uuid4()}/views",
+        json={},
+    )
+    assert response.status_code == 404

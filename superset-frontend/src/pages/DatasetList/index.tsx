@@ -99,6 +99,8 @@ import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
 
+const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
+
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
   'dataset.delete.related',
@@ -201,7 +203,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [loading, setLoading] = useState(true);
   const [lastFetchConfig, setLastFetchConfig] =
     useState<ListViewFetchDataConfig | null>(null);
-  const [currentSourceFilter, setCurrentSourceFilter] = useState<string>('');
   // Track the current type and connection filter values so cascade-clear logic
   // can inspect them when a different filter changes.
   const currentTypeFilter = useRef<unknown>(undefined);
@@ -226,7 +227,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
    */
   const cascadeClear = useCallback(
     (changed: 'source' | 'type' | 'connection', newValue: unknown) => {
-      if (!isFeatureEnabled(FeatureFlag.SemanticLayers)) return;
+      if (!isFeatureEnabled(SEMANTIC_LAYERS_FLAG)) return;
 
       const isSlConnection = (v: unknown) =>
         typeof v === 'string' && v.startsWith('sl:');
@@ -288,6 +289,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     [],
   );
 
+  const currentSourceFilter = useMemo(() => {
+    const sourceTypeFilter = lastFetchConfig?.filters.find(
+      filter => filter.id === 'source_type',
+    );
+    if (
+      sourceTypeFilter?.value &&
+      typeof sourceTypeFilter.value === 'object' &&
+      'value' in sourceTypeFilter.value
+    ) {
+      return sourceTypeFilter.value.value as string;
+    }
+    return (sourceTypeFilter?.value as string | undefined) ?? '';
+  }, [lastFetchConfig]);
+
   /**
    * Fetches "Data connection" filter options — a combined list of databases
    * and semantic layers.
@@ -299,7 +314,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     async (filterValue = '', page: number, pageSize: number) => {
       const showDatabases = currentSourceFilter !== 'semantic_layer';
       const showSemanticLayers =
-        isFeatureEnabled(FeatureFlag.SemanticLayers) &&
+        isFeatureEnabled(SEMANTIC_LAYERS_FLAG) &&
         currentSourceFilter !== 'database';
 
       const [dbResult, slResult] = await Promise.all([
@@ -362,12 +377,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       const databaseFilter = filterValues.find(f => f.id === 'database');
 
       // Track source filter for conditional Type filter visibility
-      const sourceVal =
-        sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
-          ? (sourceTypeFilter.value as { value: string }).value
-          : ((sourceTypeFilter?.value as string) ?? '');
-      setCurrentSourceFilter(sourceVal);
-
       const otherFilters = filterValues
         .filter(f => f.id !== 'source_type' && f.id !== 'database')
         .filter(
@@ -382,26 +391,26 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               : value,
         }));
 
-        // Add source_type filter for the combined endpoint
-        const sourceTypeValue =
-          sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
-            ? (sourceTypeFilter.value as { value: string }).value
-            : (sourceTypeFilter?.value as string | undefined);
-        if (sourceTypeValue) {
-          otherFilters.push({
-            col: 'source_type',
-            opr: 'eq',
-            value: sourceTypeValue,
-          });
-        }
-
-        const queryParams = rison.encode_uri({
-          order_column: sortBy[0].id,
-          order_direction: sortBy[0].desc ? 'desc' : 'asc',
-          page: pageIndex,
-          page_size: pageSize,
-          ...(otherFilters.length ? { filters: otherFilters } : {}),
+      // Add source_type filter for the combined endpoint
+      const sourceTypeValue =
+        sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
+          ? (sourceTypeFilter.value as { value: string }).value
+          : (sourceTypeFilter?.value as string | undefined);
+      if (sourceTypeValue) {
+        otherFilters.push({
+          col: 'source_type',
+          opr: 'eq',
+          value: sourceTypeValue,
         });
+      }
+
+      const queryParams = rison.encode_uri({
+        order_column: sortBy[0].id,
+        order_direction: sortBy[0].desc ? 'desc' : 'asc',
+        page: pageIndex,
+        page_size: pageSize,
+        ...(otherFilters.length ? { filters: otherFilters } : {}),
+      });
 
       // Translate the "Data connection" filter: values prefixed with "sl:" are
       // semantic layer UUIDs; plain values are database IDs.
@@ -497,20 +506,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     state =>
       state.common?.conf?.PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET || false,
   );
-
-  const currentSourceFilter = useMemo(() => {
-    const sourceTypeFilter = lastFetchConfig?.filters.find(
-      filter => filter.id === 'source_type',
-    );
-    if (
-      sourceTypeFilter?.value &&
-      typeof sourceTypeFilter.value === 'object' &&
-      'value' in sourceTypeFilter.value
-    ) {
-      return sourceTypeFilter.value.value as string;
-    }
-    return (sourceTypeFilter?.value as string | undefined) ?? '';
-  }, [lastFetchConfig]);
 
   const openDatasetImportModal = () => {
     showImportModal(true);
@@ -713,7 +708,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: CellProps<Dataset>) => <DatasetTypeLabel datasetType={kind} />,
+        }: CellProps<Dataset>) =>
+          kind === 'semantic_view' ? (
+            <span>{t('Semantic View')}</span>
+          ) : (
+            <DatasetTypeLabel datasetType={kind} />
+          ),
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
@@ -951,7 +951,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const filterTypes: ListViewFilters = useMemo(
     () => [
-      ...(isFeatureEnabled(FeatureFlag.SemanticLayers)
+      ...(isFeatureEnabled(SEMANTIC_LAYERS_FLAG)
         ? [
             {
               Header: t('Source'),
@@ -977,7 +977,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         input: 'search',
         operator: FilterOperator.Contains,
       },
-      ...(isFeatureEnabled(FeatureFlag.SemanticLayers)
+      ...(isFeatureEnabled(SEMANTIC_LAYERS_FLAG)
         ? [
             {
               Header: t('Type'),
@@ -1146,7 +1146,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   }
 
   if (canCreate) {
-    if (isFeatureEnabled(FeatureFlag.SemanticLayers)) {
+    if (isFeatureEnabled(SEMANTIC_LAYERS_FLAG)) {
       buttonArr.push({
         name: t('New'),
         buttonStyle: 'primary',
@@ -1269,7 +1269,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         addSuccessToast(t('Deleted %s item(s)', datasetsToDelete.length));
       } else {
         addDangerToast(
-          t('There was an issue deleting the selected %s', datasetsLabelLower()),
+          t(
+            'There was an issue deleting the selected %s',
+            datasetsLabelLower(),
+          ),
         );
       }
     });
@@ -1507,16 +1510,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               addSuccessToast={addSuccessToast}
               refreshData={refreshData}
               renderBulkSelectCopy={selected => {
-                const { virtualCount, physicalCount } = selected.reduce(
-                  (acc, e) => {
-                    if (e.original.kind === 'physical') acc.physicalCount += 1;
-                    else if (e.original.kind === 'virtual') {
-                      acc.virtualCount += 1;
-                    }
-                    return acc;
-                  },
-                  { virtualCount: 0, physicalCount: 0 },
-                );
+                const { virtualCount, physicalCount, semanticViewCount } =
+                  selected.reduce(
+                    (acc, e) => {
+                      if (e.original.kind === 'physical')
+                        acc.physicalCount += 1;
+                      else if (e.original.kind === 'virtual') {
+                        acc.virtualCount += 1;
+                      } else if (e.original.kind === 'semantic_view') {
+                        acc.semanticViewCount += 1;
+                      }
+                      return acc;
+                    },
+                    { virtualCount: 0, physicalCount: 0, semanticViewCount: 0 },
+                  );
 
                 if (!selected.length) {
                   return t('0 Selected');
@@ -1536,11 +1543,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   );
                 }
 
+                const labels = [];
+                if (physicalCount) labels.push(t('%s Physical', physicalCount));
+                if (virtualCount) labels.push(t('%s Virtual', virtualCount));
+                if (semanticViewCount) {
+                  labels.push(t('%s Semantic View', semanticViewCount));
+                }
+
                 return t(
-                  '%s Selected (%s Physical, %s Virtual)',
+                  '%s Selected (%s)',
                   selected.length,
-                  physicalCount,
-                  virtualCount,
+                  labels.join(', '),
                 );
               }}
             />
