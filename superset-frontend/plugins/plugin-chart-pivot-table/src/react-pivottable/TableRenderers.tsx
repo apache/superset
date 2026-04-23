@@ -1042,7 +1042,6 @@ export function TableRenderer({
               style={colHeaderStyle}
               colSpan={colSpan}
               rowSpan={rowSpan}
-              role="columnheader button"
               onClick={clickHeaderHandler(
                 pivotData,
                 colKey,
@@ -1086,7 +1085,6 @@ export function TableRenderer({
               key={`colKeyBuffer-${flatKey(colKey)}`}
               colSpan={colSpan}
               rowSpan={rowSpan}
-              role="columnheader button"
               onClick={clickHeaderHandler(
                 pivotData,
                 colKey,
@@ -1112,7 +1110,6 @@ export function TableRenderer({
             rowSpan={
               settingsColAttrs.length + Math.min(settingsRowAttrs.length, 1)
             }
-            role="columnheader button"
             onClick={clickHeaderHandler(
               pivotData,
               [],
@@ -1197,7 +1194,6 @@ export function TableRenderer({
           <th
             className="pvtTotalLabel"
             key="padding"
-            role="columnheader button"
             onClick={clickHeaderHandler(
               pivotData,
               [],
@@ -1319,7 +1315,6 @@ export function TableRenderer({
               style={rowHeaderStyle}
               rowSpan={rowSpan}
               colSpan={colSpan}
-              role="columnheader button"
               onClick={clickHeaderHandler(
                 pivotData,
                 rowKey,
@@ -1350,7 +1345,6 @@ export function TableRenderer({
             key="rowKeyBuffer"
             colSpan={settingsRowAttrs.length - rowKey.length + colIncrSpan}
             rowSpan={1}
-            role="columnheader button"
             onClick={clickHeaderHandler(
               pivotData,
               rowKey,
@@ -1465,7 +1459,6 @@ export function TableRenderer({
           colSpan={
             settingsRowAttrs.length + Math.min(settingsColAttrs.length, 1)
           }
-          role="columnheader button"
           onClick={clickHeaderHandler(
             pivotData,
             [],
