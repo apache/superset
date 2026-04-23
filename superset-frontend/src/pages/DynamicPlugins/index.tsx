@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
 
-import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -13,6 +12,7 @@ import {
   ListViewFilterOperator as FilterOperator,
   type ListViewActionProps,
   type ListViewFilters,
+  type ListViewProps,
 } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import DynamicPluginModal, {
@@ -84,21 +84,33 @@ function DynamicPluginsList({
   };
 
   const handleBulkPluginDelete = (pluginsToDelete: DynamicPluginObject[]) => {
-    SupersetClient.delete({
-      endpoint: `/api/v1/manage/dynamic-plugins/?q=${rison.encode(
-        pluginsToDelete.map(({ id }) => id),
-      )}`,
-    }).then(
-      ({ json = {} }) => {
-        refreshData();
-        addSuccessToast(json.message);
-      },
-      createErrorHandler(errMsg =>
-        addDangerToast(
-          t('There was an issue deleting the selected plugins: %s', errMsg),
-        ),
-      ),
+    const pluginsWithIds = pluginsToDelete.filter(
+      (p): p is DynamicPluginObject & { id: number } => p.id != null,
     );
+    if (!pluginsWithIds.length) {
+      return;
+    }
+
+    Promise.all(
+      pluginsWithIds.map(({ id }) =>
+        SupersetClient.delete({
+          endpoint: `/api/v1/manage/dynamic-plugins/${id}`,
+        }),
+      ),
+    )
+      .then(() => {
+        addSuccessToast(t('Deleted %s plugin(s)', pluginsWithIds.length));
+      })
+      .catch(
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue deleting the selected plugins: %s', errMsg),
+          ),
+        ),
+      )
+      .finally(() => {
+        refreshData();
+      });
   };
 
   const initialSort = [{ id: 'name', desc: true }];
@@ -266,25 +278,39 @@ function DynamicPluginsList({
         description={t('Are you sure you want to delete the selected plugins?')}
         onConfirm={handleBulkPluginDelete}
       >
-        {confirmDelete => (
-          <ListView<DynamicPluginObject>
-            className="dynamic-plugins-list-view"
-            columns={columns}
-            count={pluginsCount}
-            data={plugins}
-            fetchData={fetchData}
-            filters={filters}
-            initialSort={initialSort}
-            loading={loading}
-            pageSize={PAGE_SIZE}
-            bulkSelectEnabled={bulkSelectEnabled}
-            disableBulkSelect={toggleBulkSelect}
-            addDangerToast={addDangerToast}
-            addSuccessToast={addSuccessToast}
-            emptyState={emptyState}
-            refreshData={refreshData}
-          />
-        )}
+        {confirmDelete => {
+          const bulkActions: ListViewProps['bulkActions'] = canDelete
+            ? [
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
+            : [];
+
+          return (
+            <ListView<DynamicPluginObject>
+              className="dynamic-plugins-list-view"
+              columns={columns}
+              count={pluginsCount}
+              data={plugins}
+              fetchData={fetchData}
+              filters={filters}
+              initialSort={initialSort}
+              loading={loading}
+              pageSize={PAGE_SIZE}
+              bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={toggleBulkSelect}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
+              emptyState={emptyState}
+              refreshData={refreshData}
+            />
+          );
+        }}
       </ConfirmStatusChange>
     </>
   );
