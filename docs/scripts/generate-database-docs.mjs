@@ -197,6 +197,21 @@ CAP_ATTR_DEFAULTS = {
     'allows_subqueries': True,
 }
 
+# Maps source capability attribute -> output field name used in databases.json.
+# When a cap attr is assigned an unevaluable expression (e.g.
+# allows_joins = is_feature_enabled("DRUID_JOINS")), the JS layer uses this
+# mapping to preserve the corresponding field from the previously-generated
+# JSON rather than silently inheriting an incorrect parent default.
+CAP_ATTR_TO_OUTPUT_FIELD = {
+    'allows_joins': 'joins',
+    'allows_subqueries': 'subqueries',
+    'supports_dynamic_schema': 'supports_dynamic_schema',
+    'supports_catalog': 'supports_catalog',
+    'supports_dynamic_catalog': 'supports_dynamic_catalog',
+    'disable_ssh_tunneling': 'ssh_tunneling',
+    'supports_file_upload': 'supports_file_upload',
+}
+
 # Methods that indicate a capability when overridden by a non-BaseEngineSpec class.
 # Mirrors the has_custom_method checks in superset/db_engine_specs/lib.py.
 # cancel_query / get_cancel_query_id / has_implicit_cancel -> query_cancelation
@@ -249,6 +264,11 @@ for filename in sorted(os.listdir(specs_dir)):
             engine_attr = None
             metadata = None
             cap_attrs = {}   # capability flag attributes defined directly in this class
+            # Cap attrs assigned via expressions we can't statically resolve
+            # (e.g. is_feature_enabled("FLAG")). Tracked so the JS layer can
+            # fall back to the previously-generated databases.json value
+            # rather than inherit a parent default that would be wrong.
+            unresolved_cap_attrs = set()
             direct_methods = set()  # capability methods defined directly in this class
 
             for item in node.body:
@@ -268,9 +288,11 @@ for filename in sorted(os.listdir(specs_dir)):
                             metadata = eval_node(item.value)
                         elif target.id in CAP_ATTR_DEFAULTS:
                             val = eval_node(item.value)
-                            # Only store if we got a concrete bool value (not None/unevaluable)
                             if isinstance(val, bool):
                                 cap_attrs[target.id] = val
+                            else:
+                                # Unevaluable expression — defer to JS fallback.
+                                unresolved_cap_attrs.add(target.id)
                 elif isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     if item.name in CAP_METHODS:
                         direct_methods.add(item.name)
@@ -294,6 +316,7 @@ for filename in sorted(os.listdir(specs_dir)):
                 'filename': filename,
                 'is_base_or_mixin': is_true_base,
                 'cap_attrs': cap_attrs,
+                'unresolved_cap_attrs': unresolved_cap_attrs,
                 'direct_methods': direct_methods,
             }
     except Exception as e:
@@ -330,42 +353,59 @@ def get_resolved_caps(class_name, visited=None):
     """
     Resolve capability flags and method overrides with inheritance.
 
-    Cap attrs: child values override parent values (same as Python MRO).
-    Methods: track which non-BaseEngineSpec classes define them directly,
-    matching the has_custom_method() logic in superset/db_engine_specs/lib.py.
+    Returns (attr_values, unresolved, methods):
+      - attr_values: {attr: bool} for attrs where the nearest MRO assignment
+        was a literal bool. Defaults are applied at the call site.
+      - unresolved: attrs where the nearest MRO assignment was an unevaluable
+        expression (e.g. is_feature_enabled("FLAG")). The JS layer falls
+        back to the previously-generated JSON value for these.
+      - methods: capability methods defined directly in some non-base ancestor,
+        matching the has_custom_method() logic in db_engine_specs/lib.py.
+
+    attr_values and unresolved are disjoint — an attr is in at most one.
     """
     if visited is None:
         visited = set()
     if class_name in visited:
-        return dict(CAP_ATTR_DEFAULTS), set()
+        return {}, set(), set()
     visited.add(class_name)
 
     info = class_info.get(class_name)
     if not info:
-        return dict(CAP_ATTR_DEFAULTS), set()
+        return {}, set(), set()
 
-    # Start from base defaults
-    resolved_attrs = dict(CAP_ATTR_DEFAULTS)
+    attr_values = {}
+    unresolved = set()
     resolved_methods = set()
 
     # Collect from parents, iterating right-to-left so leftmost bases win
     # (matches Python MRO: for class C(A, B), A's attributes take precedence).
-    # update() keeps the LAST value written, so reversing makes the leftmost
-    # base the final writer.
     for base_name in reversed(info['bases']):
-        parent_attrs, parent_methods = get_resolved_caps(base_name, visited.copy())
-        resolved_attrs.update(parent_attrs)
-        resolved_methods.update(parent_methods)
+        p_vals, p_unres, p_meth = get_resolved_caps(base_name, visited.copy())
+        # A parent's literal assignments overwrite whatever we inherited so far.
+        for attr, val in p_vals.items():
+            attr_values[attr] = val
+            unresolved.discard(attr)
+        # A parent's unresolved assignments likewise take precedence.
+        for attr in p_unres:
+            unresolved.add(attr)
+            attr_values.pop(attr, None)
+        resolved_methods.update(p_meth)
 
-    # Apply this class's own cap_attrs (override parent values)
-    resolved_attrs.update(info['cap_attrs'])
+    # Apply this class's own assignments (override parents).
+    for attr, val in info['cap_attrs'].items():
+        attr_values[attr] = val
+        unresolved.discard(attr)
+    for attr in info['unresolved_cap_attrs']:
+        unresolved.add(attr)
+        attr_values.pop(attr, None)
 
     # Accumulate method overrides, but skip the literal BaseEngineSpec
-    # (its implementations are stubs; only non-base overrides count)
+    # (its implementations are stubs; only non-base overrides count).
     if class_name != TRUE_BASE_CLASS:
         resolved_methods.update(info['direct_methods'])
 
-    return resolved_attrs, resolved_methods
+    return attr_values, unresolved, resolved_methods
 
 for class_name, info in class_info.items():
     # Skip base classes and mixins
@@ -393,10 +433,12 @@ for class_name, info in class_info.items():
         debug_info["classes_with_metadata"] += 1
 
         # Resolve capability flags from Python source
-        cap_attrs, cap_methods = get_resolved_caps(class_name)
+        attr_values, unresolved_caps, cap_methods = get_resolved_caps(class_name)
+        cap_attrs = dict(CAP_ATTR_DEFAULTS)
+        cap_attrs.update(attr_values)
         engine_attr = info.get('engine') or ''
 
-        databases[display_name] = {
+        entry = {
             'engine': display_name.lower().replace(' ', '_'),
             'engine_name': display_name,
             'module': info['filename'][:-3],  # Remove .py extension
@@ -421,6 +463,19 @@ for class_name, info in class_info.items():
                 {'impersonate_user', 'update_impersonation_config', 'get_url_for_impersonation'} & cap_methods
             ),
         }
+
+        # Tell the JS layer which output fields were populated from the
+        # BaseEngineSpec default because the source assignment was an
+        # unevaluable expression; those get overridden from existing JSON.
+        unresolved_fields = sorted(
+            CAP_ATTR_TO_OUTPUT_FIELD[attr]
+            for attr in unresolved_caps
+            if attr in CAP_ATTR_TO_OUTPUT_FIELD
+        )
+        if unresolved_fields:
+            entry['_unresolved_cap_fields'] = unresolved_fields
+
+        databases[display_name] = entry
 
 if errors and not databases:
     print(json.dumps({"error": "Parse errors", "details": errors, "debug": debug_info}), file=sys.stderr)
@@ -943,11 +998,40 @@ function loadExistingData() {
 }
 
 /**
+ * Fall back to the previously-generated databases.json for capability flags
+ * whose source assignment couldn't be statically resolved (e.g.
+ * `allows_joins = is_feature_enabled("DRUID_JOINS")`). The Python extractor
+ * flags these via the internal `_unresolved_cap_fields` marker; without this
+ * fallback those fields would silently inherit the BaseEngineSpec default
+ * and disagree with runtime behavior. The marker is stripped before output.
+ */
+function fallbackUnresolvedCaps(newDatabases, existingData) {
+  for (const [name, db] of Object.entries(newDatabases)) {
+    const unresolved = db._unresolved_cap_fields;
+    if (!unresolved || unresolved.length === 0) {
+      delete db._unresolved_cap_fields;
+      continue;
+    }
+    const existingDb = existingData?.databases?.[name];
+    if (existingDb) {
+      for (const field of unresolved) {
+        if (existingDb[field] !== undefined) {
+          db[field] = existingDb[field];
+        }
+      }
+    }
+    delete db._unresolved_cap_fields;
+  }
+  return newDatabases;
+}
+
+/**
  * Merge new documentation with existing diagnostics
  * Preserves score, max_score, and time_grains from existing data (these require
  * Flask context to generate and cannot be derived from static source analysis).
  * Capability flags (joins, supports_catalog, etc.) are NOT preserved here — they
- * are now read fresh from the Python engine spec source by extractEngineSpecMetadata().
+ * are read fresh from the Python engine spec source by extractEngineSpecMetadata(),
+ * with a separate fallback for expression-based assignments (see fallbackUnresolvedCaps).
  */
 function mergeWithExistingDiagnostics(newDatabases, existingData) {
   if (!existingData?.databases) return newDatabases;
@@ -1016,6 +1100,12 @@ async function main() {
   if (!hasNewScores && existingData) {
     databases = mergeWithExistingDiagnostics(databases, existingData);
   }
+
+  // For cap flags assigned via unevaluable expressions (e.g.
+  // `is_feature_enabled(...)`), prefer the value from a previously-generated
+  // JSON. Runs regardless of scores since it addresses static-analysis gaps,
+  // not missing Flask diagnostics. Always strips the internal marker.
+  databases = fallbackUnresolvedCaps(databases, existingData);
 
   // Extract and merge custom_errors for troubleshooting documentation
   const customErrors = extractCustomErrors();
