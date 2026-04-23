@@ -88,3 +88,46 @@ test('ErrorAlert renders compact mode with a tooltip and modal', () => {
   fireEvent.click(iconTrigger);
   expect(screen.getByText('Compact mode example')).toBeInTheDocument();
 });
+
+test('ErrorAlert renders an icon alongside the error text (non-color cue)', () => {
+  const { container } = render(
+    <ErrorAlert
+      errorType="Error"
+      message="Something went wrong"
+      type="error"
+    />,
+  );
+  // The Alert component with showIcon renders an antd icon element
+  const icon = container.querySelector('.ant-alert-icon');
+  expect(icon).toBeInTheDocument();
+});
+
+test('ErrorAlert renders a warning icon for warning type (non-color cue)', () => {
+  const { container } = render(
+    <ErrorAlert
+      errorType="Warning"
+      message="Be careful"
+      type="warning"
+      compact
+    />,
+  );
+  // In compact mode, the renderTrigger function shows WarningOutlined for warnings
+  expect(
+    container.querySelector('[aria-label="warning"]'),
+  ).toBeInTheDocument();
+});
+
+test('ErrorAlert renders an exclamation-circle icon for error type in compact mode (non-color cue)', () => {
+  const { container } = render(
+    <ErrorAlert
+      errorType="Error"
+      message="Something failed"
+      type="error"
+      compact
+    />,
+  );
+  // In compact mode, the renderTrigger function shows ExclamationCircleOutlined for errors
+  expect(
+    container.querySelector('[aria-label="exclamation-circle"]'),
+  ).toBeInTheDocument();
+});
