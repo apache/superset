@@ -426,9 +426,7 @@ class SemanticView(AuditMixinNullable, Model):
         dim_map = {d.name: d for d in self.implementation.get_dimensions()}
         sel_metrics = {metric_map[n] for n in selected_metrics if n in metric_map}
         sel_dims = {dim_map[n] for n in selected_dimensions if n in dim_map}
-        compatible = self.implementation.get_compatible_metrics(
-            sel_metrics, sel_dims
-        )
+        compatible = self.implementation.get_compatible_metrics(sel_metrics, sel_dims)
         return [m.name for m in compatible]
 
     def get_compatible_dimensions(

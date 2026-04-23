@@ -455,7 +455,6 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     selectedDimensions,
   ]);
 
-
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
       const formData = props.dashboardId

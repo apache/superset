@@ -93,9 +93,7 @@ export default function DatasourcePanelDragOption(
     }
     if (type === DndItemType.Column) {
       if (!compatibleDimensions) return true;
-      return compatibleDimensions.includes(
-        (value as ColumnMeta).column_name,
-      );
+      return compatibleDimensions.includes((value as ColumnMeta).column_name);
     }
     return true;
   }, [type, value, compatibleMetrics, compatibleDimensions]);

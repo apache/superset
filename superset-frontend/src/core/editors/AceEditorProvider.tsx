@@ -97,7 +97,7 @@ const toAceAnnotation = (annotation: EditorAnnotation) => ({
 const createAceEditorHandle = (
   aceEditorRef: React.RefObject<AceEditor>,
   completionProviders: React.MutableRefObject<Map<string, CompletionProvider>>,
-): EditorHandle => ({
+) => ({
   focus: () => {
     aceEditorRef.current?.editor?.focus();
   },
@@ -251,7 +251,11 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
 
     // Create the handle (memoized to prevent recreation on every render)
     const handle = useMemo(
-      () => createAceEditorHandle(aceEditorRef, completionProviders),
+      () =>
+        createAceEditorHandle(
+          aceEditorRef,
+          completionProviders,
+        ) as EditorHandle,
       [],
     );
 
