@@ -16,6 +16,7 @@
 # under the License.
 
 
+import importlib
 import logging
 from unittest.mock import MagicMock, patch
 
@@ -37,6 +38,12 @@ from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+list_datasets_module = importlib.import_module(
+    "superset.mcp_service.dataset.tool.list_datasets"
+)
+get_dataset_info_module = importlib.import_module(
+    "superset.mcp_service.dataset.tool.get_dataset_info"
+)
 
 
 def create_mock_dataset(
@@ -92,8 +99,9 @@ def test_dataset_discovery_tools_require_drill_permission() -> None:
 
 @pytest.mark.asyncio
 async def test_list_datasets_returns_structured_privacy_error(mcp_server) -> None:
-    with patch(
-        "superset.mcp_service.dataset.tool.list_datasets.user_can_view_data_model_metadata",
+    with patch.object(
+        list_datasets_module,
+        "user_can_view_data_model_metadata",
         return_value=False,
     ):
         async with Client(mcp_server) as client:
@@ -110,8 +118,9 @@ async def test_list_datasets_returns_structured_privacy_error(mcp_server) -> Non
 async def test_list_datasets_without_request_returns_structured_privacy_error(
     mcp_server,
 ) -> None:
-    with patch(
-        "superset.mcp_service.dataset.tool.list_datasets.user_can_view_data_model_metadata",
+    with patch.object(
+        list_datasets_module,
+        "user_can_view_data_model_metadata",
         return_value=False,
     ):
         async with Client(mcp_server) as client:
@@ -125,8 +134,9 @@ async def test_list_datasets_without_request_returns_structured_privacy_error(
 async def test_get_dataset_info_returns_structured_privacy_error(mcp_server) -> None:
     from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
 
-    with patch(
-        "superset.mcp_service.dataset.tool.get_dataset_info.user_can_view_data_model_metadata",
+    with patch.object(
+        get_dataset_info_module,
+        "user_can_view_data_model_metadata",
         return_value=False,
     ):
         async with Client(mcp_server) as client:
@@ -161,12 +171,14 @@ def mock_auth():
 def allow_data_model_metadata():
     """Keep dataset tests in the normal metadata-allowed path by default."""
     with (
-        patch(
-            "superset.mcp_service.dataset.tool.list_datasets.user_can_view_data_model_metadata",
+        patch.object(
+            list_datasets_module,
+            "user_can_view_data_model_metadata",
             return_value=True,
         ),
-        patch(
-            "superset.mcp_service.dataset.tool.get_dataset_info.user_can_view_data_model_metadata",
+        patch.object(
+            get_dataset_info_module,
+            "user_can_view_data_model_metadata",
             return_value=True,
         ),
     ):

@@ -337,8 +337,10 @@ def _tool_allowed_for_current_user(tool: Any) -> bool:
         )
 
         tool_func = getattr(tool, "fn", None)
-        if tool_requires_data_model_metadata_access(tool_func):
-            return user_can_view_data_model_metadata()
+        if tool_requires_data_model_metadata_access(tool_func) and not (
+            user_can_view_data_model_metadata()
+        ):
+            return False
 
         class_permission_name = getattr(tool_func, CLASS_PERMISSION_ATTR, None)
         if not class_permission_name:

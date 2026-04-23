@@ -63,8 +63,8 @@ _DEFAULT_LIST_DATABASES_REQUEST = ListDatabasesRequest()
 )
 @requires_data_model_metadata_access
 async def list_databases(
-    request: ListDatabasesRequest = _DEFAULT_LIST_DATABASES_REQUEST,
-    ctx: Context = None,
+    request: ListDatabasesRequest | None = None,
+    ctx: Context | None = None,
 ) -> DatabaseList | DatabaseError:
     """List database connections with filtering and search.
 
@@ -73,6 +73,11 @@ async def list_databases(
     Sortable columns for order_column: id, database_name, changed_on,
     created_on
     """
+    if ctx is None:
+        raise RuntimeError("FastMCP context is required for list_databases")
+
+    request = request or _DEFAULT_LIST_DATABASES_REQUEST.model_copy(deep=True)
+
     await ctx.info(
         "Listing databases: page=%s, page_size=%s, search=%s"
         % (

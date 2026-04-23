@@ -19,6 +19,7 @@
 Tests for the list_charts request schema
 """
 
+import importlib
 from unittest.mock import Mock, patch
 
 import pytest
@@ -37,6 +38,10 @@ from superset.mcp_service.privacy import (
     user_can_view_data_model_metadata,
 )
 from superset.utils import json
+
+list_charts_module = importlib.import_module(
+    "superset.mcp_service.chart.tool.list_charts"
+)
 
 
 @pytest.fixture
@@ -300,8 +305,9 @@ class TestChartDataModelMetadataPrivacy:
             ]
         )
 
-        with patch(
-            "superset.mcp_service.chart.tool.list_charts.user_can_view_data_model_metadata",
+        with patch.object(
+            list_charts_module,
+            "user_can_view_data_model_metadata",
             return_value=False,
         ):
             async with Client(mcp_server) as client:

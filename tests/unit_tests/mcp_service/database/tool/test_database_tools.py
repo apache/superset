@@ -16,6 +16,7 @@
 # under the License.
 
 
+import importlib
 import logging
 from unittest.mock import MagicMock, patch
 
@@ -30,6 +31,12 @@ from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+list_databases_module = importlib.import_module(
+    "superset.mcp_service.database.tool.list_databases"
+)
+get_database_info_module = importlib.import_module(
+    "superset.mcp_service.database.tool.get_database_info"
+)
 
 
 def create_mock_database(
@@ -95,12 +102,14 @@ def mock_auth():
 def allow_data_model_metadata():
     """Keep database tests in the normal metadata-allowed path by default."""
     with (
-        patch(
-            "superset.mcp_service.database.tool.list_databases.user_can_view_data_model_metadata",
+        patch.object(
+            list_databases_module,
+            "user_can_view_data_model_metadata",
             return_value=True,
         ),
-        patch(
-            "superset.mcp_service.database.tool.get_database_info.user_can_view_data_model_metadata",
+        patch.object(
+            get_database_info_module,
+            "user_can_view_data_model_metadata",
             return_value=True,
         ),
     ):
@@ -111,8 +120,9 @@ def allow_data_model_metadata():
 async def test_list_databases_without_request_returns_structured_privacy_error(
     mcp_server,
 ):
-    with patch(
-        "superset.mcp_service.database.tool.list_databases.user_can_view_data_model_metadata",
+    with patch.object(
+        list_databases_module,
+        "user_can_view_data_model_metadata",
         return_value=False,
     ):
         async with Client(mcp_server) as client:

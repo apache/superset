@@ -17,6 +17,7 @@
 
 """Tests for current_user in get_instance_info and created_by_fk filtering."""
 
+import importlib
 from unittest.mock import Mock, patch
 
 import pytest
@@ -39,6 +40,10 @@ from superset.mcp_service.privacy import (
 from superset.mcp_service.system.schemas import InstanceInfo, UserInfo
 from superset.mcp_service.system.tool.get_schema import get_schema
 from superset.utils import json
+
+get_schema_module = importlib.import_module(
+    "superset.mcp_service.system.tool.get_schema"
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -182,8 +187,9 @@ def test_user_can_view_data_model_metadata_requires_stronger_dataset_permission(
 
 @pytest.mark.asyncio
 async def test_get_schema_returns_structured_privacy_error_for_dataset(mcp_server):
-    with patch(
-        "superset.mcp_service.system.tool.get_schema.user_can_view_data_model_metadata",
+    with patch.object(
+        get_schema_module,
+        "user_can_view_data_model_metadata",
         return_value=False,
     ):
         async with Client(mcp_server) as client:
@@ -218,8 +224,9 @@ async def test_get_schema_redacts_chart_data_model_fields(mcp_server):
     mock_core.run_tool.return_value = mock_schema
 
     with (
-        patch(
-            "superset.mcp_service.system.tool.get_schema.user_can_view_data_model_metadata",
+        patch.object(
+            get_schema_module,
+            "user_can_view_data_model_metadata",
             return_value=False,
         ),
         patch.dict(

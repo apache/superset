@@ -18,7 +18,7 @@
 """Tests for MCP tool search transform configuration and application."""
 
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from fastmcp.server.transforms.search import BM25SearchTransform, RegexSearchTransform
 from flask import Flask, g
@@ -735,6 +735,36 @@ def test_tool_search_permission_filter_hides_data_model_tools_without_metadata_a
             "superset.mcp_service.server.user_can_view_data_model_metadata",
             return_value=False,
         ):
+            result = _filter_tools_by_current_user_permission([metadata, public])
+
+    assert result == [public]
+
+
+def test_tool_search_permission_filter_still_applies_rbac_to_metadata_tools():
+    """Privacy-marked tools still require the underlying tool permission."""
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+
+    @requires_data_model_metadata_access
+    def metadata_tool():
+        pass
+
+    setattr(metadata_tool, CLASS_PERMISSION_ATTR, "Dataset")
+    setattr(metadata_tool, METHOD_PERMISSION_ATTR, "get_drill_info")
+
+    metadata = SimpleNamespace(fn=metadata_tool)
+    public = SimpleNamespace(fn=lambda: None)
+
+    with app.app_context():
+        g.user = SimpleNamespace(username="viewer")
+        with (
+            patch(
+                "superset.mcp_service.server.user_can_view_data_model_metadata",
+                return_value=True,
+            ),
+            patch("superset.security_manager", new_callable=Mock) as security_manager,
+        ):
+            security_manager.can_access.return_value = False
             result = _filter_tools_by_current_user_permission([metadata, public])
 
     assert result == [public]

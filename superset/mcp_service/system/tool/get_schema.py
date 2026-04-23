@@ -193,8 +193,8 @@ async def get_schema(
         "database",
     }:
         await ctx.warning(
-            "Schema discovery blocked by data-model privacy controls: model_type=%s",
-            request.model_type,
+            "Schema discovery blocked by data-model privacy controls: "
+            f"model_type={request.model_type}"
         )
         return PrivacyError.create_data_model_metadata_denied()
 
@@ -214,22 +214,31 @@ async def get_schema(
 
     if not can_view_data_model_metadata and request.model_type == "chart":
         schema_info = schema_info.model_copy(deep=True)
+        allowed_chart_columns = set(
+            remove_chart_data_model_columns(
+                [column.name for column in schema_info.select_columns]
+            )
+        )
         schema_info.select_columns = [
             column
             for column in schema_info.select_columns
-            if column.name in remove_chart_data_model_columns([column.name])
+            if column.name in allowed_chart_columns
         ]
         schema_info.filter_columns = {
             column: operators
             for column, operators in schema_info.filter_columns.items()
-            if column in remove_chart_data_model_columns([column])
+            if column in allowed_chart_columns
         }
-        schema_info.sortable_columns = remove_chart_data_model_columns(
-            schema_info.sortable_columns
-        )
-        schema_info.search_columns = remove_chart_data_model_columns(
-            schema_info.search_columns
-        )
+        schema_info.sortable_columns = [
+            column
+            for column in schema_info.sortable_columns
+            if column in allowed_chart_columns
+        ]
+        schema_info.search_columns = [
+            column
+            for column in schema_info.search_columns
+            if column in allowed_chart_columns
+        ]
 
     await ctx.debug(
         f"Schema for {request.model_type}: "
