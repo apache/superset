@@ -25,6 +25,7 @@ from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
+from sqlalchemy.orm import load_only
 
 from superset import db, event_logger, is_feature_enabled
 from superset.commands.semantic_layer.create import CreateSemanticLayerCommand
@@ -314,14 +315,23 @@ class SemanticLayerRestApi(BaseSupersetApi):
         if config := body.get("configuration"):
             parsed_config = _parse_partial_config(cls, config)
 
+        warning: str | None = None
         try:
             schema = cls.get_configuration_schema(parsed_config)
-        except Exception:  # pylint: disable=broad-except
+        except Exception as ex:  # pylint: disable=broad-except
+            warning = str(ex)
+            logger.exception(
+                "Error enriching semantic layer configuration schema for type %s",
+                sl_type,
+            )
             # Connection or query failures during schema enrichment should not
             # prevent the form from rendering — return the base schema instead.
             schema = cls.get_configuration_schema(None)
 
-        resp = make_response(json.dumps({"result": schema}, sort_keys=False), 200)
+        payload: dict[str, Any] = {"result": schema}
+        if warning:
+            payload["warning"] = warning
+        resp = make_response(json.dumps(payload, sort_keys=False), 200)
         resp.headers["Content-Type"] = "application/json; charset=utf-8"
         return resp
 
@@ -569,7 +579,7 @@ class SemanticLayerRestApi(BaseSupersetApi):
         source_type, name_filter = self._parse_connection_filters(filters)
 
         if not is_feature_enabled("SEMANTIC_LAYERS"):
-            source_type = "database"
+            return self.response_404()
 
         all_items = self._fetch_connection_items(source_type, name_filter)
 
@@ -611,18 +621,41 @@ class SemanticLayerRestApi(BaseSupersetApi):
         """Fetch database and semantic layer items based on filters."""
         db_items: list[tuple[str, Database]] = []
         if source_type in ("all", "database"):
-            db_q = db.session.query(Database)
+            db_q = db.session.query(Database).options(
+                load_only(
+                    Database.id,
+                    Database.uuid,
+                    Database.database_name,
+                    Database.backend,
+                    Database.allow_run_async,
+                    Database.allow_dml,
+                    Database.allow_file_upload,
+                    Database.expose_in_sqllab,
+                    Database.changed_on,
+                    Database.changed_by_fk,
+                )
+            )
             if name_filter:
                 db_q = db_q.filter(Database.database_name.ilike(f"%{name_filter}%"))
             db_items = [("database", obj) for obj in db_q.all()]
 
         sl_items: list[tuple[str, SemanticLayer]] = []
         if source_type in ("all", "semantic_layer"):
-            sl_q = db.session.query(SemanticLayer)
+            sl_q = db.session.query(SemanticLayer).options(
+                load_only(
+                    SemanticLayer.uuid,
+                    SemanticLayer.name,
+                    SemanticLayer.type,
+                    SemanticLayer.description,
+                    SemanticLayer.changed_on,
+                    SemanticLayer.changed_by_fk,
+                )
+            )
             if name_filter:
                 sl_q = sl_q.filter(SemanticLayer.name.ilike(f"%{name_filter}%"))
             sl_items = [("semantic_layer", obj) for obj in sl_q.all()]
 
+        # TODO: move sort + pagination to SQL before GA.
         return db_items + sl_items  # type: ignore
 
     @staticmethod

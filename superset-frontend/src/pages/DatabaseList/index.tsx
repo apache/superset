@@ -25,6 +25,7 @@ import {
 } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import type { CellProps } from 'react-table';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
@@ -68,6 +69,7 @@ import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import type Owner from 'src/types/Owner';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
@@ -82,6 +84,8 @@ const PAGE_SIZE = 25;
 type ConnectionItem = DatabaseObject & {
   source_type?: 'database' | 'semantic_layer';
   sl_type?: string;
+  changed_by?: Owner;
+  changed_on_delta_humanized?: string;
 };
 
 interface DatabaseDeleteObject extends DatabaseObject {
@@ -497,7 +501,7 @@ function DatabaseList({
         await handleResourceExport('database', [database.id], () => {
           setPreparingExport(false);
         });
-      } catch (error) {
+      } catch {
         setPreparingExport(false);
         addDangerToast(t('There was an issue exporting the database'));
       }
@@ -596,11 +600,11 @@ function DatabaseList({
             <span>{t('AQE')}</span>
           </Tooltip>
         ),
-        Cell: ({ row: { original } }: any) =>
+        Cell: ({ row: { original } }: CellProps<ConnectionItem>) =>
           original.source_type === 'semantic_layer' ? (
             <span>–</span>
           ) : (
-            <BooleanDisplay value={original.allow_run_async} />
+            <BooleanDisplay value={Boolean(original.allow_run_async)} />
           ),
         size: 'sm',
         id: 'allow_run_async',
@@ -616,11 +620,11 @@ function DatabaseList({
             <span>{t('DML')}</span>
           </Tooltip>
         ),
-        Cell: ({ row: { original } }: any) =>
+        Cell: ({ row: { original } }: CellProps<ConnectionItem>) =>
           original.source_type === 'semantic_layer' ? (
             <span>–</span>
           ) : (
-            <BooleanDisplay value={original.allow_dml} />
+            <BooleanDisplay value={Boolean(original.allow_dml)} />
           ),
         size: 'sm',
         id: 'allow_dml',
@@ -628,11 +632,11 @@ function DatabaseList({
       {
         accessor: 'allow_file_upload',
         Header: t('File upload'),
-        Cell: ({ row: { original } }: any) =>
+        Cell: ({ row: { original } }: CellProps<ConnectionItem>) =>
           original.source_type === 'semantic_layer' ? (
             <span>–</span>
           ) : (
-            <BooleanDisplay value={original.allow_file_upload} />
+            <BooleanDisplay value={Boolean(original.allow_file_upload)} />
           ),
         size: 'md',
         id: 'allow_file_upload',
@@ -640,11 +644,11 @@ function DatabaseList({
       {
         accessor: 'expose_in_sqllab',
         Header: t('Expose in SQL Lab'),
-        Cell: ({ row: { original } }: any) =>
+        Cell: ({ row: { original } }: CellProps<ConnectionItem>) =>
           original.source_type === 'semantic_layer' ? (
             <span>–</span>
           ) : (
-            <BooleanDisplay value={original.expose_in_sqllab} />
+            <BooleanDisplay value={Boolean(original.expose_in_sqllab)} />
           ),
         size: 'md',
         id: 'expose_in_sqllab',
@@ -657,7 +661,9 @@ function DatabaseList({
               changed_on_delta_humanized: changedOn,
             },
           },
-        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
+        }: CellProps<ConnectionItem>) => (
+          <ModifiedInfo date={changedOn || ''} user={changedBy} />
+        ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
