@@ -171,21 +171,22 @@ const ColumnSelectPopover = ({
 
   const sqlEditorRef = useRef<editors.EditorHandle>(null);
 
-  const [calculatedColumns, simpleColumns] = useMemo(
-    () =>
-      columns?.reduce(
-        (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
-          if (column.expression) {
-            acc[0].push(column);
-          } else {
-            acc[1].push(column);
-          }
-          return acc;
-        },
-        [[], []],
-      ),
-    [columns],
-  );
+  const [calculatedColumns, simpleColumns] = useMemo(() => {
+    const [calc, simple] = (columns ?? []).reduce(
+      (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
+        if (column.expression) {
+          acc[0].push(column);
+        } else {
+          acc[1].push(column);
+        }
+        return acc;
+      },
+      [[], []],
+    );
+    const alpha = (a: ColumnMeta, b: ColumnMeta) =>
+      (a.column_name ?? '').localeCompare(b.column_name ?? '');
+    return [calc.sort(alpha), simple.sort(alpha)];
+  }, [columns]);
 
   // Filter metrics that are already selected in the chart
   const availableMetrics = useMemo(() => {
