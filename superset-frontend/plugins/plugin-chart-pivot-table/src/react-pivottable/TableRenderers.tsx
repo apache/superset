@@ -839,7 +839,10 @@ export function TableRenderer({
       };
       newSortingOrder[columnIndex] = newDirection;
 
-      const cacheKey = `${columnIndex}-${visColKeys.length}-${rowEnabled}-${rowPartialOnTop}-${newDirection}`;
+      // Include the target column's flat key so different visible-column sets
+      // with the same length don't collide in the cache.
+      const sortTargetKey = flatKey(visColKeys[columnIndex] ?? []);
+      const cacheKey = `${columnIndex}-${visColKeys.length}-${sortTargetKey}-${rowEnabled}-${rowPartialOnTop}-${newDirection}`;
       let newRowKeys;
       if (sortCacheRef.current.has(cacheKey)) {
         const cachedRowKeys = sortCacheRef.current.get(cacheKey);
