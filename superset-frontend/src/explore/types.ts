@@ -130,6 +130,9 @@ export interface ExplorePageState {
     standalone: boolean;
     force: boolean;
     common: JsonObject;
+    compatibleMetrics?: string[] | null;
+    compatibleDimensions?: string[] | null;
+    compatibilityLoading?: boolean;
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }
