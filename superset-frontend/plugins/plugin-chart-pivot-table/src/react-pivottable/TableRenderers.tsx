@@ -416,7 +416,12 @@ export function TableRenderer({
       const filters: Record<string, string> = {};
       for (let i = 0; i <= attrIdx; i += 1) {
         const attr = attrs[i];
-        filters[attr] = values[i];
+        const value = values[i];
+        // Subtotal/grand-total handlers may pass an empty `values` array, so
+        // guard against undefined entries rather than leaking them through.
+        if (attr != null && value != null) {
+          filters[attr] = value;
+        }
       }
       return (e: MouseEvent) =>
         callback?.(
