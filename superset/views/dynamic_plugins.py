@@ -21,7 +21,7 @@ from flask_appbuilder import expose, has_access, permission_name
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
-from marshmallow import Schema, fields
+from marshmallow import fields, Schema
 
 from superset import is_feature_enabled
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -80,7 +80,7 @@ class DynamicPluginsView(BaseSupersetView):
 
 class ListDynamicPluginSchema(Schema):
     id = fields.Int()
-    key_id = fields.String(attribute='key')
+    key_id = fields.String(attribute="key")
     changed_by = fields.Nested(UserSchema(exclude=["username"]))
     created_by = fields.Nested(UserSchema(exclude=["username"]))
     changed_on = fields.DateTime()

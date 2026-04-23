@@ -2794,7 +2794,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.appbuilder.baseviews.remove(view)
 
         security_menu = next(
-            (m for m in self.appbuilder.menu.get_list() if m.name == "Security" or m.name == "Manage"), None
+            (
+                m
+                for m in self.appbuilder.menu.get_list()
+                if m.name == "Security" or m.name == "Manage"
+            ),
+            None,
         )
         if security_menu:
             for item in list(security_menu.childs):
@@ -2803,6 +2808,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     "List Users",
                     "List Groups",
                     "User Registrations",
-                    "Plugins"
+                    "Plugins",
                 ]:
                     security_menu.childs.remove(item)
