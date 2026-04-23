@@ -254,3 +254,89 @@ def test_warning_suppression():
 
     assert len(warnings_list) == 0  # Should suppress all format inference warnings
     assert pd.api.types.is_datetime64_any_dtype(df["date"])  # Should still parse dates
+
+
+# ============================================================================
+# NEW TESTS FOR datetime_to_epoch() - Edge case coverage
+# ============================================================================
+
+import pytz
+from datetime import datetime
+from superset.utils.dates import datetime_to_epoch
+
+
+def test_datetime_to_epoch_naive_at_epoch():
+    """Test naive datetime exactly at epoch returns 0.0"""
+    # Edge case: Datetime at epoch boundary
+    epoch_dt = datetime(1970, 1, 1, 0, 0, 0)
+    result = datetime_to_epoch(epoch_dt)
+    assert result == 0.0, f"Epoch datetime should be 0.0, got {result}"
+
+
+def test_datetime_to_epoch_naive_one_second_after():
+    """Test naive datetime 1 second after epoch"""
+    dt = datetime(1970, 1, 1, 0, 0, 1)
+    result = datetime_to_epoch(dt)
+    expected = 1000.0  # 1 second * 1000 ms
+    assert result == expected, f"Expected {expected}ms, got {result}ms"
+
+
+def test_datetime_to_epoch_timezone_aware_utc():
+    """Test timezone-aware datetime in UTC"""
+    # Create UTC datetime
+    utc_tz = pytz.UTC
+    dt_utc = utc_tz.localize(datetime(1970, 1, 1, 0, 0, 1))
+    result = datetime_to_epoch(dt_utc)
+    expected = 1000.0  # 1 second * 1000 ms
+    assert result == expected, f"UTC datetime should convert correctly, got {result}ms"
+
+
+def test_datetime_to_epoch_timezone_aware_different_tz():
+    """Test timezone-aware datetime in different timezone converts to UTC correctly"""
+    # Create datetime in EST (UTC-5 in January)
+    est = pytz.timezone('US/Eastern')
+    # 1970-01-01 05:00:00 EST = 1970-01-01 10:00:00 UTC (5 hours offset)
+    dt_est = est.localize(datetime(1970, 1, 1, 5, 0, 0))
+    result = datetime_to_epoch(dt_est)
+    expected = 10 * 60 * 60 * 1000  # 10 hours in milliseconds
+    assert result == expected, f"EST datetime should convert to UTC correctly, got {result}ms"
+
+
+def test_datetime_to_epoch_dst_transition():
+    """Test datetime during DST transition is handled correctly"""
+    # Use a known DST transition date in US/Eastern
+    # 2023-03-12: Spring forward (2 AM becomes 3 AM, gap of 1 hour)
+    eastern = pytz.timezone('US/Eastern')
+
+    # Create datetime before DST transition
+    dt_before_dst = eastern.localize(datetime(2023, 3, 12, 1, 59, 59), is_dst=True)
+    result_before = datetime_to_epoch(dt_before_dst)
+
+    # Create datetime after DST transition
+    dt_after_dst = eastern.localize(datetime(2023, 3, 12, 3, 0, 1), is_dst=False)
+    result_after = datetime_to_epoch(dt_after_dst)
+
+    # The difference should be only 2 seconds, not 1 hour + 2 seconds
+    # (because of the DST jump, 1:59:59 EST -> 3:00:01 EDT)
+    diff_ms = result_after - result_before
+    expected_diff = 2000  # 2 seconds
+    assert abs(diff_ms - expected_diff) < 100, f"DST transition handled incorrectly. Diff: {diff_ms}ms"
+
+
+def test_datetime_to_epoch_microsecond_precision():
+    """Test that microseconds are handled correctly"""
+    dt = datetime(1970, 1, 1, 0, 0, 1, 500000)  # 1.5 seconds
+    result = datetime_to_epoch(dt)
+    expected = 1500.0  # 1.5 seconds * 1000 ms
+    assert result == expected, f"Microseconds should contribute to result, got {result}ms"
+
+
+def test_datetime_to_epoch_far_future():
+    """Test datetime far in the future"""
+    # 2050-01-01 should work without errors
+    dt = datetime(2050, 1, 1, 0, 0, 0)
+    result = datetime_to_epoch(dt)
+    # Just verify it's a reasonable large number (no crashes, reasonable value)
+    assert isinstance(result, float), "Should return float"
+    assert result > 0, "Far future date should have positive epoch"
+    assert result == 2524608000000.0, "2050-01-01 should be specific epoch value"
