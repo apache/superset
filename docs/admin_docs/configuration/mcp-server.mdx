@@ -672,7 +672,8 @@ Each tool declares one or more required FAB permissions. The table below maps to
 | `list_datasets`, `get_dataset_info`, `create_virtual_dataset` | `can_read` on `Dataset` (read), `can_write` on `Dataset` (mutate) |
 | `list_databases`, `get_database_info` | `can_read` on `Database` |
 | `execute_sql` | `can_execute_sql_query` on `SQLLab` |
-| `open_sql_lab_with_context`, `save_sql_query` | `can_read` on `SQLLab` |
+| `open_sql_lab_with_context` | `can_read` on `SQLLab` |
+| `save_sql_query` | `can_write` on `SavedQuery` |
 | `health_check` | None (public) |
 
 To disable RBAC checking globally (for trusted-network deployments or testing), set:
