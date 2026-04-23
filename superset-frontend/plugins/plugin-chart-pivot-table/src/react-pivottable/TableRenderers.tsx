@@ -324,17 +324,22 @@ function convertToArray(
   return result;
 }
 
-export function TableRenderer({
-  cols,
-  rows,
-  aggregatorName,
-  tableOptions = {},
-  subtotalOptions,
-  namesMapping: namesMappingProp,
-  onContextMenu,
-  allowRenderHtml,
-  ...restProps
-}: TableRendererProps) {
+export function TableRenderer(props: TableRendererProps) {
+  // Use the original props argument directly rather than spreading/re-memoizing.
+  // Spreading `...rest` into a memoized object produces a new reference every
+  // render, which defeats downstream memos and forces `getBasePivotSettings`
+  // (and a fresh `PivotData`) to recompute on every state update.
+  const {
+    cols,
+    rows,
+    aggregatorName,
+    tableOptions = {},
+    subtotalOptions,
+    namesMapping: namesMappingProp,
+    onContextMenu,
+    allowRenderHtml,
+  } = props;
+
   const [collapsedRows, setCollapsedRows] = useState<Record<string, boolean>>(
     {},
   );
@@ -346,32 +351,6 @@ export function TableRenderer({
   const [sortedRowKeys, setSortedRowKeys] = useState<string[][] | null>(null);
 
   const sortCacheRef = useRef(new Map<string, string[][]>());
-
-  // Memoize props object to maintain referential stability
-  const props = useMemo<TableRendererProps>(
-    () => ({
-      cols,
-      rows,
-      aggregatorName,
-      tableOptions,
-      subtotalOptions,
-      namesMapping: namesMappingProp,
-      onContextMenu,
-      allowRenderHtml,
-      ...restProps,
-    }),
-    [
-      cols,
-      rows,
-      aggregatorName,
-      tableOptions,
-      subtotalOptions,
-      namesMappingProp,
-      onContextMenu,
-      allowRenderHtml,
-      restProps,
-    ],
-  );
 
   const clickHandler = useCallback(
     (
