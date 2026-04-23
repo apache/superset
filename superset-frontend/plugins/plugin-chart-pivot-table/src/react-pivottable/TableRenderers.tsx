@@ -1005,8 +1005,18 @@ export function TableRenderer({
               />
             );
           };
+          // Coerce numeric timestamp strings to numbers so temporal formatters
+          // (which typically expect an epoch) render correctly.
+          const rawHeaderCellValue = colKey[attrIdx];
+          const headerCellFormatterValue =
+            typeof rawHeaderCellValue === 'string' &&
+            rawHeaderCellValue.trim() !== '' &&
+            Number.isFinite(Number(rawHeaderCellValue))
+              ? Number(rawHeaderCellValue)
+              : rawHeaderCellValue;
           const headerCellFormattedValue =
-            dateFormatters?.[attrName]?.(colKey[attrIdx]) ?? colKey[attrIdx];
+            dateFormatters?.[attrName]?.(headerCellFormatterValue) ??
+            rawHeaderCellValue;
           const isActiveHeader = colLabelClass.includes('active');
           const { backgroundColor, color } = getCellColor(
             [attrName],
@@ -1274,8 +1284,16 @@ export function TableRenderer({
             ? toggleRowKey(flatRowKeySlice)
             : null;
 
+          // Coerce numeric timestamp strings to numbers so temporal formatters
+          // (which typically expect an epoch) render correctly.
+          const headerFormatterValue =
+            typeof r === 'string' &&
+            r.trim() !== '' &&
+            Number.isFinite(Number(r))
+              ? Number(r)
+              : r;
           const headerCellFormattedValue =
-            dateFormatters?.[settingsRowAttrs[i]]?.(r) ?? r;
+            dateFormatters?.[settingsRowAttrs[i]]?.(headerFormatterValue) ?? r;
           const isActiveHeader = valueCellClassName.includes('active');
           const { backgroundColor, color } = getCellColor(
             [settingsRowAttrs[i]],
