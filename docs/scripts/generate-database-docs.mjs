@@ -141,6 +141,42 @@ def eval_node(node):
         return "<f-string>"
     return None
 
+def static_return_bool(func_node):
+    """
+    Statically resolve a method's return value to a bool when possible.
+
+    Returns True/False for functions whose body is (effectively) a single
+    \`return True\` / \`return False\` — allowing a leading docstring and
+    ignoring pure-comment/pass statements. Returns None for anything more
+    complex (conditional returns, computed values, no return, etc.).
+
+    Used by \`has_implicit_cancel\` handling: \`diagnose()\` in lib.py calls
+    the method and checks the return value, so an override that explicitly
+    returns False must NOT be treated as enabling query cancelation.
+    """
+    returns = []
+    other_logic = False
+    for stmt in func_node.body:
+        # Skip docstring (first expression statement that's a string constant)
+        if (isinstance(stmt, ast.Expr)
+                and isinstance(stmt.value, ast.Constant)
+                and isinstance(stmt.value.value, str)):
+            continue
+        if isinstance(stmt, ast.Pass):
+            continue
+        if isinstance(stmt, ast.Return):
+            returns.append(stmt)
+            continue
+        # Any other statement (if/for/assign/etc.) means control flow is
+        # non-trivial; bail out to be conservative.
+        other_logic = True
+        break
+    if other_logic or len(returns) != 1:
+        return None
+    val = eval_node(returns[0].value)
+    return val if isinstance(val, bool) else None
+
+
 def deep_merge(base, override):
     """Deep merge two dictionaries. Override values take precedence."""
     if base is None:
@@ -299,6 +335,15 @@ for filename in sorted(os.listdir(specs_dir)):
                                 unresolved_cap_attrs.add(target.id)
                 elif isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     if item.name in CAP_METHODS:
+                        # has_implicit_cancel is special: diagnose() uses the
+                        # method's RETURN VALUE, not just its presence. If the
+                        # override statically returns False, treat it as if
+                        # the method weren't overridden so query_cancelation
+                        # matches diagnose(). Unresolvable / True / anything
+                        # else falls through as an override (conservative).
+                        if item.name == 'has_implicit_cancel':
+                            if static_return_bool(item) is False:
+                                continue
                         direct_methods.add(item.name)
 
             # Check for engine attribute with non-empty value to distinguish
