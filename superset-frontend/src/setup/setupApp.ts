@@ -71,12 +71,12 @@ export default function setupApp() {
     });
 
     // for language picker dropdown
-    $('#language-picker a').click(function (
+    $<HTMLAnchorElement>('#language-picker a').click(function (
       ev: JQuery.ClickEvent<
-        HTMLLinkElement,
+        HTMLAnchorElement,
         null,
-        HTMLLinkElement,
-        HTMLLinkElement
+        HTMLAnchorElement,
+        HTMLAnchorElement
       >,
     ) {
       ev.preventDefault();

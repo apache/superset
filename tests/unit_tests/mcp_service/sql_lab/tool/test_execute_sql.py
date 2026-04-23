@@ -34,6 +34,7 @@ from fastmcp.exceptions import ToolError
 from superset_core.queries.types import QueryResult, QueryStatus, StatementResult
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.sql_lab.schemas import ColumnInfo
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -1093,3 +1094,127 @@ class TestSanitizeRowValues:
         assert rows[0]["name"] == "test"
         assert rows[0]["price"] == 9.99
         assert rows[0]["blob"] == "000102ff"
+
+
+class TestExecuteSqlOAuth2:
+    """Tests for OAuth2 error handling in execute_sql."""
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_oauth2_redirect_error(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test that OAuth2RedirectError is caught and returns a clear message."""
+        from superset.exceptions import OAuth2RedirectError
+
+        mock_database = _mock_database()
+        mock_database.execute.side_effect = OAuth2RedirectError(
+            url="https://oauth.example.com/authorize",
+            tab_id="test-tab-id",
+            redirect_uri="https://superset.example.com/callback",
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT 1",
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is False
+            assert "OAuth" in data["error"]
+            assert "https://oauth.example.com/authorize" in data["error"]
+            assert data["error_type"] == "OAUTH2_REDIRECT"
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_oauth2_error(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Test that OAuth2Error is caught and returns a clear message."""
+        from superset.exceptions import OAuth2Error
+
+        mock_database = _mock_database()
+        mock_database.execute.side_effect = OAuth2Error(
+            "Unable to determine the OAuth2 redirect URI."
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT 1",
+            "limit": 100,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+
+            data = result.structured_content
+            assert data["success"] is False
+            assert "configuration" in data["error"]
+            assert data["error_type"] == "OAUTH2_REDIRECT_ERROR"
+
+
+class TestColumnInfoIsNullable:
+    """Tests for ColumnInfo.is_nullable coercion (Athena returns 'UNKNOWN')."""
+
+    def test_unknown_string_becomes_none(self):
+        assert (
+            ColumnInfo(name="c", type="int", is_nullable="UNKNOWN").is_nullable is None
+        )
+
+    def test_arbitrary_string_becomes_none(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="maybe").is_nullable is None
+
+    def test_true_bool(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=True).is_nullable is True
+
+    def test_false_bool(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=False).is_nullable is False
+
+    def test_none(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=None).is_nullable is None
+
+    def test_default_is_none(self):
+        assert ColumnInfo(name="c", type="int").is_nullable is None
+
+    def test_true_string(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="true").is_nullable is True
+
+    def test_false_string(self):
+        assert (
+            ColumnInfo(name="c", type="int", is_nullable="false").is_nullable is False
+        )
+
+    def test_one_string(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="1").is_nullable is True
+
+    def test_zero_string(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="0").is_nullable is False
+
+    def test_integer_one(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=1).is_nullable is True
+
+    def test_integer_zero(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=0).is_nullable is False
+
+    def test_integer_two_becomes_none(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=2).is_nullable is None
+
+    def test_model_validate_unknown(self):
+        col = ColumnInfo.model_validate(
+            {"name": "c", "type": "int", "is_nullable": "UNKNOWN"}
+        )
+        assert col.is_nullable is None

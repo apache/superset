@@ -101,7 +101,7 @@ jobs:
           CR_RELEASE_NAME_TEMPLATE: "superset-helm-chart-{{ .Version }}"
 
       - name: Open Pull Request
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const branchName = '${{ env.branch_name }}';
