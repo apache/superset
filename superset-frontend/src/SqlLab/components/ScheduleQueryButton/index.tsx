@@ -108,7 +108,7 @@ export const StyledButtonComponent = styled(Button)`
     background: none;
     text-transform: none;
     padding: 0px;
-    font-size: 14px;
+    font-size: ${theme.fontSize}px;
     font-weight: ${theme.fontWeightNormal};
     margin-left: 0;
     &:disabled {

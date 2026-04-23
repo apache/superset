@@ -102,7 +102,7 @@ const ChartHeaderStyles = styled.div`
     & > .header-controls {
       display: flex;
       align-items: center;
-      height: 24px;
+      min-height: 24px;
     }
 
     .dropdown.btn-group {
