@@ -90,6 +90,7 @@ def create_mock_dataset(
 
 
 def test_dataset_discovery_tools_require_drill_permission() -> None:
+    """Dataset discovery tools are marked as metadata-restricted."""
     from superset.mcp_service.dataset.tool.get_dataset_info import get_dataset_info
     from superset.mcp_service.dataset.tool.list_datasets import list_datasets
 

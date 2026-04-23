@@ -697,7 +697,7 @@ def test_tool_search_permission_filter_hides_disallowed_tools():
     security_manager.can_access.assert_any_call("can_get_drill_info", "Dataset")
 
 
-def test_tool_search_permission_filter_hides_protected_tools_without_user():
+def test_tool_search_permission_filter_hides_protected_tools_without_user() -> None:
     """Protected tools are hidden from search when no Flask user is present."""
     app = Flask(__name__)
     app.config["MCP_RBAC_ENABLED"] = True
