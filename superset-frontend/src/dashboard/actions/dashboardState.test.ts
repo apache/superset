@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
+import {
+  JsonResponse,
+  SupersetClient,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { waitFor } from 'spec/helpers/testing-library';
 
 import {
@@ -420,7 +424,7 @@ describe('dashboardState actions', () => {
       getStub.mockRestore();
       getStub = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
         json: { result: [{ value: true }] },
-      } as any);
+      } as unknown as JsonResponse);
 
       await fetchFaveStar(id)(dispatch, getState);
 
@@ -444,7 +448,7 @@ describe('dashboardState actions', () => {
       getStub.mockRestore();
       getStub = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
         json: { result: [{ value: true }] },
-      } as any);
+      } as unknown as JsonResponse);
 
       await fetchFaveStar(requestedId)(dispatch, getState);
 
@@ -505,7 +509,7 @@ describe('dashboardState actions', () => {
     beforeEach(() => {
       deleteStub = jest
         .spyOn(SupersetClient, 'delete')
-        .mockResolvedValue({} as any);
+        .mockResolvedValue({} as unknown as JsonResponse);
     });
 
     afterEach(() => {
@@ -524,7 +528,7 @@ describe('dashboardState actions', () => {
       postStub.mockRestore();
       postStub = jest
         .spyOn(SupersetClient, 'post')
-        .mockResolvedValue({} as any);
+        .mockResolvedValue({} as unknown as JsonResponse);
 
       await saveFaveStar(id, false)(dispatch, getState);
 
@@ -568,7 +572,7 @@ describe('dashboardState actions', () => {
       postStub.mockRestore();
       postStub = jest
         .spyOn(SupersetClient, 'post')
-        .mockResolvedValue({} as any);
+        .mockResolvedValue({} as unknown as JsonResponse);
 
       await saveFaveStar(requestedId, false)(dispatch, getState);
 
