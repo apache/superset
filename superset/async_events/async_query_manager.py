@@ -117,20 +117,46 @@ class AsyncQueryManager:
         self._load_explore_json_into_cache_job: Any = None
 
     def init_app(self, app: Flask) -> None:
+        if not app.config.get("GLOBAL_ASYNC_QUERIES", False):
+            logger.warning(
+                "GLOBAL_ASYNC_QUERIES is disabled; async query cookies will not be set"
+            )
+            return
+
+        if app.config.get("GLOBAL_ASYNC_QUERIES_TRANSPORT") == "ws":
+            if not app.config.get("GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS", False):
+                raise AsyncQueryTokenException(
+                    "Async queries are configured to use websocket transport, "
+                    "but GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS is False. "
+                    "This will prevent the async JWT cookie from being set."
+                )
+
         cache_type = app.config.get("CACHE_CONFIG", {}).get("CACHE_TYPE")
         data_cache_type = app.config.get("DATA_CACHE_CONFIG", {}).get("CACHE_TYPE")
         if cache_type in [None, "null"] or data_cache_type in [None, "null"]:
-            raise Exception(  # pylint: disable=broad-exception-raised
-                """
-                Cache backends (CACHE_CONFIG, DATA_CACHE_CONFIG) must be configured
-                and non-null in order to enable async queries
-                """
+            raise Exception(
+                "Cache backends (CACHE_CONFIG, DATA_CACHE_CONFIG) must be configured "
+                "and non-null in order to enable async queries"
             )
 
         self._cache = get_cache_backend(app.config)
-        logger.debug("Using GAQ Cache backend as %s", type(self._cache).__name__)
 
-        if len(app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]) < 32:
+        # ---- load config FIRST ----
+        self._jwt_cookie_name = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
+        self._jwt_cookie_secure = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
+        self._jwt_cookie_samesite = app.config[
+            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE"
+        ]
+        self._jwt_cookie_domain = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN"]
+        self._jwt_secret = app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
+
+        # ---- validate ----
+        if not self._jwt_cookie_name:
+            raise AsyncQueryTokenException(
+                "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME must be set"
+            )
+
+        if len(self._jwt_secret) < 32:
             raise AsyncQueryTokenException(
                 "Please provide a JWT secret at least 32 bytes long"
             )
@@ -140,13 +166,6 @@ class AsyncQueryManager:
         self._stream_limit_firehose = app.config[
             "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE"
         ]
-        self._jwt_cookie_name = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"]
-        self._jwt_cookie_secure = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE"]
-        self._jwt_cookie_samesite = app.config[
-            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE"
-        ]
-        self._jwt_cookie_domain = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN"]
-        self._jwt_secret = app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
 
         if app.config["GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS"]:
             self.register_request_handlers(app)
@@ -159,6 +178,7 @@ class AsyncQueryManager:
 
         self._load_chart_data_into_cache_job = load_chart_data_into_cache
         self._load_explore_json_into_cache_job = load_explore_json_into_cache
+
 
     def register_request_handlers(self, app: Flask) -> None:
         @app.after_request
@@ -173,6 +193,10 @@ class AsyncQueryManager:
             )
 
             if reset_token:
+                logger.debug(
+                    "Resetting async query JWT cookie for user_id=%s", user_id
+                )
+    
                 async_channel_id = str(uuid.uuid4())
                 session["async_channel_id"] = async_channel_id
                 session["async_user_id"] = user_id
