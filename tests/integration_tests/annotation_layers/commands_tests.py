@@ -29,10 +29,10 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.utils import json
-from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.annotation_layers.fixtures import (
     create_annotation_layers,  # noqa: F401
 )
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     annotation_layer_config,
     annotation_layer_metadata_config,
