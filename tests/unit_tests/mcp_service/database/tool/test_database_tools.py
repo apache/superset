@@ -167,6 +167,54 @@ async def test_list_databases_with_filters(mock_list, mcp_server):
 
 @patch("superset.daos.database.DatabaseDAO.list")
 @pytest.mark.asyncio
+async def test_list_databases_does_not_expose_user_directory_fields(
+    mock_list, mcp_server
+) -> None:
+    """Test database listing does not expose creator/modifier fields."""
+    database = create_mock_database()
+    database._mapping = {
+        "id": database.id,
+        "database_name": database.database_name,
+        "created_by": database.created_by_name,
+        "created_by_fk": 1,
+        "changed_by": database.changed_by_name,
+        "changed_by_fk": 1,
+    }
+    mock_list.return_value = ([database], 1)
+
+    async with Client(mcp_server) as client:
+        request = ListDatabasesRequest(
+            page=1,
+            page_size=10,
+            select_columns=[
+                "id",
+                "database_name",
+                "created_by",
+                "created_by_fk",
+                "changed_by",
+                "changed_by_fk",
+            ],
+        )
+        result = await client.call_tool(
+            "list_databases", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    assert data["columns_requested"] == ["id", "database_name"]
+    assert data["columns_loaded"] == ["id", "database_name"]
+    assert data["databases"] == [{"id": 1, "database_name": "examples"}]
+
+
+def test_database_filter_rejects_user_directory_fields() -> None:
+    """Test user directory fields cannot be used for database filters."""
+    with pytest.raises(ValueError, match="created_by_fk"):
+        ListDatabasesRequest(
+            filters=[{"col": "created_by_fk", "opr": "eq", "value": 1}],
+        )
+
+
+@patch("superset.daos.database.DatabaseDAO.list")
+@pytest.mark.asyncio
 async def test_list_databases_api_error(mock_list, mcp_server):
     """Test error handling when DAO raises an exception."""
     mock_list.side_effect = ToolError("Database error")
@@ -192,6 +240,8 @@ async def test_get_database_info_basic(mock_find, mcp_server):
         assert data["id"] == 1
         assert data["database_name"] == "examples"
         assert data["backend"] == "postgresql"
+        assert "created_by" not in data
+        assert "changed_by" not in data
 
 
 @patch("superset.daos.database.DatabaseDAO.find_by_id")
