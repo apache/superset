@@ -1620,7 +1620,7 @@ class SqlaTable(
         col: AdhocColumn,
         force_type_check: bool = False,
         template_processor: BaseTemplateProcessor | None = None,
-    ) -> tuple[ColumnElement, "utils.GenericDataType | None"]:
+    ) -> tuple[ColumnElement, utils.GenericDataType | None]:
         """
         Turn an adhoc column into a sqlalchemy column.
 
@@ -1644,7 +1644,7 @@ class SqlaTable(
         is_dttm = False
         pdf = None
         is_column_reference = col.get("isColumnReference", False)
-        generic_type: "utils.GenericDataType | None" = None
+        generic_type: utils.GenericDataType | None = None
 
         metadata_lookup_key = self._render_adhoc_expression_for_metadata_lookup(
             sql_expression, template_processor
