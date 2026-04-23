@@ -122,6 +122,7 @@ class ExtraCache:
         database: Optional[Database] = None,
         dialect: Optional[Dialect] = None,
         table: Optional[SqlaTable] = None,
+        query_context_filters: Optional[list[Any]] = None,
     ):
         self.extra_cache_keys = extra_cache_keys
         self.applied_filters = applied_filters if applied_filters is not None else []
@@ -129,6 +130,7 @@ class ExtraCache:
         self.database = database
         self.dialect = dialect
         self.table = table
+        self.query_context_filters: list[Any] = query_context_filters or []
 
     def current_user_id(self, add_to_cache_keys: bool = True) -> Optional[int]:
         """
@@ -381,6 +383,40 @@ class ExtraCache:
 
                 filters.append({"op": op, "col": column, "val": val})
 
+        # Drill-to-detail queries send filters in native {col, op, val} format
+        # rather than adhoc_filters, so get_form_data() above finds nothing.
+        # query_context_filters carries those native filters from
+        # template_kwargs["filter"], already available in the Jinja context.
+        # Only consult them when adhoc_filters produced no match to avoid
+        # duplicating entries for aggregated queries where both formats exist.
+        if not filters:
+            filters = self._get_filters_from_query_context(column, remove_filter)
+
+        return filters
+
+    def _get_filters_from_query_context(
+        self, column: str, remove_filter: bool
+    ) -> list[Filter]:
+        filters: list[Filter] = []
+        for flt in self.query_context_filters:
+            col = flt.get("col")
+            val = flt.get("val")
+            op = (flt.get("op") or FilterOperator.IN).upper()
+            if col != column or (
+                val is None
+                and op not in ("IS NULL", "IS NOT NULL", "IS_NULL", "IS_NOT_NULL")
+            ):
+                continue
+            if op in (
+                FilterOperator.IN,
+                FilterOperator.NOT_IN,
+            ) and not isinstance(val, list):
+                val = [val]
+            if remove_filter and column not in self.removed_filters:
+                self.removed_filters.append(column)
+            if column not in self.applied_filters:
+                self.applied_filters.append(column)
+            filters.append({"op": op, "col": column, "val": val})
         return filters
 
     # pylint: disable=too-many-arguments
@@ -646,6 +682,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             database=self._database,
             dialect=self._database.get_dialect(),
             table=self._table,
+            query_context_filters=self._context.get("filter") or [],
         )
 
         from_dttm = (
