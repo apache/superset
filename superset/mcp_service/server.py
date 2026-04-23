@@ -201,7 +201,43 @@ def _simplify_optional_union(result: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _compact_schema(obj: Any) -> Any:
+def _resolve_ref(
+    obj: dict[str, Any],
+    defs: dict[str, Any],
+    resolving: frozenset[str],
+) -> Any:
+    """Resolve a ``$ref`` pointer by inlining its definition from *defs*.
+
+    Falls back to ``{"type": "object"}`` when the definition is missing
+    or would cause a circular reference.
+    """
+    ref_path: str = obj["$ref"]
+    ref_name = ref_path.rsplit("/", 1)[-1] if "/" in ref_path else ""
+    definition = defs.get(ref_name) if ref_name else None
+
+    if definition is not None and ref_name not in resolving:
+        inlined = _compact_schema(
+            definition,
+            _defs=defs,
+            _resolving=resolving | {ref_name},
+        )
+        if isinstance(inlined, dict):
+            if desc := obj.get("description"):
+                inlined.setdefault("description", desc)
+        return inlined
+
+    replacement: dict[str, Any] = {"type": "object"}
+    if desc := obj.get("description"):
+        replacement["description"] = desc
+    return replacement
+
+
+def _compact_schema(
+    obj: Any,
+    *,
+    _defs: dict[str, Any] | None = None,
+    _resolving: frozenset[str] | None = None,
+) -> Any:
     """Collapse ``$defs`` and ``$ref`` pointers in a JSON Schema.
 
     Search results only need enough schema detail for the LLM to identify
@@ -212,28 +248,35 @@ def _compact_schema(obj: Any) -> Any:
     Transformations applied:
 
     * ``$defs`` sections are removed entirely.
-    * ``{"$ref": "..."}`` is replaced with ``{"type": "object"}``.
+    * ``{"$ref": "..."}`` is resolved by inlining the referenced
+      definition from ``$defs``.  If the definition cannot be found
+      (or would cause a circular reference), the ref is replaced with
+      ``{"type": "object"}``.
     * ``anyOf``/``oneOf`` lists containing only a ``$ref`` and
       ``{"type": "null"}`` (Pydantic's Optional encoding) are collapsed
       to the simplified non-null variant.
     """
     if isinstance(obj, list):
-        return [_compact_schema(item) for item in obj]
+        return [
+            _compact_schema(item, _defs=_defs, _resolving=_resolving) for item in obj
+        ]
     if not isinstance(obj, dict):
         return obj
 
-    # Direct $ref → generic object type
+    # On the first (top-level) call, extract $defs for later resolution.
+    if _defs is None:
+        _defs = obj.get("$defs", {})
+    if _resolving is None:
+        _resolving = frozenset()
+
     if "$ref" in obj:
-        replacement: dict[str, Any] = {"type": "object"}
-        if desc := obj.get("description"):
-            replacement["description"] = desc
-        return replacement
+        return _resolve_ref(obj, _defs, _resolving)
 
     result: dict[str, Any] = {}
     for key, value in obj.items():
         if key == "$defs":
             continue
-        result[key] = _compact_schema(value)
+        result[key] = _compact_schema(value, _defs=_defs, _resolving=_resolving)
 
     return _simplify_optional_union(result)
 
