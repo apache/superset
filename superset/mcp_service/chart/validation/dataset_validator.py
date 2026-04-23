@@ -25,7 +25,13 @@ import logging
 from typing import Any, Dict, List, Tuple
 
 from superset.mcp_service.chart.schemas import (
+    BigNumberChartConfig,
+    ChartConfig,
     ColumnRef,
+    HandlebarsChartConfig,
+    MixedTimeseriesChartConfig,
+    PieChartConfig,
+    PivotTableChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -36,16 +42,6 @@ from superset.mcp_service.common.error_schemas import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Exceptions that can occur during column name normalization.
-# Shared by the validation pipeline and tool-level normalization calls.
-NORMALIZATION_EXCEPTIONS = (
-    ImportError,
-    AttributeError,
-    KeyError,
-    ValueError,
-    TypeError,
-)
 
 
 class DatasetValidator:
@@ -320,10 +316,10 @@ class DatasetValidator:
 
     @staticmethod
     def normalize_column_names(
-        config: TableChartConfig | XYChartConfig,
+        config: ChartConfig,
         dataset_id: int | str,
         dataset_context: DatasetContext | None = None,
-    ) -> TableChartConfig | XYChartConfig:
+    ) -> ChartConfig:
         """
         Normalize column names in config to match the canonical dataset column names.
 
@@ -355,13 +351,32 @@ class DatasetValidator:
         elif isinstance(config, TableChartConfig):
             DatasetValidator._normalize_table_config(config_dict, dataset_context)
 
-        # Normalize filter columns (common to both config types)
+        # Normalize filter columns (common to all config types)
         DatasetValidator._normalize_filters(config_dict, dataset_context)
 
-        # Reconstruct the config with normalized names
+        # Reconstruct the config with normalized names using the correct type.
+        # Previously this fell through to TableChartConfig.model_validate() for
+        # non-XY/Table types (pie, pivot_table, mixed_timeseries), which raised
+        # a Pydantic ValidationError because the discriminator value didn't match
+        # "table".  That exception was not caught by the narrow except-tuple in
+        # ValidationPipeline._normalize_column_names and surfaced to users as an
+        # opaque validation_system_error.
         if isinstance(config, XYChartConfig):
             return XYChartConfig.model_validate(config_dict)
-        return TableChartConfig.model_validate(config_dict)
+        if isinstance(config, TableChartConfig):
+            return TableChartConfig.model_validate(config_dict)
+        if isinstance(config, PieChartConfig):
+            return PieChartConfig.model_validate(config_dict)
+        if isinstance(config, PivotTableChartConfig):
+            return PivotTableChartConfig.model_validate(config_dict)
+        if isinstance(config, MixedTimeseriesChartConfig):
+            return MixedTimeseriesChartConfig.model_validate(config_dict)
+        if isinstance(config, HandlebarsChartConfig):
+            return HandlebarsChartConfig.model_validate(config_dict)
+        if isinstance(config, BigNumberChartConfig):
+            return BigNumberChartConfig.model_validate(config_dict)
+        # Unknown type — return original config unchanged
+        return config
 
     @staticmethod
     def _get_column_suggestions(

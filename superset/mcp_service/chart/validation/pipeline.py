@@ -23,6 +23,8 @@ Orchestrates schema, dataset, and runtime validations.
 import logging
 from typing import Any, Dict, List, Tuple
 
+from pydantic import ValidationError as PydanticValidationError
+
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     GenerateChartRequest,
@@ -325,9 +327,18 @@ class ValidationPipeline:
 
             return GenerateChartRequest.model_validate(request_dict)
 
-        except (ImportError, AttributeError, KeyError, ValueError, TypeError) as e:
-            # If normalization fails, return the original request
-            # Validation has already passed, so this is a non-critical failure
+        except (
+            ImportError,
+            AttributeError,
+            KeyError,
+            ValueError,
+            TypeError,
+            PydanticValidationError,
+        ) as e:
+            # If normalization fails, return the original request.
+            # Validation has already passed, so this is a non-critical failure.
+            # PydanticValidationError is included because Pydantic v2's
+            # ValidationError does not inherit from ValueError.
             logger.warning("Column name normalization failed: %s", e)
             return request
 
