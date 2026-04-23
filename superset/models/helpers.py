@@ -2826,7 +2826,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     None,
                 )
                 if adhoc_col:
-                    col, _ = self.adhoc_column_to_sqla(
+                    col, _unused = self.adhoc_column_to_sqla(
                         col=adhoc_col,
                         template_processor=template_processor,
                     )
@@ -2877,7 +2877,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
-                    outer, _ = self.adhoc_column_to_sqla(
+                    outer, _unused = self.adhoc_column_to_sqla(
                         col=selected,
                         template_processor=template_processor,
                     )
