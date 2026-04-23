@@ -22,7 +22,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from flask import g
 
-from superset.mcp_service.auth import get_user_from_request
+from superset.mcp_service.auth import (
+    _resolve_user_from_jwt_context,
+    get_user_from_request,
+)
 
 
 @pytest.fixture
@@ -222,25 +225,72 @@ def test_relationship_reload_failure_returns_original_user(app, mock_user) -> No
     assert result is mock_user
 
 
+# -- Bearer token present but not matching API key prefix --
+
+
+@pytest.mark.usefixtures("_enable_api_keys")
+def test_non_matching_bearer_token_skips_api_key_auth(app) -> None:
+    """When a Bearer token is present but does not match FAB_API_KEY_PREFIXES
+    (e.g., a JWT token), extract_api_key_from_request returns None and API key
+    auth is skipped, falling through to the next auth method."""
+    mock_sm = MagicMock()
+    mock_sm.extract_api_key_from_request.return_value = None
+
+    with app.test_request_context(
+        headers={"Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.not-an-api-key"}
+    ):
+        g.user = None
+        app.appbuilder = MagicMock()
+        app.appbuilder.sm = mock_sm
+
+        with pytest.raises(ValueError, match="No authenticated user found"):
+            get_user_from_request()
+
+    # extract was called but returned None, so validate should NOT be called
+    mock_sm.extract_api_key_from_request.assert_called_once()
+    mock_sm.validate_api_key.assert_not_called()
+
+
+# -- API key pass-through from CompositeTokenVerifier --
+
+
+def test_jwt_context_with_api_key_passthrough_returns_none(app) -> None:
+    """When CompositeTokenVerifier passes through an API key token,
+    _resolve_user_from_jwt_context should detect the _api_key_passthrough
+    claim and return None so get_user_from_request falls through to
+    _resolve_user_from_api_key."""
+    mock_access_token = MagicMock()
+    mock_access_token.claims = {"_api_key_passthrough": True}
+
+    with patch(
+        "fastmcp.server.dependencies.get_access_token",
+        return_value=mock_access_token,
+    ):
+        result = _resolve_user_from_jwt_context(app)
+
+    assert result is None
+
+
 # -- SecurityManager method name regression test --
 
 
-def test_security_manager_has_expected_api_key_methods() -> None:
+def test_security_manager_has_expected_api_key_methods(app) -> None:
     """Regression test: verify the SecurityManager method names referenced in
     auth._resolve_user_from_api_key() actually exist on the FAB SecurityManager
     class.  This catches future renames before they silently break API key auth
-    at runtime (SC-99414: _extract_api_key_from_request vs
+    at runtime (see PR #39437: _extract_api_key_from_request vs
     extract_api_key_from_request)."""
-    from superset import security_manager
+    with app.app_context():
+        from superset import security_manager
 
-    sm = security_manager
-    assert hasattr(sm, "extract_api_key_from_request"), (
-        "FAB SecurityManager is missing 'extract_api_key_from_request'. "
-        "auth._resolve_user_from_api_key() references this method by name — "
-        "update auth.py if the FAB API changed."
-    )
-    assert hasattr(sm, "validate_api_key"), (
-        "FAB SecurityManager is missing 'validate_api_key'. "
-        "auth._resolve_user_from_api_key() references this method by name — "
-        "update auth.py if the FAB API changed."
-    )
+        sm = security_manager
+        assert hasattr(sm, "extract_api_key_from_request"), (
+            "FAB SecurityManager is missing 'extract_api_key_from_request'. "
+            "auth._resolve_user_from_api_key() references this method by name — "
+            "update auth.py if the FAB API changed."
+        )
+        assert hasattr(sm, "validate_api_key"), (
+            "FAB SecurityManager is missing 'validate_api_key'. "
+            "auth._resolve_user_from_api_key() references this method by name — "
+            "update auth.py if the FAB API changed."
+        )
