@@ -228,10 +228,11 @@ describe('SuperChartCore', () => {
   });
 
   describe('processChartProps behavior', () => {
-    test('passes through chartProps unchanged when no transforms are specified', async () => {
-      // When no pre/post transform props are specified, the identity function is used
-      // which means chartProps should pass through to the chart unchanged.
-      // We verify this by checking that the chart renders correctly without transforms.
+    test('applies identity pre/post transforms so chartProps reach overrideTransformProps unchanged', async () => {
+      // When pre/post transform props are not specified, identity functions are used,
+      // so the original chartProps should reach overrideTransformProps unchanged.
+      // overrideTransformProps is used here as a probe to read the final chartProps;
+      // it's not part of what's being tested for identity behavior.
       const chartProps2 = new ChartProps({
         queriesData: [{ message: 'identity-test' }],
         theme: supersetTheme,
