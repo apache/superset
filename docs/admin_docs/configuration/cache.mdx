@@ -144,15 +144,24 @@ override the base URL for Selenium using:
 WEBDRIVER_BASEURL = "https://superset.company.com"
 ```
 
-To control which user account Selenium authenticates as when rendering thumbnails and warming
-up caches, set:
+To control which user account is used for rendering thumbnails and warming up caches, configure
+`THUMBNAIL_EXECUTORS` and `CACHE_WARMUP_EXECUTORS`. Each accepts a list of executor types (which
+resolve to an owner, creator, modifier, or the currently-logged-in user) and/or a `FixedExecutor`
+pinned to a specific username. By default, thumbnails render as the current user
+(`ExecutorType.CURRENT_USER`) and cache warmup runs as the chart/dashboard owner
+(`ExecutorType.OWNER`).
+
+To force both to run as a dedicated service account (`admin` in this example):
 
 ```python
-SUPERSET_CACHE_WARMUP_USER = "admin"  # default; must have access to all dashboards/charts
+from superset.tasks.types import ExecutorType, FixedExecutor
+
+THUMBNAIL_EXECUTORS = [FixedExecutor("admin")]
+CACHE_WARMUP_EXECUTORS = [FixedExecutor("admin")]
 ```
 
 Use a dedicated read-only service account here rather than a personal admin account, so that
-cache warmup tasks don't fail if a specific user's credentials change.
+thumbnail rendering and cache warmup tasks don't fail if a specific user's credentials change.
 
 Additional Selenium WebDriver configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
 implement a custom function to authenticate Selenium. The default function uses the `flask-login`
