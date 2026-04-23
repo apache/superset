@@ -492,3 +492,31 @@ def test_identify_transpilation_is_idempotent(engine: str) -> None:
     pass1 = transpile_to_dialect(clause, engine, source_engine=engine, identify=True)
     pass2 = transpile_to_dialect(pass1, engine, source_engine=engine, identify=True)
     assert pass1 == pass2
+
+
+def test_sanitize_filters_writes_back_transpiled_clause() -> None:
+    """Test that _sanitize_filters always persists the transpiled clause.
+
+    Regression test: a previous conditional `if sanitized_clause != clause`
+    skipped the write-back when transpile_to_dialect had already modified
+    the clause, leaving the original unquoted value in extras.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.database.db_engine_spec.engine = "postgresql"
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["STATE"],
+        metrics=[],
+        extras={
+            "where": "STATE = 'CA'",
+            "transpile_to_dialect": True,
+        },
+    )
+    query_obj.validate()
+
+    assert '"STATE"' in query_obj.extras["where"]
