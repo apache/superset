@@ -290,6 +290,30 @@ def test_get_filters_query_context_filters_remove_filter() -> None:
     assert cache.applied_filters == ["name"]
 
 
+def test_get_filters_query_context_filters_is_null() -> None:
+    """
+    Test that IS_NULL filters (which have no val) are returned correctly from
+    query_context_filters. Unary null operators legitimately have val=None.
+    """
+    cache = ExtraCache(query_context_filters=[{"col": "name", "op": "IS_NULL"}])
+    assert cache.get_filters("name") == [{"op": "IS_NULL", "col": "name", "val": None}]
+    assert cache.applied_filters == ["name"]
+    assert cache.removed_filters == []
+
+
+def test_get_filters_query_context_filters_is_not_null() -> None:
+    """
+    Test that IS_NOT_NULL filters (which have no val) are returned correctly from
+    query_context_filters. Unary null operators legitimately have val=None.
+    """
+    cache = ExtraCache(query_context_filters=[{"col": "name", "op": "IS_NOT_NULL"}])
+    assert cache.get_filters("name") == [
+        {"op": "IS_NOT_NULL", "col": "name", "val": None}
+    ]
+    assert cache.applied_filters == ["name"]
+    assert cache.removed_filters == []
+
+
 def test_get_filters_adhoc_filters_take_precedence_over_query_context_filters() -> None:
     """
     Test that adhoc_filters takes precedence over query_context_filters to avoid

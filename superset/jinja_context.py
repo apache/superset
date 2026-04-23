@@ -464,9 +464,12 @@ class ExtraCache:
         for flt in self.query_context_filters:
             col = flt.get("col")
             val = flt.get("val")
-            if col != column or val is None:
-                continue
             op = (flt.get("op") or FilterOperator.IN).upper()
+            if col != column or (
+                val is None
+                and op not in ("IS NULL", "IS NOT NULL", "IS_NULL", "IS_NOT_NULL")
+            ):
+                continue
             if op in (
                 FilterOperator.IN,
                 FilterOperator.NOT_IN,
