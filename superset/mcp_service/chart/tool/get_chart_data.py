@@ -25,15 +25,19 @@ from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
 from flask import current_app
+from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
 from superset.commands.exceptions import CommandException
-from superset.commands.explore.form_data.parameters import CommandParameters
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_helpers import (
+    find_chart_by_identifier,
+    get_cached_form_data,
+)
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -43,6 +47,10 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
+)
 from superset.utils.core import merge_extra_filters
 
 logger = logging.getLogger(__name__)
@@ -56,21 +64,6 @@ def _apply_extra_form_data(
         return
     form_data["extra_form_data"] = extra_form_data
     merge_extra_filters(form_data)
-
-
-def _get_cached_form_data(form_data_key: str) -> str | None:
-    """Retrieve form_data from cache using form_data_key.
-
-    Returns the JSON string of form_data if found, None otherwise.
-    """
-    from superset.commands.explore.form_data.get import GetFormDataCommand
-
-    try:
-        cmd_params = CommandParameters(key=form_data_key)
-        return GetFormDataCommand(cmd_params).run()
-    except (KeyError, ValueError, CommandException) as e:
-        logger.warning("Failed to retrieve form_data from cache: %s", e)
-        return None
 
 
 @tool(
@@ -123,7 +116,6 @@ async def get_chart_data(  # noqa: C901
 
     try:
         await ctx.report_progress(1, 4, "Looking up chart")
-        from superset.daos.chart import ChartDAO
         from superset.utils import json as utils_json
 
         chart = None
@@ -137,7 +129,7 @@ async def get_chart_data(  # noqa: C901
                     "No chart identifier - querying data from unsaved chart cache: "
                     "form_data_key=%s" % (request.form_data_key,)
                 )
-                cached_form_data = _get_cached_form_data(request.form_data_key)
+                cached_form_data = get_cached_form_data(request.form_data_key)
                 if not cached_form_data:
                     return ChartError(
                         error="No cached chart data found for form_data_key. "
@@ -162,25 +154,13 @@ async def get_chart_data(  # noqa: C901
 
         # Find the chart by identifier
         with event_logger.log_context(action="mcp.get_chart_data.chart_lookup"):
-            if isinstance(request.identifier, int) or (
-                isinstance(request.identifier, str) and request.identifier.isdigit()
-            ):
-                chart_id = (
-                    int(request.identifier)
-                    if isinstance(request.identifier, str)
-                    else request.identifier
+            await ctx.debug("Looking up chart: identifier=%s" % (request.identifier,))
+            if request.identifier is None:
+                return ChartError(
+                    error="Chart identifier is required",
+                    error_type="ValidationError",
                 )
-                await ctx.debug(
-                    "Performing ID-based chart lookup: chart_id=%s" % (chart_id,)
-                )
-                chart = ChartDAO.find_by_id(chart_id)
-            elif isinstance(request.identifier, str):
-                await ctx.debug(
-                    "Performing UUID-based chart lookup: uuid=%s"
-                    % (request.identifier,)
-                )
-                # Try UUID lookup using DAO flexible method
-                chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
+            chart = find_chart_by_identifier(request.identifier)
 
         if not chart:
             await ctx.error("Chart not found: identifier=%s" % (request.identifier,))
@@ -235,7 +215,7 @@ async def get_chart_data(  # noqa: C901
                         "Retrieving unsaved chart state from cache: form_data_key=%s"
                         % (request.form_data_key,)
                     )
-                    if cached_form_data := _get_cached_form_data(request.form_data_key):
+                    if cached_form_data := get_cached_form_data(request.form_data_key):
                         try:
                             parsed_form_data = utils_json.loads(cached_form_data)
                             # Only use if it's actually a dict (not null, list, etc.)
@@ -301,7 +281,13 @@ async def get_chart_data(  # noqa: C901
                     cached_groupby: list[str] = []
                 else:
                     cached_metrics = cached_form_data_dict.get("metrics", [])
-                    cached_groupby = cached_form_data_dict.get("groupby", [])
+                    raw_groupby = cached_form_data_dict.get("groupby", [])
+                    # Guard against string groupby (e.g. heatmap_v2 migrated
+                    # from legacy heatmap where all_columns_y was a string)
+                    if isinstance(raw_groupby, str):
+                        cached_groupby = [raw_groupby]
+                    else:
+                        cached_groupby = list(raw_groupby)
 
                 _apply_extra_form_data(cached_form_data_dict, request.extra_form_data)
 
@@ -443,7 +429,13 @@ async def get_chart_data(  # noqa: C901
                 else:
                     # Standard charts use "metrics" (plural) and "groupby"
                     metrics = form_data.get("metrics", [])
-                    groupby_columns = list(form_data.get("groupby") or [])
+                    raw_groupby = form_data.get("groupby") or []
+                    # Guard against string groupby (e.g. heatmap_v2 migrated
+                    # from legacy heatmap where all_columns_y was a string)
+                    if isinstance(raw_groupby, str):
+                        groupby_columns = [raw_groupby]
+                    else:
+                        groupby_columns = list(raw_groupby)
                     # Some chart types use "columns" instead of "groupby"
                     if not groupby_columns:
                         form_columns = form_data.get("columns")
@@ -785,7 +777,32 @@ async def get_chart_data(  # noqa: C901
                 error_type="DataError",
             )
 
-    except Exception as e:
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Chart data requires OAuth authentication: identifier=%s"
+            % request.identifier
+        )
+        return ChartError(
+            error=build_oauth2_redirect_message(ex),
+            error_type="OAUTH2_REDIRECT",
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration error: identifier=%s" % request.identifier
+        )
+        return ChartError(
+            error=OAUTH2_CONFIG_ERROR_MESSAGE,
+            error_type="OAUTH2_REDIRECT_ERROR",
+        )
+    except (
+        SupersetException,
+        CommandException,
+        SQLAlchemyError,
+        KeyError,
+        ValueError,
+        TypeError,
+        AttributeError,
+    ) as e:
         await ctx.error(
             "Chart data retrieval failed: identifier=%s, error=%s, error_type=%s"
             % (

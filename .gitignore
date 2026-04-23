@@ -62,6 +62,7 @@ rat-results.txt
 superset/app/
 superset-websocket/config.json
 .direnv
+*.log
 
 # Node.js, webpack artifacts, storybook
 *.entry.js

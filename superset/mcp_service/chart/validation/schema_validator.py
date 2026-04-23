@@ -185,22 +185,15 @@ class SchemaValidator:
         config: Dict[str, Any],
     ) -> Tuple[bool, ChartGenerationError | None]:
         """Pre-validate XY chart configuration."""
-        missing_fields = []
-
-        if "x" not in config:
-            missing_fields.append("'x' (X-axis column)")
+        # x is optional — defaults to dataset's main_dttm_col in map_xy_config
         if "y" not in config:
-            missing_fields.append("'y' (Y-axis metrics)")
-
-        if missing_fields:
             return False, ChartGenerationError(
                 error_type="missing_xy_fields",
-                message=f"XY chart missing required "
-                f"fields: {', '.join(missing_fields)}",
-                details="XY charts require both X-axis (dimension) and Y-axis ("
-                "metrics) specifications",
+                message="XY chart missing required field: 'y' (Y-axis metrics)",
+                details="XY charts require Y-axis (metrics) specifications. "
+                "X-axis is optional and defaults to the dataset's primary "
+                "datetime column when omitted.",
                 suggestions=[
-                    "Add 'x' field: {'name': 'column_name'} for X-axis",
                     "Add 'y' field: [{'name': 'metric_column', 'aggregate': 'SUM'}] "
                     "for Y-axis",
                     "Example: {'chart_type': 'xy', 'x': {'name': 'date'}, "

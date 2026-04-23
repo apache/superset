@@ -28,6 +28,7 @@ from collections.abc import Sequence
 from typing import Annotated, Any
 
 import uvicorn
+from fastmcp.server.middleware import Middleware
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.mcp_config import (
@@ -175,6 +176,98 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
     return obj
 
 
+def _simplify_optional_union(result: dict[str, Any]) -> dict[str, Any]:
+    """Collapse ``anyOf``/``oneOf`` with exactly one non-null variant.
+
+    Pydantic encodes ``Optional[X]`` as ``{"anyOf": [<X>, {"type": "null"}]}``.
+    This replaces the union with the non-null variant while preserving any
+    ``description`` or ``default`` from the parent node.
+    """
+    for union_key in ("anyOf", "oneOf"):
+        variants = result.get(union_key)
+        if not isinstance(variants, list) or len(variants) != 2:
+            continue
+        non_null = [v for v in variants if v.get("type") != "null"]
+        if len(non_null) != 1:
+            continue
+        simplified = dict(non_null[0])
+        for keep in ("description", "default"):
+            if keep in result and keep not in simplified:
+                simplified[keep] = result[keep]
+        result.pop(union_key)
+        result.pop("description", None)
+        result.pop("default", None)
+        result.update(simplified)
+    return result
+
+
+def _compact_schema(obj: Any) -> Any:
+    """Collapse ``$defs`` and ``$ref`` pointers in a JSON Schema.
+
+    Search results only need enough schema detail for the LLM to identify
+    which tool to call and construct a basic invocation.  Full schemas
+    (with all nested model definitions) are still available when the tool
+    is actually invoked via ``call_tool``.
+
+    Transformations applied:
+
+    * ``$defs`` sections are removed entirely.
+    * ``{"$ref": "..."}`` is replaced with ``{"type": "object"}``.
+    * ``anyOf``/``oneOf`` lists containing only a ``$ref`` and
+      ``{"type": "null"}`` (Pydantic's Optional encoding) are collapsed
+      to the simplified non-null variant.
+    """
+    if isinstance(obj, list):
+        return [_compact_schema(item) for item in obj]
+    if not isinstance(obj, dict):
+        return obj
+
+    # Direct $ref → generic object type
+    if "$ref" in obj:
+        replacement: dict[str, Any] = {"type": "object"}
+        if desc := obj.get("description"):
+            replacement["description"] = desc
+        return replacement
+
+    result: dict[str, Any] = {}
+    for key, value in obj.items():
+        if key == "$defs":
+            continue
+        result[key] = _compact_schema(value)
+
+    return _simplify_optional_union(result)
+
+
+def _truncate_description(text: str, max_length: int) -> str:
+    """Truncate a tool description for search results.
+
+    Cuts at the last sentence boundary before *max_length*, or at
+    *max_length* with an ellipsis if no sentence boundary is found.
+    """
+    if not text or len(text) <= max_length:
+        return text
+    # Try to cut at the last sentence boundary
+    truncated = text[:max_length]
+    last_period = truncated.rfind(". ")
+    if last_period > max_length // 2:
+        return truncated[: last_period + 1]
+    return truncated.rstrip() + "..."
+
+
+def _extract_parameter_names(input_schema: dict[str, Any]) -> str:
+    """Extract top-level parameter names from a JSON Schema as a hint string.
+
+    Returns a comma-separated string of property names from the schema's
+    ``properties`` key, or an empty string if none are found.
+
+    Example: ``"page, page_size, search, filters, select_columns"``
+    """
+    properties = input_schema.get("properties", {})
+    if not properties:
+        return ""
+    return ", ".join(properties.keys())
+
+
 def _serialize_tools_without_output_schema(
     tools: Sequence[Any],
 ) -> list[dict[str, Any]]:
@@ -186,12 +279,92 @@ def _serialize_tools_without_output_schema(
     """
     results = []
     for tool in tools:
-        data = tool.to_mcp_tool().model_dump(mode="json", exclude_none=True)
+        data = tool.to_mcp_tool().model_dump(
+            mode="json", exclude_none=True, exclude={"outputSchema"}
+        )
         data.pop("outputSchema", None)
         if input_schema := data.get("inputSchema"):
             data["inputSchema"] = _strip_titles(input_schema)
         results.append(data)
     return results
+
+
+def _build_summary_serializer(max_desc: int) -> Any:
+    """Build a summary-mode serializer that omits ``inputSchema``.
+
+    Returns a callable that serializes each tool to ``name``,
+    ``description`` (optionally truncated), and a ``parameters_hint``
+    string listing top-level parameter names.  ``inputSchema`` and
+    ``outputSchema`` are stripped entirely.
+    """
+
+    def _summary_serializer(tools: Sequence[Any]) -> list[dict[str, Any]]:
+        results = []
+        for tool in tools:
+            data = tool.to_mcp_tool().model_dump(
+                mode="json", exclude_none=True, exclude={"outputSchema"}
+            )
+            data.pop("outputSchema", None)
+            if input_schema := data.pop("inputSchema", None):
+                hint = _extract_parameter_names(input_schema)
+                if hint:
+                    data["parameters_hint"] = hint
+            if max_desc and (desc := data.get("description")):
+                data["description"] = _truncate_description(desc, max_desc)
+            results.append(data)
+        return results
+
+    return _summary_serializer
+
+
+def _create_search_result_serializer(
+    config: dict[str, Any],
+) -> Any:
+    """Build a search-result serializer from the tool-search config.
+
+    When ``include_schemas`` is False (default), delegates to
+    :func:`_build_summary_serializer`, which strips ``inputSchema``
+    entirely and adds a ``parameters_hint`` field with comma-separated
+    top-level parameter names.  This reduces per-search token cost by
+    ~80% vs compact mode while still conveying what parameters a tool
+    accepts.
+
+    When ``include_schemas`` is True, the full ``compact_schemas``/
+    ``max_description_length`` pipeline applies (existing behavior):
+
+    * ``$defs`` sections and ``$ref`` pointers are collapsed when
+      ``compact_schemas`` is True (see :func:`_compact_schema`).
+    * Tool descriptions are truncated to ``max_description_length`` chars.
+
+    Full schemas remain available when the tool is invoked via ``call_tool``.
+    """
+    include_schemas = config.get("include_schemas", False)
+
+    if not include_schemas:
+        max_desc = config.get("max_description_length", 300)
+        return _build_summary_serializer(max_desc)
+
+    # include_schemas=True: apply full compact_schemas/max_description_length pipeline
+    compact = config.get("compact_schemas", True)
+    # Description truncation defaults to 300 when compact_schemas is on,
+    # but is disabled when compact_schemas is off (unless explicitly set).
+    max_desc_default = 300 if compact else 0
+    max_desc = config.get("max_description_length", max_desc_default)
+
+    if not compact and not max_desc:
+        return _serialize_tools_without_output_schema
+
+    def _serializer(tools: Sequence[Any]) -> list[dict[str, Any]]:
+        results = _serialize_tools_without_output_schema(tools)
+        for data in results:
+            if compact:
+                if input_schema := data.get("inputSchema"):
+                    data["inputSchema"] = _compact_schema(input_schema)
+            if max_desc and (desc := data.get("description")):
+                data["description"] = _truncate_description(desc, max_desc)
+        return results
+
+    return _serializer
 
 
 def _fix_call_tool_arguments(tool: Any) -> Any:
@@ -270,7 +443,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
         "always_visible": config.get("always_visible", []),
         "search_tool_name": config.get("search_tool_name", "search_tools"),
         "call_tool_name": config.get("call_tool_name", "call_tool"),
-        "search_result_serializer": _serialize_tools_without_output_schema,
+        "search_result_serializer": _create_search_result_serializer(config),
     }
 
     def _make_normalizing_call_tool(transform: Any) -> Tool:
@@ -374,6 +547,24 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
     return auth_provider
 
 
+def build_middleware_list() -> list[Middleware]:
+    """Build the core MCP middleware list in the correct order.
+
+    FastMCP wraps handlers so that the FIRST-added middleware is
+    outermost.  Order here is outermost → innermost:
+
+    1. StructuredContentStripper — safety net, converts exceptions
+       to safe ToolResult text for transports that can't encode errors
+    2. LoggingMiddleware — logs tool calls with success/failure status
+    3. GlobalErrorHandler — catches tool exceptions, raises ToolError
+    """
+    return [
+        StructuredContentStripperMiddleware(),
+        LoggingMiddleware(),
+        GlobalErrorHandlerMiddleware(),
+    ]
+
+
 def run_server(
     host: str = "127.0.0.1",
     port: int = 5008,
@@ -421,30 +612,15 @@ def run_server(
         flask_app = get_flask_app()
         auth_provider = _create_auth_provider(flask_app)
 
-        # Build middleware list
-        # FastMCP wraps handlers so that the LAST-added middleware is
-        # outermost.  Order here is innermost → outermost.
-        middleware_list = []
+        middleware_list = build_middleware_list()
 
-        # Add caching middleware (innermost – runs closest to the tool)
-        if caching_middleware := create_response_caching_middleware():
-            middleware_list.append(caching_middleware)
-
-        # Add response size guard (protects LLM clients from huge responses)
-        if size_guard_middleware := create_response_size_guard_middleware():
+        # Add optional middleware (innermost, closest to tool)
+        size_guard_middleware = create_response_size_guard_middleware()
+        if size_guard_middleware:
             middleware_list.append(size_guard_middleware)
 
-        # Add logging middleware (logs all tool calls with duration tracking)
-        middleware_list.append(LoggingMiddleware())
-
-        # Add global error handler (catches all exceptions, raises ToolError)
-        middleware_list.append(GlobalErrorHandlerMiddleware())
-
-        # Strip outputSchema from tool definitions and structuredContent from
-        # tool responses to prevent encoding errors on Claude.ai's MCP bridge.
-        # MUST be outermost so it catches ToolError from GlobalErrorHandler
-        # and converts to plain text before the MCP SDK tries to encode it.
-        middleware_list.append(StructuredContentStripperMiddleware())
+        if caching_middleware := create_response_caching_middleware():
+            middleware_list.append(caching_middleware)
 
         mcp_instance = init_fastmcp_server(
             auth=auth_provider,
