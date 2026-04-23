@@ -132,10 +132,14 @@ export default function ActivityTable({
     if (activeChild === TableTab.Edited) {
       setIsFetchingEditedCards(true);
       getEditedObjects(user.userId).then(r => {
-        if (isMounted) {
-          setEditedCards([...r.editedChart, ...r.editedDash]);
-          setIsFetchingEditedCards(false);
-        }
+        if (!isMounted) return;
+        // `getEditedObjects` swallows errors via `.catch(err => err)` and
+        // returns the raw error object, which has no `editedChart` /
+        // `editedDash` arrays. Guard against that so spreading can't throw.
+        const editedChart = Array.isArray(r?.editedChart) ? r.editedChart : [];
+        const editedDash = Array.isArray(r?.editedDash) ? r.editedDash : [];
+        setEditedCards([...editedChart, ...editedDash]);
+        setIsFetchingEditedCards(false);
       });
     }
 
