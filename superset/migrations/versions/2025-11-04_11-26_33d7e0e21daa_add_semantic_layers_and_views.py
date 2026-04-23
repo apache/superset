@@ -17,7 +17,7 @@
 """add_semantic_layers_and_views
 
 Revision ID: 33d7e0e21daa
-Revises: fd0c8583b46d
+Revises: ce6bd21901ab
 Create Date: 2025-11-04 11:26:00.000000
 
 """
@@ -38,7 +38,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "33d7e0e21daa"
-down_revision = "fd0c8583b46d"
+down_revision = "ce6bd21901ab"
 
 
 def upgrade() -> None:

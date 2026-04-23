@@ -107,16 +107,19 @@ test('posts configuration schema refresh after debounce', async () => {
   render(<SemanticLayerModal {...props} />);
 
   await waitFor(() => {
-    expect(mockedPost).toHaveBeenCalledWith({
+    expect(mockedPost).toHaveBeenNthCalledWith(1, {
       endpoint: '/api/v1/semantic_layer/schema/configuration',
-      jsonPayload: { type: 'snowflake' },
+      jsonPayload: {
+        type: 'snowflake',
+        configuration: { warehouse: 'wh0' },
+      },
     });
   });
 
   jest.advanceTimersByTime(501);
 
   await waitFor(() => {
-    expect(mockedPost).toHaveBeenCalledWith({
+    expect(mockedPost).toHaveBeenNthCalledWith(2, {
       endpoint: '/api/v1/semantic_layer/schema/configuration',
       jsonPayload: {
         type: 'snowflake',

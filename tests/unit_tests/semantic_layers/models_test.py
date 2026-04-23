@@ -725,3 +725,55 @@ def test_semantic_view_implementation() -> None:
         {"key": "value"},
     )
     assert result == mock_semantic_view_impl
+
+
+def test_semantic_view_get_compatible_metrics(
+    mock_implementation: MagicMock,
+    mock_dimensions: list[Dimension],
+    mock_metrics: list[Metric],
+) -> None:
+    """Test SemanticView get_compatible_metrics maps names to objects and back."""
+    view = SemanticView()
+
+    mock_implementation.get_compatible_metrics.return_value = {mock_metrics[0]}
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        result = view.get_compatible_metrics(
+            selected_metrics=["revenue", "missing_metric"],
+            selected_dimensions=["order_date", "missing_dimension"],
+        )
+
+    assert result == ["revenue"]
+    args = mock_implementation.get_compatible_metrics.call_args.args
+    assert args[0] == {mock_metrics[0]}
+    assert args[1] == {mock_dimensions[0]}
+
+
+def test_semantic_view_get_compatible_dimensions(
+    mock_implementation: MagicMock,
+    mock_dimensions: list[Dimension],
+    mock_metrics: list[Metric],
+) -> None:
+    """Test SemanticView get_compatible_dimensions maps names to objects and back."""
+    view = SemanticView()
+
+    mock_implementation.get_compatible_dimensions.return_value = {mock_dimensions[1]}
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        result = view.get_compatible_dimensions(
+            selected_metrics=["order_count", "missing_metric"],
+            selected_dimensions=["category", "missing_dimension"],
+        )
+
+    assert result == ["category"]
+    args = mock_implementation.get_compatible_dimensions.call_args.args
+    assert args[0] == {mock_metrics[1]}
+    assert args[1] == {mock_dimensions[1]}
