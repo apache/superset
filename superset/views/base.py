@@ -476,7 +476,15 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     )
 
     if isinstance(locale, str):
-        language = locale.replace("-", "_").split("_")[0]
+        normalized = locale.replace("-", "_")
+        languages = app.config.get("LANGUAGES") or {}
+        # Preserve region-specific locales (e.g. zh_TW, pt_BR) when they are
+        # configured as distinct language packs; otherwise fall back to the
+        # base language code.
+        if normalized in languages:
+            language = normalized
+        else:
+            language = normalized.split("_")[0]
     else:
         language = app.config.get("BABEL_DEFAULT_LOCALE", "en")
     auth_type = app.config["AUTH_TYPE"]

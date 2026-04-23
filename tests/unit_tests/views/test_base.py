@@ -69,10 +69,16 @@ def test_common_bootstrap_payload_handles_none_locale(
     mock_cached.assert_called_once_with(1, None)
 
 
-def _extract_language(locale_str: str | None) -> str:
+def _extract_language(
+    locale_str: str | None,
+    languages: dict[str, dict[str, object]] | None = None,
+) -> str:
     """Helper that mirrors the logic in cached_common_bootstrap_data"""
     if locale_str:
-        return locale_str.replace("-", "_").split("_")[0]
+        normalized = locale_str.replace("-", "_")
+        if languages and normalized in languages:
+            return normalized
+        return normalized.split("_")[0]
     return "en"
 
 
@@ -97,3 +103,37 @@ def test_locale_language_extraction(
     """Test that language is correctly extracted from various locale formats"""
     result = _extract_language(locale_str)
     assert result == expected_language
+
+
+@pytest.mark.parametrize(
+    "locale_str,expected_language",
+    [
+        # Region-specific locales configured as distinct language packs are
+        # preserved rather than collapsed to the base language code.
+        ("zh_TW", "zh_TW"),
+        ("zh-TW", "zh_TW"),
+        ("pt_BR", "pt_BR"),
+        ("pt-BR", "pt_BR"),
+        # Base language codes still resolve to themselves.
+        ("zh", "zh"),
+        ("pt", "pt"),
+        # Unknown region codes fall back to the base language.
+        ("zh_HK", "zh"),
+        ("de_DE", "de"),
+        ("en_US", "en"),
+    ],
+)
+def test_locale_language_extraction_preserves_region_when_configured(
+    locale_str: str, expected_language: str
+) -> None:
+    """Region-specific locales (e.g. zh_TW, pt_BR) are preserved when they
+    appear in the configured LANGUAGES mapping."""
+    languages: dict[str, dict[str, object]] = {
+        "en": {},
+        "zh": {},
+        "zh_TW": {},
+        "pt": {},
+        "pt_BR": {},
+        "de": {},
+    }
+    assert _extract_language(locale_str, languages) == expected_language
