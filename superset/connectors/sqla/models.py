@@ -1658,11 +1658,7 @@ class SqlaTable(
             )
             is_dttm = col_in_metadata.is_temporal
             pdf = col_in_metadata.python_date_format
-            col_spec = self.db_engine_spec.get_column_spec(
-                native_type=col_in_metadata.type
-            )
-            if col_spec:
-                generic_type = col_spec.generic_type
+            generic_type = col_in_metadata.type_generic
         else:
             # Column doesn't exist in metadata or is not a reference - treat as ad-hoc
             # expression Note: If isColumnReference=true but column not found, we still

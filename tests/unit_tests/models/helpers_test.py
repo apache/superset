@@ -2077,6 +2077,7 @@ def _adhoc_col_with_probed_type(
         schema: object,
         sql: str,
     ) -> list[dict[str, object]]:
+        """Return a single-column description mirroring SupersetResultSet output."""
         # Mirror what SupersetResultSet.columns builds: it derives type_generic
         # from the native type via db_engine_spec.get_column_spec().
         spec = table.db_engine_spec.get_column_spec(native_type=probed_type)
@@ -2141,6 +2142,7 @@ def test_adhoc_column_to_sqla_skips_probe_when_not_forced(
     }
 
     def _should_not_be_called(*_: object, **__: object) -> list[dict[str, object]]:
+        """Sentinel that fails if the DB probe is unexpectedly triggered."""
         raise AssertionError("probe should not run without force_type_check")
 
     with patch(
@@ -2175,6 +2177,7 @@ def test_adhoc_column_to_sqla_returns_type_from_column_metadata(
     }
 
     def _should_not_be_called(*_: object, **__: object) -> list[dict[str, object]]:
+        """Sentinel that fails if the DB probe runs despite metadata resolution."""
         raise AssertionError(
             "probe should not run when the column resolves from metadata"
         )
@@ -2220,6 +2223,7 @@ def test_numeric_adhoc_filter_value_is_unquoted_in_where_clause(
     def fake_get_columns_description(
         *_: object, **__: object
     ) -> list[dict[str, object]]:
+        """Return a BIGINT column description for the numeric adhoc expression."""
         return [
             {
                 "column_name": "Pending Days",

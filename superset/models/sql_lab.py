@@ -406,8 +406,8 @@ class Query(
         :param col: Adhoc column definition
         :param template_processor: template_processor instance
         :returns: A tuple of (SQLAlchemy column, generic column type). The
-            generic type is always ``None`` for SavedQuery-backed adhoc
-            columns since no physical column metadata is available.
+            generic type is resolved from query result column metadata when
+            the adhoc label matches a known column; otherwise ``None``.
         :rtype: tuple[sqlalchemy.sql.ColumnElement, Optional[GenericDataType]]
         """
         label = get_column_name(col)
@@ -419,7 +419,9 @@ class Query(
             template_processor=template_processor,
         )
         sqla_column = literal_column(expression)
-        return self.make_sqla_column_compatible(sqla_column, label), None
+        col_meta = self.get_column(label)
+        generic_type = col_meta.type_generic if col_meta else None
+        return self.make_sqla_column_compatible(sqla_column, label), generic_type
 
 
 class SavedQuery(
