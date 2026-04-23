@@ -169,7 +169,7 @@ async def test_list_databases_with_filters(mock_list, mcp_server):
 @pytest.mark.asyncio
 async def test_list_databases_does_not_expose_user_directory_fields(
     mock_list, mcp_server
-):
+) -> None:
     """Test database listing does not expose creator/modifier fields."""
     database = create_mock_database()
     database._mapping = {
@@ -205,7 +205,7 @@ async def test_list_databases_does_not_expose_user_directory_fields(
     assert data["databases"] == [{"id": 1, "database_name": "examples"}]
 
 
-def test_database_filter_rejects_user_directory_fields():
+def test_database_filter_rejects_user_directory_fields() -> None:
     """Test user directory fields cannot be used for database filters."""
     with pytest.raises(ValueError, match="created_by_fk"):
         ListDatabasesRequest(

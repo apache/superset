@@ -64,7 +64,9 @@ def test_get_default_instructions_mentions_feature_availability():
     assert "accessible menus" in instructions
 
 
-def test_get_default_instructions_forbid_disclosing_other_user_access_or_roles():
+def test_get_default_instructions_forbid_disclosing_other_user_access_or_roles() -> (
+    None
+):
     """Test that instructions route access-list questions to workspace admins."""
     instructions = get_default_instructions()
 

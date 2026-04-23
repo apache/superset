@@ -308,7 +308,7 @@ class TestGetInstanceInfoCurrentUserViaMCP:
 # ---------------------------------------------------------------------------
 
 
-def test_chart_filter_rejects_created_by_fk():
+def test_chart_filter_rejects_created_by_fk() -> None:
     """Test that ChartFilter rejects user-directory columns."""
     with pytest.raises(ValidationError):
         ChartFilter(col="created_by_fk", opr="eq", value=42)
