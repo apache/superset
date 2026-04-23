@@ -28,6 +28,8 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticLayerInvalidError,
     SemanticLayerNotFoundError,
     SemanticLayerUpdateFailedError,
+    SemanticViewCreateFailedError,
+    SemanticViewDeleteFailedError,
     SemanticViewForbiddenError,
     SemanticViewInvalidError,
     SemanticViewNotFoundError,
@@ -1471,3 +1473,456 @@ def test_connections_source_type_semantic_layer_only(
     assert result["source_type"] == "semantic_layer"
     # Only one query (SemanticLayer), no Database query
     mock_db_session.query.assert_called_once()
+
+
+# =============================================================================
+# SemanticViewRestApi.post (bulk create) tests
+# =============================================================================
+
+
+@SEMANTIC_LAYERS_APP
+def test_post_semantic_view_bulk_create(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST / bulk creates semantic views."""
+    new_model = MagicMock()
+    new_model.uuid = uuid_lib.uuid4()
+    new_model.name = "View 1"
+
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+    mock_command.return_value.run.return_value = new_model
+
+    payload = {
+        "views": [
+            {
+                "name": "View 1",
+                "semantic_layer_uuid": str(uuid_lib.uuid4()),
+                "configuration": {"database": "db1"},
+            },
+        ],
+    }
+    response = client.post("/api/v1/semantic_view/", json=payload)
+
+    assert response.status_code == 201
+    result = response.json["result"]
+    assert len(result["created"]) == 1
+    assert result["created"][0]["name"] == "View 1"
+
+
+@SEMANTIC_LAYERS_APP
+def test_post_semantic_view_empty_views(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Test POST / returns 400 when no views provided."""
+    response = client.post("/api/v1/semantic_view/", json={"views": []})
+
+    assert response.status_code == 400
+
+
+@SEMANTIC_LAYERS_APP
+def test_post_semantic_view_validation_error(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST / collects validation errors for individual views."""
+    # Missing required field "semantic_layer_uuid"
+    payload = {
+        "views": [
+            {"name": "Bad View"},
+        ],
+    }
+    response = client.post("/api/v1/semantic_view/", json=payload)
+
+    assert response.status_code == 422
+    result = response.json["result"]
+    assert len(result["errors"]) == 1
+    assert result["errors"][0]["name"] == "Bad View"
+
+
+@SEMANTIC_LAYERS_APP
+def test_post_semantic_view_layer_not_found(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST / collects layer-not-found errors."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticLayerNotFoundError()
+
+    payload = {
+        "views": [
+            {
+                "name": "View 1",
+                "semantic_layer_uuid": str(uuid_lib.uuid4()),
+                "configuration": {},
+            },
+        ],
+    }
+    response = client.post("/api/v1/semantic_view/", json=payload)
+
+    assert response.status_code == 422
+    result = response.json["result"]
+    assert len(result["errors"]) == 1
+    assert result["errors"][0]["error"] == "Semantic layer not found"
+
+
+@SEMANTIC_LAYERS_APP
+def test_post_semantic_view_create_failed(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST / collects create-failed errors."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticViewCreateFailedError()
+
+    payload = {
+        "views": [
+            {
+                "name": "View 1",
+                "semantic_layer_uuid": str(uuid_lib.uuid4()),
+                "configuration": {},
+            },
+        ],
+    }
+    response = client.post("/api/v1/semantic_view/", json=payload)
+
+    assert response.status_code == 422
+    result = response.json["result"]
+    assert len(result["errors"]) == 1
+
+
+@SEMANTIC_LAYERS_APP
+def test_post_semantic_view_partial_success(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST / returns 201 with partial success (some created, some errors)."""
+    new_model = MagicMock()
+    new_model.uuid = uuid_lib.uuid4()
+    new_model.name = "Good View"
+
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = [
+        new_model,
+        SemanticLayerNotFoundError(),
+    ]
+
+    layer_uuid = str(uuid_lib.uuid4())
+    payload = {
+        "views": [
+            {
+                "name": "Good View",
+                "semantic_layer_uuid": layer_uuid,
+                "configuration": {},
+            },
+            {
+                "name": "Bad View",
+                "semantic_layer_uuid": layer_uuid,
+                "configuration": {},
+            },
+        ],
+    }
+    response = client.post("/api/v1/semantic_view/", json=payload)
+
+    assert response.status_code == 201
+    result = response.json["result"]
+    assert len(result["created"]) == 1
+    assert len(result["errors"]) == 1
+
+
+# =============================================================================
+# SemanticViewRestApi.delete tests
+# =============================================================================
+
+
+@SEMANTIC_LAYERS_APP
+def test_delete_semantic_view(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test DELETE /<pk> deletes a semantic view."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.DeleteSemanticViewCommand",
+    )
+    mock_command.return_value.run.return_value = None
+
+    response = client.delete("/api/v1/semantic_view/1")
+
+    assert response.status_code == 200
+    mock_command.assert_called_once_with("1")
+
+
+@SEMANTIC_LAYERS_APP
+def test_delete_semantic_view_not_found(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test DELETE /<pk> returns 404 when view not found."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.DeleteSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticViewNotFoundError()
+
+    response = client.delete("/api/v1/semantic_view/999")
+
+    assert response.status_code == 404
+
+
+@SEMANTIC_LAYERS_APP
+def test_delete_semantic_view_failed(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test DELETE /<pk> returns 422 when deletion fails."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.DeleteSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticViewDeleteFailedError()
+
+    response = client.delete("/api/v1/semantic_view/1")
+
+    assert response.status_code == 422
+
+
+# =============================================================================
+# SemanticViewRestApi.bulk_delete tests
+# =============================================================================
+
+
+@SEMANTIC_LAYERS_APP
+def test_bulk_delete_semantic_view(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test DELETE / deletes multiple semantic views and returns a count message."""
+    import prison as rison_lib
+
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.BulkDeleteSemanticViewCommand",
+    )
+    mock_command.return_value.run.return_value = None
+
+    q = rison_lib.dumps([1, 2, 3])
+    response = client.delete(f"/api/v1/semantic_view/?q={q}")
+
+    assert response.status_code == 200
+    assert "3" in response.json["message"]
+    mock_command.assert_called_once_with([1, 2, 3])
+
+
+@SEMANTIC_LAYERS_APP
+def test_bulk_delete_semantic_view_not_found(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test DELETE / returns 404 when any id is missing."""
+    import prison as rison_lib
+
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.BulkDeleteSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticViewNotFoundError()
+
+    q = rison_lib.dumps([1, 999])
+    response = client.delete(f"/api/v1/semantic_view/?q={q}")
+
+    assert response.status_code == 404
+
+
+@SEMANTIC_LAYERS_APP
+def test_bulk_delete_semantic_view_failed(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test DELETE / returns 422 when deletion fails."""
+    import prison as rison_lib
+
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.BulkDeleteSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticViewDeleteFailedError()
+
+    q = rison_lib.dumps([1, 2])
+    response = client.delete(f"/api/v1/semantic_view/?q={q}")
+
+    assert response.status_code == 422
+
+
+# =============================================================================
+# SemanticLayerRestApi.views tests
+# =============================================================================
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_views(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST /<uuid>/views returns available views."""
+    test_uuid = str(uuid_lib.uuid4())
+    mock_layer = MagicMock()
+    mock_layer.uuid = uuid_lib.uuid4()
+
+    mock_view1 = MagicMock()
+    mock_view1.name = "View A"
+    mock_view2 = MagicMock()
+    mock_view2.name = "View B"
+    mock_layer.implementation.get_semantic_views.return_value = [
+        mock_view1,
+        mock_view2,
+    ]
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = mock_layer
+
+    mock_sv_dao = mocker.patch("superset.semantic_layers.api.SemanticViewDAO")
+    mock_sv_dao.find_by_semantic_layer.return_value = []
+
+    response = client.post(
+        f"/api/v1/semantic_layer/{test_uuid}/views",
+        json={"runtime_data": {"database": "mydb"}},
+    )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert len(result) == 2
+    assert result[0]["name"] == "View A"
+    assert result[0]["already_added"] is False
+    assert result[1]["name"] == "View B"
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_views_with_existing(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST /<uuid>/views marks already-added views."""
+    test_uuid = str(uuid_lib.uuid4())
+    mock_layer = MagicMock()
+    mock_layer.uuid = uuid_lib.uuid4()
+
+    mock_view = MagicMock()
+    mock_view.name = "Existing View"
+    mock_layer.implementation.get_semantic_views.return_value = [mock_view]
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = mock_layer
+
+    existing_view = MagicMock()
+    existing_view.name = "Existing View"
+    existing_view.configuration = '{"database": "mydb"}'
+
+    mock_sv_dao = mocker.patch("superset.semantic_layers.api.SemanticViewDAO")
+    mock_sv_dao.find_by_semantic_layer.return_value = [existing_view]
+
+    response = client.post(
+        f"/api/v1/semantic_layer/{test_uuid}/views",
+        json={"runtime_data": {"database": "mydb"}},
+    )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert len(result) == 1
+    assert result[0]["name"] == "Existing View"
+    assert result[0]["already_added"] is True
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_views_not_found(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST /<uuid>/views returns 404 when layer not found."""
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = None
+
+    response = client.post(
+        f"/api/v1/semantic_layer/{uuid_lib.uuid4()}/views",
+        json={},
+    )
+
+    assert response.status_code == 404
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_views_exception(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST /<uuid>/views returns 400 when implementation raises."""
+    test_uuid = str(uuid_lib.uuid4())
+    mock_layer = MagicMock()
+    mock_layer.uuid = uuid_lib.uuid4()
+    mock_layer.implementation.get_semantic_views.side_effect = ValueError(
+        "Connection failed"
+    )
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = mock_layer
+
+    response = client.post(
+        f"/api/v1/semantic_layer/{test_uuid}/views",
+        json={"runtime_data": {}},
+    )
+
+    assert response.status_code == 400
+    assert "Unable to fetch semantic views" in response.json["message"]
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_views_existing_dict_config(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test POST /<uuid>/views handles dict configuration on existing views."""
+    test_uuid = str(uuid_lib.uuid4())
+    mock_layer = MagicMock()
+    mock_layer.uuid = uuid_lib.uuid4()
+
+    mock_view = MagicMock()
+    mock_view.name = "View X"
+    mock_layer.implementation.get_semantic_views.return_value = [mock_view]
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = mock_layer
+
+    existing_view = MagicMock()
+    existing_view.name = "View X"
+    existing_view.configuration = {"key": "val"}  # dict, not string
+
+    mock_sv_dao = mocker.patch("superset.semantic_layers.api.SemanticViewDAO")
+    mock_sv_dao.find_by_semantic_layer.return_value = [existing_view]
+
+    response = client.post(
+        f"/api/v1/semantic_layer/{test_uuid}/views",
+        json={"runtime_data": {"key": "val"}},
+    )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result[0]["already_added"] is True
