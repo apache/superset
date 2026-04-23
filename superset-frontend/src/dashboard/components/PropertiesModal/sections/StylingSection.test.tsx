@@ -17,15 +17,17 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import StylingSection from './StylingSection';
 
+// 1. Define the mock function with 'mock' prefix so it's accessible inside jest.mock
+const mockIsFeatureEnabled = jest.fn();
 
 jest.mock('@superset-ui/core', () => {
   const actual = jest.requireActual('@superset-ui/core');
   return {
     ...actual,
-    isFeatureEnabled: jest.fn((feature: string) => feature === 'DASHBOARD_CROSS_FILTERS'),
+    isFeatureEnabled: (feature: string) => mockIsFeatureEnabled(feature),
   };
 });
 
@@ -75,6 +77,7 @@ const defaultProps = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // 2. Default the mock to false so tests don't break
   mockIsFeatureEnabled.mockReturnValue(false);
   mockSupersetClient.get.mockResolvedValue({
     json: {
