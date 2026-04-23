@@ -77,7 +77,7 @@ function ChartDataProvider({
   formDataRequestOptions,
   datasourceRequestOptions,
   queryRequestOptions,
-}: ChartDataProviderProps): ReactNode {
+}: ChartDataProviderProps): JSX.Element | null {
   const [state, setState] = useState<ChartDataProviderState>({
     status: 'uninitialized',
   });
@@ -158,13 +158,17 @@ function ChartDataProvider({
 
   const { status, payload, error } = state;
 
+  // Wrap the children result in a Fragment so the component's return type
+  // stays `JSX.Element | null` (which TypeScript requires for JSX components)
+  // while still letting consumers return any ReactNode (strings, fragments,
+  // arrays, null, etc.) from the render prop.
   switch (status) {
     case 'loading':
-      return children({ loading: true });
+      return <>{children({ loading: true })}</>;
     case 'loaded':
-      return children({ payload });
+      return <>{children({ payload })}</>;
     case 'error':
-      return children({ error });
+      return <>{children({ error })}</>;
     case 'uninitialized':
     default:
       return null;
