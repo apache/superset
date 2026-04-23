@@ -172,9 +172,8 @@ async def get_chart_info(
     # branch returned above).
     assert request.identifier is not None
 
-    # Eager load owners and tags to avoid N+1 queries during serialization
+    # Eager load tags to avoid N+1 queries during serialization.
     eager_options = [
-        subqueryload(Slice.owners),
         subqueryload(Slice.tags),
     ]
 
