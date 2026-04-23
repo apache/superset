@@ -163,6 +163,10 @@ test('renders error state when API call fails', async () => {
   await waitFor(() => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
+
+  // No ErrorMessageComponent is registered for GENERIC_BACKEND_ERROR in the
+  // test environment, so FilterValue renders its fallback ErrorAlert.
+  expect(await screen.findByText('Network error')).toBeInTheDocument();
 });
 
 test('does not fetch data when filter has not been in view', () => {
