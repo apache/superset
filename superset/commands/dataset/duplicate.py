@@ -66,6 +66,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         table = SqlaTable(table_name=table_name, owners=owners)
         table.database = database
         table.schema = self._base_model.schema
+        table.catalog = self._base_model.catalog
         table.template_params = self._base_model.template_params
         table.normalize_columns = self._base_model.normalize_columns
         table.always_filter_main_dttm = self._base_model.always_filter_main_dttm
@@ -115,8 +116,14 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         if self._base_model and self._base_model.kind != "virtual":
             exceptions.append(DatasourceTypeInvalidError())
 
-        if DatasetDAO.find_one_or_none(table_name=duplicate_name):
-            exceptions.append(DatasetExistsValidationError(table=Table(duplicate_name)))
+        # Validate uniqueness using the same pattern as CreateDatasetCommand
+        if database := db.session.query(Database).get(self._base_model.database_id):
+            catalog = self._base_model.catalog or database.get_default_catalog()
+
+            table = Table(duplicate_name, self._base_model.schema, catalog)
+
+            if not DatasetDAO.validate_uniqueness(database, table):
+                exceptions.append(DatasetExistsValidationError(table=table))
 
         try:
             owners = self.populate_owners()
