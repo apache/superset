@@ -46,7 +46,7 @@ import ChartProps, { ChartPropsConfig } from '../models/ChartProps';
 import NoResultsComponent from './NoResultsComponent';
 import { isMatrixifyEnabled } from '../types/matrixify';
 import MatrixifyGridRenderer from './Matrixify/MatrixifyGridRenderer';
-import { SupersetTheme } from '@apache-superset/core/theme';
+import { supersetTheme, SupersetTheme } from '@apache-superset/core/theme';
 export type FallbackPropsWithDimension = FallbackProps & Partial<Dimension>;
 
 export type WrapperProps = Dimension & {
@@ -129,9 +129,15 @@ function SuperChart({
    */
   const coreRef = useRef<SuperChartCoreRef | null>(null);
 
-  // Use theme from hook, falling back to prop if provided
-  const themeFromContext = useTheme() as SupersetTheme;
-  const theme = themeProp ?? themeFromContext;
+  // Use theme from prop if provided, otherwise from context.
+  // When no ThemeProvider is present, useTheme() returns an empty object,
+  // so we fall back to the default supersetTheme to avoid passing an invalid theme downstream.
+  const themeFromContext = useTheme() as Partial<SupersetTheme>;
+  const theme =
+    themeProp ??
+    (Object.keys(themeFromContext).length > 0
+      ? (themeFromContext as SupersetTheme)
+      : supersetTheme);
 
   const createChartProps = useMemo(() => ChartProps.createSelector(), []);
 
