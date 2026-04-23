@@ -111,9 +111,8 @@ async def get_chart_info(
         % (request.identifier, request.form_data_key)
     )
 
-    # Eager load owners and tags to avoid N+1 queries during serialization
+    # Eager load tags to avoid N+1 queries during serialization.
     eager_options = [
-        subqueryload(Slice.owners),
         subqueryload(Slice.tags),
     ]
 

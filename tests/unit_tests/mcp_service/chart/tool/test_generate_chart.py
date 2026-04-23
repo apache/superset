@@ -393,7 +393,7 @@ class TestChartSerializationEagerLoading:
         assert result.id == 42
         assert result.slice_name == "Test Chart"
         assert result.tags == []
-        assert result.owners == []
+        assert "owners" not in result.model_dump()
 
     def test_serialize_chart_object_fails_on_detached_instance(self):
         """serialize_chart_object raises when accessing lazy attrs on detached
