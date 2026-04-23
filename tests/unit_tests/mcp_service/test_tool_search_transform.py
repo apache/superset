@@ -717,7 +717,7 @@ def test_tool_search_permission_filter_hides_protected_tools_without_user():
     assert result == [public]
 
 
-def test_tool_search_permission_filter_hides_data_model_tools_without_metadata_access():
+def test_tool_search_filter_hides_metadata_tools_without_access() -> None:
     """Privacy-marked tools are hidden even if broad Dataset read exists."""
     app = Flask(__name__)
     app.config["MCP_RBAC_ENABLED"] = True
@@ -740,7 +740,7 @@ def test_tool_search_permission_filter_hides_data_model_tools_without_metadata_a
     assert result == [public]
 
 
-def test_tool_search_permission_filter_still_applies_rbac_to_metadata_tools():
+def test_tool_search_permission_filter_still_applies_rbac_to_metadata_tools() -> None:
     """Privacy-marked tools still require the underlying tool permission."""
     app = Flask(__name__)
     app.config["MCP_RBAC_ENABLED"] = True
@@ -768,6 +768,59 @@ def test_tool_search_permission_filter_still_applies_rbac_to_metadata_tools():
             result = _filter_tools_by_current_user_permission([metadata, public])
 
     assert result == [public]
+
+
+def test_tool_search_permission_filter_resolves_user_from_request() -> None:
+    """Search filtering resolves the current user when g.user is not already set."""
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+
+    def protected_tool():
+        pass
+
+    setattr(protected_tool, CLASS_PERMISSION_ATTR, "Dataset")
+    setattr(protected_tool, METHOD_PERMISSION_ATTR, "read")
+
+    protected = SimpleNamespace(fn=protected_tool)
+
+    with app.app_context():
+        with (
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=SimpleNamespace(username="viewer"),
+            ),
+            patch("superset.security_manager", new_callable=Mock) as security_manager,
+        ):
+            security_manager.can_access.return_value = True
+            result = _filter_tools_by_current_user_permission([protected])
+
+    assert result == [protected]
+
+
+def test_tool_search_permission_filter_keeps_get_schema_visible_without_metadata() -> (
+    None
+):
+    """get_schema remains discoverable when only safe model types are available."""
+    from superset.mcp_service.system.tool.get_schema import get_schema
+
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+
+    schema_tool = SimpleNamespace(fn=get_schema)
+
+    with app.app_context():
+        g.user = SimpleNamespace(username="viewer")
+        with (
+            patch(
+                "superset.mcp_service.server.user_can_view_data_model_metadata",
+                return_value=False,
+            ),
+            patch("superset.security_manager", new_callable=Mock) as security_manager,
+        ):
+            security_manager.can_access.return_value = True
+            result = _filter_tools_by_current_user_permission([schema_tool])
+
+    assert result == [schema_tool]
 
 
 # -- _extract_parameter_names tests --

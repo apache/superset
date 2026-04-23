@@ -119,7 +119,8 @@ def allow_data_model_metadata():
 @pytest.mark.asyncio
 async def test_list_databases_without_request_returns_structured_privacy_error(
     mcp_server,
-):
+) -> None:
+    """Restricted users are denied even when the request payload is omitted."""
     with patch.object(
         list_databases_module,
         "user_can_view_data_model_metadata",

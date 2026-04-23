@@ -59,6 +59,16 @@ def mock_auth():
         yield mock_get_user
 
 
+@pytest.fixture(autouse=True)
+def allow_data_model_metadata():
+    """Keep the standalone get_schema suite in the unrestricted default path."""
+    with patch(
+        "superset.mcp_service.system.tool.get_schema.user_can_view_data_model_metadata",
+        return_value=True,
+    ):
+        yield
+
+
 class TestGetSchemaRequest:
     """Test the GetSchemaRequest schema validation."""
 

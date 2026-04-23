@@ -117,9 +117,9 @@ def _make_instance_info(**kwargs):
     return InstanceInfo(**defaults)
 
 
-def test_get_schema_requires_dataset_drill_permission():
-    """Model schema discovery can reveal data-model fields."""
-    assert tool_requires_data_model_metadata_access(get_schema) is True
+def test_get_schema_is_not_globally_hidden_from_tool_search() -> None:
+    """Per-model privacy is enforced inside get_schema."""
+    assert tool_requires_data_model_metadata_access(get_schema) is False
 
 
 def test_redact_data_model_metadata_removes_dataset_and_database_summary():

@@ -332,6 +332,7 @@ def _tool_allowed_for_current_user(tool: Any) -> bool:
         from superset import security_manager
         from superset.mcp_service.auth import (
             CLASS_PERMISSION_ATTR,
+            get_user_from_request,
             METHOD_PERMISSION_ATTR,
             PERMISSION_PREFIX,
         )
@@ -347,7 +348,10 @@ def _tool_allowed_for_current_user(tool: Any) -> bool:
             return True
 
         if not getattr(g, "user", None):
-            return False
+            try:
+                g.user = get_user_from_request()
+            except ValueError:
+                return False
 
         method_permission_name = getattr(tool_func, METHOD_PERMISSION_ATTR, "read")
         permission_name = f"{PERMISSION_PREFIX}{method_permission_name}"
@@ -559,10 +563,12 @@ def _create_search_transform(
             """Regex search with fixed call_tool schema and arg normalization."""
 
             async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
+                """Return only tools visible to the current authenticated user."""
                 tools = await super()._get_visible_tools(ctx)
                 return _filter_tools_by_current_user_permission(tools)
 
             def _make_call_tool(self) -> Any:
+                """Build the normalized ``call_tool`` proxy for regex search."""
                 return make_normalizing_call_tool(self)
 
         return _FixedRegexSearchTransform(**kwargs)
@@ -573,10 +579,12 @@ def _create_search_transform(
         """BM25 search with fixed call_tool schema and arg normalization."""
 
         async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
+            """Return only tools visible to the current authenticated user."""
             tools = await super()._get_visible_tools(ctx)
             return _filter_tools_by_current_user_permission(tools)
 
         def _make_call_tool(self) -> Any:
+            """Build the normalized ``call_tool`` proxy for BM25 search."""
             return make_normalizing_call_tool(self)
 
     return _FixedBM25SearchTransform(**kwargs)

@@ -99,6 +99,7 @@ def test_dataset_discovery_tools_require_drill_permission() -> None:
 
 @pytest.mark.asyncio
 async def test_list_datasets_returns_structured_privacy_error(mcp_server) -> None:
+    """Restricted users receive a structured denial for dataset listing."""
     with patch.object(
         list_datasets_module,
         "user_can_view_data_model_metadata",
@@ -118,6 +119,7 @@ async def test_list_datasets_returns_structured_privacy_error(mcp_server) -> Non
 async def test_list_datasets_without_request_returns_structured_privacy_error(
     mcp_server,
 ) -> None:
+    """Restricted users are denied even when the request payload is omitted."""
     with patch.object(
         list_datasets_module,
         "user_can_view_data_model_metadata",
@@ -132,6 +134,7 @@ async def test_list_datasets_without_request_returns_structured_privacy_error(
 
 @pytest.mark.asyncio
 async def test_get_dataset_info_returns_structured_privacy_error(mcp_server) -> None:
+    """Restricted users receive a structured denial for dataset details."""
     from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
 
     with patch.object(

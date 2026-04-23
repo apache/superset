@@ -56,7 +56,6 @@ from superset.mcp_service.mcp_core import ModelGetSchemaCore
 from superset.mcp_service.privacy import (
     PrivacyError,
     remove_chart_data_model_columns,
-    requires_data_model_metadata_access,
     user_can_view_data_model_metadata,
 )
 
@@ -162,7 +161,6 @@ _SCHEMA_CORE_FACTORIES: dict[
         destructiveHint=False,
     ),
 )
-@requires_data_model_metadata_access
 async def get_schema(
     request: GetSchemaRequest, ctx: Context
 ) -> GetSchemaResponse | PrivacyError:
