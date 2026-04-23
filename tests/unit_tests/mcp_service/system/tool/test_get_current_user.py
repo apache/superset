@@ -230,7 +230,7 @@ async def test_get_schema_redacts_chart_data_model_fields(mcp_server):
             return_value=False,
         ),
         patch.dict(
-            "superset.mcp_service.system.tool.get_schema._SCHEMA_CORE_FACTORIES",
+            get_schema_module._SCHEMA_CORE_FACTORIES,
             {"chart": lambda: mock_core},
             clear=False,
         ),

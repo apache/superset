@@ -19,6 +19,7 @@
 Tests for the get_schema unified schema discovery tool.
 """
 
+import importlib
 from unittest.mock import patch
 
 import pytest
@@ -39,6 +40,10 @@ from superset.mcp_service.common.schema_discovery import (
     ModelSchemaInfo,
 )
 from superset.utils import json
+
+get_schema_module = importlib.import_module(
+    "superset.mcp_service.system.tool.get_schema"
+)
 
 
 @pytest.fixture
@@ -62,8 +67,9 @@ def mock_auth():
 @pytest.fixture(autouse=True)
 def allow_data_model_metadata():
     """Keep the standalone get_schema suite in the unrestricted default path."""
-    with patch(
-        "superset.mcp_service.system.tool.get_schema.user_can_view_data_model_metadata",
+    with patch.object(
+        get_schema_module,
+        "user_can_view_data_model_metadata",
         return_value=True,
     ):
         yield
