@@ -200,8 +200,6 @@ function ChartRendererComponent({
     datasource,
     formData,
     latestQueryFormData,
-    labelsColor,
-    labelsColorMap,
     height,
     width,
     vizType: propVizType,
@@ -214,7 +212,6 @@ function ChartRendererComponent({
     postTransformProps,
     source,
     emitCrossFilters,
-    cacheBusterProp,
     onChartStateChange,
   } = restProps;
 
