@@ -202,6 +202,7 @@ RUN mkdir -p /app/data && chown -R superset:superset /app/data
 
 # Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
+COPY --from=superset-node /app/superset/static/service-worker.js superset/static/service-worker.js
 
 # TODO, when the next version comes out, use --exclude superset/translations
 COPY superset superset
