@@ -84,6 +84,7 @@ export default function DndSelectLabel({
       accept: acceptTypes,
       onDrop: props.onDrop,
       onDropValue: props.onDropValue,
+      canDrop: dropValidator,
     },
   });
 

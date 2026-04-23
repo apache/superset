@@ -56,7 +56,7 @@ export interface ActiveDragData {
 export const DraggingContext = createContext(false);
 
 /**
- * Context to access the currently active drag item
+ * Context exposing the active drag item, if any
  */
 export const ActiveDragContext = createContext<ActiveDragData | null>(null);
 
@@ -194,11 +194,12 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
               accept?: string[];
               onDrop?: (item: { type: string; value?: unknown }) => void;
               onDropValue?: (value: unknown) => void;
+              canDrop?: (item: DatasourcePanelDndItem) => boolean;
             }
           | undefined;
 
         if (activeDataCurrent && droppableData) {
-          const { accept, onDrop, onDropValue } = droppableData;
+          const { accept, onDrop, onDropValue, canDrop } = droppableData;
           const typeAccepted =
             !accept || accept.includes(activeDataCurrent.type);
 
@@ -207,6 +208,13 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
               type: activeDataCurrent.type,
               value: activeDataCurrent.value,
             };
+            // Apply the droppable's canDrop validator (e.g., duplicate or
+            // disallow_adhoc_metrics checks) so the runtime drop behavior
+            // matches the visual "cannot drop" feedback. Skip the drop
+            // entirely when the validator rejects the item.
+            if (canDrop && !canDrop(item as DatasourcePanelDndItem)) {
+              return;
+            }
             onDrop?.(item);
             if (activeDataCurrent.value !== undefined) {
               onDropValue?.(activeDataCurrent.value);
@@ -275,7 +283,7 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
 };
 
 /**
- * Hook to check if something is currently being dragged
+ * Hook reporting whether a drag is in progress
  */
 export const useIsDragging = () => useContext(DraggingContext);
 
