@@ -120,6 +120,15 @@ test('SingleQueryResultPane shows no results message when filter matches nothing
     useRedux: true,
   });
 
+  // Navigate off page 1 first so the empty-filter case exercises the
+  // pageIndex > pageCount - 1 branch this PR fixes.
+  const page3 = screen.getByRole('listitem', { name: '3' });
+  await userEvent.click(page3);
+
+  await waitFor(() => {
+    expect(screen.getByText('Item 21')).toBeInTheDocument();
+  });
+
   // Search for text that doesn't exist
   const searchInput = screen.getByPlaceholderText('Search');
   await userEvent.type(searchInput, 'NonExistentText');
