@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
 distributed with this work for additional information
@@ -22,7 +22,10 @@ under the License.
 [![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-handlebars.svg?style=flat)](https://www.npmjs.com/package/@superset-ui/plugin-chart-handlebars)
 [![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Fplugin-chart-handlebars?style=flat)](https://libraries.io/npm/@superset-ui%2Fplugin-chart-handlebars)
 
-This plugin renders the data using a handlebars template.
+This plugin renders data using a Handlebars template.
+
+For full documentation on available helpers and usage, see the
+[Handlebars Chart user guide](https://superset.apache.org/docs/using-superset/handlebars-chart).
 
 ### Usage
 
@@ -34,62 +37,3 @@ import HandlebarsChartPlugin from '@superset-ui/plugin-chart-handlebars';
 
 new HandlebarsChartPlugin().configure({ key: 'handlebars' }).register();
 ```
-
-Then use it via `SuperChart`. See
-[storybook](https://apache-superset.github.io/superset-ui/?selectedKind=plugin-chart-handlebars) for
-more details.
-
-```js
-<SuperChart
-  chartType="handlebars"
-  width={600}
-  height={600}
-  formData={...}
-  queriesData={[{
-    data: {...},
-  }]}
-/>
-```
-
-### File structure generated
-
-```
-├── package.json
-├── README.md
-├── tsconfig.json
-├── src
-│   ├── Handlebars.tsx
-│   ├── images
-│   │   └── thumbnail.png
-│   ├── index.ts
-│   ├── plugin
-│   │   ├── buildQuery.ts
-│   │   ├── controlPanel.ts
-│   │   ├── index.ts
-│   │   └── transformProps.ts
-│   └── types.ts
-├── test
-│   └── index.test.ts
-└── types
-    └── external.d.ts
-```
-
-### Available Handlebars Helpers in Superset
-
-Below, you will find a list of all currently registered helpers in the Handlebars plugin for Superset. These helpers are registered and managed in the file [`HandlebarsViewer.tsx`](./path/to/HandlebarsViewer.tsx).
-
-#### List of Registered Helpers:
-
-1. **`dateFormat`**: Formats a date using a specified format.
-   - **Usage**: `{{dateFormat my_date format="MMMM YYYY"}}`
-   - **Default format**: `YYYY-MM-DD`.
-
-2. **`stringify`**: Converts an object into a JSON string or returns a string representation of non-object values.
-   - **Usage**: `{{stringify myObj}}`.
-
-3. **`formatNumber`**: Formats a number using locale-specific formatting.
-   - **Usage**: `{{formatNumber number locale="en-US"}}`.
-   - **Default locale**: `en-US`.
-
-4. **`parseJson`**: Parses a JSON string into a JavaScript object.
-   - **Usage**: `{{parseJson jsonString}}`.

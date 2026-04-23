@@ -1,0 +1,143 @@
+﻿---
+title: Handlebars Chart
+hide_title: true
+sidebar_position: 10
+version: 1
+---
+
+## Handlebars Chart
+
+The Handlebars chart lets you render query results using a custom [Handlebars](https://handlebarsjs.com/) template. This gives you full control over how your data is displayed — from simple tables to rich HTML layouts.
+
+### Basic Usage
+
+In the chart editor, write a Handlebars template in the **Template** field. Your query results are available as `data`, an array of row objects.
+
+```handlebars
+{{#each data}}
+  <p>{{this.name}}: {{this.value}}</p>
+{{/each}}
+```
+
+### Built-in Helpers
+
+Superset registers several custom helpers on top of the standard Handlebars built-ins.
+
+#### `dateFormat`
+
+Formats a date value using [Day.js](https://day.js.org/) format strings.
+
+```handlebars
+{{dateFormat my_date format="MMMM YYYY"}}
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `format` | `YYYY-MM-DD` | A Day.js-compatible format string |
+
+---
+
+#### `stringify`
+
+Converts an object to a JSON string, or any other value to its string representation.
+
+```handlebars
+{{stringify myObj}}
+```
+
+---
+
+#### `formatNumber`
+
+Formats a number using locale-aware formatting.
+
+```handlebars
+{{formatNumber myNumber locale="en-US"}}
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `locale` | `en-US` | A BCP 47 language tag |
+
+---
+
+#### `parseJson`
+
+Parses a JSON string into an object that can be used in your template.
+
+```handlebars
+{{parseJson myJsonString}}
+```
+
+---
+
+#### `groupBy`
+
+Groups an array of objects by a key, powered by [handlebars-group-by](https://github.com/nicktindall/handlebars-group-by).
+
+```handlebars
+{{#groupBy data "department"}}
+  <h3>{{value}}</h3>
+  {{#each items}}
+    <p>{{this.name}}</p>
+  {{/each}}
+{{/groupBy}}
+```
+
+---
+
+### Helpers from just-handlebars-helpers
+
+Superset also registers all helpers from the [just-handlebars-helpers](https://github.com/leapfrogtechnology/just-handlebars-helpers) library. These include a wide range of comparison, math, string, and conditional helpers. Commonly used ones include:
+
+#### Comparison
+
+| Helper | Description | Example |
+|--------|-------------|---------|
+| `eq` | Strict equality | `{{#if (eq status "active")}}` |
+| `eqw` | Weak equality | `{{#if (eqw count "5")}}` |
+| `neq` | Strict inequality | `{{#if (neq role "admin")}}` |
+| `lt` | Less than | `{{#if (lt score 50)}}` |
+| `lte` | Less than or equal | `{{#if (lte score 100)}}` |
+| `gt` | Greater than | `{{#if (gt price 0)}}` |
+| `gte` | Greater than or equal | `{{#if (gte age 18)}}` |
+
+#### Logical
+
+| Helper | Description | Example |
+|--------|-------------|---------|
+| `and` | Logical AND | `{{#if (and isActive isVerified)}}` |
+| `or` | Logical OR | `{{#if (or isAdmin isMod)}}` |
+| `not` | Logical NOT | `{{#if (not isDisabled)}}` |
+| `ifx` | Inline conditional | `{{ifx isActive "Yes" "No"}}` |
+| `coalesce` | Returns first non-falsy value | `{{coalesce nickname name "Anonymous"}}` |
+
+#### String
+
+| Helper | Description | Example |
+|--------|-------------|---------|
+| `capitalize` | Capitalizes first letter | `{{capitalize name}}` |
+| `uppercase` | Converts to uppercase | `{{uppercase status}}` |
+| `lowercase` | Converts to lowercase | `{{lowercase email}}` |
+| `truncate` | Truncates a string | `{{truncate description 100}}` |
+| `contains` | Checks if string contains substring | `{{#if (contains tag "urgent")}}` |
+
+#### Math
+
+| Helper | Description | Example |
+|--------|-------------|---------|
+| `add` | Addition | `{{add a b}}` |
+| `subtract` | Subtraction | `{{subtract total discount}}` |
+| `multiply` | Multiplication | `{{multiply price quantity}}` |
+| `divide` | Division | `{{divide total count}}` |
+| `ceil` | Ceiling | `{{ceil value}}` |
+| `floor` | Floor | `{{floor value}}` |
+| `round` | Round | `{{round value}}` |
+
+For the full list of available helpers, see the [just-handlebars-helpers documentation](https://github.com/leapfrogtechnology/just-handlebars-helpers).
+
+### Tips
+
+- Use raw blocks to escape Handlebars syntax if you need to display double curly braces literally.
+- Comparison helpers like `eq` must be wrapped in a subexpression when used with `#if`: `{{#if (eq myVal "foo")}}`.
+- HTML output is sanitized by default based on your Superset configuration (`HTML_SANITIZATION`).
