@@ -71,7 +71,7 @@ const ShareSqlLabQuery = ({
     const tooltip = t('Copy query link to your clipboard');
     return (
       <Button
-        color="primary"
+        color="default"
         variant="text"
         tooltip={tooltip}
         css={css`
@@ -89,6 +89,7 @@ const ShareSqlLabQuery = ({
       getText={getCopyUrl}
       wrapped={false}
       copyNode={buildButton()}
+      hideTooltip
     />
   );
 };

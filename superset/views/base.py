@@ -36,7 +36,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH
+from flask_appbuilder.const import AUTH_OAUTH, AUTH_SAML
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -101,6 +101,7 @@ FRONTEND_CONF_KEYS = (
     "COLUMNAR_EXTENSIONS",
     "ALLOWED_EXTENSIONS",
     "SAMPLES_ROW_LIMIT",
+    "ROW_LIMIT",
     "DEFAULT_TIME_FILTER",
     "HTML_SANITIZATION",
     "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
@@ -485,7 +486,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     auth_type = app.config["AUTH_TYPE"]
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
-    should_show_recaptcha = auth_user_registration and (auth_type != AUTH_OAUTH)
+    should_show_recaptcha = auth_user_registration and (
+        auth_type not in (AUTH_OAUTH, AUTH_SAML)
+    )
 
     if auth_user_registration:
         frontend_config["AUTH_USER_REGISTRATION_ROLE"] = app.config[
@@ -505,6 +508,16 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
                 }
             )
         frontend_config["AUTH_PROVIDERS"] = oauth_providers
+    elif auth_type == AUTH_SAML:
+        saml_providers = []
+        for provider in appbuilder.sm.saml_providers:
+            saml_providers.append(
+                {
+                    "name": provider["name"],
+                    "icon": provider.get("icon", "fa-sign-in"),
+                }
+            )
+        frontend_config["AUTH_PROVIDERS"] = saml_providers
 
     bootstrap_data = {
         "application_root": app.config["APPLICATION_ROOT"],
