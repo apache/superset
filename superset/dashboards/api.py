@@ -252,6 +252,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "put_chart_customizations",
         "put_colors",
         "export_as_example",
+        "list_versions",
+        "get_version",
+        "restore_version",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -787,6 +790,34 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
                       last_modified_time:
                         type: number
+                      old_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the live row before this
+                          update. Unstable under retention pruning — see
+                          old_transaction_id for a stable identifier.
+                      new_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the newly-live row after
+                          this update. Can equal old_version when no
+                          versioned column changed, or when retention
+                          pruning dropped an older closed row in the same
+                          commit.
+                      old_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: Continuum transaction_id of the live
+                          row before this update. Stable across pruning.
+                      new_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: Continuum transaction_id of the live
+                          row after this update. Differs from
+                          old_transaction_id when the update produced a new
+                          version row.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -805,16 +836,45 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.version import VersionDAO
+        from superset.extensions import db as _db
+
+        pre_dashboard = (
+            _db.session.query(Dashboard).filter(Dashboard.id == pk).one_or_none()
+        )
+        old_version = VersionDAO.current_version_number(Dashboard, pk)
+        old_transaction_id = VersionDAO.current_live_transaction_id(Dashboard, pk)
+        old_version_uuid = (
+            VersionDAO.current_live_version_uuid(Dashboard, pk, pre_dashboard.uuid)
+            if pre_dashboard is not None
+            else None
+        )
+
         try:
             changed_model = UpdateDashboardCommand(pk, item).run()
             last_modified_time = changed_model.changed_on.replace(
                 microsecond=0
             ).timestamp()
+            new_version = VersionDAO.current_version_number(Dashboard, changed_model.id)
+            new_transaction_id = VersionDAO.current_live_transaction_id(
+                Dashboard, changed_model.id
+            )
+            new_version_uuid = VersionDAO.current_live_version_uuid(
+                Dashboard, changed_model.id, changed_model.uuid
+            )
             response = self.response(
                 200,
                 id=changed_model.id,
                 result=item,
                 last_modified_time=last_modified_time,
+                old_version=old_version,
+                new_version=new_version,
+                old_transaction_id=old_transaction_id,
+                new_transaction_id=new_transaction_id,
+                old_version_uuid=str(old_version_uuid) if old_version_uuid else None,
+                new_version_uuid=str(new_version_uuid) if new_version_uuid else None,
             )
         except DashboardNotFoundError:
             response = self.response_404()
@@ -2205,3 +2265,209 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 ).timestamp(),
             },
         )
+
+    @expose("/<uuid_str>/versions/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
+        log_to_statsd=False,
+    )
+    def list_versions(self, uuid_str: str) -> Response:
+        """List version history for a dashboard.
+        ---
+        get:
+          summary: Return the version history for a dashboard
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dashboard UUID
+          responses:
+            200:
+              description: Version history ordered by oldest first
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from uuid import UUID
+
+        from superset.daos.version import VersionDAO
+
+        try:
+            entity_uuid = UUID(uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid UUID")
+
+        versions = VersionDAO.list_versions(Dashboard, entity_uuid)
+        if versions is None:
+            return self.response_404()
+        return self.response(200, result=versions, count=len(versions))
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/",
+        methods=("GET",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
+        log_to_statsd=False,
+    )
+    def get_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Return the dashboard's state at a specific version.
+        ---
+        get:
+          summary: Read-only snapshot of the dashboard at a given version
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dashboard UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: Version UUID as returned by the list endpoint
+          responses:
+            200:
+              description: Snapshot of the dashboard at the target version
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from uuid import UUID
+
+        from superset.daos.version import VersionDAO
+
+        try:
+            entity_uuid = UUID(uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid UUID")
+        try:
+            version_uuid = UUID(version_uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid version UUID")
+
+        snapshot = VersionDAO.get_version(Dashboard, entity_uuid, version_uuid)
+        if snapshot is None:
+            return self.response_404()
+        return self.response(200, result=snapshot)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/restore",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),  # noqa: E501
+        log_to_statsd=False,
+    )
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a dashboard to a previous version.
+        ---
+        post:
+          summary: Revert a dashboard to an earlier version (non-destructive)
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dashboard UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: >-
+              Version UUID as returned by the list-versions endpoint.
+              Stable across retention pruning.
+          responses:
+            200:
+              description: Dashboard was restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        # pylint: disable=import-outside-toplevel
+        from uuid import UUID
+
+        from superset.commands.dashboard.restore_version import (
+            RestoreDashboardVersionCommand,
+        )
+
+        try:
+            entity_uuid = UUID(uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid UUID")
+        try:
+            version_uuid = UUID(version_uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid version UUID")
+
+        try:
+            RestoreDashboardVersionCommand(entity_uuid, version_uuid).run()
+        except DashboardNotFoundError:
+            return self.response_404()
+        except DashboardForbiddenError:
+            return self.response_403()
+        except DashboardUpdateFailedError as ex:
+            logger.error("Error restoring dashboard version: %s", ex)
+            return self.response_422(message=str(ex))
+        return self.response(200, message="OK")

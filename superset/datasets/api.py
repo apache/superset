@@ -111,6 +111,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "get_or_create_dataset",
         "warm_up_cache",
         "get_drill_info",
+        "list_versions",
+        "get_version",
+        "restore_version",
     }
     list_columns = [
         "id",
@@ -410,6 +413,40 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                         type: number
                       result:
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
+                      old_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the live row before this
+                          update (null if the dataset had no prior history).
+                          Matches the ``version_number`` field of the list
+                          versions endpoint. Unstable under retention
+                          pruning — see ``old_transaction_id`` for a stable
+                          identifier.
+                      new_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the newly-live row after
+                          this update. Can equal ``old_version`` when no
+                          versioned column changed, or when retention
+                          pruning dropped an older closed row in the same
+                          commit.
+                      old_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          Continuum transaction_id of the live row before
+                          this update. Stable across retention pruning.
+                      new_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          Continuum transaction_id of the live row after
+                          this update. When this differs from
+                          ``old_transaction_id`` the update produced a new
+                          version row (regardless of whether ``new_version``
+                          changed).
             400:
               $ref: '#/components/responses/400'
             401:
@@ -433,11 +470,44 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.version import VersionDAO
+        from superset.extensions import db as _db
+
+        pre_dataset = (
+            _db.session.query(SqlaTable).filter(SqlaTable.id == pk).one_or_none()
+        )
+        old_version = VersionDAO.current_version_number(SqlaTable, pk)
+        old_transaction_id = VersionDAO.current_live_transaction_id(SqlaTable, pk)
+        old_version_uuid = (
+            VersionDAO.current_live_version_uuid(SqlaTable, pk, pre_dataset.uuid)
+            if pre_dataset is not None
+            else None
+        )
+
         try:
             changed_model = UpdateDatasetCommand(pk, item, override_columns).run()
             if override_columns:
                 RefreshDatasetCommand(pk).run()
-            response = self.response(200, id=changed_model.id, result=item)
+            new_version = VersionDAO.current_version_number(SqlaTable, changed_model.id)
+            new_transaction_id = VersionDAO.current_live_transaction_id(
+                SqlaTable, changed_model.id
+            )
+            new_version_uuid = VersionDAO.current_live_version_uuid(
+                SqlaTable, changed_model.id, changed_model.uuid
+            )
+            response = self.response(
+                200,
+                id=changed_model.id,
+                result=item,
+                old_version=old_version,
+                new_version=new_version,
+                old_transaction_id=old_transaction_id,
+                new_transaction_id=new_transaction_id,
+                old_version_uuid=str(old_version_uuid) if old_version_uuid else None,
+                new_version_uuid=str(new_version_uuid) if new_version_uuid else None,
+            )
         except DatasetNotFoundError:
             response = self.response_404()
         except DatasetForbiddenError:
@@ -706,8 +776,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        ".detect_datetime_formats",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.detect_datetime_formats"
+        ),
         log_to_statsd=False,
     )
     def detect_datetime_formats(self, pk: int) -> Response:
@@ -788,8 +859,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".related_objects",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.related_objects"
+        ),
         log_to_statsd=False,
     )
     def related_objects(self, id_or_uuid: str) -> Response:
@@ -1045,8 +1117,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".get_or_create_dataset",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_or_create_dataset"
+        ),
         log_to_statsd=False,
     )
     def get_or_create_dataset(self) -> Response:
@@ -1266,9 +1339,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.get_drill_info",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_drill_info"
+        ),
         log_to_statsd=False,
     )
     def get_drill_info(self, pk: int, **kwargs: Any) -> Response:
@@ -1403,3 +1476,213 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 raise template_exception from ex
 
         return data
+
+    @expose("/<uuid_str>/versions/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
+        log_to_statsd=False,
+    )
+    def list_versions(self, uuid_str: str) -> Response:
+        """List version history for a dataset.
+        ---
+        get:
+          summary: Return the version history for a dataset
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          responses:
+            200:
+              description: Version history ordered by oldest first
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                      count:
+                        type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from uuid import UUID
+
+        from superset.daos.version import VersionDAO
+
+        try:
+            entity_uuid = UUID(uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid UUID")
+
+        versions = VersionDAO.list_versions(SqlaTable, entity_uuid)
+        if versions is None:
+            return self.response_404()
+        return self.response(200, result=versions, count=len(versions))
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/",
+        methods=("GET",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
+        log_to_statsd=False,
+    )
+    def get_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Return the dataset's state at a specific version.
+        ---
+        get:
+          summary: Read-only snapshot of the dataset at a given version
+          description: >-
+            Returns the dataset's scalar fields plus reconstructed
+            ``columns`` and ``metrics`` lists as they were at the target
+            version. Does not modify live state.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: Version UUID as returned by the list endpoint
+          responses:
+            200:
+              description: Snapshot of the dataset at the target version
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from uuid import UUID
+
+        from superset.daos.version import VersionDAO
+
+        try:
+            entity_uuid = UUID(uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid UUID")
+        try:
+            version_uuid = UUID(version_uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid version UUID")
+
+        snapshot = VersionDAO.get_version(SqlaTable, entity_uuid, version_uuid)
+        if snapshot is None:
+            return self.response_404()
+        return self.response(200, result=snapshot)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/restore",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),  # noqa: E501
+        log_to_statsd=False,
+    )
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a dataset to a previous version.
+        ---
+        post:
+          summary: Revert a dataset to an earlier version (non-destructive)
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dataset UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: >-
+              Version UUID as returned by the list-versions endpoint.
+              Stable across retention pruning.
+          responses:
+            200:
+              description: Dataset was restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        # pylint: disable=import-outside-toplevel
+        from uuid import UUID
+
+        from superset.commands.dataset.restore_version import (
+            RestoreDatasetVersionCommand,
+        )
+
+        try:
+            entity_uuid = UUID(uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid UUID")
+        try:
+            version_uuid = UUID(version_uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid version UUID")
+
+        try:
+            RestoreDatasetVersionCommand(entity_uuid, version_uuid).run()
+        except DatasetNotFoundError:
+            return self.response_404()
+        except DatasetForbiddenError:
+            return self.response_403()
+        except DatasetUpdateFailedError as ex:
+            logger.error("Error restoring dataset version: %s", ex)
+            return self.response_422(message=str(ex))
+        return self.response(200, message="OK")
