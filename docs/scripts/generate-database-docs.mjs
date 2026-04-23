@@ -214,12 +214,16 @@ CAP_ATTR_TO_OUTPUT_FIELD = {
 
 # Methods that indicate a capability when overridden by a non-BaseEngineSpec class.
 # Mirrors the has_custom_method checks in superset/db_engine_specs/lib.py.
-# cancel_query / get_cancel_query_id / has_implicit_cancel -> query_cancelation
+# cancel_query / has_implicit_cancel -> query_cancelation
+#   (diagnose() checks cancel_query override OR has_implicit_cancel() == True;
+#    base has_implicit_cancel returns False, so overriding it is the static
+#    equivalent of that method returning True. get_cancel_query_id is NOT
+#    part of the diagnose() heuristic and is intentionally excluded.)
 # estimate_statement_cost / estimate_query_cost -> query_cost_estimation
 # impersonate_user / update_impersonation_config / get_url_for_impersonation -> user_impersonation
 # validate_sql -> sql_validation (not used yet; validation is engine-based)
 CAP_METHODS = {
-    'cancel_query', 'get_cancel_query_id', 'has_implicit_cancel',
+    'cancel_query', 'has_implicit_cancel',
     'estimate_statement_cost', 'estimate_query_cost',
     'impersonate_user', 'update_impersonation_config', 'get_url_for_impersonation',
     'validate_sql',
@@ -454,8 +458,11 @@ for class_name, info in class_info.items():
             'supports_dynamic_catalog': cap_attrs['supports_dynamic_catalog'],
             'ssh_tunneling': not cap_attrs['disable_ssh_tunneling'],
             'supports_file_upload': cap_attrs['supports_file_upload'],
-            # Method-based flags: True only when a non-base class overrides them
-            'query_cancelation': bool({'cancel_query', 'get_cancel_query_id', 'has_implicit_cancel'} & cap_methods),
+            # Method-based flags: True only when a non-base class overrides them.
+            # Matches diagnose() in lib.py: cancel_query override OR
+            # has_implicit_cancel() returning True (which, given the base
+            # returns False, is equivalent to overriding has_implicit_cancel).
+            'query_cancelation': bool({'cancel_query', 'has_implicit_cancel'} & cap_methods),
             'query_cost_estimation': bool({'estimate_statement_cost', 'estimate_query_cost'} & cap_methods),
             # SQL validation is implemented in external validator classes keyed by engine name
             'sql_validation': engine_attr in {'presto', 'postgresql'},
