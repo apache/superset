@@ -795,7 +795,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         command = ExportChartsCommand([chart.id])
         contents = dict(command.run())
 
-        chart_key = f"charts/Energy_Sankey_{chart.id}.yaml"
+        chart_key = "charts/Energy_Sankey.yaml"
         chart_yaml = yaml.safe_load(contents[chart_key]())
         layers = chart_yaml["params"]["annotation_layers"]
         assert len(layers) == 1
@@ -842,7 +842,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         command = ExportChartsCommand([main_chart.id])
         contents = dict(command.run())
 
-        chart_key = f"charts/Energy_Sankey_{main_chart.id}.yaml"
+        chart_key = "charts/Energy_Sankey.yaml"
         chart_yaml = yaml.safe_load(contents[chart_key]())
         layers = chart_yaml["params"]["annotation_layers"]
         assert len(layers) == 1
@@ -850,7 +850,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         assert layers[0]["sourceType"] == "table"
 
         # The referenced chart should also be exported
-        ref_chart_key = f"charts/Heatmap_{ref_chart.id}.yaml"
+        ref_chart_key = "charts/Heatmap.yaml"
         assert ref_chart_key in contents
 
     @patch("superset.security.manager.g")
@@ -883,7 +883,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         command = ExportChartsCommand([main_chart.id])
         contents = dict(command.run())
 
-        chart_key = f"charts/Energy_Sankey_{main_chart.id}.yaml"
+        chart_key = "charts/Energy_Sankey.yaml"
         chart_yaml = yaml.safe_load(contents[chart_key]())
         layers = chart_yaml["params"]["annotation_layers"]
         assert len(layers) == 1
@@ -913,7 +913,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         command = ExportChartsCommand([chart.id])
         contents = dict(command.run())
 
-        chart_key = f"charts/Energy_Sankey_{chart.id}.yaml"
+        chart_key = "charts/Energy_Sankey.yaml"
         chart_yaml = yaml.safe_load(contents[chart_key]())
         layers = chart_yaml["params"]["annotation_layers"]
         assert len(layers) == 1
@@ -968,7 +968,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         command = ExportChartsCommand([main_chart.id])
         contents = dict(command.run())
 
-        chart_key = f"charts/Energy_Sankey_{main_chart.id}.yaml"
+        chart_key = "charts/Energy_Sankey.yaml"
         chart_yaml = yaml.safe_load(contents[chart_key]())
         layers = chart_yaml["params"]["annotation_layers"]
         assert len(layers) == 3
@@ -985,7 +985,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         assert len(ann_keys) == 1
 
         # Referenced chart should be in the export
-        ref_chart_key = f"charts/Heatmap_{ref_chart.id}.yaml"
+        ref_chart_key = "charts/Heatmap.yaml"
         assert ref_chart_key in contents
 
         # Clean up
@@ -1008,7 +1008,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         command = ExportChartsCommand([chart.id])
         contents = dict(command.run())
 
-        chart_key = f"charts/Energy_Sankey_{chart.id}.yaml"
+        chart_key = "charts/Energy_Sankey.yaml"
         chart_yaml = yaml.safe_load(contents[chart_key]())
         # No annotation_layers key or empty list — either is fine
         ann_layers = chart_yaml.get("params", {}).get("annotation_layers", [])
