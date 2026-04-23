@@ -46,7 +46,10 @@ from sqlalchemy import (
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
-from superset_core.api.models import Query as CoreQuery, SavedQuery as CoreSavedQuery
+from superset_core.queries.models import (
+    Query as CoreQuery,
+    SavedQuery as CoreSavedQuery,
+)
 
 from superset import security_manager
 from superset.exceptions import SupersetParseError, SupersetSecurityException
@@ -537,7 +540,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
 
     # latest query that was run
     latest_query_id = Column(
-        Integer, ForeignKey("query.client_id", ondelete="SET NULL")
+        String(11), ForeignKey("query.client_id", ondelete="SET NULL")
     )
     latest_query = relationship("Query")
 

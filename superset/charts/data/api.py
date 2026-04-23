@@ -31,6 +31,10 @@ from superset import is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
 from superset.charts.client_processing import apply_client_processing
+from superset.charts.data.dashboard_filter_context import (
+    DashboardFilterContext,
+    get_dashboard_filter_context,
+)
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.create_async_job_command import (
@@ -46,8 +50,13 @@ from superset.commands.chart.exceptions import (
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.sqla.models import BaseDatasource
+from superset.constants import (
+    CACHE_DISABLED_TIMEOUT,
+    EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
+    EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+)
 from superset.daos.exceptions import DatasourceNotFound
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import event_logger
 from superset.models.sql_lab import Query
 from superset.utils import json
@@ -90,7 +99,9 @@ class ChartDataRestApi(ChartRestApi):
           summary: Return payload data response for a chart
           description: >-
             Takes a chart ID and uses the query context stored when the chart was saved
-            to return payload data response.
+            to return payload data response. When filters_dashboard_id is provided,
+            the chart's compiled SQL includes in scope dashboard filter
+            default values.
           parameters:
           - in: path
             schema:
@@ -112,6 +123,16 @@ class ChartDataRestApi(ChartRestApi):
             description: Should the queries be forced to load from the source
             schema:
                 type: boolean
+          - in: query
+            name: filters_dashboard_id
+            description: >-
+              Dashboard ID whose filter defaults should be applied to the
+              chart's query context. The chart must belong to the specified dashboard.
+              Only in scope filters with static default values are applied; filters that
+              require a database query (I.E. defaultToFirstItem) or have no default are
+              reported in the dashboard_filters response metadata.
+            schema:
+              type: integer
           responses:
             200:
               description: Query result
@@ -129,6 +150,10 @@ class ChartDataRestApi(ChartRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
@@ -155,6 +180,67 @@ class ChartDataRestApi(ChartRestApi):
         json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
         json_body["force"] = request.args.get("force")
 
+        # Apply dashboard filter context when filters_dashboard_id is provided
+        dashboard_filter_context: DashboardFilterContext | None = None
+        if "filters_dashboard_id" in request.args:
+            raw = request.args.get("filters_dashboard_id")
+            try:
+                filters_dashboard_id = int(raw)
+            except (ValueError, TypeError):
+                return self.response_400(
+                    message="filters_dashboard_id must be an integer"
+                )
+        else:
+            filters_dashboard_id = None
+
+        if filters_dashboard_id is not None:
+            try:
+                dashboard_filter_context = get_dashboard_filter_context(
+                    dashboard_id=filters_dashboard_id,
+                    chart_id=pk,
+                )
+            except ValueError as error:
+                return self.response_400(message=str(error))
+            except SupersetSecurityException:
+                return self.response_403()
+
+            if dashboard_filter_context.extra_form_data:
+                efd = dashboard_filter_context.extra_form_data
+                extra_filters = efd.get("filters", [])
+
+                for query in json_body.get("queries", []):
+                    if extra_filters:
+                        existing = query.get("filters") or []
+                        query["filters"] = existing + [
+                            {**f, "isExtra": True} for f in extra_filters
+                        ]
+
+                    extras = query.get("extras") or {}
+                    for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
+                        if key in efd:
+                            extras[key] = efd[key]
+                    if extras:
+                        query["extras"] = extras
+
+                    for (
+                        src_key,
+                        target_key,
+                    ) in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
+                        if src_key in efd:
+                            query[target_key] = efd[src_key]
+
+                    query["extra_form_data"] = efd
+
+                # We need to apply the form data to the global context as jinja
+                # templating pulls form data from the request globally, so this
+                # fallback ensures it has the filters and extra_form_data applied
+                # when used in get_sqla_query which constructs the final query.
+
+        # Jinja macros like metric() resolve dataset context from g.form_data
+        # when not given an explicit dataset_id. For GET requests there is no
+        # JSON body, so we must always expose the saved query context here.
+        g.form_data = json_body
+
         try:
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
@@ -171,11 +257,16 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         # TODO: support CSV, SQL query and other non-JSON types
-        if (
+        # Don't use async queries when cache is disabled (cache_timeout=-1)
+        # as async queries depend on caching to retrieve results
+        cache_timeout = query_context.get_cache_timeout()
+        use_async = (
             is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
-        ):
+            and cache_timeout != CACHE_DISABLED_TIMEOUT
+        )
+        if use_async:
             return self._run_async(json_body, command, add_extra_log_payload)
 
         try:
@@ -188,6 +279,7 @@ class ChartDataRestApi(ChartRestApi):
             form_data=form_data,
             datasource=query_context.datasource,
             add_extra_log_payload=add_extra_log_payload,
+            dashboard_filter_context=dashboard_filter_context,
         )
 
     @expose("/data", methods=("POST",))
@@ -265,11 +357,16 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         # TODO: support CSV, SQL query and other non-JSON types
-        if (
+        # Don't use async queries when cache is disabled (cache_timeout=-1)
+        # as async queries depend on caching to retrieve results
+        cache_timeout = query_context.get_cache_timeout()
+        use_async = (
             is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
-        ):
+            and cache_timeout != CACHE_DISABLED_TIMEOUT
+        )
+        if use_async:
             return self._run_async(json_body, command, add_extra_log_payload)
 
         form_data = json_body.get("form_data")
@@ -288,8 +385,9 @@ class ChartDataRestApi(ChartRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".data_from_cache",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.data_from_cache"
+        ),
         log_to_statsd=False,
     )
     def data_from_cache(self, cache_key: str) -> Response:
@@ -382,6 +480,7 @@ class ChartDataRestApi(ChartRestApi):
         datasource: BaseDatasource | Query | None = None,
         filename: str | None = None,
         expected_rows: int | None = None,
+        dashboard_filter_context: DashboardFilterContext | None = None,
     ) -> Response:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
@@ -394,7 +493,13 @@ class ChartDataRestApi(ChartRestApi):
 
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file
-            if not security_manager.can_access("can_csv", "Superset"):
+            if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+                has_export_perm = security_manager.can_access(
+                    "can_export_data", "Superset"
+                )
+            else:
+                has_export_perm = security_manager.can_access("can_csv", "Superset")
+            if not has_export_perm:
                 return self.response_403()
 
             if not result["queries"]:
@@ -438,9 +543,14 @@ class ChartDataRestApi(ChartRestApi):
             if security_manager.is_guest_user():
                 for query in queries:
                     query.pop("query", None)
+
+            payload: dict[str, Any] = {"result": queries}
+            if dashboard_filter_context is not None:
+                payload["dashboard_filters"] = dashboard_filter_context.to_dict()
+
             with event_logger.log_context(f"{self.__class__.__name__}.json_dumps"):
                 response_data = json.dumps(
-                    {"result": queries},
+                    payload,
                     default=json.json_int_dttm_ser,
                     ignore_nan=True,
                 )
@@ -479,6 +589,7 @@ class ChartDataRestApi(ChartRestApi):
         filename: str | None = None,
         expected_rows: int | None = None,
         add_extra_log_payload: Callable[..., None] | None = None,
+        dashboard_filter_context: DashboardFilterContext | None = None,
     ) -> Response:
         """Get data response and optionally log is_cached information."""
         try:
@@ -494,7 +605,12 @@ class ChartDataRestApi(ChartRestApi):
             add_extra_log_payload(is_cached=is_cached_values)
 
         return self._send_chart_response(
-            result, form_data, datasource, filename, expected_rows
+            result,
+            form_data,
+            datasource,
+            filename,
+            expected_rows,
+            dashboard_filter_context=dashboard_filter_context,
         )
 
     def _extract_export_params_from_request(self) -> tuple[str | None, int | None]:

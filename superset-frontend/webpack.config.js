@@ -217,24 +217,35 @@ if (!isDevMode) {
   );
 }
 
-// TypeScript type checking configuration
-// SWC handles transpilation. In production, type checking is done by:
-// 1. `npm run plugins:build` which generates .d.ts files
-// 2. `npm run type` which runs full TypeScript checking
-// We skip ForkTsCheckerWebpackPlugin in production because:
-// - Story files import from @storybook-shared which causes rootDir errors
-// - The above commands already provide comprehensive type checking
-if (isDevMode) {
+// TypeScript type checking and .d.ts generation
+// SWC handles transpilation; this plugin handles type checking separately.
+// build: true enables project references so .d.ts files are auto-generated
+// across the monorepo when editing plugins/packages.
+// mode: 'write-references' writes .d.ts output (no manual `npm run plugins:build` needed).
+// Set DISABLE_TS_CHECKER=true to skip this plugin entirely (~2-3 GB savings).
+// Type errors are still caught by pre-commit and CI.
+const disableTsChecker = ['true', '1'].includes(
+  (process.env.DISABLE_TS_CHECKER || '').toLowerCase(),
+);
+if (isDevMode && !disableTsChecker) {
   plugins.push(
     new ForkTsCheckerWebpackPlugin({
       async: true,
       typescript: {
+        build: true,
+        mode: 'write-references',
         memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
         configOverwrite: {
           compilerOptions: {
             skipLibCheck: true,
             incremental: true,
           },
+          exclude: [
+            'src/**/*.js',
+            'src/**/*.jsx',
+            '**/*.test.*',
+            '**/*.stories.*',
+          ],
         },
       },
     }),
@@ -483,7 +494,7 @@ const config = {
         },
       },
       {
-        test: /node_modules\/(geostyler-style|geostyler-qgis-parser)\/.*\.js$/,
+        test: /node_modules\/(geostyler|geostyler-openlayers-parser|geostyler-mapbox-parser|geostyler-sld-parser)\/.*\.js$/,
         resolve: {
           fullySpecified: false,
         },
@@ -528,7 +539,7 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: !isDevMode,
             },
           },
         ],
@@ -612,10 +623,23 @@ const config = {
   watchOptions: isDevMode
     ? {
         // Watch all plugin and package source directories
-        ignored: ['**/node_modules', '**/.git', '**/lib', '**/esm', '**/dist'],
-        // Poll less frequently to reduce file handles
+        ignored: [
+          '**/node_modules',
+          '**/.git',
+          '**/lib',
+          '**/esm',
+          '**/dist',
+          '**/.temp_cache',
+          '**/coverage',
+          '**/*.test.*',
+          '**/*.stories.*',
+          '**/cypress-base',
+          '**/*.geojson',
+        ],
+        // Poll-based watching is needed in Docker/VM where native fs events
+        // don't propagate from host to container.
         poll: 2000,
-        // Aggregate changes for 500ms before rebuilding
+        // Aggregate changes before rebuilding
         aggregateTimeout: 500,
       }
     : undefined,

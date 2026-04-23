@@ -18,7 +18,7 @@
  */
 import { FunctionComponent, useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   getClientErrorObject,
@@ -26,7 +26,8 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 
 import {
   Icons,
@@ -44,24 +45,25 @@ const DatasourceEditor = AsyncEsmComponent(
   () => import('../components/DatasourceEditor'),
 );
 
+const MODAL_HEIGHT_VH = 90;
+const TOP_MARGIN_VH = (100 - MODAL_HEIGHT_VH) / 2;
+
 const StyledDatasourceModal = styled(Modal)`
-  .modal-content {
-    height: 900px;
+  top: ${TOP_MARGIN_VH}vh;
+  padding-bottom: 0;
+
+  && .ant-modal-content {
+    max-height: ${MODAL_HEIGHT_VH}vh;
+    margin-top: 0;
+    margin-bottom: 0;
+    min-height: 500px;
+    min-width: 500px;
+  }
+
+  && .ant-modal-body {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-  }
-
-  .modal-header {
-    flex: 0 1 auto;
-  }
-  .modal-body {
-    flex: 1 1 auto;
-    overflow: auto;
-  }
-
-  .modal-footer {
-    flex: 0 1 auto;
   }
 
   .ant-tabs-top {
@@ -372,6 +374,12 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         </>
       }
       responsive
+      resizable
+      resizableConfig={{
+        defaultSize: { width: 'auto', height: `${MODAL_HEIGHT_VH}vh` },
+        maxHeight: `${MODAL_HEIGHT_VH}vh`,
+      }}
+      draggable
     >
       <DatasourceEditor
         showLoadingForImport

@@ -19,13 +19,13 @@
 import { render, screen } from '@superset-ui/core/spec';
 import { AgGridReact } from 'ag-grid-react';
 import { createRef } from 'react';
-import { ThemeProvider, supersetTheme } from '@apache-superset/core';
-import * as uiModule from '@apache-superset/core/ui';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
+import * as uiModule from '@apache-superset/core/theme';
 import { ThemedAgGridReact } from './index';
 
 // Mock useThemeMode hook
-jest.mock('@apache-superset/core/ui', () => ({
-  ...jest.requireActual('@apache-superset/core/ui'),
+jest.mock('@apache-superset/core/theme', () => ({
+  ...jest.requireActual('@apache-superset/core/theme'),
   useThemeMode: jest.fn(() => false), // Default to light mode
 }));
 
@@ -158,17 +158,60 @@ test('passes all props through to AgGridReact', () => {
     />,
   );
 
+  // onGridReady and onFirstDataRendered are intercepted by the component to expose
+  // the grid API on the container element; the wrapped function is passed instead.
   expect(AgGridReact).toHaveBeenCalledWith(
     expect.objectContaining({
       rowData: mockRowData,
       columnDefs: mockColumnDefs,
-      onGridReady,
+      onGridReady: expect.any(Function),
       onCellClicked,
       pagination: true,
       paginationPageSize: 10,
     }),
     expect.any(Object),
   );
+});
+
+test('onGridReady wrapper calls user callback and exposes api on container', () => {
+  const onGridReady = jest.fn();
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      onGridReady={onGridReady}
+    />,
+  );
+
+  // Retrieve the wrapped handler that was passed to AgGridReact
+  const lastCall = (AgGridReact as jest.Mock).mock.calls.at(-1)[0];
+  const wrappedOnGridReady = lastCall.onGridReady as Function;
+
+  const mockApi = { setGridOption: jest.fn() };
+  wrappedOnGridReady({ api: mockApi });
+
+  // The user-provided callback must be forwarded
+  expect(onGridReady).toHaveBeenCalledWith({ api: mockApi });
+});
+
+test('onFirstDataRendered wrapper calls user callback', () => {
+  const onFirstDataRendered = jest.fn();
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      onFirstDataRendered={onFirstDataRendered}
+    />,
+  );
+
+  const lastCall = (AgGridReact as jest.Mock).mock.calls.at(-1)[0];
+  const wrappedOnFirstDataRendered = lastCall.onFirstDataRendered as Function;
+
+  wrappedOnFirstDataRendered({ firstRow: 0 });
+
+  expect(onFirstDataRendered).toHaveBeenCalledWith({ firstRow: 0 });
 });
 
 test('applies custom theme colors from Superset theme', () => {

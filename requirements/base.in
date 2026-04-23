@@ -18,13 +18,23 @@
 #
 # Security: CVE-2026-21441 - decompression bomb bypass on redirects
 urllib3>=2.6.3,<3.0.0
-# Security: GHSA-87hc-h4r5-73f7 - Windows path traversal fix
-werkzeug>=3.1.5,<4.0.0
+# Security: CVE-2026-27199 - Windows device name handling in safe_join
+werkzeug>=3.1.6,<4.0.0
 # Security: CVE-2025-68146 - TOCTOU symlink vulnerability
 filelock>=3.20.3,<4.0.0
 # Security: decompression bomb fix (required by aiohttp 3.13.3)
 brotli>=1.2.0,<2.0.0
 numexpr>=2.9.0
+# Security: CVE-2026-34073 (MEDIUM) - Improper Certificate Validation
+cryptography>=46.0.7,<47.0.0
+# Security: Snyk - XSS vulnerability in Mako templates
+mako>=1.3.11,<2.0.0
+# Security: CVE-2024-52338 (CRITICAL) - Deserialization of untrusted data in IPC/Parquet readers
+pyarrow>=20.0.0,<21.0.0
+# Security: CVE-2026-27459 - pyopenssl certificate validation
+pyopenssl>=26.0.0,<27.0.0
+# Security: CVE-2026-25645 (MEDIUM) - Insecure Temporary File
+requests>=2.33.0,<3.0.0
 
 # 5.0.0 has a sensitive deprecation used in other libs
 # -> https://github.com/aio-libs/async-timeout/blob/master/CHANGES.rst#500-2024-10-31

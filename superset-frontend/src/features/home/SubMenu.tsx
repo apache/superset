@@ -19,8 +19,13 @@
 import { ReactNode, useState, useEffect, FunctionComponent } from 'react';
 
 import { Link, useHistory } from 'react-router-dom';
-import { t } from '@apache-superset/core';
-import { styled, SupersetTheme, css, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import {
+  styled,
+  SupersetTheme,
+  css,
+  useTheme,
+} from '@apache-superset/core/theme';
 import cx from 'classnames';
 import { debounce } from 'lodash';
 import { Menu, MenuMode, MainNav } from '@superset-ui/core/components/Menu';
@@ -205,7 +210,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
 
   return (
     <StyledHeader backgroundColor={props.backgroundColor}>
-      <Row className="menu" role="navigation">
+      <Row className="menu" role="navigation" aria-label={t('Page navigation')}>
         {props.name && <div className="header">{props.name}</div>}
         <Menu
           mode={showMenu}

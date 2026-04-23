@@ -18,7 +18,7 @@
 
 from uuid import uuid4
 
-from superset_core.api.tasks import TaskScope, TaskStatus
+from superset_core.tasks.types import TaskScope, TaskStatus
 
 from superset import db
 from superset.commands.tasks import SubmitTaskCommand

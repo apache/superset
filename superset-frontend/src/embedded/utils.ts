@@ -22,7 +22,7 @@ import {
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import { isEmpty, isEqual } from 'lodash';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import {

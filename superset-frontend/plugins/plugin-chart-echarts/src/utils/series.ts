@@ -31,8 +31,8 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-import { SupersetTheme } from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { SupersetTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
@@ -53,6 +53,364 @@ import { defaultLegendPadding } from '../defaults';
 
 function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
+}
+
+const DEFAULT_LEGEND_ITEM_GAP = 10;
+const DEFAULT_LEGEND_ICON_WIDTH = 25;
+const LEGEND_ICON_LABEL_GAP = 5;
+const LEGEND_HORIZONTAL_SIDE_GUTTER = 16;
+const LEGEND_HORIZONTAL_ROW_HEIGHT = 24;
+const LEGEND_HORIZONTAL_MAX_ROWS = 2;
+const LEGEND_HORIZONTAL_MAX_HEIGHT_RATIO = 0.25;
+const LEGEND_VERTICAL_SIDE_GUTTER = 16;
+const LEGEND_VERTICAL_ROW_HEIGHT = 24;
+const LEGEND_VERTICAL_MAX_WIDTH_RATIO = 0.4;
+const LEGEND_SELECTOR_GAP = 10;
+const LEGEND_MARGIN_GUTTER = 45;
+// ECharts does not expose pre-render measurements for plain legends, so these
+// values intentionally overestimate selector space to avoid clipping.
+const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
+const LEGEND_TEXT_WIDTH_CACHE = new Map<string, number>();
+
+type LegendDataItem =
+  | string
+  | number
+  | null
+  | undefined
+  | { name?: string | number | null };
+
+export type LegendLayoutResult = {
+  effectiveMargin?: number;
+  effectiveType: LegendType;
+};
+
+const SCROLL_LEGEND_LAYOUT: LegendLayoutResult = {
+  effectiveType: LegendType.Scroll,
+};
+
+function getLegendLabel(item: LegendDataItem): string {
+  if (typeof item === 'string' || typeof item === 'number') {
+    return String(item);
+  }
+
+  if (item?.name === undefined || item.name === null) {
+    return '';
+  }
+
+  return String(item.name);
+}
+
+function measureLegendTextWidth(text: string, theme: SupersetTheme): number {
+  const cacheKey = `${theme.fontFamily}:${theme.fontSizeSM}:${text}`;
+  const cachedWidth = LEGEND_TEXT_WIDTH_CACHE.get(cacheKey);
+  if (cachedWidth !== undefined) {
+    return cachedWidth;
+  }
+
+  let width = text.length * theme.fontSizeSM * 0.62;
+
+  if (typeof document !== 'undefined') {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
+      ({ width } = context.measureText(text));
+    }
+  }
+
+  LEGEND_TEXT_WIDTH_CACHE.set(cacheKey, width);
+  return width;
+}
+
+function hasLegendLabel(item: LegendDataItem): boolean {
+  if (item === null || item === undefined) {
+    return false;
+  }
+
+  if (typeof item === 'object') {
+    return item.name !== null && item.name !== undefined;
+  }
+
+  return true;
+}
+
+function getLegendLabels(items: LegendDataItem[]): string[] {
+  return items.filter(hasLegendLabel).map(getLegendLabel);
+}
+
+function getLegendItemWidths(labels: string[], theme: SupersetTheme): number[] {
+  return labels.map(
+    label =>
+      DEFAULT_LEGEND_ICON_WIDTH +
+      LEGEND_ICON_LABEL_GAP +
+      measureLegendTextWidth(label, theme),
+  );
+}
+
+function estimateHorizontalLegendRows(
+  labels: string[],
+  chartWidth: number,
+  showSelectors: boolean,
+  theme: SupersetTheme,
+): number {
+  const availableWidth = Math.max(
+    chartWidth - LEGEND_HORIZONTAL_SIDE_GUTTER,
+    0,
+  );
+  if (availableWidth === 0) {
+    return Infinity;
+  }
+
+  const legendItemWidths = getLegendItemWidths(labels, theme);
+
+  if (legendItemWidths.length === 0) {
+    if (showSelectors && ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
+      return Infinity;
+    }
+    return 1;
+  }
+
+  let rows = 1;
+  let rowWidth = 0;
+
+  for (const itemWidth of legendItemWidths) {
+    if (itemWidth > availableWidth) {
+      return Infinity;
+    }
+
+    const nextWidth =
+      rowWidth === 0
+        ? itemWidth
+        : rowWidth + DEFAULT_LEGEND_ITEM_GAP + itemWidth;
+    if (rowWidth > 0 && nextWidth > availableWidth) {
+      rows += 1;
+      rowWidth = itemWidth;
+    } else {
+      rowWidth = nextWidth;
+    }
+  }
+
+  if (showSelectors) {
+    if (ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
+      return Infinity;
+    }
+    const selectorWidth =
+      rowWidth === 0
+        ? ESTIMATED_LEGEND_SELECTOR_WIDTH
+        : rowWidth + LEGEND_SELECTOR_GAP + ESTIMATED_LEGEND_SELECTOR_WIDTH;
+    if (selectorWidth > availableWidth) {
+      rows += 1;
+    }
+  }
+
+  return rows;
+}
+
+export function getHorizontalLegendAvailableWidth({
+  chartWidth,
+  orientation,
+  padding,
+  zoomable = false,
+}: {
+  chartWidth: number;
+  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  padding?: LegendPaddingType;
+  zoomable?: boolean;
+}): number {
+  let availableWidth = chartWidth - (padding?.left ?? 0);
+
+  if (orientation === LegendOrientation.Top && zoomable) {
+    availableWidth -= TIMESERIES_CONSTANTS.legendTopRightOffset;
+  }
+
+  return Math.max(availableWidth, 0);
+}
+
+function getLongestLegendLabelWidth(
+  labels: string[],
+  theme: SupersetTheme,
+): number {
+  return labels.reduce(
+    (maxWidth, label) =>
+      Math.max(maxWidth, measureLegendTextWidth(label, theme)),
+    0,
+  );
+}
+
+function isHorizontalLegendOrientation(
+  orientation: LegendOrientation,
+): orientation is LegendOrientation.Top | LegendOrientation.Bottom {
+  return (
+    orientation === LegendOrientation.Top ||
+    orientation === LegendOrientation.Bottom
+  );
+}
+
+function getHorizontalPlainLegendLayout({
+  availableHeight,
+  availableWidth,
+  currentMargin,
+  legendLabels,
+  orientation,
+  showSelectors,
+  theme,
+}: {
+  availableHeight: number;
+  availableWidth: number;
+  currentMargin: number;
+  legendLabels: string[];
+  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  showSelectors: boolean;
+  theme: SupersetTheme;
+}): LegendLayoutResult {
+  const rowCount = estimateHorizontalLegendRows(
+    legendLabels,
+    availableWidth,
+    showSelectors,
+    theme,
+  );
+  const requiredMargin =
+    defaultLegendPadding[orientation] +
+    Math.max(0, rowCount - 1) * LEGEND_HORIZONTAL_ROW_HEIGHT;
+  const maxLegendHeight =
+    availableHeight > 0
+      ? availableHeight * LEGEND_HORIZONTAL_MAX_HEIGHT_RATIO
+      : Infinity;
+
+  if (
+    !Number.isFinite(rowCount) ||
+    rowCount > LEGEND_HORIZONTAL_MAX_ROWS ||
+    requiredMargin > maxLegendHeight
+  ) {
+    return SCROLL_LEGEND_LAYOUT;
+  }
+
+  return {
+    effectiveMargin: Math.max(currentMargin, requiredMargin),
+    effectiveType: LegendType.Plain,
+  };
+}
+
+function getVerticalPlainLegendLayout({
+  availableHeight,
+  availableWidth,
+  currentMargin,
+  legendLabels,
+  showSelectors,
+  theme,
+}: {
+  availableHeight: number;
+  availableWidth: number;
+  currentMargin: number;
+  legendLabels: string[];
+  showSelectors: boolean;
+  theme: SupersetTheme;
+}): LegendLayoutResult {
+  if (legendLabels.length === 0) {
+    return {
+      effectiveMargin: currentMargin,
+      effectiveType: LegendType.Plain,
+    };
+  }
+
+  const selectorHeight = showSelectors
+    ? LEGEND_VERTICAL_ROW_HEIGHT + LEGEND_SELECTOR_GAP
+    : 0;
+  const effectiveAvailableHeight = Math.max(
+    availableHeight - LEGEND_VERTICAL_SIDE_GUTTER - selectorHeight,
+    0,
+  );
+  const rowsPerColumn = Math.floor(
+    (effectiveAvailableHeight + DEFAULT_LEGEND_ITEM_GAP) /
+      (LEGEND_VERTICAL_ROW_HEIGHT + DEFAULT_LEGEND_ITEM_GAP),
+  );
+  const requiredSelectorMargin = showSelectors
+    ? ESTIMATED_LEGEND_SELECTOR_WIDTH + LEGEND_VERTICAL_SIDE_GUTTER
+    : 0;
+  const requiredMargin = Math.ceil(
+    Math.max(
+      getLongestLegendLabelWidth(legendLabels, theme) + LEGEND_MARGIN_GUTTER,
+      requiredSelectorMargin,
+    ),
+  );
+  const maxLegendWidth =
+    availableWidth > 0
+      ? availableWidth * LEGEND_VERTICAL_MAX_WIDTH_RATIO
+      : Infinity;
+
+  if (
+    rowsPerColumn <= 0 ||
+    legendLabels.length > rowsPerColumn ||
+    requiredMargin > maxLegendWidth
+  ) {
+    return SCROLL_LEGEND_LAYOUT;
+  }
+
+  return {
+    effectiveMargin: Math.max(currentMargin, requiredMargin),
+    effectiveType: LegendType.Plain,
+  };
+}
+
+export function getLegendLayoutResult({
+  availableHeight,
+  availableWidth,
+  chartHeight,
+  chartWidth,
+  legendItems = [],
+  legendMargin,
+  orientation,
+  show,
+  showSelectors = true,
+  theme,
+  type,
+}: {
+  // Raw chart dimensions. Use availableWidth/availableHeight when other chart
+  // UI elements reserve legend space before ECharts lays out the legend.
+  availableHeight?: number;
+  availableWidth?: number;
+  chartHeight: number;
+  chartWidth: number;
+  legendItems?: LegendDataItem[];
+  legendMargin?: string | number | null;
+  orientation: LegendOrientation;
+  show: boolean;
+  showSelectors?: boolean;
+  theme: SupersetTheme;
+  type: LegendType;
+}): LegendLayoutResult {
+  if (!show || type !== LegendType.Plain) {
+    return { effectiveType: type };
+  }
+
+  const resolvedLegendMargin =
+    typeof legendMargin === 'number'
+      ? legendMargin
+      : defaultLegendPadding[orientation];
+  const legendLabels = getLegendLabels(legendItems);
+  const resolvedAvailableWidth = availableWidth ?? chartWidth;
+  const resolvedAvailableHeight = availableHeight ?? chartHeight;
+
+  if (isHorizontalLegendOrientation(orientation)) {
+    return getHorizontalPlainLegendLayout({
+      availableHeight: resolvedAvailableHeight,
+      availableWidth: resolvedAvailableWidth,
+      currentMargin: resolvedLegendMargin,
+      legendLabels,
+      orientation,
+      showSelectors,
+      theme,
+    });
+  }
+
+  return getVerticalPlainLegendLayout({
+    availableHeight: resolvedAvailableHeight,
+    availableWidth: resolvedAvailableWidth,
+    currentMargin: resolvedLegendMargin,
+    legendLabels,
+    showSelectors,
+    theme,
+  });
 }
 
 export function extractDataTotalValues(
@@ -171,8 +529,8 @@ export function sortAndFilterSeries(
 
   return orderBy(
     sortedValues,
-    ['value'],
-    [sortSeriesAscending ? 'asc' : 'desc'],
+    ['value', 'name'],
+    [sortSeriesAscending ? 'asc' : 'desc', 'asc'],
   ).map(({ name }) => name);
 }
 
@@ -438,12 +796,6 @@ export function getLegendProps(
   legendState?: LegendState,
   padding?: LegendPaddingType,
 ): LegendComponentOption {
-  const isHorizontal =
-    orientation === LegendOrientation.Top ||
-    orientation === LegendOrientation.Bottom;
-
-  const effectiveType =
-    type === LegendType.Scroll || !isHorizontal ? type : LegendType.Scroll;
   const legend: LegendComponentOption = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
       orientation,
@@ -451,8 +803,8 @@ export function getLegendProps(
       ? 'horizontal'
       : 'vertical',
     show,
-    type: effectiveType,
-    selected: legendState,
+    type,
+    selected: legendState ?? {},
     selector: ['all', 'inverse'],
     selectorLabel: {
       fontFamily: theme.fontFamily,
@@ -491,10 +843,16 @@ export function getLegendProps(
       if (padding?.left) {
         legend.left = padding.left;
       }
+      if (type === LegendType.Plain) {
+        legend.right = 0;
+      }
       break;
     case LegendOrientation.Top:
       legend.top = 0;
       legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;
+      if (type === LegendType.Plain && padding?.left) {
+        legend.left = padding.left;
+      }
       break;
     default:
       legend.top = 0;

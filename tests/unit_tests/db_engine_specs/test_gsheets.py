@@ -24,11 +24,10 @@ import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 from requests.exceptions import HTTPError
-from shillelagh.exceptions import UnauthenticatedError
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2TokenRefreshError, SupersetException
 from superset.sql.parse import Table
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
@@ -757,6 +756,26 @@ def test_needs_oauth2_with_credentials_error(mocker: MockerFixture) -> None:
     assert GSheetsEngineSpec.needs_oauth2(ex) is True
 
 
+def test_needs_oauth2_with_default_credentials_not_found(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that needs_oauth2 returns True when Application Default Credentials
+    are not configured.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user = mocker.MagicMock()
+
+    ex = Exception(
+        "Your default credentials were not found. To set up Application Default "
+        "Credentials, see https://cloud.google.com/docs/authentication/external/"
+        "set-up-adc for more information."
+    )
+    assert GSheetsEngineSpec.needs_oauth2(ex) is True
+
+
 def test_needs_oauth2_with_other_error(mocker: MockerFixture) -> None:
     """
     Test that needs_oauth2 returns False for other errors.
@@ -797,26 +816,20 @@ def test_get_oauth2_fresh_token_invalid_grant(
     oauth2_config: OAuth2ClientConfig,
 ) -> None:
     """
-    Test that get_oauth2_fresh_token raises UnauthenticatedError for invalid_grant.
+    Test that get_oauth2_fresh_token raises OAuth2TokenRefreshError for a 400 response.
 
-    When a token is revoked on Google side, the refresh request returns 400
-    with error=invalid_grant.
+    When a token is revoked on Google side, the refresh request returns 400.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    mock_response = mocker.MagicMock()
-    mock_response.status_code = 400
-    mock_response.json.return_value = {
-        "error": "invalid_grant",
-        "error_description": "Token has been expired or revoked.",
-    }
-    http_error = HTTPError()
-    http_error.response = mock_response
-
     requests = mocker.patch("superset.db_engine_specs.base.requests")
-    requests.post().raise_for_status.side_effect = http_error
+    requests.post().status_code = 400
+    requests.post().text = (
+        '{"error": "invalid_grant",'
+        ' "error_description": "Token has been expired or revoked."}'
+    )
 
-    with pytest.raises(UnauthenticatedError):
+    with pytest.raises(OAuth2TokenRefreshError):
         GSheetsEngineSpec.get_oauth2_fresh_token(oauth2_config, "refresh-token")
 
 

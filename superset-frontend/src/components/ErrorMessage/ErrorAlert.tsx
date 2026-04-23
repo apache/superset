@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t } from '@apache-superset/core';
-import { useTheme, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   Icons,
   Modal,
@@ -34,6 +35,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
   description,
   descriptionDetails,
   descriptionDetailsCollapsed = true,
+  messagePre = false,
   descriptionPre = true,
   compact = false,
   children,
@@ -68,13 +70,20 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
     );
   };
   const preStyle = {
-    whiteSpace: 'pre-wrap',
+    whiteSpace: 'pre-wrap' as const,
     fontFamily: theme.fontFamilyCode,
     margin: `${theme.sizeUnit}px 0`,
   };
   const renderDescription = () => (
     <div>
-      {message && <div>{message}</div>}
+      {message &&
+        (messagePre ? (
+          <Typography.Paragraph style={preStyle}>
+            {message}
+          </Typography.Paragraph>
+        ) : (
+          <div>{message}</div>
+        ))}
       {description && (
         <Typography.Paragraph
           style={descriptionPre ? preStyle : {}}

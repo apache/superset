@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { css, useTheme, getFontSize } from '@apache-superset/core/ui';
+import { css, useTheme, getFontSize } from '@apache-superset/core/theme';
 import { AntdIconType, BaseIconProps, CustomIconType, IconType } from './types';
 
 const genAriaLabel = (fileName: string) => {

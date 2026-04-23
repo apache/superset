@@ -17,12 +17,11 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Button, Divider, Dropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { commands } from 'src/core';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { commands, menus } from 'src/core';
 
 export interface PanelToolbarProps {
   viewId: string;
@@ -36,20 +35,16 @@ const PanelToolbar = ({
   defaultSecondaryActions,
 }: PanelToolbarProps) => {
   const theme = useTheme();
-  const contributions =
-    ExtensionsManager.getInstance().getMenuContributions(viewId);
+  const menu = menus.getMenu(viewId);
 
-  const primaryContributions = contributions?.primary || [];
-  const secondaryContributions = contributions?.secondary || [];
+  const primaryItems = menu?.primary || [];
+  const secondaryItems = menu?.secondary || [];
 
   const extensionPrimaryActions = useMemo(
     () =>
-      primaryContributions
-        .map(contribution => {
-          const command =
-            ExtensionsManager.getInstance().getCommandContribution(
-              contribution.command,
-            )!;
+      primaryItems
+        .map(item => {
+          const command = commands.getCommand(item.command)!;
           if (!command?.icon) {
             return null;
           }
@@ -60,42 +55,39 @@ const PanelToolbar = ({
 
           return (
             <Button
-              key={contribution.view}
-              onClick={() => commands.executeCommand(command?.command)}
+              key={item.view}
+              onClick={() => commands.executeCommand(command?.id)}
               tooltip={command?.description ?? command?.title}
               icon={<Icon iconSize="m" />}
               buttonSize="small"
               aria-label={command?.title}
               variant="text"
-              color="primary"
+              color="default"
             />
           );
         })
         .filter(Boolean),
-    [primaryContributions],
+    [primaryItems],
   );
 
   const secondaryActions = useMemo(
     () =>
-      secondaryContributions
-        .map(contribution => {
-          const command =
-            ExtensionsManager.getInstance().getCommandContribution(
-              contribution.command,
-            )!;
+      secondaryItems
+        .map(item => {
+          const command = commands.getCommand(item.command)!;
           if (!command) {
             return null;
           }
           return {
-            key: command.command,
+            key: command.id,
             label: command.title,
             title: command.description,
-            onClick: () => commands.executeCommand(command.command),
+            onClick: () => commands.executeCommand(command.id),
           } as MenuItemType;
         })
         .filter(Boolean)
         .concat(defaultSecondaryActions || []),
-    [secondaryContributions, defaultSecondaryActions],
+    [secondaryItems, defaultSecondaryActions],
   );
 
   const hasPrimaryActions =
@@ -148,7 +140,7 @@ const PanelToolbar = ({
         >
           <Button
             showMarginRight={false}
-            color="primary"
+            color="default"
             variant="text"
             css={css`
               padding: 8px;
