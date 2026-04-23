@@ -196,14 +196,31 @@ Once configured, the documentation for additional "Security" endpoints will be v
 
 ### API Key Authentication
 
-Superset supports long-lived API keys for service accounts, CI/CD pipelines, and programmatic integrations (including MCP clients). API keys are managed through **Security → API Keys** in the admin menu.
+Superset supports long-lived API keys for service accounts, CI/CD pipelines, and programmatic integrations (including MCP clients).
+
+#### Enabling API Key Authentication
+
+API key authentication is **disabled by default**. To turn it on, set the Flask-AppBuilder config value in `superset_config.py` and also enable the matching feature flag so the management UI is exposed:
+
+```python
+FAB_API_KEY_ENABLED = True
+
+FEATURE_FLAGS = {
+    "FAB_API_KEY_ENABLED": True,
+}
+```
+
+The config value registers the `ApiKeyApi` blueprint on the backend; the feature flag controls whether the UI for managing keys appears for the user. See the [Feature Flags](/admin-docs/configuration/feature-flags) documentation for more on feature flag configuration.
 
 #### Creating an API Key
 
-1. Navigate to **Security → API Keys**
-2. Click **+ API Key**
-3. Enter a name and (optionally) an expiration date
-4. Copy the generated token — it is shown only once
+Once enabled, each user manages their own keys from their profile page:
+
+1. Open the user menu (top-right) and click **Info** to navigate to the User Info page
+2. Expand the **API Keys** section
+3. Click **+ API Key**
+4. Enter a name and (optionally) an expiration date
+5. Copy the generated token — it is shown only once
 
 Only users with the `can_read` and `can_write` permissions on `ApiKey` (granted by default to Admins) can manage API keys.
 
@@ -225,7 +242,7 @@ This works for all REST API endpoints and the MCP server. The request is execute
 - **Service accounts** — long-lived credentials that don't expire with session cookies
 
 :::caution
-Store API keys securely. Anyone with a valid key can make requests on behalf of the creating user. Revoke keys promptly if they are compromised by deleting them from **Security → API Keys**.
+Store API keys securely. Anyone with a valid key can make requests on behalf of the creating user. Revoke keys promptly if they are compromised by deleting them from the **API Keys** section of your User Info page.
 :::
 
 ### Customizing Permissions
