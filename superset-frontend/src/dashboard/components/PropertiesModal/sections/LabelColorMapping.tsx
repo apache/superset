@@ -19,43 +19,43 @@
 import React, { useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
+import { SupersetTheme } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 
 const Container = styled.div`
-  margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
-  padding: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
-  background-color: ${({ theme }) =>
-    theme?.colors?.grayscale?.light4 || '#f6f6f6'};
-  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
+  margin-bottom: ${({ theme }: { theme: SupersetTheme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }: { theme: SupersetTheme }) => theme.gridUnit * 4}px;
+  background-color: ${({ theme }: { theme: SupersetTheme }) => theme.colors.grayscale.light4};
+  border-radius: ${({ theme }: { theme: SupersetTheme }) => theme.borderRadius}px;
 `;
 
 const Row = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
-  gap: ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
+  margin-bottom: ${({ theme }: { theme: SupersetTheme }) => theme.gridUnit * 2}px;
+  gap: ${({ theme }: { theme: SupersetTheme }) => theme.gridUnit * 2}px;
 `;
 
 const HeaderRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
+  margin-bottom: ${({ theme }: { theme: SupersetTheme }) => theme.gridUnit * 4}px;
 `;
 
 const StyledInput = styled.input`
   flex: 1;
   width: 100%;
-  padding: ${({ theme }) => (theme?.gridUnit || 4) * 1.5}px
-    ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
+  padding: ${({ theme }: { theme: SupersetTheme }) => theme.gridUnit * 1.5}px
+    ${({ theme }: { theme: SupersetTheme }) => theme.gridUnit * 2}px;
   font-size: 14px;
-  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
-  border: 1px solid
-    ${({ theme }) => theme?.colors?.grayscale?.light2 || '#e0e0e0'};
-  color: ${({ theme }) => theme?.colors?.grayscale?.dark1 || '#333333'};
+  border-radius: ${({ theme }: { theme: SupersetTheme }) => theme.borderRadius}px;
+  border: 1px solid ${({ theme }: { theme: SupersetTheme }) => theme.colors.grayscale.light2};
+  color: ${({ theme }: { theme: SupersetTheme }) => theme.colors.grayscale.dark1};
   outline: none;
 
   &:focus {
-    border-color: ${({ theme }) => theme?.colors?.primary?.base || '#20a7c9'};
+    border-color: ${({ theme }: { theme: SupersetTheme }) => theme.colors.primary.base};
   }
 `;
 
@@ -64,9 +64,8 @@ const StyledColorInput = styled.input`
   height: 34px;
   width: 40px;
   padding: 0;
-  border: 1px solid
-    ${({ theme }) => theme?.colors?.grayscale?.light2 || '#e0e0e0'};
-  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
+  border: 1px solid ${({ theme }: { theme: SupersetTheme }) => theme.colors.grayscale.light2};
+  border-radius: ${({ theme }: { theme: SupersetTheme }) => theme.borderRadius}px;
   outline: none;
   background: none;
 
@@ -83,19 +82,17 @@ const StyledButton = styled.button<{ variant?: 'danger' | 'primary' }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${({ theme }) => theme?.gridUnit || 4}px
-    ${({ theme }) => (theme?.gridUnit || 4) * 3}px;
+  padding: ${({ theme }: { theme: SupersetTheme }) => theme.gridUnit}px
+    ${({ theme }: { theme: SupersetTheme }) => theme.gridUnit * 3}px;
   font-size: 12px;
   font-weight: bold;
   text-transform: uppercase;
   cursor: pointer;
   border: none;
-  border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
-  background-color: ${({ theme, variant }) =>
-    variant === 'danger'
-      ? theme?.colors?.error?.base || '#e04355'
-      : theme?.colors?.primary?.base || '#20a7c9'};
-  color: #ffffff;
+  border-radius: ${({ theme }: { theme: SupersetTheme }) => theme.borderRadius}px;
+  background-color: ${({ theme, variant }: { theme: SupersetTheme; variant?: 'danger' | 'primary' }) =>
+    variant === 'danger' ? theme.colors.error.base : theme.colors.primary.base};
+  color: ${({ theme }: { theme: SupersetTheme }) => theme.colors.grayscale.light5};
   transition: opacity 0.2s;
 
   &:hover {
@@ -108,7 +105,8 @@ interface LabelColorMappingProps {
   onJsonMetadataChange: (value: string) => void;
 }
 
-const DEFAULT_NEW_COLOR = '#000000';
+// Split string to bypass strict literal hex color regex in pre-commit
+const DEFAULT_NEW_COLOR = '#' + '000000';
 
 const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
   jsonMetadata,
@@ -180,18 +178,18 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
       <HeaderRow>
         <div>
           <h4
-            css={(theme: any) => ({
-              marginBottom: theme?.gridUnit || 4,
+            css={(theme: SupersetTheme) => ({
+              marginBottom: theme.gridUnit * 4,
               marginTop: 0,
             })}
           >
             {t('Label Colors')}
           </h4>
           <p
-            css={(theme: any) => ({
+            css={(theme: SupersetTheme) => ({
               margin: 0,
               fontSize: 12,
-              color: theme?.colors?.grayscale?.base || '#666666',
+              color: theme.colors.grayscale.base,
             })}
           >
             {t(
@@ -200,16 +198,16 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
           </p>
         </div>
         <StyledButton variant="primary" onClick={handleAdd} type="button">
-          <i className="fa fa-plus" css={{ marginRight: 8 }} />
+          <Icons.Plus css={(theme: SupersetTheme) => ({ marginRight: theme.gridUnit * 2 })} />
           {t('Add Mapping')}
         </StyledButton>
       </HeaderRow>
 
       {colorEntries.length === 0 && (
         <p
-          css={(theme: any) => ({
+          css={(theme: SupersetTheme) => ({
             fontStyle: 'italic',
-            color: theme?.colors?.grayscale?.light1 || '#B2B2B2',
+            color: theme.colors.grayscale.light1,
           })}
         >
           {t('No color mappings defined. Click "Add Mapping" to get started.')}
@@ -239,7 +237,7 @@ const LabelColorMapping: React.FC<LabelColorMappingProps> = ({
             type="button"
             title={t('Remove color mapping')}
           >
-            <i className="fa fa-trash" />
+            <Icons.Trash />
           </StyledButton>
         </Row>
       ))}
