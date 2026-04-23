@@ -20,6 +20,7 @@ Unit tests for dashboard generation MCP tools
 """
 
 import logging
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
@@ -110,8 +111,8 @@ def _mock_dashboard(id: int = 1, title: str = "Test Dashboard") -> Mock:
     dashboard.slug = f"test-dashboard-{id}"
     dashboard.description = "Test dashboard description"
     dashboard.published = True
-    dashboard.created_on = "2024-01-01"
-    dashboard.changed_on = "2024-01-01"
+    dashboard.created_on = datetime(2024, 1, 1)
+    dashboard.changed_on = datetime(2024, 1, 1)
     dashboard.created_by = Mock()
     dashboard.created_by.username = "test_user"
     dashboard.changed_by = Mock()

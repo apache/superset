@@ -403,6 +403,20 @@ async def generate_chart(  # noqa: C901
                             "Chart creation failed - no chart ID returned"
                         )
 
+                    # Reload server-generated timestamps (created_on,
+                    # changed_on) so the serializer sees real values.
+                    from superset import db
+
+                    try:
+                        db.session.refresh(chart)
+                    except SQLAlchemyError:
+                        logger.warning(
+                            "Chart %s created but refresh failed; "
+                            "continuing with current values",
+                            chart.id,
+                            exc_info=True,
+                        )
+
                 await ctx.info(
                     "Chart created successfully: chart_id=%s, chart_name=%s"
                     % (
