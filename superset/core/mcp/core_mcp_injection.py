@@ -68,6 +68,7 @@ def create_tool_decorator(
     class_permission_name: Optional[str] = None,
     method_permission_name: Optional[str] = None,
     annotations: ToolAnnotations | None = None,
+    meta: Optional[dict[str, Any]] = None,
 ) -> Callable[[F], F] | F:
     """
     Create the concrete MCP tool decorator implementation.
@@ -132,13 +133,15 @@ def create_tool_decorator(
 
             from fastmcp.tools import Tool
 
-            tool = Tool.from_function(
-                wrapped_func,
-                name=tool_name,
-                description=tool_description,
-                tags=tool_tags,
-                annotations=annotations,
-            )
+            tool_kwargs: dict[str, Any] = {
+                "name": tool_name,
+                "description": tool_description,
+                "tags": tool_tags,
+                "annotations": annotations,
+            }
+            if meta is not None:
+                tool_kwargs["meta"] = meta
+            tool = Tool.from_function(wrapped_func, **tool_kwargs)
             mcp.add_tool(tool)
 
             protected_status = "protected" if protect else "public"
