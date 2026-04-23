@@ -2065,3 +2065,71 @@ class ChartFiltersInfo(BaseModel):
 
 # Rebuild ChartInfo so Pydantic can resolve the ChartFiltersInfo forward reference.
 ChartInfo.model_rebuild()
+
+
+class ShowChartRequest(BaseModel):
+    """Request payload for the ``show_chart`` MCP tool."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    identifier: str = Field(
+        ...,
+        description=(
+            "The numeric id, UUID, or slug of a saved chart to render. "
+            "Use `list_charts` or `get_chart_info` to discover identifiers."
+        ),
+    )
+    overrides: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Optional form_data overrides (merged on top of the saved chart's "
+            "form_data) — lets callers tweak filters, time range, metrics, etc. "
+            "Guest users may not modify the underlying query context."
+        ),
+    )
+
+
+class ShowChartResponse(BaseModel):
+    """Response payload for ``show_chart``.
+
+    Contains everything the ``ui://superset/chart-viewer`` resource needs to
+    mount a live standalone Explore iframe for the chart.
+    """
+
+    chart_id: int = Field(..., description="Numeric id of the chart being rendered")
+    chart_uuid: str | None = Field(None, description="UUID of the chart")
+    chart_name: str | None = Field(None, description="Display name of the chart")
+    viz_type: str | None = Field(None, description="Chart visualization type")
+    explore_url: str = Field(
+        ...,
+        description=(
+            "Absolute URL of the standalone Explore page that renders the "
+            "chart. Includes `slice_id`, `standalone=1`, a short-lived "
+            "`guest_token`, and (when overrides were supplied) a `form_data_key`."
+        ),
+    )
+    form_data_key: str | None = Field(
+        None,
+        description=(
+            "Cache key for any ad-hoc form_data overrides applied to this render."
+        ),
+    )
+    guest_token: str = Field(
+        ...,
+        description=(
+            "Short-lived JWT guest token scoped to this chart. Expires per "
+            "GUEST_TOKEN_JWT_EXP_SECONDS."
+        ),
+    )
+    expires_at: float = Field(
+        ...,
+        description="Unix epoch seconds when the guest token expires",
+    )
+    superset_domain: str = Field(
+        ...,
+        description="Origin of the Superset instance serving the iframe",
+    )
+    error: str | None = Field(
+        None,
+        description="Human-readable error if the chart could not be prepared",
+    )

@@ -26,6 +26,7 @@ from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
 from superset.models.slice import Slice
+from superset.security.guest_token import GuestTokenResourceType
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
@@ -101,6 +102,30 @@ class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-method
 
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
+        guest_user = security_manager.get_current_guest_user_if_guest()
+        if guest_user is not None:
+            # Guest users with a chart-scoped token can only see the charts
+            # listed in the token.
+            chart_ids: list[int] = []
+            chart_uuids: list[str] = []
+            for resource in guest_user.resources:
+                if resource["type"] != GuestTokenResourceType.CHART:
+                    continue
+                raw = str(resource["id"])
+                if raw.isdigit():
+                    chart_ids.append(int(raw))
+                else:
+                    chart_uuids.append(raw)
+            if not chart_ids and not chart_uuids:
+                # Guest has no chart access; filter out everything.
+                return query.filter(Slice.id.is_(None))
+            clauses = []
+            if chart_ids:
+                clauses.append(Slice.id.in_(chart_ids))
+            if chart_uuids:
+                clauses.append(Slice.uuid.in_(chart_uuids))
+            return query.filter(or_(*clauses))
+
         if security_manager.can_access_all_datasources():
             return query
 

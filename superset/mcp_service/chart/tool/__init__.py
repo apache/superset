@@ -22,6 +22,7 @@ from .get_chart_preview import get_chart_preview
 from .get_chart_sql import get_chart_sql
 from .get_chart_type_schema import get_chart_type_schema
 from .list_charts import list_charts
+from .show_chart import show_chart
 from .update_chart import update_chart
 from .update_chart_preview import update_chart_preview
 
@@ -35,4 +36,5 @@ __all__ = [
     "get_chart_preview",
     "get_chart_data",
     "get_chart_type_schema",
+    "show_chart",
 ]

@@ -329,6 +329,19 @@ class StructuredContentStripperMiddleware(Middleware):
                 content=[mt.TextContent(type="text", text=f"Error: {e}")],
             )
         if isinstance(result, ToolResult) and result.structured_content is not None:
+            # MCP Apps (modelcontextprotocol.io/extensions/apps) require the
+            # structured payload + `_meta.ui` to reach the client so it can
+            # render the declared ui:// resource. Preserve structured_content
+            # when the called tool advertises a ui resource.
+            try:
+                tool = await context.fastmcp_context.fastmcp.get_tool(
+                    context.message.name
+                )
+                tool_meta = getattr(tool, "meta", None) or {}
+            except Exception:  # pylint: disable=broad-except
+                tool_meta = {}
+            if isinstance(tool_meta, dict) and "ui" in tool_meta:
+                return result
             result = ToolResult(content=result.content, meta=result.meta)
         return result
 
