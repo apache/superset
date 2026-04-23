@@ -419,7 +419,9 @@ class Query(
             template_processor=template_processor,
         )
         sqla_column = literal_column(expression)
-        col_meta = self.get_column(label)
+        col_meta = next(
+            (c for c in self.columns if c.column_name == label), None
+        )
         generic_type = col_meta.type_generic if col_meta else None
         return self.make_sqla_column_compatible(sqla_column, label), generic_type
 
