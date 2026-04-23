@@ -29,7 +29,7 @@
     "@deck.gl/extensions": "~9.2.9",
     "@deck.gl/geo-layers": "~9.2.5",
     "@deck.gl/layers": "~9.2.5",
-    "@deck.gl/mapbox": "~9.2.5",
+    "@deck.gl/mapbox": "~9.3.1",
     "@deck.gl/mesh-layers": "~9.2.5",
     "@luma.gl/constants": "~9.2.5",
     "@luma.gl/core": "~9.2.5",
@@ -50,7 +50,7 @@
     "mousetrap": "^1.6.5",
     "ngeohash": "^0.6.3",
     "prop-types": "^15.8.1",
-    "react-map-gl": "^8.0.0",
+    "react-map-gl": "^8.1.1",
     "underscore": "^1.13.7",
     "urijs": "^1.19.11",
     "xss": "^1.0.15"

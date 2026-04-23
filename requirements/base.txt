@@ -86,8 +86,9 @@ cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
 croniter==6.0.0
     # via apache-superset (pyproject.toml)
-cryptography==46.0.6
+cryptography==46.0.7
     # via
+    #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
     #   paramiko
     #   pyopenssl
@@ -205,8 +206,9 @@ kombu==5.5.3
     # via celery
 limits==5.1.0
     # via flask-limiter
-mako==1.3.10
+mako==1.3.11
     # via
+    #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
     #   alembic
 markdown==3.8.1
@@ -291,8 +293,10 @@ prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.51
     # via click-repl
-pyarrow==16.1.0
-    # via apache-superset (pyproject.toml)
+pyarrow==20.0.0
+    # via
+    #   -r requirements/base.in
+    #   apache-superset (pyproject.toml)
 pyasn1==0.6.3
     # via
     #   pyasn1-modules
@@ -319,8 +323,10 @@ pyjwt==2.12.0
     #   redis
 pynacl==1.6.2
     # via paramiko
-pyopenssl==25.3.0
-    # via shillelagh
+pyopenssl==26.0.0
+    # via
+    #   -r requirements/base.in
+    #   shillelagh
 pyparsing==3.2.3
     # via apache-superset (pyproject.toml)
 pysocks==1.7.1
@@ -353,8 +359,9 @@ referencing==0.36.2
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.32.4
+requests==2.33.0
     # via
+    #   -r requirements/base.in
     #   requests-cache
     #   shillelagh
 requests-cache==1.2.1
