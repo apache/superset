@@ -123,6 +123,11 @@ const Tags = lazy(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
 );
 
+const DynamicPlugins: LazyExoticComponent<any> = lazy(
+  () =>
+    import(/* webpackChunkName: "DynamicPlugins" */ 'src/pages/DynamicPlugins'),
+);
+
 const RowLevelSecurityList = lazy(
   () =>
     import(
@@ -239,6 +244,15 @@ export const routes: Routes = [
   {
     path: '/sqllab/',
     Component: SqlLab,
+  },
+  { path: '/user_info/', Component: UserInfo },
+  {
+    path: '/actionlog/list',
+    Component: ActionLogList,
+  },
+  {
+    path: '/registrations/',
+    Component: UserRegistrations,
   },
 ];
 

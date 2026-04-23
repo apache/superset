@@ -17,17 +17,22 @@
 from typing import Optional
 
 from flask import make_response, Response
-from flask_appbuilder import ModelView
+from flask_appbuilder import expose, has_access, permission_name
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
+from marshmallow import Schema, fields
 
 from superset import is_feature_enabled
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.models.dynamic_plugins import DynamicPlugin
+from superset.security.api import UserSchema
+from superset.superset_typing import FlaskResponse
+from superset.views.base import BaseSupersetView
+from superset.views.base_api import BaseSupersetModelRestApi
 
 
-class DynamicPluginsView(ModelView):
+class DynamicPluginsView(BaseSupersetView):
     """Dynamic plugin crud views -- To be replaced by fancy react UI"""
 
     route_base = "/dynamic-plugins"
@@ -65,3 +70,72 @@ class DynamicPluginsView(ModelView):
         if not is_feature_enabled("DYNAMIC_PLUGINS"):
             return make_response("Not found", 404)
         return None
+
+    @expose("/list/")
+    @has_access
+    @permission_name("read")
+    def list(self) -> FlaskResponse:
+        return super().render_app_template()
+
+
+class ListDynamicPluginSchema(Schema):
+    id = fields.Int()
+    key_id = fields.String(attribute='key')
+    changed_by = fields.Nested(UserSchema(exclude=["username"]))
+    created_by = fields.Nested(UserSchema(exclude=["username"]))
+    changed_on = fields.DateTime()
+    created_on = fields.DateTime()
+    name = fields.String()
+    bundle_url = fields.String()
+
+
+class DynamicPluginsRestAPI(BaseSupersetModelRestApi):
+    """
+    APIs for listing dynamic plugins
+    """
+
+    resource_name = "/manage/dynamic-plugins"
+    datamodel = SQLAInterface(DynamicPlugin)
+    allow_browser_login = True
+
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+
+    add_columns = ["name", "key", "bundle_url"]
+    edit_columns = add_columns
+    show_columns = add_columns + ["id"]
+    list_columns = show_columns
+
+    label_columns = {
+        "name": _("Name"),
+        "key": _("key"),
+        "bundle_url": _("Bundle URL"),
+        "created_by": _("Created by"),
+        "changed_by": _("Changed by"),
+        "created_on": _("Created on"),
+        "changed_on": _("Changed on"),
+    }
+
+    description_columns = {
+        "name": _("A human-friendly name"),
+        "key": _(
+            "Used internally to identify the plugin. "
+            "Should be set to the package name from the pluginʼs package.json"
+        ),
+        "bundle_url": _(
+            "A full URL pointing to the location "
+            "of the built plugin (could be hosted on a CDN for example)"
+        ),
+    }
+
+    search_columns = (
+        "created_by",
+        "changed_by",
+        "created_on",
+        "changed_on",
+        "key",
+        "bundle_url",
+        "name",
+    )
+
+    list_model_schema = ListDynamicPluginSchema()
+    show_model_schema = ListDynamicPluginSchema()

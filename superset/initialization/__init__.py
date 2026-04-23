@@ -186,6 +186,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi, UserRestApi
         from superset.views.users_list import UsersListView
+        from superset.views.dynamic_plugins import DynamicPluginsRestAPI
 
         set_app_error_handlers(self.superset_app)
 
@@ -222,6 +223,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(TagRestApi)
+        appbuilder.add_api(DynamicPluginsRestAPI)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
         #
