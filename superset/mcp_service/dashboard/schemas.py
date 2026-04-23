@@ -27,7 +27,7 @@ Example usage:
         id=1,
         dashboard_title="Sales Dashboard",
         published=True,
-        owners=[UserInfo(id=1, username="admin")],
+        tags=[TagInfo(id=1, name="sales")],
         charts=[DashboardChartSummary(id=1, slice_name="Sales Chart")]
     )
 
@@ -86,12 +86,11 @@ if TYPE_CHECKING:
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     RoleInfo,
-    serialize_user_object,
     TagInfo,
-    UserInfo,
 )
 from superset.mcp_service.utils.sanitization import (
     _remove_dangerous_unicode,
@@ -115,10 +114,6 @@ class DashboardError(BaseModel):
         from datetime import datetime
 
         return cls(error=error, error_type=error_type, timestamp=datetime.now())
-
-
-# serialize_user_object is imported from system.schemas and re-exported here
-# for backward compatibility with dashboard tool modules.
 
 
 def serialize_tag_object(tag: Any) -> TagInfo | None:
@@ -159,17 +154,13 @@ class DashboardFilter(ColumnOperator):
     col: Literal[
         "dashboard_title",
         "published",
-        "created_by_fk",
-        "owner",
         "favorite",
     ] = Field(
         ...,
         description=(
             "Column to filter on. Use "
             "get_schema(model_type='dashboard') for available "
-            "filter columns. Use created_by_fk with the user "
-            "ID from get_instance_info's current_user to find "
-            "dashboards created by a specific user."
+            "filter columns."
         ),
     )
     opr: ColumnOperatorEnum = Field(
@@ -349,16 +340,12 @@ class DashboardInfo(BaseModel):
     external_url: str | None = None
     created_on: str | datetime | None = None
     changed_on: str | datetime | None = None
-    created_by: str | None = None
-    changed_by: str | None = None
     uuid: str | None = None
     url: str | None = None
     created_on_humanized: str | None = None
     changed_on_humanized: str | None = None
     chart_count: int = 0
-    owners: List[UserInfo] = Field(default_factory=list)
     tags: List[TagInfo] = Field(default_factory=list)
-    roles: List[RoleInfo] = Field(default_factory=list)
     charts: List[DashboardChartSummary] = Field(default_factory=list)
 
     # Structured filter information extracted from json_metadata
@@ -413,7 +400,7 @@ class DashboardInfo(BaseModel):
 
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
-    @model_serializer(mode="wrap", when_used="json")
+    @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
         """Filter fields based on serialization context.
 
@@ -421,7 +408,7 @@ class DashboardInfo(BaseModel):
         Otherwise, include all fields (default behavior).
         """
         # Get full serialization
-        data = serializer(self)
+        data = filter_user_directory_fields(serializer(self))
 
         # Check if we have a context with select_columns
         if info.context and isinstance(info.context, dict):
@@ -430,7 +417,6 @@ class DashboardInfo(BaseModel):
                 # Filter to only requested fields
                 return {k: v for k, v in data.items() if k in select_columns}
 
-        # No filtering - return all fields
         return data
 
 
@@ -678,12 +664,6 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         external_url=dashboard.external_url,
         created_on=dashboard.created_on,
         changed_on=dashboard.changed_on,
-        created_by=getattr(dashboard.created_by, "username", None)
-        if dashboard.created_by
-        else None,
-        changed_by=getattr(dashboard.changed_by, "username", None)
-        if dashboard.changed_by
-        else None,
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
         url=absolute_url,
         created_on_humanized=dashboard.created_on_humanized,
@@ -699,23 +679,10 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
             getattr(dashboard, "json_metadata", None),
             getattr(dashboard, "position_json", None),
         ),
-        owners=[
-            info
-            for owner in dashboard.owners
-            if (info := serialize_user_object(owner)) is not None
-        ]
-        if dashboard.owners
-        else [],
         tags=[
             TagInfo.model_validate(tag, from_attributes=True) for tag in dashboard.tags
         ]
         if dashboard.tags
-        else [],
-        roles=[
-            RoleInfo.model_validate(role, from_attributes=True)
-            for role in dashboard.roles
-        ]
-        if dashboard.roles
         else [],
         charts=[
             summary
@@ -757,12 +724,10 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         slug=slug or "",
         url=dashboard_url,
         published=getattr(dashboard, "published", None),
-        changed_by=getattr(dashboard, "changed_by_name", None),
         changed_on=getattr(dashboard, "changed_on", None),
         changed_on_humanized=_humanize_timestamp(
             getattr(dashboard, "changed_on", None)
         ),
-        created_by=getattr(dashboard, "created_by_name", None),
         created_on=getattr(dashboard, "created_on", None),
         created_on_humanized=_humanize_timestamp(
             getattr(dashboard, "created_on", None)
@@ -780,24 +745,11 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         if getattr(dashboard, "uuid", None)
         else None,
         chart_count=len(getattr(dashboard, "slices", [])),
-        owners=[
-            info
-            for owner in getattr(dashboard, "owners", [])
-            if (info := serialize_user_object(owner)) is not None
-        ]
-        if getattr(dashboard, "owners", None)
-        else [],
         tags=[
             TagInfo.model_validate(tag, from_attributes=True)
             for tag in getattr(dashboard, "tags", [])
         ]
         if getattr(dashboard, "tags", None)
-        else [],
-        roles=[
-            RoleInfo.model_validate(role, from_attributes=True)
-            for role in getattr(dashboard, "roles", [])
-        ]
-        if getattr(dashboard, "roles", None)
         else [],
         charts=[
             summary

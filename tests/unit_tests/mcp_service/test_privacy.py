@@ -15,7 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset.mcp_service.privacy import is_data_model_metadata_error
+"""Tests for MCP privacy helpers."""
+
+import pytest
+
+from superset.mcp_service.chart.schemas import ChartInfo
+from superset.mcp_service.dashboard.schemas import DashboardInfo
+from superset.mcp_service.database.schemas import DatabaseInfo
+from superset.mcp_service.dataset.schemas import DatasetInfo
+from superset.mcp_service.privacy import (
+    is_data_model_metadata_error,
+    redact_chart_data_model_fields,
+)
 
 
 def test_is_data_model_metadata_error_accepts_missing_privacy_scope() -> None:
@@ -42,3 +53,56 @@ def test_is_data_model_metadata_error_rejects_wrong_privacy_scope() -> None:
         )
         is False
     )
+
+
+def test_redact_chart_data_model_fields_removes_restricted_fields() -> None:
+    chart_info = ChartInfo(
+        id=1,
+        slice_name="Revenue",
+        datasource_name="sales",
+        datasource_type="table",
+        filters={"time_range": "Last year"},
+        form_data={"datasource": "1__table"},
+    )
+
+    redacted = redact_chart_data_model_fields(chart_info)
+
+    assert redacted.datasource_name is None
+    assert redacted.datasource_type is None
+    assert redacted.filters is None
+    assert redacted.form_data is None
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        ChartInfo(id=1, slice_name="Revenue"),
+        DashboardInfo(id=1, dashboard_title="Executive Dashboard", owners=[], roles=[]),
+        DatasetInfo(id=1, table_name="sales"),
+        DatabaseInfo(id=1, database_name="warehouse"),
+    ],
+)
+def test_user_directory_fields_removed_from_python_and_json_dumps(model):
+    """Privacy fields are stripped regardless of Pydantic serialization mode."""
+    for mode in (None, "json"):
+        data = model.model_dump() if mode is None else model.model_dump(mode=mode)
+
+        for field in ("created_by", "changed_by", "owners", "roles"):
+            assert field not in data
+
+
+@pytest.mark.parametrize(
+    ("schema_cls", "omitted_fields"),
+    [
+        (ChartInfo, {"created_by", "changed_by", "changed_by_name", "owners"}),
+        (DashboardInfo, {"created_by", "changed_by", "owners", "roles"}),
+        (DatasetInfo, {"created_by", "changed_by", "owners"}),
+        (DatabaseInfo, {"created_by", "changed_by"}),
+    ],
+)
+def test_user_directory_fields_removed_from_json_schema(schema_cls, omitted_fields):
+    """Privacy-only response fields should not appear in the published schema."""
+    properties = schema_cls.model_json_schema().get("properties", {})
+
+    for field in omitted_fields:
+        assert field not in properties

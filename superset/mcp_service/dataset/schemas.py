@@ -38,11 +38,10 @@ from pydantic import (
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
-    serialize_user_object,
     TagInfo,
-    UserInfo,
 )
 from superset.utils import json
 
@@ -59,7 +58,6 @@ class DatasetFilter(ColumnOperator):
         "table_name",
         "schema",
         "database_name",
-        "owner",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='dataset') for "
@@ -109,22 +107,17 @@ class DatasetInfo(BaseModel):
     certification_details: str | None = Field(
         None, description="Certification details or reason"
     )
-    changed_by: str | None = Field(None, description="Last modifier (username)")
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
     changed_on_humanized: str | None = Field(
         None, description="Humanized modification time"
     )
-    created_by: str | None = Field(None, description="Dataset creator (username)")
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
     )
     tags: List[TagInfo] = Field(default_factory=list, description="Dataset tags")
-    owners: List[UserInfo] = Field(
-        default_factory=list, description="DatasetInfo owners"
-    )
     is_virtual: bool | None = Field(
         None, description="Whether the dataset is virtual (uses SQL)"
     )
@@ -158,7 +151,7 @@ class DatasetInfo(BaseModel):
         populate_by_name=True,  # Allow both 'schema' (alias) and 'schema_name' (field)
     )
 
-    @model_serializer(mode="wrap", when_used="json")
+    @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
         """Filter fields based on serialization context.
 
@@ -166,7 +159,7 @@ class DatasetInfo(BaseModel):
         Otherwise, include all fields (default behavior).
         """
         # Get full serialization
-        data = serializer(self)
+        data = filter_user_directory_fields(serializer(self))
 
         # Normalize alias: Pydantic serializes as 'schema_name' (field name)
         # but the DAO column and API convention is 'schema'
@@ -452,12 +445,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         description=getattr(dataset, "description", None),
         certified_by=getattr(dataset, "certified_by", None),
         certification_details=getattr(dataset, "certification_details", None),
-        changed_by=getattr(dataset, "changed_by_name", None)
-        or (str(dataset.changed_by) if getattr(dataset, "changed_by", None) else None),
         changed_on=getattr(dataset, "changed_on", None),
         changed_on_humanized=_humanize_timestamp(getattr(dataset, "changed_on", None)),
-        created_by=getattr(dataset, "created_by_name", None)
-        or (str(dataset.created_by) if getattr(dataset, "created_by", None) else None),
         created_on=getattr(dataset, "created_on", None),
         created_on_humanized=_humanize_timestamp(getattr(dataset, "created_on", None)),
         tags=[
@@ -465,13 +454,6 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
             for tag in getattr(dataset, "tags", [])
         ]
         if getattr(dataset, "tags", None)
-        else [],
-        owners=[
-            info
-            for owner in getattr(dataset, "owners", [])
-            if (info := serialize_user_object(owner)) is not None
-        ]
-        if getattr(dataset, "owners", None)
         else [],
         is_virtual=getattr(dataset, "is_virtual", None),
         database_id=getattr(dataset, "database_id", None),

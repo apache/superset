@@ -321,6 +321,40 @@ class TestGetSchemaToolViaClient:
             assert uuid_col is not None
             assert uuid_col["is_default"] is False
 
+    @patch("superset.daos.dashboard.DashboardDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_omits_user_directory_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that schema discovery does not advertise user/access fields."""
+        mock_filters.return_value = {
+            "dashboard_title": ["eq", "ilike"],
+            "owner": ["rel_m_m"],
+            "published": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dashboard"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+        select_column_names = {column["name"] for column in info["select_columns"]}
+
+        for field in (
+            "owners",
+            "roles",
+            "created_by",
+            "created_by_fk",
+            "changed_by",
+            "changed_by_fk",
+            "owner",
+        ):
+            assert field not in select_column_names
+            assert field not in info["filter_columns"]
+            assert field not in info["sortable_columns"]
+
 
 class TestGetSchemaEdgeCases:
     """Test edge cases for get_schema tool."""

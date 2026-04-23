@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Privacy helpers for MCP metadata exposure controls."""
+"""Privacy helpers for MCP user-directory and data-model metadata."""
 
 from __future__ import annotations
 
