@@ -108,15 +108,10 @@ async def get_dashboard_info(
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
-        # Eager load slices (charts), owners, tags, and roles to avoid N+1
-        # queries. Also eager load owners/tags on each slice since the
-        # dashboard serializer calls serialize_chart_object for every chart.
+        # Eager load slices and tags to avoid N+1 queries during serialization.
         eager_options = [
-            subqueryload(Dashboard.slices).subqueryload(Slice.owners),
             subqueryload(Dashboard.slices).subqueryload(Slice.tags),
-            subqueryload(Dashboard.owners),
             subqueryload(Dashboard.tags),
-            subqueryload(Dashboard.roles),
         ]
 
         with event_logger.log_context(action="mcp.get_dashboard_info.lookup"):
