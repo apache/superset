@@ -85,6 +85,35 @@ test('SingleQueryResultPane renders TableView correctly', () => {
   expect(tableView).toBeInTheDocument();
 });
 
+test('SingleQueryResultPane resets pagination when filter reduces data below current page', async () => {
+  render(<SingleQueryResultPane {...defaultProps} />, {
+    useTheme: true,
+    useRedux: true,
+  });
+
+  // With 30 rows and dataSize=10, there are 3 pages. Navigate to the last page.
+  const page3 = screen.getByRole('listitem', { name: '3' });
+  await userEvent.click(page3);
+
+  // Confirm we actually moved off page 1 before filtering.
+  await waitFor(() => {
+    expect(screen.getByText('Item 21')).toBeInTheDocument();
+    expect(screen.queryByText('Item 1')).not.toBeInTheDocument();
+  });
+
+  // Filter to a non-empty subset that collapses the dataset below page 3.
+  // 'Action' matches the 15 even-ids (2 pages at dataSize=10).
+  const searchInput = screen.getByPlaceholderText('Search');
+  await userEvent.type(searchInput, 'Action');
+
+  // Pagination should have reset to page 1 of the filtered set.
+  await waitFor(() => {
+    expect(screen.getByText('Item 2')).toBeInTheDocument();
+    expect(screen.queryByText('Item 21')).not.toBeInTheDocument();
+    expect(screen.queryByText('Horror')).not.toBeInTheDocument();
+  });
+});
+
 test('SingleQueryResultPane shows no results message when filter matches nothing', async () => {
   render(<SingleQueryResultPane {...defaultProps} />, {
     useTheme: true,
