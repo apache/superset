@@ -478,7 +478,13 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     )
 
     if isinstance(locale, Locale):
-        language = locale.language
+        # Use language + territory to support locales like zh_TW.
+        # locale.language alone strips the territory (e.g. zh_TW → zh).
+        language = (
+            f"{locale.language}_{locale.territory}"
+            if locale.territory
+            else locale.language
+        )
     elif isinstance(locale, str):
         language = locale
     else:
