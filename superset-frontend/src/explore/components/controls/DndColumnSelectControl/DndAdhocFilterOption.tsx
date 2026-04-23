@@ -23,6 +23,7 @@ import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilt
 import { OptionSortType } from 'src/explore/types';
 import { useGetTimeRangeLabel } from 'src/explore/components/controls/FilterControl/utils';
 import OptionWrapper from './OptionWrapper';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 export interface DndAdhocFilterOptionProps {
   adhocFilter: AdhocFilter;
@@ -68,7 +69,10 @@ export default function DndAdhocFilterOption({
         isExtra={adhocFilter.isExtra}
         datasourceWarningMessage={
           adhocFilter.datasourceWarning
-            ? t('This filter might be incompatible with current dataset')
+            ? t(
+                'This filter might be incompatible with current %s',
+                datasetLabelLower(),
+              )
             : undefined
         }
       />

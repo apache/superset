@@ -21,22 +21,44 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy.exc import StatementError
 from superset_core.semantic_layers.daos import (
     AbstractSemanticLayerDAO,
     AbstractSemanticViewDAO,
 )
 
+from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 
 
-class SemanticLayerDAO(AbstractSemanticLayerDAO):
+class SemanticLayerDAO(BaseDAO[SemanticLayer], AbstractSemanticLayerDAO):
     """
     Data Access Object for SemanticLayer model.
     """
 
+    # SemanticLayer uses uuid as the primary key
+    id_column_name = "uuid"
+
     model_cls = SemanticLayer
+
+    @staticmethod
+    def find_by_uuid(uuid_str: str) -> SemanticLayer | None:
+        try:
+            return (
+                db.session.query(SemanticLayer)
+                .filter(SemanticLayer.uuid == uuid_str)
+                .one_or_none()
+            )
+        except (ValueError, StatementError):
+            return None
+
+    @classmethod
+    def find_all(cls, skip_base_filter: bool = False) -> list[SemanticLayer]:
+        query = db.session.query(SemanticLayer)
+        query = cls._apply_base_filter(query, skip_base_filter)
+        return query.all()
 
     @classmethod
     def validate_uniqueness(cls, name: str) -> bool:
@@ -93,7 +115,7 @@ class SemanticLayerDAO(AbstractSemanticLayerDAO):
         )
 
 
-class SemanticViewDAO(AbstractSemanticViewDAO):
+class SemanticViewDAO(BaseDAO[SemanticView], AbstractSemanticViewDAO):
     """Data Access Object for SemanticView model."""
 
     model_cls = SemanticView

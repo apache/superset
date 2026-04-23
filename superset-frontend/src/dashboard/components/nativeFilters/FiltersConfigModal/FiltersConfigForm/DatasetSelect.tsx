@@ -30,6 +30,11 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
+import {
+  datasetLabel,
+  datasetLabelLower,
+  datasetsLabelLower,
+} from 'src/utils/semanticLayerLabels';
 
 interface DatasetSelectProps {
   onChange: (value: { label: string | ReactNode; value: number }) => void;
@@ -101,13 +106,13 @@ const DatasetSelect = ({
 
   return (
     <AsyncSelect
-      ariaLabel={t('Dataset')}
+      ariaLabel={datasetLabel()}
       value={value}
       options={loadDatasetOptionsCallback}
       onChange={onChange}
       optionFilterProps={['table_name']}
-      notFoundContent={t('No compatible datasets found')}
-      placeholder={t('Select a dataset')}
+      notFoundContent={t('No compatible %s found', datasetsLabelLower())}
+      placeholder={t('Select a %s', datasetLabelLower())}
     />
   );
 };

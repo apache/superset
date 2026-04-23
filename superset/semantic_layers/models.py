@@ -305,6 +305,7 @@ class SemanticView(AuditMixinNullable, Model):
                 for metric in self.implementation.get_metrics()
             ],
             "database": {},
+            "parent": {"name": self.semantic_layer.name},
             # UI features
             "verbose_map": {},
             "order_by_choices": [],
@@ -403,6 +404,49 @@ class SemanticView(AuditMixinNullable, Model):
     def is_rls_supported(self) -> bool:
         return False
 
+    def raise_for_access(self) -> None:
+        """No-op: semantic view access control is not yet implemented."""
+
     @property
     def query_language(self) -> str | None:
         return None
+
+    def get_compatible_metrics(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> list[str]:
+        """
+        Return metric names compatible with the current selection.
+
+        Translates string names to semantic-layer objects, delegates to the
+        view implementation, and translates the result back to names.
+        """
+        metric_map = {m.name: m for m in self.implementation.get_metrics()}
+        dim_map = {d.name: d for d in self.implementation.get_dimensions()}
+        sel_metrics = {metric_map[n] for n in selected_metrics if n in metric_map}
+        sel_dims = {dim_map[n] for n in selected_dimensions if n in dim_map}
+        compatible = self.implementation.get_compatible_metrics(
+            sel_metrics, sel_dims
+        )
+        return [m.name for m in compatible]
+
+    def get_compatible_dimensions(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> list[str]:
+        """
+        Return dimension names compatible with the current selection.
+
+        Translates string names to semantic-layer objects, delegates to the
+        view implementation, and translates the result back to names.
+        """
+        metric_map = {m.name: m for m in self.implementation.get_metrics()}
+        dim_map = {d.name: d for d in self.implementation.get_dimensions()}
+        sel_metrics = {metric_map[n] for n in selected_metrics if n in metric_map}
+        sel_dims = {dim_map[n] for n in selected_dimensions if n in dim_map}
+        compatible = self.implementation.get_compatible_dimensions(
+            sel_metrics, sel_dims
+        )
+        return [d.name for d in compatible]
