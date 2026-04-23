@@ -20,12 +20,12 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import StylingSection from './StylingSection';
 
-const mockIsFeatureEnabled = jest.fn();
+
 jest.mock('@superset-ui/core', () => {
   const actual = jest.requireActual('@superset-ui/core');
   return {
     ...actual,
-    isFeatureEnabled: (feature: string) => mockIsFeatureEnabled(feature),
+    isFeatureEnabled: jest.fn((feature: string) => feature === 'DASHBOARD_CROSS_FILTERS'),
   };
 });
 
