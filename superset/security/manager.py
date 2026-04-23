@@ -3174,9 +3174,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if token.get("type") != "guest":
                 raise ValueError("This is not a guest token.")
         except Exception:  # pylint: disable=broad-except
-            # The login manager will handle sending 401s.
-            # We don't need to send a special error message.
-            logger.warning("Invalid guest token", exc_info=True)
+            logger.warning(
+                "Invalid guest token. If you are using a non-default "
+                "JWT_ALGORITHM (e.g. RS256), ensure GUEST_TOKEN_JWT_ALGO "
+                "and GUEST_TOKEN_JWT_SECRET are explicitly set in "
+                "superset_config.py, as the guest token system uses its "
+                "own separate JWT configuration independent of "
+                "Flask-JWT-Extended.",
+                exc_info=True,
+            )
             return None
 
         return self.get_guest_user_from_token(cast(GuestToken, token))

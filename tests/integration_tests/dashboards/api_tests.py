@@ -461,8 +461,48 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = self.get_assert_metric(uri, "get_datasets")
         assert response.status_code == 404
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_with_guest_token(self):
+        """
+        Regression test for #38185: a valid guest token must be able to access
+        GET /api/v1/dashboard/{id}/datasets.
+
+        Prior to this fix, get_datasets did not catch DashboardAccessDeniedError,
+        causing an unhandled exception for guest users. Additionally, the endpoint
+        was not handling DashboardNotFoundError unlike get_charts and get_tabs.
+        """
+        from superset.security.guest_token import GuestTokenResourceType
+
+        dashboard = Dashboard.get("world_health")
+
+        # Create a real guest access token (not a mock) and call with the token header
+        token = security_manager.create_guest_access_token(
+            user={
+                "username": "guest",
+                "first_name": "Guest",
+                "last_name": "User",
+            },
+            resources=[
+                {
+                    "type": GuestTokenResourceType.DASHBOARD,
+                    "id": str(dashboard.uuid),
+                }
+            ],
+            rls=[],
+        )
+
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.client.get(
+            uri,
+            headers={"X-GuestToken": token},
+        )
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        assert "result" in data
+
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_gamma_dashboard_charts(self):
+
         """
         Check that a gamma user with data access can access dashboard/charts
         """

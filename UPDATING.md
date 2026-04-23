@@ -324,8 +324,16 @@ Note: Pillow is now a required dependency (previously optional) to support image
 - [31590](https://github.com/apache/superset/pull/31590) Marks the begining of intricate work around supporting dynamic Theming, and breaks support for [THEME_OVERRIDES](https://github.com/apache/superset/blob/732de4ac7fae88e29b7f123b6cbb2d7cd411b0e4/superset/config.py#L671) in favor of a new theming system based on AntD V5. Likely this will be in disrepair until settling over the 5.x lifecycle.
 - [32432](https://github.com/apache/superset/pull/32432) Moves the List Roles FAB view to the frontend and requires `FAB_ADD_SECURITY_API` to be enabled in the configuration and `superset init` to be executed.
 - [34319](https://github.com/apache/superset/pull/34319) Drill to Detail and Drill By is now supported in Embedded mode, and also with the `DASHBOARD_RBAC` FF. If you don't want to expose these features in Embedded / `DASHBOARD_RBAC`, make sure the roles used for Embedded / `DASHBOARD_RBAC`don't have the required permissions to perform D2D actions.
+- [#38185](https://github.com/apache/superset/issues/38185) **Embedded SDK / Guest Token — independent JWT configuration**: The guest token system uses its own JWT configuration keys (`GUEST_TOKEN_JWT_ALGO`, `GUEST_TOKEN_JWT_SECRET`, `GUEST_TOKEN_JWT_EXP_SECONDS`) which are **completely independent** of Flask-JWT-Extended's `JWT_ALGORITHM` setting. If you configure `JWT_ALGORITHM = "RS256"` (or any non-default value) for your login flow, you **must** also explicitly set the guest token keys in `superset_config.py` to avoid `403 Forbidden` errors on the Embedded SDK's `/api/v1/dashboard/{id}/datasets` endpoint:
+  ```python
+  # These are SEPARATE from JWT_ALGORITHM used by Flask-JWT-Extended
+  GUEST_TOKEN_JWT_ALGO = "HS256"
+  GUEST_TOKEN_JWT_SECRET = "your-secret-change-me"  # noqa: S105
+  GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
+  ```
 
 ## 5.0.0
+
 
 - [31976](https://github.com/apache/superset/pull/31976) Removed the `DISABLE_LEGACY_DATASOURCE_EDITOR` feature flag. The previous value of the feature flag was `True` and now the feature is permanently removed.
 - [32000](https://github.com/apache/superset/pull/32000) Removes CSV_UPLOAD_MAX_SIZE config, use your web server to control file upload size.
