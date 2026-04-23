@@ -18,10 +18,8 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
-import { SupersetClient } from '@superset-ui/core';
-import { Input, Spin } from 'antd';
-import { Select } from '@superset-ui/core/components';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { Input, Select, Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { JsonForms, withJsonFormsControlProps } from '@jsonforms/react';
 import type {
@@ -131,7 +129,7 @@ function DynamicFieldControl(props: ControlProps) {
     options: {
       ...props.uischema.options,
       placeholderText: t('Loading...'),
-      inputProps: { suffix: <Spin size="small" /> },
+      inputProps: { suffix: <Icons.LoadingOutlined iconSize="s" /> },
     },
   };
   return TextControl({ ...props, uischema, enabled: false });
@@ -271,27 +269,6 @@ function serializeDependencyValues(
   return JSON.stringify(snapshot);
 }
 
-const ModalContent = styled.div`
-  padding: ${({ theme }) => theme.sizeUnit * 4}px;
-`;
-
-const BackLink = styled.button`
-  background: none;
-  border: none;
-  color: ${({ theme }) => theme.colorPrimary};
-  cursor: pointer;
-  padding: 0;
-  font-size: ${({ theme }) => theme.fontSize}px;
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
-  display: inline-flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
 interface SemanticLayerType {
   id: string;
   name: string;
@@ -368,11 +345,21 @@ export default function SemanticLayerModal({
           jsonPayload: { type, configuration },
         });
         applySchema(json.result);
+        if (json.warning) {
+          addDangerToast(String(json.warning));
+        }
         if (isInitialFetch) setStep('config');
-      } catch {
+      } catch (error) {
+        const clientError = await getClientErrorObject(error);
         if (isInitialFetch) {
           addDangerToast(
-            t('An error occurred while fetching the configuration schema'),
+            clientError.error ||
+              t('An error occurred while fetching the configuration schema'),
+          );
+        } else {
+          addDangerToast(
+            clientError.error ||
+              t('An error occurred while refreshing the configuration schema'),
           );
         }
       } finally {
@@ -405,9 +392,11 @@ export default function SemanticLayerModal({
         });
         applySchema(schemaJson.result);
         setStep('config');
-      } catch {
+      } catch (error) {
+        const clientError = await getClientErrorObject(error);
         addDangerToast(
-          t('An error occurred while fetching the semantic layer'),
+          clientError.error ||
+            t('An error occurred while fetching the semantic layer'),
         );
       } finally {
         setLoading(false);
@@ -477,11 +466,13 @@ export default function SemanticLayerModal({
         addSuccessToast(t('Semantic layer created'));
       }
       onHide();
-    } catch {
+    } catch (error) {
+      const clientError = await getClientErrorObject(error);
       addDangerToast(
-        isEditMode
-          ? t('An error occurred while updating the semantic layer')
-          : t('An error occurred while creating the semantic layer'),
+        clientError.error ||
+          (isEditMode
+            ? t('An error occurred while updating the semantic layer')
+            : t('An error occurred while creating the semantic layer')),
       );
     } finally {
       setSaving(false);
@@ -536,15 +527,9 @@ export default function SemanticLayerModal({
       setFormData(data);
       errorsRef.current = errors ?? [];
       setHasErrors(errorsRef.current.length > 0);
-      if (
-        validationMode === 'ValidateAndShow' &&
-        errorsRef.current.length === 0
-      ) {
-        handleCreate();
-      }
       maybeRefreshSchema(data);
     },
-    [validationMode, handleCreate, maybeRefreshSchema],
+    [maybeRefreshSchema],
   );
 
   const selectedTypeName =
@@ -574,7 +559,7 @@ export default function SemanticLayerModal({
       contentLoading={loading}
     >
       {step === 'type' ? (
-        <ModalContent>
+        <>
           <ModalFormField label={t('Type')}>
             <Select
               ariaLabel={t('Semantic layer type')}
@@ -593,14 +578,17 @@ export default function SemanticLayerModal({
               }}
             />
           </ModalFormField>
-        </ModalContent>
+        </>
       ) : (
-        <ModalContent>
+        <>
           {!isEditMode && (
-            <BackLink type="button" onClick={handleBack}>
-              <Icons.CaretLeftOutlined iconSize="s" />
+            <Button
+              buttonStyle="link"
+              icon={<Icons.CaretLeftOutlined iconSize="s" />}
+              onClick={handleBack}
+            >
               {t('Back')}
-            </BackLink>
+            </Button>
           )}
           <ModalFormField label={t('Name')} required>
             <Input
@@ -621,7 +609,7 @@ export default function SemanticLayerModal({
               onChange={handleFormChange}
             />
           )}
-        </ModalContent>
+        </>
       )}
     </StandardModal>
   );

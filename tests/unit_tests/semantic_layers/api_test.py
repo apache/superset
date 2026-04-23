@@ -1181,6 +1181,7 @@ def test_configuration_schema_enrichment_error_fallback(
 
     assert response.status_code == 200
     assert response.json["result"] == {"type": "object"}
+    assert response.json["warning"] == "connection failed"
     assert mock_cls.get_configuration_schema.call_count == 2
 
 
@@ -1218,9 +1219,11 @@ def test_connections_list(
 
     mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
     db_query = MagicMock()
+    db_query.options.return_value = db_query
     db_query.all.return_value = [mock_db]
     db_query.filter.return_value = db_query
     sl_query = MagicMock()
+    sl_query.options.return_value = sl_query
     sl_query.all.return_value = [mock_layer]
     sl_query.filter.return_value = sl_query
     mock_db_session.query.side_effect = [db_query, sl_query]
@@ -1252,28 +1255,7 @@ def test_connections_database_only(
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
-    """Test GET /connections/ with semantic layers disabled."""
-    from datetime import datetime
-
-    mock_db = MagicMock()
-    mock_db.id = 1
-    mock_db.uuid = uuid_lib.uuid4()
-    mock_db.database_name = "PostgreSQL"
-    mock_db.backend = "postgresql"
-    mock_db.allow_run_async = False
-    mock_db.allow_dml = False
-    mock_db.allow_file_upload = False
-    mock_db.expose_in_sqllab = True
-    mock_db.changed_on = datetime(2026, 1, 1)
-    mock_db.changed_on_delta_humanized.return_value = "1 month ago"
-    mock_db.changed_by = MagicMock()
-    mock_db.changed_by.first_name = "John"
-    mock_db.changed_by.last_name = "Doe"
-
-    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
-    db_query = MagicMock()
-    db_query.all.return_value = [mock_db]
-    mock_db_session.query.return_value = db_query
+    """Test GET /connections/ returns 404 when feature flag is disabled."""
 
     mocker.patch(
         "superset.semantic_layers.api.is_feature_enabled",
@@ -1282,12 +1264,7 @@ def test_connections_database_only(
 
     response = client.get("/api/v1/semantic_layer/connections/")
 
-    assert response.status_code == 200
-    assert response.json["count"] == 1
-    result = response.json["result"][0]
-    assert result["source_type"] == "database"
-    assert result["database_name"] == "PostgreSQL"
-    assert result["changed_by"]["first_name"] == "John"
+    assert response.status_code == 404
 
 
 @SEMANTIC_LAYERS_APP
@@ -1299,9 +1276,11 @@ def test_connections_name_filter(
     """Test GET /connections/ with name filter."""
     mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
     db_query = MagicMock()
+    db_query.options.return_value = db_query
     db_query.all.return_value = []
     db_query.filter.return_value = db_query
     sl_query = MagicMock()
+    sl_query.options.return_value = sl_query
     sl_query.all.return_value = []
     sl_query.filter.return_value = sl_query
     mock_db_session.query.side_effect = [db_query, sl_query]
@@ -1359,8 +1338,10 @@ def test_connections_sort_by_name(
 
     mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
     db_query = MagicMock()
+    db_query.options.return_value = db_query
     db_query.all.return_value = [mock_db]
     sl_query = MagicMock()
+    sl_query.options.return_value = sl_query
     sl_query.all.return_value = [mock_layer]
     mock_db_session.query.side_effect = [db_query, sl_query]
 
@@ -1412,6 +1393,7 @@ def test_connections_source_type_filter(
 
     mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
     db_query = MagicMock()
+    db_query.options.return_value = db_query
     db_query.all.return_value = [mock_db]
     mock_db_session.query.return_value = db_query
 
@@ -1454,6 +1436,7 @@ def test_connections_source_type_semantic_layer_only(
 
     mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
     sl_query = MagicMock()
+    sl_query.options.return_value = sl_query
     sl_query.all.return_value = [mock_layer]
     mock_db_session.query.return_value = sl_query
 
