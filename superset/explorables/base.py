@@ -507,3 +507,43 @@ class Explorable(Protocol):
 
         :return: Language identifier string, or None if not applicable
         """
+
+    # =========================================================================
+    # Compatibility
+    # =========================================================================
+
+    def get_compatible_metrics(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> list[str]:
+        """
+        Return the names of metrics that can be queried alongside the current
+        selection of metrics and dimensions.
+
+        SQL datasets always return every metric name unchanged — there is no
+        concept of incompatibility at the SQL layer.  Semantic views delegate
+        to ``SemanticView.get_compatible_metrics`` so the semantic layer can
+        enforce its own join / grain constraints.
+
+        :param selected_metrics: Metric names already chosen by the user.
+        :param selected_dimensions: Dimension names already chosen by the user.
+        :return: Names of metrics the user is still allowed to add.
+        """
+
+    def get_compatible_dimensions(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> list[str]:
+        """
+        Return the names of dimensions that can be queried alongside the
+        current selection of metrics and dimensions.
+
+        SQL datasets always return every column name unchanged.  Semantic
+        views delegate to ``SemanticView.get_compatible_dimensions``.
+
+        :param selected_metrics: Metric names already chosen by the user.
+        :param selected_dimensions: Dimension names already chosen by the user.
+        :return: Names of dimensions the user is still allowed to add.
+        """

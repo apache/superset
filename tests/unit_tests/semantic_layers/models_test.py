@@ -357,6 +357,19 @@ def test_semantic_view_type() -> None:
     assert view.type == "semantic_view"
 
 
+def test_semantic_view_table_name() -> None:
+    """Test SemanticView table_name property."""
+    view = SemanticView()
+    view.name = "Orders View"
+    assert view.table_name == "Orders View"
+
+
+def test_semantic_view_kind() -> None:
+    """Test SemanticView kind property."""
+    view = SemanticView()
+    assert view.kind == "semantic_view"
+
+
 def test_semantic_view_offset() -> None:
     """Test SemanticView offset property."""
     view = SemanticView()
@@ -547,12 +560,18 @@ def test_semantic_view_data(
     mock_metrics: list[Metric],
 ) -> None:
     """Test SemanticView data property."""
+    from superset.semantic_layers.models import SemanticLayer
+
+    layer = SemanticLayer()
+    layer.name = "My Semantic Layer"
+
     view = SemanticView()
     view.name = "Orders View"
     view.description = "View of order data"
     view.id = 1
     view.uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
     view.semantic_layer_uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    view.semantic_layer = layer
     view.cache_timeout = 3600
 
     with patch.object(
@@ -569,6 +588,8 @@ def test_semantic_view_data(
         assert data["name"] == "Orders View"
         assert data["description"] == "View of order data"
         assert data["cache_timeout"] == 3600
+        assert data["database"] == {}
+        assert data["parent"] == {"name": "My Semantic Layer"}
 
         # Check columns
         assert len(data["columns"]) == 2
@@ -624,11 +645,18 @@ def test_semantic_view_data_for_slices(
     mock_metrics: list[Metric],
 ) -> None:
     """Test SemanticView data_for_slices returns same as data."""
+    from superset.semantic_layers.models import SemanticLayer
+
+    layer = SemanticLayer()
+    layer.name = "My Semantic Layer"
+
     view = SemanticView()
     view.name = "Orders View"
     view.description = "View of order data"
+    view.id = 1
     view.uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
     view.semantic_layer_uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    view.semantic_layer = layer
     view.cache_timeout = 3600
 
     with patch.object(
