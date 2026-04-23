@@ -122,7 +122,7 @@ const sortColumns = (slice: DatasourcePanelColumn[]) =>
       if (col2?.is_dttm && !col1?.is_dttm) {
         return 1;
       }
-      return 0;
+      return (col1?.column_name ?? '').localeCompare(col2?.column_name ?? '');
     })
     .sort((a, b) => (b?.is_certified ?? 0) - (a?.is_certified ?? 0));
 
@@ -191,7 +191,9 @@ export default function DataSourcePanel({
 
   const filteredMetrics = useMemo(() => {
     if (!searchKeyword) {
-      return allowedMetrics ?? [];
+      return [...(allowedMetrics ?? [])].sort((a, b) =>
+        (a?.metric_name ?? '').localeCompare(b?.metric_name ?? ''),
+      );
     }
     return matchSorter(allowedMetrics, searchKeyword, {
       keys: [
