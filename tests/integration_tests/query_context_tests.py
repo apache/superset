@@ -920,9 +920,11 @@ class TestQueryContext(SupersetTestCase):
     @patch("superset.common.query_context.QueryContext.get_query_result")
     def test_time_offsets_in_query_object_uses_chart_row_limit(self, query_result_mock):
         """
-        Time comparison subqueries drop the chart's row_offset (avoid skewed joins)
-        and widen row_limit to row_limit + row_offset so the subquery covers the
-        main query's window.
+        Subquery honors the chart's row_limit (widened by row_offset so the
+        LEFT JOIN covers the main query's paginated window) and drops
+        row_offset. Before this fix, row_limit was replaced with
+        app.config["ROW_LIMIT"], which caused the main query and offset
+        subquery to fetch different row counts.
         """
         payload = _time_comparison_offset_queries_payload()
         payload["queries"][0]["row_limit"] = 100
