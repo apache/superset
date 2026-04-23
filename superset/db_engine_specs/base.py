@@ -43,7 +43,7 @@ import requests
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
-from flask import current_app as app, g, url_for
+from flask import current_app as app, g
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
@@ -62,7 +62,11 @@ from superset import db
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    OAuth2TokenRefreshError,
+)
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
     BaseSQLStatement,
@@ -88,6 +92,7 @@ from superset.utils.oauth2 import (
     encode_oauth2_state,
     generate_code_challenge,
     generate_code_verifier,
+    get_oauth2_redirect_uri,
 )
 
 if TYPE_CHECKING:
@@ -654,10 +659,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         from superset.daos.key_value import KeyValueDAO
 
         tab_id = str(uuid4())
-        default_redirect_uri = app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            url_for("DatabaseRestApi.oauth2", _external=True),
-        )
+        default_redirect_uri = get_oauth2_redirect_uri()
 
         # Generate PKCE code verifier (RFC 7636)
         code_verifier = generate_code_verifier()
@@ -720,10 +722,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return None
 
         db_engine_spec_config = oauth2_config[cls.engine_name]
-        redirect_uri = app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            url_for("DatabaseRestApi.oauth2", _external=True),
-        )
+        redirect_uri = get_oauth2_redirect_uri()
 
         config: OAuth2ClientConfig = {
             "id": db_engine_spec_config["id"],
@@ -833,6 +832,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if config["request_content_type"] == "data"
             else requests.post(uri, json=req_body, timeout=timeout)
         )
+        if response.status_code in (400, 401, 403):
+            raise OAuth2TokenRefreshError(response.text)
         response.raise_for_status()
         return response.json()
 

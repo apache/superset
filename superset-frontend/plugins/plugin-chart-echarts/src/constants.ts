@@ -107,9 +107,9 @@ export const DEFAULT_LEGEND_FORM_DATA: LegendFormData = {
 
 export const DEFAULT_TITLE_FORM_DATA: TitleFormData = {
   xAxisTitle: '',
-  xAxisTitleMargin: 0,
+  xAxisTitleMargin: 40,
   yAxisTitle: '',
-  yAxisTitleMargin: 15,
+  yAxisTitleMargin: 50,
   yAxisTitlePosition: 'Top',
 };
 

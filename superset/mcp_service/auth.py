@@ -487,26 +487,17 @@ def _setup_user_context() -> User | None:
                 _cleanup_session_on_error()
                 continue
             logger.error("DB connection failed on retry during user setup: %s", e)
+            _cleanup_session_on_error()
             raise
         except ValueError as e:
-            # JWT user resolution failed (e.g. SAML subject not in DB).
-            # Log a security warning but fall back to middleware-provided
-            # g.user if available. This handles cases where the JWT
-            # resolver username format doesn't match the DB username
-            # (e.g., SAML subject vs email). A separate story should
-            # investigate whether any deployments hit this path and
-            # migrate them before removing the fallback entirely.
-            if has_request_context() and hasattr(g, "user") and g.user:
-                logger.warning(
-                    "SECURITY: JWT user resolution failed (%s), falling "
-                    "back to middleware-provided g.user=%s. This fallback "
-                    "should be investigated and removed once all "
-                    "deployments use consistent username resolution.",
-                    e,
-                    g.user.username,
-                )
-                user = g.user
-                break
+            # User resolution failed — fail closed. Do not fall back to
+            # g.user from middleware, as that could allow a request to
+            # proceed as a different user in multi-tenant deployments.
+            # Clear g.user so error/audit logging doesn't attribute
+            # the denied request to the middleware-provided identity.
+            logger.error("MCP user resolution failed, denying request: %s", e)
+            if has_request_context():
+                g.pop("user", None)
             raise
 
     g.user = user
@@ -544,24 +535,41 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     import inspect
     import types
 
-    from flask import has_app_context
-
-    from superset.mcp_service.flask_singleton import get_flask_app
+    from flask import current_app, has_app_context, has_request_context
 
     def _get_app_context_manager() -> AbstractContextManager[None]:
-        """Return app context manager only if not already in one."""
-        if has_app_context():
-            # Already in app context (e.g., in tests), use null context
+        """Push a fresh app context unless a request context is active.
+
+        When a request context is present, external middleware (e.g.
+        Preset's WorkspaceContextMiddleware) has already set ``g.user``
+        on a per-request app context — reuse it via ``nullcontext()``.
+
+        When only a bare app context exists (no request context), we must
+        push a **new** app context. The MCP server typically runs inside
+        a long-lived app context (e.g. ``__main__.py`` wraps
+        ``mcp.run()`` in ``app.app_context()``). When FastMCP dispatches
+        concurrent tool calls via ``asyncio.create_task()``, each task
+        inherits the parent's ``ContextVar`` *value* — a reference to the
+        **same** ``AppContext`` object. Without a fresh push, all tasks
+        share one ``g`` namespace and concurrent ``g.user`` mutations
+        race: one user's identity can overwrite another's before
+        ``get_user_id()`` runs during the SQLAlchemy INSERT flush,
+        attributing the created asset to the wrong user.
+        """
+        if has_request_context():
             return contextlib.nullcontext()
-        # Push new app context for standalone MCP server
-        app = get_flask_app()
-        return app.app_context()
+        if has_app_context():
+            # Push a new context for the CURRENT app (not get_flask_app()
+            # which may return a different instance in test environments).
+            return current_app._get_current_object().app_context()
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        return get_flask_app().app_context()
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
     # Detect if the original function expects a ctx: Context parameter.
-    # If so, we inject it via get_context() at call time so tool functions
-    # don't need @parse_request to handle Context injection.
+    # If so, we inject it via get_context() at call time.
     from fastmcp import Context as FMContext
 
     _tool_sig = inspect.signature(tool_func)
@@ -687,33 +695,23 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     # Copy docstring from original function (not wrapper, which may have lost it)
     new_wrapper.__doc__ = tool_func.__doc__
 
-    # Set __signature__ from the original function, but:
-    # 1. Remove ctx parameter - FastMCP tools don't expose it to clients
-    # 2. Skip if original has *args (parse_request output has its own handling)
-    has_var_positional = any(
-        p.kind == inspect.Parameter.VAR_POSITIONAL
-        for p in _tool_sig.parameters.values()
+    # Set __signature__ from the original function, removing ctx parameter
+    # since FastMCP tools don't expose it to clients.
+    new_params = []
+    for _name, param in _tool_sig.parameters.items():
+        # Skip ctx parameter - FastMCP tools don't expose it to clients
+        if param.annotation is FMContext or (
+            hasattr(param.annotation, "__name__")
+            and param.annotation.__name__ == "Context"
+        ):
+            continue
+        new_params.append(param)
+    new_wrapper.__signature__ = _tool_sig.replace(  # type: ignore[attr-defined]
+        parameters=new_params
     )
 
-    if not has_var_positional:
-        # For functions without *args, preserve signature but remove ctx
-        new_params = []
-        for _name, param in _tool_sig.parameters.items():
-            # Skip ctx parameter - FastMCP tools don't expose it to clients
-            if param.annotation is FMContext or (
-                hasattr(param.annotation, "__name__")
-                and param.annotation.__name__ == "Context"
-            ):
-                continue
-            new_params.append(param)
-        new_wrapper.__signature__ = _tool_sig.replace(  # type: ignore[attr-defined]
-            parameters=new_params
-        )
-
-        # Also remove ctx from annotations to match signature
-        if "ctx" in new_wrapper.__annotations__:
-            del new_wrapper.__annotations__["ctx"]
-    # For functions with *args (parse_request output), the signature
-    # is already set by parse_request without ctx.
+    # Also remove ctx from annotations to match signature
+    if "ctx" in new_wrapper.__annotations__:
+        del new_wrapper.__annotations__["ctx"]
 
     return new_wrapper  # type: ignore[return-value]

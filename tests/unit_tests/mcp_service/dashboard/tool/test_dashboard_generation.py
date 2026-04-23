@@ -52,11 +52,12 @@ def mcp_server():
 def mock_auth():
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
-        mock_user.id = 1
-        mock_user.username = "admin"
-        mock_get_user.return_value = mock_user
-        yield mock_get_user
+        with patch("superset.security_manager.raise_for_ownership"):
+            mock_user = Mock()
+            mock_user.id = 1
+            mock_user.username = "admin"
+            mock_get_user.return_value = mock_user
+            yield mock_get_user
 
 
 @pytest.fixture(autouse=True)
@@ -87,6 +88,8 @@ def _mock_chart(id: int = 1, slice_name: str = "Test Chart") -> Mock:
     chart.datasource_name = None
     chart.datasource_type = None
     chart.description = None
+    chart.certified_by = None
+    chart.certification_details = None
     chart.cache_timeout = None
     chart.changed_by = None
     chart.changed_by_name = None
