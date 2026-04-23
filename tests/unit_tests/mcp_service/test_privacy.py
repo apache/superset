@@ -65,3 +65,20 @@ def test_user_directory_fields_removed_from_python_and_json_dumps(model):
 
         for field in ("created_by", "changed_by", "owners", "roles"):
             assert field not in data
+
+
+@pytest.mark.parametrize(
+    ("schema_cls", "omitted_fields"),
+    [
+        (ChartInfo, {"created_by", "changed_by", "changed_by_name", "owners"}),
+        (DashboardInfo, {"created_by", "changed_by", "owners", "roles"}),
+        (DatasetInfo, {"created_by", "changed_by", "owners"}),
+        (DatabaseInfo, {"created_by", "changed_by"}),
+    ],
+)
+def test_user_directory_fields_removed_from_json_schema(schema_cls, omitted_fields):
+    """Privacy-only response fields should not appear in the published schema."""
+    properties = schema_cls.model_json_schema().get("properties", {})
+
+    for field in omitted_fields:
+        assert field not in properties

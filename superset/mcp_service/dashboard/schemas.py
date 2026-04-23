@@ -27,7 +27,7 @@ Example usage:
         id=1,
         dashboard_title="Sales Dashboard",
         published=True,
-        owners=[UserInfo(id=1, username="admin")],
+        tags=[TagInfo(id=1, name="sales")],
         charts=[DashboardChartSummary(id=1, slice_name="Sales Chart")]
     )
 
@@ -91,7 +91,6 @@ from superset.mcp_service.system.schemas import (
     PaginationInfo,
     RoleInfo,
     TagInfo,
-    UserInfo,
 )
 from superset.mcp_service.utils.sanitization import (
     _remove_dangerous_unicode,
@@ -341,26 +340,12 @@ class DashboardInfo(BaseModel):
     external_url: str | None = None
     created_on: str | datetime | None = None
     changed_on: str | datetime | None = None
-    created_by: str | None = Field(
-        None, description="Omitted from MCP responses to protect user privacy"
-    )
-    changed_by: str | None = Field(
-        None, description="Omitted from MCP responses to protect user privacy"
-    )
     uuid: str | None = None
     url: str | None = None
     created_on_humanized: str | None = None
     changed_on_humanized: str | None = None
     chart_count: int = 0
-    owners: List[UserInfo] = Field(
-        default_factory=list,
-        description="Omitted from MCP responses to protect user privacy",
-    )
     tags: List[TagInfo] = Field(default_factory=list)
-    roles: List[RoleInfo] = Field(
-        default_factory=list,
-        description="Omitted from MCP responses to protect user privacy",
-    )
     charts: List[DashboardChartSummary] = Field(default_factory=list)
 
     # Structured filter information extracted from json_metadata
@@ -679,8 +664,6 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         external_url=dashboard.external_url,
         created_on=dashboard.created_on,
         changed_on=dashboard.changed_on,
-        created_by=None,
-        changed_by=None,
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
         url=absolute_url,
         created_on_humanized=dashboard.created_on_humanized,
@@ -696,13 +679,11 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
             getattr(dashboard, "json_metadata", None),
             getattr(dashboard, "position_json", None),
         ),
-        owners=[],
         tags=[
             TagInfo.model_validate(tag, from_attributes=True) for tag in dashboard.tags
         ]
         if dashboard.tags
         else [],
-        roles=[],
         charts=[
             summary
             for chart in dashboard.slices
@@ -743,12 +724,10 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         slug=slug or "",
         url=dashboard_url,
         published=getattr(dashboard, "published", None),
-        changed_by=None,
         changed_on=getattr(dashboard, "changed_on", None),
         changed_on_humanized=_humanize_timestamp(
             getattr(dashboard, "changed_on", None)
         ),
-        created_by=None,
         created_on=getattr(dashboard, "created_on", None),
         created_on_humanized=_humanize_timestamp(
             getattr(dashboard, "created_on", None)
@@ -766,14 +745,12 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         if getattr(dashboard, "uuid", None)
         else None,
         chart_count=len(getattr(dashboard, "slices", [])),
-        owners=[],
         tags=[
             TagInfo.model_validate(tag, from_attributes=True)
             for tag in getattr(dashboard, "tags", [])
         ]
         if getattr(dashboard, "tags", None)
         else [],
-        roles=[],
         charts=[
             summary
             for chart in getattr(dashboard, "slices", [])

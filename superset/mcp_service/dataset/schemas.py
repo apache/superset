@@ -42,7 +42,6 @@ from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     TagInfo,
-    UserInfo,
 )
 from superset.utils import json
 
@@ -108,27 +107,17 @@ class DatasetInfo(BaseModel):
     certification_details: str | None = Field(
         None, description="Certification details or reason"
     )
-    changed_by: str | None = Field(
-        None, description="Omitted from MCP responses to protect user privacy"
-    )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
     changed_on_humanized: str | None = Field(
         None, description="Humanized modification time"
     )
-    created_by: str | None = Field(
-        None, description="Omitted from MCP responses to protect user privacy"
-    )
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
     )
     tags: List[TagInfo] = Field(default_factory=list, description="Dataset tags")
-    owners: List[UserInfo] = Field(
-        default_factory=list,
-        description="Omitted from MCP responses to protect user privacy",
-    )
     is_virtual: bool | None = Field(
         None, description="Whether the dataset is virtual (uses SQL)"
     )
@@ -452,10 +441,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         description=getattr(dataset, "description", None),
         certified_by=getattr(dataset, "certified_by", None),
         certification_details=getattr(dataset, "certification_details", None),
-        changed_by=None,
         changed_on=getattr(dataset, "changed_on", None),
         changed_on_humanized=_humanize_timestamp(getattr(dataset, "changed_on", None)),
-        created_by=None,
         created_on=getattr(dataset, "created_on", None),
         created_on_humanized=_humanize_timestamp(getattr(dataset, "created_on", None)),
         tags=[
@@ -464,7 +451,6 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         ]
         if getattr(dataset, "tags", None)
         else [],
-        owners=[],
         is_virtual=getattr(dataset, "is_virtual", None),
         database_id=getattr(dataset, "database_id", None),
         uuid=str(getattr(dataset, "uuid", ""))

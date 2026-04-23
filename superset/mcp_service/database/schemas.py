@@ -116,17 +116,11 @@ class DatabaseInfo(BaseModel):
         None, description="URL of the external management system"
     )
     extra: Dict[str, Any | None] | None = Field(None, description="Extra configuration")
-    changed_by: str | None = Field(
-        None, description="Omitted from MCP responses to protect user privacy"
-    )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
     changed_on_humanized: str | None = Field(
         None, description="Humanized modification time"
-    )
-    created_by: str | None = Field(
-        None, description="Omitted from MCP responses to protect user privacy"
     )
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
@@ -350,10 +344,8 @@ def serialize_database_object(database: Any) -> DatabaseInfo | None:
         is_managed_externally=getattr(database, "is_managed_externally", None),
         external_url=getattr(database, "external_url", None),
         extra=_parse_json_field(database, "extra"),
-        changed_by=None,
         changed_on=getattr(database, "changed_on", None),
         changed_on_humanized=_humanize_timestamp(getattr(database, "changed_on", None)),
-        created_by=None,
         created_on=getattr(database, "created_on", None),
         created_on_humanized=_humanize_timestamp(getattr(database, "created_on", None)),
     )

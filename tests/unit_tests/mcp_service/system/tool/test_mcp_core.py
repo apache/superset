@@ -138,7 +138,7 @@ def test_model_list_tool_rejects_only_user_directory_select_columns():
         output_list_schema=DummyListSchema,
     )
 
-    with pytest.raises(ValueError, match="select_columns"):
+    with pytest.raises(ValueError, match="contains no valid columns"):
         tool.run_tool(select_columns=["created_by", "owners"])
 
 

@@ -153,7 +153,7 @@ class ModelListCore(BaseCore, Generic[L]):
         parsed_columns = parse_json_or_list(select_columns, param_name="select_columns")
         columns_to_load = filter_user_directory_columns(parsed_columns)
         if not columns_to_load:
-            raise ValueError("select_columns cannot contain only user-directory fields")
+            raise ValueError("select_columns contains no valid columns")
 
         return columns_to_load, list(columns_to_load)
 

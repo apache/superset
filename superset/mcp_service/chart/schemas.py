@@ -55,7 +55,6 @@ from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     TagInfo,
-    UserInfo,
 )
 from superset.mcp_service.utils.sanitization import (
     sanitize_filter_value,
@@ -102,20 +101,11 @@ class ChartInfo(BaseModel):
     url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
     cache_timeout: int | None = Field(None, description="Cache timeout")
-    changed_by: str | None = Field(
-        None, description="Omitted from MCP responses to protect user privacy"
-    )
-    changed_by_name: str | None = Field(
-        None, description="Omitted from MCP responses to protect user privacy"
-    )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
     changed_on_humanized: str | None = Field(
         None, description="Humanized modification time"
-    )
-    created_by: str | None = Field(
-        None, description="Omitted from MCP responses to protect user privacy"
     )
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
@@ -129,10 +119,6 @@ class ChartInfo(BaseModel):
     )
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
-    owners: List[UserInfo] = Field(
-        default_factory=list,
-        description="Omitted from MCP responses to protect user privacy",
-    )
 
     # Filters extracted from form_data for easy inspection
     filters: ChartFiltersInfo | None = Field(
@@ -426,11 +412,8 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         cache_timeout=getattr(chart, "cache_timeout", None),
         form_data=chart_form_data,
         filters=filters_info,
-        changed_by=None,
-        changed_by_name=None,
         changed_on=getattr(chart, "changed_on", None),
         changed_on_humanized=_humanize_timestamp(getattr(chart, "changed_on", None)),
-        created_by=None,
         created_on=getattr(chart, "created_on", None),
         created_on_humanized=_humanize_timestamp(getattr(chart, "created_on", None)),
         uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
@@ -440,7 +423,6 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         ]
         if getattr(chart, "tags", None)
         else [],
-        owners=[],
     )
 
 
