@@ -698,17 +698,17 @@ This makes MCP activity fully auditable alongside regular Superset activity. The
 
 ### Middleware Pipeline
 
-Every MCP request passes through a fixed middleware stack before reaching the tool function. The layers run in this order:
+Every MCP request passes through a middleware stack before reaching the tool function. The default stack (assembled in `build_middleware_list()` in `server.py`) is:
 
 | Middleware | Purpose | Default |
 |------------|---------|---------|
-| `RateLimitMiddleware` | Sliding-window rate limiting (Redis or in-memory) | Disabled |
-| `ResponseSizeGuardMiddleware` | Estimates token count, warns at 80% of limit, blocks at limit | Enabled |
-| `FieldPermissionsMiddleware` | Strips response fields the authenticated user lacks access to | Enabled |
+| `StructuredContentStripperMiddleware` | Strips `structuredContent` from responses for Claude.ai bridge compatibility | Enabled |
 | `LoggingMiddleware` | Logs each tool call with user, parameters, and duration | Enabled |
 | `GlobalErrorHandlerMiddleware` | Catches unhandled exceptions and sanitizes sensitive data before it reaches the client | Enabled |
-| `PrivateToolMiddleware` | Blocks invocation of tools tagged as private | Enabled |
-| `StructuredContentStripperMiddleware` | Strips `structuredContent` from responses for Claude.ai bridge compatibility | Enabled |
+| `ResponseSizeGuardMiddleware` | Estimates token count, warns at 80% of limit, blocks at limit | Enabled (configurable via `MCP_RESPONSE_SIZE_CONFIG`) |
+| `ResponseCachingMiddleware` | Caches read-heavy tool responses (in-memory or Redis) | Disabled (enable via `MCP_CACHE_CONFIG`) |
+
+Additional middleware classes (`RateLimitMiddleware`, `FieldPermissionsMiddleware`, `PrivateToolMiddleware`) are implemented in `superset/mcp_service/middleware.py` but are not added to the default pipeline. They are available for operators who want to layer them in via a custom startup path.
 
 ### Error Sanitization
 
