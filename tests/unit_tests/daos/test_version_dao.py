@@ -203,7 +203,7 @@ def test_parse_slice_ids_json_handles_invalid_json():
 
 
 @patch.object(VersionDAO, "_find_active_entity_by_uuid", return_value=None)
-def test_restore_version_returns_none_for_unknown_entity(_mock_find):
+def test_restore_version_returns_none_for_unknown_entity(mock_find):
     """Unknown entity UUID → caller raises 404."""
     result = VersionDAO.restore_version(
         MagicMock(__name__="Dashboard"),
