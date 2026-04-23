@@ -24,7 +24,14 @@ import {
   FeatureFlag,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
-import { FunctionComponent, useState, useMemo, useCallback, Key } from 'react';
+import {
+  FunctionComponent,
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  Key,
+} from 'react';
 import type { CellProps } from 'react-table';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
@@ -183,6 +190,155 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [loading, setLoading] = useState(true);
   const [lastFetchConfig, setLastFetchConfig] =
     useState<ListViewFetchDataConfig | null>(null);
+  const [currentSourceFilter, setCurrentSourceFilter] = useState<string>('');
+  // Track the current type and connection filter values so cascade-clear logic
+  // can inspect them when a different filter changes.
+  const currentTypeFilter = useRef<unknown>(undefined);
+  const currentConnectionFilter = useRef<unknown>(undefined);
+
+  // Ref wired to ListView's filter controls for programmatic per-filter clearing.
+  const filtersRef = useRef<{
+    clearFilters: () => void;
+    clearFilterById: (id: string) => void;
+  }>(null);
+
+  /**
+   * Cascade-clear incompatible filters when one filter changes.
+   *
+   * Rules:
+   * - Selecting a DB connection → clear "Semantic View" type
+   * - Selecting a SL connection → clear "Physical" / "Virtual" type
+   * - Selecting Physical/Virtual type → clear any SL connection
+   * - Selecting Semantic View type → clear any DB connection
+   * - Selecting Source=Database → clear SL connection + Semantic View type
+   * - Selecting Source=Semantic Layer → clear DB connection + Physical/Virtual type
+   */
+  const cascadeClear = useCallback(
+    (changed: 'source' | 'type' | 'connection', newValue: unknown) => {
+      if (!isFeatureEnabled(FeatureFlag.SemanticLayers)) return;
+
+      const isSlConnection = (v: unknown) =>
+        typeof v === 'string' && v.startsWith('sl:');
+      const isDbConnection = (v: unknown) =>
+        v !== undefined && v !== null && v !== '' && !isSlConnection(v);
+      const isSemanticViewType = (v: unknown) => v === 'semantic_view';
+      const isPhysicalVirtualType = (v: unknown) => v === true || v === false;
+
+      if (changed === 'connection') {
+        if (
+          isSlConnection(newValue) &&
+          isPhysicalVirtualType(currentTypeFilter.current)
+        ) {
+          filtersRef.current?.clearFilterById('sql');
+        }
+        if (
+          isDbConnection(newValue) &&
+          isSemanticViewType(currentTypeFilter.current)
+        ) {
+          filtersRef.current?.clearFilterById('sql');
+        }
+      }
+
+      if (changed === 'type') {
+        if (
+          isSemanticViewType(newValue) &&
+          isDbConnection(currentConnectionFilter.current)
+        ) {
+          filtersRef.current?.clearFilterById('database');
+        }
+        if (
+          isPhysicalVirtualType(newValue) &&
+          isSlConnection(currentConnectionFilter.current)
+        ) {
+          filtersRef.current?.clearFilterById('database');
+        }
+      }
+
+      if (changed === 'source') {
+        const src = newValue as string;
+        if (src === 'database') {
+          if (isSemanticViewType(currentTypeFilter.current)) {
+            filtersRef.current?.clearFilterById('sql');
+          }
+          if (isSlConnection(currentConnectionFilter.current)) {
+            filtersRef.current?.clearFilterById('database');
+          }
+        }
+        if (src === 'semantic_layer') {
+          if (isPhysicalVirtualType(currentTypeFilter.current)) {
+            filtersRef.current?.clearFilterById('sql');
+          }
+          if (isDbConnection(currentConnectionFilter.current)) {
+            filtersRef.current?.clearFilterById('database');
+          }
+        }
+      }
+    },
+    [],
+  );
+
+  /**
+   * Fetches "Data connection" filter options — a combined list of databases
+   * and semantic layers.
+   *
+   * Semantic layer values are prefixed with "sl:" so that fetchData can tell
+   * them apart from integer database IDs and route to the correct API filter.
+   */
+  const fetchConnectionOptions = useCallback(
+    async (filterValue = '', page: number, pageSize: number) => {
+      const showDatabases = currentSourceFilter !== 'semantic_layer';
+      const showSemanticLayers =
+        isFeatureEnabled(FeatureFlag.SemanticLayers) &&
+        currentSourceFilter !== 'database';
+
+      const [dbResult, slResult] = await Promise.all([
+        showDatabases
+          ? createFetchRelated(
+              'dataset',
+              'database',
+              createErrorHandler(errMsg =>
+                t(
+                  'An error occurred while fetching %s: %s',
+                  datasetsLabelLower(),
+                  errMsg,
+                ),
+              ),
+            )(filterValue, page, pageSize)
+          : Promise.resolve({ data: [], totalCount: 0 }),
+        showSemanticLayers
+          ? SupersetClient.get({
+              endpoint: `/api/v1/semantic_layer/?q=${rison.encode_uri({
+                ...(filterValue
+                  ? {
+                      filters: [{ col: 'name', opr: 'ct', value: filterValue }],
+                    }
+                  : {}),
+                page: 0,
+                page_size: 100,
+              })}`,
+            })
+              .then(({ json = {} }) => ({
+                data: (json?.result ?? []).map(
+                  (layer: { uuid: string; name: string }) => ({
+                    label: layer.name,
+                    // "sl:" prefix distinguishes semantic layers from DB integer IDs
+                    value: `sl:${layer.uuid}`,
+                  }),
+                ),
+                totalCount: json?.count ?? 0,
+              }))
+              .catch(() => ({ data: [], totalCount: 0 }))
+          : Promise.resolve({ data: [], totalCount: 0 }),
+      ]);
+
+      return {
+        // Semantic layers first, then databases
+        data: [...slResult.data, ...dbResult.data],
+        totalCount: slResult.totalCount + dbResult.totalCount,
+      };
+    },
+    [currentSourceFilter],
+  );
 
   const fetchData = useCallback(
     (config: ListViewFetchDataConfig) => {
@@ -190,11 +346,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       setLoading(true);
       const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
 
-      // Separate source_type filter from other filters
+      // Separate source_type and database/connection filters for special handling
       const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
+      const databaseFilter = filterValues.find(f => f.id === 'database');
+
+      // Track source filter for conditional Type filter visibility
+      const sourceVal =
+        sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
+          ? (sourceTypeFilter.value as { value: string }).value
+          : ((sourceTypeFilter?.value as string) ?? '');
+      setCurrentSourceFilter(sourceVal);
 
       const otherFilters = filterValues
-        .filter(f => f.id !== 'source_type')
+        .filter(f => f.id !== 'source_type' && f.id !== 'database')
         .filter(
           ({ value }) => value !== '' && value !== null && value !== undefined,
         )
@@ -207,26 +371,50 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               : value,
         }));
 
-      // Add source_type filter for the combined endpoint
-      const sourceTypeValue =
-        sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
-          ? (sourceTypeFilter.value as { value: string }).value
-          : (sourceTypeFilter?.value as string | undefined);
-      if (sourceTypeValue) {
-        otherFilters.push({
-          col: 'source_type',
-          opr: 'eq',
-          value: sourceTypeValue,
-        });
-      }
+        // Add source_type filter for the combined endpoint
+        const sourceTypeValue =
+          sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
+            ? (sourceTypeFilter.value as { value: string }).value
+            : (sourceTypeFilter?.value as string | undefined);
+        if (sourceTypeValue) {
+          otherFilters.push({
+            col: 'source_type',
+            opr: 'eq',
+            value: sourceTypeValue,
+          });
+        }
 
-      const queryParams = rison.encode_uri({
-        order_column: sortBy[0].id,
-        order_direction: sortBy[0].desc ? 'desc' : 'asc',
-        page: pageIndex,
-        page_size: pageSize,
-        ...(otherFilters.length ? { filters: otherFilters } : {}),
-      });
+        const queryParams = rison.encode_uri({
+          order_column: sortBy[0].id,
+          order_direction: sortBy[0].desc ? 'desc' : 'asc',
+          page: pageIndex,
+          page_size: pageSize,
+          ...(otherFilters.length ? { filters: otherFilters } : {}),
+        });
+
+      // Translate the "Data connection" filter: values prefixed with "sl:" are
+      // semantic layer UUIDs; plain values are database IDs.
+      if (databaseFilter?.value !== undefined && databaseFilter.value !== '') {
+        const raw =
+          databaseFilter.value &&
+          typeof databaseFilter.value === 'object' &&
+          'value' in databaseFilter.value
+            ? (databaseFilter.value as { value: unknown }).value
+            : databaseFilter.value;
+        if (typeof raw === 'string' && raw.startsWith('sl:')) {
+          otherFilters.push({
+            col: 'semantic_layer_uuid',
+            opr: 'eq',
+            value: raw.slice(3),
+          });
+        } else if (raw !== null && raw !== undefined && raw !== '') {
+          otherFilters.push({
+            col: 'database',
+            opr: databaseFilter.operator,
+            value: raw as string | number,
+          });
+        }
+      }
 
       return SupersetClient.get({
         endpoint: `/api/v1/datasource/?q=${queryParams}`,
@@ -269,9 +457,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [svCurrentlyEditing, setSvCurrentlyEditing] = useState<Dataset | null>(
     null,
   );
-
-  const [svCurrentlyDeleting, setSvCurrentlyDeleting] =
-    useState<Dataset | null>(null);
 
   const [showAddSemanticViewModal, setShowAddSemanticViewModal] =
     useState(false);
@@ -410,18 +595,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     [addDangerToast, setPreparingExport],
   );
 
-  const handleSemanticViewDelete = (sv: Dataset) => {
-    setSvCurrentlyDeleting(sv);
-  };
-
-  const handleSemanticViewDeleteConfirm = () => {
-    if (!svCurrentlyDeleting) return;
-    const { id, table_name: tableName } = svCurrentlyDeleting;
+  const handleSemanticViewDelete = ({ id, table_name: tableName }: Dataset) => {
     SupersetClient.delete({
       endpoint: `/api/v1/semantic_view/${id}`,
     }).then(
       () => {
-        setSvCurrentlyDeleting(null);
         refreshData();
         addSuccessToast(t('Deleted: %s', tableName));
       },
@@ -755,6 +933,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 { label: t('Database'), value: 'database' },
                 { label: t('Semantic Layer'), value: 'semantic_layer' },
               ],
+              onFilterUpdate: (option: any) => {
+                cascadeClear('source', option?.value);
+              },
             },
           ]
         : []),
@@ -785,6 +966,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   ? [{ label: t('Semantic View'), value: 'semantic_view' }]
                   : []),
               ],
+              onFilterUpdate: (option: any) => {
+                currentTypeFilter.current = option?.value;
+                cascadeClear('type', option?.value);
+              },
             },
           ]
         : [
@@ -817,6 +1002,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        onFilterUpdate: (option: any) => {
+          currentConnectionFilter.current = option?.value;
+          cascadeClear('connection', option?.value);
+        },
       },
       {
         Header: t('Schema'),
@@ -1037,26 +1226,25 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
     if (semanticViews.length) {
       promises.push(
-        SupersetClient.delete({
-          endpoint: `/api/v1/semantic_view/?q=${rison.encode(
-            semanticViews.map(({ id }) => id),
-          )}`,
-        }),
+        ...semanticViews.map(sv =>
+          SupersetClient.delete({
+            endpoint: `/api/v1/semantic_view/${sv.id}`,
+          }),
+        ),
       );
     }
 
-    Promise.allSettled(promises).then(results => {
-      const failures = results.filter(r => r.status === 'rejected');
-      // Always refresh so the list reflects whatever actually got deleted.
-      refreshData();
-      if (failures.length === 0) {
+    Promise.all(promises).then(
+      () => {
+        refreshData();
         addSuccessToast(t('Deleted %s item(s)', datasetsToDelete.length));
-      } else {
+      },
+      createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting the selected items'),
-        );
-      }
-    });
+          t('There was an issue deleting the selected datasets: %s', errMsg),
+        ),
+      ),
+    );
   };
 
   const handleDatasetDuplicate = (newDatasetName: string) => {
@@ -1200,18 +1388,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           title={t('Delete Dataset?')}
         />
       )}
-      {svCurrentlyDeleting && (
-        <DeleteModal
-          description={t(
-            'Are you sure you want to delete %s?',
-            svCurrentlyDeleting.table_name,
-          )}
-          onConfirm={handleSemanticViewDeleteConfirm}
-          onHide={() => setSvCurrentlyDeleting(null)}
-          open
-          title={t('Delete Semantic View?')}
-        />
-      )}
       {datasetCurrentlyEditing && (
         <DatasourceModal
           datasource={datasetCurrentlyEditing}
@@ -1274,6 +1450,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               pageSize={PAGE_SIZE}
               fetchData={fetchData}
               filters={filterTypes}
+              filtersRef={filtersRef}
               loading={loading}
               initialSort={initialSort}
               bulkActions={bulkActions}

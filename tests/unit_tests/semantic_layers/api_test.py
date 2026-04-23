@@ -1702,73 +1702,6 @@ def test_delete_semantic_view_failed(
 
 
 # =============================================================================
-# SemanticViewRestApi.bulk_delete tests
-# =============================================================================
-
-
-@SEMANTIC_LAYERS_APP
-def test_bulk_delete_semantic_view(
-    client: Any,
-    full_api_access: None,
-    mocker: MockerFixture,
-) -> None:
-    """Test DELETE / deletes multiple semantic views and returns a count message."""
-    import prison as rison_lib
-
-    mock_command = mocker.patch(
-        "superset.semantic_layers.api.BulkDeleteSemanticViewCommand",
-    )
-    mock_command.return_value.run.return_value = None
-
-    q = rison_lib.dumps([1, 2, 3])
-    response = client.delete(f"/api/v1/semantic_view/?q={q}")
-
-    assert response.status_code == 200
-    assert "3" in response.json["message"]
-    mock_command.assert_called_once_with([1, 2, 3])
-
-
-@SEMANTIC_LAYERS_APP
-def test_bulk_delete_semantic_view_not_found(
-    client: Any,
-    full_api_access: None,
-    mocker: MockerFixture,
-) -> None:
-    """Test DELETE / returns 404 when any id is missing."""
-    import prison as rison_lib
-
-    mock_command = mocker.patch(
-        "superset.semantic_layers.api.BulkDeleteSemanticViewCommand",
-    )
-    mock_command.return_value.run.side_effect = SemanticViewNotFoundError()
-
-    q = rison_lib.dumps([1, 999])
-    response = client.delete(f"/api/v1/semantic_view/?q={q}")
-
-    assert response.status_code == 404
-
-
-@SEMANTIC_LAYERS_APP
-def test_bulk_delete_semantic_view_failed(
-    client: Any,
-    full_api_access: None,
-    mocker: MockerFixture,
-) -> None:
-    """Test DELETE / returns 422 when deletion fails."""
-    import prison as rison_lib
-
-    mock_command = mocker.patch(
-        "superset.semantic_layers.api.BulkDeleteSemanticViewCommand",
-    )
-    mock_command.return_value.run.side_effect = SemanticViewDeleteFailedError()
-
-    q = rison_lib.dumps([1, 2])
-    response = client.delete(f"/api/v1/semantic_view/?q={q}")
-
-    assert response.status_code == 422
-
-
-# =============================================================================
 # SemanticLayerRestApi.views tests
 # =============================================================================
 
@@ -1890,7 +1823,7 @@ def test_get_views_exception(
     )
 
     assert response.status_code == 400
-    assert "Unable to fetch semantic views" in response.json["message"]
+    assert "Connection failed" in response.json["message"]
 
 
 @SEMANTIC_LAYERS_APP

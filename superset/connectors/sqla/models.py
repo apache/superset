@@ -270,6 +270,26 @@ class BaseDatasource(
         # Check if all requested columns are drillable
         return set(column_names).issubset(drillable_columns)
 
+    def get_compatible_metrics(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> list[str]:
+        """
+        SQL datasets have no compatibility constraints — return all metrics.
+        """
+        return [m.metric_name for m in self.metrics]
+
+    def get_compatible_dimensions(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> list[str]:
+        """
+        SQL datasets have no compatibility constraints — return all columns.
+        """
+        return [c.column_name for c in self.columns]
+
     def get_time_grains(self) -> list[TimeGrainDict]:
         """
         Get available time granularities from the database.
@@ -449,6 +469,7 @@ class BaseDatasource(
             "column_formats": self.column_formats,
             "description": self.description,
             "database": self.database.data,  # pylint: disable=no-member
+            "parent": {"name": self.database.data["name"]},  # pylint: disable=no-member
             "default_endpoint": self.default_endpoint,
             "filter_select": self.filter_select_enabled,  # TODO deprecate
             "filter_select_enabled": self.filter_select_enabled,

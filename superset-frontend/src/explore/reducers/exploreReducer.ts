@@ -65,6 +65,9 @@ export interface ExploreState {
   metadata?: {
     owners?: string[] | null;
   };
+  compatibleMetrics?: string[] | null;
+  compatibleDimensions?: string[] | null;
+  compatibilityLoading?: boolean;
   saveAction?: SaveActionType | null;
 }
 
@@ -165,6 +168,13 @@ interface SetForceQueryAction {
   force: boolean;
 }
 
+interface SetCompatibilityAction {
+  type: typeof actions.SET_COMPATIBILITY;
+  compatibleMetrics: string[] | null;
+  compatibleDimensions: string[] | null;
+  compatibilityLoading: boolean;
+}
+
 type ExploreAction =
   | DynamicPluginControlsReadyAction
   | ToggleFaveStarAction
@@ -183,6 +193,7 @@ type ExploreAction =
   | SetStashFormDataAction
   | SliceUpdatedAction
   | SetForceQueryAction
+  | SetCompatibilityAction
   | HydrateExplore;
 
 // Extended control state for dynamic form controls - uses Record for flexibility
@@ -619,6 +630,15 @@ export default function exploreReducer(
       return {
         ...state,
         force: typedAction.force,
+      };
+    },
+    [actions.SET_COMPATIBILITY]() {
+      const typedAction = action as SetCompatibilityAction;
+      return {
+        ...state,
+        compatibleMetrics: typedAction.compatibleMetrics,
+        compatibleDimensions: typedAction.compatibleDimensions,
+        compatibilityLoading: typedAction.compatibilityLoading,
       };
     },
     [HYDRATE_EXPLORE]() {

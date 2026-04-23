@@ -22,21 +22,24 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy.exc import StatementError
-
 from superset_core.semantic_layers.daos import (
     AbstractSemanticLayerDAO,
     AbstractSemanticViewDAO,
 )
 
+from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 
 
-class SemanticLayerDAO(AbstractSemanticLayerDAO):
+class SemanticLayerDAO(BaseDAO[SemanticLayer], AbstractSemanticLayerDAO):
     """
     Data Access Object for SemanticLayer model.
     """
+
+    # SemanticLayer uses uuid as the primary key
+    id_column_name = "uuid"
 
     model_cls = SemanticLayer
 
@@ -112,7 +115,7 @@ class SemanticLayerDAO(AbstractSemanticLayerDAO):
         )
 
 
-class SemanticViewDAO(AbstractSemanticViewDAO):
+class SemanticViewDAO(BaseDAO[SemanticView], AbstractSemanticViewDAO):
     """Data Access Object for SemanticView model."""
 
     model_cls = SemanticView
