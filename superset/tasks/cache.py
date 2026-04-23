@@ -236,14 +236,20 @@ def cache_warmup(
 
     results: dict[str, list[str]] = {"success": [], "errors": []}
 
-    user = security_manager.find_user(
-        username=current_app.config["SUPERSET_CACHE_WARMUP_USER"]
-    )
+    warmup_username = current_app.config.get("SUPERSET_CACHE_WARMUP_USER")
+    if not warmup_username:
+        message = (
+            "SUPERSET_CACHE_WARMUP_USER is not configured. Set it to a dedicated "
+            "least-privilege user with access to the dashboards you want warmed up."
+        )
+        logger.error(message)
+        return message
+
+    user = security_manager.find_user(username=warmup_username)
     if not user:
         message = (
-            f"Cache warmup user '{current_app.config['SUPERSET_CACHE_WARMUP_USER']}' "
-            "not found. Please configure SUPERSET_CACHE_WARMUP_USER with a valid "
-            "username."
+            f"Cache warmup user '{warmup_username}' not found. Please configure "
+            "SUPERSET_CACHE_WARMUP_USER with a valid username."
         )
         logger.error(message)
         return message
