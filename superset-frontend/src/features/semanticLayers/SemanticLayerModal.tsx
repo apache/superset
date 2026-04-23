@@ -385,16 +385,25 @@ export default function SemanticLayerModal({
             />
           </ModalFormField>
           {configSchema && (
-            <JsonForms
-              schema={configSchema}
-              uischema={uiSchema}
-              data={formData}
-              renderers={renderers}
-              cells={cellRegistryEntries}
-              config={{ refreshingSchema, formData }}
-              validationMode={validationMode}
-              onChange={handleFormChange}
-            />
+            // Wrap in a form with autocomplete="off" so browsers do not
+            // autofill credential fields (service token, account, etc.).
+            // eslint-disable-next-line jsx-a11y/no-redundant-roles
+            <form
+              role="presentation"
+              autoComplete="off"
+              onSubmit={e => e.preventDefault()}
+            >
+              <JsonForms
+                schema={configSchema}
+                uischema={uiSchema}
+                data={formData}
+                renderers={renderers}
+                cells={cellRegistryEntries}
+                config={{ refreshingSchema, formData }}
+                validationMode={validationMode}
+                onChange={handleFormChange}
+              />
+            </form>
           )}
         </ModalContent>
       )}
