@@ -18,6 +18,7 @@
 from collections.abc import Iterator
 
 import pytest
+from sqlalchemy import literal, select
 from sqlalchemy.orm.session import Session
 
 from superset.utils.core import DatasourceType
@@ -137,4 +138,32 @@ def test_not_found_datasource(session_with_data: Session) -> None:
         DatasourceDAO.get_datasource(
             datasource_type="table",
             database_id_or_uuid=500000,
+        )
+
+
+def test_escape_ilike_fragment() -> None:
+    from superset.daos.datasource import _escape_ilike_fragment
+
+    assert _escape_ilike_fragment("foo%bar_baz\\") == "foo\\%bar\\_baz\\\\"
+
+
+def test_paginate_combined_query_invalid_sort_column() -> None:
+    from superset.daos.datasource import DatasourceDAO
+
+    combined = (
+        select(
+            literal(1).label("item_id"),
+            literal("database").label("source_type"),
+            literal("2026-01-01").label("changed_on"),
+            literal("name").label("table_name"),
+        )
+    ).subquery()
+
+    with pytest.raises(ValueError, match="Invalid order column: invalid"):
+        DatasourceDAO.paginate_combined_query(
+            combined=combined,
+            order_column="invalid",
+            order_direction="desc",
+            page=0,
+            page_size=25,
         )
