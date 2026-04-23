@@ -406,10 +406,10 @@ sqlalchemy==1.4.54
     #   flask-sqlalchemy
     #   marshmallow-sqlalchemy
     #   shillelagh
+    #   sqlalchemy-continuum
     #   sqlalchemy-utils
 sqlalchemy-continuum==1.6.0
-    # via
-    #   apache-superset (pyproject.toml)
+    # via apache-superset (pyproject.toml)
 sqlalchemy-utils==0.42.0
     # via
     #   apache-superset (pyproject.toml)

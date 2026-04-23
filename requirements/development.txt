@@ -971,9 +971,14 @@ sqlalchemy==1.4.54
     #   marshmallow-sqlalchemy
     #   shillelagh
     #   sqlalchemy-bigquery
+    #   sqlalchemy-continuum
     #   sqlalchemy-utils
 sqlalchemy-bigquery==1.15.0
     # via apache-superset
+sqlalchemy-continuum==1.6.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 sqlalchemy-utils==0.42.0
     # via
     #   -c requirements/base-constraint.txt
