@@ -17,42 +17,27 @@
 
 """Tests for MCP schema discovery helpers."""
 
-import sqlalchemy as sa
-from sqlalchemy.orm import declarative_base
-
 from superset.mcp_service.common.schema_discovery import (
+    CHART_EXTRA_COLUMNS,
     ColumnMetadata,
     get_columns_from_model,
 )
-
-Base = declarative_base()
-
-
-class ExampleModel(Base):
-    __tablename__ = "example_model"
-
-    id = sa.Column(sa.Integer, primary_key=True)
+from superset.models.slice import Slice
 
 
 def test_get_columns_from_model_excludes_matching_extra_columns():
     columns = get_columns_from_model(
-        ExampleModel,
+        Slice,
         default_columns=["id"],
         extra_columns={
-            "owners": ColumnMetadata(
-                name="owners",
-                description="Owner list",
-                type="list",
-                is_default=False,
-            ),
-            "url": ColumnMetadata(
-                name="url",
-                description="Resource URL",
-                type="str",
-                is_default=False,
-            ),
+            "owners": ColumnMetadata(**CHART_EXTRA_COLUMNS["owners"].model_dump()),
+            "url": ColumnMetadata(**CHART_EXTRA_COLUMNS["url"].model_dump()),
         },
         exclude_columns={"owners"},
     )
 
-    assert [column.name for column in columns] == ["id", "url"]
+    column_names = {column.name for column in columns}
+
+    assert "id" in column_names
+    assert "url" in column_names
+    assert "owners" not in column_names
