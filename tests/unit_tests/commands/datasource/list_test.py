@@ -23,48 +23,69 @@ from superset.commands.datasource.list import GetCombinedDatasourceListCommand
 
 
 def test_parse_filters_semantic_view_requires_dataset_operator() -> None:
-    source_type, name_filter, sql_filter, type_filter = (
-        GetCombinedDatasourceListCommand._parse_filters(
-            [{"col": "sql", "opr": "eq", "value": "semantic_view"}]
-        )
+    (
+        source_type,
+        name_filter,
+        sql_filter,
+        type_filter,
+        database_id,
+        semantic_layer_uuid,
+    ) = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "sql", "opr": "eq", "value": "semantic_view"}]
     )
 
     assert source_type == "all"
     assert name_filter is None
     assert sql_filter is None
     assert type_filter is None
+    assert database_id is None
+    assert semantic_layer_uuid is None
 
 
 def test_parse_filters_semantic_view_with_dataset_operator() -> None:
-    source_type, name_filter, sql_filter, type_filter = (
-        GetCombinedDatasourceListCommand._parse_filters(
-            [
-                {
-                    "col": "sql",
-                    "opr": "dataset_is_null_or_empty",
-                    "value": "semantic_view",
-                }
-            ]
-        )
+    (
+        source_type,
+        name_filter,
+        sql_filter,
+        type_filter,
+        database_id,
+        semantic_layer_uuid,
+    ) = GetCombinedDatasourceListCommand._parse_filters(
+        [
+            {
+                "col": "sql",
+                "opr": "dataset_is_null_or_empty",
+                "value": "semantic_view",
+            }
+        ]
     )
 
     assert source_type == "all"
     assert name_filter is None
     assert sql_filter is None
     assert type_filter == "semantic_view"
+    assert database_id is None
+    assert semantic_layer_uuid is None
 
 
 def test_parse_filters_sql_bool_requires_dataset_operator() -> None:
-    source_type, name_filter, sql_filter, type_filter = (
-        GetCombinedDatasourceListCommand._parse_filters(
-            [{"col": "sql", "opr": "eq", "value": True}]
-        )
+    (
+        source_type,
+        name_filter,
+        sql_filter,
+        type_filter,
+        database_id,
+        semantic_layer_uuid,
+    ) = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "sql", "opr": "eq", "value": True}]
     )
 
     assert source_type == "all"
     assert name_filter is None
     assert sql_filter is None
     assert type_filter is None
+    assert database_id is None
+    assert semantic_layer_uuid is None
 
 
 def test_resolve_source_type_semantic_view_filter_forces_semantic_layer() -> None:

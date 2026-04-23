@@ -318,13 +318,10 @@ class DatasourceRestApi(BaseSupersetApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".compatible",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
         log_to_statsd=False,
     )
-    def compatible(
-        self, datasource_type: str, datasource_id: int
-    ) -> FlaskResponse:
+    def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
         """Return metrics and dimensions compatible with the current selection.
         ---
         post:
@@ -403,16 +400,19 @@ class DatasourceRestApi(BaseSupersetApi):
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
-        cache_key = "compatible:" + hashlib.md5(
-            json.dumps(
-                {
-                    "uid": datasource.uid,
-                    "m": sorted(selected_metrics),
-                    "d": sorted(selected_dimensions),
-                },
-                sort_keys=True,
-            ).encode()
-        ).hexdigest()
+        cache_key = (
+            "compatible:"
+            + hashlib.sha256(
+                json.dumps(
+                    {
+                        "uid": datasource.uid,
+                        "m": sorted(selected_metrics),
+                        "d": sorted(selected_dimensions),
+                    },
+                    sort_keys=True,
+                ).encode()
+            ).hexdigest()
+        )
 
         if (cached := cache_manager.data_cache.get(cache_key)) is not None:
             return self.response(200, result=cached)

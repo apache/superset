@@ -19,7 +19,14 @@
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { styled } from '@apache-superset/core/theme';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  ReactNode,
+} from 'react';
 import cx from 'classnames';
 import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
@@ -354,8 +361,9 @@ export function ListView<T extends object = any>({
   // ref is populated before the first paint and after every update.
   useLayoutEffect(() => {
     if (filtersRef) {
-      (filtersRef as React.MutableRefObject<typeof filterControlsRef.current>).current =
-        filterControlsRef.current;
+      (
+        filtersRef as React.MutableRefObject<typeof filterControlsRef.current>
+      ).current = filterControlsRef.current;
     }
   });
 

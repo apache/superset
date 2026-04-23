@@ -71,35 +71,68 @@ class GetCombinedDatasourceListCommand(BaseCommand):
             semantic_layer_uuid,
         ) = self._parse_filters(filters)
 
-        # A connection filter implicitly narrows the source type: selecting a
-        # database ID means "show only datasets", and selecting a semantic layer
-        # UUID means "show only semantic views".  Only apply the implicit
-        # narrowing when the user hasn't already set an explicit source_type.
-        if source_type == "all":
-            if database_id is not None:
-                source_type = "database"
-            elif semantic_layer_uuid is not None:
-                source_type = "semantic_layer"
-
+        source_type = self._resolve_connection_source_type(
+            source_type,
+            database_id,
+            semantic_layer_uuid,
+        )
         source_type = self._resolve_source_type(source_type, sql_filter, type_filter)
 
         if source_type == "empty":
             return {"count": 0, "result": []}
 
-        ds_q = DatasourceDAO.build_dataset_query(name_filter, sql_filter, database_id)
-        sv_q = DatasourceDAO.build_semantic_view_query(name_filter, semantic_layer_uuid)
-
-        if source_type == "database":
-            combined = ds_q.subquery()
-        elif source_type == "semantic_layer":
-            combined = sv_q.subquery()
-        else:
-            combined = union_all(ds_q, sv_q).subquery()
-
+        combined = self._build_combined_query(
+            source_type,
+            name_filter,
+            sql_filter,
+            database_id,
+            semantic_layer_uuid,
+        )
         total_count, rows = DatasourceDAO.paginate_combined_query(
             combined, order_column, order_direction, page, page_size
         )
 
+        result = self._serialize_rows(rows)
+
+        return {"count": total_count, "result": result}
+
+    @staticmethod
+    def _resolve_connection_source_type(
+        source_type: str,
+        database_id: int | None,
+        semantic_layer_uuid: str | None,
+    ) -> str:
+        # A connection filter implicitly narrows the source type: selecting a
+        # database ID means "show only datasets", and selecting a semantic layer
+        # UUID means "show only semantic views". Only apply the implicit
+        # narrowing when the user hasn't already set an explicit source_type.
+        if source_type == "all":
+            if database_id is not None:
+                return "database"
+            elif semantic_layer_uuid is not None:
+                return "semantic_layer"
+
+        return source_type
+
+    @staticmethod
+    def _build_combined_query(
+        source_type: str,
+        name_filter: str | None,
+        sql_filter: bool | None,
+        database_id: int | None,
+        semantic_layer_uuid: str | None,
+    ) -> Any:
+        ds_q = DatasourceDAO.build_dataset_query(name_filter, sql_filter, database_id)
+        sv_q = DatasourceDAO.build_semantic_view_query(name_filter, semantic_layer_uuid)
+
+        if source_type == "database":
+            return ds_q.subquery()
+        if source_type == "semantic_layer":
+            return sv_q.subquery()
+        return union_all(ds_q, sv_q).subquery()
+
+    @staticmethod
+    def _serialize_rows(rows: list[Any]) -> list[dict[str, Any]]:
         datasets_map = DatasourceDAO.fetch_datasets_by_ids(
             [r.item_id for r in rows if r.source_type == "database"]
         )
@@ -118,7 +151,7 @@ class GetCombinedDatasourceListCommand(BaseCommand):
                 if sv_obj:
                     result.append(_semantic_view_schema.dump(sv_obj))
 
-        return {"count": total_count, "result": result}
+        return result
 
     def validate(self) -> None:
         pass  # access checks are performed by the caller (API layer)
@@ -168,7 +201,8 @@ class GetCombinedDatasourceListCommand(BaseCommand):
             source_type:        "all" | "database" | "semantic_layer"
             name_filter:        substring to match against name/table_name
             sql_filter:         True → physical only, False → virtual only, None → both
-            type_filter:        "semantic_view" when the caller wants only semantic views
+            type_filter:        "semantic_view" when caller wants only
+                                semantic views
             database_id:        filter datasets to a specific database ID
             semantic_layer_uuid: filter semantic views to a specific semantic layer UUID
         """
