@@ -616,7 +616,8 @@ MCP_TOOL_SEARCH_CONFIG = {
     ],
     "search_tool_name": "search_tools",
     "call_tool_name": "call_tool",
-    "compact_schemas": True,   # Strip $defs in search results to save tokens
+    "include_schemas": False,  # False=summary mode (name + parameters_hint)
+    "compact_schemas": True,   # Strip $defs (only applies when include_schemas=True)
     "max_description_length": 300,
 }
 ```
@@ -627,8 +628,9 @@ MCP_TOOL_SEARCH_CONFIG = {
 | `strategy` | `"bm25"` | Search ranking algorithm. `"bm25"` supports natural language; `"regex"` supports pattern matching |
 | `max_results` | `5` | Maximum tools returned per search query |
 | `always_visible` | See above | Tools that always appear in `list_tools`, regardless of search |
-| `compact_schemas` | `True` | Strip `$defs` from search results to reduce token cost. Full schemas are used when the tool is actually called |
-| `max_description_length` | `300` | Truncate tool descriptions in search results (0 = no truncation) |
+| `include_schemas` | `False` | When `False` (default, "summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Set to `True` to include the full `inputSchema` in search results. Full schemas are always used when a tool is actually invoked via `call_tool`. |
+| `compact_schemas` | `True` | Strip `$defs` / `$ref` and replace with `{"type": "object"}` in search results to reduce token cost. Only takes effect when `include_schemas=True` — ignored in summary mode. |
+| `max_description_length` | `300` | Truncate tool descriptions in search results (0 = no truncation). Applies in both summary and full-schema modes. |
 
 :::tip
 Set `enabled: False` to revert to the traditional "show all tools at once" behavior, which some clients or workflows may prefer.
