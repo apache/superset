@@ -1446,7 +1446,11 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
 
         if cache_payload.should_trigger_task(force):
             logger.info("Triggering screenshot ASYNC")
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
+            # Set status to COMPUTING before enqueuing to prevent duplicate
+            # tasks from concurrent requests seeing PENDING status
+            computing_payload = ScreenshotCachePayload()
+            computing_payload.computing()
+            screenshot_obj.cache.set(cache_key, computing_payload.to_dict())
             cache_dashboard_screenshot.delay(
                 username=get_current_user(),
                 guest_token=(
@@ -1642,7 +1646,11 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 "Triggering thumbnail compute (dashboard id: %s) ASYNC",
                 str(dashboard.id),
             )
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
+            # Set status to COMPUTING before enqueuing to prevent duplicate
+            # tasks from concurrent requests seeing PENDING status
+            computing_payload = ScreenshotCachePayload()
+            computing_payload.computing()
+            screenshot_obj.cache.set(cache_key, computing_payload.to_dict())
             cache_dashboard_thumbnail.delay(
                 current_user=current_user,
                 dashboard_id=dashboard.id,
