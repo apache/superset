@@ -20,19 +20,22 @@ import {
   ControlSetItem,
   CustomControlConfig,
   sharedControls,
-  InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
+import { InfoTooltip } from '@superset-ui/core/components';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
 import { debounceFunc } from '../../consts';
 
 interface StyleCustomControlProps {
   value: string;
+  htmlSanitization: boolean;
 }
 
 const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
   const theme = useTheme();
+  const htmlSanitization = props.htmlSanitization ?? true;
 
   const defaultValue = props?.value
     ? undefined
@@ -47,10 +50,16 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
       <ControlHeader>
         <div>
           {props.label}
-          <InfoTooltipWithTrigger
-            iconsStyle={{ marginLeft: theme.gridUnit }}
-            tooltip={t('You need to configure HTML sanitization to use CSS')}
-          />
+          {htmlSanitization && (
+            <InfoTooltip
+              iconStyle={{ marginLeft: theme.sizeUnit }}
+              tooltip={t(
+                'CSS styles may be removed by server-side HTML sanitization. ' +
+                  'If styles are not applying, ask your Superset administrator ' +
+                  'to adjust the HTML sanitization configuration.',
+              )}
+            />
+          )}
         </div>
       </ControlHeader>
       <CodeEditor
@@ -78,8 +87,9 @@ export const styleControlSetItem: ControlSetItem = {
     valueKey: null,
 
     validators: [],
-    mapStateToProps: ({ controls }) => ({
+    mapStateToProps: ({ controls, common }) => ({
       value: controls?.handlebars_template?.value,
+      htmlSanitization: common?.conf?.HTML_SANITIZATION ?? true,
     }),
   },
 };

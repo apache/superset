@@ -17,5 +17,4 @@
  * under the License.
  */
 
-export { Menu } from 'antd';
-export type { MenuProps } from 'antd/lib/menu';
+export { Menu, type MenuProps } from '@superset-ui/core/components';

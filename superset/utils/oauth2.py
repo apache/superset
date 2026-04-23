@@ -17,18 +17,23 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import logging
+import secrets
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator, TYPE_CHECKING
 
 import backoff
 import jwt
-from flask import current_app, url_for
+from flask import current_app as app, url_for
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
+from werkzeug.routing import BuildError
 
 from superset import db
-from superset.distributed_lock import KeyValueDistributedLock
-from superset.exceptions import CreateKeyValueDistributedLockFailedException
+from superset.distributed_lock import DistributedLock
+from superset.exceptions import AcquireDistributedLockFailedException, OAuth2Error
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
@@ -37,13 +42,48 @@ if TYPE_CHECKING:
 
 JWT_EXPIRATION = timedelta(minutes=5)
 
+logger = logging.getLogger(__name__)
+
+# PKCE code verifier length (RFC 7636 recommends 43-128 characters)
+PKCE_CODE_VERIFIER_LENGTH = 64
+
+
+def generate_code_verifier() -> str:
+    """
+    Generate a PKCE code verifier (RFC 7636).
+
+    The code verifier is a high-entropy cryptographic random string using
+    unreserved characters [A-Z] / [a-z] / [0-9] / "-" / "." / "_" / "~",
+    with a minimum length of 43 characters and a maximum length of 128.
+    """
+    # Generate random bytes and encode as URL-safe base64
+    random_bytes = secrets.token_bytes(PKCE_CODE_VERIFIER_LENGTH)
+    # Use URL-safe base64 encoding without padding
+    code_verifier = base64.urlsafe_b64encode(random_bytes).rstrip(b"=").decode("ascii")
+    return code_verifier
+
+
+def generate_code_challenge(code_verifier: str) -> str:
+    """
+    Generate a PKCE code challenge from a code verifier (RFC 7636).
+
+    Uses the S256 method: BASE64URL(SHA256(code_verifier))
+    """
+    # Compute SHA-256 hash of the code verifier
+    digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+    # Encode as URL-safe base64 without padding
+    code_challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return code_challenge
+
 
 @backoff.on_exception(
     backoff.expo,
-    CreateKeyValueDistributedLockFailedException,
-    factor=10,
+    AcquireDistributedLockFailedException,
+    factor=0.1,
     base=2,
-    max_tries=5,
+    max_tries=8,
+    raise_on_giveup=False,
+    giveup_log_level=logging.DEBUG,
 )
 def get_oauth2_access_token(
     config: OAuth2ClientConfig,
@@ -91,15 +131,38 @@ def refresh_oauth2_token(
     db_engine_spec: type[BaseEngineSpec],
     token: DatabaseUserOAuth2Tokens,
 ) -> str | None:
-    with KeyValueDistributedLock(
+    # Use longer TTL for OAuth2 token refresh (may involve network calls)
+    with DistributedLock(
         namespace="refresh_oauth2_token",
+        ttl_seconds=30,
         user_id=user_id,
         database_id=database_id,
     ):
-        token_response = db_engine_spec.get_oauth2_fresh_token(
-            config,
-            token.refresh_token,
-        )
+        try:
+            token_response = db_engine_spec.get_oauth2_fresh_token(
+                config,
+                token.refresh_token,
+            )
+        except db_engine_spec.oauth2_exception as ex:
+            # OAuth token is no longer valid, delete it and start OAuth2 dance
+            logger.warning(
+                "OAuth2 token refresh failed for user=%s db=%s, "
+                "deleting token. Error: %s",
+                user_id,
+                database_id,
+                ex,
+            )
+            db.session.delete(token)
+            db.session.flush()
+            raise
+        except Exception:
+            # non-OAuth related failure, log the exception
+            logger.warning(
+                "OAuth2 token refresh failed for user=%s db=%s",
+                user_id,
+                database_id,
+            )
+            raise
 
         # store new access token; note that the refresh token might be revoked, in which
         # case there would be no access token in the response
@@ -110,6 +173,10 @@ def refresh_oauth2_token(
         token.access_token_expiration = datetime.now() + timedelta(
             seconds=token_response["expires_in"]
         )
+        # Support single-use refresh tokens
+        if new_refresh_token := token_response.get("refresh_token"):
+            token.refresh_token = new_refresh_token
+
         db.session.add(token)
 
     return token.access_token
@@ -119,17 +186,18 @@ def encode_oauth2_state(state: OAuth2State) -> str:
     """
     Encode the OAuth2 state.
     """
-    payload = {
+    payload: dict[str, Any] = {
         "exp": datetime.now(tz=timezone.utc) + JWT_EXPIRATION,
         "database_id": state["database_id"],
         "user_id": state["user_id"],
         "default_redirect_uri": state["default_redirect_uri"],
         "tab_id": state["tab_id"],
     }
+
     encoded_state = jwt.encode(
         payload=payload,
-        key=current_app.config["SECRET_KEY"],
-        algorithm=current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"],
+        key=app.config["SECRET_KEY"],
+        algorithm=app.config["DATABASE_OAUTH2_JWT_ALGORITHM"],
     )
 
     # Google OAuth2 needs periods to be escaped.
@@ -151,12 +219,12 @@ class OAuth2StateSchema(Schema):
         data: dict[str, Any],
         **kwargs: Any,
     ) -> OAuth2State:
-        return OAuth2State(
-            database_id=data["database_id"],
-            user_id=data["user_id"],
-            default_redirect_uri=data["default_redirect_uri"],
-            tab_id=data["tab_id"],
-        )
+        return {
+            "database_id": data["database_id"],
+            "user_id": data["user_id"],
+            "default_redirect_uri": data["default_redirect_uri"],
+            "tab_id": data["tab_id"],
+        }
 
     class Meta:  # pylint: disable=too-few-public-methods
         # ignore `exp`
@@ -175,12 +243,33 @@ def decode_oauth2_state(encoded_state: str) -> OAuth2State:
 
     payload = jwt.decode(
         jwt=encoded_state,
-        key=current_app.config["SECRET_KEY"],
-        algorithms=[current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"]],
+        key=app.config["SECRET_KEY"],
+        algorithms=[app.config["DATABASE_OAUTH2_JWT_ALGORITHM"]],
     )
     state = oauth2_state_schema.load(payload)
 
     return state
+
+
+def get_oauth2_redirect_uri() -> str:
+    """
+    Return the OAuth2 redirect URI.
+
+    Tries the explicit config first, then falls back to url_for().
+    If url_for() fails (e.g. in headless/MCP contexts where the
+    DatabaseRestApi blueprint may not be registered), raises
+    OAuth2Error so callers don't silently proceed with an invalid URI.
+    """
+    if configured := app.config.get("DATABASE_OAUTH2_REDIRECT_URI"):
+        return configured
+
+    try:
+        return url_for("DatabaseRestApi.oauth2", _external=True)
+    except (BuildError, RuntimeError):
+        raise OAuth2Error(
+            "Unable to determine the OAuth2 redirect URI. "
+            "Set DATABASE_OAUTH2_REDIRECT_URI in the configuration."
+        ) from None
 
 
 class OAuth2ClientConfigSchema(Schema):
@@ -189,7 +278,7 @@ class OAuth2ClientConfigSchema(Schema):
     scope = fields.String(required=True)
     redirect_uri = fields.String(
         required=False,
-        load_default=lambda: url_for("DatabaseRestApi.oauth2", _external=True),
+        load_default=get_oauth2_redirect_uri,
     )
     authorization_request_uri = fields.String(required=True)
     token_request_uri = fields.String(required=True)

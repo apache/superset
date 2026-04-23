@@ -31,9 +31,9 @@ from superset.commands.dataset.exceptions import (
     TableNotFoundValidationError,
 )
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.extensions import security_manager
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         dataset.fetch_metadata()
         return dataset
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
         database_id = self._properties["database"]
         catalog = self._properties.get("catalog")
@@ -95,6 +95,13 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                 )
             except SupersetSecurityException as ex:
                 exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+            except SupersetParseError as ex:
+                exceptions.append(
+                    ValidationError(
+                        f"Invalid SQL: {ex.error.message}",
+                        field_name="sql",
+                    )
+                )
         try:
             owners = self.populate_owners(owner_ids)
             self._properties["owners"] = owners

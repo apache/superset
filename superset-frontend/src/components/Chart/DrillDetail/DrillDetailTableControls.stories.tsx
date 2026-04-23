@@ -19,7 +19,7 @@
 import TableControls, { TableControlsProps } from './DrillDetailTableControls';
 
 export default {
-  title: 'DrillDetailTableControls',
+  title: 'Components/Chart/DrillDetail/DrillDetailTableControls',
   component: TableControls,
 };
 
@@ -33,4 +33,9 @@ InteractiveTableControls.args = {
     { op: '>', col: 'tz_offset', val: 200 },
     { op: '==', col: 'platform', val: 'GB' },
   ],
+  canDownload: true,
+  onDownloadCSV: () => {},
+  onDownloadXLSX: () => {},
+  onReload: () => {},
+  loading: false,
 };

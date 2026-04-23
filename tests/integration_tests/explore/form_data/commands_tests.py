@@ -18,8 +18,9 @@
 from unittest.mock import patch
 
 import pytest
+from flask import current_app
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.explore.form_data.create import CreateFormDataCommand
 from superset.commands.explore.form_data.delete import DeleteFormDataCommand
@@ -122,7 +123,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
     @pytest.mark.usefixtures("create_dataset", "create_slice", "create_query")
     def test_create_form_data_command_invalid_type(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
-        app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
+        current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
             "REFRESH_TIMEOUT_ON_RETRIEVAL": True
         }
 
@@ -148,7 +149,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
     @pytest.mark.usefixtures("create_dataset", "create_slice", "create_query")
     def test_create_form_data_command_type_as_string(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
-        app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
+        current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
             "REFRESH_TIMEOUT_ON_RETRIEVAL": True
         }
 
@@ -173,7 +174,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
     @pytest.mark.usefixtures("create_dataset", "create_slice")
     def test_get_form_data_command(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
-        app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
+        current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
             "REFRESH_TIMEOUT_ON_RETRIEVAL": True
         }
 
@@ -202,7 +203,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
     @pytest.mark.usefixtures("create_dataset", "create_slice", "create_query")
     def test_update_form_data_command(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
-        app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
+        current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
             "REFRESH_TIMEOUT_ON_RETRIEVAL": True
         }
 
@@ -252,7 +253,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
     @pytest.mark.usefixtures("create_dataset", "create_slice", "create_query")
     def test_update_form_data_command_same_form_data(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
-        app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
+        current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
             "REFRESH_TIMEOUT_ON_RETRIEVAL": True
         }
 
@@ -300,7 +301,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
     @pytest.mark.usefixtures("create_dataset", "create_slice", "create_query")
     def test_delete_form_data_command(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
-        app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
+        current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
             "REFRESH_TIMEOUT_ON_RETRIEVAL": True
         }
 
@@ -332,7 +333,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
     @pytest.mark.usefixtures("create_dataset", "create_slice", "create_query")
     def test_delete_form_data_command_key_expired(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
-        app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
+        current_app.config["EXPLORE_FORM_DATA_CACHE_CONFIG"] = {
             "REFRESH_TIMEOUT_ON_RETRIEVAL": True
         }
 

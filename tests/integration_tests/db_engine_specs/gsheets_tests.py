@@ -16,10 +16,10 @@
 # under the License.
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.integration_tests.base_tests import SupersetTestCase
 
 
-class TestGsheetsDbEngineSpec(TestDbEngineSpec):
+class TestGsheetsDbEngineSpec(SupersetTestCase):
     def test_extract_errors(self):
         """
         Test that custom error messages are extracted correctly.

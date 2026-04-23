@@ -16,36 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import FormModal from 'src/components/Modal/FormModal';
+import { FormModal, Icons } from '@superset-ui/core/components';
 import { createRole, updateRolePermissions } from './utils';
 import { PermissionsField, RoleNameField } from './RoleFormItems';
-import { BaseModalProps, FormattedPermission, RoleForm } from './types';
+import { BaseModalProps, RoleForm } from './types';
 
-export interface RoleListAddModalProps extends BaseModalProps {
-  permissions: FormattedPermission[];
-}
+export type RoleListAddModalProps = BaseModalProps;
 
-function RoleListAddModal({
-  show,
-  onHide,
-  onSave,
-  permissions,
-}: RoleListAddModalProps) {
+function RoleListAddModal({ show, onHide, onSave }: RoleListAddModalProps) {
   const { addDangerToast, addSuccessToast } = useToasts();
-
   const handleFormSubmit = async (values: RoleForm) => {
     try {
       const { json: roleResponse } = await createRole(values.roleName);
+      const permissionIds =
+        values.rolePermissions?.map(({ value }) => value) || [];
 
-      if (values.rolePermissions?.length > 0) {
-        await updateRolePermissions(roleResponse.id, values.rolePermissions);
+      if (permissionIds.length > 0) {
+        await updateRolePermissions(roleResponse.id, permissionIds);
       }
 
-      addSuccessToast(t('Role was successfully created!'));
+      addSuccessToast(t('The role has been created successfully.'));
     } catch (err) {
-      addDangerToast(t('Error while adding role!'));
+      addDangerToast(
+        t('There was an error creating the role. Please, try again.'),
+      );
       throw err;
     }
   };
@@ -54,7 +51,13 @@ function RoleListAddModal({
     <FormModal
       show={show}
       onHide={onHide}
-      title={t('Add Role')}
+      name="Add Role"
+      title={
+        <ModalTitleWithIcon
+          title={t('Add Role')}
+          icon={<Icons.PlusOutlined />}
+        />
+      }
       onSave={onSave}
       formSubmitHandler={handleFormSubmit}
       requiredFields={['roleName']}
@@ -62,7 +65,7 @@ function RoleListAddModal({
     >
       <>
         <RoleNameField />
-        <PermissionsField permissions={permissions} />
+        <PermissionsField addDangerToast={addDangerToast} />
       </>
     </FormModal>
   );

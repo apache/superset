@@ -16,63 +16,102 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useMemo } from 'react';
-import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
-import { EmptyState } from 'src/components/EmptyState';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import {
-  useFilteredTableData,
-  useTableColumns,
-} from 'src/explore/components/DataTableControl';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { ensureIsArray } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
+import { EmptyState, Loading } from '@superset-ui/core/components';
+import { GenericDataType } from '@apache-superset/core/common';
+import { GridTable } from 'src/components/GridTable';
+import { GridSize } from 'src/components/GridTable/constants';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
-import { TableControls } from './DataTableControls';
+import { getDrillPayload } from 'src/components/Chart/DrillDetail/utils';
+import {
+  useGridColumns,
+  useKeywordFilter,
+  useGridHeight,
+} from './useGridResultTable';
+import { TableControls, ROW_LIMIT_OPTIONS } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 
 const Error = styled.pre`
-  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
+  margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
-const cache = new WeakSet();
+const GridContainer = styled.div`
+  flex: 1;
+  min-height: 0;
+  position: relative;
+`;
+
+const GridSizer = styled.div`
+  position: absolute;
+  inset: 0;
+`;
+
+const cache = new WeakMap();
+
+const DEFAULT_ROW_LIMIT = 100;
 
 export const SamplesPane = ({
   isRequest,
   datasource,
+  queryFormData,
   queryForce,
-  actions,
-  dataSize = 50,
+  setForceQuery,
   isVisible,
   canDownload,
 }: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');
+  const [rowLimit, setRowLimit] = useState(DEFAULT_ROW_LIMIT);
   const [data, setData] = useState<Record<string, any>[][]>([]);
   const [colnames, setColnames] = useState<string[]>([]);
   const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [rowcount, setRowCount] = useState<number>(0);
   const [responseError, setResponseError] = useState<string>('');
+  const { gridHeight, measuredRef } = useGridHeight();
   const datasourceId = useMemo(
     () => `${datasource.id}__${datasource.type}`,
     [datasource],
   );
 
+  const handleRowLimitChange = useCallback(
+    (limit: number) => {
+      setRowLimit(limit);
+      cache.delete(queryFormData);
+    },
+    [queryFormData],
+  );
+
   useEffect(() => {
     if (isRequest && queryForce) {
-      cache.delete(datasource);
+      cache.delete(queryFormData);
     }
 
-    if (isRequest && !cache.has(datasource)) {
+    if (isRequest && !cache.has(queryFormData)) {
       setIsLoading(true);
-      getDatasourceSamples(datasource.type, datasource.id, queryForce, {})
+      const payload =
+        getDrillPayload(
+          queryFormData as Parameters<typeof getDrillPayload>[0],
+        ) ?? {};
+      getDatasourceSamples(
+        datasource.type,
+        datasource.id,
+        queryForce,
+        payload,
+        rowLimit,
+        1,
+      )
         .then(response => {
           setData(ensureIsArray(response.data));
           setColnames(ensureIsArray(response.colnames));
           setColtypes(ensureIsArray(response.coltypes));
           setRowCount(response.rowcount);
           setResponseError('');
-          cache.add(datasource);
-          if (queryForce && actions) {
-            actions.setForceQuery(false);
+          cache.set(queryFormData, true);
+          if (queryForce) {
+            setForceQuery?.(false);
           }
         })
         .catch(error => {
@@ -85,20 +124,15 @@ export const SamplesPane = ({
           setIsLoading(false);
         });
     }
-  }, [datasource, isRequest, queryForce]);
+  }, [datasource, queryFormData, isRequest, queryForce, rowLimit]);
 
-  // this is to preserve the order of the columns, even if there are integer values,
-  // while also only grabbing the first column's keys
-  const columns = useTableColumns(
-    colnames,
-    coltypes,
-    data,
-    datasourceId,
-    isVisible,
-    {}, // moreConfig
-    true, // allowHTML
+  const columns = useGridColumns(colnames, coltypes, data);
+  const keywordFilter = useKeywordFilter(filterText);
+
+  const handleInputChange = useCallback(
+    (input: string) => setFilterText(input),
+    [],
   );
-  const filteredData = useFilteredTableData(filterText, data);
 
   if (isLoading) {
     return <Loading />;
@@ -108,14 +142,17 @@ export const SamplesPane = ({
     return (
       <>
         <TableControls
-          data={filteredData}
+          data={data}
           columnNames={colnames}
           columnTypes={coltypes}
           rowcount={rowcount}
           datasourceId={datasourceId}
-          onInputChange={input => setFilterText(input)}
+          onInputChange={handleInputChange}
           isLoading={isLoading}
           canDownload={canDownload}
+          rowLimit={rowLimit}
+          rowLimitOptions={ROW_LIMIT_OPTIONS}
+          onRowLimitChange={handleRowLimitChange}
         />
         <Error>{responseError}</Error>
       </>
@@ -130,26 +167,30 @@ export const SamplesPane = ({
   return (
     <>
       <TableControls
-        data={filteredData}
+        data={data}
         columnNames={colnames}
         columnTypes={coltypes}
         rowcount={rowcount}
         datasourceId={datasourceId}
-        onInputChange={input => setFilterText(input)}
+        onInputChange={handleInputChange}
         isLoading={isLoading}
         canDownload={canDownload}
+        rowLimit={rowLimit}
+        rowLimitOptions={ROW_LIMIT_OPTIONS}
+        onRowLimitChange={handleRowLimitChange}
       />
-      <TableView
-        columns={columns}
-        data={filteredData}
-        pageSize={dataSize}
-        noDataText={t('No results')}
-        emptyWrapperType={EmptyWrapperType.Small}
-        className="table-condensed"
-        isPaginationSticky
-        showRowCount={false}
-        small
-      />
+      <GridContainer>
+        <GridSizer ref={measuredRef}>
+          <GridTable
+            data={data}
+            columns={columns}
+            height={gridHeight}
+            size={GridSize.Small}
+            externalFilter={keywordFilter}
+            showRowNumber
+          />
+        </GridSizer>
+      </GridContainer>
     </>
   );
 };

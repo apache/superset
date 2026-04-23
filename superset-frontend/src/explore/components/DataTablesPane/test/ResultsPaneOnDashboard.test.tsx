@@ -18,16 +18,21 @@
  */
 import fetchMock from 'fetch-mock';
 import {
+  screen,
   render,
-  userEvent,
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { exploreActions } from 'src/explore/actions/exploreActions';
 import { ChartMetadata, ChartPlugin, VizType } from '@superset-ui/core';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ResultsPaneOnDashboard } from '../components';
 import { createResultsPaneOnDashboardProps } from './fixture';
 
+beforeAll(() => {
+  setupAGGridModules();
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ResultsPaneOnDashboard', () => {
   // render and render errorMessage
   fetchMock.post(
@@ -86,10 +91,10 @@ describe('ResultsPaneOnDashboard', () => {
     },
   );
 
-  const setForceQuery = jest.spyOn(exploreActions, 'setForceQuery');
+  const setForceQuery = jest.fn();
 
   afterAll(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     jest.resetAllMocks();
   });
 
@@ -122,16 +127,16 @@ describe('ResultsPaneOnDashboard', () => {
       useRedux: true,
     });
     expect(await findByText('0 rows')).toBeVisible();
-    expect(await findByText('Bad Request')).toBeVisible();
+    expect(await findByText('Bad request')).toBeVisible();
   });
 
-  test('force query, render and search', async () => {
+  test('force query, render', async () => {
     const props = createResultsPaneOnDashboardProps({
       sliceId: 144,
       queryForce: true,
     });
-    const { queryByText, getByPlaceholderText } = render(
-      <ResultsPaneOnDashboard {...props} />,
+    const { queryByText } = render(
+      <ResultsPaneOnDashboard {...props} setForceQuery={setForceQuery} />,
       {
         useRedux: true,
       },
@@ -143,11 +148,6 @@ describe('ResultsPaneOnDashboard', () => {
     expect(queryByText('2 rows')).toBeVisible();
     expect(queryByText('Action')).toBeVisible();
     expect(queryByText('Horror')).toBeVisible();
-
-    userEvent.type(getByPlaceholderText('Search'), 'hor');
-    await waitForElementToBeRemoved(() => queryByText('Action'));
-    expect(queryByText('Horror')).toBeVisible();
-    expect(queryByText('Action')).not.toBeInTheDocument();
   });
 
   test('multiple results pane', async () => {
@@ -168,10 +168,55 @@ describe('ResultsPaneOnDashboard', () => {
       sliceId: 196,
       vizType: VizType.MixedTimeseries,
     });
-    const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
+
+    render(<ResultsPaneOnDashboard {...props} />, {
       useRedux: true,
     });
-    expect(await findByText('Results')).toBeVisible();
-    expect(await findByText('Results 2')).toBeVisible();
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('status', { name: 'Loading' }),
+    );
+
+    const tab1 = document.querySelector('[data-node-key="results"]');
+    const tab2 = document.querySelector('[data-node-key="results 2"]');
+
+    expect(tab1).toBeVisible();
+    expect(tab2).toBeVisible();
+  });
+
+  test('dynamic number of results pane', async () => {
+    const FakeChart = () => <span>test</span>;
+    const metadata = new ChartMetadata({
+      name: 'test-chart',
+      thumbnail: '',
+      dynamicQueryObjectCount: true,
+    });
+
+    const plugin = new ChartPlugin({
+      metadata,
+      Chart: FakeChart,
+    });
+    plugin.configure({ key: VizType.MixedTimeseries }).register();
+
+    const props = createResultsPaneOnDashboardProps({
+      sliceId: 196,
+      vizType: VizType.MixedTimeseries,
+    });
+
+    render(<ResultsPaneOnDashboard {...props} />, {
+      useRedux: true,
+    });
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('status', { name: 'Loading' }),
+    );
+
+    const tab1 = document.querySelector('[data-node-key="results"]');
+    const tab2 = document.querySelector('[data-node-key="results 2"]');
+    const tab3 = document.querySelector('[data-node-key="results 3"]');
+
+    expect(tab1).toBeVisible();
+    expect(tab2).toBeVisible();
+    expect(tab3).toBeNull();
   });
 });

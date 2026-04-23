@@ -62,8 +62,10 @@ export type DatasetObject = {
   filter_select_enabled?: boolean;
   fetch_values_predicate?: string;
   schema?: string;
+  catalog?: string;
   description: string | null;
   main_dttm_col: string;
+  currency_code_column?: string;
   offset?: number;
   default_endpoint?: string;
   cache_timeout?: number;
@@ -78,7 +80,6 @@ export type DatasetObject = {
   always_filter_main_dttm: boolean;
   type: DatasourceType;
   column_formats: Record<string, string>;
-  currency_formats: Record<string, Currency>;
   datasource_name: string | null;
   verbose_map: Record<string, string>;
 };

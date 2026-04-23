@@ -25,13 +25,13 @@ import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 import { WORLD_HEALTH_CHARTS } from './utils';
 import { isLegacyResponse } from '../../utils/vizPlugins';
 
-describe.skip('Dashboard top-level controls', () => {
+describe('Dashboard top-level controls', () => {
   beforeEach(() => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
   });
 
-  // flaky test
-  it('should allow chart level refresh', () => {
+  // flaky test - query completes before assertion
+  it.skip('should allow chart level refresh', () => {
     const mapSpec = WORLD_HEALTH_CHARTS.find(
       ({ viz }) => viz === 'world_map',
     ) as ChartSpec;
@@ -47,12 +47,12 @@ describe.skip('Dashboard top-level controls', () => {
       // Solution: pause the network before clicking, assert, then unpause network.
       cy.get('[data-test="refresh-chart-menu-item"]').should(
         'have.class',
-        'antd5-dropdown-menu-item-disabled',
+        'ant-dropdown-menu-item-disabled',
       );
       waitForChartLoad(mapSpec);
       cy.get('[data-test="refresh-chart-menu-item"]').should(
         'not.have.class',
-        'antd5-dropdown-menu-item-disabled',
+        'ant-dropdown-menu-item-disabled',
       );
     });
   });
@@ -65,7 +65,7 @@ describe.skip('Dashboard top-level controls', () => {
       cy.get('[aria-label="ellipsis"]').click();
       cy.get('[data-test="refresh-dashboard-menu-item"]').should(
         'not.have.class',
-        'antd5-dropdown-menu-item-disabled',
+        'ant-dropdown-menu-item-disabled',
       );
 
       cy.get('[data-test="refresh-dashboard-menu-item"]').click({
@@ -73,7 +73,7 @@ describe.skip('Dashboard top-level controls', () => {
       });
       cy.get('[data-test="refresh-dashboard-menu-item"]').should(
         'have.class',
-        'antd5-dropdown-menu-item-disabled',
+        'ant-dropdown-menu-item-disabled',
       );
 
       // wait all charts force refreshed.
@@ -94,7 +94,7 @@ describe.skip('Dashboard top-level controls', () => {
     cy.get('[aria-label="ellipsis"]').click();
     cy.get('[data-test="refresh-dashboard-menu-item"]').and(
       'not.have.class',
-      'antd5-dropdown-menu-item-disabled',
+      'ant-dropdown-menu-item-disabled',
     );
   });
 });

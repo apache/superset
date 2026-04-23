@@ -63,7 +63,6 @@ export default function normalizeOrderBy(
   ) {
     return {
       ...cloneQueryObject,
-      // @ts-ignore
       orderby: [[queryObject.legacy_order_by, isAsc]],
     };
   }

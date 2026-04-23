@@ -17,15 +17,14 @@
  * under the License.
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
-
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-
-import { Icons } from 'src/components/Icons';
-import Modal from 'src/components/Modal';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { CssEditor } from 'src/components/AsyncAceEditor';
-
+import { Input, Modal } from '@superset-ui/core/components';
+import { EditorHost } from 'src/core/editors';
+import { Typography } from '@superset-ui/core/components/Typography';
 import { OnlyKeyWithType } from 'src/utils/types';
 import { TemplateObject } from './types';
 
@@ -39,39 +38,39 @@ interface CssTemplateModalProps {
 
 type CssTemplateStringKeys = keyof Pick<
   TemplateObject,
-  OnlyKeyWithType<TemplateObject, String>
+  OnlyKeyWithType<TemplateObject, string>
 >;
 
 const StyledCssTemplateTitle = styled.div(
   ({ theme }) => css`
-    margin: ${theme.gridUnit * 2}px auto ${theme.gridUnit * 4}px auto;
+    margin: ${theme.sizeUnit * 2}px auto ${theme.sizeUnit * 4}px auto;
   `,
 );
 
-const StyledCssEditor = styled(CssEditor)`
+const StyledEditorHost = styled(EditorHost)`
   ${({ theme }) => css`
     border-radius: ${theme.borderRadius}px;
-    border: 1px solid ${theme.colors.secondary.light2};
+    border: 1px solid ${theme.colorPrimaryBg};
   `}
 `;
 
 const TemplateContainer = styled.div(
   ({ theme }) => css`
-    margin-bottom: ${theme.gridUnit * 10}px;
+    margin-bottom: ${theme.sizeUnit * 10}px;
 
     .control-label {
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
 
     .required {
-      margin-left: ${theme.gridUnit / 2}px;
-      color: ${theme.colors.error.base};
+      margin-left: ${theme.sizeUnit / 2}px;
+      color: ${theme.colorErrorText};
     }
 
     input[type='text'] {
-      padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 2}px;
-      border: 1px solid ${theme.colors.grayscale.light2};
-      border-radius: ${theme.gridUnit}px;
+      padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 2}px;
+      border: 1px solid ${theme.colorBorder};
+      border-radius: ${theme.borderRadius}px;
       width: 50%;
     }
   `,
@@ -84,7 +83,6 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   show,
   cssTemplate = null,
 }) => {
-  const theme = useTheme();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentCssTemplate, setCurrentCssTemplate] =
     useState<TemplateObject | null>(null);
@@ -105,8 +103,8 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
 
   // Functions
   const hide = () => {
-    setIsHidden(true);
     onHide();
+    setCurrentCssTemplate(null);
   };
 
   const onSave = () => {
@@ -202,7 +200,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         css: '',
       });
     }
-  }, [cssTemplate]);
+  }, [cssTemplate, show]);
 
   useEffect(() => {
     if (resource) {
@@ -232,37 +230,28 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       show={show}
       width="55%"
       title={
-        <h4 data-test="css-template-modal-title">
-          {isEditMode ? (
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.PlusOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
-              `}
-            />
-          )}
-          {isEditMode
-            ? t('Edit CSS template properties')
-            : t('Add CSS template')}
-        </h4>
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={
+            isEditMode
+              ? t('Edit CSS template properties')
+              : t('Add CSS template')
+          }
+          data-test="css-template-modal-title"
+        />
       }
     >
       <StyledCssTemplateTitle>
-        <h4>{t('Basic information')}</h4>
+        <Typography.Title level={4}>
+          {t('General information')}
+        </Typography.Title>
       </StyledCssTemplateTitle>
       <TemplateContainer>
         <div className="control-label">
           {t('Name')}
           <span className="required">*</span>
         </div>
-        <input
+        <Input
           name="template_name"
           onChange={onTemplateNameChange}
           type="text"
@@ -274,9 +263,12 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
           {t('css')}
           <span className="required">*</span>
         </div>
-        <StyledCssEditor
+        <StyledEditorHost
+          id="css-template-editor"
           onChange={onCssChange}
-          value={currentCssTemplate?.css}
+          value={currentCssTemplate?.css ?? ''}
+          language="css"
+          height="250px"
           width="100%"
         />
       </TemplateContainer>

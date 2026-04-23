@@ -23,8 +23,10 @@ from superset.common.query_context import QueryContext
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import TimeGrain
+from superset.models.helpers import ExploreMixin
 
-query_context_processor = QueryContextProcessor(
+# Create processor and bind ExploreMixin methods to datasource
+processor = QueryContextProcessor(
     QueryContext(
         datasource=BaseDatasource(),
         queries=[],
@@ -35,6 +37,28 @@ query_context_processor = QueryContextProcessor(
         cache_values={},
     )
 )
+
+# Bind ExploreMixin methods to datasource for testing
+# Type annotation needed because _qc_datasource is typed as Explorable in protocol
+_datasource: BaseDatasource = processor._qc_datasource  # type: ignore
+_datasource.add_offset_join_column = ExploreMixin.add_offset_join_column.__get__(
+    _datasource
+)
+_datasource.join_offset_dfs = ExploreMixin.join_offset_dfs.__get__(_datasource)
+_datasource.is_valid_date_range = ExploreMixin.is_valid_date_range.__get__(_datasource)
+_datasource._determine_join_keys = ExploreMixin._determine_join_keys.__get__(
+    _datasource
+)
+_datasource._perform_join = ExploreMixin._perform_join.__get__(_datasource)
+_datasource._apply_cleanup_logic = ExploreMixin._apply_cleanup_logic.__get__(
+    _datasource
+)
+# Static methods don't need binding - assign directly
+_datasource.generate_join_column = ExploreMixin.generate_join_column
+_datasource.is_valid_date_range_static = ExploreMixin.is_valid_date_range_static
+
+# Convenience reference for backward compatibility in tests
+query_context_processor = _datasource
 
 
 @fixture
@@ -178,6 +202,39 @@ def test_join_offset_dfs_with_month_granularity():
             "D": [1, 2, 3, 4, 5, 6],
             "B": [None, None, 5, 6, 7, 8],
         }
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain, join_keys
+    )
+
+    assert_frame_equal(expected, result)
+
+
+def test_join_offset_dfs_totals_query_no_dimensions():
+    """
+    Test time offset join for totals query with no dimension columns.
+
+    This simulates a table chart totals query where:
+    - columns=[] (no dimensions, only metrics)
+    - time_offsets=["1 month ago"]
+    - The dataframes only contain metric columns (no datetime column)
+
+    The join should use the __temp_join_key__ fallback mechanism
+    to properly join the offset data.
+    """
+    # Main totals query result - only has metric column, no datetime
+    df = DataFrame({"Total Cost": [54211.76]})
+
+    # Offset query result - renamed metric column
+    offset_df = DataFrame({"Total Cost__1 month ago": [48000.50]})
+
+    offset_dfs = {"1 month ago": offset_df}
+    time_grain = "P1D"  # Daily grain from extras
+    join_keys = []  # No dimension columns for totals query
+
+    expected = DataFrame(
+        {"Total Cost": [54211.76], "Total Cost__1 month ago": [48000.50]}
     )
 
     result = query_context_processor.join_offset_dfs(

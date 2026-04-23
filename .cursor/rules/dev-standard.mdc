@@ -1,0 +1,125 @@
+---
+description: Apache Superset development standards and guidelines for Cursor IDE
+globs: ["**/*.py", "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.sql", "**/*.md"]
+alwaysApply: true
+---
+
+# Apache Superset Development Standards for Cursor IDE
+
+Apache Superset is a data visualization platform with Flask/Python backend and React/TypeScript frontend.
+
+## ⚠️ CRITICAL: Ongoing Refactors (What NOT to Do)
+
+**These migrations are actively happening - avoid deprecated patterns:**
+
+### Frontend Modernization
+- **NO `any` types** - Use proper TypeScript types
+- **NO JavaScript files** - Convert to TypeScript (.ts/.tsx)
+- **NO Enzyme** - Use React Testing Library/Jest (Enzyme fully removed)
+- **Use @superset-ui/core** - Don't import Ant Design directly
+
+### Testing Strategy Migration
+- **Prefer unit tests** over integration tests
+- **Prefer integration tests** over Cypress end-to-end tests
+- **Cypress is last resort** - Actively moving away from Cypress
+- **Use Jest + React Testing Library** for component testing
+
+### Backend Type Safety
+- **Add type hints** - All new Python code needs proper typing
+- **MyPy compliance** - Run `pre-commit run mypy` to validate
+- **SQLAlchemy typing** - Use proper model annotations
+
+## Code Standards
+
+### TypeScript Frontend
+- **NO `any` types** - Use proper TypeScript
+- **Functional components** with hooks
+- **@superset-ui/core** for UI components (not direct antd)
+- **Jest** for testing (NO Enzyme)
+- **Redux** for global state, hooks for local
+
+### Python Backend
+- **Type hints required** for all new code
+- **MyPy compliant** - run `pre-commit run mypy`
+- **SQLAlchemy models** with proper typing
+- **pytest** for testing
+
+### Apache License Headers
+- **New files require ASF license headers** - When creating new code files, include the standard Apache Software Foundation license header
+- **LLM instruction files are excluded** - Files like LLMS.md, CLAUDE.md, etc. are in `.rat-excludes` to avoid header token overhead
+
+## Key Directory Structure
+
+```
+superset/
+├── superset/                    # Python backend (Flask, SQLAlchemy)
+│   ├── views/api/              # REST API endpoints
+│   ├── models/                 # Database models
+│   └── connectors/             # Database connections
+├── superset-frontend/src/       # React TypeScript frontend
+│   ├── components/             # Reusable components
+│   ├── explore/                # Chart builder
+│   ├── dashboard/              # Dashboard interface
+│   └── SqlLab/                 # SQL editor
+├── superset-frontend/packages/
+│   └── superset-ui-core/       # UI component library (USE THIS)
+├── tests/                      # Python/integration tests
+├── docs/                       # Documentation (UPDATE FOR CHANGES)
+└── UPDATING.md                 # Breaking changes log
+```
+
+## Architecture Patterns
+
+### Dataset-Centric Approach
+Charts built from enriched datasets containing:
+- Dimension columns with labels/descriptions
+- Predefined metrics as SQL expressions
+- Self-service analytics within defined contexts
+
+### Security & Features
+- **RBAC**: Role-based access via Flask-AppBuilder
+- **Feature flags**: Control feature rollouts
+- **Row-level security**: SQL-based data access control
+
+## Test Utilities
+
+### Python Test Helpers
+- **`SupersetTestCase`** - Base class in `tests/integration_tests/base_tests.py`
+- **`@with_config`** - Config mocking decorator
+- **`@with_feature_flags`** - Feature flag testing
+- **`login_as()`, `login_as_admin()`** - Authentication helpers
+- **`create_dashboard()`, `create_slice()`** - Data setup utilities
+
+### TypeScript Test Helpers
+- **`superset-frontend/spec/helpers/testing-library.tsx`** - Custom render() with providers
+- **`createWrapper()`** - Redux/Router/Theme wrapper
+- **`selectOption()`** - Select component helper
+- **React Testing Library** - NO Enzyme (removed)
+
+## Pre-commit Validation
+
+**Use pre-commit hooks for quality validation:**
+
+```bash
+# Install hooks
+pre-commit install
+
+# Quick validation (faster than --all-files)
+pre-commit run                    # Staged files only
+pre-commit run mypy              # Python type checking
+pre-commit run prettier          # Code formatting
+pre-commit run eslint            # Frontend linting
+```
+
+## Development Guidelines
+
+- **Documentation**: Update docs/ for any user-facing changes
+- **Breaking Changes**: Add to UPDATING.md
+- **Docstrings**: Required for new functions/classes
+- **Follow existing patterns**: Mimic code style, use existing libraries and utilities
+- **Type Safety**: This codebase is actively modernizing toward full TypeScript and type safety
+- **Always run `pre-commit run`** to validate changes before committing
+
+---
+
+**Note**: This codebase is actively modernizing toward full TypeScript and type safety. Always run `pre-commit run` to validate changes. Follow the ongoing refactors section to avoid deprecated patterns.

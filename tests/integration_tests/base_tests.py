@@ -14,39 +14,48 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# isort:skip_file
 """Unit tests for Superset"""
 
+from contextlib import contextmanager
 from datetime import datetime
 from importlib.util import find_spec
-from contextlib import contextmanager
-from typing import Any, Union, Optional
-from unittest.mock import Mock, patch, MagicMock
+from io import BytesIO
+from typing import Any, Optional
+from unittest.mock import MagicMock, Mock, patch
+from zipfile import ZipFile
 
 import pandas as pd
 import prison
-from flask import Response, g
+import yaml
+from flask import g, Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
+from sqlalchemy.dialects.mysql import dialect
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.mysql import dialect
 
-from tests.integration_tests.constants import ADMIN_USERNAME
-from tests.integration_tests.test_app import app, login
-from superset.sql_parse import CtasMethod
 from superset import db, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.models import core as models
-from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.utils.core import get_example_default_schema, shortid
+from superset.models.slice import Slice
+from superset.sql.parse import CTASMethod
 from superset.utils import json
+from superset.utils.core import get_example_default_schema, shortid
 from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
+from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.fixtures.importexport import (
+    chart_config,
+    dashboard_config,
+    database_config,
+    dataset_config,
+    metadata_files,
+)
+from tests.integration_tests.test_app import app, login
 
 FAKE_DB_NAME = "fake_db_100"
 DEFAULT_PASSWORD = "general"  # noqa: S105
@@ -151,12 +160,13 @@ class SupersetTestCase(TestCase):
         return user_to_create
 
     @contextmanager
-    def temporary_user(
+    def temporary_user(  # noqa: C901
         self,
         clone_user=None,
         username=None,
         extra_roles=None,
         extra_pvms=None,
+        pvms_to_remove=None,
         login=False,
     ):
         """
@@ -171,33 +181,39 @@ class SupersetTestCase(TestCase):
         temp_user = ab_models.User(
             username=username, email=f"{username}@temp.com", active=True
         )
+        pvms = []
+
         if clone_user:
-            temp_user.roles = clone_user.roles
             temp_user.first_name = clone_user.first_name
             temp_user.last_name = clone_user.last_name
             temp_user.password = clone_user.password
+            if clone_user.roles:
+                for role in clone_user.roles:
+                    pvms.extend(role.permissions)
         else:
             temp_user.first_name = temp_user.last_name = username
 
-        if clone_user:
-            temp_user.roles = clone_user.roles
-
         if extra_roles:
-            temp_user.roles.extend(extra_roles)
+            for role in extra_roles:
+                pvms.extend(role.permissions)
 
-        pvms = []
-        temp_role = None
-        if extra_pvms:
-            temp_role = ab_models.Role(name=f"tmp_role_{shortid()}")
-            for pvm in extra_pvms:
-                if isinstance(pvm, (tuple, list)):
-                    pvms.append(security_manager.find_permission_view_menu(*pvm))
-                else:
-                    pvms.append(pvm)
-            temp_role.permissions = pvms
-            temp_user.roles.append(temp_role)
-            db.session.add(temp_role)
-            db.session.commit()
+        for pvm in extra_pvms or []:
+            if isinstance(pvm, (tuple, list)):
+                pvms.append(security_manager.find_permission_view_menu(*pvm))
+            else:
+                pvms.append(pvm)
+
+        for pvm in pvms_to_remove or []:
+            if isinstance(pvm, (tuple, list)):
+                pvm = security_manager.find_permission_view_menu(*pvm)
+            if pvm in pvms:
+                pvms.remove(pvm)
+
+        temp_role = ab_models.Role(name=f"tmp_role_{shortid()}")
+        temp_role.permissions = pvms
+        temp_user.roles.append(temp_role)
+        db.session.add(temp_role)
+        db.session.commit()
 
         # Add the temp user to the session and commit to apply changes for the test
         db.session.add(temp_user)
@@ -227,8 +243,11 @@ class SupersetTestCase(TestCase):
         first_name: str = "admin",
         last_name: str = "user",
         email: str = "admin@fab.org",
-    ) -> Union[ab_models.User, bool]:
+    ) -> ab_models.User:
         role_admin = security_manager.find_role(role_name)
+        # Defensive check: return existing user if username already exists
+        if existing_user := security_manager.find_user(username):
+            return existing_user
         return security_manager.add_user(
             username, first_name, last_name, email, role_admin, password
         )
@@ -387,7 +406,7 @@ class SupersetTestCase(TestCase):
         select_as_cta=False,
         tmp_table_name=None,
         schema=None,
-        ctas_method=CtasMethod.TABLE,
+        ctas_method=CTASMethod.TABLE,
         template_params="{}",
     ):
         if username:
@@ -400,7 +419,7 @@ class SupersetTestCase(TestCase):
             "client_id": client_id,
             "queryLimit": query_limit,
             "sql_editor_id": sql_editor_id,
-            "ctas_method": ctas_method,
+            "ctas_method": ctas_method.name,
             "templateParams": template_params,
         }
         if tmp_table_name:
@@ -574,6 +593,16 @@ class SupersetTestCase(TestCase):
         for role in roles:
             role_obj = db.session.query(security_manager.role_model).get(role)
             obj_roles.append(role_obj)
+
+        # Defensive cleanup: remove any existing dashboard with the same slug
+        if slug:
+            existing_dashboard = (
+                db.session.query(Dashboard).filter_by(slug=slug).first()
+            )
+            if existing_dashboard:
+                db.session.delete(existing_dashboard)
+                db.session.commit()
+
         dashboard = Dashboard(
             dashboard_title=dashboard_title,
             slug=slug,
@@ -605,6 +634,48 @@ class SupersetTestCase(TestCase):
         uri = f"api/v1/{asset_type}/?q={prison.dumps(filter)}"
         response = self.get_assert_metric(uri, "get_list")
         return response
+
+    @staticmethod
+    def create_import_v1_zip_file(asset_type: str, **kwargs) -> BytesIO:
+        asset_configs = {
+            "databases": (kwargs.get("databases"), database_config, True),
+            "datasets": (
+                kwargs.get("datasets"),
+                dataset_config,
+                asset_type != "database",
+            ),
+            "charts": (
+                kwargs.get("charts"),
+                chart_config,
+                asset_type in {"chart", "dashboard"},
+            ),
+            "dashboards": (
+                kwargs.get("dashboards"),
+                dashboard_config,
+                asset_type == "dashboard",
+            ),
+        }
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(metadata_files[asset_type]).encode())
+
+            for folder, (
+                assets,
+                default_config,
+                should_have_default,
+            ) in asset_configs.items():
+                if assets:
+                    for i, asset in enumerate(assets):
+                        with bundle.open(
+                            f"export/{folder}/{asset_type}_{i + 1}.yaml", "w"
+                        ) as fp:
+                            fp.write(yaml.safe_dump(asset).encode())
+                elif should_have_default:
+                    with bundle.open(f"export/{folder}/{asset_type}.yaml", "w") as fp:
+                        fp.write(yaml.safe_dump(default_config).encode())
+        buf.seek(0)
+        return buf
 
 
 @contextmanager

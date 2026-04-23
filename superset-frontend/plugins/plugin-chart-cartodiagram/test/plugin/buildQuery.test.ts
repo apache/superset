@@ -53,12 +53,12 @@ describe('CartodiagramPlugin buildQuery', () => {
     registry.clear();
   });
 
-  it('should call the buildQuery function of the referenced chart', () => {
+  test('should call the buildQuery function of the referenced chart', () => {
     buildQuery(formData);
     expect(chartQueryBuilderMock.mock.calls).toHaveLength(1);
   });
 
-  it('should build groupby with geom in form data', () => {
+  test('should build groupby with geom in form data', () => {
     const expectedParams = { ...selectedChartParams, groupby: ['geom'] };
 
     buildQuery(formData);

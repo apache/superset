@@ -155,7 +155,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const mockFun = jest.fn();
@@ -180,7 +180,7 @@ test('should render schema selector, database selector container, and selects', 
     name: 'Select database or type to search databases',
   });
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema',
   });
   expect(databaseSelect).toBeInTheDocument();
   expect(schemaSelect).toBeInTheDocument();
@@ -211,7 +211,7 @@ test('renders list of options when user clicks on schema', async () => {
 
   // Schema select will be automatically populated if there is only one schema
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type to search schemas/i,
+    name: /select schema/i,
   });
   await waitFor(() => {
     expect(schemaSelect).toBeEnabled();
@@ -231,7 +231,7 @@ test('searches for a table name', async () => {
   userEvent.click(await screen.findByText('test-postgres'));
 
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type to search schemas/i,
+    name: /select schema/i,
   });
   const tableSelect = screen.getByRole('combobox', {
     name: /select table or type to search tables/i,
@@ -241,36 +241,28 @@ test('searches for a table name', async () => {
 
   // Click 'public' schema to access tables
   userEvent.click(schemaSelect);
-  userEvent.click(screen.getAllByText('public')[1]);
-  await waitFor(() => expect(fetchMock.calls(tablesEndpoint).length).toBe(1));
+  userEvent.click(screen.getByText('public'));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(tablesEndpoint).length).toBe(1),
+  );
   userEvent.click(tableSelect);
 
   await waitFor(() => {
     expect(
-      screen.queryByRole('option', {
-        name: /Sheet1/i,
-      }),
+      screen.queryByRole('option', { name: /Sheet1/i }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('option', {
-        name: /Sheet2/i,
-      }),
+      screen.queryByRole('option', { name: /Sheet2/i }),
     ).toBeInTheDocument();
   });
 
   userEvent.type(tableSelect, 'Sheet3');
 
   await waitFor(() => {
+    expect(screen.queryByText(/Sheet1/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Sheet2/i)).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('option', { name: /Sheet1/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('option', { name: /Sheet2/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('option', {
-        name: /Sheet3/i,
-      }),
+      screen.queryByRole('option', { name: /Sheet3/i }),
     ).toBeInTheDocument();
   });
 });
@@ -295,7 +287,7 @@ test('renders a warning icon when a table name has a preexisting dataset', async
   userEvent.click(await screen.findByText('test-postgres'));
 
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type to search schemas/i,
+    name: /select schema/i,
   });
   const tableSelect = screen.getByRole('combobox', {
     name: /select table or type to search tables/i,
@@ -310,14 +302,12 @@ test('renders a warning icon when a table name has a preexisting dataset', async
 
   // Click 'public' schema to access tables
   userEvent.click(schemaSelect);
-  userEvent.click(screen.getAllByText('public')[1]);
+  userEvent.click(screen.getByText('public'));
   userEvent.click(tableSelect);
 
   await waitFor(() => {
     expect(
-      screen.queryByRole('option', {
-        name: /Sheet2/i,
-      }),
+      screen.queryByRole('option', { name: /Sheet2/i }),
     ).toBeInTheDocument();
   });
 

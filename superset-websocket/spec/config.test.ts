@@ -17,6 +17,7 @@
  * under the License.
  */
 import { buildConfig } from '../src/config';
+import { expect, test } from '@jest/globals';
 
 test('buildConfig() builds configuration and applies env var overrides', () => {
   let config = buildConfig();

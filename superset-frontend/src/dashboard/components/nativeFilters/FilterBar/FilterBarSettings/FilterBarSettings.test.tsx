@@ -18,9 +18,8 @@
  */
 
 import fetchMock from 'fetch-mock';
-import { waitFor } from '@testing-library/react';
+import { waitFor, render, screen, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { render, screen, within } from 'spec/helpers/testing-library';
 import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
 import * as mockedMessageActions from 'src/components/MessageToasts/actions';
 import FilterBarSettings from '.';
@@ -30,7 +29,7 @@ const initialState: { dashboardInfo: DashboardInfo } = {
     id: 1,
     userId: '1',
     metadata: {
-      native_filter_configuration: [{}],
+      native_filter_configuration: [{ id: 'test-filter' }],
       chart_configuration: {},
       global_chart_configuration: {
         scope: { rootPath: ['ROOT_ID'], excluded: [] },
@@ -54,6 +53,7 @@ const initialState: { dashboardInfo: DashboardInfo } = {
     created_on_delta_humanized: '',
     changed_on_delta_humanized: '',
     owners: [],
+    last_modified_time: 0,
   },
 };
 
@@ -72,7 +72,7 @@ const setup = (dashboardInfoOverride: Partial<DashboardInfo> = {}) =>
   );
 
 beforeEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('Dropdown trigger renders', async () => {
@@ -109,7 +109,12 @@ test('Popover shows cross-filtering option on by default', async () => {
 
 test('Can enable/disable cross-filtering', async () => {
   fetchMock.put('glob:*/api/v1/dashboard/1', {
-    result: {},
+    result: {
+      json_metadata: JSON.stringify({
+        ...initialState.dashboardInfo.metadata,
+        cross_filters_enabled: false,
+      }),
+    },
   });
   await setup();
   const settingsButton = screen.getByRole('button', {
@@ -134,8 +139,10 @@ test('Popover opens with "Vertical" selected', async () => {
   userEvent.hover(screen.getByText('Orientation of filter bar'));
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+
+  const verticalItem = screen.getByText('Vertical (Left)');
   expect(
-    within(screen.getAllByRole('menuitem')[4]).getByLabelText('check'),
+    within(verticalItem.closest('li')!).getByLabelText('Selected'),
   ).toBeInTheDocument();
 });
 
@@ -148,8 +155,10 @@ test('Popover opens with "Horizontal" selected', async () => {
   userEvent.hover(screen.getByText('Orientation of filter bar'));
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+
+  const horizontalItem = screen.getByText('Horizontal (Top)');
   expect(
-    within(screen.getAllByRole('menuitem')[5]).getByLabelText('check'),
+    within(horizontalItem.closest('li')!).getByLabelText('Selected'),
   ).toBeInTheDocument();
 });
 
@@ -173,7 +182,7 @@ test('On selection change, send request and update checked value', async () => {
 
   const verticalItem = await screen.findByText('Vertical (Left)');
   expect(
-    within(verticalItem.closest('li')!).getByLabelText('check'),
+    within(verticalItem.closest('li')!).getByLabelText('Selected'),
   ).toBeInTheDocument();
 
   userEvent.click(screen.getByText('Horizontal (Top)'));
@@ -183,11 +192,11 @@ test('On selection change, send request and update checked value', async () => {
 
   const horizontalItem = await screen.findByText('Horizontal (Top)');
   expect(
-    within(horizontalItem.closest('li')!).getByLabelText('check'),
+    within(horizontalItem.closest('li')!).getByLabelText('Selected'),
   ).toBeInTheDocument();
 
   await waitFor(() =>
-    expect(fetchMock.lastCall()?.[1]?.body).toEqual(
+    expect(fetchMock.callHistory.lastCall()?.options?.body).toEqual(
       JSON.stringify({
         json_metadata: JSON.stringify({
           ...initialState.dashboardInfo.metadata,
@@ -202,16 +211,19 @@ test('On selection change, send request and update checked value', async () => {
     userEvent.hover(screen.getByText('Orientation of filter bar'));
     const updatedHorizontalItem = screen.getByText('Horizontal (Top)');
     expect(
-      within(updatedHorizontalItem.closest('li')!).getByLabelText('check'),
+      within(updatedHorizontalItem.closest('li')!).getByLabelText('Selected'),
     ).toBeInTheDocument();
     expect(
-      within(verticalItem.closest('li')!).queryByLabelText('check'),
+      within(verticalItem.closest('li')!).queryByLabelText('Selected'),
     ).not.toBeInTheDocument();
   });
 });
 
 test('On failed request, restore previous selection', async () => {
-  fetchMock.put('glob:*/api/v1/dashboard/1', 400);
+  fetchMock.put(
+    'glob:*/api/v1/dashboard/1',
+    () => new Response('', { status: 400, statusText: 'Bad Request' }),
+  );
 
   const dangerToastSpy = jest.spyOn(mockedMessageActions, 'addDangerToast');
 
@@ -229,10 +241,10 @@ test('On failed request, restore previous selection', async () => {
 
   // Verify initial state
   expect(
-    within(verticalItem.closest('li')!).getByLabelText('check'),
+    within(verticalItem.closest('li')!).getByLabelText('Selected'),
   ).toBeInTheDocument();
   expect(
-    within(horizontalItem.closest('li')!).queryByLabelText('check'),
+    within(horizontalItem.closest('li')!).queryByLabelText('Selected'),
   ).not.toBeInTheDocument();
 
   // Click horizontal option
@@ -241,7 +253,7 @@ test('On failed request, restore previous selection', async () => {
   // Verify error toast
   await waitFor(() => {
     expect(dangerToastSpy).toHaveBeenCalledWith(
-      'Sorry, there was an error saving this dashboard: Unknown Error',
+      'Sorry, there was an error saving this dashboard: Bad Request',
     );
   });
 
@@ -254,10 +266,10 @@ test('On failed request, restore previous selection', async () => {
     const verticalItemAfter = screen.getByText('Vertical (Left)');
     const horizontalItemAfter = screen.getByText('Horizontal (Top)');
     expect(
-      within(verticalItemAfter.closest('li')!).getByLabelText('check'),
+      within(verticalItemAfter.closest('li')!).getByLabelText('Selected'),
     ).toBeInTheDocument();
     expect(
-      within(horizontalItemAfter.closest('li')!).queryByLabelText('check'),
+      within(horizontalItemAfter.closest('li')!).queryByLabelText('Selected'),
     ).not.toBeInTheDocument();
   });
 });

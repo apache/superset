@@ -19,14 +19,30 @@ from typing import Any
 
 from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
-from marshmallow import fields, pre_load, Schema, validates_schema, ValidationError
+from marshmallow import (
+    fields,
+    post_dump,
+    pre_load,
+    Schema,
+    validates_schema,
+    ValidationError,
+)
 from marshmallow.validate import Length, OneOf
 
+from superset import security_manager
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetMarshmallowValidationError
+from superset.models.sql_types import parse_currency_string
 from superset.utils import json
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_drill_info_schema = {
+    "type": "object",
+    "properties": {
+        "dashboard_id": {"type": "integer"},
+    },
+}
 
 openapi_spec_methods_override = {
     "get_list": {
@@ -71,7 +87,29 @@ class DatasetColumnsPutSchema(Schema):
     python_date_format = fields.String(
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )
+    datetime_format = fields.String(
+        allow_none=True, validate=[Length(1, 100), validate_python_date_format]
+    )
     uuid = fields.UUID(allow_none=True)
+
+
+class DatasetMetricCurrencyPutSchema(Schema):
+    symbol = fields.String(validate=Length(1, 128))
+    symbolPosition = fields.String(validate=Length(1, 128))  # noqa: N815
+
+
+class CurrencyField(fields.Nested):
+    """
+    Nested field that tolerates legacy string payloads for currency.
+    """
+
+    def _deserialize(
+        self, value: Any, attr: str | None, data: dict[str, Any], **kwargs: Any
+    ) -> Any:
+        if isinstance(value, str):
+            value = parse_currency_string(value)
+
+        return super()._deserialize(value, attr, data, **kwargs)
 
 
 class DatasetMetricsPutSchema(Schema):
@@ -82,7 +120,7 @@ class DatasetMetricsPutSchema(Schema):
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
-    currency = fields.String(allow_none=True, required=False, validate=Length(1, 128))
+    currency = CurrencyField(DatasetMetricCurrencyPutSchema, allow_none=True)
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
@@ -129,6 +167,9 @@ class DatasetPostSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
+    template_params = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class DatasetPutSchema(Schema):
@@ -141,6 +182,7 @@ class DatasetPutSchema(Schema):
     schema = fields.String(allow_none=True, validate=Length(0, 255))
     description = fields.String(allow_none=True)
     main_dttm_col = fields.String(allow_none=True)
+    currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
     normalize_columns = fields.Boolean(allow_none=True, dump_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     offset = fields.Integer(allow_none=True)
@@ -155,6 +197,7 @@ class DatasetPutSchema(Schema):
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
     def handle_error(
         self,
@@ -231,14 +274,20 @@ class ImportV1ColumnSchema(Schema):
     expression = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
     python_date_format = fields.String(allow_none=True)
+    datetime_format = fields.String(allow_none=True)
+
+
+class ImportMetricCurrencySchema(Schema):
+    symbol = fields.String(validate=Length(1, 128))
+    symbolPosition = fields.String(validate=Length(1, 128))  # noqa: N815
 
 
 class ImportV1MetricSchema(Schema):
     # pylint: disable=unused-argument
     @pre_load
-    def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def fix_fields(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
-        Fix for extra initially being exported as a string.
+        Fix for extra and currency initially being exported as a string.
         """
         if isinstance(data.get("extra"), str):
             data["extra"] = json.loads(data["extra"])
@@ -251,7 +300,7 @@ class ImportV1MetricSchema(Schema):
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     d3format = fields.String(allow_none=True)
-    currency = fields.String(allow_none=True, required=False)
+    currency = CurrencyField(ImportMetricCurrencySchema, allow_none=True)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
 
@@ -262,6 +311,7 @@ class ImportV1DatasetSchema(Schema):
     def fix_extra(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         """
         Fix for extra initially being exported as a string.
+        And fixed bug when exporting template_params as empty string.
         """
         if isinstance(data.get("extra"), str):
             try:
@@ -270,10 +320,14 @@ class ImportV1DatasetSchema(Schema):
             except ValueError:
                 data["extra"] = None
 
+        if "template_params" in data and data["template_params"] == "":
+            data["template_params"] = None
+
         return data
 
     table_name = fields.String(required=True)
     main_dttm_col = fields.String(allow_none=True)
+    currency_code_column = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
     default_endpoint = fields.String(allow_none=True)
     offset = fields.Integer()
@@ -281,6 +335,8 @@ class ImportV1DatasetSchema(Schema):
     schema = fields.String(allow_none=True)
     catalog = fields.String(allow_none=True)
     sql = fields.String(allow_none=True)
+    # Source database engine for SQL transpilation (virtual datasets only)
+    source_db_engine = fields.String(allow_none=True, load_default=None)
     params = fields.Dict(allow_none=True)
     template_params = fields.Dict(allow_none=True)
     filter_select_enabled = fields.Boolean()
@@ -297,6 +353,8 @@ class ImportV1DatasetSchema(Schema):
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
     folders = fields.List(fields.Nested(FolderSchema), required=False, allow_none=True)
+    # data_file is used by the example loading system to reference Parquet files
+    data_file = fields.String(allow_none=True, load_default=None)
 
 
 class GetOrCreateDatasetSchema(Schema):
@@ -359,3 +417,49 @@ class DatasetCacheWarmUpResponseSchema(Schema):
             "description": "A list of each chart's warmup status and errors if any"
         },
     )
+
+
+class DatasetColumnDrillInfoSchema(Schema):
+    column_name = fields.String(required=True)
+    verbose_name = fields.String(required=False)
+
+
+class UserSchema(Schema):
+    first_name = fields.String()
+    last_name = fields.String()
+    email = fields.String()
+
+
+class DatasetDrillInfoSchema(Schema):
+    id = fields.Integer()
+    columns = fields.List(fields.Nested(DatasetColumnDrillInfoSchema))
+    table_name = fields.String()
+    owners = fields.List(fields.Nested(UserSchema))
+    created_by = fields.Nested(UserSchema)
+    created_on_humanized = fields.String()
+    changed_by = fields.Nested(UserSchema)
+    changed_on_humanized = fields.String()
+
+    # pylint: disable=unused-argument
+    @post_dump(pass_original=True)
+    def post_dump(
+        self, serialized: dict[str, Any], obj: SqlaTable, **kwargs: Any
+    ) -> dict[str, Any]:
+        """
+        Clear API response to avoid exposing sensitive information for embedded users,
+        and filter columns to only include those with groupby=True for drill operations.
+        """
+        dimensions = {
+            col.column_name
+            for col in getattr(obj, "columns", [])
+            if getattr(col, "groupby", False)
+        }
+        serialized["columns"] = [
+            col
+            for col in serialized.get("columns", [])
+            if col["column_name"] in dimensions
+        ]
+
+        if security_manager.is_guest_user():
+            return {"id": serialized["id"], "columns": serialized["columns"]}
+        return serialized

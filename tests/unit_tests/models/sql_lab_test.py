@@ -22,7 +22,7 @@ from jinja2.exceptions import TemplateError
 from pytest_mock import MockerFixture
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.sql_lab import Query, SavedQuery
 
 
@@ -43,6 +43,10 @@ from superset.models.sql_lab import Query, SavedQuery
                 level=ErrorLevel.ERROR,
             )
         ),
+        SupersetParseError(
+            sql="INVALID SQL",
+            message="Invalid SQL syntax",
+        ),
         TemplateError,
     ],
 )
@@ -52,8 +56,47 @@ def test_sql_tables_mixin_sql_tables_exception(
     mocker: MockerFixture,
 ) -> None:
     mocker.patch(
-        "superset.models.sql_lab.extract_tables_from_jinja_sql",
+        "superset.models.sql_lab.process_jinja_sql",
         side_effect=exception,
     )
 
     assert klass(sql="SELECT 1", database=MagicMock()).sql_tables == []
+
+
+@pytest.mark.parametrize(
+    "klass",
+    [
+        Query,
+        SavedQuery,
+    ],
+)
+@pytest.mark.parametrize(
+    "invalid_sql",
+    [
+        "SELECT * FROM table WHERE invalid syntax",
+        "INVALID SQL STATEMENT",
+        "SELECT * FROM; DROP TABLE users;",
+        "",
+        None,
+    ],
+)
+def test_sql_tables_mixin_invalid_sql_returns_empty_list(
+    klass: type[Model],
+    invalid_sql: str,
+    mocker: MockerFixture,
+) -> None:
+    """Test that SqlTablesMixin returns empty list when SQL parsing fails."""
+    mocker.patch(
+        "superset.models.sql_lab.process_jinja_sql",
+        side_effect=SupersetParseError(
+            sql=invalid_sql or "INVALID SQL",
+            message=f"Failed to parse SQL: {invalid_sql}",
+        ),
+    )
+
+    instance = (
+        klass(sql=invalid_sql, database=MagicMock())
+        if invalid_sql is not None
+        else klass(database=MagicMock())
+    )
+    assert instance.sql_tables == []
