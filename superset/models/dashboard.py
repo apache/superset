@@ -132,6 +132,10 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"
+    # deleted_at exclusion will be added when sc-103157 (soft delete) is merged (T043).
+    # Exclude M2M association relationships: Continuum only captures FK columns on
+    # association INSERTs (not the auto-increment id), which breaks the NOT NULL PK.
+    __versioned__: dict[str, Any] = {"exclude": ["slices", "owners", "roles"]}
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
     position_json = Column(utils.MediumText())

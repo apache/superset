@@ -276,6 +276,53 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         return super().update(item, attributes)
 
     @classmethod
+    def _validate_column_date_formats(
+        cls, property_columns: list[dict[str, Any]]
+    ) -> None:
+        for column in property_columns:
+            if column.get("python_date_format") is None:
+                continue
+            if not DatasetDAO.validate_python_date_format(column["python_date_format"]):
+                raise ValueError(
+                    "python_date_format is an invalid date/timestamp format."
+                )
+
+    @classmethod
+    def _override_columns(
+        cls, model: SqlaTable, property_columns: list[dict[str, Any]]
+    ) -> None:
+        for col in list(model.columns):
+            db.session.delete(col)
+        db.session.flush()
+        for properties in property_columns:
+            db.session.add(TableColumn(**{**properties, "table_id": model.id}))
+
+    @classmethod
+    def _upsert_columns(
+        cls, model: SqlaTable, property_columns: list[dict[str, Any]]
+    ) -> None:
+        columns_by_id = {column.id: column for column in model.columns}
+        property_columns_by_id = {
+            properties["id"]: properties
+            for properties in property_columns
+            if "id" in properties
+        }
+
+        for properties in property_columns:
+            if "id" not in properties:
+                db.session.add(TableColumn(**{**properties, "table_id": model.id}))
+
+        for properties in property_columns_by_id.values():
+            col = columns_by_id[properties["id"]]
+            for key, value in properties.items():
+                setattr(col, key, value)
+
+        ids_to_keep = property_columns_by_id.keys()
+        for col in model.columns:
+            if col.id not in ids_to_keep:
+                db.session.delete(col)
+
+    @classmethod
     def update_columns(
         cls,
         model: SqlaTable,
@@ -290,64 +337,15 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         - If a column Dict does not have an `id` then we create a new metric.
         - If there are extra columns on the metadata db that are not defined on the List
         then we delete.
+
+        Uses individual ORM operations (not bulk) so that SQLAlchemy-Continuum
+        can capture each row change in the version history.
         """
-
-        for column in property_columns:
-            if (
-                "python_date_format" in column
-                and column["python_date_format"] is not None
-            ):
-                if not DatasetDAO.validate_python_date_format(
-                    column["python_date_format"]
-                ):
-                    raise ValueError(
-                        "python_date_format is an invalid date/timestamp format."
-                    )
-
+        cls._validate_column_date_formats(property_columns)
         if override_columns:
-            db.session.query(TableColumn).filter(
-                TableColumn.table_id == model.id
-            ).delete(synchronize_session="fetch")
-
-            db.session.bulk_insert_mappings(
-                TableColumn,
-                [
-                    {**properties, "table_id": model.id}
-                    for properties in property_columns
-                ],
-            )
+            cls._override_columns(model, property_columns)
         else:
-            columns_by_id = {column.id: column for column in model.columns}
-
-            property_columns_by_id = {
-                properties["id"]: properties
-                for properties in property_columns
-                if "id" in properties
-            }
-
-            db.session.bulk_insert_mappings(
-                TableColumn,
-                [
-                    {**properties, "table_id": model.id}
-                    for properties in property_columns
-                    if "id" not in properties
-                ],
-            )
-
-            db.session.bulk_update_mappings(
-                TableColumn,
-                [
-                    {**columns_by_id[properties["id"]].__dict__, **properties}
-                    for properties in property_columns_by_id.values()
-                ],
-            )
-
-            db.session.query(TableColumn).filter(
-                TableColumn.id.in_(
-                    {column.id for column in model.columns}
-                    - property_columns_by_id.keys()
-                )
-            ).delete(synchronize_session="fetch")
+            cls._upsert_columns(model, property_columns)
 
     @classmethod
     def update_metrics(
@@ -363,6 +361,9 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         - If a metric Dict does not have an `id` then we create a new metric.
         - If there are extra metrics on the metadata db that are not defined on the List
         then we delete.
+
+        Uses individual ORM operations (not bulk) so that SQLAlchemy-Continuum
+        can capture each row change in the version history.
         """
 
         metrics_by_id = {metric.id: metric for metric in model.metrics}
@@ -373,28 +374,22 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             if "id" in properties
         }
 
-        db.session.bulk_insert_mappings(
-            SqlMetric,
-            [
-                {**properties, "table_id": model.id}
-                for properties in property_metrics
-                if "id" not in properties
-            ],
-        )
+        # Insert new metrics
+        for properties in property_metrics:
+            if "id" not in properties:
+                db.session.add(SqlMetric(**{**properties, "table_id": model.id}))
 
-        db.session.bulk_update_mappings(
-            SqlMetric,
-            [
-                {**metrics_by_id[properties["id"]].__dict__, **properties}
-                for properties in property_metrics_by_id.values()
-            ],
-        )
+        # Update existing metrics
+        for properties in property_metrics_by_id.values():
+            metric = metrics_by_id[properties["id"]]
+            for key, value in properties.items():
+                setattr(metric, key, value)
 
-        db.session.query(SqlMetric).filter(
-            SqlMetric.id.in_(
-                {metric.id for metric in model.metrics} - property_metrics_by_id.keys()
-            )
-        ).delete(synchronize_session="fetch")
+        # Delete removed metrics
+        ids_to_keep = property_metrics_by_id.keys()
+        for metric in model.metrics:
+            if metric.id not in ids_to_keep:
+                db.session.delete(metric)
 
     @classmethod
     def find_dataset_column(cls, dataset_id: int, column_id: int) -> TableColumn | None:
