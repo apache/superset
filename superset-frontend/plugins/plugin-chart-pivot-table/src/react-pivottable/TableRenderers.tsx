@@ -754,14 +754,16 @@ export function TableRenderer({
   );
 
   // Compute base pivot settings, memoized based on relevant props
-  const basePivotSettings = useMemo(() => {
-    // Clear sort cache when props change
-    sortCacheRef.current.clear();
-    return getBasePivotSettings();
-  }, [getBasePivotSettings]);
+  const basePivotSettings = useMemo(
+    () => getBasePivotSettings(),
+    [getBasePivotSettings],
+  );
 
-  // Reset sort state when structural props change
+  // Reset sort state and cache when structural props change. Scoping this to
+  // an effect (instead of running inside the memo) prevents the cache from
+  // being wiped on unrelated state updates like collapse/expand.
   useEffect(() => {
+    sortCacheRef.current.clear();
     setSortingOrder([]);
     setActiveSortColumn(null);
     setSortedRowKeys(null);
