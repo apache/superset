@@ -134,7 +134,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
   // Merge 'sqlExpression' into disabledTabs so the Custom SQL tab is hidden.
   const effectiveDisabledTabs = useMemo(
     () =>
-      datasource?.type === 'semantic_view'
+      String(datasource?.type) === 'semantic_view'
         ? new Set([...(disabledTabs ?? []), 'sqlExpression'])
         : disabledTabs,
     [datasource?.type, disabledTabs],

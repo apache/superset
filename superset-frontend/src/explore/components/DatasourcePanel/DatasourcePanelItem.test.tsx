@@ -89,7 +89,7 @@ const setup = (data: DatasourcePanelItemProps['data'] = mockData) =>
         <DatasourcePanelItem index={index} data={data} style={{}} />
       ))}
     </>,
-    { useDnd: true },
+    { useDnd: true, useRedux: true, initialState: { explore: {} } },
   );
 
 test('renders each item accordingly', () => {

@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import inspect
 import uuid as uuid_lib
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pytest_mock import MockerFixture
@@ -35,6 +36,7 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
     SemanticViewUpdateFailedError,
 )
+from superset.semantic_layers.api import SemanticLayerRestApi, SemanticViewRestApi
 
 SEMANTIC_LAYERS_APP = pytest.mark.parametrize(
     "app",
@@ -1701,6 +1703,23 @@ def test_delete_semantic_view_failed(
     assert response.status_code == 422
 
 
+@SEMANTIC_LAYERS_APP
+def test_delete_semantic_view_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test DELETE /<pk> returns 403 when user lacks ownership."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.DeleteSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticViewForbiddenError()
+
+    response = client.delete("/api/v1/semantic_view/1")
+
+    assert response.status_code == 403
+
+
 # =============================================================================
 # SemanticViewRestApi.bulk_delete tests
 # =============================================================================
@@ -1766,6 +1785,26 @@ def test_bulk_delete_semantic_view_failed(
     response = client.delete(f"/api/v1/semantic_view/?q={q}")
 
     assert response.status_code == 422
+
+
+@SEMANTIC_LAYERS_APP
+def test_bulk_delete_semantic_view_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test DELETE / returns 403 when user lacks ownership."""
+    import prison as rison_lib
+
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.BulkDeleteSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = SemanticViewForbiddenError()
+
+    q = rison_lib.dumps([1, 2])
+    response = client.delete(f"/api/v1/semantic_view/?q={q}")
+
+    assert response.status_code == 403
 
 
 def test_semantic_view_delete_invalid_pk_returns_404(
@@ -1976,3 +2015,67 @@ def test_get_views_flag_off_returns_404(
         json={},
     )
     assert response.status_code == 404
+
+
+def test_semantic_view_post_flag_off_unwrapped() -> None:
+    """Cover post() feature-flag guard without auth decorators."""
+    api = SemanticViewRestApi()
+    api.response_404 = MagicMock(return_value=("404", 404))
+    post_fn = inspect.unwrap(SemanticViewRestApi.post)
+
+    with patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=False,
+    ):
+        response = post_fn(api)
+
+    assert response == ("404", 404)
+    api.response_404.assert_called_once()
+
+
+def test_semantic_view_delete_flag_off_unwrapped() -> None:
+    """Cover delete() feature-flag guard without auth decorators."""
+    api = SemanticViewRestApi()
+    api.response_404 = MagicMock(return_value=("404", 404))
+    delete_fn = inspect.unwrap(SemanticViewRestApi.delete)
+
+    with patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=False,
+    ):
+        response = delete_fn(api, 1)
+
+    assert response == ("404", 404)
+    api.response_404.assert_called_once()
+
+
+def test_semantic_view_bulk_delete_flag_off_unwrapped() -> None:
+    """Cover bulk_delete() feature-flag guard without auth decorators."""
+    api = SemanticViewRestApi()
+    api.response_404 = MagicMock(return_value=("404", 404))
+    bulk_delete_fn = inspect.unwrap(SemanticViewRestApi.bulk_delete)
+
+    with patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=False,
+    ):
+        response = bulk_delete_fn(api, rison=[1])
+
+    assert response == ("404", 404)
+    api.response_404.assert_called_once()
+
+
+def test_semantic_layer_views_flag_off_unwrapped() -> None:
+    """Cover views() feature-flag guard without auth decorators."""
+    api = SemanticLayerRestApi()
+    api.response_404 = MagicMock(return_value=("404", 404))
+    views_fn = inspect.unwrap(SemanticLayerRestApi.views)
+
+    with patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=False,
+    ):
+        response = views_fn(api, str(uuid_lib.uuid4()))
+
+    assert response == ("404", 404)
+    api.response_404.assert_called_once()
