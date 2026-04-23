@@ -210,10 +210,13 @@ const ScopeSelector = styled.div`
         &:hover {
           text-decoration: underline;
         }
+      }
 
-        &:focus {
-          outline: none;
-        }
+      /* WCAG 2.4.7: Focus on the clickable button that wraps the rct-icon spans */
+      .react-checkbox-tree button:focus-visible {
+        outline: 2px solid transparent;
+        box-shadow: 0 0 0 2px ${theme.colorPrimary};
+        border-radius: ${theme.borderRadius}px;
       }
 
       .filter-field-pane {
@@ -360,7 +363,7 @@ const ScopeSelector = styled.div`
         border: 1px solid ${theme.colorBorder};
         padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
         font-size: ${theme.fontSize}px;
-        outline: none;
+        outline: 2px solid transparent; /* WCAG 2.4.7: transparent outline prevents double-ring; border change on focus provides visible indicator */
 
         &:focus {
           border: 1px solid ${theme.colorPrimary};
