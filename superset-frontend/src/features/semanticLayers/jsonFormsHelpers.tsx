@@ -18,7 +18,7 @@
  */
 import { useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { Spin } from 'antd';
+import { Spin, Select, Form } from 'antd';
 import { withJsonFormsControlProps } from '@jsonforms/react';
 import type {
   JsonSchema,
@@ -46,7 +46,18 @@ export const SCHEMA_REFRESH_DEBOUNCE_MS = 500;
 function PasswordControl(props: ControlProps) {
   const uischema = {
     ...props.uischema,
-    options: { ...props.uischema.options, type: 'password' },
+    options: {
+      ...props.uischema.options,
+      type: 'password',
+      inputProps: {
+        ...((props.uischema.options?.inputProps as Record<string, unknown>) ??
+          {}),
+        // Prevent browsers from autofilling stored login passwords into
+        // service-token fields. 'new-password' is respected even when
+        // 'off' is ignored (Chrome ≥ 34).
+        autoComplete: 'new-password',
+      },
+    },
   };
   return TextControl({ ...props, uischema });
 }
@@ -128,17 +139,30 @@ const readOnlyEntry = {
 /**
  * Checks whether all dependency values are filled (non-empty).
  * Handles nested objects (like auth) by checking they have at least one key.
+ *
+ * Fields that have a `default` in the schema are considered satisfied even
+ * when the user has not explicitly touched them yet — JsonForms does not
+ * write default values into `data` until a field is interacted with, so
+ * without this fallback a field like `admin_host` (which ships with a
+ * sensible default) would permanently block the refresh.
  */
 export function areDependenciesSatisfied(
   dependencies: string[],
   data: Record<string, unknown>,
+  schema?: JsonSchema,
 ): boolean {
   return dependencies.every(dep => {
     const value = data[dep];
-    if (value === null || value === undefined || value === '') return false;
-    if (typeof value === 'object' && Object.keys(value).length === 0)
-      return false;
-    return true;
+    if (value !== null && value !== undefined && value !== '') {
+      if (typeof value === 'object' && Object.keys(value).length === 0)
+        return false;
+      return true;
+    }
+    // Fall back to the schema default when the field hasn't been touched yet.
+    const defaultValue = schema?.properties?.[dep]?.default;
+    return (
+      defaultValue !== null && defaultValue !== undefined && defaultValue !== ''
+    );
   });
 }
 
@@ -156,6 +180,7 @@ function DynamicFieldControl(props: ControlProps) {
     areDependenciesSatisfied(
       deps as string[],
       (cfgData as Record<string, unknown>) ?? {},
+      props.rootSchema,
     );
 
   if (!refreshing) {
@@ -186,11 +211,66 @@ const dynamicFieldEntry = {
   renderer: DynamicFieldRenderer,
 };
 
+/**
+ * Renderer for fields that carry an ``x-enumNames`` array alongside their
+ * ``enum`` values.  Renders as an Antd Select showing human-readable labels
+ * (from ``x-enumNames``) while storing the underlying enum values in form
+ * data.  Used for MetricFlow's integer-ID fields (account, project,
+ * environment) where the backend provides both IDs and display names.
+ */
+function EnumNamesControl(props: ControlProps) {
+  const { refreshingSchema } = props.config ?? {};
+  const schema = props.schema as Record<string, unknown>;
+  const enumValues = (schema.enum as unknown[]) ?? [];
+  const enumNames =
+    (schema['x-enumNames'] as string[]) ?? enumValues.map(String);
+
+  const options = enumValues.map((value, index) => ({
+    value,
+    label: enumNames[index] ?? String(value),
+  }));
+
+  const tooltip = (props.uischema?.options as Record<string, unknown>)
+    ?.tooltip as string | undefined;
+
+  return (
+    <Form.Item label={props.label} tooltip={tooltip}>
+      <Select
+        value={props.data ?? null}
+        onChange={value => props.handleChange(props.path, value)}
+        options={options}
+        style={{ width: '100%' }}
+        disabled={!props.enabled}
+        allowClear
+        loading={!!refreshingSchema}
+        placeholder={
+          (props.uischema?.options as Record<string, unknown>)
+            ?.placeholderText as string | undefined
+        }
+      />
+    </Form.Item>
+  );
+}
+const EnumNamesRenderer = withJsonFormsControlProps(EnumNamesControl);
+const enumNamesEntry = {
+  // Rank 5: higher than the default string renderer (2–3) so this fires
+  // whenever x-enumNames is present, regardless of the underlying type.
+  tester: rankWith(
+    5,
+    schemaMatches(s => {
+      const names = (s as Record<string, unknown>)['x-enumNames'];
+      return Array.isArray(names) && (names as unknown[]).length > 0;
+    }),
+  ),
+  renderer: EnumNamesRenderer,
+};
+
 export const renderers = [
   ...rendererRegistryEntries,
   passwordEntry,
   constEntry,
   readOnlyEntry,
+  enumNamesEntry,
   dynamicFieldEntry,
 ];
 

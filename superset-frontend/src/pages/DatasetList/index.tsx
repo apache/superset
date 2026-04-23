@@ -87,13 +87,6 @@ import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import type DatasetType from 'src/types/Dataset';
 import SemanticViewEditModal from 'src/features/semanticViews/SemanticViewEditModal';
 import AddSemanticViewModal from 'src/features/semanticViews/AddSemanticViewModal';
-import {
-  datasetLabel,
-  datasetLabelLower,
-  datasetsLabel,
-  datasetsLabelLower,
-  databaseLabel,
-} from 'src/utils/semanticLayerLabels';
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
@@ -189,11 +182,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     state: { bulkSelectEnabled },
     hasPerm,
     toggleBulkSelect,
-  } = useListViewResource<Dataset>(
-    'dataset',
-    datasetLabelLower(),
-    addDangerToast,
-  );
+  } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
 
   // Combined endpoint state
   const [datasets, setDatasets] = useState<Dataset[]>([]);
@@ -201,20 +190,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const [loading, setLoading] = useState(true);
   const [lastFetchConfig, setLastFetchConfig] =
     useState<ListViewFetchDataConfig | null>(null);
-  const currentSourceFilter = useMemo(() => {
-    const sourceTypeFilter = lastFetchConfig?.filters.find(
-      filter => filter.id === 'source_type',
-    );
-    if (
-      sourceTypeFilter?.value &&
-      typeof sourceTypeFilter.value === 'object' &&
-      'value' in sourceTypeFilter.value
-    ) {
-      return sourceTypeFilter.value.value as string;
-    }
-    return (sourceTypeFilter?.value as string | undefined) ?? '';
-  }, [lastFetchConfig]);
-
+  const [currentSourceFilter, setCurrentSourceFilter] = useState<string>('');
   // Track the current type and connection filter values so cascade-clear logic
   // can inspect them when a different filter changes.
   const currentTypeFilter = useRef<unknown>(undefined);
@@ -374,6 +350,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
       const databaseFilter = filterValues.find(f => f.id === 'database');
 
+      // Track source filter for conditional Type filter visibility
+      const sourceVal =
+        sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
+          ? (sourceTypeFilter.value as { value: string }).value
+          : ((sourceTypeFilter?.value as string) ?? '');
+      setCurrentSourceFilter(sourceVal);
+
       const otherFilters = filterValues
         .filter(f => f.id !== 'source_type' && f.id !== 'database')
         .filter(
@@ -401,13 +384,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           });
         }
 
-      const queryParams = rison.encode_uri({
-        order_column: sortBy[0].id,
-        order_direction: sortBy[0].desc ? 'desc' : 'asc',
-        page: pageIndex,
-        page_size: pageSize,
-        ...(otherFilters.length ? { filters: otherFilters } : {}),
-      });
+        const queryParams = rison.encode_uri({
+          order_column: sortBy[0].id,
+          order_direction: sortBy[0].desc ? 'desc' : 'asc',
+          page: pageIndex,
+          page_size: pageSize,
+          ...(otherFilters.length ? { filters: otherFilters } : {}),
+        });
 
       // Translate the "Data connection" filter: values prefixed with "sl:" are
       // semantic layer UUIDs; plain values are database IDs.
@@ -441,9 +424,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           setDatasetCount(json.count);
         })
         .catch(() => {
-          addDangerToast(
-            t('An error occurred while fetching %s', datasetsLabelLower()),
-          );
+          addDangerToast(t('An error occurred while fetching datasets'));
         })
         .finally(() => {
           setLoading(false);
@@ -477,9 +458,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     null,
   );
 
-  const [svCurrentlyDeleting, setSvCurrentlyDeleting] =
-    useState<Dataset | null>(null);
-
   const [showAddSemanticViewModal, setShowAddSemanticViewModal] =
     useState(false);
   const [importingDataset, showImportModal] = useState<boolean>(false);
@@ -504,6 +482,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       state.common?.conf?.PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET || false,
   );
 
+  const currentSourceFilter = useMemo(() => {
+    const sourceTypeFilter = lastFetchConfig?.filters.find(
+      filter => filter.id === 'source_type',
+    );
+    if (
+      sourceTypeFilter?.value &&
+      typeof sourceTypeFilter.value === 'object' &&
+      'value' in sourceTypeFilter.value
+    ) {
+      return sourceTypeFilter.value.value as string;
+    }
+    return (sourceTypeFilter?.value as string | undefined) ?? '';
+  }, [lastFetchConfig]);
+
   const openDatasetImportModal = () => {
     showImportModal(true);
   };
@@ -515,7 +507,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const handleDatasetImport = () => {
     showImportModal(false);
     refreshData();
-    addSuccessToast(t('%s imported', datasetLabel()));
+    addSuccessToast(t('Dataset imported'));
   };
 
   const canEdit = hasPerm('can_write');
@@ -553,10 +545,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         })
         .catch(() => {
           addDangerToast(
-            t(
-              'An error occurred while fetching %s related data',
-              datasetLabelLower(),
-            ),
+            t('An error occurred while fetching dataset related data'),
           );
         });
     },
@@ -600,29 +589,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         });
       } catch {
         setPreparingExport(false);
-        addDangerToast(
-          t(
-            'There was an issue exporting the selected %s',
-            datasetsLabelLower(),
-          ),
-        );
+        addDangerToast(t('There was an issue exporting the selected datasets'));
       }
     },
     [addDangerToast, setPreparingExport],
   );
 
-  const handleSemanticViewDelete = (sv: Dataset) => {
-    setSvCurrentlyDeleting(sv);
-  };
-
-  const handleSemanticViewDeleteConfirm = () => {
-    if (!svCurrentlyDeleting) return;
-    const { id, table_name: tableName } = svCurrentlyDeleting;
+  const handleSemanticViewDelete = ({ id, table_name: tableName }: Dataset) => {
     SupersetClient.delete({
       endpoint: `/api/v1/semantic_view/${id}`,
     }).then(
       () => {
-        setSvCurrentlyDeleting(null);
         refreshData();
         addSuccessToast(t('Deleted: %s', tableName));
       },
@@ -718,7 +695,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             original: { database },
           },
         }: CellProps<Dataset>) => database?.database_name || '-',
-        Header: databaseLabel(),
+        Header: t('Database'),
         accessor: 'database.database_name',
         size: 'xl',
         id: 'database.database_name',
@@ -1010,13 +987,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             },
           ]),
       {
-        Header: databaseLabel(),
+        Header: t('Database'),
         key: 'database',
         id: 'database',
-        input: 'select' as const,
+        input: 'select',
         operator: FilterOperator.RelationOneMany,
         unfilteredLabel: 'All',
-        fetchSelects: fetchConnectionOptions,
+        fetchSelects: createFetchRelated(
+          'dataset',
+          'database',
+          createErrorHandler(errMsg =>
+            t('An error occurred while fetching datasets: %s', errMsg),
+          ),
+        ),
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
         onFilterUpdate: (option: any) => {
@@ -1052,8 +1035,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           'dataset',
           createErrorHandler(errMsg =>
             t(
-              'An error occurred while fetching %s owner values: %s',
-              datasetLabelLower(),
+              'An error occurred while fetching dataset owner values: %s',
               errMsg,
             ),
           ),
@@ -1088,8 +1070,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           'changed_by',
           createErrorHandler(errMsg =>
             t(
-              'An error occurred while fetching %s values: %s',
-              datasetLabelLower(),
+              'An error occurred while fetching dataset datasource values: %s',
               errMsg,
             ),
           ),
@@ -1104,7 +1085,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const menuData: SubMenuProps = {
     activeChild: 'Datasets',
-    name: datasetsLabel(),
+    name: t('Datasets'),
   };
 
   const buttonArr: Array<ButtonProps> = [];
@@ -1114,7 +1095,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       name: (
         <Tooltip
           id="import-tooltip"
-          title={t('Import %s', datasetsLabelLower())}
+          title={t('Import datasets')}
           placement="bottomRight"
         >
           <Icons.DownloadOutlined
@@ -1183,7 +1164,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     } else {
       buttonArr.push({
         icon: <Icons.PlusOutlined iconSize="m" />,
-        name: datasetLabel(),
+        name: t('Dataset'),
         onClick: () => {
           history.push('/dataset/add/');
         },
@@ -1245,33 +1226,30 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
     if (semanticViews.length) {
       promises.push(
-        SupersetClient.delete({
-          endpoint: `/api/v1/semantic_view/?q=${rison.encode(
-            semanticViews.map(({ id }) => id),
-          )}`,
-        }),
+        ...semanticViews.map(sv =>
+          SupersetClient.delete({
+            endpoint: `/api/v1/semantic_view/${sv.id}`,
+          }),
+        ),
       );
     }
 
-    Promise.allSettled(promises).then(results => {
-      const failures = results.filter(r => r.status === 'rejected');
-      // Always refresh so the list reflects whatever actually got deleted.
-      refreshData();
-      if (failures.length === 0) {
+    Promise.all(promises).then(
+      () => {
+        refreshData();
         addSuccessToast(t('Deleted %s item(s)', datasetsToDelete.length));
-      } else {
+      },
+      createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting the selected %s', datasetsLabelLower()),
-        );
-      }
-    });
+          t('There was an issue deleting the selected datasets: %s', errMsg),
+        ),
+      ),
+    );
   };
 
   const handleDatasetDuplicate = (newDatasetName: string) => {
     if (datasetCurrentlyDuplicating === null) {
-      addDangerToast(
-        t('There was an issue duplicating the %s.', datasetLabelLower()),
-      );
+      addDangerToast(t('There was an issue duplicating the dataset.'));
     }
 
     SupersetClient.post({
@@ -1287,11 +1265,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t(
-            'There was an issue duplicating the selected %s: %s',
-            datasetsLabelLower(),
-            errMsg,
-          ),
+          t('There was an issue duplicating the selected datasets: %s', errMsg),
         ),
       ),
     );
@@ -1305,7 +1279,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           description={
             <>
               <p>
-                {t('The %s', datasetLabelLower())}
+                {t('The dataset')}
                 <b> {datasetCurrentlyDeleting.table_name} </b>
                 {t(
                   'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
@@ -1411,19 +1385,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           }}
           onHide={closeDatasetDeleteModal}
           open
-          title={t('Delete %s?', datasetLabel())}
-        />
-      )}
-      {svCurrentlyDeleting && (
-        <DeleteModal
-          description={t(
-            'Are you sure you want to delete %s?',
-            svCurrentlyDeleting.table_name,
-          )}
-          onConfirm={handleSemanticViewDeleteConfirm}
-          onHide={() => setSvCurrentlyDeleting(null)}
-          open
-          title={t('Delete Semantic View?')}
+          title={t('Delete Dataset?')}
         />
       )}
       {datasetCurrentlyEditing && (
@@ -1457,8 +1419,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t(
-          'Are you sure you want to delete the selected %s?',
-          datasetsLabelLower(),
+          'Are you sure you want to delete the selected datasets?',
         )}
         onConfirm={handleBulkDatasetDelete}
       >
@@ -1542,7 +1503,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
       <ImportModelsModal
         resourceName="dataset"
-        resourceLabel={datasetLabelLower()}
+        resourceLabel={t('dataset')}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
         confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
         addDangerToast={addDangerToast}
