@@ -185,6 +185,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             SecurityRestApi,
             UserRegistrationsRestAPI,
         )
+        from superset.deleted.api import DeletedRestApi
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
@@ -277,6 +278,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             appbuilder.add_api(SemanticLayerRestApi)
             appbuilder.add_api(SemanticViewRestApi)
+        appbuilder.add_api(DeletedRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
