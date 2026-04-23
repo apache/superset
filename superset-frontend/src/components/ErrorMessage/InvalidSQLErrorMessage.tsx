@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
-import { ErrorMessageComponentProps } from './types';
-import ErrorAlert from './ErrorAlert';
+import { t } from '@apache-superset/core/translation';
+import type { ErrorMessageComponentProps } from './types';
+import { ErrorAlert } from './ErrorAlert';
 
 interface SupersetParseErrorExtra {
   sql: string;
@@ -31,10 +31,10 @@ interface SupersetParseErrorExtra {
 /*
  * Component for showing syntax errors in SQL Lab.
  */
-function InvalidSQLErrorMessage({
+export function InvalidSQLErrorMessage({
   error,
-  source,
   subtitle,
+  closable,
 }: ErrorMessageComponentProps<SupersetParseErrorExtra>) {
   const { extra, level, message } = error;
 
@@ -59,8 +59,7 @@ function InvalidSQLErrorMessage({
       message={subtitle}
       type={level}
       description={body}
+      closable={closable}
     />
   );
 }
-
-export default InvalidSQLErrorMessage;

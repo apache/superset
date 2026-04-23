@@ -25,7 +25,6 @@ from typing import Any, Callable, cast
 
 from flask import (
     Flask,
-    redirect,
     request,
     Response,
     send_file,
@@ -34,7 +33,6 @@ from flask_wtf.csrf import CSRFError
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
 
-from superset import appbuilder
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -46,6 +44,7 @@ from superset.exceptions import (
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
 from superset.utils.log import get_logger_from_status
+from superset.views.utils import redirect_to_login
 
 if typing.TYPE_CHECKING:
     from superset.views.base import BaseSupersetView
@@ -153,18 +152,23 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         if request.is_json:
             return show_http_exception(ex)
 
-        return redirect(appbuilder.get_url_for_login)
+        return redirect_to_login()
 
     @app.errorhandler(HTTPException)
     def show_http_exception(ex: HTTPException) -> FlaskResponse:
         logger.warning("HTTPException", exc_info=True)
+
         if (
             "text/html" in request.accept_mimetypes
             and not app.config["DEBUG"]
             and ex.code in {404, 500}
         ):
             path = files("superset") / f"static/assets/{ex.code}.html"
-            return send_file(path, max_age=0), ex.code
+            # Try to serve HTML file; fall back to JSON if not built
+            try:
+                return send_file(path, max_age=0), ex.code
+            except FileNotFoundError:
+                pass
 
         return json_error_response(
             [
@@ -185,9 +189,14 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         or SupersetErrorsException, with a specific status code and error type
         """
         logger.warning("CommandException", exc_info=True)
+
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
-            return send_file(path, max_age=0), 500
+            # Try to serve HTML file; fall back to JSON if not built
+            try:
+                return send_file(path, max_age=0), 500
+            except FileNotFoundError:
+                pass
 
         extra = ex.normalized_messages() if isinstance(ex, CommandInvalidError) else {}
         return json_error_response(
@@ -208,6 +217,7 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         """Catch-all, to ensure all errors from the backend conform to SIP-40"""
         logger.warning("Exception", exc_info=True)
         logger.exception(ex)
+
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
             return send_file(path, max_age=0), 500

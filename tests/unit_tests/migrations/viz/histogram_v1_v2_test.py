@@ -20,6 +20,7 @@ from superset.migrations.shared.migrate_viz import MigrateHistogramChart
 from tests.unit_tests.migrations.viz.utils import migrate_and_assert
 
 SOURCE_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "all_columns_x": ["category"],
     "adhoc_filters": [],
     "cumulative": True,
@@ -33,6 +34,7 @@ SOURCE_FORM_DATA: dict[str, Any] = {
 }
 
 TARGET_FORM_DATA: dict[str, Any] = {
+    "datasource": "1__table",
     "adhoc_filters": [],
     "bins": 5,
     "column": "category",

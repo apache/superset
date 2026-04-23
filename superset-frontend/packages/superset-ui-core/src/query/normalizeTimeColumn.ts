@@ -67,6 +67,7 @@ export function normalizeTimeColumn(
         sqlExpression: formData.x_axis,
         label: formData.x_axis,
         expressionType: 'SQL',
+        isColumnReference: true,
       };
     }
 

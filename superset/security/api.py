@@ -19,14 +19,14 @@ from typing import Any
 
 from flask import current_app, request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.api import rison, safe
+from flask_appbuilder.api import rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
-from flask_appbuilder.security.sqla.models import Role
+from flask_appbuilder.security.sqla.models import RegisterUser, Role
 from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 from sqlalchemy import asc, desc
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import selectinload
 
 from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
@@ -35,7 +35,11 @@ from superset.commands.exceptions import ForbiddenError
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
 from superset.security.guest_token import GuestTokenResourceType
-from superset.views.base_api import BaseSupersetApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetApi,
+    BaseSupersetModelRestApi,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -294,7 +298,9 @@ class RoleRestAPI(BaseSupersetApi):
             page_size = args.get("page_size", 10)
 
             query = db.session.query(Role).options(
-                joinedload(Role.permissions), joinedload(Role.user)
+                selectinload(Role.permissions),
+                selectinload(Role.user),
+                selectinload(Role.groups),
             )
 
             filters = args.get("filters", [])
@@ -308,8 +314,13 @@ class RoleRestAPI(BaseSupersetApi):
                     Role.permissions.any(id=filter_dict["permission_ids"])
                 )
 
+            if "group_ids" in filter_dict:
+                query = query.filter(Role.groups.any(id=filter_dict["group_ids"]))
+
             if "name" in filter_dict:
                 query = query.filter(Role.name.ilike(f"%{filter_dict['name']}%"))
+
+            total_count = query.count()
 
             roles = (
                 query.order_by(order_by).offset(page * page_size).limit(page_size).all()
@@ -323,13 +334,33 @@ class RoleRestAPI(BaseSupersetApi):
                         "name": role.name,
                         "user_ids": [user.id for user in role.user],
                         "permission_ids": [perm.id for perm in role.permissions],
+                        "group_ids": [group.id for group in role.groups],
                     }
                     for role in roles
                 ],
-                count=query.count(),
+                count=total_count,
                 ids=[role.id for role in roles],
             )
         except ForbiddenError as e:
             return self.response_403(message=str(e))
         except Exception as e:
             return self.response_500(message=str(e))
+
+
+class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
+    """
+    APIs for listing user registrations (Admin only)
+    """
+
+    resource_name = "security/user_registrations"
+    datamodel = SQLAInterface(RegisterUser)
+    allow_browser_login = True
+    list_columns = [
+        "id",
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "registration_date",
+        "registration_hash",
+    ]

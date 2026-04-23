@@ -17,29 +17,45 @@
  * under the License.
  */
 
-import { areObjectsEqual } from 'src/reduxUtils';
-import { DataMaskStateWithId, Filter, FilterState } from '@superset-ui/core';
-import { testWithId } from 'src/utils/testUtils';
-import { RootState } from 'src/dashboard/types';
+import {
+  DataMaskStateWithId,
+  ExtraFormData,
+  Filter,
+  FilterState,
+} from '@superset-ui/core';
+import { isEqual } from 'lodash';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
+import { areObjectsEqual } from 'src/reduxUtils';
+import { testWithId } from 'src/utils/testUtils';
+import { RootState } from 'src/dashboard/types';
+import { FilterElement } from './FilterControls/types';
 
-export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
-  Object.values(data).reduce(
-    (prev, next) => ({ ...prev, [next.id]: next.extraFormData }),
+export const getOnlyExtraFormData = (
+  data: DataMaskStateWithId,
+  filterIds?: Set<string>,
+): Record<string, ExtraFormData | undefined> =>
+  Object.values(data).reduce<Record<string, ExtraFormData | undefined>>(
+    (prev, next) => {
+      // If filterIds is provided, only include those filters
+      if (filterIds && !filterIds.has(next.id)) return prev;
+      return { ...prev, [next.id]: next.extraFormData };
+    },
     {},
   );
 
 export const checkIsMissingRequiredValue = (
-  filter: Filter,
+  filter: FilterElement,
   filterState?: FilterState,
 ) => {
+  const isRequired = !!filter.controlValues?.enableEmptyFilter;
+
+  if (!isRequired) return false;
+
   const value = filterState?.value;
+
   // TODO: this property should be unhardcoded
-  return (
-    filter.controlValues?.enableEmptyFilter &&
-    (value === null || value === undefined)
-  );
+  return value === null || value === undefined;
 };
 
 export const checkIsValidateError = (dataMask: DataMaskStateWithId) => {
@@ -50,27 +66,84 @@ export const checkIsValidateError = (dataMask: DataMaskStateWithId) => {
 export const checkIsApplyDisabled = (
   dataMaskSelected: DataMaskStateWithId,
   dataMaskApplied: DataMaskStateWithId,
-  filters: Filter[],
+  filtersInScope: Filter[],
+  allFilters?: Filter[],
 ) => {
-  if (!checkIsValidateError(dataMaskSelected)) {
-    return true;
-  }
-  const dataSelectedValues = Object.values(dataMaskSelected);
-  const dataAppliedValues = Object.values(dataMaskApplied);
-  return (
-    areObjectsEqual(
-      getOnlyExtraFormData(dataMaskSelected),
-      getOnlyExtraFormData(dataMaskApplied),
-      { ignoreUndefined: true },
-    ) ||
-    dataSelectedValues.length !== dataAppliedValues.length ||
-    filters.some(filter =>
-      checkIsMissingRequiredValue(
-        filter,
-        dataMaskSelected?.[filter?.id]?.filterState,
-      ),
-    )
+  if (!checkIsValidateError(dataMaskSelected)) return true;
+
+  const selectedExtraFormData = getOnlyExtraFormData(dataMaskSelected);
+  const appliedExtraFormData = getOnlyExtraFormData(dataMaskApplied);
+
+  // Check counts first
+  const selectedCount = Object.keys(selectedExtraFormData).length;
+  const appliedCount = Object.keys(appliedExtraFormData).length;
+
+  if (selectedCount !== appliedCount) return true;
+
+  // Check for changes
+  const dataEqual = areObjectsEqual(
+    selectedExtraFormData,
+    appliedExtraFormData,
+    { ignoreUndefined: true },
   );
+
+  // If no changes at all, Apply should be disabled
+  if (dataEqual) return true;
+
+  // Determine which filters to validate for required values
+  const inScopeFilterIds = new Set(filtersInScope.map(f => f.id));
+
+  // Check if changes are in-scope or out-of-scope
+  const hasInScopeChanges = filtersInScope.some(filter => {
+    const selected = selectedExtraFormData[filter.id];
+    const applied = appliedExtraFormData[filter.id];
+    return !isEqual(selected, applied);
+  });
+
+  // Determine which filters to validate for required values
+  const hasOutOfScopeChanges =
+    !hasInScopeChanges &&
+    allFilters?.some(filter => {
+      if (inScopeFilterIds.has(filter.id)) return false;
+      const selected = selectedExtraFormData[filter.id];
+      const applied = appliedExtraFormData[filter.id];
+      return !isEqual(selected, applied);
+    });
+
+  const shouldValidateAllRequired =
+    hasOutOfScopeChanges && allFilters && allFilters.length > 0;
+  const filtersToValidateRequired = shouldValidateAllRequired
+    ? allFilters
+    : filtersInScope;
+
+  // Check if any required filter is missing a value
+  // For filters that may have been auto-applied (e.g., requiredFirst filters),
+  // check both selected and applied states to avoid false positives during initialization
+  const hasMissingRequiredFilter = filtersToValidateRequired.some(filter => {
+    const selectedDataMask = dataMaskSelected?.[filter?.id];
+    const selectedState = selectedDataMask?.filterState;
+    const appliedState = dataMaskApplied?.[filter?.id]?.filterState;
+
+    // If filter has value in selected state, it's not missing
+    if (selectedState?.value !== null && selectedState?.value !== undefined) {
+      return false;
+    }
+
+    // If filter is not in selected state at all (not initialized yet),
+    // check if it was auto-applied and has value in applied state
+    // This handles the case where auto-applied filters haven't synced to selected yet
+    if (!selectedDataMask) {
+      if (appliedState?.value !== null && appliedState?.value !== undefined) {
+        return false; // Not missing, it's auto-applied
+      }
+    }
+
+    // Otherwise, check if it's actually a required filter with missing value
+    // This includes cases where user explicitly cleared the value (selectedDataMask exists but value is undefined)
+    return checkIsMissingRequiredValue(filter, selectedState);
+  });
+
+  return hasMissingRequiredFilter;
 };
 
 const chartsVerboseMapSelector = createSelector(
@@ -80,8 +153,9 @@ const chartsVerboseMapSelector = createSelector(
   ],
   (slices, datasources) =>
     Object.keys(slices).reduce((chartsVerboseMaps, chartId) => {
-      const chartDatasource = slices[chartId]?.datasource
-        ? datasources[slices[chartId].datasource]
+      const numericChartId = Number(chartId);
+      const chartDatasource = slices[numericChartId]?.form_data?.datasource
+        ? datasources[slices[numericChartId].form_data.datasource]
         : undefined;
       return {
         ...chartsVerboseMaps,
@@ -94,6 +168,27 @@ export const useChartsVerboseMaps = () =>
   useSelector<RootState, { [chartId: string]: Record<string, string> }>(
     chartsVerboseMapSelector,
   );
+
+/**
+ * Determines which filters should be applied when the Apply button is clicked.
+ */
+export const getFiltersToApply = (
+  dataMaskSelected: DataMaskStateWithId,
+  inScopeFilterIds: Set<string>,
+): string[] =>
+  Object.entries(dataMaskSelected)
+    .filter(([filterId, dataMask]) => {
+      if (!dataMask) return false;
+
+      const isInScope = inScopeFilterIds.has(filterId);
+      const hasValue =
+        dataMask.filterState?.value !== undefined &&
+        dataMask.filterState?.value !== null;
+
+      // Apply if in-scope OR if out-of-scope with a value
+      return isInScope || hasValue;
+    })
+    .map(([filterId]) => filterId);
 
 export const FILTER_BAR_TEST_ID = 'filter-bar';
 export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);

@@ -38,7 +38,7 @@ from superset.migrations.shared.utils import paginated_update  # noqa: E402
 from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("alembic.env")
 
 
 class Dashboard(Base):

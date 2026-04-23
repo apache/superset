@@ -21,7 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import ExploreResultsButton, {
   ExploreResultsButtonProps,
 } from 'src/SqlLab/components/ExploreResultsButton';
-import { OnClickHandler } from 'src/components/Button';
+import type { OnClickHandler } from '@superset-ui/core/components';
 
 const setup = (
   onClickFn: OnClickHandler,
@@ -31,20 +31,19 @@ const setup = (
     useRedux: true,
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExploreResultsButton', () => {
-  it('renders', async () => {
-    const { queryByText } = setup(jest.fn(), {
+  test('renders', async () => {
+    setup(jest.fn(), {
       database: { allows_subquery: true },
     });
-
-    expect(queryByText('Create Chart')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create Chart' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Create chart/i })).toBeEnabled();
   });
 
-  it('renders disabled if subquery not allowed', async () => {
-    const { queryByText } = setup(jest.fn());
-
-    expect(queryByText('Create Chart')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create Chart' })).toBeDisabled();
+  test('renders disabled if subquery not allowed', async () => {
+    setup(jest.fn());
+    expect(
+      screen.getByRole('button', { name: /Create chart/i }),
+    ).toBeDisabled();
   });
 });

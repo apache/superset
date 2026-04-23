@@ -46,7 +46,7 @@ export interface DashboardTableProps {
   user?: User;
   mine: Array<Dashboard>;
   showThumbnails?: boolean;
-  otherTabData: Array<Dashboard>;
+  otherTabData?: Array<Dashboard>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
 }
@@ -104,6 +104,7 @@ export interface QueryObject {
     username: string;
   };
   start_time: number;
+  start_running_time: number | null;
   end_time: number;
   rows: number;
   tmp_table_name: string;
@@ -125,6 +126,7 @@ export enum QueryObjectColumns {
   User = 'user',
   UserFirstName = 'user.first_name',
   StartTime = 'start_time',
+  StartRunningTime = 'start_running_time',
   EndTime = 'end_time',
   Rows = 'rows',
   TmpTableName = 'tmp_table_name',
@@ -136,7 +138,8 @@ export type ImportResourceName =
   | 'dashboard'
   | 'database'
   | 'dataset'
-  | 'saved_query';
+  | 'saved_query'
+  | 'theme';
 
 export interface Tag {
   changed_on_delta_humanized: string;
@@ -151,3 +154,13 @@ export interface Tag {
 
 export type DatabaseObject = Partial<Database> &
   Pick<Database, 'sqlalchemy_uri'>;
+
+export interface EncryptedExtraField {
+  path: string;
+  label: string;
+}
+
+export interface FileEncryptedExtraFields {
+  fileName: string;
+  fields: EncryptedExtraField[];
+}

@@ -1,0 +1,160 @@
+---
+title: Badge
+sidebar_label: Badge
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Badge
+
+The Badge component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="Badge"
+  props={{
+  count: 5,
+  size: "default",
+  showZero: false,
+  overflowCount: 99
+}}
+  controls={[
+  {
+    name: "count",
+    label: "Count",
+    type: "number",
+    description: "Number to show in the badge."
+  },
+  {
+    name: "size",
+    label: "Size",
+    type: "select",
+    options: [
+      "default",
+      "small"
+    ],
+    description: "Size of the badge."
+  },
+  {
+    name: "showZero",
+    label: "Show Zero",
+    type: "boolean",
+    description: "Whether to show badge when count is zero."
+  },
+  {
+    name: "overflowCount",
+    label: "Overflow Count",
+    type: "number",
+    description: "Max count to show. Shows count+ when exceeded (e.g., 99+)."
+  },
+  {
+    name: "color",
+    label: "Color",
+    type: "select",
+    options: [
+      "pink",
+      "red",
+      "yellow",
+      "orange",
+      "cyan",
+      "green",
+      "blue",
+      "purple",
+      "geekblue",
+      "magenta",
+      "volcano",
+      "gold",
+      "lime"
+    ],
+    description: "Custom background color for the badge."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Badge
+      count={5}
+      size="default"
+      overflowCount={99}
+    />
+  );
+}
+```
+
+## Status Badge
+
+```tsx live
+function StatusBadgeDemo() {
+  const statuses = ['default', 'success', 'processing', 'warning', 'error'];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {statuses.map(status => (
+        <Badge key={status} status={status} text={`Status: ${status}`} />
+      ))}
+    </div>
+  );
+}
+```
+
+## Color Gallery
+
+```tsx live
+function ColorGallery() {
+  const colors = ['pink', 'red', 'orange', 'green', 'cyan', 'blue', 'purple'];
+  return (
+    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+      {colors.map(color => (
+        <Badge key={color} count={9} color={color} />
+      ))}
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `count` | `number` | `5` | Number to show in the badge. |
+| `size` | `string` | `"default"` | Size of the badge. |
+| `showZero` | `boolean` | `false` | Whether to show badge when count is zero. |
+| `overflowCount` | `number` | `99` | Max count to show. Shows count+ when exceeded (e.g., 99+). |
+
+## Import
+
+```tsx
+import { Badge } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Badge/Badge.stories.tsx).
+:::

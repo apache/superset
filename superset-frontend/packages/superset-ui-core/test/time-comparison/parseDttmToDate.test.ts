@@ -20,7 +20,7 @@
 import { parseDttmToDate } from '@superset-ui/core';
 import timezoneMock from 'timezone-mock';
 
-// NOW will be set at midnight 2024-06-03 and transforme dfrom local timezone to UTC
+// NOW will be set at midnight 2024-06-03 and transformed from local timezone to UTC
 const NOW_IN_UTC = '2024-06-03T00:00:00Z';
 const NOW_UTC_IN_EUROPE = '2024-06-02T22:00:00Z'; // Same as 2024-06-03T00:00:00+02:00
 const NOW_UTC_IN_PACIFIC = '2024-06-03T08:00:00Z'; // Same as 2024-06-03T00:00:00-08:00
@@ -38,8 +38,8 @@ const runTimezoneTest = (
   endDate = false,
   computingShift = false,
 ) => {
-  jest.setSystemTime(new Date(now_time));
   timezoneMock.register(timezone);
+  jest.setSystemTime(new Date(now_time));
   expect(parseDttmToDate(eval_time, endDate, computingShift)).toEqual(
     expected_result,
   );
@@ -69,7 +69,7 @@ test('should return the current date for "today"', () => {
     'today',
     NOW_UTC_IN_EUROPE,
     'Etc/GMT-2',
-    new Date('2024-06-03T00:00:00+02:00'),
+    new Date('2024-06-02T22:00:00Z'),
   );
   runTimezoneTest('today', NOW_IN_UTC, 'UTC', new Date('2024-06-03T00:00:00Z'));
   runTimezoneTest(

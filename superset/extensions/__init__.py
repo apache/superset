@@ -15,12 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import os
 from typing import Any, Callable, Optional
 
 import celery
 from flask import Flask
-from flask_appbuilder import AppBuilder, SQLA
+from flask_appbuilder import AppBuilder
+
+# Temporary fix for missing flask_appbuilder.utils.legacy module
+try:
+    from flask_appbuilder.utils.legacy import get_sqla_class
+except ImportError:
+    # Fallback if legacy module doesn't exist
+    from flask_sqlalchemy import SQLAlchemy
+
+    def get_sqla_class() -> Any:
+        return SQLAlchemy
+
+
 from flask_caching.backends.base import BaseCache
 from flask_migrate import Migrate
 from flask_talisman import Talisman
@@ -33,10 +46,19 @@ from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.security.manager import SupersetSecurityManager
 from superset.utils.cache_manager import CacheManager
+from superset.utils.database import apply_mariadb_ddl_fix
 from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
 from superset.utils.profiler import SupersetProfiler
+
+# Apply MariaDB DDL fix early in the import chain
+try:
+    apply_mariadb_ddl_fix()
+except Exception as ex:
+    logging.exception(
+        "Applying MariaDB DDL fix failed; continuing without patch: %s", ex
+    )
 
 
 class ResultsBackendManager:
@@ -123,7 +145,7 @@ async_query_manager: AsyncQueryManager = LocalProxy(
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
-db = SQLA()  # pylint: disable=disallowed-name
+db = get_sqla_class()()
 _event_logger: dict[str, Any] = {}
 encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))

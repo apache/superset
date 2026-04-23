@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { GenericDataType } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { getColorFormatters } from '@superset-ui/chart-controls';
 import { BigNumberTotalChartProps } from '../types';
 import transformProps from './transformProps';
@@ -36,6 +36,10 @@ jest.mock('@superset-ui/core', () => ({
 jest.mock('../utils', () => ({
   getDateFormatter: jest.fn(() => (v: any) => `${v}pm`),
   parseMetricValue: jest.fn(val => Number(val)),
+  getOriginalLabel: jest.fn((metric, metrics) => {
+    console.log(metrics);
+    return metric;
+  }),
 }));
 
 describe('BigNumberTotal transformProps', () => {
@@ -62,7 +66,7 @@ describe('BigNumberTotal transformProps', () => {
 
   const baseRawFormData = { dummy: 'raw' };
 
-  it('should return null bigNumber when no data is provided', () => {
+  test('should return null bigNumber when no data is provided', () => {
     const chartProps = {
       width: 400,
       height: 300,
@@ -87,7 +91,7 @@ describe('BigNumberTotal transformProps', () => {
     // colorThresholdFormatters fallback to empty array when getColorFormatters returns falsy
     expect(result.colorThresholdFormatters).toEqual([]);
   });
-  it('should convert subheader to subtitle', () => {
+  test('should convert subheader to subtitle', () => {
     const chartProps = {
       width: 400,
       height: 300,
@@ -116,7 +120,7 @@ describe('BigNumberTotal transformProps', () => {
     },
   };
 
-  it('uses subtitle font size when subtitle is provided', () => {
+  test('uses subtitle font size when subtitle is provided', () => {
     const result = transformProps({
       ...baseChartProps,
       formData: {
@@ -135,7 +139,7 @@ describe('BigNumberTotal transformProps', () => {
     expect(result.subtitleFontSize).toBe(0.4);
   });
 
-  it('should compute bigNumber using parseMetricValue when data exists', () => {
+  test('should compute bigNumber using parseMetricValue when data exists', () => {
     const chartProps = {
       width: 500,
       height: 400,
@@ -156,7 +160,7 @@ describe('BigNumberTotal transformProps', () => {
     expect(result.bigNumber).toEqual(456);
   });
 
-  it('should use formatTime as headerFormatter for Temporal or String types or forced formatting', () => {
+  test('should use formatTime as headerFormatter for Temporal or String types or forced formatting', () => {
     // Case 1: Temporal type
     const chartPropsTemporal = {
       width: 600,
@@ -210,7 +214,7 @@ describe('BigNumberTotal transformProps', () => {
     expect(resultForced.headerFormatter(5)).toBe('5pm');
   });
 
-  it('should use numberFormatter as headerFormatter when not Temporal/String and no forced formatting', () => {
+  test('should use numberFormatter as headerFormatter when not Temporal/String and no forced formatting', () => {
     const chartProps = {
       width: 700,
       height: 500,
@@ -227,7 +231,7 @@ describe('BigNumberTotal transformProps', () => {
     expect(result.headerFormatter(500)).toBe('$500');
   });
 
-  it('should propagate colorThresholdFormatters from getColorFormatters', () => {
+  test('should propagate colorThresholdFormatters from getColorFormatters', () => {
     // Override the getColorFormatters mock to return specific value
     const mockFormatters = [{ formatter: 'red' }];
     (getColorFormatters as jest.Mock).mockReturnValueOnce(mockFormatters);

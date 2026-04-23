@@ -27,26 +27,25 @@ import {
 } from 'spec/helpers/testing-library';
 import TablePreview from '.';
 
-jest.mock(
-  'src/components/FilterableTable',
-  () =>
-    ({ data }: { data: Record<string, any>[] }) => (
-      <div>
-        {data.map((record, i) => (
-          <div key={i} data-test="mock-record-row">
-            {JSON.stringify(record)}
-          </div>
-        ))}
-      </div>
-    ),
-);
+jest.mock('src/components/FilterableTable', () => ({
+  __esModule: true,
+  FilterableTable: ({ data }: { data: Record<string, any>[] }) => (
+    <div>
+      {data.map((record, i) => (
+        <div key={i} data-test="mock-record-row">
+          {JSON.stringify(record)}
+        </div>
+      ))}
+    </div>
+  ),
+}));
 jest.mock(
   'react-virtualized-auto-sizer',
   () =>
     ({ children }: { children: (params: { height: number }) => ReactChild }) =>
       children({ height: 500 }),
 );
-jest.mock('src/components/IconTooltip', () => ({
+jest.mock('@superset-ui/core/components/IconTooltip', () => ({
   IconTooltip: ({
     onClick,
     tooltip,
@@ -72,7 +71,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const mockedProps = {
@@ -104,7 +103,9 @@ test('renders indexes', async () => {
     initialState,
   });
   await waitFor(() =>
-    expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      1,
+    ),
   );
   expect(queryByText(`Indexes (${table.indexes.length})`)).toBeInTheDocument();
 });
@@ -127,43 +128,50 @@ test('renders preview', async () => {
     },
   });
   await waitFor(() =>
-    expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
+      1,
+    ),
   );
-  expect(fetchMock.calls(fetchPreviewEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(fetchPreviewEndpoint)).toHaveLength(0);
   fireEvent.click(getByText('Data preview'));
   await waitFor(() =>
-    expect(fetchMock.calls(fetchPreviewEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(fetchPreviewEndpoint)).toHaveLength(1),
   );
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('table actions', () => {
   test('refreshes table metadata when triggered', async () => {
-    const { getByRole, getByText } = render(<TablePreview {...mockedProps} />, {
+    const { getByRole } = render(<TablePreview {...mockedProps} />, {
       useRedux: true,
       initialState,
     });
     await waitFor(() =>
-      expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
+      expect(
+        fetchMock.callHistory.calls(getTableMetadataEndpoint),
+      ).toHaveLength(1),
     );
-    const menuButton = getByRole('button', { name: /Table actions/i });
-    fireEvent.click(menuButton);
-    fireEvent.click(getByText('Refresh table schema'));
+    const refreshButton = getByRole('button', { name: 'sync' });
+    fireEvent.click(refreshButton);
     await waitFor(() =>
-      expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(2),
+      expect(
+        fetchMock.callHistory.calls(getTableMetadataEndpoint),
+      ).toHaveLength(2),
     );
   });
 
   test('shows CREATE VIEW statement', async () => {
-    const { getByRole, getByText } = render(<TablePreview {...mockedProps} />, {
+    const { getByRole } = render(<TablePreview {...mockedProps} />, {
       useRedux: true,
       initialState,
     });
     await waitFor(() =>
-      expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
+      expect(
+        fetchMock.callHistory.calls(getTableMetadataEndpoint),
+      ).toHaveLength(1),
     );
-    const menuButton = getByRole('button', { name: /Table actions/i });
-    fireEvent.click(menuButton);
-    fireEvent.click(getByText('Show CREATE VIEW statement'));
+    const viewButton = getByRole('button', { name: 'eye' });
+    fireEvent.click(viewButton);
     await waitFor(() =>
       expect(
         screen.queryByRole('dialog', { name: 'CREATE VIEW statement' }),

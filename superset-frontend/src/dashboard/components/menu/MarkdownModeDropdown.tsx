@@ -17,11 +17,11 @@
  * under the License.
  */
 import { PureComponent } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 
 import PopoverDropdown, {
   OnChangeHandler,
-} from 'src/components/PopoverDropdown';
+} from '@superset-ui/core/components/PopoverDropdown';
 
 interface MarkdownModeDropdownProps {
   id: string;

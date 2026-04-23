@@ -21,10 +21,12 @@ from unittest import mock
 import pytest
 import pytz
 from pyhive.sqlalchemy_presto import PrestoDialect
+from pytest_mock import MockerFixture
 from sqlalchemy import column, sql, text, types
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -40,17 +42,17 @@ from tests.unit_tests.db_engine_specs.utils import (
         (
             "TIMESTAMP",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000, tzinfo=pytz.UTC),
-            "TIMESTAMP '2022-01-01 01:23:45.600000+00:00'",
+            "TIMESTAMP '2022-01-01 01:23:45.600+00:00'",
         ),
     ],
 )
@@ -303,3 +305,40 @@ def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
         spec.get_timestamp_expr(col=column("col"), pdf=None, time_grain=time_grain)
     )
     assert actual == expected_result
+
+
+def test_select_star(mocker: MockerFixture) -> None:
+    """
+    Test the ``select_star`` method.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec as spec  # noqa: N813
+
+    database = mocker.MagicMock()
+    dialect = mocker.MagicMock()
+
+    def quote_table(table: Table, dialect: Dialect) -> str:
+        return ".".join(
+            part for part in (table.catalog, table.schema, table.table) if part
+        )
+
+    mocker.patch.object(spec, "quote_table", quote_table)
+
+    spec.select_star(
+        database=database,
+        table=Table("my_table", "my_schema", "my_catalog"),
+        dialect=dialect,
+        limit=100,
+        show_cols=False,
+        indent=True,
+        latest_partition=False,
+        cols=None,
+    )
+
+    query = database.compile_sqla_query.mock_calls[0][1][0]
+    assert (
+        str(query)
+        == """
+SELECT * \nFROM my_catalog.my_schema.my_table
+ LIMIT :param_1
+    """.strip()
+    )

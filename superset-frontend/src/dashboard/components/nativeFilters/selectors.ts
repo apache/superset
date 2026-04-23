@@ -65,7 +65,11 @@ export const extractLabel = (filter?: FilterState): string | null => {
     return filter.label;
   }
   if (filter?.value) {
-    return ensureIsArray(filter?.value).join(', ');
+    const arr = ensureIsArray(filter.value);
+    // To avoid returning an array with a simple comma ", " or similar
+    const nonEmpty = arr.filter(v => v != null && v !== '');
+    if (nonEmpty.length === 0) return null;
+    return nonEmpty.join(', ');
   }
   return null;
 };
@@ -144,6 +148,47 @@ const getAppliedColumns = (chart: any): Set<string> =>
     ),
   );
 
+/**
+ * Get applied columns with fallback to derive from native filters when query response
+ * is missing applied_filters (e.g., from old cache entries).
+ * This ensures filter indicators show correctly even when backend cache doesn't have
+ * applied_filter_columns populated.
+ */
+export const getAppliedColumnsWithFallback = (
+  chart: any,
+  nativeFilters?: Filters,
+  dataMask?: DataMaskStateWithId,
+  chartId?: number,
+): Set<string> => {
+  // First try to get from query response (preferred source of truth)
+  const queryAppliedFilters =
+    chart?.queriesResponse?.[0]?.applied_filters || [];
+  if (queryAppliedFilters.length > 0) {
+    return new Set(queryAppliedFilters.map((filter: any) => filter.column));
+  }
+
+  // Fallback: derive from native filters and dataMask when query response is empty
+  // This handles cases where cache entries are missing applied_filter_columns
+  if (nativeFilters && dataMask && chartId) {
+    const derivedColumns = new Set<string>();
+    Object.values(nativeFilters).forEach(filter => {
+      if (
+        filter.type === NativeFilterType.NativeFilter &&
+        filter.chartsInScope?.includes(chartId)
+      ) {
+        const filterState = dataMask[filter.id]?.filterState;
+        const hasValue = extractLabel(filterState) !== null;
+        if (hasValue && filter.targets?.[0]?.column?.name) {
+          derivedColumns.add(filter.targets[0].column.name);
+        }
+      }
+    });
+    return derivedColumns;
+  }
+
+  return new Set<string>();
+};
+
 const getRejectedColumns = (chart: any): Set<string> =>
   new Set(
     (chart?.queriesResponse?.[0]?.rejected_filters || []).map((filter: any) =>
@@ -157,6 +202,7 @@ export type Indicator = {
   value?: any;
   status?: IndicatorStatus;
   path?: string[];
+  customColumnLabel?: string;
 };
 
 export type CrossFilterIndicator = Indicator & { emitterId: number };
@@ -170,6 +216,7 @@ export const getCrossFilterIndicator = (
   const filters = dataMask?.extraFormData?.filters;
   const label = extractLabel(filterState);
   const filtersState = filterState?.filters;
+  const customColumnLabel = filterState?.customColumnLabel;
   const column =
     filters?.[0]?.col || (filtersState && Object.keys(filtersState)[0]);
 
@@ -185,6 +232,7 @@ export const getCrossFilterIndicator = (
       '',
     path: [...(chartLayoutItem?.parents ?? []), chartLayoutItem?.id || ''],
     value: label,
+    customColumnLabel,
   };
   return filterObject;
 };
@@ -278,9 +326,7 @@ const getStatus = ({
   }
   if (column && rejectedColumns?.has(column))
     return IndicatorStatus.Incompatible;
-  if (column && appliedColumns?.has(column) && hasValue) {
-    return APPLIED_STATUS;
-  }
+  if (column && appliedColumns?.has(column) && hasValue) return APPLIED_STATUS;
   return IndicatorStatus.Unset;
 };
 
@@ -319,8 +365,8 @@ export const selectChartCrossFilters = (
           ? getColumnLabel(filterIndicator.column)
           : undefined,
         type: DataMaskType.CrossFilters,
-        appliedColumns,
         rejectedColumns,
+        appliedColumns,
       });
 
       return { ...filterIndicator, status: filterStatus };
@@ -342,6 +388,7 @@ const cachedNativeFilterDataForChart: Record<
     rejectedColumns: Set<string>;
   }
 > = {};
+
 export const selectNativeIndicatorsForChart = (
   nativeFilters: Filters,
   dataMask: DataMaskStateWithId,
@@ -350,22 +397,26 @@ export const selectNativeIndicatorsForChart = (
   chartLayoutItems: LayoutItem[],
   chartConfiguration: ChartConfiguration = defaultChartConfig,
 ): Indicator[] => {
-  const appliedColumns = getAppliedColumns(chart);
+  const appliedColumns = getAppliedColumnsWithFallback(
+    chart,
+    nativeFilters,
+    dataMask,
+    chartId,
+  );
   const rejectedColumns = getRejectedColumns(chart);
 
   const cachedFilterData = cachedNativeFilterDataForChart[chartId];
   if (
-    cachedNativeIndicatorsForChart[chartId] &&
-    areObjectsEqual(cachedFilterData?.appliedColumns, appliedColumns) &&
-    areObjectsEqual(cachedFilterData?.rejectedColumns, rejectedColumns) &&
-    cachedFilterData?.nativeFilters === nativeFilters &&
-    cachedFilterData?.chartLayoutItems === chartLayoutItems &&
-    cachedFilterData?.chartConfiguration === chartConfiguration &&
-    cachedFilterData?.dataMask === dataMask
+    cachedNativeIndicatorsForChart[chartId]?.length &&
+    areObjectsEqual(cachedFilterData.appliedColumns, appliedColumns) &&
+    areObjectsEqual(cachedFilterData.rejectedColumns, rejectedColumns) &&
+    areObjectsEqual(cachedFilterData.nativeFilters, nativeFilters) &&
+    areObjectsEqual(cachedFilterData.chartLayoutItems, chartLayoutItems) &&
+    areObjectsEqual(cachedFilterData.chartConfiguration, chartConfiguration) &&
+    areObjectsEqual(cachedFilterData.dataMask, dataMask)
   ) {
     return cachedNativeIndicatorsForChart[chartId];
   }
-
   const nativeFilterIndicators =
     nativeFilters &&
     Object.values(nativeFilters)

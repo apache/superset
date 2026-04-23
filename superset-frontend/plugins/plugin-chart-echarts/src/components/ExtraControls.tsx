@@ -17,11 +17,9 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { HandlerFunction, JsonValue, styled } from '@superset-ui/core';
-import {
-  RadioButtonOption,
-  sharedControlComponents,
-} from '@superset-ui/chart-controls';
+import { HandlerFunction, JsonValue } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
+import { sharedControlComponents } from '@superset-ui/chart-controls';
 import { AreaChartStackControlOptions } from '../constants';
 
 const { RadioButtonControl } = sharedControlComponents;
@@ -59,7 +57,7 @@ export function useExtraControl<
   }, [area]);
 
   const extraControlsHandler = useCallback(
-    (value: RadioButtonOption[0]) => {
+    (value: JsonValue) => {
       if (area) {
         if (setControlValue) {
           setControlValue('stack', value);

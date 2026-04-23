@@ -31,26 +31,26 @@ import TimeFormatterRegistry from '../../src/time-format/TimeFormatterRegistry';
 
 describe('TimeFormatterRegistrySingleton', () => {
   describe('getTimeFormatterRegistry()', () => {
-    it('returns a TimeFormatterRegistry', () => {
+    test('returns a TimeFormatterRegistry', () => {
       expect(getTimeFormatterRegistry()).toBeInstanceOf(TimeFormatterRegistry);
     });
   });
   describe('getTimeFormatter(format)', () => {
-    it('returns a format function', () => {
+    test('returns a format function', () => {
       const format = getTimeFormatter('%d/%m/%Y');
       expect(format(PREVIEW_TIME)).toEqual('14/02/2017');
     });
-    it('falls back to default format if format is not specified', () => {
+    test('falls back to default format if format is not specified', () => {
       const format = getTimeFormatter();
       expect(format(PREVIEW_TIME)).toEqual('2017-02-14 11:22:33');
     });
-    it(`use local time when format string has LOCAL_PREFIX (${LOCAL_PREFIX})`, () => {
+    test(`use local time when format string has LOCAL_PREFIX (${LOCAL_PREFIX})`, () => {
       const format = getTimeFormatter('local!%m-%d %H:%M');
       expect(format(new Date(2019, 5, 18, 11, 23))).toEqual('06-18 11:23');
     });
   });
   describe('getTimeFormatterForGranularity(granularity?)', () => {
-    it('returns the default formatter for that granularity', () => {
+    test('returns the default formatter for that granularity', () => {
       const date = new Date(Date.UTC(2020, 4, 10)); // May 10, 2020 is Sunday
       expect(
         getTimeFormatterForGranularity(TimeGranularity.DATE)(date),
@@ -58,7 +58,7 @@ describe('TimeFormatterRegistrySingleton', () => {
     });
   });
   describe('formatTimeRange(format?, values)', () => {
-    it('format the given time range with specified format', () => {
+    test('format the given time range with specified format', () => {
       expect(
         formatTimeRange('%m-%d', [
           new Date(Date.UTC(2017, 1, 1)),
@@ -66,7 +66,7 @@ describe('TimeFormatterRegistrySingleton', () => {
         ]),
       ).toEqual('02-01 — 02-02');
     });
-    it('show only one value if start and end are equal after formatting', () => {
+    test('show only one value if start and end are equal after formatting', () => {
       expect(
         formatTimeRange('%m-%d', [
           new Date(Date.UTC(2017, 1, 1)),
@@ -74,7 +74,7 @@ describe('TimeFormatterRegistrySingleton', () => {
         ]),
       ).toEqual('02-01');
     });
-    it('falls back to default format if format is not specified', () => {
+    test('falls back to default format if format is not specified', () => {
       expect(
         formatTimeRange(undefined, [
           new Date(Date.UTC(2017, 1, 1)),
@@ -85,18 +85,18 @@ describe('TimeFormatterRegistrySingleton', () => {
   });
   describe('formatTime(format?, value, granularity?)', () => {
     describe('without granularity', () => {
-      it('format the given time using the specified format', () => {
+      test('format the given time using the specified format', () => {
         const output = formatTime('%Y-%m-%d', PREVIEW_TIME);
         expect(output).toEqual('2017-02-14');
       });
-      it('falls back to the default formatter if the format is undefined', () => {
+      test('falls back to the default formatter if the format is undefined', () => {
         expect(formatTime(undefined, PREVIEW_TIME)).toEqual(
           '2017-02-14 11:22:33',
         );
       });
     });
     describe('with granularity', () => {
-      it('format the given time using specified format', () => {
+      test('format the given time using specified format', () => {
         const output = formatTime(
           '%-m/%d',
           new Date(Date.UTC(2017, 4, 10)),
@@ -104,7 +104,7 @@ describe('TimeFormatterRegistrySingleton', () => {
         );
         expect(output).toEqual('5/10 — 5/16');
       });
-      it('format the given time using default format if format is not specified', () => {
+      test('format the given time using default format if format is not specified', () => {
         const date = new Date(Date.UTC(2020, 4, 10)); // May 10, 2020 is Sunday
         expect(formatTime(undefined, date, TimeGranularity.DATE)).toEqual(
           '2020-05-10',

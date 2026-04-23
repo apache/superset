@@ -33,10 +33,13 @@ from tests.integration_tests.test_app import app
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database  # noqa: F401
-from superset.utils.database import get_example_database, get_main_database  # noqa: F401
+from superset.utils.database import (
+    get_example_database,
+)  # noqa: F401
 from superset.utils import core as utils, json
 from superset.models.sql_lab import Query
 
+from superset.sql.parse import SQLScript
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
@@ -281,10 +284,57 @@ class TestSqlLabApi(SupersetTestCase):
             "/api/v1/sqllab/format_sql/",
             json=data,
         )
-        success_resp = {"result": "SELECT 1\nFROM my_table"}
+        success_resp = {"result": "SELECT\n  1\nFROM my_table"}
         resp_data = json.loads(rv.data.decode("utf-8"))
         self.assertDictEqual(resp_data, success_resp)  # noqa: PT009
         assert rv.status_code == 200
+
+    def test_format_sql_request_with_db_id(self):
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+
+        # IIF is normalized differently per dialect:
+        # SQLite preserves IIF(), Postgres/base converts to CASE WHEN.
+        # Compute the expected result from the actual engine so the test is
+        # environment-independent.
+        sql = "select IIF(score > 0, 'positive', 'negative') from my_table"
+        engine = example_db.db_engine_spec.engine
+        expected = SQLScript(sql, engine).format()
+
+        data = {"sql": sql, "database_id": example_db.id}
+        rv = self.client.post(
+            "/api/v1/sqllab/format_sql/",
+            json=data,
+        )
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert resp_data["result"] == expected
+
+    def test_format_sql_request_with_jinja(self):
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+
+        # Quoted identifier formatting varies by dialect (e.g., MySQL uses backticks).
+        # Compute the expected result from the actual engine so the test is
+        # environment-independent.
+        rendered_sql = 'select * from "Vehicle Sales"'
+        engine = example_db.db_engine_spec.engine
+        expected = SQLScript(rendered_sql, engine).format()
+
+        data = {
+            "sql": "select * from {{tbl}}",
+            "database_id": example_db.id,
+            "template_params": json.dumps({"tbl": '"Vehicle Sales"'}),
+        }
+        rv = self.client.post(
+            "/api/v1/sqllab/format_sql/",
+            json=data,
+        )
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        # Verify that Jinja template was processed before formatting
+        assert "{{tbl}}" not in resp_data["result"]
+        assert resp_data["result"] == expected
 
     @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
@@ -448,12 +498,35 @@ class TestSqlLabApi(SupersetTestCase):
         db.session.add(query_obj)
         db.session.commit()
 
-        get_df_mock.return_value = pd.DataFrame({"foo": [1, 2, 3]})
+        # Include multilingual data
+        get_df_mock.return_value = pd.DataFrame(
+            {
+                "foo": [1, 2],
+                "مرحبا": ["أ", "ب"],
+                "姓名": ["张", "李"],
+            }
+        )
 
         resp = self.get_resp("/api/v1/sqllab/export/test/")
-        data = csv.reader(io.StringIO(resp))
-        expected_data = csv.reader(io.StringIO("foo\n1\n2"))
 
-        assert list(expected_data) == list(data)
+        # Check for UTF-8 BOM
+        assert resp.startswith("\ufeff"), "Missing UTF-8 BOM at beginning of CSV"
+
+        # Parse CSV
+        reader = csv.reader(io.StringIO(resp))
+        data = list(reader)
+
+        # Strip BOM from the first cell of the header
+        if data and data[0]:
+            data[0][0] = data[0][0].lstrip("\ufeff")
+
+        # Expected header and rows
+        expected_data = [
+            ["foo", "مرحبا", "姓名"],
+            ["1", "أ", "张"],
+            ["2", "ب", "李"],
+        ]
+
+        assert data == expected_data, f"CSV data mismatch. Got: {data}"
         db.session.delete(query_obj)
         db.session.commit()

@@ -16,16 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC } from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import { Provider } from 'react-redux';
-import {
-  supersetTheme,
-  ThemeProvider,
-  isFeatureEnabled,
-} from '@superset-ui/core';
+import { isFeatureEnabled } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -35,6 +29,7 @@ import {
 } from 'spec/helpers/testing-library';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 import { initialState } from 'src/SqlLab/fixtures';
+import { omit } from 'lodash';
 
 const mockStore = configureStore([thunk]);
 const defaultProps = {
@@ -71,12 +66,6 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
-const standardProvider: FC = ({ children }) => (
-  <ThemeProvider theme={supersetTheme}>
-    <Provider store={store}>{children}</Provider>
-  </ThemeProvider>
-);
-
 const unsavedQueryEditor = {
   id: defaultProps.queryEditorId,
   dbId: 9888,
@@ -87,40 +76,25 @@ const unsavedQueryEditor = {
   templateParams: '{ "my_value": "foo" }',
 };
 
-const standardProviderWithUnsaved: FC = ({ children }) => (
-  <ThemeProvider theme={supersetTheme}>
-    <Provider
-      store={mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          unsavedQueryEditor,
-        },
-      })}
-    >
-      {children}
-    </Provider>
-  </ThemeProvider>
-);
-
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ShareSqlLabQuery', () => {
   const storeQueryUrl = 'glob:*/api/v1/sqllab/permalink';
   const storeQueryMockId = 'ci39c3';
 
   beforeEach(async () => {
+    fetchMock.removeRoute(storeQueryUrl);
     fetchMock.post(
       storeQueryUrl,
       () => ({ key: storeQueryMockId, url: `/p/${storeQueryMockId}` }),
-      {
-        overwriteRoutes: true,
-      },
+      { name: storeQueryUrl },
     );
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
     jest.clearAllMocks();
   });
 
-  afterAll(() => fetchMock.reset());
+  afterAll(() => fetchMock.hardReset());
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('via permalink api', () => {
     beforeAll(() => {
       mockedIsFeatureEnabled.mockImplementation(() => true);
@@ -130,37 +104,68 @@ describe('ShareSqlLabQuery', () => {
       mockedIsFeatureEnabled.mockReset();
     });
 
-    it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
+    test('calls storeQuery() with the query when getCopyUrl() is called', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
-          wrapper: standardProvider,
+          useRedux: true,
+          store,
         });
       });
       const button = screen.getByRole('button');
-      const { id: _id, remoteId: _remoteId, ...expected } = mockQueryEditor;
+      const expected = omit(mockQueryEditor, ['id', 'remoteId']);
       userEvent.click(button);
       await waitFor(() =>
-        expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
+        expect(fetchMock.callHistory.calls(storeQueryUrl)).toHaveLength(1),
       );
       expect(
-        JSON.parse(fetchMock.calls(storeQueryUrl)[0][1]?.body as string),
+        JSON.parse(
+          fetchMock.callHistory.calls(storeQueryUrl)[0].options?.body as string,
+        ),
       ).toEqual(expected);
     });
 
-    it('calls storeQuery() with unsaved changes', async () => {
+    test('does not show duplicate "Copy to clipboard" tooltip on hover', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {
-          wrapper: standardProviderWithUnsaved,
+          useRedux: true,
+          store,
         });
       });
       const button = screen.getByRole('button');
-      const { id: _id, ...expected } = unsavedQueryEditor;
+      userEvent.hover(button);
+      expect(
+         await screen.findByText('Copy query link to your clipboard'),
+       ).toBeInTheDocument();
+      await waitFor(() => {
+        // CopyToClipboard default tooltip must NOT appear —
+        // only the Button-level "Copy query link to your clipboard" should show.
+        expect(screen.queryByText('Copy to clipboard')).not.toBeInTheDocument();
+      });
+    });
+
+    test('calls storeQuery() with unsaved changes', async () => {
+      await act(async () => {
+        render(<ShareSqlLabQuery {...defaultProps} />, {
+          useRedux: true,
+          store: mockStore({
+            ...initialState,
+            sqlLab: {
+              ...initialState.sqlLab,
+              unsavedQueryEditor,
+            },
+          }),
+        });
+      });
+      const button = screen.getByRole('button');
+      const expected = omit(unsavedQueryEditor, ['id']);
       userEvent.click(button);
       await waitFor(() =>
-        expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
+        expect(fetchMock.callHistory.calls(storeQueryUrl)).toHaveLength(1),
       );
       expect(
-        JSON.parse(fetchMock.calls(storeQueryUrl)[0][1]?.body as string),
+        JSON.parse(
+          fetchMock.callHistory.calls(storeQueryUrl)[0].options?.body as string,
+        ),
       ).toEqual(expected);
     });
   });

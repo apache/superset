@@ -71,12 +71,12 @@ export default function setupApp() {
     });
 
     // for language picker dropdown
-    $('#language-picker a').click(function (
+    $<HTMLAnchorElement>('#language-picker a').click(function (
       ev: JQuery.ClickEvent<
-        HTMLLinkElement,
+        HTMLAnchorElement,
         null,
-        HTMLLinkElement,
-        HTMLLinkElement
+        HTMLAnchorElement,
+        HTMLAnchorElement
       >,
     ) {
       ev.preventDefault();
@@ -93,7 +93,6 @@ export default function setupApp() {
   // this allows for the server side generated menus to function
   window.$ = $;
   window.jQuery = $;
-  require('bootstrap');
 
   // set up app wide custom error messages
   setupErrorMessages();

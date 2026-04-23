@@ -25,7 +25,12 @@ import {
   within,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useResultsTableView } from './useResultsTableView';
+
+beforeAll(() => {
+  setupAGGridModules();
+});
 
 const MOCK_CHART_DATA_RESULT = [
   {
@@ -74,9 +79,9 @@ test('Displays results table for 1 query', () => {
   );
   render(result.current, { useRedux: true });
   expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
-  expect(screen.getByRole('table')).toBeInTheDocument();
-  expect(screen.getAllByRole('columnheader')).toHaveLength(2);
-  expect(screen.getAllByTestId('table-row')).toHaveLength(4);
+  expect(screen.getByText('name')).toBeInTheDocument();
+  expect(screen.getByText('sum__num')).toBeInTheDocument();
+  expect(screen.getByText('Michael')).toBeInTheDocument();
 });
 
 test('Displays results for 2 queries', async () => {
@@ -84,30 +89,18 @@ test('Displays results for 2 queries', async () => {
     useResultsTableView(MOCK_CHART_DATA_RESULT, '1__table', true),
   );
   render(result.current, { useRedux: true });
-  const getActiveTabElement = () =>
-    document.querySelector('.ant-tabs-tabpane-active') as HTMLElement;
 
   const tablistElement = screen.getByRole('tablist');
   expect(tablistElement).toBeInTheDocument();
   expect(within(tablistElement).getByText('Results 1')).toBeInTheDocument();
   expect(within(tablistElement).getByText('Results 2')).toBeInTheDocument();
 
-  expect(within(getActiveTabElement()).getByRole('table')).toBeInTheDocument();
-  expect(
-    within(getActiveTabElement()).getAllByRole('columnheader'),
-  ).toHaveLength(2);
-  expect(
-    within(getActiveTabElement()).getAllByTestId('table-row'),
-  ).toHaveLength(4);
+  expect(screen.getByText('Michael')).toBeInTheDocument();
 
   userEvent.click(screen.getByText('Results 2'));
 
   await waitFor(() => {
-    expect(
-      within(getActiveTabElement()).getAllByRole('columnheader'),
-    ).toHaveLength(3);
+    expect(screen.getByText('gender')).toBeInTheDocument();
   });
-  expect(
-    within(getActiveTabElement()).getAllByTestId('table-row'),
-  ).toHaveLength(2);
+  expect(screen.getByText('boy')).toBeInTheDocument();
 });

@@ -1,4 +1,10 @@
-name: Cleanup ephemeral envs (PR close)
+name: Cleanup ephemeral envs (PR close) [DEPRECATED]
+
+# ⚠️  DEPRECATION NOTICE ⚠️
+# This workflow is deprecated and will be removed in a future version.
+# The new Superset Showtime workflow handles cleanup automatically.
+# See .github/workflows/showtime.yml and showtime-cleanup.yml for replacements.
+# Migration guide: https://github.com/mistercrunch/superset-showtime
 
 on:
   pull_request_target:
@@ -14,10 +20,12 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [ -n "${{ (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') || '' }}" ]; then
+          if [ -n "${AWS_ACCESS_KEY_ID}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
 
+        env:
+          AWS_ACCESS_KEY_ID: ${{ (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') || '' }}
   ephemeral-env-cleanup:
     needs: config
     if: needs.config.outputs.has-secrets
@@ -27,7 +35,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -50,7 +58,7 @@ jobs:
       - name: Login to Amazon ECR
         if: steps.describe-services.outputs.active == 'true'
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@19d944daaa35f0fa1d3f7f8af1d3f2e5de25c5b7 # v2
 
       - name: Delete ECR image tag
         if: steps.describe-services.outputs.active == 'true'
@@ -63,7 +71,7 @@ jobs:
 
       - name: Comment (success)
         if: steps.describe-services.outputs.active == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{github.token}}
           script: |
@@ -71,5 +79,5 @@ jobs:
               issue_number: ${{ github.event.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Ephemeral environment shutdown and build artifacts deleted.'
+              body: '⚠️ **DEPRECATED WORKFLOW** - Ephemeral environment shutdown and build artifacts deleted. Please migrate to the new Superset Showtime system for future PRs.'
             })

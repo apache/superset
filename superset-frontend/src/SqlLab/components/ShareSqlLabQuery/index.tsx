@@ -16,17 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  useTheme,
-  getClientErrorObject,
-  SupersetClient,
-  css,
-} from '@superset-ui/core';
-import Button from 'src/components/Button';
-import { Icons } from 'src/components/Icons';
+import { t } from '@apache-superset/core/translation';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
+import { Button } from '@superset-ui/core/components';
+import { CopyToClipboard } from 'src/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import CopyToClipboard from 'src/components/CopyToClipboard';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { LOG_ACTIONS_SQLLAB_COPY_LINK } from 'src/logger/LogUtils';
 import useLogAction from 'src/logger/useLogAction';
@@ -40,7 +36,6 @@ const ShareSqlLabQuery = ({
   queryEditorId,
   addDangerToast,
 }: ShareSqlLabQueryProps) => {
-  const theme = useTheme();
   const logAction = useLogAction({ queryEditorId });
   const { dbId, name, schema, autorun, sql, templateParams } = useQueryEditor(
     queryEditorId,
@@ -76,20 +71,16 @@ const ShareSqlLabQuery = ({
     const tooltip = t('Copy query link to your clipboard');
     return (
       <Button
-        buttonSize="small"
+        color="default"
+        variant="text"
         tooltip={tooltip}
         css={css`
           span > :first-of-type {
             margin-right: 0;
           }
         `}
-      >
-        <Icons.LinkOutlined
-          iconColor={theme.colors.primary.base}
-          iconSize="m"
-        />
-        {t('Copy link')}
-      </Button>
+        icon={<Icons.LinkOutlined iconSize="m" />}
+      />
     );
   };
 
@@ -98,6 +89,7 @@ const ShareSqlLabQuery = ({
       getText={getCopyUrl}
       wrapped={false}
       copyNode={buildButton()}
+      hideTooltip
     />
   );
 };

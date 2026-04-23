@@ -19,11 +19,11 @@
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import ErrorMessageWithStackTrace from './ErrorMessageWithStackTrace';
-import BasicErrorAlert from './BasicErrorAlert';
+import { ErrorMessageWithStackTrace } from './ErrorMessageWithStackTrace';
+import { BasicErrorAlert } from './BasicErrorAlert';
 
 jest.mock(
-  'src/components/Icons/AsyncIcon',
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />
@@ -56,6 +56,18 @@ test('should render the link', () => {
   const link = screen.getByRole('link');
   expect(link).toHaveTextContent('Request Access');
   expect(link).toHaveAttribute('href', mockedProps.link);
+});
+
+test('should render a close button by default', () => {
+  render(<ErrorMessageWithStackTrace {...mockedProps} />);
+  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+});
+
+test('should not render a close button when closable is false', () => {
+  render(<ErrorMessageWithStackTrace {...mockedProps} closable={false} />);
+  expect(
+    screen.queryByRole('button', { name: /close/i }),
+  ).not.toBeInTheDocument();
 });
 
 test('should render the fallback', () => {

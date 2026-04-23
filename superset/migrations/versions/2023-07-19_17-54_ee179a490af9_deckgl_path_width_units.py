@@ -62,7 +62,7 @@ def upgrade():
                 params["line_width_unit"] = "meters"
                 slc.params = json.dumps(params)
         except Exception:
-            logging.exception(f"Unable to parse params for slice {slc.id}")
+            logging.exception("Unable to parse params for slice %s", slc.id)
     session.commit()
     session.close()
 

@@ -19,11 +19,12 @@
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import {
   useDashboard,
   useDashboardCharts,
@@ -46,8 +47,11 @@ import {
   getPermalinkValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
+import CrudThemeProvider from 'src/components/CrudThemeProvider';
+import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 
 import { nanoid } from 'nanoid';
+import type { ActiveFilters } from '../types';
 import { RootState } from '../types';
 import {
   chartContextMenuStyles,
@@ -59,6 +63,7 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
+import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
 
 export const DashboardPageIdContext = createContext('');
 
@@ -70,8 +75,6 @@ const DashboardBuilder = lazy(
       'src/dashboard/components/DashboardBuilder/DashboardBuilder'
     ),
 );
-
-const originalDocumentTitle = document.title;
 
 type PageProps = {
   idOrSlug: string;
@@ -113,9 +116,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dispatch = useDispatch();
   const history = useHistory();
   const dashboardPageId = useMemo(() => nanoid(), []);
-  const hasDashboardInfoInitiated = useSelector<RootState, Boolean>(
+  const hasDashboardInfoInitiated = useSelector<RootState, boolean>(
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,
+  );
+  const reduxTheme = useSelector(
+    (state: RootState) => state.dashboardInfo.theme,
   );
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
@@ -131,7 +137,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
-  const { dashboard_title, css, id = 0 } = dashboard || {};
+  const { dashboard_title, id = 0 } = dashboard || {};
+
+  // Get CSS from dashboardInfo (unified properties location)
+  const css =
+    useSelector((state: RootState) => state.dashboardInfo.css) ||
+    dashboard?.css;
 
   useEffect(() => {
     // mark tab id as redundant when user closes browser tab - a new id will be
@@ -166,11 +177,16 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       let dataMask = nativeFilterKeyValue || {};
       // activeTabs is initialized with undefined so that it doesn't override
       // the currently stored value when hydrating
-      let activeTabs: string[] | undefined;
+      let activeTabs: string[] | null | undefined;
+      let chartStates: DashboardChartStates | null | undefined;
+      let anchor: string | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
-        if (permalinkValue) {
-          ({ dataMask, activeTabs } = permalinkValue.state);
+        if (permalinkValue?.state) {
+          ({ dataMask, activeTabs, anchor } = permalinkValue.state);
+          chartStates = permalinkValue.state.chartStates as
+            | DashboardChartStates
+            | undefined;
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
@@ -186,12 +202,24 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dispatch(
           hydrateDashboard({
             history,
-            dashboard,
-            charts,
-            activeTabs,
+            dashboard: dashboard!,
+            charts: charts!,
+            activeTabs: activeTabs ?? null,
             dataMask,
-          }),
+            chartStates: chartStates ?? null,
+          } as unknown as Parameters<typeof hydrateDashboard>[0]),
         );
+
+        // Scroll to anchor element if specified in permalink state
+        if (anchor) {
+          // Use setTimeout to ensure the DOM has been updated after hydration
+          setTimeout(() => {
+            const element = document.getElementById(anchor);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 0);
+        }
       }
       return null;
     }
@@ -199,14 +227,27 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender]);
 
+  // Capture original title before any effects run
+  const originalTitle = useMemo(() => document.title, []);
+
+  // Update document title when dashboard title changes
   useEffect(() => {
     if (dashboard_title) {
       document.title = dashboard_title;
     }
-    return () => {
-      document.title = originalDocumentTitle;
-    };
   }, [dashboard_title]);
+
+  // Restore original title on unmount
+  useEffect(
+    () => () => {
+      document.title =
+        originalTitle ||
+        theme?.brandAppName ||
+        theme?.brandLogoAlt ||
+        'Superset';
+    },
+    [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
+  );
 
   useEffect(() => {
     if (typeof css === 'string') {
@@ -234,7 +275,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const globalStyles = useMemo(
     () => [
-      filterCardPopoverStyle(theme),
+      filterCardPopoverStyle(),
       headerStyles(theme),
       chartContextMenuStyles(theme),
       focusStyle(theme),
@@ -253,12 +294,18 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
-            <DashboardContainer
-              activeFilters={activeFilters}
-              ownDataCharts={relevantDataMask}
+            <CrudThemeProvider
+              theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
             >
-              {DashboardBuilderComponent}
-            </DashboardContainer>
+              <AutoRefreshProvider>
+                <DashboardContainer
+                  activeFilters={activeFilters as ActiveFilters}
+                  ownDataCharts={relevantDataMask}
+                >
+                  {DashboardBuilderComponent}
+                </DashboardContainer>
+              </AutoRefreshProvider>
+            </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
         </>
       ) : (

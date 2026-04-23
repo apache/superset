@@ -16,24 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component, cloneElement, ReactNode, ReactElement } from 'react';
-import { t } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import { Component, cloneElement, ReactElement } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import copyTextToClipboard from 'src/utils/copy';
-
-export interface CopyToClipboardProps {
-  copyNode?: ReactNode;
-  getText?: (callback: (data: string) => void) => void;
-  onCopyEnd?: () => void;
-  shouldShowText?: boolean;
-  text?: string;
-  wrapped?: boolean;
-  tooltipText?: string;
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
-  hideTooltip?: boolean;
-}
+import { Tooltip } from '@superset-ui/core/components';
+import withToasts from '../MessageToasts/withToasts';
+import type { CopyToClipboardProps } from './types';
 
 const defaultProps: Partial<CopyToClipboardProps> = {
   copyNode: <span>{t('Copy')}</span>,
@@ -44,7 +33,7 @@ const defaultProps: Partial<CopyToClipboardProps> = {
   hideTooltip: false,
 };
 
-class CopyToClipboard extends Component<CopyToClipboardProps> {
+class CopyToClip extends Component<CopyToClipboardProps> {
   static defaultProps = defaultProps;
 
   constructor(props: CopyToClipboardProps) {
@@ -54,6 +43,9 @@ class CopyToClipboard extends Component<CopyToClipboardProps> {
   }
 
   onClick() {
+    if (this.props.disabled) {
+      return;
+    }
     if (this.props.getText) {
       this.props.getText((d: string) => {
         this.copyToClipboard(Promise.resolve(d));
@@ -64,9 +56,16 @@ class CopyToClipboard extends Component<CopyToClipboardProps> {
   }
 
   getDecoratedCopyNode() {
-    return cloneElement(this.props.copyNode as ReactElement, {
-      style: { cursor: 'pointer' },
-      onClick: this.onClick,
+    const copyNode = this.props.copyNode as ReactElement;
+    const { disabled } = this.props;
+    return cloneElement(copyNode, {
+      style: {
+        ...copyNode.props.style,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      },
+      onClick: disabled ? undefined : this.onClick,
+      'aria-disabled': disabled || undefined,
+      tabIndex: disabled ? -1 : copyNode.props.tabIndex,
     });
   }
 
@@ -109,18 +108,23 @@ class CopyToClipboard extends Component<CopyToClipboardProps> {
   }
 
   renderNotWrapped() {
-    return this.renderTooltip('pointer');
+    return this.renderTooltip(this.props.disabled ? 'not-allowed' : 'pointer');
   }
 
   renderLink() {
     return (
       <span css={{ display: 'inline-flex', alignItems: 'center' }}>
         {this.props.shouldShowText && this.props.text && (
-          <span className="m-r-5" data-test="short-url">
+          <span
+            data-test="short-url"
+            css={(theme: SupersetTheme) => css`
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          >
             {this.props.text}
           </span>
         )}
-        {this.renderTooltip('pointer')}
+        {this.renderTooltip(this.props.disabled ? 'not-allowed' : 'pointer')}
       </span>
     );
   }
@@ -134,4 +138,5 @@ class CopyToClipboard extends Component<CopyToClipboardProps> {
   }
 }
 
-export default withToasts(CopyToClipboard);
+export const CopyToClipboard = withToasts(CopyToClip);
+export type { CopyToClipboardProps };

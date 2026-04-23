@@ -18,6 +18,7 @@ import logging
 
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
+from flask_appbuilder.security.decorators import has_access_api
 
 from superset.commands.dashboard.filter_state.create import CreateFilterStateCommand
 from superset.commands.dashboard.filter_state.delete import DeleteFilterStateCommand
@@ -25,6 +26,7 @@ from superset.commands.dashboard.filter_state.get import GetFilterStateCommand
 from superset.commands.dashboard.filter_state.update import UpdateFilterStateCommand
 from superset.extensions import event_logger
 from superset.temporary_cache.api import TemporaryCacheRestApi
+from superset.views.base import api
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +48,8 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
     def get_delete_command(self) -> type[DeleteFilterStateCommand]:
         return DeleteFilterStateCommand
 
+    @api
+    @has_access_api
     @expose("/<int:pk>/filter_state", methods=("POST",))
     @protect()
     @safe
@@ -169,6 +173,8 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
         """
         return super().post(pk)
 
+    @api
+    @has_access_api
     @expose("/<int:pk>/filter_state/<string:key>", methods=("PUT",))
     @protect()
     @safe

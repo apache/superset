@@ -23,6 +23,7 @@ import sshtunnel
 from flask import Flask
 from paramiko import RSAKey
 
+from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelDatabasePortError
 from superset.databases.utils import make_url_safe
 from superset.utils.class_utils import load_class_from_name
 
@@ -56,10 +57,13 @@ class SSHManager:
 
         url = make_url_safe(sqlalchemy_database_uri)
         backend = url.get_backend_name()
+        port = url.port or get_default_port(backend)
+        if not port:
+            raise SSHTunnelDatabasePortError()
         params = {
             "ssh_address_or_host": (ssh_tunnel.server_address, ssh_tunnel.server_port),
             "ssh_username": ssh_tunnel.username,
-            "remote_bind_address": (url.host, url.port or get_default_port(backend)),
+            "remote_bind_address": (url.host, port),
             "local_bind_address": (self.local_bind_address,),
             "debug_level": logging.getLogger("flask_appbuilder").level,
         }

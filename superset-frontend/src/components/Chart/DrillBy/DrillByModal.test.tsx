@@ -29,8 +29,29 @@ import {
 } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import DrillByModal, { DrillByModalProps } from './DrillByModal';
+
+setupAGGridModules();
+
+// Mock the isEmbedded function
+jest.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: jest.fn(() => false),
+}));
+
+jest.mock('src/explore/exploreUtils', () => {
+  const actual = jest.requireActual('src/explore/exploreUtils');
+  return {
+    ...actual,
+    exportChart: jest.fn(),
+  };
+});
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { exportChart: exportChartMock } = jest.requireMock(
+  'src/explore/exploreUtils',
+) as { exportChart: jest.Mock };
 
 const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
 const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
@@ -67,9 +88,14 @@ const dataset = {
   columns: [
     {
       column_name: 'gender',
+      verbose_name: null,
     },
-    { column_name: 'name' },
+    {
+      column_name: 'name',
+      verbose_name: null,
+    },
   ],
+  verbose_map: {},
 };
 
 const renderModal = async (
@@ -113,10 +139,15 @@ const renderModal = async (
 
 beforeEach(() => {
   fetchMock
-    .post(CHART_DATA_ENDPOINT, { body: {} }, {})
-    .post(FORM_DATA_KEY_ENDPOINT, { key: '123' });
+    .post(CHART_DATA_ENDPOINT, { body: {} }, { name: CHART_DATA_ENDPOINT })
+    .post(
+      FORM_DATA_KEY_ENDPOINT,
+      { key: '123' },
+      { name: FORM_DATA_KEY_ENDPOINT },
+    );
 });
-afterEach(() => fetchMock.restore());
+
+afterEach(() => fetchMock.removeRoutes().clearHistory());
 
 test('should render the title', async () => {
   await renderModal();
@@ -139,12 +170,11 @@ test('should close the modal', async () => {
 });
 
 test('should render loading indicator', async () => {
+  fetchMock.removeRoute(CHART_DATA_ENDPOINT);
   fetchMock.post(
     CHART_DATA_ENDPOINT,
     { body: {} },
-    // delay is missing in fetch-mock types
-    // @ts-ignore
-    { overwriteRoutes: true, delay: 1000 },
+    { name: CHART_DATA_ENDPOINT, delay: 1000 },
   );
   await renderModal();
   expect(screen.getByLabelText('Loading')).toBeInTheDocument();
@@ -159,13 +189,13 @@ test('should render alert banner when results fail to load', async () => {
 
 test('should generate Explore url', async () => {
   await renderModal({
-    column: { column_name: 'name' },
+    column: { column_name: 'name', verbose_name: null },
     drillByConfig: {
       filters: [{ col: 'gender', op: '==', val: 'boy' }],
       groupbyFieldName: 'groupby',
     },
   });
-  await waitFor(() => fetchMock.called(CHART_DATA_ENDPOINT));
+  await waitFor(() => fetchMock.callHistory.called(CHART_DATA_ENDPOINT));
   const expectedRequestPayload = {
     form_data: {
       ...omitBy(
@@ -194,7 +224,7 @@ test('should generate Explore url', async () => {
   };
 
   const parsedRequestPayload = JSON.parse(
-    fetchMock.lastCall()?.[1]?.body as string,
+    fetchMock.callHistory.lastCall()?.options?.body as string,
   );
 
   expect(parsedRequestPayload.form_data).toEqual(
@@ -222,7 +252,7 @@ test('should render radio buttons', async () => {
 
 test('render breadcrumbs', async () => {
   await renderModal({
-    column: { column_name: 'name' },
+    column: { column_name: 'name', verbose_name: null },
     drillByConfig: {
       filters: [{ col: 'gender', op: '==', val: 'boy' }],
       groupbyFieldName: 'groupby',
@@ -269,4 +299,333 @@ test('should render "Edit chart" enabled with can_explore permission', async () 
     },
   );
   expect(screen.getByRole('button', { name: 'Edit chart' })).toBeEnabled();
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('Embedded mode behavior', () => {
+  // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
+  const { isEmbedded } = require('src/dashboard/util/isEmbedded');
+
+  beforeEach(() => {
+    (isEmbedded as jest.Mock).mockClear();
+  });
+
+  afterEach(() => {
+    (isEmbedded as jest.Mock).mockReturnValue(false);
+  });
+
+  test('should not render "Edit chart" button in embedded mode', async () => {
+    (isEmbedded as jest.Mock).mockReturnValue(true);
+
+    await renderModal();
+
+    expect(
+      screen.queryByRole('button', { name: 'Edit chart' }),
+    ).not.toBeInTheDocument();
+    const footerCloseButton = screen.getByTestId('close-drill-by-modal');
+    expect(footerCloseButton).toHaveTextContent('Close');
+  });
+
+  test('should not call postFormData API in embedded mode', async () => {
+    (isEmbedded as jest.Mock).mockReturnValue(true);
+
+    await renderModal({
+      column: { column_name: 'name', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    await waitFor(() => fetchMock.callHistory.called(CHART_DATA_ENDPOINT));
+
+    expect(fetchMock.callHistory.called(FORM_DATA_KEY_ENDPOINT)).toBe(false);
+  });
+
+  test('should render "Edit chart" button in non-embedded mode', async () => {
+    (isEmbedded as jest.Mock).mockReturnValue(false);
+
+    await renderModal();
+
+    expect(
+      screen.getByRole('button', { name: 'Edit chart' }),
+    ).toBeInTheDocument();
+  });
+
+  test('should call postFormData API in non-embedded mode', async () => {
+    (isEmbedded as jest.Mock).mockReturnValue(false);
+
+    await renderModal({
+      column: { column_name: 'name', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    await waitFor(() => fetchMock.callHistory.called(CHART_DATA_ENDPOINT));
+
+    await waitFor(() => {
+      expect(fetchMock.callHistory.called(FORM_DATA_KEY_ENDPOINT)).toBe(true);
+    });
+
+    expect(
+      await screen.findByRole('link', { name: 'Edit chart' }),
+    ).toHaveAttribute(
+      'href',
+      '/explore/?form_data_key=123&dashboard_page_id=1',
+    );
+  });
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('Table view with pagination', () => {
+  beforeEach(() => {
+    // Mock a large dataset response for pagination testing
+    const mockLargeDataset = {
+      result: [
+        {
+          data: Array.from({ length: 100 }, (_, i) => ({
+            state: `State${i}`,
+            sum__num: 1000 + i,
+          })),
+          colnames: ['state', 'sum__num'],
+          coltypes: [1, 0],
+        },
+      ],
+    };
+
+    fetchMock.removeRoute(CHART_DATA_ENDPOINT);
+    fetchMock.post(CHART_DATA_ENDPOINT, mockLargeDataset, {
+      name: CHART_DATA_ENDPOINT,
+    });
+  });
+
+  afterEach(() => {
+    fetchMock.clearHistory();
+  });
+
+  test('should render table view when Table radio is selected', async () => {
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    // Switch to table view
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+
+    // Wait for table to render
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+  });
+
+  test('should render data in table view', async () => {
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    // Switch to table view
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+
+    // Check that data is rendered in the grid
+    await waitFor(() => {
+      expect(screen.getByText('State0')).toBeInTheDocument();
+    });
+  });
+
+  test('should maintain table state when switching between Chart and Table views', async () => {
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    const chartRadio = screen.getByRole('radio', { name: /chart/i });
+    const tableRadio = screen.getByRole('radio', { name: /table/i });
+
+    // Switch to table view
+    userEvent.click(tableRadio);
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+
+    // Switch back to chart view
+    userEvent.click(chartRadio);
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-chart')).toBeInTheDocument();
+    });
+
+    // Switch back to table view - should maintain state
+    userEvent.click(tableRadio);
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+  });
+
+  test('should not cause infinite re-renders with pagination', async () => {
+    // Mock console.error to catch potential infinite loop warnings
+    const originalError = console.error;
+    const consoleErrorSpy = jest.fn();
+    console.error = consoleErrorSpy;
+
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    // Switch to table view
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+
+    // Check that no infinite loop errors were logged
+    expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('Maximum update depth exceeded'),
+    );
+
+    console.error = originalError;
+  });
+
+  test('should handle empty results in table view', async () => {
+    // Mock empty dataset response
+    fetchMock.removeRoute(CHART_DATA_ENDPOINT);
+    fetchMock.post(
+      CHART_DATA_ENDPOINT,
+      {
+        result: [
+          {
+            data: [],
+            colnames: ['state', 'sum__num'],
+            coltypes: [1, 0],
+          },
+        ],
+      },
+      { name: CHART_DATA_ENDPOINT },
+    );
+
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    // Switch to table view
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+
+    // ag-grid shows its own empty overlay when there are no rows
+    const tableContainer = screen.getByTestId('drill-by-results-table');
+    expect(tableContainer).toBeInTheDocument();
+  });
+
+  test('should render grid in table view', async () => {
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    // Switch to table view
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    });
+
+    // Table should still be rendered without crashes
+    expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+  });
+
+  test('CSV download calls exportChart with drilledFormData', async () => {
+    exportChartMock.mockClear();
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText('Export to CSV'));
+
+    expect(exportChartMock).toHaveBeenCalledTimes(1);
+    expect(exportChartMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resultFormat: 'csv',
+        resultType: 'full',
+        formData: expect.objectContaining({ slice_id: 0 }),
+      }),
+    );
+  });
+
+  test('XLSX download calls exportChart with xlsx format', async () => {
+    exportChartMock.mockClear();
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText('Export to Excel'));
+
+    expect(exportChartMock).toHaveBeenCalledTimes(1);
+    expect(exportChartMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resultFormat: 'xlsx',
+        resultType: 'full',
+        formData: expect.objectContaining({ slice_id: 0 }),
+      }),
+    );
+  });
 });
