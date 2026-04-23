@@ -23,10 +23,13 @@ and timeout protection.
 """
 
 import logging
+from decimal import Decimal
+from typing import Any
 
 from fastmcp import Context
 from mcp.types import ToolAnnotations
 
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
@@ -34,6 +37,10 @@ from superset.mcp_service.sql_lab.execute_sql_core import ExecuteSqlCore
 from superset.mcp_service.sql_lab.schemas import (
     ExecuteSqlRequest,
     ExecuteSqlResponse,
+)
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 
 logger = logging.getLogger(__name__)
@@ -95,6 +102,25 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
 
         return result
 
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Database requires OAuth authentication: database_id=%s"
+            % request.database_id
+        )
+        return ExecuteSqlResponse(
+            success=False,
+            error=build_oauth2_redirect_message(ex),
+            error_type="OAUTH2_REDIRECT",
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration/flow error: database_id=%s" % request.database_id
+        )
+        return ExecuteSqlResponse(
+            success=False,
+            error=OAUTH2_CONFIG_ERROR_MESSAGE,
+            error_type="OAUTH2_REDIRECT_ERROR",
+        )
     except Exception as e:
         await ctx.error(
             "SQL execution failed: error=%s, database_id=%s"
@@ -104,3 +130,19 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
             )
         )
         raise
+
+
+def _sanitize_row_values(rows: list[dict[str, Any]]) -> None:
+    """Sanitize non-serializable values in rows for JSON serialization."""
+    for row in rows:
+        for key, value in row.items():
+            if isinstance(value, (bytes, memoryview)):
+                raw = bytes(value) if isinstance(value, memoryview) else value
+                try:
+                    row[key] = raw.decode("utf-8")
+                except (UnicodeDecodeError, AttributeError):
+                    row[key] = raw.hex()
+            elif isinstance(value, Decimal):
+                row[key] = float(value)
+            elif not isinstance(value, (str, int, float, bool, type(None), list, dict)):
+                row[key] = str(value)
