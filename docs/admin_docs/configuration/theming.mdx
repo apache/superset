@@ -86,7 +86,7 @@ THEME_DARK = {
 
 ### App Branding
 
-The application name shown in the browser title bar, navigation, and email notifications can be
+The application name shown in the browser title bar and navigation can be
 set via the `brandAppName` theme token:
 
 ```python
@@ -110,6 +110,8 @@ Or in the theme CRUD UI JSON editor:
 
 The existing `APP_NAME` Python config key continues to work for backward compatibility.
 `brandAppName` takes precedence when both are set, and allows different themes to carry different brand names.
+Email and alert/report notification subjects are driven by backend settings such as
+`EMAIL_REPORTS_SUBJECT_PREFIX` and `APP_NAME`, not by this theme token.
 
 ### Migration from Configuration to UI
 
