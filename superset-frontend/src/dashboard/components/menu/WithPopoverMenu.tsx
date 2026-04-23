@@ -130,10 +130,22 @@ function WithPopoverMenu({
   const [isFocused, setIsFocused] = useState(isFocusedProp);
   const containerRef = useRef<ShouldFocusContainer | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  // Tracks the native event that just triggered focus via the container's
+  // onClick so the document-level listener (registered once focused) can
+  // skip it. Without this, the same click bubbles to document after a
+  // re-render has detached its event.target, causing shouldFocus to return
+  // false and immediately undoing the focus.
+  const focusEventRef = useRef<Event | null>(null);
 
   const handleClick = useCallback(
     (event: any) => {
       if (!editMode) {
+        return;
+      }
+
+      const nativeEvent = event.nativeEvent || event;
+      if (focusEventRef.current === nativeEvent) {
+        focusEventRef.current = null;
         return;
       }
 
@@ -146,6 +158,7 @@ function WithPopoverMenu({
       if (shouldFocusResult === isFocused) return;
 
       if (!disableClick && shouldFocusResult && !isFocused) {
+        focusEventRef.current = nativeEvent;
         setIsFocused(true);
         if (onChangeFocus) onChangeFocus(true);
       } else if (!shouldFocusResult && isFocused) {
