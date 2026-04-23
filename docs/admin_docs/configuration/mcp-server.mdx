@@ -502,7 +502,6 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_DEBUG` | `False` | Enable debug logging |
 | `MCP_DEV_USERNAME` | -- | Superset username for development mode (no auth) |
 | `MCP_RBAC_ENABLED` | `True` | Enforce Superset's role-based access control on MCP tool calls. When `True`, each tool checks that the authenticated user has the required FAB permission before executing. Disable only for testing or trusted-network deployments. |
-| `MCP_PARSE_REQUEST_ENABLED` | `True` | Pre-parse MCP tool inputs from JSON strings into objects. Set to `False` for clients (Claude Desktop, LangChain) that do not double-serialize arguments — this produces cleaner tool schemas for those clients |
 
 ### Authentication
 
