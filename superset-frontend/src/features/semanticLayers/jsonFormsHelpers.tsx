@@ -46,7 +46,18 @@ export const SCHEMA_REFRESH_DEBOUNCE_MS = 500;
 function PasswordControl(props: ControlProps) {
   const uischema = {
     ...props.uischema,
-    options: { ...props.uischema.options, type: 'password' },
+    options: {
+      ...props.uischema.options,
+      type: 'password',
+      inputProps: {
+        ...((props.uischema.options?.inputProps as Record<string, unknown>) ??
+          {}),
+        // Prevent browsers from autofilling stored login passwords into
+        // service-token fields. 'new-password' is respected even when
+        // 'off' is ignored (Chrome ≥ 34).
+        autoComplete: 'new-password',
+      },
+    },
   };
   return TextControl({ ...props, uischema });
 }
@@ -150,9 +161,7 @@ export function areDependenciesSatisfied(
     // Fall back to the schema default when the field hasn't been touched yet.
     const defaultValue = schema?.properties?.[dep]?.default;
     return (
-      defaultValue !== null &&
-      defaultValue !== undefined &&
-      defaultValue !== ''
+      defaultValue !== null && defaultValue !== undefined && defaultValue !== ''
     );
   });
 }
@@ -221,10 +230,8 @@ function EnumNamesControl(props: ControlProps) {
     label: enumNames[index] ?? String(value),
   }));
 
-  const tooltip =
-    (props.uischema?.options as Record<string, unknown>)?.tooltip as
-      | string
-      | undefined;
+  const tooltip = (props.uischema?.options as Record<string, unknown>)
+    ?.tooltip as string | undefined;
 
   return (
     <Form.Item label={props.label} tooltip={tooltip}>
@@ -237,9 +244,8 @@ function EnumNamesControl(props: ControlProps) {
         allowClear
         loading={!!refreshingSchema}
         placeholder={
-          (props.uischema?.options as Record<string, unknown>)?.placeholderText as
-            | string
-            | undefined
+          (props.uischema?.options as Record<string, unknown>)
+            ?.placeholderText as string | undefined
         }
       />
     </Form.Item>
