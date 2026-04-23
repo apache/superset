@@ -594,15 +594,11 @@ class DatasourceControl extends PureComponent<
           </div>
         )}
         {showEditDatasourceModal &&
-          (datasource.type === DatasourceType.SemanticView ? (
+          (String(datasource.type) === 'semantic_view' ? (
             <SemanticViewEditModal
               show={showEditDatasourceModal}
               onHide={this.toggleEditDatasourceModal}
-              onSave={() => {
-                if (this.props.onDatasourceSave) {
-                  this.props.onDatasourceSave(datasource);
-                }
-              }}
+              onSave={() => this.onDatasourceSave(datasource)}
               semanticView={{
                 id: datasource.id,
                 table_name: datasource.name,

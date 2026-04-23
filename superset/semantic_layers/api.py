@@ -228,6 +228,9 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
         body = request.json or {}
         views_data = body.get("views", [])
         if not views_data:
@@ -263,7 +266,7 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
         status = 201 if created else 422
         return self.response(status, result=result)
 
-    @expose("/<pk>", methods=("PUT",))
+    @expose("/<int:pk>", methods=("PUT",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -336,7 +339,7 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=str(ex))
         return response
 
-    @expose("/<pk>", methods=("DELETE",))
+    @expose("/<int:pk>", methods=("DELETE",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -363,6 +366,9 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
         try:
             DeleteSemanticViewCommand(pk).run()
             return self.response(200, message="OK")
@@ -417,6 +423,9 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
         item_ids: list[int] = kwargs["rison"]
         try:
             BulkDeleteSemanticViewCommand(item_ids).run()
@@ -617,6 +626,9 @@ class SemanticLayerRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()

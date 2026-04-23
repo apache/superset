@@ -47,8 +47,8 @@ export default function SemanticViewEditModal({
   show,
   onHide,
   onSave,
-  addDangerToast = () => {},
-  addSuccessToast = () => {},
+  addDangerToast,
+  addSuccessToast,
   semanticView,
 }: SemanticViewEditModalProps) {
   const [description, setDescription] = useState<string>('');
@@ -73,12 +73,12 @@ export default function SemanticViewEditModal({
           cache_timeout: cacheTimeout,
         },
       });
-      addSuccessToast(t('Semantic view updated'));
+      addSuccessToast?.(t('Semantic view updated'));
       onSave();
       onHide();
     } catch (error) {
       const clientError = await getClientErrorObject(error);
-      addDangerToast(
+      addDangerToast?.(
         clientError.error ||
           t('An error occurred while saving the semantic view'),
       );

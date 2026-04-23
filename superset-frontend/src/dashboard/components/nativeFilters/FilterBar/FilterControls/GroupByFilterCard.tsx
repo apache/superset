@@ -268,7 +268,7 @@ const GroupByFilterCardContent: FC<{
       <Row>
         <RowLabel>{getDatasetLabel()}</RowLabel>
         <RowValue>
-          {typeof datasetLabel === 'string' ? datasetLabel : 'Dataset'}
+          {typeof datasetLabel === 'string' ? datasetLabel : t('Dataset')}
         </RowValue>
       </Row>
 

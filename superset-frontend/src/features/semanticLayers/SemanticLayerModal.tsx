@@ -93,9 +93,11 @@ export default function SemanticLayerModal({
         endpoint: '/api/v1/semantic_layer/types',
       });
       setTypes(json.result ?? []);
-    } catch {
+    } catch (error) {
+      const clientError = await getClientErrorObject(error);
       addDangerToast(
-        t('An error occurred while fetching semantic layer types'),
+        clientError.error ||
+          t('An error occurred while fetching semantic layer types'),
       );
     } finally {
       setLoading(false);
@@ -258,6 +260,7 @@ export default function SemanticLayerModal({
     if (step === 'type') {
       handleStepAdvance();
     } else {
+      // Trigger validation UI and submit only from explicit save action.
       setValidationMode('ValidateAndShow');
       if (errorsRef.current.length === 0) {
         handleCreate();

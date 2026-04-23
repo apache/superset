@@ -55,8 +55,6 @@ type Range = editors.Range;
 type Selection = editors.Selection;
 type EditorAnnotation = editors.EditorAnnotation;
 type CompletionProvider = editors.CompletionProvider;
-type ContentChange = editors.ContentChange;
-type ContentChangeEvent = editors.ContentChangeEvent;
 
 /**
  * Maps EditorLanguage to the corresponding Ace editor component.
@@ -191,33 +189,6 @@ const createAceEditorHandle = (
 
   resize: () => {
     aceEditorRef.current?.editor?.resize();
-  },
-
-  onDidChangeContent: (listener, thisArgs?) => {
-    const editor = aceEditorRef.current?.editor;
-    if (!editor) return new Disposable(() => {});
-    const bound = (thisArgs ? listener.bind(thisArgs) : listener) as (
-      e: ContentChangeEvent,
-    ) => void;
-    const handler = (delta: {
-      action: 'insert' | 'remove';
-      start: { row: number; column: number };
-      lines: string[];
-    }) => {
-      const rangeOffset = editor.session.doc.positionToIndex(delta.start);
-      const changeText = delta.lines.join(
-        editor.session.doc.getNewLineCharacter(),
-      );
-      const change: ContentChange =
-        delta.action === 'insert'
-          ? { rangeOffset, rangeLength: 0, text: changeText }
-          : { rangeOffset, rangeLength: changeText.length, text: '' };
-      bound({ getValue: () => editor.getValue(), changes: [change] });
-    };
-    editor.session.on('change', handler);
-    return new Disposable(() => {
-      editor.session.off('change', handler);
-    });
   },
 });
 

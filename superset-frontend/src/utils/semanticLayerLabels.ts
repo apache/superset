@@ -19,6 +19,8 @@
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 
+const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
+
 /**
  * When the SEMANTIC_LAYERS feature flag is enabled the UI broadens
  * "dataset" → "datasource" and "database" → "data connection" so
@@ -26,7 +28,7 @@ import { t } from '@apache-superset/core/translation';
  * citizens alongside traditional datasets and database connections.
  */
 function sl<T>(legacy: T, semantic: T): T {
-  return isFeatureEnabled(FeatureFlag.SemanticLayers) ? semantic : legacy;
+  return isFeatureEnabled(SEMANTIC_LAYERS_FLAG) ? semantic : legacy;
 }
 
 // ---------------------------------------------------------------------------
