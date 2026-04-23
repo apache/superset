@@ -109,6 +109,32 @@ export const GlobalStyles = () => {
           display: flex;
           margin-top: ${theme.marginXS}px;
         }
+
+        /* WCAG 1.4.11: Non-text contrast — form field borders need 3:1 against background.
+           Ant Design default colorBorder (#d9d9d9) is only ~1.34:1 on white.
+           Using colorTextTertiary (~#8c8c8c, ~3.54:1 on white) for all input borders. */
+        .ant-input,
+        .ant-input-affix-wrapper,
+        .ant-select:not(.ant-select-customize-input) .ant-select-selector,
+        .ant-picker,
+        .ant-input-number,
+        .ant-input-number-group-wrapper .ant-input-number {
+          border-color: ${theme.colorTextTertiary};
+        }
+
+        /* Ensure disabled inputs retain a visible (though lighter) border */
+        .ant-input[disabled],
+        .ant-select-disabled .ant-select-selector,
+        .ant-picker-disabled,
+        .ant-input-number-disabled {
+          border-color: ${theme.colorTextQuaternary};
+        }
+
+        /* WCAG 1.4.11: Divider/separator contrast — colorSplit (~#f0f0f0) is ~1.04:1 on white.
+           Override to colorTextTertiary (~3.54:1). */
+        .ant-divider {
+          border-color: ${theme.colorTextTertiary};
+        }
       `}
     />
   );

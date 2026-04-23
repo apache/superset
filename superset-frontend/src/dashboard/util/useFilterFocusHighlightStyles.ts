@@ -37,9 +37,11 @@ const EMPTY = {};
 const useFilterFocusHighlightStyles = (chartId: number) => {
   const theme = useTheme();
 
+  // WCAG 1.4.11: Focus highlight needs 3:1 contrast.
+  // colorPrimaryBorder (~#91caff) is too light — use colorPrimary (~4.68:1 on white).
   const focusedChartStyles = useMemo(
     () => ({
-      borderColor: theme.colorPrimaryBorder,
+      borderColor: theme.colorPrimary,
       opacity: 1,
       boxShadow: `0px 0px ${theme.sizeUnit * 3}px ${theme.colorPrimary}`,
       pointerEvents: 'auto',
