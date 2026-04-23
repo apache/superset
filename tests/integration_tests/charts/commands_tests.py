@@ -39,6 +39,7 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
+from superset.models.annotations import AnnotationLayer
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
@@ -760,3 +761,261 @@ class TestFavoriteChartCommand(SupersetTestCase):
             finally:
                 if example_chart.datasource:
                     self.revoke_role_access_to_table("Gamma", example_chart.datasource)
+
+
+class TestExportChartsAnnotationLayers(SupersetTestCase):
+    """Tests for annotation layer handling in chart export."""
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_native_annotation_uuid_replacement(self, mock_g):
+        """Test that NATIVE annotation layer IDs are replaced with UUIDs on export."""
+        mock_g.user = security_manager.find_user("admin")
+
+        # Create an annotation layer
+        ann_layer = AnnotationLayer(name="Test Layer")
+        db.session.add(ann_layer)
+        db.session.commit()
+
+        # Get a chart and set params with a NATIVE annotation referencing the layer
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = json.loads(chart.params or "{}")
+        original_params["annotation_layers"] = [
+            {
+                "name": "Layer 1",
+                "sourceType": "NATIVE",
+                "value": ann_layer.id,
+                "show": True,
+                "style": "solid",
+            }
+        ]
+        chart.params = json.dumps(original_params)
+        db.session.commit()
+
+        command = ExportChartsCommand([chart.id])
+        contents = dict(command.run())
+
+        chart_key = f"charts/Energy_Sankey_{chart.id}.yaml"
+        chart_yaml = yaml.safe_load(contents[chart_key]())
+        layers = chart_yaml["params"]["annotation_layers"]
+        assert len(layers) == 1
+        assert layers[0]["value"] == str(ann_layer.uuid)
+        assert layers[0]["sourceType"] == "NATIVE"
+
+        # Verify annotation layer YAML is included in export
+        ann_layer_key = [k for k in contents if k.startswith("annotation_layers/")]
+        assert len(ann_layer_key) == 1
+
+        # Clean up
+        db.session.delete(ann_layer)
+        db.session.commit()
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_table_annotation_uuid_replacement(self, mock_g):
+        """Test that table/line annotation chart IDs are replaced with UUIDs."""
+        mock_g.user = security_manager.find_user("admin")
+
+        # Get two charts: one main, one referenced as annotation source
+        charts = (
+            db.session.query(Slice)
+            .filter(Slice.slice_name.in_(["Energy Sankey", "Heatmap"]))
+            .all()
+        )
+        main_chart = next(c for c in charts if c.slice_name == "Energy Sankey")
+        ref_chart = next(c for c in charts if c.slice_name == "Heatmap")
+
+        # Set params with a table annotation referencing the other chart
+        original_params = json.loads(main_chart.params or "{}")
+        original_params["annotation_layers"] = [
+            {
+                "name": "Table Annotation",
+                "sourceType": "table",
+                "value": ref_chart.id,
+                "show": True,
+                "style": "solid",
+            }
+        ]
+        main_chart.params = json.dumps(original_params)
+        db.session.commit()
+
+        command = ExportChartsCommand([main_chart.id])
+        contents = dict(command.run())
+
+        chart_key = f"charts/Energy_Sankey_{main_chart.id}.yaml"
+        chart_yaml = yaml.safe_load(contents[chart_key]())
+        layers = chart_yaml["params"]["annotation_layers"]
+        assert len(layers) == 1
+        assert layers[0]["value"] == str(ref_chart.uuid)
+        assert layers[0]["sourceType"] == "table"
+
+        # The referenced chart should also be exported
+        ref_chart_key = f"charts/Heatmap_{ref_chart.id}.yaml"
+        assert ref_chart_key in contents
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_line_annotation_uuid_replacement(self, mock_g):
+        """Test that line sourceType annotation chart IDs are replaced with UUIDs."""
+        mock_g.user = security_manager.find_user("admin")
+
+        charts = (
+            db.session.query(Slice)
+            .filter(Slice.slice_name.in_(["Energy Sankey", "Heatmap"]))
+            .all()
+        )
+        main_chart = next(c for c in charts if c.slice_name == "Energy Sankey")
+        ref_chart = next(c for c in charts if c.slice_name == "Heatmap")
+
+        original_params = json.loads(main_chart.params or "{}")
+        original_params["annotation_layers"] = [
+            {
+                "name": "Line Annotation",
+                "sourceType": "line",
+                "value": ref_chart.id,
+                "show": True,
+                "style": "dashed",
+            }
+        ]
+        main_chart.params = json.dumps(original_params)
+        db.session.commit()
+
+        command = ExportChartsCommand([main_chart.id])
+        contents = dict(command.run())
+
+        chart_key = f"charts/Energy_Sankey_{main_chart.id}.yaml"
+        chart_yaml = yaml.safe_load(contents[chart_key]())
+        layers = chart_yaml["params"]["annotation_layers"]
+        assert len(layers) == 1
+        assert layers[0]["value"] == str(ref_chart.uuid)
+        assert layers[0]["sourceType"] == "line"
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_formula_annotation_unchanged(self, mock_g):
+        """Test that FORMULA annotations are not modified during export."""
+        mock_g.user = security_manager.find_user("admin")
+
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        original_params = json.loads(chart.params or "{}")
+        original_params["annotation_layers"] = [
+            {
+                "name": "Formula",
+                "sourceType": "FORMULA",
+                "value": "sin(x)",
+                "show": True,
+                "style": "solid",
+            }
+        ]
+        chart.params = json.dumps(original_params)
+        db.session.commit()
+
+        command = ExportChartsCommand([chart.id])
+        contents = dict(command.run())
+
+        chart_key = f"charts/Energy_Sankey_{chart.id}.yaml"
+        chart_yaml = yaml.safe_load(contents[chart_key]())
+        layers = chart_yaml["params"]["annotation_layers"]
+        assert len(layers) == 1
+        assert layers[0]["value"] == "sin(x)"
+        assert layers[0]["sourceType"] == "FORMULA"
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_mixed_annotation_types(self, mock_g):
+        """Test export with NATIVE, table, and FORMULA annotations together."""
+        mock_g.user = security_manager.find_user("admin")
+
+        ann_layer = AnnotationLayer(name="Mixed Test Layer")
+        db.session.add(ann_layer)
+        db.session.commit()
+
+        charts = (
+            db.session.query(Slice)
+            .filter(Slice.slice_name.in_(["Energy Sankey", "Heatmap"]))
+            .all()
+        )
+        main_chart = next(c for c in charts if c.slice_name == "Energy Sankey")
+        ref_chart = next(c for c in charts if c.slice_name == "Heatmap")
+
+        original_params = json.loads(main_chart.params or "{}")
+        original_params["annotation_layers"] = [
+            {
+                "name": "Native",
+                "sourceType": "NATIVE",
+                "value": ann_layer.id,
+                "show": True,
+                "style": "solid",
+            },
+            {
+                "name": "Table",
+                "sourceType": "table",
+                "value": ref_chart.id,
+                "show": True,
+                "style": "solid",
+            },
+            {
+                "name": "Formula",
+                "sourceType": "FORMULA",
+                "value": "cos(x)",
+                "show": True,
+                "style": "dashed",
+            },
+        ]
+        main_chart.params = json.dumps(original_params)
+        db.session.commit()
+
+        command = ExportChartsCommand([main_chart.id])
+        contents = dict(command.run())
+
+        chart_key = f"charts/Energy_Sankey_{main_chart.id}.yaml"
+        chart_yaml = yaml.safe_load(contents[chart_key]())
+        layers = chart_yaml["params"]["annotation_layers"]
+        assert len(layers) == 3
+
+        # NATIVE → UUID of annotation layer
+        assert layers[0]["value"] == str(ann_layer.uuid)
+        # table → UUID of referenced chart
+        assert layers[1]["value"] == str(ref_chart.uuid)
+        # FORMULA → unchanged string
+        assert layers[2]["value"] == "cos(x)"
+
+        # Annotation layer YAML should be in the export
+        ann_keys = [k for k in contents if k.startswith("annotation_layers/")]
+        assert len(ann_keys) == 1
+
+        # Referenced chart should be in the export
+        ref_chart_key = f"charts/Heatmap_{ref_chart.id}.yaml"
+        assert ref_chart_key in contents
+
+        # Clean up
+        db.session.delete(ann_layer)
+        db.session.commit()
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_no_annotation_layers(self, mock_g):
+        """Test that charts without annotation_layers export normally."""
+        mock_g.user = security_manager.find_user("admin")
+
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        # Ensure no annotation_layers in params
+        original_params = json.loads(chart.params or "{}")
+        original_params.pop("annotation_layers", None)
+        chart.params = json.dumps(original_params)
+        db.session.commit()
+
+        command = ExportChartsCommand([chart.id])
+        contents = dict(command.run())
+
+        chart_key = f"charts/Energy_Sankey_{chart.id}.yaml"
+        chart_yaml = yaml.safe_load(contents[chart_key]())
+        # No annotation_layers key or empty list — either is fine
+        ann_layers = chart_yaml.get("params", {}).get("annotation_layers", [])
+        assert ann_layers == [] or "annotation_layers" not in chart_yaml.get(
+            "params", {}
+        )
+
+        # No annotation_layers/ files in export
+        ann_keys = [k for k in contents if k.startswith("annotation_layers/")]
+        assert len(ann_keys) == 0
