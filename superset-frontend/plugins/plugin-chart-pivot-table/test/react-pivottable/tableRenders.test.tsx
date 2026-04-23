@@ -17,8 +17,9 @@
  * under the License.
  */
 
+import type { ReactElement } from 'react';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
 import { aggregatorTemplates } from '../../src/react-pivottable/utilities';
@@ -52,7 +53,7 @@ const SAMPLE_DATA = [
   { color: 'red', shape: 'square', value: 40 },
 ];
 
-function renderWithTheme(ui: React.ReactElement) {
+function renderWithTheme(ui: ReactElement) {
   return render(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);
 }
 
@@ -253,11 +254,23 @@ test('TableRenderer renders the column attribute label in the header', () => {
 
 test('TableRenderer calls onContextMenu callback', () => {
   const onContextMenu = jest.fn();
-  const props = buildDefaultProps({ onContextMenu });
+  const props = buildDefaultProps({
+    onContextMenu,
+    tableOptions: { highlightHeaderCellsOnHover: true },
+  });
   renderWithTheme(<TableRenderer {...props} />);
 
-  const cells = screen.getAllByRole('gridcell');
-  expect(cells.length).toBeGreaterThan(0);
+  // The column attribute value "circle" is rendered inside a header <th> whose
+  // onContextMenu handler calls the callback.
+  const columnHeaderCell = screen.getByText('circle').closest('th');
+  expect(columnHeaderCell).not.toBeNull();
+  fireEvent.contextMenu(columnHeaderCell!);
+
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const [, colKey, rowKey, filters] = onContextMenu.mock.calls[0];
+  expect(colKey).toEqual(['circle']);
+  expect(rowKey).toBeUndefined();
+  expect(filters).toEqual({ shape: 'circle' });
 });
 
 test('TableRenderer renders with multiple row dimensions', () => {
