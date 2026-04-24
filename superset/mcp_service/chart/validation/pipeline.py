@@ -189,7 +189,21 @@ class ValidationPipeline:
 
             # Parse the raw config dict into a typed ChartConfig for
             # downstream validators that need typed access.
-            typed_config = parse_chart_config(request.config)
+            try:
+                typed_config = parse_chart_config(request.config)
+            except (ValueError, TypeError) as e:
+                from superset.mcp_service.utils.error_builder import (
+                    ChartErrorBuilder,
+                )
+
+                sanitized_reason = _sanitize_validation_error(e)
+                error = ChartErrorBuilder.build_error(
+                    error_type="validation_error",
+                    template_key="validation_error",
+                    template_vars={"reason": sanitized_reason},
+                    error_code="INVALID_CHART_CONFIG",
+                )
+                return ValidationResult(is_valid=False, request=request, error=error)
 
             # Fetch dataset context once and reuse across validation layers
             dataset_context = ValidationPipeline._get_dataset_context(

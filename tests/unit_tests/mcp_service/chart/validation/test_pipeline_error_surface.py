@@ -103,7 +103,62 @@ def test_mixed_timeseries_with_wrong_kind_fields_returns_actionable_error() -> N
     assert "tagged-union" not in dumped["message"]
     # Suggestions should steer callers back to a valid schema.
     assert dumped["suggestions"]
-    assert dumped["error_code"] == "VALIDATION_PIPELINE_ERROR"
+    assert dumped["error_code"] == "INVALID_CHART_CONFIG"
+    assert dumped["error_type"] == "validation_error"
+
+
+def test_adhoc_filters_returns_actionable_error() -> None:
+    """Regression: adhoc_filters is not a valid field — generate_chart should
+    return a clear validation_error pointing to 'filters' instead of an opaque
+    validation_system_error.
+
+    See: https://app.shortcut.com/preset/story/103356
+    """
+    request_data = {
+        "dataset_id": 1,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "year"},
+            "y": [{"name": "sales", "aggregate": "SUM"}],
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "comparator": "Role-Playing",
+                    "expressionType": "SIMPLE",
+                    "operator": "==",
+                    "subject": "genre",
+                }
+            ],
+        },
+    }
+
+    with (
+        patch.object(ValidationPipeline, "_get_dataset_context", return_value=None),
+        patch.object(
+            ValidationPipeline, "_validate_dataset", return_value=(True, None)
+        ),
+        patch.object(
+            ValidationPipeline, "_validate_runtime", return_value=(True, None)
+        ),
+        patch.object(
+            ValidationPipeline,
+            "_normalize_column_names",
+            side_effect=_passthrough_normalize,
+        ),
+    ):
+        result = ValidationPipeline.validate_request_with_warnings(request_data)
+
+    assert result.is_valid is False
+    assert result.error is not None
+    dumped = result.error.model_dump()
+
+    # Must NOT be the opaque validation_system_error
+    assert dumped["error_type"] == "validation_error"
+    assert dumped["error_code"] == "INVALID_CHART_CONFIG"
+    # Message must mention filters as the correct field name
+    assert "filters" in dumped["message"]
+    assert dumped["details"] != ""
+    assert dumped["suggestions"]
 
 
 def test_valid_mixed_timeseries_config_passes() -> None:
@@ -178,7 +233,8 @@ def test_non_value_error_pydantic_body_is_surfaced() -> None:
     assert result.is_valid is False
     assert result.error is not None
     dumped = result.error.model_dump()
-    assert dumped["error_code"] == "VALIDATION_PIPELINE_ERROR"
+    assert dumped["error_code"] == "INVALID_CHART_CONFIG"
+    assert dumped["error_type"] == "validation_error"
     assert "tagged-union" not in dumped["message"]
     assert "tagged-union" not in dumped["details"]
     # The actionable body must survive the 200-char truncation.
