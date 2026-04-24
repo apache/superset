@@ -18,6 +18,7 @@
 from datetime import datetime
 from types import SimpleNamespace
 from typing import Any, Dict, List
+from unittest.mock import Mock, patch
 
 import pytest
 from pydantic import BaseModel
@@ -179,8 +180,6 @@ def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared(
 
 def test_model_list_tool_allows_created_by_fk_filter_for_current_user():
     """created_by_fk filter is accepted when the value matches the current user's ID."""
-    from unittest.mock import patch, Mock
-
     current_user = Mock()
     current_user.is_authenticated = True
     current_user.id = 42
@@ -205,8 +204,6 @@ def test_model_list_tool_allows_created_by_fk_filter_for_current_user():
 
 def test_model_list_tool_rejects_created_by_fk_filter_for_other_user():
     """created_by_fk filter is rejected when the value is another user's ID."""
-    from unittest.mock import patch, Mock
-
     current_user = Mock()
     current_user.is_authenticated = True
     current_user.id = 42
