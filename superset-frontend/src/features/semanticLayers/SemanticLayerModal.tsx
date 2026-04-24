@@ -31,6 +31,7 @@ import {
   MODAL_STANDARD_WIDTH,
   MODAL_MEDIUM_WIDTH,
 } from 'src/components/Modal';
+import { styled } from '@apache-superset/core/theme';
 import {
   renderers,
   sanitizeSchema,
@@ -40,6 +41,10 @@ import {
   serializeDependencyValues,
   SCHEMA_REFRESH_DEBOUNCE_MS,
 } from './jsonFormsHelpers';
+
+const ModalContent = styled.div`
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
+`;
 
 type Step = 'type' | 'config';
 type ValidationMode = 'ValidateAndHide' | 'ValidateAndShow';
@@ -336,8 +341,8 @@ export default function SemanticLayerModal({
       saveLoading={saving}
       contentLoading={loading}
     >
-      {step === 'type' ? (
-        <>
+      <ModalContent>
+        {step === 'type' ? (
           <ModalFormField label={t('Type')}>
             <Select
               ariaLabel={t('Semantic layer type')}
@@ -356,48 +361,48 @@ export default function SemanticLayerModal({
               }}
             />
           </ModalFormField>
-        </>
-      ) : (
-        <>
-          {!isEditMode && (
-            <Button
-              buttonStyle="link"
-              icon={<Icons.CaretLeftOutlined iconSize="s" />}
-              onClick={handleBack}
-            >
-              {t('Back')}
-            </Button>
-          )}
-          <ModalFormField label={t('Name')} required>
-            <Input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder={t('Name of the semantic layer')}
-            />
-          </ModalFormField>
-          {configSchema && (
-            // Wrap in a form with autocomplete="off" so browsers do not
-            // autofill credential fields (service token, account, etc.).
-            // eslint-disable-next-line jsx-a11y/no-redundant-roles
-            <form
-              role="presentation"
-              autoComplete="off"
-              onSubmit={e => e.preventDefault()}
-            >
-              <JsonForms
-                schema={configSchema}
-                uischema={uiSchema}
-                data={formData}
-                renderers={renderers}
-                cells={cellRegistryEntries}
-                config={{ refreshingSchema, formData }}
-                validationMode={validationMode}
-                onChange={handleFormChange}
+        ) : (
+          <>
+            {!isEditMode && (
+              <Button
+                buttonStyle="link"
+                icon={<Icons.CaretLeftOutlined iconSize="s" />}
+                onClick={handleBack}
+              >
+                {t('Back')}
+              </Button>
+            )}
+            <ModalFormField label={t('Name')} required>
+              <Input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder={t('Name of the semantic layer')}
               />
-            </form>
-          )}
-        </>
-      )}
+            </ModalFormField>
+            {configSchema && (
+              // Wrap in a form with autocomplete="off" so browsers do not
+              // autofill credential fields (service token, account, etc.).
+              // eslint-disable-next-line jsx-a11y/no-redundant-roles
+              <form
+                role="presentation"
+                autoComplete="off"
+                onSubmit={e => e.preventDefault()}
+              >
+                <JsonForms
+                  schema={configSchema}
+                  uischema={uiSchema}
+                  data={formData}
+                  renderers={renderers}
+                  cells={cellRegistryEntries}
+                  config={{ refreshingSchema, formData }}
+                  validationMode={validationMode}
+                  onChange={handleFormChange}
+                />
+              </form>
+            )}
+          </>
+        )}
+      </ModalContent>
     </StandardModal>
   );
 }
