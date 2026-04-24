@@ -27,6 +27,11 @@ import sys
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
 
+from redis import Redis
+from datetime import timedelta
+
+from superset.security.session_validation import SessionValidationSecurityManager  # noqa: F401
+
 logger = logging.getLogger()
 
 DATABASE_DIALECT = os.getenv("DATABASE_DIALECT")
@@ -142,3 +147,40 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+# REQUIRED — use server-side sessions
+
+SESSION_LIFETIME = int(os.getenv("SESSION_LIFETIME", "30"))
+SESSION_REDIS_DB = int(os.getenv("SESSION_REDIS_DB", "0"))
+SESSION_REDIS_HOST = os.getenv("SESSION_REDIS_HOST", REDIS_HOST)
+SESSION_REDIS_PORT = int(os.getenv("SESSION_REDIS_PORT", REDIS_PORT))
+
+SESSION_SERVER_SIDE = True
+
+# Use Redis as session store
+SESSION_TYPE = "redis"
+SESSION_REDIS = Redis(
+    host=SESSION_REDIS_HOST, port=SESSION_REDIS_PORT, db=SESSION_REDIS_DB
+)
+
+# Sign the session ID cookie
+SESSION_USE_SIGNER = True
+
+# Session expires
+PERMANENT_SESSION_LIFETIME = timedelta(minutes=SESSION_LIFETIME)
+
+# Cookie hardening
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Strict"
+
+# Flask/FAB protection
+SESSION_PROTECTION = "strong"
+
+# Only applies if using AUTH_DB (local username/password auth)
+
+FAB_PASSWORD_COMPLEXITY_ENABLED = True
+
+
+# --- REGISTER CUSTOM SECURITY MANAGER ---
+CUSTOM_SECURITY_MANAGER = SessionValidationSecurityManager
