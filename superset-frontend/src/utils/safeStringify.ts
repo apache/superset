@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,8 +19,7 @@
 
 /**
  * A Stringify function that will not crash when it runs into circular JSON references,
- * unlike JSON.stringify. Any circular references are simply omitted, as if there had
- * been no data present
+ * unlike JSON.stringify. Any circular references are replaced with a '[Circular]' placeholder.
  * @param object any JSON object to be stringified
  */
 export function safeStringify(object: any): string {
@@ -33,8 +32,11 @@ export function safeStringify(object: any): string {
           // Quick deep copy to duplicate if this is a repeat rather than a circle.
           return JSON.parse(JSON.stringify(value));
         } catch (err) {
-          // Discard key if value cannot be duplicated.
-          return; // eslint-disable-line consistent-return
+          // Replace circular reference with a placeholder
+          console.warn(
+            `Circular reference detected and replaced with '[Circular]' placeholder (key: "${key}")`,
+          );
+          return '[Circular]';
         }
       }
       // Store the value in our cache.
