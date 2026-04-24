@@ -342,7 +342,12 @@ export function Menu({
     return <>{link}</>;
   };
   return (
-    <StyledHeader className="top" id="main-menu" role="navigation">
+    <StyledHeader
+      className="top"
+      id="main-menu"
+      role="navigation"
+      aria-label={t('Main navigation')}
+    >
       <StyledRow>
         <StyledCol md={16} xs={24}>
           <Tooltip
