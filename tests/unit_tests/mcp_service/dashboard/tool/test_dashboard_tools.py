@@ -20,6 +20,7 @@ Unit tests for MCP dashboard tools (list_dashboards, get_dashboard_info)
 """
 
 import logging
+from importlib import import_module
 from unittest.mock import Mock, patch
 
 import pytest
@@ -34,6 +35,9 @@ from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+get_dashboard_info_module = import_module(
+    "superset.mcp_service.dashboard.tool.get_dashboard_info"
+)
 
 
 @pytest.fixture
@@ -583,8 +587,8 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
             "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
             return_value=False,
         ),
-        patch(
-            "superset.mcp_service.dashboard.tool.get_dashboard_info."
+        patch.object(
+            get_dashboard_info_module,
             "user_can_view_data_model_metadata",
             return_value=False,
         ),

@@ -20,6 +20,7 @@ Unit tests for dashboard generation MCP tools
 """
 
 import logging
+from importlib import import_module
 from unittest.mock import Mock, patch
 
 import pytest
@@ -41,6 +42,12 @@ from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+add_chart_to_existing_dashboard_module = import_module(
+    "superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard"
+)
+generate_dashboard_module = import_module(
+    "superset.mcp_service.dashboard.tool.generate_dashboard"
+)
 
 
 @pytest.fixture
@@ -218,8 +225,9 @@ class TestGenerateDashboard:
 
         request = {"chart_ids": [1], "dashboard_title": "Analytics Dashboard"}
 
-        with patch(
-            "superset.mcp_service.dashboard.tool.generate_dashboard.user_can_view_data_model_metadata",
+        with patch.object(
+            generate_dashboard_module,
+            "user_can_view_data_model_metadata",
             return_value=False,
         ):
             async with Client(mcp_server) as client:
@@ -679,8 +687,9 @@ class TestAddChartToExistingDashboard:
 
         request = {"dashboard_id": 1, "chart_id": 30}
 
-        with patch(
-            "superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard.user_can_view_data_model_metadata",
+        with patch.object(
+            add_chart_to_existing_dashboard_module,
+            "user_can_view_data_model_metadata",
             return_value=False,
         ):
             async with Client(mcp_server) as client:
