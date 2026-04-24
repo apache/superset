@@ -99,6 +99,7 @@ def _strip_opaque_fields(item: Any) -> Any:
         return item
     return {k: v for k, v in item.items() if k not in _CHILD_ITEM_OPAQUE_FIELDS}
 
+
 # Chart ``params`` sub-keys that are promoted to first-class kinds.
 # Every other params sub-key falls through to ``kind="field"``.
 _CHART_PARAMS_KIND_BY_KEY: dict[str, str] = {
