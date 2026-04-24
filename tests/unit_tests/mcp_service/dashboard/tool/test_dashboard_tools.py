@@ -448,6 +448,80 @@ async def test_get_dashboard_info_does_not_expose_access_list_or_roles(
     assert "owners" not in result.data["charts"][0]
 
 
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_restricted_user_redacts_data_model_metadata(
+    mock_info,
+    mcp_server,
+):
+    chart = Mock()
+    chart.id = 10
+    chart.slice_name = "Revenue by Deal Size"
+    chart.viz_type = "echarts_timeseries_bar"
+    chart.datasource_name = "Vehicle Sales"
+    chart.description = None
+    chart.tags = []
+
+    dashboard = Mock()
+    dashboard.id = 1
+    dashboard.dashboard_title = "Sales Dashboard"
+    dashboard.slug = "sales"
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = json.dumps(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-product-line",
+                    "name": "Product Line",
+                    "filterType": "filter_select",
+                    "targets": [
+                        {"column": {"name": "product_line"}, "datasetId": 3},
+                    ],
+                },
+            ],
+            "cross_filters_enabled": True,
+        }
+    )
+    dashboard.position_json = None
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_by = None
+    dashboard.changed_by = None
+    dashboard.uuid = None
+    dashboard.url = "/dashboard/1"
+    dashboard.created_on_humanized = None
+    dashboard.changed_on_humanized = None
+    dashboard.slices = [chart]
+    dashboard.owners = []
+    dashboard.tags = []
+    dashboard.roles = []
+
+    mock_info.return_value = dashboard
+
+    with patch(
+        "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {"request": {"identifier": 1}},
+            )
+
+    assert result.data["dashboard_title"] == "Sales Dashboard"
+    assert result.data["charts"][0]["slice_name"] == "Revenue by Deal Size"
+    assert result.data["charts"][0]["viz_type"] == "echarts_timeseries_bar"
+    assert result.data["charts"][0]["datasource_name"] is None
+    assert result.data["native_filters"][0]["name"] == "Product Line"
+    assert result.data["native_filters"][0]["targets"] == []
+
+
 @patch("superset.daos.dashboard.DashboardDAO.list")
 @pytest.mark.asyncio
 async def test_list_dashboards_omits_requested_user_directory_fields(

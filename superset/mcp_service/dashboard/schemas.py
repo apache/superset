@@ -86,7 +86,10 @@ if TYPE_CHECKING:
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.privacy import filter_user_directory_fields
+from superset.mcp_service.privacy import (
+    filter_user_directory_fields,
+    user_can_view_data_model_metadata,
+)
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     RoleInfo,
@@ -609,12 +612,17 @@ def _parse_json_metadata(json_metadata_str: str | None) -> Dict[str, Any] | None
     return metadata
 
 
-def _extract_native_filters(json_metadata_str: str | None) -> List[NativeFilterSummary]:
+def _extract_native_filters(
+    json_metadata_str: str | None,
+    *,
+    include_data_model_metadata: bool = True,
+) -> List[NativeFilterSummary]:
     """Extract native filter summaries from raw json_metadata string.
 
     Parses the json_metadata JSON blob and pulls out only the filter
-    name, type, and targets — dropping verbose fields like controlValues,
-    defaultDataMask, scope, and cascadeParentIds.
+    name, type, and optionally targets — dropping verbose fields like controlValues,
+    defaultDataMask, scope, and cascadeParentIds. Restricted users keep filter
+    names and types, but target columns and dataset IDs are data-model metadata.
     """
     metadata = _parse_json_metadata(json_metadata_str)
     if metadata is None:
@@ -631,7 +639,11 @@ def _extract_native_filters(json_metadata_str: str | None) -> List[NativeFilterS
         raw_targets = f.get("targets", [])
         if not isinstance(raw_targets, list):
             raw_targets = []
-        targets = [t for t in raw_targets if isinstance(t, dict)]
+        targets = (
+            [t for t in raw_targets if isinstance(t, dict)]
+            if include_data_model_metadata
+            else []
+        )
         summaries.append(
             NativeFilterSummary(
                 id=f.get("id"),
@@ -686,7 +698,11 @@ def _build_omitted_fields(
     )
 
 
-def serialize_chart_summary(chart: Any) -> DashboardChartSummary | None:
+def serialize_chart_summary(
+    chart: Any,
+    *,
+    include_data_model_metadata: bool = True,
+) -> DashboardChartSummary | None:
     """Serialize a chart to a lightweight summary for dashboard context."""
     if not chart:
         return None
@@ -701,7 +717,9 @@ def serialize_chart_summary(chart: Any) -> DashboardChartSummary | None:
         id=chart_id,
         slice_name=getattr(chart, "slice_name", None),
         viz_type=getattr(chart, "viz_type", None),
-        datasource_name=getattr(chart, "datasource_name", None),
+        datasource_name=getattr(chart, "datasource_name", None)
+        if include_data_model_metadata
+        else None,
         url=chart_url,
         description=getattr(chart, "description", None),
     )
@@ -710,6 +728,7 @@ def serialize_chart_summary(chart: Any) -> DashboardChartSummary | None:
 def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     from superset.mcp_service.utils.url_utils import get_superset_base_url
 
+    include_data_model_metadata = user_can_view_data_model_metadata()
     base_url = get_superset_base_url()
     relative_url = dashboard.url  # e.g. "/superset/dashboard/{slug_or_id}/"
     absolute_url = f"{base_url}{relative_url}" if relative_url else None
@@ -733,7 +752,8 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         changed_on_humanized=dashboard.changed_on_humanized,
         chart_count=len(dashboard.slices) if dashboard.slices else 0,
         native_filters=_extract_native_filters(
-            getattr(dashboard, "json_metadata", None)
+            getattr(dashboard, "json_metadata", None),
+            include_data_model_metadata=include_data_model_metadata,
         ),
         cross_filters_enabled=_extract_cross_filters_enabled(
             getattr(dashboard, "json_metadata", None)
@@ -750,7 +770,13 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         charts=[
             summary
             for chart in dashboard.slices
-            if (summary := serialize_chart_summary(chart)) is not None
+            if (
+                summary := serialize_chart_summary(
+                    chart,
+                    include_data_model_metadata=include_data_model_metadata,
+                )
+            )
+            is not None
         ]
         if dashboard.slices
         else [],
@@ -780,6 +806,7 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
 
     json_metadata_str = getattr(dashboard, "json_metadata", None)
     position_json_str = getattr(dashboard, "position_json", None)
+    include_data_model_metadata = user_can_view_data_model_metadata()
 
     return DashboardInfo(
         id=dashboard_id,
@@ -799,7 +826,10 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         css=getattr(dashboard, "css", None),
         certified_by=getattr(dashboard, "certified_by", None),
         certification_details=getattr(dashboard, "certification_details", None),
-        native_filters=_extract_native_filters(json_metadata_str),
+        native_filters=_extract_native_filters(
+            json_metadata_str,
+            include_data_model_metadata=include_data_model_metadata,
+        ),
         cross_filters_enabled=_extract_cross_filters_enabled(json_metadata_str),
         omitted_fields=_build_omitted_fields(json_metadata_str, position_json_str),
         is_managed_externally=getattr(dashboard, "is_managed_externally", None),
@@ -817,7 +847,13 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         charts=[
             summary
             for chart in getattr(dashboard, "slices", [])
-            if (summary := serialize_chart_summary(chart)) is not None
+            if (
+                summary := serialize_chart_summary(
+                    chart,
+                    include_data_model_metadata=include_data_model_metadata,
+                )
+            )
+            is not None
         ]
         if getattr(dashboard, "slices", None)
         else [],
