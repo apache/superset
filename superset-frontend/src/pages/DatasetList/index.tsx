@@ -68,6 +68,7 @@ import {
   type ListViewFilters,
   type ListViewFetchDataConfig,
 } from 'src/components';
+import type { SelectOption } from 'src/components/ListView/types';
 import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
@@ -100,6 +101,15 @@ import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
 
 const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
+type DatasetExtra = {
+  certification?: {
+    certified_by?: string;
+    details?: string;
+  };
+  warning_markdown?: string;
+};
+
+type FilterSelectOption = SelectOption | null | undefined;
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatasetDeleteRelatedExtension = extensionsRegistry.get(
@@ -160,13 +170,13 @@ type Dataset = {
   table_name: string;
   description?: string | null;
   cache_timeout?: number | null;
-  extra?: string | Record<string, any> | null;
+  extra?: string | DatasetExtra | null;
   sql?: string | null;
 };
 
 interface VirtualDataset extends Dataset {
   kind: 'virtual';
-  extra: string | Record<string, any>;
+  extra: string | DatasetExtra;
   sql: string;
 }
 
@@ -179,6 +189,11 @@ interface DatasetListProps {
     lastName: string;
   };
 }
+
+type RelatedObjects = {
+  count: number;
+  result: Array<Record<string, unknown>>;
+};
 
 const DatasetList: FunctionComponent<DatasetListProps> = ({
   addDangerToast,
@@ -404,14 +419,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         });
       }
 
-      const queryParams = rison.encode_uri({
-        order_column: sortBy[0].id,
-        order_direction: sortBy[0].desc ? 'desc' : 'asc',
-        page: pageIndex,
-        page_size: pageSize,
-        ...(otherFilters.length ? { filters: otherFilters } : {}),
-      });
-
       // Translate the "Data connection" filter: values prefixed with "sl:" are
       // semantic layer UUIDs; plain values are database IDs.
       if (databaseFilter?.value !== undefined && databaseFilter.value !== '') {
@@ -435,6 +442,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           });
         }
       }
+
+      const queryParams = rison.encode_uri({
+        order_column: sortBy[0].id,
+        order_direction: sortBy[0].desc ? 'desc' : 'asc',
+        page: pageIndex,
+        page_size: pageSize,
+        ...(otherFilters.length ? { filters: otherFilters } : {}),
+      });
 
       return SupersetClient.get({
         endpoint: `/api/v1/datasource/?q=${queryParams}`,
@@ -464,8 +479,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
     | (Dataset & {
-        charts: any;
-        dashboards: any;
+        charts: RelatedObjects;
+        dashboards: RelatedObjects;
       })
     | null
   >(null);
@@ -675,7 +690,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             const parsedExtra =
               typeof extra === 'string'
                 ? JSON.parse(extra)
-                : (extra as Record<string, any> | null);
+                : (extra as DatasetExtra | null);
             return (
               <FlexRowContainer>
                 {parsedExtra?.certification && (
@@ -964,7 +979,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 { label: t('Database'), value: 'database' },
                 { label: t('Semantic Layer'), value: 'semantic_layer' },
               ],
-              onFilterUpdate: (option: any) => {
+              onFilterUpdate: (option?: FilterSelectOption) => {
                 cascadeClear('source', option?.value);
               },
             },
@@ -997,7 +1012,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   ? [{ label: t('Semantic View'), value: 'semantic_view' }]
                   : []),
               ],
-              onFilterUpdate: (option: any) => {
+              onFilterUpdate: (option?: FilterSelectOption) => {
                 currentTypeFilter.current = option?.value;
                 cascadeClear('type', option?.value);
               },
@@ -1027,7 +1042,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         fetchSelects: fetchConnectionOptions,
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
-        onFilterUpdate: (option: any) => {
+        onFilterUpdate: (option?: FilterSelectOption) => {
           currentConnectionFilter.current = option?.value;
           cascadeClear('connection', option?.value);
         },

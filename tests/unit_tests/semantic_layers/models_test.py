@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pyarrow as pa
@@ -320,13 +321,21 @@ def mock_implementation(
 @pytest.fixture
 def semantic_view(mock_implementation: MagicMock) -> SemanticView:
     """Create a SemanticView with mocked implementation."""
+    layer = SemanticLayer()
+    layer.name = "Test Layer"
+    layer.uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    layer.perm = "[Test Layer](id:87654321432187654321876543218765)"
+
     view = SemanticView()
     view.name = "Orders View"
     view.description = "View of order data"
+    view.id = 1
     view.uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
     view.semantic_layer_uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    view.semantic_layer = layer
     view.cache_timeout = 3600
     view.configuration = "{}"
+    view.perm = "[Test Layer].[Orders View](id:1)"
 
     # Persist mocked implementation on this instance
     view.__dict__["implementation"] = mock_implementation
@@ -403,14 +412,38 @@ def test_semantic_view_get_extra_cache_keys() -> None:
 
 
 def test_semantic_view_perm() -> None:
-    """Test SemanticView perm property."""
+    """Test SemanticView perm stores the view-level permission string."""
     view = SemanticView()
-    view.uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
-    view.semantic_layer_uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
-    assert (
-        view.perm
-        == "87654321432187654321876543218765::12345678123456781234567812345678"
-    )
+    view.perm = "[My Layer].[My View](id:42)"
+    assert view.perm == "[My Layer].[My View](id:42)"
+
+
+def test_semantic_view_perm_none_by_default() -> None:
+    """Test SemanticView perm is None when not set."""
+    view = SemanticView()
+    assert view.perm is None
+
+
+def test_semantic_view_get_perm() -> None:
+    """Test SemanticView.get_perm() format: [layer].[view](id:N)."""
+    layer = SemanticLayer()
+    layer.name = "My Layer"
+    layer.uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+
+    view = SemanticView()
+    view.id = 42
+    view.name = "My View"
+    view.semantic_layer = layer
+    assert view.get_perm() == "[My Layer].[My View](id:42)"
+
+
+def test_semantic_view_get_perm_without_layer() -> None:
+    """Test get_perm uses 'unknown' when no semantic_layer."""
+    view = SemanticView()
+    view.id = 1
+    view.name = "Orphan View"
+    view.semantic_layer = None  # type: ignore
+    assert view.get_perm() == "[unknown].[Orphan View](id:1)"
 
 
 def test_semantic_view_uid(
@@ -564,6 +597,8 @@ def test_semantic_view_data(
 
     layer = SemanticLayer()
     layer.name = "My Semantic Layer"
+    layer.uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    layer.perm = "[My Semantic Layer](id:87654321432187654321876543218765)"
 
     view = SemanticView()
     view.name = "Orders View"
@@ -649,6 +684,8 @@ def test_semantic_view_data_for_slices(
 
     layer = SemanticLayer()
     layer.name = "My Semantic Layer"
+    layer.uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    layer.perm = "[My Semantic Layer](id:87654321432187654321876543218765)"
 
     view = SemanticView()
     view.name = "Orders View"
@@ -777,3 +814,426 @@ def test_semantic_view_get_compatible_dimensions(
     args = mock_implementation.get_compatible_dimensions.call_args.args
     assert args[0] == {mock_metrics[1]}
     assert args[1] == {mock_dimensions[1]}
+
+
+# =============================================================================
+# SemanticLayer.get_perm tests
+# =============================================================================
+
+
+def test_semantic_layer_get_perm() -> None:
+    """Test SemanticLayer.get_perm() format."""
+    layer = SemanticLayer()
+    layer.name = "My Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    assert layer.get_perm() == "[My Layer](id:abcdef1234567890abcdef1234567890)"
+
+
+def test_semantic_layer_get_perm_special_characters() -> None:
+    """Test get_perm with special characters in the layer name."""
+    layer = SemanticLayer()
+    layer.name = "Layer [with] (parens)"
+    layer.uuid = uuid.UUID("11111111-1111-1111-1111-111111111111")
+    assert (
+        layer.get_perm()
+        == "[Layer [with] (parens)](id:11111111111111111111111111111111)"
+    )
+
+
+# =============================================================================
+# SemanticView.raise_for_access tests
+# =============================================================================
+
+
+def test_semantic_view_raise_for_access_all_datasources(app: Any) -> None:
+    """Test raise_for_access passes when user has all_datasource_access."""
+    from superset import security_manager
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    view = SemanticView()
+    view.semantic_layer = layer
+
+    with patch.object(
+        security_manager, "can_access_all_datasources", return_value=True
+    ):
+        view.raise_for_access()
+
+
+def test_semantic_view_raise_for_access_view_perm(app: Any) -> None:
+    """Test raise_for_access passes when user has view-level perm."""
+    from superset import security_manager
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    view = SemanticView()
+    view.id = 1
+    view.name = "My View"
+    view.semantic_layer = layer
+    view.perm = "[Layer].[My View](id:1)"
+
+    with (
+        patch.object(
+            security_manager, "can_access_all_datasources", return_value=False
+        ),
+        patch.object(
+            security_manager, "can_access", return_value=True
+        ) as mock_can_access,
+    ):
+        view.raise_for_access()
+        mock_can_access.assert_called_once_with(
+            "datasource_access", "[Layer].[My View](id:1)"
+        )
+
+
+def test_semantic_view_raise_for_access_layer_perm(app: Any) -> None:
+    """Test raise_for_access passes via layer perm when view perm is denied."""
+    from superset import security_manager
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    view = SemanticView()
+    view.id = 1
+    view.name = "My View"
+    view.semantic_layer = layer
+    view.perm = "[Layer].[My View](id:1)"
+
+    def side_effect(permission: str, perm: str) -> bool:
+        # Deny view perm, allow layer perm
+        return perm == layer.perm
+
+    with (
+        patch.object(
+            security_manager, "can_access_all_datasources", return_value=False
+        ),
+        patch.object(
+            security_manager, "can_access", side_effect=side_effect
+        ) as mock_can_access,
+    ):
+        view.raise_for_access()
+        assert mock_can_access.call_count == 2
+
+
+def test_semantic_view_raise_for_access_denied(app: Any) -> None:
+    """Test raise_for_access raises SupersetSecurityException when denied."""
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    view = SemanticView()
+    view.id = 1
+    view.name = "My View"
+    view.semantic_layer = layer
+    view.perm = "[Layer].[My View](id:1)"
+
+    with (
+        patch.object(
+            security_manager, "can_access_all_datasources", return_value=False
+        ),
+        patch.object(security_manager, "can_access", return_value=False),
+    ):
+        with pytest.raises(SupersetSecurityException):
+            view.raise_for_access()
+
+
+# =============================================================================
+# create_missing_perms backfill tests
+# =============================================================================
+
+
+def test_create_missing_perms_backfills_semantic_layer_perm(app: Any) -> None:
+    """Test that create_missing_perms sets perm on layers with perm=NULL."""
+    from superset import security_manager
+    from superset.extensions import db
+
+    layer = SemanticLayer()
+    layer.name = "Backfill Layer"
+    layer.uuid = uuid.UUID("aaaa1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+    layer.perm = None  # simulate pre-existing layer without perm
+
+    db.session.add(layer)
+    db.session.flush()
+
+    try:
+        with (
+            patch.object(security_manager, "_get_all_pvms", return_value=[]),
+            patch.object(security_manager, "add_permission_view_menu") as mock_add_pvm,
+        ):
+            security_manager.create_missing_perms()
+
+        expected_perm = "[Backfill Layer](id:aaaa1111222233334444555566667777)"
+        assert layer.perm == expected_perm
+        mock_add_pvm.assert_any_call("datasource_access", expected_perm)
+    finally:
+        db.session.rollback()
+
+
+def test_create_missing_perms_backfills_semantic_view_perm(app: Any) -> None:
+    """Test that create_missing_perms sets perm on views with perm=NULL."""
+    from superset import security_manager
+    from superset.extensions import db
+
+    layer = SemanticLayer()
+    layer.name = "Backfill Layer"
+    layer.uuid = uuid.UUID("aaaa1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+    layer.perm = "[Backfill Layer](id:aaaa1111222233334444555566667777)"
+
+    view = SemanticView()
+    view.name = "Backfill View"
+    view.semantic_layer_uuid = layer.uuid
+    view.perm = None  # simulate pre-existing view without perm
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    try:
+        with (
+            patch.object(security_manager, "_get_all_pvms", return_value=[]),
+            patch.object(security_manager, "add_permission_view_menu") as mock_add_pvm,
+        ):
+            security_manager.create_missing_perms()
+
+        expected_perm = f"[Backfill Layer].[Backfill View](id:{view.id})"
+        assert view.perm == expected_perm
+        mock_add_pvm.assert_any_call("datasource_access", expected_perm)
+    finally:
+        db.session.rollback()
+
+
+# =============================================================================
+# SemanticView.get_perm with explicit layer_name
+# =============================================================================
+
+
+def test_semantic_view_get_perm_explicit_layer_name() -> None:
+    """Test get_perm with explicit layer_name parameter."""
+    view = SemanticView()
+    view.id = 5
+    view.name = "My View"
+    view.semantic_layer = None  # type: ignore
+    assert (
+        view.get_perm(layer_name="Explicit Layer") == "[Explicit Layer].[My View](id:5)"
+    )
+
+
+# =============================================================================
+# Event listener tests
+# =============================================================================
+
+
+def test_semantic_view_after_insert_sets_perm(app: Any) -> None:
+    """Test that the after_insert event listener sets the perm column."""
+    from superset.extensions import db
+
+    layer = SemanticLayer()
+    layer.name = "Event Layer"
+    layer.uuid = uuid.UUID("eeee1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Event View"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    try:
+        assert view.perm == f"[Event Layer].[Event View](id:{view.id})"
+    finally:
+        db.session.rollback()
+
+
+def test_semantic_view_before_update_updates_perm(app: Any) -> None:
+    """Test that renaming a view updates its perm via the before_update event."""
+    from superset.extensions import db
+
+    layer = SemanticLayer()
+    layer.name = "Update Layer"
+    layer.uuid = uuid.UUID("dddd1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Old Name"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    try:
+        view.name = "New Name"
+        db.session.flush()
+        assert view.perm == f"[Update Layer].[New Name](id:{view.id})"
+    finally:
+        db.session.rollback()
+
+
+def test_semantic_layer_rename_cascades_to_view_perms(app: Any) -> None:
+    """Test that renaming a layer cascades the perm update to its views."""
+    from superset.extensions import db
+
+    layer = SemanticLayer()
+    layer.name = "Old Layer"
+    layer.uuid = uuid.UUID("cccc1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Cascade View"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    assert view.perm == f"[Old Layer].[Cascade View](id:{view.id})"
+
+    try:
+        layer.name = "New Layer"
+        db.session.flush()
+
+        # Cascade update is via raw SQL, so refresh the ORM object
+        db.session.refresh(view)
+        assert view.perm == f"[New Layer].[Cascade View](id:{view.id})"
+    finally:
+        db.session.rollback()
+
+
+# =============================================================================
+# build_semantic_view_query dual perm tests
+# =============================================================================
+
+
+def test_build_semantic_view_query_view_perm_grants_access(app: Any) -> None:
+    """Test that view-level perm grants access in build_semantic_view_query."""
+    from superset import security_manager
+    from superset.daos.datasource import DatasourceDAO
+    from superset.extensions import db
+
+    layer = SemanticLayer()
+    layer.name = "Query Layer"
+    layer.uuid = uuid.UUID("bbbb1111-2222-3333-4444-555566667777")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Query View"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    try:
+        # Only grant the view-level perm (not the layer perm)
+        with (
+            patch.object(
+                security_manager, "can_access_all_datasources", return_value=False
+            ),
+            patch.object(
+                security_manager,
+                "user_view_menu_names",
+                return_value={view.perm},
+            ),
+        ):
+            query = DatasourceDAO.build_semantic_view_query(name_filter=None)
+            results = db.session.execute(query).fetchall()
+
+        item_ids = [row.item_id for row in results]
+        assert view.id in item_ids
+    finally:
+        db.session.rollback()
+
+
+def test_build_semantic_view_query_layer_perm_grants_access(app: Any) -> None:
+    """Test that layer-level perm grants access in build_semantic_view_query."""
+    from superset import security_manager
+    from superset.daos.datasource import DatasourceDAO
+    from superset.extensions import db
+
+    layer = SemanticLayer()
+    layer.name = "Query Layer 2"
+    layer.uuid = uuid.UUID("aaaa2222-3333-4444-5555-666677778888")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Query View 2"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    try:
+        # Only grant the layer-level perm (not the view perm)
+        with (
+            patch.object(
+                security_manager, "can_access_all_datasources", return_value=False
+            ),
+            patch.object(
+                security_manager,
+                "user_view_menu_names",
+                return_value={layer.perm},
+            ),
+        ):
+            query = DatasourceDAO.build_semantic_view_query(name_filter=None)
+            results = db.session.execute(query).fetchall()
+
+        item_ids = [row.item_id for row in results]
+        assert view.id in item_ids
+    finally:
+        db.session.rollback()
+
+
+def test_build_semantic_view_query_no_perm_excludes(app: Any) -> None:
+    """Test that views are excluded when user has neither view nor layer perm."""
+    from superset import security_manager
+    from superset.daos.datasource import DatasourceDAO
+    from superset.extensions import db
+
+    layer = SemanticLayer()
+    layer.name = "Query Layer 3"
+    layer.uuid = uuid.UUID("aaaa3333-4444-5555-6666-777788889999")
+    layer.type = "test"
+
+    view = SemanticView()
+    view.name = "Query View 3"
+    view.semantic_layer_uuid = layer.uuid
+
+    db.session.add(layer)
+    db.session.add(view)
+    db.session.flush()
+
+    try:
+        with (
+            patch.object(
+                security_manager, "can_access_all_datasources", return_value=False
+            ),
+            patch.object(
+                security_manager,
+                "user_view_menu_names",
+                return_value={"[unrelated](id:xxx)"},
+            ),
+        ):
+            query = DatasourceDAO.build_semantic_view_query(name_filter=None)
+            results = db.session.execute(query).fetchall()
+
+        item_ids = [row.item_id for row in results]
+        assert view.id not in item_ids
+    finally:
+        db.session.rollback()

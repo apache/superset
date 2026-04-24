@@ -26,9 +26,13 @@ from functools import cached_property
 from typing import Any, TYPE_CHECKING
 
 import pyarrow as pa
+import sqlalchemy as sa
 from flask_appbuilder import Model
+from flask_babel import lazy_gettext as _
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
+from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy_utils import UUIDType
 from sqlalchemy_utils.types.json import JSONType
 from superset_core.semantic_layers.layer import (
@@ -122,6 +126,9 @@ class SemanticLayer(AuditMixinNullable, Model):
     configuration_version = Column(Integer, nullable=False, default=1)
     cache_timeout = Column(Integer, nullable=True)
 
+    # Permission string for FAB's datasource_access PVM mechanism.
+    perm = Column(String(1000), nullable=True)
+
     # Semantic views relationship
     semantic_views: list[SemanticView] = relationship(
         "SemanticView",
@@ -132,6 +139,40 @@ class SemanticLayer(AuditMixinNullable, Model):
 
     def __repr__(self) -> str:
         return self.name or str(self.uuid)
+
+    def get_perm(self) -> str:
+        """Compute the permission string for this semantic layer."""
+        return f"[{self.name}](id:{self.uuid.hex})"
+
+    @staticmethod
+    def after_insert(
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        from superset import security_manager
+
+        security_manager.semantic_layer_after_insert(mapper, connection, target)
+
+    @staticmethod
+    def before_update(
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        from superset import security_manager
+
+        security_manager.semantic_layer_before_update(mapper, connection, target)
+
+    @staticmethod
+    def after_delete(
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        from superset import security_manager
+
+        security_manager.semantic_layer_after_delete(mapper, connection, target)
 
     @cached_property
     def implementation(
@@ -171,6 +212,9 @@ class SemanticView(AuditMixinNullable, Model):
     configuration_version = Column(Integer, nullable=False, default=1)
     cache_timeout = Column(Integer, nullable=True)
 
+    # Permission string for FAB's datasource_access PVM mechanism.
+    perm = Column(String(1000), nullable=True)
+
     # Semantic layer relationship
     semantic_layer_uuid = Column(
         UUIDType(binary=True),
@@ -185,6 +229,42 @@ class SemanticView(AuditMixinNullable, Model):
 
     def __repr__(self) -> str:
         return self.name or str(self.uuid)
+
+    def get_perm(self, layer_name: str | None = None) -> str:
+        """Compute the permission string for this semantic view."""
+        if layer_name is None:
+            layer_name = self.semantic_layer.name if self.semantic_layer else "unknown"
+        return f"[{layer_name}].[{self.name}](id:{self.id})"
+
+    @staticmethod
+    def after_insert(
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticView",
+    ) -> None:
+        from superset import security_manager
+
+        security_manager.semantic_view_after_insert(mapper, connection, target)
+
+    @staticmethod
+    def before_update(
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticView",
+    ) -> None:
+        from superset import security_manager
+
+        security_manager.semantic_view_before_update(mapper, connection, target)
+
+    @staticmethod
+    def after_delete(
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticView",
+    ) -> None:
+        from superset import security_manager
+
+        security_manager.semantic_view_after_delete(mapper, connection, target)
 
     @cached_property
     def implementation(self) -> SemanticViewABC:
@@ -355,10 +435,6 @@ class SemanticView(AuditMixinNullable, Model):
         return []
 
     @property
-    def perm(self) -> str:
-        return self.semantic_layer_uuid.hex + "::" + self.uuid.hex
-
-    @property
     def catalog_perm(self) -> str | None:
         return None
 
@@ -405,7 +481,28 @@ class SemanticView(AuditMixinNullable, Model):
         return False
 
     def raise_for_access(self) -> None:
-        """No-op: semantic view access control is not yet implemented."""
+        """Check that the user has access to this semantic view."""
+        from superset import security_manager
+        from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+        from superset.exceptions import SupersetSecurityException
+
+        if security_manager.can_access_all_datasources():
+            return
+
+        if self.perm and security_manager.can_access("datasource_access", self.perm):
+            return
+
+        layer_perm = self.semantic_layer.perm if self.semantic_layer else ""
+        if layer_perm and security_manager.can_access("datasource_access", layer_perm):
+            return
+
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message=str(_("You don't have access to this semantic view.")),
+                level=ErrorLevel.ERROR,
+            )
+        )
 
     @property
     def query_language(self) -> str | None:
@@ -448,3 +545,12 @@ class SemanticView(AuditMixinNullable, Model):
             sel_metrics, sel_dims
         )
         return [d.name for d in compatible]
+
+
+sa.event.listen(SemanticLayer, "after_insert", SemanticLayer.after_insert)
+sa.event.listen(SemanticLayer, "before_update", SemanticLayer.before_update)
+sa.event.listen(SemanticLayer, "after_delete", SemanticLayer.after_delete)
+
+sa.event.listen(SemanticView, "after_insert", SemanticView.after_insert)
+sa.event.listen(SemanticView, "before_update", SemanticView.before_update)
+sa.event.listen(SemanticView, "after_delete", SemanticView.after_delete)
