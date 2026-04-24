@@ -27,8 +27,8 @@ Example usage:
         id=1,
         dashboard_title="Sales Dashboard",
         published=True,
-        owners=[UserInfo(id=1, username="admin")],
-        charts=[ChartInfo(id=1, slice_name="Sales Chart")]
+        tags=[TagInfo(id=1, name="sales")],
+        charts=[DashboardChartSummary(id=1, slice_name="Sales Chart")]
     )
 
     # For dashboard list responses
@@ -65,9 +65,11 @@ Example usage:
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal, TYPE_CHECKING
 
+import humanize
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -82,14 +84,19 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.chart.schemas import ChartInfo, serialize_chart_object
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     RoleInfo,
     TagInfo,
-    UserInfo,
 )
+from superset.mcp_service.utils.sanitization import (
+    _remove_dangerous_unicode,
+    _strip_html_tags,
+)
+from superset.utils.json import loads as json_loads
 
 
 class DashboardError(BaseModel):
@@ -107,21 +114,6 @@ class DashboardError(BaseModel):
         from datetime import datetime
 
         return cls(error=error, error_type=error_type, timestamp=datetime.now())
-
-
-def serialize_user_object(user: Any) -> UserInfo | None:
-    """Serialize a user object to UserInfo"""
-    if not user:
-        return None
-
-    return UserInfo(
-        id=getattr(user, "id", None),
-        username=getattr(user, "username", None),
-        first_name=getattr(user, "first_name", None),
-        last_name=getattr(user, "last_name", None),
-        email=getattr(user, "email", None),
-        active=getattr(user, "active", None),
-    )
 
 
 def serialize_tag_object(tag: Any) -> TagInfo | None:
@@ -163,15 +155,12 @@ class DashboardFilter(ColumnOperator):
         "dashboard_title",
         "published",
         "favorite",
-        "created_by_fk",
     ] = Field(
         ...,
         description=(
             "Column to filter on. Use "
             "get_schema(model_type='dashboard') for available "
-            "filter columns. Use created_by_fk with the user "
-            "ID from get_instance_info's current_user to find "
-            "dashboards created by a specific user."
+            "filter columns."
         ),
     )
     opr: ColumnOperatorEnum = Field(
@@ -253,7 +242,13 @@ class ListDashboardsRequest(MetadataCacheControl):
         Field(default=1, description="Page number for pagination (1-based)"),
     ]
     page_size: Annotated[
-        PositiveInt, Field(default=10, description="Number of items per page")
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+        ),
     ]
 
     @model_validator(mode="after")
@@ -295,45 +290,87 @@ class GetDashboardInfoRequest(MetadataCacheControl):
     )
 
 
+logger = logging.getLogger(__name__)
+
+
+class NativeFilterSummary(BaseModel):
+    """Lightweight summary of a native filter for LLM consumption.
+
+    Extracts only the fields needed to understand what filters are
+    available on a dashboard: name, type, and which columns they target.
+    """
+
+    id: str | None = Field(None, description="Filter ID")
+    name: str | None = Field(None, description="Filter display name")
+    filter_type: str | None = Field(
+        None, description="Filter type (e.g. filter_select, filter_range)"
+    )
+    targets: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Filter targets (column name and dataset ID)",
+    )
+
+
+class DashboardChartSummary(BaseModel):
+    """Lightweight chart representation for dashboard context.
+
+    Contains only the fields needed for LLMs to understand which charts
+    are on a dashboard, omitting verbose fields like form_data, tags,
+    owners, and timestamps that bloat the response.
+    """
+
+    id: int | None = Field(None, description="Chart ID")
+    slice_name: str | None = Field(None, description="Chart name")
+    viz_type: str | None = Field(None, description="Visualization type")
+    datasource_name: str | None = Field(None, description="Datasource name")
+    url: str | None = Field(None, description="Chart explore page URL")
+    description: str | None = Field(None, description="Chart description")
+
+
 class DashboardInfo(BaseModel):
-    id: int | None = Field(None, description="Dashboard ID")
-    dashboard_title: str | None = Field(None, description="Dashboard title")
-    slug: str | None = Field(None, description="Dashboard slug")
-    description: str | None = Field(None, description="Dashboard description")
-    css: str | None = Field(None, description="Custom CSS for the dashboard")
-    certified_by: str | None = Field(None, description="Who certified the dashboard")
-    certification_details: str | None = Field(None, description="Certification details")
-    json_metadata: str | None = Field(
-        None, description="Dashboard metadata (JSON string)"
+    id: int | None = None
+    dashboard_title: str | None = None
+    slug: str | None = None
+    description: str | None = None
+    css: str | None = None
+    certified_by: str | None = None
+    certification_details: str | None = None
+    published: bool | None = None
+    is_managed_externally: bool | None = None
+    external_url: str | None = None
+    created_on: str | datetime | None = None
+    changed_on: str | datetime | None = None
+    uuid: str | None = None
+    url: str | None = None
+    created_on_humanized: str | None = None
+    changed_on_humanized: str | None = None
+    chart_count: int = 0
+    tags: List[TagInfo] = Field(default_factory=list)
+    charts: List[DashboardChartSummary] = Field(default_factory=list)
+
+    # Structured filter information extracted from json_metadata
+    native_filters: List[NativeFilterSummary] = Field(
+        default_factory=list,
+        description=(
+            "Native filters configured on this dashboard. Extracted from "
+            "json_metadata for LLM consumption — includes filter name, type, "
+            "and target columns."
+        ),
     )
-    position_json: str | None = Field(None, description="Chart positions (JSON string)")
-    published: bool | None = Field(
-        None, description="Whether the dashboard is published"
+    cross_filters_enabled: bool | None = Field(
+        None,
+        description="Whether cross-filtering between charts is enabled.",
     )
-    is_managed_externally: bool | None = Field(
-        None, description="Whether managed externally"
-    )
-    external_url: str | None = Field(None, description="External URL")
-    created_on: str | datetime | None = Field(None, description="Creation timestamp")
-    changed_on: str | datetime | None = Field(
-        None, description="Last modification timestamp"
-    )
-    created_by: str | None = Field(None, description="Dashboard creator (username)")
-    changed_by: str | None = Field(None, description="Last modifier (username)")
-    uuid: str | None = Field(None, description="Dashboard UUID (converted to string)")
-    url: str | None = Field(None, description="Dashboard URL")
-    created_on_humanized: str | None = Field(
-        None, description="Humanized creation time"
-    )
-    changed_on_humanized: str | None = Field(
-        None, description="Humanized modification time"
-    )
-    chart_count: int = Field(0, description="Number of charts in the dashboard")
-    owners: List[UserInfo] = Field(default_factory=list, description="Dashboard owners")
-    tags: List[TagInfo] = Field(default_factory=list, description="Dashboard tags")
-    roles: List[RoleInfo] = Field(default_factory=list, description="Dashboard roles")
-    charts: List[ChartInfo] = Field(
-        default_factory=list, description="Dashboard charts"
+
+    # Omission metadata — tells the agent what was stripped and why
+    omitted_fields: Dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Fields omitted from this response to reduce size. Keys are field "
+            "names, values describe what was omitted and how to access the full "
+            "data. Useful filter information has been extracted into "
+            "native_filters and cross_filters_enabled above."
+        ),
     )
 
     # Fields for permalink/filter state support
@@ -363,7 +400,7 @@ class DashboardInfo(BaseModel):
 
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
-    @model_serializer(mode="wrap", when_used="json")
+    @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
         """Filter fields based on serialization context.
 
@@ -371,7 +408,7 @@ class DashboardInfo(BaseModel):
         Otherwise, include all fields (default behavior).
         """
         # Get full serialization
-        data = serializer(self)
+        data = filter_user_directory_fields(serializer(self))
 
         # Check if we have a context with select_columns
         if info.context and isinstance(info.context, dict):
@@ -380,7 +417,6 @@ class DashboardInfo(BaseModel):
                 # Filter to only requested fields
                 return {k: v for k, v in data.items() if k in select_columns}
 
-        # No filtering - return all fields
         return data
 
 
@@ -443,6 +479,15 @@ class AddChartToDashboardResponse(BaseModel):
         None, description="Position information for the added chart"
     )
     error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the operation failed because the current user does not "
+            "have edit rights on the target dashboard. When True, inform the "
+            "user and ask if they would like a new dashboard created instead. "
+            "Do NOT silently create a new dashboard — always confirm first."
+        ),
+    )
 
 
 class GenerateDashboardRequest(BaseModel):
@@ -460,8 +505,18 @@ class GenerateDashboardRequest(BaseModel):
     )
     description: str | None = Field(None, description="Description for the dashboard")
     published: bool = Field(
-        default=True, description="Whether to publish the dashboard"
+        default=False, description="Whether to publish the dashboard"
     )
+
+    @field_validator("dashboard_title")
+    @classmethod
+    def sanitize_dashboard_title(cls, v: str | None) -> str | None:
+        """Strip HTML tags from dashboard title to prevent XSS."""
+        if v is None:
+            return None
+        v = _strip_html_tags(v.strip())
+        v = _remove_dangerous_unicode(v)
+        return v
 
 
 class GenerateDashboardResponse(BaseModel):
@@ -474,7 +529,128 @@ class GenerateDashboardResponse(BaseModel):
     error: str | None = Field(None, description="Error message, if creation failed")
 
 
+def _parse_json_metadata(json_metadata_str: str | None) -> Dict[str, Any] | None:
+    """Parse json_metadata string into a dict, returning None on any failure.
+
+    Handles None/empty input, invalid JSON, and non-dict JSON values
+    (e.g. ``"[]"``, ``"123"``) by returning None instead of raising.
+    """
+    if not json_metadata_str:
+        return None
+    try:
+        metadata = json_loads(json_metadata_str)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(metadata, dict):
+        return None
+    return metadata
+
+
+def _extract_native_filters(json_metadata_str: str | None) -> List[NativeFilterSummary]:
+    """Extract native filter summaries from raw json_metadata string.
+
+    Parses the json_metadata JSON blob and pulls out only the filter
+    name, type, and targets — dropping verbose fields like controlValues,
+    defaultDataMask, scope, and cascadeParentIds.
+    """
+    metadata = _parse_json_metadata(json_metadata_str)
+    if metadata is None:
+        return []
+
+    native_filters = metadata.get("native_filter_configuration", [])
+    if not isinstance(native_filters, list):
+        return []
+
+    summaries: List[NativeFilterSummary] = []
+    for f in native_filters:
+        if not isinstance(f, dict):
+            continue
+        raw_targets = f.get("targets", [])
+        if not isinstance(raw_targets, list):
+            raw_targets = []
+        targets = [t for t in raw_targets if isinstance(t, dict)]
+        summaries.append(
+            NativeFilterSummary(
+                id=f.get("id"),
+                name=f.get("name"),
+                filter_type=f.get("filterType"),
+                targets=targets,
+            )
+        )
+    return summaries
+
+
+def _extract_cross_filters_enabled(json_metadata_str: str | None) -> bool | None:
+    """Extract the cross_filters_enabled flag from json_metadata."""
+    metadata = _parse_json_metadata(json_metadata_str)
+    if metadata is None:
+        return None
+    cross_filters = metadata.get("cross_filters_enabled")
+    if isinstance(cross_filters, bool):
+        return cross_filters
+    return None
+
+
+def _build_omitted_fields(
+    json_metadata_str: str | None, position_json_str: str | None
+) -> Dict[str, str]:
+    """Build omission metadata describing which fields were stripped and why.
+
+    Uses the shared OmittedFieldsBuilder utility so the pattern is consistent
+    across all MCP tool serializers.
+    """
+    from superset.mcp_service.utils.response_utils import OmittedFieldsBuilder
+
+    return (
+        OmittedFieldsBuilder()
+        .add_raw_field(
+            "position_json",
+            raw_value=position_json_str,
+            reason=(
+                "Internal layout tree with component positions/hierarchy. "
+                "Not useful for analysis or LLM context."
+            ),
+        )
+        .add_extracted_field(
+            "json_metadata",
+            raw_value=json_metadata_str,
+            reason=(
+                "native_filters and cross_filters_enabled extracted into "
+                "dedicated fields above."
+            ),
+        )
+        .build()
+    )
+
+
+def serialize_chart_summary(chart: Any) -> DashboardChartSummary | None:
+    """Serialize a chart to a lightweight summary for dashboard context."""
+    if not chart:
+        return None
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
+
+    chart_id = getattr(chart, "id", None)
+    chart_url = None
+    if chart_id is not None:
+        chart_url = f"{get_superset_base_url()}/explore/?slice_id={chart_id}"
+
+    return DashboardChartSummary(
+        id=chart_id,
+        slice_name=getattr(chart, "slice_name", None),
+        viz_type=getattr(chart, "viz_type", None),
+        datasource_name=getattr(chart, "datasource_name", None),
+        url=chart_url,
+        description=getattr(chart, "description", None),
+    )
+
+
 def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
+
+    base_url = get_superset_base_url()
+    relative_url = dashboard.url  # e.g. "/superset/dashboard/{slug_or_id}/"
+    absolute_url = f"{base_url}{relative_url}" if relative_url else None
+
     return DashboardInfo(
         id=dashboard.id,
         dashboard_title=dashboard.dashboard_title or "Untitled",
@@ -483,78 +659,102 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         css=dashboard.css,
         certified_by=dashboard.certified_by,
         certification_details=dashboard.certification_details,
-        json_metadata=dashboard.json_metadata,
-        position_json=dashboard.position_json,
         published=dashboard.published,
         is_managed_externally=dashboard.is_managed_externally,
         external_url=dashboard.external_url,
         created_on=dashboard.created_on,
         changed_on=dashboard.changed_on,
-        created_by=getattr(dashboard.created_by, "username", None)
-        if dashboard.created_by
-        else None,
-        changed_by=getattr(dashboard.changed_by, "username", None)
-        if dashboard.changed_by
-        else None,
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
-        url=dashboard.url,
+        url=absolute_url,
         created_on_humanized=dashboard.created_on_humanized,
         changed_on_humanized=dashboard.changed_on_humanized,
         chart_count=len(dashboard.slices) if dashboard.slices else 0,
-        owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
-            for owner in dashboard.owners
-        ]
-        if dashboard.owners
-        else [],
+        native_filters=_extract_native_filters(
+            getattr(dashboard, "json_metadata", None)
+        ),
+        cross_filters_enabled=_extract_cross_filters_enabled(
+            getattr(dashboard, "json_metadata", None)
+        ),
+        omitted_fields=_build_omitted_fields(
+            getattr(dashboard, "json_metadata", None),
+            getattr(dashboard, "position_json", None),
+        ),
         tags=[
             TagInfo.model_validate(tag, from_attributes=True) for tag in dashboard.tags
         ]
         if dashboard.tags
         else [],
-        roles=[
-            RoleInfo.model_validate(role, from_attributes=True)
-            for role in dashboard.roles
+        charts=[
+            summary
+            for chart in dashboard.slices
+            if (summary := serialize_chart_summary(chart)) is not None
         ]
-        if dashboard.roles
-        else [],
-        charts=[serialize_chart_object(chart) for chart in dashboard.slices]
         if dashboard.slices
         else [],
     )
 
 
+def _humanize_timestamp(dt: datetime | None) -> str | None:
+    """Convert a datetime to a humanized string like '2 hours ago'."""
+    if dt is None:
+        return None
+    return humanize.naturaltime(datetime.now() - dt)
+
+
 def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     """Simple dashboard serializer that safely handles object attributes."""
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
+
+    # Construct URL from id/slug (the model's @property isn't available on
+    # column-only query tuples returned by DAO.list with select_columns)
+    dashboard_id = getattr(dashboard, "id", None)
+    slug = getattr(dashboard, "slug", None)
+    dashboard_url = None
+    if dashboard_id is not None:
+        dashboard_url = (
+            f"{get_superset_base_url()}/superset/dashboard/{slug or dashboard_id}/"
+        )
+
+    json_metadata_str = getattr(dashboard, "json_metadata", None)
+    position_json_str = getattr(dashboard, "position_json", None)
+
     return DashboardInfo(
-        id=getattr(dashboard, "id", None),
+        id=dashboard_id,
         dashboard_title=getattr(dashboard, "dashboard_title", None),
-        slug=getattr(dashboard, "slug", None),
-        url=getattr(dashboard, "url", None),
+        slug=slug or "",
+        url=dashboard_url,
         published=getattr(dashboard, "published", None),
-        changed_by_name=getattr(dashboard, "changed_by_name", None),
         changed_on=getattr(dashboard, "changed_on", None),
-        changed_on_humanized=getattr(dashboard, "changed_on_humanized", None),
-        created_by_name=getattr(dashboard, "created_by_name", None),
+        changed_on_humanized=_humanize_timestamp(
+            getattr(dashboard, "changed_on", None)
+        ),
         created_on=getattr(dashboard, "created_on", None),
-        created_on_humanized=getattr(dashboard, "created_on_humanized", None),
+        created_on_humanized=_humanize_timestamp(
+            getattr(dashboard, "created_on", None)
+        ),
         description=getattr(dashboard, "description", None),
         css=getattr(dashboard, "css", None),
         certified_by=getattr(dashboard, "certified_by", None),
         certification_details=getattr(dashboard, "certification_details", None),
-        json_metadata=getattr(dashboard, "json_metadata", None),
-        position_json=getattr(dashboard, "position_json", None),
+        native_filters=_extract_native_filters(json_metadata_str),
+        cross_filters_enabled=_extract_cross_filters_enabled(json_metadata_str),
+        omitted_fields=_build_omitted_fields(json_metadata_str, position_json_str),
         is_managed_externally=getattr(dashboard, "is_managed_externally", None),
         external_url=getattr(dashboard, "external_url", None),
         uuid=str(getattr(dashboard, "uuid", ""))
         if getattr(dashboard, "uuid", None)
         else None,
         chart_count=len(getattr(dashboard, "slices", [])),
-        owners=getattr(dashboard, "owners", []),
-        tags=getattr(dashboard, "tags", []),
-        roles=getattr(dashboard, "roles", []),
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True)
+            for tag in getattr(dashboard, "tags", [])
+        ]
+        if getattr(dashboard, "tags", None)
+        else [],
         charts=[
-            serialize_chart_object(chart) for chart in getattr(dashboard, "slices", [])
+            summary
+            for chart in getattr(dashboard, "slices", [])
+            if (summary := serialize_chart_summary(chart)) is not None
         ]
         if getattr(dashboard, "slices", None)
         else [],

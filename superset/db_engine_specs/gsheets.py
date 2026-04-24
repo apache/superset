@@ -30,9 +30,7 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from requests import Session
-from requests.exceptions import HTTPError
 from shillelagh.adapters.api.gsheets.lib import SCOPES
-from shillelagh.exceptions import UnauthenticatedError
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -43,7 +41,6 @@ from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
-from superset.superset_typing import OAuth2TokenResponse
 from superset.utils import json
 from superset.utils.oauth2 import get_oauth2_access_token
 
@@ -154,7 +151,6 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         "https://accounts.google.com/o/oauth2/v2/auth"
     )
     oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
-    oauth2_exception = UnauthenticatedError
 
     @classmethod
     def get_oauth2_authorization_uri(
@@ -217,29 +213,6 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 or "default credentials were not found" in error_message
             )
         )
-
-    @classmethod
-    def get_oauth2_fresh_token(
-        cls,
-        config: OAuth2ClientConfig,
-        refresh_token: str,
-    ) -> OAuth2TokenResponse:
-        """
-        Refresh an OAuth2 access token that has expired.
-
-        When trying to refresh an expired token that was revoked on Google side,
-        the request fails with 400 status code.
-        """
-        try:
-            return super().get_oauth2_fresh_token(config, refresh_token)
-        except HTTPError as ex:
-            if ex.response is not None and ex.response.status_code == 400:
-                error_data = ex.response.json()
-                if error_data.get("error") == "invalid_grant":
-                    raise UnauthenticatedError(
-                        error_data.get("error_description", "Token has been revoked")
-                    ) from ex
-            raise
 
     @classmethod
     def impersonate_user(

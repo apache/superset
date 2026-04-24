@@ -36,13 +36,40 @@ test('renders a ModalTrigger component with shrink prop and maxWidth prop set to
   );
   expect(getByTestId('span-modal-trigger')).toBeInTheDocument();
 });
-test('renders two code elements in modal when rawSql prop is provided', () => {
-  const { getByRole, queryByRole, getByTestId } = render(
-    <HighlightedSql sql={sql} rawSql="SELECT * FORM foo" shrink maxWidth={5} />,
+test('renders single SQL block with no tabs when rawSql equals sql', () => {
+  const { queryByRole, getByTestId, queryByText } = render(
+    <HighlightedSql sql={sql} rawSql={sql} shrink maxWidth={5} />,
   );
   expect(queryByRole('dialog')).not.toBeInTheDocument();
   fireEvent.click(getByTestId('span-modal-trigger'));
   expect(queryByRole('dialog')).toBeInTheDocument();
-  const codeElements = getByRole('dialog').getElementsByTagName('code');
-  expect(codeElements.length).toEqual(2);
+  expect(queryByText('Executed SQL')).not.toBeInTheDocument();
+  expect(queryByText('Source SQL')).toBeInTheDocument();
+});
+
+test('renders tabs when rawSql differs from sql', () => {
+  const { queryByRole, getByTestId, getByText } = render(
+    <HighlightedSql sql={sql} rawSql="SELECT * FROM foo" shrink maxWidth={5} />,
+  );
+  expect(queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(getByTestId('span-modal-trigger'));
+  expect(queryByRole('dialog')).toBeInTheDocument();
+  expect(getByText('Executed SQL')).toBeInTheDocument();
+  expect(getByText('Source SQL')).toBeInTheDocument();
+});
+
+test('renders tabs when rawSql has an added LIMIT', () => {
+  const { queryByRole, getByTestId, getByText } = render(
+    <HighlightedSql
+      sql={sql}
+      rawSql={`${sql} LIMIT 1000`}
+      shrink
+      maxWidth={5}
+    />,
+  );
+  expect(queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(getByTestId('span-modal-trigger'));
+  expect(queryByRole('dialog')).toBeInTheDocument();
+  expect(getByText('Executed SQL')).toBeInTheDocument();
+  expect(getByText('Source SQL')).toBeInTheDocument();
 });
