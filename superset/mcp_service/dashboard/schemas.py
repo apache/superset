@@ -390,7 +390,7 @@ class DashboardInfo(BaseModel):
             "Filter state from permalink. Contains dataMask (native filter values), "
             "activeTabs, anchor, and urlParams. When present, represents the actual "
             "filters the user has applied to the dashboard. For users without "
-            "data-model metadata access, dataMask is omitted."
+            "data-model metadata access, dataMask and chartStates are omitted."
         ),
     )
     is_permalink_state: bool = Field(
@@ -730,7 +730,11 @@ def redact_filter_state_data_model_metadata(
     filter_state: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Remove permalink filter state fields that expose data-model metadata."""
-    return {key: value for key, value in filter_state.items() if key != "dataMask"}
+    return {
+        key: value
+        for key, value in filter_state.items()
+        if key not in {"dataMask", "chartStates"}
+    }
 
 
 def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:

@@ -578,6 +578,14 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
                     "filterState": {"value": ["Classic Cars"]},
                 },
             },
+            "chartStates": {
+                "42": {
+                    "state": {
+                        "columnState": [{"colId": "customer_email"}],
+                        "filterModel": {"revenue": {"filter": 100}},
+                    },
+                },
+            },
             "activeTabs": ["TAB-products"],
         },
     }

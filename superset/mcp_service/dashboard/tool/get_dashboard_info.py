@@ -177,9 +177,10 @@ async def get_dashboard_info(
 
                         await ctx.info(
                             "Filter state retrieved from permalink: "
-                            "has_dataMask=%s, has_activeTabs=%s"
+                            "has_dataMask=%s, has_chartStates=%s, has_activeTabs=%s"
                             % (
                                 "dataMask" in permalink_state,
+                                "chartStates" in permalink_state,
                                 "activeTabs" in permalink_state,
                             )
                         )
