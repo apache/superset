@@ -28,6 +28,8 @@ from superset.daos.base import BaseDAO
 from superset.mcp_service.constants import ModelType
 from superset.mcp_service.privacy import (
     filter_user_directory_columns,
+    inject_current_user_for_created_by_fk,
+    SELF_REFERENCING_FILTER_COLUMNS,
     USER_DIRECTORY_FIELDS,
 )
 from superset.mcp_service.utils import _is_uuid
@@ -174,31 +176,6 @@ class ModelListCore(BaseCore, Generic[L]):
                 f"Allowed columns: {', '.join(self._sortable_columns)}"
             )
 
-    @staticmethod
-    def _inject_current_user_for_created_by_fk(filters: Any) -> Any:
-        """Replace the value of any created_by_fk filter with the current user's ID.
-
-        This lets callers use created_by_fk without knowing their own user ID —
-        they just specify the column and operator; the system fills in the value.
-        Prevents enumeration of other users' content.
-        """
-        if not filters:
-            return filters
-
-        from flask_login import current_user
-
-        if not current_user or not current_user.is_authenticated:
-            raise ValueError("created_by_fk filter requires an authenticated user")
-
-        filter_list = filters if isinstance(filters, list) else [filters]
-        result = []
-        for f in filter_list:
-            col = f.get("col") if isinstance(f, dict) else getattr(f, "col", None)
-            if col == "created_by_fk":
-                f = {**f, "value": current_user.id} if isinstance(f, dict) else f.model_copy(update={"value": current_user.id})
-            result.append(f)
-        return result
-
     def run_tool(
         self,
         filters: Any | None = None,
@@ -220,7 +197,9 @@ class ModelListCore(BaseCore, Generic[L]):
         )
 
         filters = parse_json_or_passthrough(filters, param_name="filters")
-        filters = self._inject_current_user_for_created_by_fk(filters)
+        from superset.mcp_service.utils.permissions_utils import get_current_user
+
+        filters = inject_current_user_for_created_by_fk(filters, get_current_user())
 
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)
         columns_requested, columns_to_load = self._get_columns_to_load(select_columns)
@@ -638,7 +617,9 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         self.default_sort = default_sort
         self.default_sort_direction = default_sort_direction
         self.exclude_filter_columns = set(exclude_filter_columns or set())
-        self.exclude_filter_columns.update(USER_DIRECTORY_FIELDS)
+        self.exclude_filter_columns.update(
+            USER_DIRECTORY_FIELDS - SELF_REFERENCING_FILTER_COLUMNS
+        )
 
     def _get_filter_columns(self) -> Dict[str, List[str]]:
         """Get filterable columns and operators from the DAO."""
