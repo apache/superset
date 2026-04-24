@@ -39,8 +39,68 @@ from superset.versioning.diff import (
     diff_dataset,
     diff_dataset_columns,
     diff_dataset_metrics,
+    diff_scalar_fields,
     diff_slice,
     diff_slice_params,
+    scalar_fields_for,
+)
+
+# Field universes used by tests. In production the listener passes the
+# result of ``scalar_fields_for(ModelClass, special=...)``; in tests we
+# pass explicit sets so assertions remain stable even if a contributor
+# later adds or renames a column on the real model.
+
+_SLICE_TEST_FIELDS: frozenset[str] = frozenset(
+    {
+        "slice_name",
+        "datasource_type",
+        "datasource_id",
+        "viz_type",
+        "description",
+        "cache_timeout",
+        "external_url",
+        "is_managed_externally",
+        "certified_by",
+        "certification_details",
+    }
+)
+
+_DASHBOARD_TEST_FIELDS: frozenset[str] = frozenset(
+    {
+        "dashboard_title",
+        "position_json",
+        "json_metadata",
+        "slug",
+        "css",
+        "external_url",
+        "is_managed_externally",
+        "certified_by",
+        "certification_details",
+        "published",
+    }
+)
+
+_DATASET_TEST_FIELDS: frozenset[str] = frozenset(
+    {
+        "table_name",
+        "sql",
+        "description",
+        "cache_timeout",
+        "template_params",
+        "extra",
+        "main_dttm_col",
+        "default_endpoint",
+        "offset",
+        "schema",
+        "catalog",
+        "filter_select_enabled",
+        "fetch_values_predicate",
+        "is_sqllab_view",
+        "is_managed_externally",
+        "external_url",
+        "normalize_columns",
+        "always_filter_main_dttm",
+    }
 )
 
 # ---------------------------------------------------------------------------
@@ -51,7 +111,7 @@ from superset.versioning.diff import (
 def test_slice_scalar_rename() -> None:
     pre = {"slice_name": "Sales Report"}
     post = {"slice_name": "Sales Report Q1"}
-    records = diff_slice(pre, post)
+    records = diff_slice(pre, post, fields=_SLICE_TEST_FIELDS)
     assert records == [
         ChangeRecord(
             kind="field",
@@ -65,13 +125,13 @@ def test_slice_scalar_rename() -> None:
 def test_slice_scalar_unchanged_emits_nothing() -> None:
     pre = {"slice_name": "Sales Report", "description": "x"}
     post = {"slice_name": "Sales Report", "description": "x"}
-    assert diff_slice(pre, post) == []
+    assert diff_slice(pre, post, fields=_SLICE_TEST_FIELDS) == []
 
 
 def test_dashboard_scalar_change_falls_through_to_field() -> None:
     pre = {"dashboard_title": "Old", "position_json": '{"a":1}'}
     post = {"dashboard_title": "New", "position_json": '{"a":2}'}
-    records = diff_dashboard(pre, post)
+    records = diff_dashboard(pre, post, fields=_DASHBOARD_TEST_FIELDS)
     assert len(records) == 2
     kinds = {r.kind for r in records}
     assert kinds == {"field"}
@@ -82,7 +142,7 @@ def test_dashboard_scalar_change_falls_through_to_field() -> None:
 def test_dataset_scalar_change_falls_through_to_field() -> None:
     pre = {"sql": "SELECT 1", "description": "old"}
     post = {"sql": "SELECT 2", "description": "new"}
-    records = diff_dataset(pre, post)
+    records = diff_dataset(pre, post, fields=_DATASET_TEST_FIELDS)
     kinds = {r.kind for r in records}
     paths = {tuple(r.path) for r in records}
     assert kinds == {"field"}
@@ -94,9 +154,134 @@ def test_unknown_fields_are_ignored() -> None:
     # don't emit spurious ``field`` records for ORM-internal columns.
     pre = {"__unmapped__": "x"}
     post = {"__unmapped__": "y"}
-    assert diff_slice(pre, post) == []
-    assert diff_dashboard(pre, post) == []
-    assert diff_dataset(pre, post) == []
+    assert diff_slice(pre, post, fields=_SLICE_TEST_FIELDS) == []
+    assert diff_dashboard(pre, post, fields=_DASHBOARD_TEST_FIELDS) == []
+    assert diff_dataset(pre, post, fields=_DATASET_TEST_FIELDS) == []
+
+
+# ---------------------------------------------------------------------------
+# scalar_fields_for — model reflection
+# ---------------------------------------------------------------------------
+
+
+class _FakeColumn:
+    """Stand-in for a SQLAlchemy ``Column`` that exposes just ``.name``."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+
+class _FakeTable:
+    """Stand-in for ``Model.__table__`` that exposes an iterable ``columns``."""
+
+    def __init__(self, column_names: list[str]) -> None:
+        self.columns = [_FakeColumn(n) for n in column_names]
+
+
+def test_scalar_fields_for_strips_audit_and_excludes() -> None:
+    """Reflection excludes __versioned__.exclude + audit fields + special."""
+
+    class _Model:
+        __table__ = _FakeTable(
+            [
+                "id",
+                "uuid",
+                "name",
+                "description",
+                "secret_field",
+                "created_on",
+                "changed_on",
+                "created_by_fk",
+                "changed_by_fk",
+                "params",
+            ]
+        )
+        __versioned__ = {"exclude": ["secret_field"]}
+
+    result = scalar_fields_for(_Model, special=frozenset({"params"}))
+    assert result == frozenset({"name", "description"})
+
+
+def test_scalar_fields_for_no_versioned_attr() -> None:
+    """Models without ``__versioned__`` work — exclude defaults to empty."""
+
+    class _Model:
+        __table__ = _FakeTable(["id", "name", "created_on"])
+
+    result = scalar_fields_for(_Model)
+    assert result == frozenset({"name"})
+
+
+def test_scalar_fields_for_empty_versioned_dict() -> None:
+    """``__versioned__ = {}`` is treated as no additional exclusions."""
+
+    class _Model:
+        __table__ = _FakeTable(["id", "name"])
+        __versioned__: dict = {}
+
+    result = scalar_fields_for(_Model)
+    assert result == frozenset({"name"})
+
+
+def test_scalar_fields_for_no_table_returns_empty() -> None:
+    """Objects without ``__table__`` produce an empty set, not an error."""
+
+    class _NotAModel:
+        pass
+
+    assert scalar_fields_for(_NotAModel) == frozenset()
+
+
+def test_scalar_fields_for_custom_field_in_derivative() -> None:
+    """Derivatives get custom scalar fields without editing ``diff.py``."""
+
+    class _DerivedSlice:
+        """Simulates a downstream fork that added ``preset_embedded_config``."""
+
+        __table__ = _FakeTable(
+            [
+                "id",
+                "uuid",
+                "slice_name",
+                "params",
+                "preset_embedded_config",  # downstream addition
+                "created_on",
+                "changed_on",
+                "created_by_fk",
+                "changed_by_fk",
+            ]
+        )
+        __versioned__ = {"exclude": ["query_context"]}
+
+    result = scalar_fields_for(_DerivedSlice, special=frozenset({"params"}))
+    # Core and downstream fields both appear — zero maintenance in diff.py.
+    assert "slice_name" in result
+    assert "preset_embedded_config" in result
+    assert "params" not in result  # handled specially
+    assert "id" not in result  # audit
+
+
+# ---------------------------------------------------------------------------
+# diff_scalar_fields — generic primitive used by all entity types
+# ---------------------------------------------------------------------------
+
+
+def test_diff_scalar_fields_only_emits_changed_fields() -> None:
+    pre = {"a": 1, "b": "x", "c": True}
+    post = {"a": 2, "b": "x", "c": False}
+    records = diff_scalar_fields(pre, post, fields={"a", "b", "c"})
+    paths = {tuple(r.path) for r in records}
+    assert paths == {("a",), ("c",)}
+    assert {r.kind for r in records} == {"field"}
+
+
+def test_diff_scalar_fields_ignores_fields_outside_universe() -> None:
+    # ``extra`` differs, but isn't in the fields set → no record.
+    pre = {"a": 1, "extra": 100}
+    post = {"a": 2, "extra": 200}
+    records = diff_scalar_fields(pre, post, fields={"a"})
+    assert len(records) == 1
+    assert records[0].path == ["a"]
 
 
 # ---------------------------------------------------------------------------
@@ -589,7 +774,7 @@ def test_replay_slice_scalar_roundtrip() -> None:
         "description": "added",
         "params": _params_json(),
     }
-    records = diff_slice(pre, post)
+    records = diff_slice(pre, post, fields=_SLICE_TEST_FIELDS)
     assert _replay(pre, records)["slice_name"] == post["slice_name"]
     assert _replay(pre, records)["description"] == post["description"]
 
@@ -600,7 +785,7 @@ def test_replay_slice_params_roundtrip_filter_added() -> None:
         "slice_name": "x",
         "params": _params_json(adhoc_filters=[FILTER_COUNTRY]),
     }
-    records = diff_slice(pre, post)
+    records = diff_slice(pre, post, fields=_SLICE_TEST_FIELDS)
     result = _replay(pre, records)
     assert _json.loads(result["params"]) == _json.loads(post["params"])
 
@@ -614,7 +799,7 @@ def test_replay_slice_params_roundtrip_filter_removed() -> None:
         "slice_name": "x",
         "params": _params_json(adhoc_filters=[FILTER_DATE]),
     }
-    records = diff_slice(pre, post)
+    records = diff_slice(pre, post, fields=_SLICE_TEST_FIELDS)
     result = _replay(pre, records)
     assert _json.loads(result["params"]) == _json.loads(post["params"])
 
@@ -628,7 +813,7 @@ def test_replay_time_range_and_color_palette() -> None:
         "slice_name": "x",
         "params": _params_json(time_range="Last month", color_scheme="presetColors"),
     }
-    records = diff_slice(pre, post)
+    records = diff_slice(pre, post, fields=_SLICE_TEST_FIELDS)
     result = _replay(pre, records)
     assert _json.loads(result["params"]) == _json.loads(post["params"])
 
@@ -662,7 +847,7 @@ def test_replay_dashboard_slices_roundtrip() -> None:
 def test_replay_dashboard_scalar_roundtrip() -> None:
     pre = {"dashboard_title": "Old", "position_json": '{"a":1}'}
     post = {"dashboard_title": "New", "position_json": '{"a":2}'}
-    records = diff_dashboard(pre, post)
+    records = diff_dashboard(pre, post, fields=_DASHBOARD_TEST_FIELDS)
     assert _replay(pre, records) == {
         "dashboard_title": "New",
         "position_json": '{"a":2}',
@@ -705,9 +890,9 @@ def test_filter_without_subject_falls_back_to_position() -> None:
 
 
 def test_empty_state_emits_nothing() -> None:
-    assert diff_slice({}, {}) == []
-    assert diff_dashboard({}, {}) == []
-    assert diff_dataset({}, {}) == []
+    assert diff_slice({}, {}, fields=_SLICE_TEST_FIELDS) == []
+    assert diff_dashboard({}, {}, fields=_DASHBOARD_TEST_FIELDS) == []
+    assert diff_dataset({}, {}, fields=_DATASET_TEST_FIELDS) == []
     assert diff_dataset_columns([], []) == []
     assert diff_dataset_metrics([], []) == []
     assert diff_dashboard_slices([], []) == []

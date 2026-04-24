@@ -42,67 +42,26 @@ an app context or DB.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, Callable
 
 from superset.utils import json as _json
 
-# Attribute lists are intentionally expressed as sets so membership
-# checks are O(1) and so we never depend on declaration order.
-
-_SLICE_SCALAR_FIELDS: frozenset[str] = frozenset(
+# Columns that are always excluded from change records, regardless of
+# what ``__versioned__`` says. ``id`` / ``uuid`` are stable identifiers
+# (not edited in normal flows). The four audit fields change on every
+# save — emitting records for them would double every history entry
+# with meaningless "timestamp changed, user stamped" rows that the UI
+# would have to filter out anyway.
+_AUDIT_FIELDS: frozenset[str] = frozenset(
     {
-        "slice_name",
-        "datasource_type",
-        "datasource_id",
-        "viz_type",
-        "description",
-        "cache_timeout",
-        "external_url",
-        "is_managed_externally",
-        "certified_by",
-        "certification_details",
-        # ``params`` is handled specially via ``diff_slice_params`` — do
-        # not add it here or its JSON blob would be emitted whole as a
-        # single ``field`` change.
-    }
-)
-
-_DASHBOARD_SCALAR_FIELDS: frozenset[str] = frozenset(
-    {
-        "dashboard_title",
-        "position_json",
-        "json_metadata",
-        "slug",
-        "css",
-        "external_url",
-        "is_managed_externally",
-        "certified_by",
-        "certification_details",
-        "published",
-    }
-)
-
-_DATASET_SCALAR_FIELDS: frozenset[str] = frozenset(
-    {
-        "table_name",
-        "sql",
-        "description",
-        "cache_timeout",
-        "template_params",
-        "extra",
-        "main_dttm_col",
-        "default_endpoint",
-        "offset",
-        "schema",
-        "catalog",
-        "filter_select_enabled",
-        "fetch_values_predicate",
-        "is_sqllab_view",
-        "is_managed_externally",
-        "external_url",
-        "normalize_columns",
-        "always_filter_main_dttm",
+        "id",
+        "uuid",
+        "created_on",
+        "changed_on",
+        "created_by_fk",
+        "changed_by_fk",
     }
 )
 
@@ -116,6 +75,43 @@ _CHART_PARAMS_KIND_BY_KEY: dict[str, str] = {
     "groupby": "dimension",
     "columns": "dimension",
 }
+
+
+def scalar_fields_for(
+    model_cls: Any,
+    *,
+    special: frozenset[str] = frozenset(),
+) -> frozenset[str]:
+    """Scalar columns on ``model_cls`` that should produce change records.
+
+    Derived from the model itself at call time so contributors (and
+    downstream derivatives) don't have to maintain a parallel whitelist
+    in this module. Adding a new column to ``Dashboard``, ``Slice``, or
+    ``SqlaTable`` — whether upstream or in a fork — automatically flows
+    through to ``version_changes`` on the next save.
+
+    Excludes, in order:
+
+    1. The model's own ``__versioned__.exclude`` list, so change records
+       stay consistent with Continuum's shadow tables. If Continuum
+       isn't tracking a column, the change log shouldn't either.
+    2. :data:`_AUDIT_FIELDS` — ``id``, ``uuid``, and the audit
+       timestamps / user-id columns.
+    3. The caller's ``special`` set — columns handled by a dedicated
+       differ elsewhere. ``Slice.params``, for example, is walked by
+       :func:`diff_slice_params` to produce first-class ``filter`` /
+       ``time_range`` / ``metric`` / ``dimension`` records; emitting
+       it as a single opaque ``field`` would defeat that.
+    """
+    try:
+        table = model_cls.__table__
+    except AttributeError:
+        return frozenset()
+    columns = frozenset(c.name for c in table.columns)
+    continuum_exclude = frozenset(
+        getattr(model_cls, "__versioned__", {}).get("exclude", []) or []
+    )
+    return columns - continuum_exclude - _AUDIT_FIELDS - special
 
 
 @dataclass(frozen=True)
@@ -334,18 +330,50 @@ def diff_slice_params(
     return records
 
 
-def diff_slice(pre: dict[str, Any], post: dict[str, Any]) -> list[ChangeRecord]:
-    """Full Slice (chart) diff — scalars plus params classification."""
+def diff_scalar_fields(
+    pre: dict[str, Any],
+    post: dict[str, Any],
+    *,
+    fields: Iterable[str],
+) -> list[ChangeRecord]:
+    """Emit one ``kind="field"`` record per differing field in ``fields``.
+
+    The ``fields`` iterable is supplied by the caller — typically
+    :func:`scalar_fields_for` at listener wiring time. Keeping the
+    field list outside this function means adding a new column to a
+    model does not require a matching edit here.
+    """
     records: list[ChangeRecord] = []
-    for field in sorted(_SLICE_SCALAR_FIELDS):
+    for field in sorted(fields):
         record = _diff_scalar(field, pre.get(field), post.get(field))
         if record is not None:
             records.append(record)
+    return records
+
+
+def diff_slice(
+    pre: dict[str, Any],
+    post: dict[str, Any],
+    *,
+    fields: Iterable[str],
+) -> list[ChangeRecord]:
+    """Full Slice (chart) diff — scalars plus params classification.
+
+    Pass ``fields=scalar_fields_for(Slice, special=frozenset({"params"}))``
+    to get the ``params``-excluded scalar set; ``Slice.params`` is diffed
+    separately by :func:`diff_slice_params` for kind promotion.
+    """
+    records = diff_scalar_fields(pre, post, fields=fields)
     records.extend(diff_slice_params(pre.get("params"), post.get("params")))
     return records
 
 
-def diff_dashboard(pre: dict[str, Any], post: dict[str, Any]) -> list[ChangeRecord]:
+def diff_dashboard(
+    pre: dict[str, Any],
+    post: dict[str, Any],
+    *,
+    fields: Iterable[str],
+) -> list[ChangeRecord]:
     """Dashboard scalar-field diff. All paths emit ``kind="field"``.
 
     Promoting ``position_json`` to ``kind="layout"`` or
@@ -353,15 +381,15 @@ def diff_dashboard(pre: dict[str, Any], post: dict[str, Any]) -> list[ChangeReco
     is deferred to Phase 2 alongside the UI that would render them
     (spec Clarifications §Session 2026-04-24).
     """
-    records: list[ChangeRecord] = []
-    for field in sorted(_DASHBOARD_SCALAR_FIELDS):
-        record = _diff_scalar(field, pre.get(field), post.get(field))
-        if record is not None:
-            records.append(record)
-    return records
+    return diff_scalar_fields(pre, post, fields=fields)
 
 
-def diff_dataset(pre: dict[str, Any], post: dict[str, Any]) -> list[ChangeRecord]:
+def diff_dataset(
+    pre: dict[str, Any],
+    post: dict[str, Any],
+    *,
+    fields: Iterable[str],
+) -> list[ChangeRecord]:
     """SqlaTable scalar-field diff. All paths emit ``kind="field"``.
 
     Children (columns, metrics) are diffed separately via
@@ -369,12 +397,7 @@ def diff_dataset(pre: dict[str, Any], post: dict[str, Any]) -> list[ChangeRecord
     the listener reads them via raw SQL (same pattern as
     ``dataset_snapshots``) rather than walking the ORM collection.
     """
-    records: list[ChangeRecord] = []
-    for field in sorted(_DATASET_SCALAR_FIELDS):
-        record = _diff_scalar(field, pre.get(field), post.get(field))
-        if record is not None:
-            records.append(record)
-    return records
+    return diff_scalar_fields(pre, post, fields=fields)
 
 
 def diff_dataset_columns(
