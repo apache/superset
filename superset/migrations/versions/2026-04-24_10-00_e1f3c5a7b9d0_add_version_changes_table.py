@@ -16,23 +16,32 @@
 # under the License.
 """add_version_changes_table
 
-Creates ``version_changes``, a field-level diff log keyed to
-``version_transaction``. Each row describes one atomic change (one
-field or one child-collection element) that occurred during a save.
-Phase-2 UI will render these rows into human-readable summaries via
-the frontend translator.
+Creates ``version_changes``, a field-level diff log keyed to a
+(transaction, entity) pair. Each row describes one atomic change
+(one field or one child-collection element) that occurred to one
+entity during a save. Phase-2 UI will render these rows into
+human-readable summaries via the frontend translator.
 
 Shape:
 
-    (id, transaction_id, sequence, kind, path, from_value, to_value)
+    (id, transaction_id, entity_kind, entity_id,
+     sequence, kind, path, from_value, to_value)
 
-- ``transaction_id`` joins to ``version_transaction`` and cascade-
-  deletes so retention pruning of a version row drops its change
+- ``transaction_id`` joins to ``version_transaction`` with ON DELETE
+  CASCADE so retention pruning of a version row drops its change
   records automatically.
-- ``sequence`` orders records within a transaction — deterministic
-  replay is ``set(state, path, to_value)`` in ascending sequence.
+- ``entity_kind`` identifies which model type the record is about
+  (``"chart"`` / ``"dashboard"`` / ``"dataset"``). Required because
+  a single Continuum transaction can touch more than one versioned
+  entity (import pipelines, bulk operations, fixture loads), and the
+  API needs to filter a given entity's records precisely.
+- ``entity_id`` is the entity's primary key — joins to ``slices.id``
+  / ``dashboards.id`` / ``tables.id`` depending on ``entity_kind``.
+- ``sequence`` orders records within one ``(transaction, entity)``
+  triple — deterministic replay is ``set(state, path, to_value)`` in
+  ascending sequence.
 - ``kind`` is indexed for the Phase-2 "filter history by change type"
-  query.
+  query (``WHERE kind = 'filter'``).
 - ``path``, ``from_value``, ``to_value`` are JSON because they are
   inherently structured (arrays of segments, scalar or object values).
 
@@ -70,6 +79,16 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column(
+            "entity_kind",
+            sa.String(length=32),
+            nullable=False,
+        ),
+        sa.Column(
+            "entity_id",
+            sa.Integer(),
+            nullable=False,
+        ),
+        sa.Column(
             "sequence",
             sa.SmallInteger(),
             nullable=False,
@@ -84,8 +103,10 @@ def upgrade() -> None:
         sa.Column("to_value", sa.JSON(), nullable=True),
         sa.UniqueConstraint(
             "transaction_id",
+            "entity_kind",
+            "entity_id",
             "sequence",
-            name="uq_version_changes_tx_sequence",
+            name="uq_version_changes_tx_entity_sequence",
         ),
     )
     op.create_index(
@@ -97,6 +118,11 @@ def upgrade() -> None:
         "ix_version_changes_transaction_id",
         "version_changes",
         ["transaction_id"],
+    )
+    op.create_index(
+        "ix_version_changes_entity",
+        "version_changes",
+        ["entity_kind", "entity_id"],
     )
 
 

@@ -629,6 +629,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Flask-AppBuilder's AuditMixin on classes like Tag, whose
         # ``created_by`` primaryjoin only resolves under specific class
         # registry states in SQLAlchemy 1.4).
+        from superset.versioning.changes import (  # noqa: E402
+            register_change_record_listener,
+        )
         from superset.versioning.dashboard_snapshots import (  # noqa: E402
             register_dashboard_snapshot_listener,
         )
@@ -651,6 +654,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         register_baseline_listener()
         register_dataset_snapshot_listener()
         register_dashboard_snapshot_listener()
+        register_change_record_listener()
 
         # Retention-prune listener: after each commit, delete oldest version rows
         # that exceed SUPERSET_VERSION_HISTORY_MAX_VERSIONS (FR-007).
