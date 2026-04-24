@@ -161,6 +161,7 @@ class TestXYChartConfig:
                 ),  # Label: "COUNT(product_line)"
             ],
         )
+        assert config.x is not None
         assert config.x.name == "product_line"
         assert config.y[0].aggregate == "COUNT"
 
@@ -233,6 +234,7 @@ class TestXYChartConfig:
                 ColumnRef(name="sales", aggregate="SUM"),
             ],
         )
+        assert config.x is not None
         assert config.x.name == "product_line"
         assert len(config.y) == 2
 
@@ -248,6 +250,7 @@ class TestXYChartConfig:
             ],
             kind="line",
         )
+        assert config.x is not None
         assert config.x.name == "order_date"
         assert config.kind == "line"
 
@@ -262,6 +265,7 @@ class TestXYChartConfig:
             ],
             kind="line",
         )
+        assert config.x is not None
         assert config.x.label == "Order Date"
 
     def test_area_chart_configuration(self) -> None:
@@ -711,3 +715,66 @@ class TestChartConfigValidation:
     def test_invalid_config_raises(self) -> None:
         with pytest.raises(ValidationError):
             GenerateChartRequest(dataset_id=1, config="not valid json")
+
+
+class TestGenerateChartRequestChartNameSanitization:
+    """XSS / sanitization behavior for the chart_name field."""
+
+    def _config(self) -> dict[str, object]:
+        return {
+            "chart_type": "table",
+            "columns": [{"name": "a"}],
+        }
+
+    def test_plain_chart_name_passes_without_warning(self) -> None:
+        req = GenerateChartRequest(
+            dataset_id=1, config=self._config(), chart_name="Sales Report"
+        )
+        assert req.chart_name == "Sales Report"
+        assert req.sanitization_warnings == []
+
+    def test_chart_name_script_only_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            GenerateChartRequest(
+                dataset_id=1,
+                config=self._config(),
+                chart_name="<script>alert(1)</script>",
+            )
+
+    def test_chart_name_partial_strip_emits_warning(self) -> None:
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config=self._config(),
+            chart_name="Q1 <b>Report</b>",
+        )
+        assert req.chart_name == "Q1 Report"
+        assert len(req.sanitization_warnings) == 1
+        assert "chart_name" in req.sanitization_warnings[0]
+
+    def test_chart_name_omitted_does_not_warn(self) -> None:
+        req = GenerateChartRequest(dataset_id=1, config=self._config())
+        assert req.chart_name is None
+        assert req.sanitization_warnings == []
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only; client input is dropped."""
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config=self._config(),
+            chart_name="Plain Name",
+            sanitization_warnings=["<script>fake notice</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+    def test_client_warnings_discarded_even_when_server_also_warns(self) -> None:
+        """Client-supplied warnings must not survive, even when the server
+        appends one of its own during the same request."""
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config=self._config(),
+            chart_name="Q1 <b>Report</b>",
+            sanitization_warnings=["injected attacker text"],
+        )
+        assert len(req.sanitization_warnings) == 1
+        assert "chart_name" in req.sanitization_warnings[0]
+        assert "injected" not in req.sanitization_warnings[0]

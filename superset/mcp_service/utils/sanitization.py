@@ -142,6 +142,34 @@ def _remove_dangerous_unicode(value: str) -> str:
     )
 
 
+def sanitize_user_input_with_changes(
+    value: str | None,
+    field_name: str,
+    max_length: int = 255,
+    check_sql_keywords: bool = False,
+    allow_empty: bool = False,
+) -> tuple[str | None, bool]:
+    """
+    Sanitize and report whether the value was modified.
+
+    Same security guarantees as ``sanitize_user_input`` — returns both
+    the sanitized value and a boolean indicating whether any characters
+    were stripped or altered. Callers that need to surface a warning
+    when user-provided content is silently removed (e.g. XSS payloads)
+    should use this variant instead of ``sanitize_user_input``.
+    """
+    original_stripped = value.strip() if isinstance(value, str) else value
+    sanitized = sanitize_user_input(
+        value,
+        field_name,
+        max_length=max_length,
+        check_sql_keywords=check_sql_keywords,
+        allow_empty=allow_empty,
+    )
+    was_modified = original_stripped != (sanitized or "") and bool(original_stripped)
+    return sanitized, was_modified
+
+
 def sanitize_user_input(
     value: str | None,
     field_name: str,
