@@ -52,7 +52,7 @@ Converts an object to a JSON string, or any other value to its string representa
 Formats a number using locale-aware formatting.
 
 ```handlebars
-{{formatNumber myNumber locale="en-US"}}
+{{formatNumber myNumber "en-US"}}
 ```
 
 | Option | Default | Description |
@@ -141,3 +141,5 @@ For the full list of available helpers, see the [just-handlebars-helpers documen
 - Use raw blocks to escape Handlebars syntax if you need to display double curly braces literally.
 - Comparison helpers like `eq` must be wrapped in a subexpression when used with `#if`: `{{#if (eq myVal "foo")}}`.
 - HTML output is sanitized by default based on your Superset configuration (`HTML_SANITIZATION`).
+
+
