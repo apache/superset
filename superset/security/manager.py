@@ -1432,10 +1432,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.models import core as models
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
-        all_pvs = set()
-        for pv in self._get_all_pvms():
-            if pv.permission and pv.view_menu:
-                all_pvs.add((pv.permission.name, pv.view_menu.name))
+        all_pvs = {
+            (pv.permission.name, pv.view_menu.name)
+            for pv in self._get_all_pvms()
+            if pv.permission and pv.view_menu
+        }
 
         def merge_pv(view_menu: str, perm: Optional[str]) -> None:
             """Create permission view menu only if it doesn't exist"""
@@ -1443,32 +1444,41 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.add_permission_view_menu(view_menu, perm)
 
         logger.info("Creating missing datasource permissions.")
-        datasources = SqlaTable.get_all_datasources()
-        for datasource in datasources:
+        for datasource in SqlaTable.get_all_datasources():
             merge_pv("datasource_access", datasource.get_perm())
             merge_pv("schema_access", datasource.get_schema_perm())
             merge_pv("catalog_access", datasource.get_catalog_perm())
 
         logger.info("Creating missing database permissions.")
-        databases = self.session.query(models.Database).all()
-        for database in databases:
+        for database in self.session.query(models.Database).all():
             merge_pv("database_access", database.perm)
 
-        logger.info("Creating missing semantic layer permissions.")
-        from superset.semantic_layers.models import SemanticLayer, SemanticView
+        logger.info("Creating missing semantic layer and view permissions.")
+        self._create_missing_semantic_perms(all_pvs)
+
+    def _create_missing_semantic_perms(
+        self,
+        existing_pvs: set[tuple[str, str]],
+    ) -> None:
+        """Backfill perm columns and create missing PVMs for semantic models."""
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticLayer,
+            SemanticView,
+        )
 
         for layer in self.session.query(SemanticLayer).all():
             perm = layer.get_perm()
             if layer.perm != perm:
                 layer.perm = perm
-            merge_pv("datasource_access", perm)
+            if ("datasource_access", perm) not in existing_pvs:
+                self.add_permission_view_menu("datasource_access", perm)
 
-        logger.info("Creating missing semantic view permissions.")
         for view in self.session.query(SemanticView).all():
             perm = view.get_perm()
             if view.perm != perm:
                 view.perm = perm
-            merge_pv("datasource_access", perm)
+            if ("datasource_access", perm) not in existing_pvs:
+                self.add_permission_view_menu("datasource_access", perm)
 
     def clean_perms(self) -> None:
         """
