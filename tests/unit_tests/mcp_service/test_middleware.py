@@ -32,6 +32,7 @@ from superset.commands.exceptions import (
     ForbiddenError,
     ObjectNotFoundError,
 )
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.mcp_service.middleware import (
     _is_user_error,
@@ -730,6 +731,17 @@ class TestMiddlewareIntegration:
         assert result == response
 
 
+def _make_security_exception(msg: str = "access denied") -> SupersetSecurityException:
+    """Helper to construct SupersetSecurityException with a proper SupersetError."""
+    return SupersetSecurityException(
+        SupersetError(
+            message=msg,
+            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
 class TestIsUserError:
     """Test _is_user_error classification helper."""
 
@@ -743,7 +755,7 @@ class TestIsUserError:
             (ValueError("invalid param"), True),
             (ObjectNotFoundError("Chart", "123"), True),
             (ForbiddenError(), True),
-            (SupersetSecurityException("access denied"), True),
+            (_make_security_exception(), True),
             # System errors (ERROR) — unexpected failures
             (RuntimeError("unexpected"), False),
             (ConnectionError("connection refused"), False),
