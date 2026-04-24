@@ -203,7 +203,10 @@ def test_model_list_tool_injects_current_user_id_for_created_by_fk_filter():
         output_list_schema=DummyListSchema,
     )
 
-    with patch("superset.mcp_service.mcp_core.current_user", current_user):
+    with patch(
+        "superset.mcp_service.utils.permissions_utils.get_current_user",
+        return_value=current_user,
+    ):
         # Value 0 is a placeholder; system replaces it with current_user.id
         tool.run_tool(filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}])
 
@@ -226,7 +229,10 @@ def test_model_list_tool_created_by_fk_requires_authenticated_user():
         output_list_schema=DummyListSchema,
     )
 
-    with patch("superset.mcp_service.mcp_core.current_user", current_user):
+    with patch(
+        "superset.mcp_service.utils.permissions_utils.get_current_user",
+        return_value=current_user,
+    ):
         with pytest.raises(ValueError, match="authenticated user"):
             tool.run_tool(
                 filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}]
