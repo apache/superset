@@ -87,6 +87,21 @@ def _sanitize_error_for_logging(error: Exception) -> str:
         r"/[a-zA-Z0-9_\-/.]{1,200}/superset/", "/[REDACTED]/superset/", error_str
     )
 
+    # Generic database connection URIs (redis, snowflake, bigquery, mssql, etc.)
+    error_str = re.sub(
+        r"\b\w+://[^@\s]{1,100}@[^/\s]{1,100}/[^\s]{0,100}",
+        "[SCHEME]://[REDACTED]@[REDACTED]/[REDACTED]",
+        error_str,
+        flags=re.IGNORECASE,
+    )
+
+    # Email addresses
+    error_str = re.sub(
+        r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
+        "[EMAIL-REDACTED]",
+        error_str,
+    )
+
     # IP addresses - already safe pattern, keep as-is
     error_str = re.sub(r"\b(\d+)\.\d+\.\d+\.\d+\b", r"\1.xxx.xxx.xxx", error_str)
 
@@ -434,7 +449,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
                 curated_payload={
                     "tool": tool_name,
                     "error_type": type(error).__name__,
-                    "error_message": str(error),
+                    "error_message": sanitized_error,
                     "method": context.method,
                     "severity": "warning" if is_user else "error",
                 },
@@ -1248,7 +1263,7 @@ class ResponseSizeGuardMiddleware(Middleware):
                         "tool": tool_name,
                         "estimated_tokens": estimated_tokens,
                         "token_limit": self.token_limit,
-                        "params": params,
+                        "params": _sanitize_params(params),
                     },
                 )
             except Exception as log_error:  # noqa: BLE001

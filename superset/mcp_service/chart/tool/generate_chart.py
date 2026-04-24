@@ -265,7 +265,7 @@ async def generate_chart(  # noqa: C901
             execution_time = int((time.time() - start_time) * 1000)
             if validation_result.error is None:
                 raise RuntimeError("Validation failed but error object is missing")
-            await ctx.error(
+            await ctx.warning(
                 "Chart validation failed: error=%s"
                 % (validation_result.error.model_dump(),)
             )
@@ -367,7 +367,7 @@ async def generate_chart(  # noqa: C901
                         dataset = None  # Treat as not found
 
             if not dataset:
-                await ctx.error(
+                await ctx.warning(
                     "Dataset not found: dataset_id=%s" % (request.dataset_id,)
                 )
                 from superset.mcp_service.common.error_schemas import (
@@ -474,7 +474,7 @@ async def generate_chart(  # noqa: C901
                         chart.id,
                         compile_result.error,
                     )
-                    await ctx.error(
+                    await ctx.warning(
                         "Chart compile check failed: error=%s" % (compile_result.error,)
                     )
                     from superset.daos.chart import ChartDAO
@@ -519,7 +519,7 @@ async def generate_chart(  # noqa: C901
 
             except CommandException as e:
                 logger.error("Chart creation failed: %s", e)
-                await ctx.error("Chart creation failed: error=%s" % (str(e),))
+                await ctx.warning("Chart creation failed: error=%s" % (str(e),))
                 raise
             # Update explore URL to use saved chart
             explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart.id}"
@@ -603,7 +603,7 @@ async def generate_chart(  # noqa: C901
                 ):
                     compile_result = _compile_chart(form_data, numeric_dataset_id)
                 if not compile_result.success:
-                    await ctx.error(
+                    await ctx.warning(
                         "Chart compile check failed: error=%s" % (compile_result.error,)
                     )
                     from superset.mcp_service.common.error_schemas import (
@@ -858,7 +858,7 @@ async def generate_chart(  # noqa: C901
         return GenerateChartResponse.model_validate(result)
 
     except OAuth2RedirectError as ex:
-        await ctx.error(
+        await ctx.warning(
             "Chart generation requires OAuth authentication: dataset_id=%s"
             % request.dataset_id
         )
