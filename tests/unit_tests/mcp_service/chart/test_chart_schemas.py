@@ -162,6 +162,7 @@ class TestXYChartConfig:
                 ),  # Label: "COUNT(product_line)"
             ],
         )
+        assert config.x is not None
         assert config.x.name == "product_line"
         assert config.y[0].aggregate == "COUNT"
 
@@ -234,6 +235,7 @@ class TestXYChartConfig:
                 ColumnRef(name="sales", aggregate="SUM"),
             ],
         )
+        assert config.x is not None
         assert config.x.name == "product_line"
         assert len(config.y) == 2
 
@@ -249,6 +251,7 @@ class TestXYChartConfig:
             ],
             kind="line",
         )
+        assert config.x is not None
         assert config.x.name == "order_date"
         assert config.kind == "line"
 
@@ -263,6 +266,7 @@ class TestXYChartConfig:
             ],
             kind="line",
         )
+        assert config.x is not None
         assert config.x.label == "Order Date"
 
     def test_area_chart_configuration(self) -> None:
@@ -675,6 +679,7 @@ class TestParseChartConfig:
             {"chart_type": "xy", "x": {"name": "date"}, "y": [{"name": "v"}]}
         )
         assert config.chart_type == "xy"
+        assert config.x is not None
         assert config.x.name == "date"
         assert len(config.y) == 1
         assert config.y[0].name == "v"
