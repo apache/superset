@@ -174,6 +174,38 @@ class ModelListCore(BaseCore, Generic[L]):
                 f"Allowed columns: {', '.join(self._sortable_columns)}"
             )
 
+    @staticmethod
+    def _validate_created_by_fk_filters(filters: Any) -> None:
+        """Ensure created_by_fk filters only reference the current user's ID.
+
+        This allows self-lookup ("find my own charts/dashboards") while
+        preventing enumeration of other users' content.
+        """
+        if not filters:
+            return
+
+        from flask_login import current_user
+
+        filter_list = filters if isinstance(filters, list) else [filters]
+        for f in filter_list:
+            col = f.get("col") if isinstance(f, dict) else getattr(f, "col", None)
+            if col != "created_by_fk":
+                continue
+            value = f.get("value") if isinstance(f, dict) else getattr(f, "value", None)
+            if not current_user or not current_user.is_authenticated:
+                raise ValueError(
+                    "created_by_fk filter requires an authenticated user"
+                )
+            try:
+                if int(value) != current_user.id:
+                    raise ValueError(
+                        "created_by_fk filter can only be used with your own user ID"
+                    )
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    "created_by_fk filter value must be a valid user ID"
+                ) from exc
+
     def run_tool(
         self,
         filters: Any | None = None,
@@ -195,6 +227,8 @@ class ModelListCore(BaseCore, Generic[L]):
         )
 
         filters = parse_json_or_passthrough(filters, param_name="filters")
+
+        self._validate_created_by_fk_filters(filters)
 
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)
         columns_requested, columns_to_load = self._get_columns_to_load(select_columns)
