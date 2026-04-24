@@ -36,14 +36,13 @@ import { User } from 'src/types/bootstrapTypes';
 import {
   CardContainer,
   getFilterValues,
-  handleChartDelete,
   PAGE_SIZE,
 } from 'src/views/CRUD/utils';
 import { LoadingCards } from 'src/pages/Home';
 import ChartCard from 'src/features/charts/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
-import { DeleteModal, Loading } from '@superset-ui/core/components';
+import { Loading } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
@@ -112,7 +111,6 @@ function ChartTable({
   const [activeTab, setActiveTab] = useState(initialTab);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
-  const [chartToDelete, setChartToDelete] = useState<Chart | null>(null);
 
   const getChartFetchDataConfig = (tab: TableTab) => ({
     pageIndex: 0,
@@ -127,8 +125,6 @@ function ChartTable({
   });
 
   const getData = (tab: TableTab) => fetchData(getChartFetchDataConfig(tab));
-
-  const chartFetchDataConfig = getChartFetchDataConfig(activeTab);
 
   useEffect(() => {
     if (loaded || activeTab === TableTab.Favorite) {
@@ -224,31 +220,6 @@ function ChartTable({
           },
         ]}
       />
-      {chartToDelete && (
-        <DeleteModal
-          description={
-            <>
-              {t('Are you sure you want to delete')}{' '}
-              <b>{chartToDelete.slice_name}</b>?
-            </>
-          }
-          onConfirm={() => {
-            handleChartDelete(
-              chartToDelete,
-              addSuccessToast,
-              addDangerToast,
-              refreshData,
-              activeTab,
-              user?.userId,
-              chartFetchDataConfig,
-            );
-            setChartToDelete(null);
-          }}
-          onHide={() => setChartToDelete(null)}
-          open={!!chartToDelete}
-          title={t('Please confirm')}
-        />
-      )}
       {charts?.length ? (
         <CardContainer showThumbnails={showThumbnails}>
           {charts.map(e => (
@@ -264,10 +235,10 @@ function ChartTable({
               refreshData={refreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
+              getData={getData}
               favoriteStatus={favoriteStatus[e.id]}
               saveFavoriteStatus={saveFavoriteStatus}
               handleBulkChartExport={handleBulkChartExport}
-              onDelete={chart => setChartToDelete(chart)}
             />
           ))}
         </CardContainer>

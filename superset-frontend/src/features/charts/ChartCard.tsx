@@ -35,6 +35,7 @@ import { FacePile } from 'src/components';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
 import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
+import { TableTab } from 'src/views/CRUD/types';
 
 interface ChartCardProps {
   chart: Chart;
@@ -44,7 +45,6 @@ interface ChartCardProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   refreshData: (config?: FetchDataConfig | null) => void;
-  refreshDataConfig?: FetchDataConfig;
   loading?: boolean;
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
@@ -52,7 +52,7 @@ interface ChartCardProps {
   userId?: string | number;
   showThumbnails?: boolean;
   handleBulkChartExport: (chartsToExport: Chart[]) => void;
-  onDelete?: (chart: Chart) => void;
+  getData?: (tab: TableTab) => void;
 }
 
 export default function ChartCard({
@@ -63,7 +63,6 @@ export default function ChartCard({
   addDangerToast,
   addSuccessToast,
   refreshData,
-  refreshDataConfig,
   loading,
   showThumbnails,
   saveFavoriteStatus,
@@ -71,7 +70,7 @@ export default function ChartCard({
   chartFilter,
   userId,
   handleBulkChartExport,
-  onDelete,
+  getData,
 }: ChartCardProps) {
   const history = useHistory();
   const canEdit = hasPerm('can_write');
@@ -125,23 +124,7 @@ export default function ChartCard({
   if (canDelete) {
     menuItems.push({
       key: 'delete',
-      label: onDelete ? (
-        <div
-          data-test="chart-list-delete-option"
-          role="button"
-          tabIndex={0}
-          className="action-button"
-          onClick={() => onDelete(chart)}
-        >
-          <Icons.DeleteOutlined
-            iconSize="l"
-            css={css`
-              vertical-align: text-top;
-            `}
-          />{' '}
-          {t('Delete')}
-        </div>
-      ) : (
+      label: (
         <ConfirmStatusChange
           title={t('Please confirm')}
           description={
@@ -157,7 +140,7 @@ export default function ChartCard({
               refreshData,
               chartFilter,
               userId,
-              refreshDataConfig,
+              getData,
             )
           }
         >
