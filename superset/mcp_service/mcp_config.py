@@ -361,7 +361,7 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                 jwt_verifier=auth_provider,
                 api_key_prefixes=api_key_prefixes,
             )
-            logger.info("API key auth enabled for MCP (prefixes: %s)", api_key_prefixes)
+            logger.info("API key auth enabled for MCP")
 
         return auth_provider
     except Exception:
