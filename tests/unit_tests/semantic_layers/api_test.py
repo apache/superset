@@ -2017,6 +2017,158 @@ def test_get_views_flag_off_returns_404(
     assert response.status_code == 404
 
 
+# =============================================================================
+# SemanticViewRestApi.structure tests
+# =============================================================================
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_semantic_view_structure(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /<pk>/structure returns dimensions and metrics."""
+    mock_dim = MagicMock()
+    mock_dim.name = "order_date"
+    mock_dim.type = "timestamp[us]"
+    mock_dim.definition = "ordered_at"
+    mock_dim.description = "Order date"
+    mock_dim.grain = MagicMock()
+    mock_dim.grain.name = "Day"
+
+    mock_metric = MagicMock()
+    mock_metric.name = "orders"
+    mock_metric.type = "double"
+    mock_metric.definition = "SIMPLE"
+    mock_metric.description = "Order count"
+
+    mock_view = MagicMock()
+    mock_view.implementation.get_dimensions.return_value = {mock_dim}
+    mock_view.implementation.get_metrics.return_value = {mock_metric}
+
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    mock_db_session.query.return_value.filter_by.return_value.first.return_value = (
+        mock_view
+    )
+
+    response = client.get("/api/v1/semantic_view/1/structure")
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert len(result["dimensions"]) == 1
+    assert result["dimensions"][0]["name"] == "order_date"
+    assert result["dimensions"][0]["type"] == "timestamp[us]"
+    assert result["dimensions"][0]["definition"] == "ordered_at"
+    assert result["dimensions"][0]["description"] == "Order date"
+    assert result["dimensions"][0]["grain"] == "Day"
+    assert len(result["metrics"]) == 1
+    assert result["metrics"][0]["name"] == "orders"
+    assert result["metrics"][0]["type"] == "double"
+    assert result["metrics"][0]["definition"] == "SIMPLE"
+    assert result["metrics"][0]["description"] == "Order count"
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_semantic_view_structure_not_found(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /<pk>/structure returns 404 when view not found."""
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    mock_db_session.query.return_value.filter_by.return_value.first.return_value = None
+
+    response = client.get("/api/v1/semantic_view/999/structure")
+
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": False}}],
+    indirect=True,
+)
+def test_get_semantic_view_structure_feature_flag_off(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Test GET /<pk>/structure returns 404 when feature flag is off."""
+    response = client.get("/api/v1/semantic_view/1/structure")
+
+    assert response.status_code == 404
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_semantic_view_structure_implementation_error(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /<pk>/structure returns 422 when implementation raises."""
+    mock_view = MagicMock()
+    mock_view.implementation.get_dimensions.side_effect = RuntimeError(
+        "Connection failed"
+    )
+
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    mock_db_session.query.return_value.filter_by.return_value.first.return_value = (
+        mock_view
+    )
+
+    response = client.get("/api/v1/semantic_view/1/structure")
+
+    assert response.status_code == 422
+    assert "Connection failed" in response.json["message"]
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_semantic_view_structure_no_grain(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /<pk>/structure handles dimensions without grain."""
+    mock_dim = MagicMock()
+    mock_dim.name = "customer_id"
+    mock_dim.type = "int64"
+    mock_dim.definition = None
+    mock_dim.description = None
+    mock_dim.grain = None
+
+    mock_view = MagicMock()
+    mock_view.implementation.get_dimensions.return_value = {mock_dim}
+    mock_view.implementation.get_metrics.return_value = set()
+
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    mock_db_session.query.return_value.filter_by.return_value.first.return_value = (
+        mock_view
+    )
+
+    response = client.get("/api/v1/semantic_view/1/structure")
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["dimensions"][0]["grain"] is None
+    assert result["metrics"] == []
+
+
+def test_semantic_view_structure_flag_off_unwrapped() -> None:
+    """Cover structure() feature-flag guard without auth decorators."""
+    api = SemanticViewRestApi()
+    api.response_404 = MagicMock(return_value=("404", 404))
+    structure_fn = inspect.unwrap(SemanticViewRestApi.structure)
+
+    with patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=False,
+    ):
+        response = structure_fn(api, 1)
+
+    assert response == ("404", 404)
+    api.response_404.assert_called_once()
+
+
 def test_semantic_view_post_flag_off_unwrapped() -> None:
     """Cover post() feature-flag guard without auth decorators."""
     api = SemanticViewRestApi()
