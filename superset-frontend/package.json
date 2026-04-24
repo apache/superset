@@ -251,7 +251,7 @@
     "@babel/runtime": "^7.29.2",
     "@babel/runtime-corejs3": "^7.29.2",
     "@babel/types": "^7.28.6",
-    "@cypress/react": "^8.0.2",
+    "@cypress/react": "^9.0.2",
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/jest": "^11.14.2",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
