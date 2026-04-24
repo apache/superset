@@ -48,32 +48,12 @@ down_revision = "c9d7e21a4b3f"
 
 
 def upgrade() -> None:
-    op.drop_index(
-        "ix_sql_metrics_version_transaction_id",
-        table_name="sql_metrics_version",
-    )
-    op.drop_index(
-        "ix_sql_metrics_version_operation_type",
-        table_name="sql_metrics_version",
-    )
-    op.drop_index(
-        "ix_sql_metrics_version_end_transaction_id",
-        table_name="sql_metrics_version",
-    )
+    # ``op.drop_table`` drops the table's indexes and foreign-key
+    # constraints atomically on all supported dialects. Calling
+    # ``op.drop_index`` on indexes that back a foreign key fails on
+    # MySQL with error 1553 ("Cannot drop index X: needed in a foreign
+    # key constraint"), so we let ``drop_table`` handle everything.
     op.drop_table("sql_metrics_version")
-
-    op.drop_index(
-        "ix_table_columns_version_transaction_id",
-        table_name="table_columns_version",
-    )
-    op.drop_index(
-        "ix_table_columns_version_operation_type",
-        table_name="table_columns_version",
-    )
-    op.drop_index(
-        "ix_table_columns_version_end_transaction_id",
-        table_name="table_columns_version",
-    )
     op.drop_table("table_columns_version")
 
 
