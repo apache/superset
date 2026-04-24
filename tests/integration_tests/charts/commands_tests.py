@@ -16,6 +16,7 @@
 # under the License.
 import time
 from datetime import datetime
+from copy import deepcopy
 from unittest.mock import patch
 
 import pytest
@@ -39,7 +40,7 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
-from superset.models.annotations import AnnotationLayer
+from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
@@ -54,6 +55,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,  # noqa: F401
 )
 from tests.integration_tests.fixtures.importexport import (
+    annotation_layer_config,
     chart_config,
     chart_metadata_config,
     database_config,
@@ -807,6 +809,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         assert len(ann_layer_key) == 1
 
         # Clean up
+        db.session.query(Annotation).filter_by(layer_id=ann_layer.id).delete()
         db.session.delete(ann_layer)
         db.session.commit()
 
@@ -989,6 +992,7 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         assert ref_chart_key in contents
 
         # Clean up
+        db.session.query(Annotation).filter_by(layer_id=ann_layer.id).delete()
         db.session.delete(ann_layer)
         db.session.commit()
 
@@ -1019,3 +1023,327 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         # No annotation_layers/ files in export
         ann_keys = [k for k in contents if k.startswith("annotation_layers/")]
         assert len(ann_keys) == 0
+
+
+class TestImportChartsAnnotationLayers(SupersetTestCase):
+    """Tests for annotation layer handling during chart import."""
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_native_annotation_resolved(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """NATIVE annotation UUID is resolved to local AnnotationLayer.id on import."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        native_chart_config = deepcopy(chart_config)
+        native_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Native Layer",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": annotation_layer_config["uuid"],
+                "show": True,
+                "style": "solid",
+            }
+        ]
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(native_chart_config),
+            "annotation_layers/imported_layer.yaml": yaml.safe_dump(
+                annotation_layer_config
+            ),
+        }
+        command = ImportChartsCommand(contents, overwrite=True)
+        command.run()
+
+        chart = (
+            db.session.query(Slice).filter_by(uuid=native_chart_config["uuid"]).one()
+        )
+        ann_layer = (
+            db.session.query(AnnotationLayer)
+            .filter_by(uuid=annotation_layer_config["uuid"])
+            .one()
+        )
+
+        params = json.loads(chart.params)
+        layers = params["annotation_layers"]
+        assert len(layers) == 1
+        assert layers[0]["sourceType"] == "NATIVE"
+        assert layers[0]["value"] == ann_layer.id
+
+        db.session.delete(chart)
+        db.session.query(Annotation).filter_by(layer_id=ann_layer.id).delete()
+        db.session.delete(ann_layer)
+        db.session.delete(
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        db.session.delete(
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_table_annotation_resolved(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """table annotation UUID is resolved to referenced Chart.id on import."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        # referenced chart (annotation source)
+        ref_chart_config = deepcopy(chart_config)
+        ref_chart_config["uuid"] = "aaaaaaaa-1111-2222-3333-444444444444"
+        ref_chart_config["slice_name"] = "Ref Chart"
+
+        # main chart with table annotation referencing ref chart
+        main_chart_config = deepcopy(chart_config)
+        main_chart_config["uuid"] = "bbbbbbbb-1111-2222-3333-444444444444"
+        main_chart_config["slice_name"] = "Main Chart"
+        main_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Table Annotation",
+                "annotationType": "EVENT",
+                "sourceType": "table",
+                "value": ref_chart_config["uuid"],
+                "show": True,
+                "style": "solid",
+            }
+        ]
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/ref_chart.yaml": yaml.safe_dump(ref_chart_config),
+            "charts/main_chart.yaml": yaml.safe_dump(main_chart_config),
+        }
+        command = ImportChartsCommand(contents, overwrite=True)
+        command.run()
+
+        main_chart = (
+            db.session.query(Slice).filter_by(uuid=main_chart_config["uuid"]).one()
+        )
+        ref_chart = (
+            db.session.query(Slice).filter_by(uuid=ref_chart_config["uuid"]).one()
+        )
+
+        params = json.loads(main_chart.params)
+        layers = params["annotation_layers"]
+        assert len(layers) == 1
+        assert layers[0]["sourceType"] == "table"
+        assert layers[0]["value"] == ref_chart.id
+
+        db.session.delete(main_chart)
+        db.session.delete(ref_chart)
+        db.session.delete(
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        db.session.delete(
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_line_annotation_resolved(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """line annotation UUID is resolved to referenced Chart.id on import."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        ref_chart_config = deepcopy(chart_config)
+        ref_chart_config["uuid"] = "cccccccc-1111-2222-3333-444444444444"
+        ref_chart_config["slice_name"] = "Line Ref Chart"
+
+        main_chart_config = deepcopy(chart_config)
+        main_chart_config["uuid"] = "dddddddd-1111-2222-3333-444444444444"
+        main_chart_config["slice_name"] = "Line Main Chart"
+        main_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Line Annotation",
+                "annotationType": "TIME_SERIES",
+                "sourceType": "line",
+                "value": ref_chart_config["uuid"],
+                "show": True,
+                "style": "dashed",
+            }
+        ]
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/ref_chart.yaml": yaml.safe_dump(ref_chart_config),
+            "charts/main_chart.yaml": yaml.safe_dump(main_chart_config),
+        }
+        command = ImportChartsCommand(contents, overwrite=True)
+        command.run()
+
+        main_chart = (
+            db.session.query(Slice).filter_by(uuid=main_chart_config["uuid"]).one()
+        )
+        ref_chart = (
+            db.session.query(Slice).filter_by(uuid=ref_chart_config["uuid"]).one()
+        )
+
+        params = json.loads(main_chart.params)
+        layers = params["annotation_layers"]
+        assert len(layers) == 1
+        assert layers[0]["sourceType"] == "line"
+        assert layers[0]["value"] == ref_chart.id
+
+        db.session.delete(main_chart)
+        db.session.delete(ref_chart)
+        db.session.delete(
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        db.session.delete(
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_formula_annotation_preserved(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """FORMULA annotations are kept unchanged on import."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        formula_chart_config = deepcopy(chart_config)
+        formula_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Formula",
+                "annotationType": "FORMULA",
+                "sourceType": "FORMULA",
+                "value": "sin(x)",
+                "show": True,
+                "style": "solid",
+            }
+        ]
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(formula_chart_config),
+        }
+        command = ImportChartsCommand(contents, overwrite=True)
+        command.run()
+
+        chart = (
+            db.session.query(Slice).filter_by(uuid=formula_chart_config["uuid"]).one()
+        )
+        params = json.loads(chart.params)
+        layers = params["annotation_layers"]
+        assert len(layers) == 1
+        assert layers[0]["sourceType"] == "FORMULA"
+        assert layers[0]["value"] == "sin(x)"
+
+        db.session.delete(chart)
+        db.session.delete(
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        db.session.delete(
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_mixed_annotations(self, mock_add_permissions, sm_g, utils_g):
+        """NATIVE, table, and FORMULA annotations all resolve correctly."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        ref_chart_config = deepcopy(chart_config)
+        ref_chart_config["uuid"] = "eeeeeeee-1111-2222-3333-444444444444"
+        ref_chart_config["slice_name"] = "Mixed Ref Chart"
+
+        mixed_chart_config = deepcopy(chart_config)
+        mixed_chart_config["uuid"] = "ffffffff-1111-2222-3333-444444444444"
+        mixed_chart_config["slice_name"] = "Mixed Main Chart"
+        mixed_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Native",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": annotation_layer_config["uuid"],
+                "show": True,
+                "style": "solid",
+            },
+            {
+                "name": "Table",
+                "annotationType": "EVENT",
+                "sourceType": "table",
+                "value": ref_chart_config["uuid"],
+                "show": True,
+                "style": "solid",
+            },
+            {
+                "name": "Formula",
+                "annotationType": "FORMULA",
+                "sourceType": "FORMULA",
+                "value": "cos(x)",
+                "show": True,
+                "style": "dashed",
+            },
+        ]
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/ref_chart.yaml": yaml.safe_dump(ref_chart_config),
+            "charts/mixed_chart.yaml": yaml.safe_dump(mixed_chart_config),
+            "annotation_layers/imported_layer.yaml": yaml.safe_dump(
+                annotation_layer_config
+            ),
+        }
+        command = ImportChartsCommand(contents, overwrite=True)
+        command.run()
+
+        main_chart = (
+            db.session.query(Slice).filter_by(uuid=mixed_chart_config["uuid"]).one()
+        )
+        ref_chart = (
+            db.session.query(Slice).filter_by(uuid=ref_chart_config["uuid"]).one()
+        )
+        ann_layer = (
+            db.session.query(AnnotationLayer)
+            .filter_by(uuid=annotation_layer_config["uuid"])
+            .one()
+        )
+
+        params = json.loads(main_chart.params)
+        layers = params["annotation_layers"]
+        assert len(layers) == 3
+        # NATIVE → annotation layer local ID
+        assert layers[0]["sourceType"] == "NATIVE"
+        assert layers[0]["value"] == ann_layer.id
+        # table → referenced chart local ID
+        assert layers[1]["sourceType"] == "table"
+        assert layers[1]["value"] == ref_chart.id
+        # FORMULA → unchanged
+        assert layers[2]["sourceType"] == "FORMULA"
+        assert layers[2]["value"] == "cos(x)"
+
+        db.session.delete(main_chart)
+        db.session.delete(ref_chart)
+        db.session.query(Annotation).filter_by(layer_id=ann_layer.id).delete()
+        db.session.delete(ann_layer)
+        db.session.delete(
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        db.session.delete(
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        db.session.commit()

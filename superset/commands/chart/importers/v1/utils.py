@@ -23,24 +23,56 @@ from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
+from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import AnnotationType, get_user
 
 
-def filter_chart_annotations(chart_config: dict[str, Any]) -> None:
+def _resolve_uuid_to_id(
+    uuid_value: str,
+    id_map: dict[str, int] | None,
+    model: type,
+) -> int | None:
+    """Resolve a UUID to a local integer ID using a map or DB fallback."""
+    if id_map and uuid_value in id_map:
+        return id_map[uuid_value]
+    obj = db.session.query(model).filter_by(uuid=uuid_value).first()
+    return obj.id if obj else None
+
+
+def filter_chart_annotations(
+    chart_config: dict[str, Any],
+    annotation_layer_ids: dict[str, int] | None = None,
+    chart_ids: dict[str, int] | None = None,
+) -> None:
     """
-    Mutating the chart's config params to keep only the annotations of
-    type FORMULA.
-    TODO:
-      handle annotation dependencies on either other charts or
-      annotation layers objects.
+    Resolve annotation references from exported UUIDs to local integer IDs.
+    - FORMULA: kept unchanged (no DB reference)
+    - NATIVE: UUID resolved to AnnotationLayer.id
+    - table/line: UUID resolved to referenced Chart.id
+    Annotations whose references cannot be resolved are dropped.
     """
     params = chart_config.get("params", {})
-    als = params.get("annotation_layers", [])
-    params["annotation_layers"] = [
-        al for al in als if al.get("annotationType") == AnnotationType.FORMULA
-    ]
+    annotation_layers = params.get("annotation_layers", [])
+    resolved_annotations: list[dict[str, Any]] = []
+    for annotation in annotation_layers:
+        source_type = annotation.get("sourceType")
+        value = annotation.get("value")
+
+        if annotation.get("annotationType") == AnnotationType.FORMULA:
+            resolved_annotations.append(annotation)
+        elif source_type == "NATIVE" and isinstance(value, str):
+            layer_id = _resolve_uuid_to_id(value, annotation_layer_ids, AnnotationLayer)
+            if layer_id is not None:
+                annotation["value"] = layer_id
+                resolved_annotations.append(annotation)
+        elif source_type in ("table", "line") and isinstance(value, str):
+            ref_chart_id = _resolve_uuid_to_id(value, chart_ids, Slice)
+            if ref_chart_id is not None:
+                annotation["value"] = ref_chart_id
+                resolved_annotations.append(annotation)
+    params["annotation_layers"] = resolved_annotations
 
 
 def import_chart(
@@ -68,7 +100,11 @@ def import_chart(
             "Chart doesn't exist and user doesn't have permission to create charts"
         )
 
-    filter_chart_annotations(config)
+    filter_chart_annotations(
+        config,
+        annotation_layer_ids=config.pop("_annotation_layer_ids", None),
+        chart_ids=config.pop("_chart_ids", None),
+    )
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config["params"] = json.dumps(config["params"])

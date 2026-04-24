@@ -22,7 +22,11 @@ from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
+from superset.annotation_layers.schemas import ImportV1AnnotationLayerSchema
 from superset.charts.schemas import ImportV1ChartSchema
+from superset.commands.annotation_layer.importers.v1.utils import (
+    import_annotation_layer,
+)
 from superset.commands.chart.exceptions import ChartImportError
 from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.database.importers.v1.utils import import_database
@@ -44,11 +48,26 @@ class ImportChartsCommand(ImportModelsCommand):
     model_name = "chart"
     prefix = "charts/"
     schemas: dict[str, Schema] = {
+        "annotation_layers/": ImportV1AnnotationLayerSchema(),
         "charts/": ImportV1ChartSchema(),
         "datasets/": ImportV1DatasetSchema(),
         "databases/": ImportV1DatabaseSchema(),
     }
     import_error = ChartImportError
+
+    @staticmethod
+    def _import_chart_with_tags(
+        config: dict[str, Any],
+        overwrite: bool,
+        contents: dict[str, Any],
+        imported_chart_ids: dict[str, int],
+    ) -> None:
+        chart = import_chart(config, overwrite=overwrite)
+        imported_chart_ids[str(chart.uuid)] = chart.id
+
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            if "tags" in config:
+                import_tag(config["tags"], contents, chart.id, "chart", db.session)
 
     @staticmethod
     # ruff: noqa: C901
@@ -58,11 +77,18 @@ class ImportChartsCommand(ImportModelsCommand):
         contents: dict[str, Any] | None = None,
     ) -> None:
         contents = {} if contents is None else contents
-        # discover datasets associated with charts
+        # discover datasets and referenced chart UUIDs from chart configs
         dataset_uuids: set[str] = set()
+        referenced_chart_uuids: set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
                 dataset_uuids.add(config["dataset_uuid"])
+                for annotation in config.get("params", {}).get("annotation_layers", []):
+                    if annotation.get("sourceType") in (
+                        "table",
+                        "line",
+                    ) and isinstance(annotation.get("value"), str):
+                        referenced_chart_uuids.add(annotation["value"])
 
         # discover databases associated with datasets
         database_uuids: set[str] = set()
@@ -88,6 +114,17 @@ class ImportChartsCommand(ImportModelsCommand):
                 dataset = import_dataset(config, overwrite=False)
                 datasets[str(dataset.uuid)] = dataset
 
+        # import annotation layers before charts so UUID→ID maps are ready
+        annotation_layer_ids: dict[str, int] = {}
+        for file_name, config in configs.items():
+            if file_name.startswith("annotation_layers/"):
+                layer = import_annotation_layer(config, overwrite=False)
+                annotation_layer_ids[str(layer.uuid)] = layer.id
+
+        # categorize chart configs: referenced charts first, then dependents
+        referenced_chart_configs: list[dict[str, Any]] = []
+        dependent_chart_configs: list[dict[str, Any]] = []
+        deck_multi_configs: list[dict[str, Any]] = []
         # import charts with the correct parent ref
         for file_name, config in configs.items():
             if file_name.startswith("charts/") and config["dataset_uuid"] in datasets:
@@ -103,12 +140,29 @@ class ImportChartsCommand(ImportModelsCommand):
                     "datasource_name": dataset.table_name,
                 }
                 config = update_chart_config_dataset(config, dataset_dict)
-                chart = import_chart(config, overwrite=overwrite)
 
-                # Handle tags using import_tag function
-                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                    if "tags" in config:
-                        target_tag_names = config["tags"]
-                        import_tag(
-                            target_tag_names, contents, chart.id, "chart", db.session
-                        )
+                # pass annotation resolution maps via config
+                config["_annotation_layer_ids"] = annotation_layer_ids
+
+                # Handle deck_multi charts later to ensure their dependencies are met
+                if config["viz_type"] == "deck_multi" and config["params"].get(
+                    "deck_uuids"
+                ):
+                    deck_multi_configs.append(config)
+                elif config.get("uuid") in referenced_chart_uuids:
+                    referenced_chart_configs.append(config)
+                else:
+                    dependent_chart_configs.append(config)
+
+        # import referenced charts first, then charts that depend on them
+        imported_chart_ids: dict[str, int] = {}
+        for config in referenced_chart_configs + dependent_chart_configs:
+            config["_chart_ids"] = imported_chart_ids
+            ImportChartsCommand._import_chart_with_tags(
+                config, overwrite, contents, imported_chart_ids
+            )
+
+        for config in deck_multi_configs:
+            ImportChartsCommand._import_chart_with_tags(
+                config, overwrite, contents, imported_chart_ids
+            )
