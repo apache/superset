@@ -62,6 +62,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_dashboard_with_slices_class_scope,  # noqa: F401
     load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.users import (
@@ -111,6 +112,7 @@ def delete_schema_perm(view_menu_name: str) -> None:
     return None
 
 
+@pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_class_scope")
 class TestRolePermission(SupersetTestCase):
     """Testing export role permissions."""
 
@@ -159,7 +161,8 @@ class TestRolePermission(SupersetTestCase):
             s.schema_perm = None
 
         delete_schema_perm(schema_perm)
-        db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        if role := security_manager.find_role(SCHEMA_ACCESS_ROLE):
+            db.session.delete(role)
         db.session.commit()
         super().tearDown()
 

@@ -185,8 +185,11 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
     mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine.return_value.__enter__.return_value.execute = (
-        mock_execute
+    mock_conn = mock.MagicMock()
+    mock_conn.execute = mock_execute
+    engine_ctx = mock_database.get_sqla_engine.return_value
+    engine_ctx.__enter__.return_value.connect.return_value.__enter__.return_value = (
+        mock_conn
     )
     table_name = "foobar"
 
@@ -198,7 +201,15 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
             {"if_exists": "replace", "header": 1, "na_values": "mock", "sep": "mock"},
         )
 
-    mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {table_name}")
+    mock_execute.assert_any_call(mock.ANY)
+    # Verify the DROP TABLE call was made with the correct SQL text
+    drop_calls = [
+        call
+        for call in mock_execute.call_args_list
+        if hasattr(call[0][0], "text")
+        and f"DROP TABLE IF EXISTS {table_name}" in str(call[0][0].text)
+    ]
+    assert len(drop_calls) == 1
     app.config = config
 
 
@@ -212,8 +223,11 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
     mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine.return_value.__enter__.return_value.execute = (
-        mock_execute
+    mock_conn = mock.MagicMock()
+    mock_conn.execute = mock_execute
+    engine_ctx = mock_database.get_sqla_engine.return_value
+    engine_ctx.__enter__.return_value.connect.return_value.__enter__.return_value = (
+        mock_conn
     )
     table_name = "foobar"
     schema = "schema"
@@ -226,7 +240,15 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
             {"if_exists": "replace", "header": 1, "na_values": "mock", "sep": "mock"},
         )
 
-    mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {schema}.{table_name}")
+    mock_execute.assert_any_call(mock.ANY)
+    # Verify the DROP TABLE call was made with the correct SQL text
+    drop_calls = [
+        call
+        for call in mock_execute.call_args_list
+        if hasattr(call[0][0], "text")
+        and f"DROP TABLE IF EXISTS {schema}.{table_name}" in str(call[0][0].text)
+    ]
+    assert len(drop_calls) == 1
     app.config = config
 
 

@@ -76,6 +76,7 @@ class TestUpdateTaskThrottling(SupersetTestCase):
             task_name="Test Throttled Updates",
             scope=TaskScope.SYSTEM,
         )
+        db.session.commit()
 
         # Use str(uuid) since Celery serializes args as JSON strings
         result = execute_task.apply(

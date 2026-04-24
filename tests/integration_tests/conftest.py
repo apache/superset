@@ -26,6 +26,7 @@ from unittest.mock import patch
 import pytest
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla import models as ab_models
+from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from superset import db, security_manager
@@ -146,14 +147,15 @@ def setup_sample_data() -> Any:
 
 
 def drop_from_schema(engine: Engine, schema_name: str):
-    schemas = engine.execute(f"SHOW SCHEMAS").fetchall()  # noqa: F541
-    if schema_name not in [s[0] for s in schemas]:
-        # schema doesn't exist
-        return
-    tables_or_views = engine.execute(f"SHOW TABLES in {schema_name}").fetchall()
-    for tv in tables_or_views:
-        engine.execute(f"DROP TABLE IF EXISTS {schema_name}.{tv[0]}")
-        engine.execute(f"DROP VIEW IF EXISTS {schema_name}.{tv[0]}")
+    with engine.connect() as conn:
+        schemas = conn.execute(text("SHOW SCHEMAS")).fetchall()
+        if schema_name not in [s[0] for s in schemas]:
+            # schema doesn't exist
+            return
+        tables_or_views = conn.execute(text(f"SHOW TABLES in {schema_name}")).fetchall()
+        for tv in tables_or_views:
+            conn.execute(text(f"DROP TABLE IF EXISTS {schema_name}.{tv[0]}"))
+            conn.execute(text(f"DROP VIEW IF EXISTS {schema_name}.{tv[0]}"))
 
 
 @pytest.fixture(scope="session")
@@ -213,12 +215,14 @@ def setup_presto_if_needed():
         database = get_example_database()
         with database.get_sqla_engine() as engine:
             drop_from_schema(engine, CTAS_SCHEMA_NAME)
-            engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")
-            engine.execute(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}")
+            with engine.connect() as conn:
+                conn.execute(text(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}"))
+                conn.execute(text(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}"))
 
             drop_from_schema(engine, ADMIN_SCHEMA_NAME)
-            engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
-            engine.execute(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}")
+            with engine.connect() as conn:
+                conn.execute(text(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}"))
+                conn.execute(text(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}"))
 
 
 def with_feature_flags(**mock_feature_flags):
@@ -355,8 +359,10 @@ def physical_dataset():
     with example_database.get_sqla_engine() as engine:
         quoter = get_identifier_quoter(engine.name)
         # sqlite can only execute one statement at a time
-        engine.execute(
-            f"""
+        time_col = quoter("time column with spaces")
+        with engine.begin() as conn:
+            conn.execute(
+                text(f"""
             CREATE TABLE IF NOT EXISTS physical_dataset(
             col1 INTEGER,
             col2 VARCHAR(255),
@@ -364,12 +370,12 @@ def physical_dataset():
             col4 VARCHAR(255),
             col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
             col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-            {quoter("time column with spaces")} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
+            {time_col} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
             );
-            """
-        )
-        engine.execute(
-            """
+            """)
+            )
+            conn.execute(
+                text("""
             INSERT INTO physical_dataset values
             (0, 'a', 1.0, NULL, '2000-01-01 00:00:00', '2002-01-03 00:00:00', '2002-01-03 00:00:00'),
             (1, 'b', 1.1, NULL, '2000-01-02 00:00:00', '2002-02-04 00:00:00', '2002-02-04 00:00:00'),
@@ -381,8 +387,8 @@ def physical_dataset():
             (7, 'h', 1.7, NULL, '2000-01-08 00:00:00', '2002-08-18 00:00:00', '2002-08-18 00:00:00'),
             (8, 'i', 1.8, NULL, '2000-01-09 00:00:00', '2002-09-20 00:00:00', '2002-09-20 00:00:00'),
             (9, 'j', 1.9, NULL, '2000-01-10 00:00:00', '2002-10-22 00:00:00', '2002-10-22 00:00:00');
-        """  # noqa: E501
-        )
+            """)  # noqa: E501
+            )
 
     dataset = SqlaTable(
         table_name="physical_dataset",
@@ -406,11 +412,9 @@ def physical_dataset():
 
     yield dataset
 
-    engine.execute(
-        """
-        DROP TABLE physical_dataset;
-    """
-    )
+    with example_database.get_sqla_engine() as engine:
+        with engine.begin() as conn:
+            conn.execute(text("DROP TABLE IF EXISTS physical_dataset"))
     dataset = db.session.query(SqlaTable).filter_by(table_name="physical_dataset").all()
     for ds in dataset:
         db.session.delete(ds)
