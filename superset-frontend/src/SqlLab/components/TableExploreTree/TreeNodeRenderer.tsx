@@ -386,18 +386,18 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                       : handlePinTable(tableName, schema, catalog ?? null)
                   }
                 />
+                <ActionButton
+                  label={`toggle-${schema}-${tableName}`}
+                  icon={
+                    isManuallyOpen ? (
+                      <Icons.UpOutlined iconSize="m" />
+                    ) : (
+                      <Icons.DownOutlined iconSize="m" />
+                    )
+                  }
+                  onClick={() => node.toggle()}
+                />
               </div>
-              <ActionButton
-                label={`toggle-${schema}-${tableName}`}
-                icon={
-                  isManuallyOpen ? (
-                    <Icons.UpOutlined iconSize="m" />
-                  ) : (
-                    <Icons.DownOutlined iconSize="m" />
-                  )
-                }
-                onClick={() => node.toggle()}
-              />
             </div>
           );
         })()}
