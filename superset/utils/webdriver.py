@@ -300,8 +300,10 @@ class WebDriverPlaywright(WebDriverProxy):
                     logger.debug(
                         "Wait for loading element of charts to be gone at url: %s", url
                     )
-                    for loading_element in page.locator(".loading").all():
-                        loading_element.wait_for(state="detached")
+                    page.wait_for_function(
+                        "() => document.querySelectorAll('.loading').length === 0",
+                        timeout=self._screenshot_load_wait * 1000,
+                    )
                 except PlaywrightTimeout:
                     logger.warning(
                         "Timed out waiting for charts to load at url %s", url
