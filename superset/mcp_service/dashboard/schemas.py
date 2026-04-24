@@ -165,8 +165,8 @@ class DashboardFilter(ColumnOperator):
         description=(
             "Column to filter on. Use "
             "get_schema(model_type='dashboard') for available "
-            "filter columns. created_by_fk only accepts the current user's ID "
-            "(from get_instance_info's current_user.id)."
+            "filter columns. For created_by_fk, any value is accepted — "
+            "the system automatically substitutes the authenticated user's ID."
         ),
     )
     opr: ColumnOperatorEnum = Field(
