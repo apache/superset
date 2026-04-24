@@ -78,7 +78,6 @@ const Bar = styled.div<{ width: number; height: string | number }>`
     flex-grow: 1;
     width: ${width}px;
     height: ${typeof height === 'number' ? `${height}px` : height};
-    overflow: hidden;
     background: ${theme.colorBgContainer};
     border-right: 1px solid ${theme.colorSplit};
     border-bottom: 1px solid ${theme.colorSplit};
