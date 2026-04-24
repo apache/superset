@@ -361,7 +361,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const popoverContent = (
     <ControlPopover
-      autoAdjustOverflow={false}
+      autoAdjustOverflow
       trigger="click"
       placement="right"
       content={overlayContent}
