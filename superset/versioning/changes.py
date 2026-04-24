@@ -429,6 +429,20 @@ def _dashboard_child_records_for_tx(
     return result
 
 
+# Module-level references to the two event handlers so we can guard
+# against double-registration. Each call to
+# ``register_change_record_listener`` creates a fresh closure inside
+# ``@event.listens_for``, which ``event.contains`` can't dedup because
+# the function objects differ. In test fixtures that instantiate
+# multiple Superset apps, register_* fires per-app and each call
+# attaches another listener — every flush then fires N times and our
+# buffer-append logic duplicates records N-fold. Caching the handlers
+# here and checking ``event.contains`` before re-attaching keeps the
+# count at exactly one per session target.
+_compute_change_records_handler: Any = None
+_flush_change_records_handler: Any = None
+
+
 def _process_dirty_entity_into_buffer(
     session: Session,
     obj: Any,
@@ -489,6 +503,8 @@ def register_change_record_listener() -> None:
     and has installed its own before_flush hook.
     """
     # pylint: disable=import-outside-toplevel
+    global _compute_change_records_handler, _flush_change_records_handler
+
     from superset.connectors.sqla.models import SqlaTable
     from superset.extensions import db
     from superset.models.dashboard import Dashboard
@@ -496,7 +512,6 @@ def register_change_record_listener() -> None:
 
     versioned_classes: tuple[type, ...] = (Dashboard, Slice, SqlaTable)
 
-    @event.listens_for(db.session, "before_flush")
     def compute_change_records(
         session: Session, _flush_context: Any, _instances: Any
     ) -> None:
@@ -512,7 +527,6 @@ def register_change_record_listener() -> None:
             if isinstance(obj, versioned_classes):
                 _process_dirty_entity_into_buffer(session, obj, buffer)
 
-    @event.listens_for(db.session, "after_flush")
     def flush_change_records(session: Session, _flush_context: Any) -> None:
         # pylint: disable=import-outside-toplevel
         from sqlalchemy_continuum import versioning_manager
@@ -560,3 +574,18 @@ def register_change_record_listener() -> None:
         finally:
             session.info[_BUFFER_KEY] = {}
             processed.add(tx_id)
+
+    # Attach only if we haven't already — guards against the test-
+    # fixture pattern where multiple Superset apps are instantiated
+    # per process and each call to register_change_record_listener
+    # would otherwise stack another listener on the shared db.session.
+    if _compute_change_records_handler is None or not event.contains(
+        db.session, "before_flush", _compute_change_records_handler
+    ):
+        event.listen(db.session, "before_flush", compute_change_records)
+        _compute_change_records_handler = compute_change_records
+    if _flush_change_records_handler is None or not event.contains(
+        db.session, "after_flush", _flush_change_records_handler
+    ):
+        event.listen(db.session, "after_flush", flush_change_records)
+        _flush_change_records_handler = flush_change_records

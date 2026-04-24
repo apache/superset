@@ -65,6 +65,40 @@ _AUDIT_FIELDS: frozenset[str] = frozenset(
     }
 )
 
+# Fields stripped from child-collection dict items (TableColumn,
+# SqlMetric) before comparison and emission. ``changed_on`` /
+# ``created_on`` / ``*_by_fk`` are audit fields that update on every
+# save of the parent — without this filter, saving a dataset to add
+# one column produces a record per existing column too (because their
+# ``changed_on`` timestamps all refreshed). ``id`` and ``table_id``
+# are implementation details — ``id`` can change under the
+# ``override_columns`` delete-and-reinsert pattern (ADR-004) even
+# when the column is semantically unchanged; ``table_id`` is the
+# parent FK and never meaningfully differs within one dataset's
+# history. ``uuid`` stays stable across normal saves and is kept so
+# the renderer can use it for identity if it needs to.
+_CHILD_ITEM_OPAQUE_FIELDS: frozenset[str] = frozenset(
+    {
+        "id",
+        "table_id",
+        "changed_on",
+        "created_on",
+        "changed_by_fk",
+        "created_by_fk",
+    }
+)
+
+
+def _strip_opaque_fields(item: Any) -> Any:
+    """Return *item* with child-item audit/implementation fields removed.
+
+    Pass-through for non-dict values (scalars, strings) — the strip
+    only applies where it matters (dataset column / metric dicts).
+    """
+    if not isinstance(item, dict):
+        return item
+    return {k: v for k, v in item.items() if k not in _CHILD_ITEM_OPAQUE_FIELDS}
+
 # Chart ``params`` sub-keys that are promoted to first-class kinds.
 # Every other params sub-key falls through to ``kind="field"``.
 _CHART_PARAMS_KIND_BY_KEY: dict[str, str] = {
@@ -178,25 +212,35 @@ def _diff_list_by_natural_key(
 
     records: list[ChangeRecord] = []
     # Preserve `from` order then append `to`-only keys, so sequence is
-    # deterministic across runs.
+    # deterministic across runs. For dict items (dataset columns /
+    # metrics) we strip audit/implementation fields before comparing
+    # AND before emitting — otherwise a save that only adds a new
+    # column would also emit "changed" records for every existing
+    # column, because their ``changed_on`` timestamps all refreshed.
+    # The stripped from/to are what the renderer sees; the per-column
+    # audit trail is already aggregated at the transaction level in
+    # ``version_transaction`` (``user_id`` + ``issued_at``).
     for k, from_item in from_by_key.items():
         to_item = to_by_key.get(k)
+        stripped_from = _strip_opaque_fields(from_item)
         if to_item is None:
             records.append(
                 ChangeRecord(
                     kind=kind,
                     path=[*path_prefix, k],
-                    from_value=from_item,
+                    from_value=stripped_from,
                     to_value=None,
                 )
             )
-        elif from_item != to_item:
+            continue
+        stripped_to = _strip_opaque_fields(to_item)
+        if stripped_from != stripped_to:
             records.append(
                 ChangeRecord(
                     kind=kind,
                     path=[*path_prefix, k],
-                    from_value=from_item,
-                    to_value=to_item,
+                    from_value=stripped_from,
+                    to_value=stripped_to,
                 )
             )
     for k, to_item in to_by_key.items():
@@ -206,7 +250,7 @@ def _diff_list_by_natural_key(
                     kind=kind,
                     path=[*path_prefix, k],
                     from_value=None,
-                    to_value=to_item,
+                    to_value=_strip_opaque_fields(to_item),
                 )
             )
     return records

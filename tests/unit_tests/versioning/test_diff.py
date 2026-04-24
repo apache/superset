@@ -217,7 +217,7 @@ def test_scalar_fields_for_empty_versioned_dict() -> None:
 
     class _Model:
         __table__ = _FakeTable(["id", "name"])
-        __versioned__: dict = {}
+        __versioned__: dict[str, Any] = {}
 
     result = scalar_fields_for(_Model)
     assert result == frozenset({"name"})
@@ -562,6 +562,60 @@ def test_column_type_changed() -> None:
 
 def test_column_unchanged_emits_nothing() -> None:
     assert diff_dataset_columns([COLUMN_COUNTRY], [COLUMN_COUNTRY]) == []
+
+
+def test_column_audit_only_change_is_ignored() -> None:
+    """Refreshed ``changed_on`` alone must not produce a record.
+
+    Reproduces the dataset-editor scenario where adding one calculated
+    column refreshes ``changed_on`` on every other column as a
+    side-effect of the save. Before the audit-field strip, each
+    untouched column produced a spurious 'changed' record.
+    """
+    pre = {
+        "column_name": "country",
+        "type": "VARCHAR",
+        "id": 1226,
+        "table_id": 17,
+        "changed_on": "2026-04-24T18:49:07.368009",
+        "created_on": "2026-04-24T18:49:07.368008",
+        "changed_by_fk": 1,
+        "created_by_fk": 1,
+    }
+    post = dict(pre, changed_on="2026-04-24T18:49:07.502720")
+    assert diff_dataset_columns([pre], [post]) == []
+
+
+def test_column_id_change_with_same_content_is_ignored() -> None:
+    """``override_columns`` re-insert gives new ids; don't fire a record.
+
+    Under DatasetDAO.update_columns' override_columns pattern a
+    column's row can be deleted and re-inserted with the same natural
+    key (``column_name``) and content but a new auto-increment id.
+    The natural key matches, so we don't emit add+remove; the id-only
+    difference must be filtered so we don't emit a spurious 'changed'.
+    """
+    pre = {"column_name": "country", "type": "VARCHAR", "id": 1226, "table_id": 17}
+    post = dict(pre, id=1234)
+    assert diff_dataset_columns([pre], [post]) == []
+
+
+def test_column_real_content_change_still_emits() -> None:
+    """After stripping audit fields, a genuine content change still fires."""
+    pre = {
+        "column_name": "country",
+        "type": "VARCHAR",
+        "id": 1226,
+        "changed_on": "2026-04-24T18:49:07.368009",
+    }
+    post = dict(pre, type="TEXT", changed_on="2026-04-24T18:49:07.502720")
+    records = diff_dataset_columns([pre], [post])
+    assert len(records) == 1
+    # Stripped values reach the renderer — no audit noise in the record.
+    assert "changed_on" not in records[0].from_value
+    assert "changed_on" not in records[0].to_value
+    assert records[0].from_value["type"] == "VARCHAR"
+    assert records[0].to_value["type"] == "TEXT"
 
 
 # ---------------------------------------------------------------------------
