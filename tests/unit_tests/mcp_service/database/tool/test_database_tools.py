@@ -269,10 +269,15 @@ async def test_list_databases_does_not_expose_user_directory_fields(
 
 
 def test_database_filter_rejects_user_directory_fields() -> None:
-    """Test user directory fields cannot be used for database filters."""
-    with pytest.raises(ValueError, match="created_by_fk"):
+    """Test user directory string fields cannot be used for database filters.
+
+    created_by_fk / changed_by_fk are integer FK IDs and ARE valid filter
+    columns.  The user-directory *string* fields (created_by, created_by_name,
+    etc.) must still be rejected.
+    """
+    with pytest.raises(ValidationError, match="created_by_name"):
         ListDatabasesRequest(
-            filters=[{"col": "created_by_fk", "opr": "eq", "value": 1}],
+            filters=[{"col": "created_by_name", "opr": "eq", "value": "admin"}],
         )
 
 
