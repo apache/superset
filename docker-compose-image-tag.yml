@@ -29,6 +29,8 @@ x-superset-volumes:
   &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
   - superset_home:/app/superset_home
+  # Canias Tab Rotator — postMessage ile tab geçişi ve sayfa yenileme
+  - ./tail_js_custom_extra.html:/app/superset/templates/tail_js_custom_extra.html
 x-superset-environment: &superset-environment
   # Tagged images must use their bundled packages rather than host bind mounts.
   DEV_MODE: "false"
