@@ -101,12 +101,35 @@ class TextAreaControl extends Component<TextAreaControlProps> {
     | ReturnType<typeof debounce<(value: string) => void>>
     | undefined;
 
+  // East-Asian IMEs fire onChange per candidate character during composition.
+  // Suppressing them reduces the per-IME-word cost from N to 1; only the
+  // committed composition (on compositionend) propagates to the parent.
+  private isComposing = false;
+
   constructor(props: TextAreaControlProps) {
     super(props);
     if (props.debounceDelay && props.onChange) {
       this.debouncedOnChange = debounce(props.onChange, props.debounceDelay);
     }
   }
+
+  handleCompositionStart = () => {
+    this.isComposing = true;
+  };
+
+  handleCompositionEnd = (
+    e: React.CompositionEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
+    this.isComposing = false;
+    const target = e.target as HTMLTextAreaElement | HTMLInputElement;
+    if (target?.value != null) {
+      if (this.debouncedOnChange) {
+        this.debouncedOnChange(target.value);
+      } else {
+        this.props.onChange?.(target.value);
+      }
+    }
+  };
 
   componentDidUpdate(prevProps: TextAreaControlProps) {
     if (
@@ -124,14 +147,17 @@ class TextAreaControl extends Component<TextAreaControlProps> {
     }
   }
 
-  handleChange(value: string | { target: { value: string } }) {
+  handleChange = (value: string | { target: { value: string } }) => {
+    // Skip intermediate IME candidate events. The final committed value is
+    // propagated once from handleCompositionEnd.
+    if (this.isComposing) return;
     const finalValue = typeof value === 'object' ? value.target.value : value;
     if (this.debouncedOnChange) {
       this.debouncedOnChange(finalValue);
     } else {
       this.props.onChange?.(finalValue);
     }
-  }
+  };
 
   componentWillUnmount() {
     if (this.debouncedOnChange) {
@@ -211,7 +237,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
             readOnly={readOnly}
             key={name}
             {...editorProps}
-            onChange={this.handleChange.bind(this)}
+            onChange={this.handleChange}
           />
         </div>
       );
@@ -226,7 +252,9 @@ class TextAreaControl extends Component<TextAreaControlProps> {
       <div>
         <Input.TextArea
           placeholder={t('textarea')}
-          onChange={this.handleChange.bind(this)}
+          onChange={this.handleChange}
+          onCompositionStart={this.handleCompositionStart}
+          onCompositionEnd={this.handleCompositionEnd}
           defaultValue={this.props.initialValue}
           disabled={this.props.readOnly}
           style={{ height: this.props.height }}

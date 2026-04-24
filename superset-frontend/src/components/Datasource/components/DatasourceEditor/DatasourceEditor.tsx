@@ -18,6 +18,7 @@
  */
 import rison from 'rison';
 import { PureComponent, useCallback, type ReactNode } from 'react';
+import { debounce } from 'lodash';
 import { connect, ConnectedProps } from 'react-redux';
 import type { JsonObject } from '@superset-ui/core';
 import { type SupersetTheme } from '@apache-superset/core/theme';
@@ -895,6 +896,25 @@ class DatasourceEditor extends PureComponent<
 
   private abortControllers: AbortControllers;
 
+  private debouncedValidateAndChange!: ReturnType<typeof debounce<() => void>>;
+
+  private _sortedMetricsCache: {
+    input: Metric[];
+    output: Metric[];
+  } | null = null;
+
+  private _datetimeColumnsCache: {
+    dbCols: Column[];
+    calcCols: Column[];
+    output: { value: string; label: string }[];
+  } | null = null;
+
+  private _stringColumnsCache: {
+    dbCols: Column[];
+    calcCols: Column[];
+    output: { value: string; label: string }[];
+  } | null = null;
+
   static defaultProps = {
     onChange: () => {},
     setIsEditing: () => {},
@@ -990,6 +1010,15 @@ class DatasourceEditor extends PureComponent<
     this.formatSql = this.formatSql.bind(this);
     this.fetchUsageData = this.fetchUsageData.bind(this);
     this.handleFoldersChange = this.handleFoldersChange.bind(this);
+
+    // Validation is moved off the keystroke hot path. A 300 ms window keeps
+    // feedback inside the typical between-word pause while letting React
+    // commit each keystroke's state update without blocking on O(n)
+    // duplicate/currency/folder checks.
+    this.debouncedValidateAndChange = debounce(
+      () => this.validate(this.onChange),
+      300,
+    );
   }
 
   onChange() {
@@ -1081,8 +1110,12 @@ class DatasourceEditor extends PureComponent<
   }
 
   validateAndChange() {
-    this.validate(this.onChange);
+    this.debouncedValidateAndChange();
   }
+
+  flushValidation = () => {
+    this.debouncedValidateAndChange.flush();
+  };
 
   async onQueryRun() {
     const databaseId = this.state.datasource.database?.id;
@@ -1464,21 +1497,56 @@ class DatasourceEditor extends PureComponent<
     );
   }
 
-  renderDefaultColumnSettings() {
-    const { datasource, databaseColumns, calculatedColumns } = this.state;
-    const { theme } = this.props;
-    const allColumns = [...databaseColumns, ...calculatedColumns];
+  // Cached getters for derived arrays. Each returns a stable reference while
+  // its inputs' identities are unchanged, so downstream PureComponent /
+  // React.memo children stop re-rendering on unrelated state changes.
 
-    // Get datetime-compatible columns for the default datetime dropdown
-    const datetimeColumns = allColumns
+  getSortedMetrics(metrics: Metric[] | undefined): Metric[] {
+    const safeMetrics = metrics ?? [];
+    if (this._sortedMetricsCache?.input === safeMetrics) {
+      return this._sortedMetricsCache.output;
+    }
+    const output = safeMetrics.length
+      ? [...safeMetrics].sort(
+          ({ id: a }: { id?: number }, { id: b }: { id?: number }) =>
+            (b ?? 0) - (a ?? 0),
+        )
+      : [];
+    this._sortedMetricsCache = { input: safeMetrics, output };
+    return output;
+  }
+
+  getDatetimeColumns(
+    dbCols: Column[],
+    calcCols: Column[],
+  ): { value: string; label: string }[] {
+    if (
+      this._datetimeColumnsCache?.dbCols === dbCols &&
+      this._datetimeColumnsCache?.calcCols === calcCols
+    ) {
+      return this._datetimeColumnsCache.output;
+    }
+    const output = [...dbCols, ...calcCols]
       .filter(col => col.is_dttm)
       .map(col => ({
         value: col.column_name,
         label: col.verbose_name || col.column_name,
       }));
+    this._datetimeColumnsCache = { dbCols, calcCols, output };
+    return output;
+  }
 
-    // String columns + untyped calculated columns for the currency code dropdown
-    const stringColumns = allColumns
+  getStringColumns(
+    dbCols: Column[],
+    calcCols: Column[],
+  ): { value: string; label: string }[] {
+    if (
+      this._stringColumnsCache?.dbCols === dbCols &&
+      this._stringColumnsCache?.calcCols === calcCols
+    ) {
+      return this._stringColumnsCache.output;
+    }
+    const output = [...dbCols, ...calcCols]
       .filter(
         col =>
           col.type_generic === GenericDataType.String ||
@@ -1488,6 +1556,42 @@ class DatasourceEditor extends PureComponent<
         value: col.column_name,
         label: col.verbose_name || col.column_name,
       }));
+    this._stringColumnsCache = { dbCols, calcCols, output };
+    return output;
+  }
+
+  newSpatialItem = () => ({
+    name: t('<new spatial>'),
+    type: t('<no type>'),
+    config: null,
+  });
+
+  newMetricItem = () => ({
+    metric_name: t('<new metric>'),
+    verbose_name: '',
+    expression: '',
+  });
+
+  newCalculatedColumnItem = () => ({
+    column_name: t('<new column>'),
+    filterable: true,
+    groupby: true,
+    expression: t('<enter SQL expression here>'),
+    expanded: true,
+  });
+
+  renderDefaultColumnSettings() {
+    const { datasource, databaseColumns, calculatedColumns } = this.state;
+    const { theme } = this.props;
+
+    const datetimeColumns = this.getDatetimeColumns(
+      databaseColumns,
+      calculatedColumns,
+    );
+    const stringColumns = this.getStringColumns(
+      databaseColumns,
+      calculatedColumns,
+    );
 
     return (
       <DefaultColumnSettingsContainer data-test="default-column-settings">
@@ -1708,11 +1812,7 @@ class DatasourceEditor extends PureComponent<
           tableColumns={['name', 'config']}
           sortColumns={['name']}
           onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
-          itemGenerator={() => ({
-            name: t('<new spatial>'),
-            type: t('<no type>'),
-            config: null,
-          })}
+          itemGenerator={this.newSpatialItem}
           collection={spatials ?? []}
           allowDeletes
           itemRenderers={{
@@ -2148,7 +2248,7 @@ class DatasourceEditor extends PureComponent<
   renderMetricCollection() {
     const { datasource, metricSearchTerm } = this.state;
     const { metrics } = datasource;
-    const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
+    const sortedMetrics = this.getSortedMetrics(metrics);
     return (
       <div>
         <Input.Search
@@ -2271,11 +2371,7 @@ class DatasourceEditor extends PureComponent<
           collection={sortedMetrics}
           allowAddItem
           onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
-          itemGenerator={() => ({
-            metric_name: t('<new metric>'),
-            verbose_name: '',
-            expression: '',
-          })}
+          itemGenerator={this.newMetricItem}
           itemCellProps={{
             expression: () => ({
               style: {
@@ -2349,10 +2445,13 @@ class DatasourceEditor extends PureComponent<
   render() {
     const { datasource, activeTabKey } = this.state;
     const { metrics } = datasource;
-    const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
+    const sortedMetrics = this.getSortedMetrics(metrics);
 
     return (
-      <DatasourceContainer data-test="datasource-editor">
+      <DatasourceContainer
+        data-test="datasource-editor"
+        onBlur={this.flushValidation}
+      >
         {this.renderErrors()}
         <Alert
           css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
@@ -2372,6 +2471,7 @@ class DatasourceEditor extends PureComponent<
           data-test="edit-dataset-tabs"
           onChange={this.handleTabSelect}
           defaultActiveKey={activeTabKey}
+          destroyInactiveTabPane
           items={[
             {
               key: TABS_KEYS.SOURCE,
@@ -2479,13 +2579,7 @@ class DatasourceEditor extends PureComponent<
                     showExpression
                     allowAddItem
                     allowEditDataType
-                    itemGenerator={() => ({
-                      column_name: t('<new column>'),
-                      filterable: true,
-                      groupby: true,
-                      expression: t('<enter SQL expression here>'),
-                      expanded: true,
-                    })}
+                    itemGenerator={this.newCalculatedColumnItem}
                   />
                 </StyledTableTabWrapper>
               ),
@@ -2626,6 +2720,8 @@ class DatasourceEditor extends PureComponent<
 
   componentWillUnmount() {
     this.isComponentMounted = false;
+
+    this.debouncedValidateAndChange.cancel();
 
     // Abort all pending requests
     Object.values(this.abortControllers).forEach(controller => {
