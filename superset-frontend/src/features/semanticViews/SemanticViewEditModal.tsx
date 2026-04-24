@@ -28,11 +28,16 @@ import {
   TableSize,
 } from '@superset-ui/core/components/Table';
 import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import {
   StandardModal,
   ModalFormField,
   MODAL_LARGE_WIDTH,
 } from 'src/components/Modal';
+
+const ModalContent = styled.div`
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
+`;
 
 type InputNumberValue = number | null;
 
@@ -176,59 +181,61 @@ export default function SemanticViewEditModal({
       saveLoading={saving}
       contentLoading={structureLoading}
     >
-      <Tabs>
-        <Tabs.TabPane tab={t('Details')} key="details">
-          <ModalFormField label={t('Description')}>
-            <Input.TextArea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              rows={4}
+      <ModalContent>
+        <Tabs>
+          <Tabs.TabPane tab={t('Details')} key="details">
+            <ModalFormField label={t('Description')}>
+              <Input.TextArea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={4}
+              />
+            </ModalFormField>
+            <ModalFormField label={t('Cache timeout')}>
+              <InputNumber
+                value={cacheTimeout}
+                onChange={value => setCacheTimeout(value as InputNumberValue)}
+                min={0}
+                placeholder={t('Duration in seconds')}
+                style={{ width: '100%' }}
+              />
+            </ModalFormField>
+          </Tabs.TabPane>
+          <Tabs.TabPane
+            tab={t('Dimensions (%s)', dimensions.length)}
+            key="dimensions"
+          >
+            <Alert
+              type="info"
+              message={STRUCTURE_INFO_MESSAGE}
+              showIcon
+              css={{ marginBottom: 16 }}
             />
-          </ModalFormField>
-          <ModalFormField label={t('Cache timeout')}>
-            <InputNumber
-              value={cacheTimeout}
-              onChange={value => setCacheTimeout(value as InputNumberValue)}
-              min={0}
-              placeholder={t('Duration in seconds')}
-              style={{ width: '100%' }}
+            <Table<SemanticDimension>
+              data={dimensions}
+              columns={DIMENSION_COLUMNS}
+              size={TableSize.Small}
+              rowKey="name"
+              usePagination={false}
             />
-          </ModalFormField>
-        </Tabs.TabPane>
-        <Tabs.TabPane
-          tab={t('Dimensions (%s)', dimensions.length)}
-          key="dimensions"
-        >
-          <Alert
-            type="info"
-            message={STRUCTURE_INFO_MESSAGE}
-            showIcon
-            css={{ marginBottom: 16 }}
-          />
-          <Table<SemanticDimension>
-            data={dimensions}
-            columns={DIMENSION_COLUMNS}
-            size={TableSize.Small}
-            rowKey="name"
-            usePagination={false}
-          />
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={t('Metrics (%s)', metrics.length)} key="metrics">
-          <Alert
-            type="info"
-            message={STRUCTURE_INFO_MESSAGE}
-            showIcon
-            css={{ marginBottom: 16 }}
-          />
-          <Table<SemanticMetric>
-            data={metrics}
-            columns={METRIC_COLUMNS}
-            size={TableSize.Small}
-            rowKey="name"
-            usePagination={false}
-          />
-        </Tabs.TabPane>
-      </Tabs>
+          </Tabs.TabPane>
+          <Tabs.TabPane tab={t('Metrics (%s)', metrics.length)} key="metrics">
+            <Alert
+              type="info"
+              message={STRUCTURE_INFO_MESSAGE}
+              showIcon
+              css={{ marginBottom: 16 }}
+            />
+            <Table<SemanticMetric>
+              data={metrics}
+              columns={METRIC_COLUMNS}
+              size={TableSize.Small}
+              rowKey="name"
+              usePagination={false}
+            />
+          </Tabs.TabPane>
+        </Tabs>
+      </ModalContent>
     </StandardModal>
   );
 }
