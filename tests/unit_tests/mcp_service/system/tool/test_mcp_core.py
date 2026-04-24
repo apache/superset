@@ -178,11 +178,42 @@ def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared(
     tool.run_tool(order_column="name")
 
 
-def test_model_list_tool_allows_created_by_fk_filter_for_current_user():
-    """created_by_fk filter is accepted when the value matches the current user's ID."""
+def test_model_list_tool_injects_current_user_id_for_created_by_fk_filter():
+    """Any value passed for created_by_fk is replaced with the current user's ID."""
     current_user = Mock()
     current_user.is_authenticated = True
     current_user.id = 42
+
+    captured = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, column_operators=None, **kwargs):
+            captured["filters"] = column_operators
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch("superset.mcp_service.mcp_core.current_user", current_user):
+        # Value 0 is a placeholder; system replaces it with current_user.id
+        tool.run_tool(filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}])
+
+    assert captured["filters"][0]["value"] == 42
+
+
+def test_model_list_tool_created_by_fk_requires_authenticated_user():
+    """created_by_fk filter raises when no authenticated user is present."""
+    current_user = Mock()
+    current_user.is_authenticated = False
 
     tool = ModelListCore(
         dao_class=DummyDAO,
@@ -195,36 +226,10 @@ def test_model_list_tool_allows_created_by_fk_filter_for_current_user():
         output_list_schema=DummyListSchema,
     )
 
-    with patch(
-        "superset.mcp_service.mcp_core.current_user", current_user
-    ):
-        # Should not raise
-        tool.run_tool(filters=[{"col": "created_by_fk", "opr": "eq", "value": 42}])
-
-
-def test_model_list_tool_rejects_created_by_fk_filter_for_other_user():
-    """created_by_fk filter is rejected when the value is another user's ID."""
-    current_user = Mock()
-    current_user.is_authenticated = True
-    current_user.id = 42
-
-    tool = ModelListCore(
-        dao_class=DummyDAO,
-        output_schema=DummyOutputSchema,
-        item_serializer=dummy_serializer,
-        filter_type=None,
-        default_columns=["id", "name"],
-        search_columns=["name"],
-        list_field_name="items",
-        output_list_schema=DummyListSchema,
-    )
-
-    with patch(
-        "superset.mcp_service.mcp_core.current_user", current_user
-    ):
-        with pytest.raises(ValueError, match="own user ID"):
+    with patch("superset.mcp_service.mcp_core.current_user", current_user):
+        with pytest.raises(ValueError, match="authenticated user"):
             tool.run_tool(
-                filters=[{"col": "created_by_fk", "opr": "eq", "value": 99}]
+                filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}]
             )
 
 

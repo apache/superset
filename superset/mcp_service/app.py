@@ -143,13 +143,10 @@ To create a chart:
    }}) -> save permanently
 
 To find your own charts/dashboards/databases:
-1. get_instance_info -> get current_user.id
-2. list_charts(request={{"filters": [{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}]}})
-3. Or: list_dashboards(request={{"filters": [{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}]}})
-4. Or: list_databases(request={{"filters": [{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}]}})
+- list_charts(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
+- list_dashboards(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
+- list_databases(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
+Note: the value is ignored — the system automatically filters by the current user.
 
 To explore data with SQL:
 1. list_datasets(request={{}}) -> find a dataset and note its database_id
@@ -211,12 +208,9 @@ Query Examples:
   list_charts(request={{"filters": [{{"col": "viz_type",
     "opr": "sw", "value": "echarts_timeseries"}}]}})
 - Search by name: list_charts(request={{"search": "sales"}})
-- My charts (use current_user.id from get_instance_info):
-  list_charts(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <current_user.id>}}]}})
-- My dashboards:
-  list_dashboards(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <current_user.id>}}]}})
-- My databases:
-  list_databases(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <current_user.id>}}]}})
+- My charts: list_charts(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
+- My dashboards: list_dashboards(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
+- My databases: list_databases(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
 To modify an existing chart (add filters, change metrics, etc.):
 1. get_chart_info(request={{"identifier": <chart_id>}})
    -> examine current configuration
