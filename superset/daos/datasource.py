@@ -17,7 +17,7 @@
 
 import logging
 import uuid
-from typing import Any, Union
+from typing import Any, cast, Union
 
 from sqlalchemy import and_, func, literal, or_, select
 from sqlalchemy.orm import joinedload
@@ -98,18 +98,20 @@ class DatasourceDAO(BaseDAO[Datasource]):
         database_id: int | None = None,
     ) -> Select:
         """Build a SELECT for datasets, applying access and content filters."""
+        ds_table = SqlaTable.__table__
+        db_table = sqla_models.Database.__table__
         ds_q = select(
-            SqlaTable.id.label("item_id"),
+            ds_table.c.id.label("item_id"),
             literal("database").label("source_type"),
-            SqlaTable.changed_on,
-            SqlaTable.table_name,
-            sqla_models.Database.database_name.label("database_name"),
-            SqlaTable.schema,
-        ).select_from(SqlaTable.__table__)
+            ds_table.c.changed_on,
+            ds_table.c.table_name,
+            db_table.c.database_name.label("database_name"),
+            ds_table.c.schema,
+        ).select_from(ds_table)
 
         ds_q = ds_q.join(
-            sqla_models.Database,
-            sqla_models.Database.id == SqlaTable.database_id,
+            db_table,
+            db_table.c.id == ds_table.c.database_id,
         )
 
         if not security_manager.can_access_all_datasources():
@@ -136,14 +138,15 @@ class DatasourceDAO(BaseDAO[Datasource]):
         semantic_layer_uuid: str | None = None,
     ) -> Select:
         """Build a SELECT for semantic views, applying name and layer filters."""
+        sv_table = SemanticView.__table__
         sv_q = select(
-            SemanticView.id.label("item_id"),
+            sv_table.c.id.label("item_id"),
             literal("semantic_layer").label("source_type"),
-            SemanticView.changed_on,
-            SemanticView.name.label("table_name"),
+            sv_table.c.changed_on,
+            sv_table.c.name.label("table_name"),
             literal(None).label("database_name"),
             literal(None).label("schema"),
-        ).select_from(SemanticView.__table__)
+        ).select_from(sv_table)
 
         if not security_manager.can_access_all_datasources():
             perms = security_manager.user_view_menu_names("datasource_access")
@@ -212,7 +215,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
                 joinedload(SqlaTable.owners),
                 joinedload(SqlaTable.changed_by),
             )
-            .filter(SqlaTable.id.in_(ids))
+            .filter(cast(Any, SqlaTable.id).in_(ids))
             .all()
         )
         return {obj.id: obj for obj in objs}
@@ -225,7 +228,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
         objs = (
             db.session.query(SemanticView)
             .options(joinedload(SemanticView.changed_by))
-            .filter(SemanticView.id.in_(ids))
+            .filter(cast(Any, SemanticView.id).in_(ids))
             .all()
         )
         return {obj.id: obj for obj in objs}
