@@ -1301,6 +1301,48 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
     assert SQLStatement(sql, "postgresql").is_mutating() == expected
 
 
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1", False),
+        ("INSERT INTO t VALUES (1)", False),
+        ("UPDATE t SET x = 1", False),
+        ("DELETE FROM t", False),
+        ("MERGE INTO t USING s ON t.id = s.id WHEN MATCHED THEN DELETE", False),
+        ("CREATE TABLE t (id INT)", False),
+        ("DROP TABLE t", True),
+        ("DROP TABLE IF EXISTS t", True),
+        ("DROP VIEW v", True),
+        ("TRUNCATE TABLE t", True),
+        ("ALTER TABLE t ADD COLUMN x INT", True),
+        ("ALTER TABLE t DROP COLUMN x", True),
+    ],
+)
+def test_is_destructive_ddl(sql: str, expected: bool) -> None:
+    """
+    Test that ``is_destructive_ddl`` detects DROP, TRUNCATE, and ALTER
+    but not SELECT, INSERT, UPDATE, DELETE, MERGE, or CREATE.
+    """
+    assert SQLStatement(sql, "postgresql").is_destructive_ddl() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1; INSERT INTO t VALUES (1)", False),
+        ("SELECT 1; DROP TABLE t", True),
+        ("SELECT 1; TRUNCATE TABLE t", True),
+        ("CREATE TABLE t (id INT); ALTER TABLE t ADD COLUMN x INT", True),
+    ],
+)
+def test_has_destructive_ddl(sql: str, expected: bool) -> None:
+    """
+    Test that ``has_destructive_ddl`` on SQLScript detects destructive DDL
+    across multiple statements.
+    """
+    assert SQLScript(sql, "postgresql").has_destructive_ddl() == expected
+
+
 def test_optimize() -> None:
     """
     Test that the `optimize` method works as expected.
