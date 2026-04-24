@@ -382,7 +382,7 @@ class TestQueryApi(SupersetTestCase):
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
-    def test_get_list_query_order_duration(self):
+    def test_get_list_query_order_duration(self) -> None:
         """
         Query API: Test that sorting by duration orders by end_time - start_time,
         falling back to start_time when start_running_time is absent, and treating
