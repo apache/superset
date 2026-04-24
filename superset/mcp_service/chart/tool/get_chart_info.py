@@ -38,6 +38,10 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.privacy import (
+    redact_chart_data_model_fields,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +70,7 @@ def _get_cached_form_data(form_data_key: str) -> str | None:
     ),
 )
 @mcp_auth_hook(class_permission_name="Chart")
-async def get_chart_info(
+async def get_chart_info(  # noqa: C901
     request: GetChartInfoRequest, ctx: Context
 ) -> ChartInfo | ChartError:
     """Get chart metadata by ID or UUID.
@@ -110,6 +114,7 @@ async def get_chart_info(
         "Retrieving chart information: identifier=%s, form_data_key=%s"
         % (request.identifier, request.form_data_key)
     )
+    can_view_data_model_metadata = user_can_view_data_model_metadata()
 
     # Eager load tags to avoid N+1 queries during serialization.
     eager_options = [
@@ -161,6 +166,9 @@ async def get_chart_info(
                     "form_data_key provided but no cached data found. "
                     "The cache may have expired. Using saved chart configuration."
                 )
+
+        if not can_view_data_model_metadata:
+            result = redact_chart_data_model_fields(result)
 
         await ctx.info(
             "Chart information retrieved successfully: chart_name=%s, "

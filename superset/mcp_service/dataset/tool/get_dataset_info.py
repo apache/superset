@@ -39,6 +39,11 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +57,7 @@ logger = logging.getLogger(__name__)
     ),
 )
 @mcp_auth_hook(class_permission_name="Dataset")
+@requires_data_model_metadata_access
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
@@ -89,6 +95,14 @@ async def get_dataset_info(
             request.force_refresh,
         )
     )
+
+    # The decorator hides this tool from search; this check enforces direct calls.
+    if not user_can_view_data_model_metadata():
+        await ctx.warning("Dataset metadata lookup blocked by privacy controls")
+        return DatasetError.create(
+            error="You don't have permission to access dataset details for your role.",
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
 
     try:
         from superset.connectors.sqla.models import SqlaTable

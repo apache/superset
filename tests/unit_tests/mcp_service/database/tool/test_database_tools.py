@@ -16,6 +16,7 @@
 # under the License.
 
 
+import importlib
 import logging
 from unittest.mock import MagicMock, patch
 
@@ -29,6 +30,12 @@ from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+list_databases_module = importlib.import_module(
+    "superset.mcp_service.database.tool.list_databases"
+)
+get_database_info_module = importlib.import_module(
+    "superset.mcp_service.database.tool.get_database_info"
+)
 
 
 def create_mock_database(
@@ -88,6 +95,24 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def allow_data_model_metadata():
+    """Keep database tests in the normal metadata-allowed path by default."""
+    with (
+        patch.object(
+            list_databases_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch.object(
+            get_database_info_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+    ):
+        yield
 
 
 @patch("superset.daos.database.DatabaseDAO.list")

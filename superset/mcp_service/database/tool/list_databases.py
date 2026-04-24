@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 
 from superset.extensions import event_logger
 from superset.mcp_service.database.schemas import (
+    DatabaseError,
     DatabaseFilter,
     DatabaseInfo,
     DatabaseList,
@@ -42,13 +43,21 @@ from superset.mcp_service.database.schemas import (
     serialize_database_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
 
 @mcp.tool
 @mcp_auth_hook(class_permission_name="Database")
-async def list_databases(request: ListDatabasesRequest, ctx: Context) -> DatabaseList:
+@requires_data_model_metadata_access
+async def list_databases(
+    request: ListDatabasesRequest, ctx: Context
+) -> DatabaseList | DatabaseError:
     """List database connections with filtering and search.
 
     Returns database metadata including name, backend type, and permissions.
@@ -82,6 +91,13 @@ async def list_databases(request: ListDatabasesRequest, ctx: Context) -> Databas
             request.force_refresh,
         )
     )
+
+    if not user_can_view_data_model_metadata():
+        await ctx.warning("Database listing blocked by data-model privacy controls")
+        return DatabaseError.create(
+            error="You don't have permission to access database details for your role.",
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
 
     try:
         from superset.daos.database import DatabaseDAO

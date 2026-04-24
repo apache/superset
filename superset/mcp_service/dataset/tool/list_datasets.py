@@ -35,6 +35,7 @@ from superset.mcp_service.auth import mcp_auth_hook
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 from superset.mcp_service.dataset.schemas import (
+    DatasetError,
     DatasetFilter,
     DatasetInfo,
     DatasetList,
@@ -42,6 +43,11 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +84,10 @@ SORTABLE_DATASET_COLUMNS = [
     ),
 )
 @mcp_auth_hook(class_permission_name="Dataset")
-async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
+@requires_data_model_metadata_access
+async def list_datasets(
+    request: ListDatasetsRequest, ctx: Context
+) -> DatasetList | DatasetError:
     """List datasets with filtering and search.
 
     Returns dataset metadata including table name, schema, and last modified
@@ -113,6 +122,13 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
             request.force_refresh,
         )
     )
+
+    if not user_can_view_data_model_metadata():
+        await ctx.warning("Dataset listing blocked by data-model privacy controls")
+        return DatasetError.create(
+            error="You don't have permission to access dataset details for your role.",
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
 
     try:
         from superset.daos.dataset import DatasetDAO
