@@ -23,12 +23,23 @@ import pytest
 from pydantic import ValidationError
 
 from superset.mcp_service.chart.schemas import (
+    _CHART_CONFIG_DESCRIPTION,
     ColumnRef,
     GenerateChartRequest,
     parse_chart_config,
     TableChartConfig,
     XYChartConfig,
 )
+
+
+def test_chart_config_description_warns_against_form_data_fields() -> None:
+    """Compact tool schema points LLMs to the MCP chart config dialect."""
+    assert "'chart_type': 'xy'" in _CHART_CONFIG_DESCRIPTION
+    assert "'kind': 'bar'" in _CHART_CONFIG_DESCRIPTION
+    assert "Superset Explore form-data" in _CHART_CONFIG_DESCRIPTION
+    assert "viz_type" in _CHART_CONFIG_DESCRIPTION
+    assert "time_range" in _CHART_CONFIG_DESCRIPTION
+    assert "echarts_timeseries_bar" in _CHART_CONFIG_DESCRIPTION
 
 
 class TestTableChartConfig:

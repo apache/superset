@@ -1271,6 +1271,10 @@ _CHART_CONFIG_DESCRIPTION = (
     "'pivot_table' (rows, metrics), 'mixed_timeseries' (x, y, y_secondary), "
     "'handlebars' (columns, handlebars_template), "
     "'big_number' (metric). "
+    "Do not use Superset Explore form-data fields like 'viz_type' or "
+    "'time_range', and do not use Superset viz type names like "
+    "'echarts_timeseries_bar' as chart_type. For bar charts use "
+    "{'chart_type': 'xy', 'kind': 'bar', ...}. "
     "See chart://configs resource for full field reference and examples."
 )
 
