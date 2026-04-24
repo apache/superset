@@ -66,7 +66,7 @@ const ContentStyleWrapper = styled.div`
   ${({ theme }) => css`
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 100px);
+    max-height: 70vh;
 
     .ant-row {
       margin-top: 8px;
