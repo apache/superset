@@ -146,7 +146,9 @@ class DatasourceDAO(BaseDAO[Datasource]):
                 SemanticLayer.__table__,
                 SemanticLayer.uuid == SemanticView.semantic_layer_uuid,
             )
-            sv_q = sv_q.where(SemanticLayer.perm.in_(perms))
+            sv_q = sv_q.where(
+                or_(SemanticView.perm.in_(perms), SemanticLayer.perm.in_(perms))
+            )
 
         if name_filter:
             escaped = _escape_ilike_fragment(name_filter)

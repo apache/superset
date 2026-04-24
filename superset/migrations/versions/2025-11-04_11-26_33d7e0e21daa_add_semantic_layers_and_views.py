@@ -117,6 +117,7 @@ def upgrade() -> None:
             server_default="1",
         ),
         sa.Column("cache_timeout", sa.Integer(), nullable=True),
+        sa.Column("perm", sa.String(length=1000), nullable=True),
         sa.Column(
             "semantic_layer_uuid",
             UUIDType(binary=True),
