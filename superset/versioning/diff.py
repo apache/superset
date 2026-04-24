@@ -166,14 +166,15 @@ def _diff_list_by_natural_key(
     from_list = from_list or []
     to_list = to_list or []
 
+    def _effective_key(raw: Key | None, idx: int) -> Key:
+        return raw if raw not in (None, "") else f"#{idx}"  # type: ignore[return-value]
+
     from_by_key: dict[Key, Any] = {}
     for idx, item in enumerate(from_list):
-        k = key_fn(item)
-        from_by_key[k if k not in (None, "") else f"#{idx}"] = item
+        from_by_key[_effective_key(key_fn(item), idx)] = item
     to_by_key: dict[Key, Any] = {}
     for idx, item in enumerate(to_list):
-        k = key_fn(item)
-        to_by_key[k if k not in (None, "") else f"#{idx}"] = item
+        to_by_key[_effective_key(key_fn(item), idx)] = item
 
     records: list[ChangeRecord] = []
     # Preserve `from` order then append `to`-only keys, so sequence is

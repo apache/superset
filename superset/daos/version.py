@@ -250,15 +250,12 @@ class VersionDAO:
                         version_changes_table,
                     )
 
-                    entity_kind = _ENTITY_KIND_BY_CLASS_NAME.get(
-                        model_cls.__name__
-                    )
+                    entity_kind = _ENTITY_KIND_BY_CLASS_NAME.get(model_cls.__name__)
                     if entity_kind is not None:
                         try:
                             conn.execute(
                                 sa.delete(version_changes_table).where(
-                                    version_changes_table.c.entity_kind
-                                    == entity_kind,
+                                    version_changes_table.c.entity_kind == entity_kind,
                                     version_changes_table.c.entity_id == entity_id,
                                     version_changes_table.c.transaction_id.in_(
                                         oldest_tx_ids
@@ -333,7 +330,11 @@ class VersionDAO:
                 .mappings()
                 .all()
             )
-        except sa.exc.OperationalError:
+        except sa.exc.DBAPIError:
+            # version_changes table missing (pre-migration). SQLite
+            # raises OperationalError ("no such table"); Postgres /
+            # MySQL raise ProgrammingError ("relation does not
+            # exist"); DBAPIError is the shared parent.
             return {}
 
         grouped: dict[int, list[dict[str, Any]]] = {tx: [] for tx in transaction_ids}

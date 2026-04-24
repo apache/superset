@@ -63,7 +63,7 @@ from typing import Any
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy import event
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
 from superset.utils import json as _superset_json
@@ -193,7 +193,7 @@ def _read_pre_state(
     Returns ``None`` if the row is missing (shouldn't happen for a
     dirty existing object, but defensive against race conditions).
     """
-    table = model_cls.__table__
+    table = model_cls.__table__  # type: ignore[attr-defined]
     with session.no_autoflush:
         result = (
             session.connection()
@@ -220,7 +220,7 @@ def _compute_records_for_entity(session: Session, obj: Any) -> list[ChangeRecord
 
     try:
         pre_state = _read_pre_state(session, model_cls, entity_id)
-    except OperationalError:
+    except DBAPIError:
         # Main entity table missing (pre-migration state, bootstrap).
         return []
     except Exception:  # pylint: disable=broad-except
@@ -336,7 +336,7 @@ def _dataset_child_records_for_tx(
             .mappings()
             .all()
         )
-    except sa.exc.OperationalError:
+    except sa.exc.DBAPIError:
         return {}
 
     result: dict[int, list[ChangeRecord]] = {}
@@ -400,7 +400,7 @@ def _dashboard_child_records_for_tx(
             .mappings()
             .all()
         )
-    except sa.exc.OperationalError:
+    except sa.exc.DBAPIError:
         return {}
 
     result: dict[int, list[ChangeRecord]] = {}
@@ -427,6 +427,56 @@ def _dashboard_child_records_for_tx(
         if records:
             result[dashboard_id] = records
     return result
+
+
+def _process_dirty_entity_into_buffer(
+    session: Session,
+    obj: Any,
+    buffer: dict[tuple[str, int], list[ChangeRecord]],
+) -> None:
+    """Compute scalar change records for one dirty entity + append to buffer."""
+    entity_kind = _ENTITY_KIND_BY_CLASS_NAME.get(type(obj).__name__)
+    if entity_kind is None:
+        return
+    entity_id = getattr(obj, "id", None)
+    if entity_id is None:
+        return
+    try:
+        records = _compute_records_for_entity(session, obj)
+    except Exception:  # pylint: disable=broad-except
+        logger.exception(
+            "version_changes: diff failed for %s id=%s",
+            type(obj).__name__,
+            entity_id,
+        )
+        return
+    if records:
+        buffer.setdefault((entity_kind, entity_id), []).extend(records)
+
+
+def _append_child_records_to_buffer(
+    session: Session,
+    tx_id: int,
+    buffer: dict[tuple[str, int], list[ChangeRecord]],
+) -> None:
+    """Compute dataset + dashboard child-collection records + append to buffer.
+
+    Runs in ``after_flush`` so the snapshot tables have the current-tx
+    rows. The signal "this entity needs child diffing" is "a snapshot
+    row exists for this tx" — more robust than relying on
+    ``session.dirty`` to include the parent when only children moved.
+    """
+    try:
+        for dataset_id, records in _dataset_child_records_for_tx(
+            session, tx_id
+        ).items():
+            buffer.setdefault(("dataset", dataset_id), []).extend(records)
+        for dashboard_id, records in _dashboard_child_records_for_tx(
+            session, tx_id
+        ).items():
+            buffer.setdefault(("dashboard", dashboard_id), []).extend(records)
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("version_changes: child-diff failed for tx %s", tx_id)
 
 
 def register_change_record_listener() -> None:
@@ -459,25 +509,8 @@ def register_change_record_listener() -> None:
             _BUFFER_KEY, {}
         )
         for obj in list(session.dirty):
-            if not isinstance(obj, versioned_classes):
-                continue
-            entity_kind = _ENTITY_KIND_BY_CLASS_NAME.get(type(obj).__name__)
-            if entity_kind is None:
-                continue
-            entity_id = getattr(obj, "id", None)
-            if entity_id is None:
-                continue
-            try:
-                records = _compute_records_for_entity(session, obj)
-            except Exception:  # pylint: disable=broad-except
-                logger.exception(
-                    "version_changes: diff failed for %s id=%s",
-                    type(obj).__name__,
-                    entity_id,
-                )
-                continue
-            if records:
-                buffer.setdefault((entity_kind, entity_id), []).extend(records)
+            if isinstance(obj, versioned_classes):
+                _process_dirty_entity_into_buffer(session, obj, buffer)
 
     @event.listens_for(db.session, "after_flush")
     def flush_change_records(session: Session, _flush_context: Any) -> None:
@@ -490,44 +523,23 @@ def register_change_record_listener() -> None:
 
         uow = versioning_manager.units_of_work.get(session.connection())
         if uow is None or uow.current_transaction is None:
-            # No Continuum transaction — drop the buffer rather than
-            # write orphaned records.
             session.info[_BUFFER_KEY] = {}
             return
 
         tx_id = uow.current_transaction.id
 
         # Skip if we've already written records for this tx (after_flush
-        # can fire more than once per commit — e.g. via autoflush from
-        # a mid-commit query, or snapshot listeners that themselves
-        # flush). Without this guard the child-diff path would re-read
-        # the same snapshot pair and re-emit the same records, tripping
-        # the UNIQUE(transaction_id, entity_kind, entity_id, sequence)
+        # can fire more than once per commit — e.g. autoflush from a
+        # mid-commit query, snapshot listeners that themselves flush).
+        # Without this guard the child-diff path would re-read the same
+        # snapshot pair and re-emit the same records, tripping the
+        # UNIQUE(transaction_id, entity_kind, entity_id, sequence)
         # constraint on insert.
         processed: set[int] = session.info.setdefault(_PROCESSED_TXS_KEY, set())
         if tx_id in processed:
             return
 
-        # T048b: child-collection diffs for datasets and dashboards.
-        # These read the prior and current dataset_snapshots /
-        # dashboard_snapshots rows, which exist at this point because
-        # the snapshot listeners (registered before this one) have
-        # already run and written the current-tx snapshot. Running
-        # here rather than before_flush keeps us from depending on
-        # session.dirty's inclusion of parents when only children
-        # moved — the signal is "did the snapshot listener write a
-        # row for this tx", which is more robust.
-        try:
-            for dataset_id, records in _dataset_child_records_for_tx(
-                session, tx_id
-            ).items():
-                buffer.setdefault(("dataset", dataset_id), []).extend(records)
-            for dashboard_id, records in _dashboard_child_records_for_tx(
-                session, tx_id
-            ).items():
-                buffer.setdefault(("dashboard", dashboard_id), []).extend(records)
-        except Exception:  # pylint: disable=broad-except
-            logger.exception("version_changes: child-diff failed for tx %s", tx_id)
+        _append_child_records_to_buffer(session, tx_id, buffer)
 
         if not buffer:
             session.info[_BUFFER_KEY] = {}
@@ -536,7 +548,7 @@ def register_change_record_listener() -> None:
 
         try:
             _bulk_insert_records(session, tx_id, buffer)
-        except OperationalError:
+        except DBAPIError:
             # version_changes table missing (migration not yet applied).
             pass
         except Exception:  # pylint: disable=broad-except
