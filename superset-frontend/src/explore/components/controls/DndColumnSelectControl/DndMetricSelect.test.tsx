@@ -69,14 +69,20 @@ const adhocMetricB = {
 };
 
 test('renders with default props', () => {
-  render(<DndMetricSelect {...defaultProps} />, { useDnd: true });
+  render(<DndMetricSelect {...defaultProps} />, {
+    useDnd: true,
+    useRedux: true,
+  });
   expect(
     screen.getByText('Drop a column/metric here or click'),
   ).toBeInTheDocument();
 });
 
 test('renders with default props and multi = true', () => {
-  render(<DndMetricSelect {...defaultProps} multi />, { useDnd: true });
+  render(<DndMetricSelect {...defaultProps} multi />, {
+    useDnd: true,
+    useRedux: true,
+  });
   expect(
     screen.getByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
@@ -86,6 +92,7 @@ test('render selected metrics correctly', () => {
   const metricValues = ['metric_a', 'metric_b', adhocMetricB];
   render(<DndMetricSelect {...defaultProps} value={metricValues} multi />, {
     useDnd: true,
+    useRedux: true,
   });
   expect(screen.getByText('metric_a')).toBeVisible();
   expect(screen.getByText('Metric B')).toBeVisible();
@@ -107,6 +114,7 @@ test('warn selected custom metric when metric gets removed from dataset', async 
     />,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -159,6 +167,7 @@ test('warn selected custom metric when metric gets removed from dataset for sing
     />,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -217,6 +226,7 @@ test('remove selected adhoc metric when column gets removed from dataset', async
     />,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -259,6 +269,7 @@ test('update adhoc metric name when column label in dataset changes', () => {
     />,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -304,6 +315,7 @@ test('can drag metrics', async () => {
   const metricValues = ['metric_a', 'metric_b', adhocMetricB];
   render(<DndMetricSelect {...defaultProps} value={metricValues} multi />, {
     useDnd: true,
+    useRedux: true,
   });
 
   expect(screen.getByText('metric_a')).toBeVisible();
@@ -341,6 +353,7 @@ test('cannot drop a duplicated item', () => {
     </>,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -374,6 +387,7 @@ test('can drop a saved metric when disallow_adhoc_metrics', () => {
     </>,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -415,6 +429,7 @@ test('cannot drop non-saved metrics when disallow_adhoc_metrics', () => {
     </>,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -463,6 +478,7 @@ test('title changes on custom SQL text change', async () => {
     />,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 

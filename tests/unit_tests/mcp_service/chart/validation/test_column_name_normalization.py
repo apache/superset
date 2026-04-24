@@ -236,6 +236,7 @@ class TestNormalizeColumnNames:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.y[0].name == "Sales"
         assert normalized.filters is not None
@@ -278,6 +279,7 @@ class TestNormalizeColumnNames:
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=999)
 
         # Should return original config unchanged
+        assert normalized.x is not None
         assert normalized.x.name == "orderdate"
         assert normalized.y[0].name == "sales"
 
@@ -318,6 +320,7 @@ class TestTimeSeriesFilterPromptFix:
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
         # After normalization, x.name should match the filter column exactly
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.filters is not None
         assert normalized.filters[0].column == "OrderDate"
@@ -394,6 +397,7 @@ class TestNormalizeUppercaseDataset:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
 
+        assert normalized.x is not None
         assert normalized.x.name == "ds"
         assert normalized.y[0].name == "DISTANCE"
         assert normalized.group_by is not None
@@ -417,6 +421,7 @@ class TestNormalizeUppercaseDataset:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
 
+        assert normalized.x is not None
         assert normalized.x.name == "ds"
         assert normalized.y[0].name == "DEPARTURE_DELAY"
 
@@ -459,6 +464,7 @@ class TestNormalizeEdgeCases:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.y[0].name == "Sales"
         assert normalized.filters is None
@@ -480,6 +486,7 @@ class TestNormalizeEdgeCases:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.filters is not None
         assert len(normalized.filters) == 0
@@ -500,6 +507,7 @@ class TestNormalizeEdgeCases:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.group_by is None
 
@@ -527,6 +535,7 @@ class TestNormalizeEdgeCases:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
+        assert normalized.x is not None
         assert normalized.x.name == "OrderDate"
         assert normalized.y[0].name == "Sales"
         assert normalized.y[1].name == "quantity_ordered"
@@ -554,6 +563,8 @@ class TestNormalizeEdgeCases:
         first = DatasetValidator.normalize_column_names(config, dataset_id=18)
         second = DatasetValidator.normalize_column_names(first, dataset_id=18)
 
+        assert first.x is not None
+        assert second.x is not None
         assert first.x.name == second.x.name == "OrderDate"
         assert first.y[0].name == second.y[0].name == "Sales"
         assert first.filters is not None
@@ -636,6 +647,7 @@ class TestNormalizeXAxisFilterConsistency:
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
         assert normalized.filters is not None
+        assert normalized.x is not None
         assert normalized.x.name == normalized.filters[0].column == "OrderDate"
 
     @patch.object(DatasetValidator, "_get_dataset_context")
@@ -656,6 +668,7 @@ class TestNormalizeXAxisFilterConsistency:
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
 
         assert normalized.filters is not None
+        assert normalized.x is not None
         assert normalized.x.name == normalized.filters[0].column == "ds"
 
     @patch.object(DatasetValidator, "_get_dataset_context")

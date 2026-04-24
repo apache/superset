@@ -120,6 +120,7 @@ import {
   INPUT_WIDTH,
 } from './constants';
 import DependencyList from './DependencyList';
+import { datasetLabel } from 'src/utils/semanticLayerLabels';
 
 const FORM_ITEM_WIDTH = 260;
 
@@ -325,6 +326,12 @@ const FiltersConfigForm = (
   const filters = form.getFieldValue('filters');
   const formValues = filters?.[filterId];
   const formFilter = formValues || undoFormValues || defaultFormFilter;
+  const formFilterWithTimeGrains = formFilter as typeof formFilter & {
+    time_grains?: string[];
+  };
+  const filterToEditWithTimeGrains = filterToEdit as
+    | (Filter & { time_grains?: string[] })
+    | undefined;
 
   const handleModifyFilter = useCallback(() => {
     if (onModifyFilter) {
@@ -587,7 +594,8 @@ const FiltersConfigForm = (
     !!filterToEdit?.time_range;
 
   const hasTimeGrainPreFilter = !!(
-    formFilter?.time_grains?.length || filterToEdit?.time_grains?.length
+    formFilterWithTimeGrains?.time_grains?.length ||
+    filterToEditWithTimeGrains?.time_grains?.length
   );
 
   const hasEnableSingleValue =
@@ -1052,7 +1060,7 @@ const FiltersConfigForm = (
                       <StyledFormItem
                         expanded={expanded}
                         name={['filters', filterId, 'dataset']}
-                        label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+                        label={<StyledLabel>{datasetLabel()}</StyledLabel>}
                         initialValue={
                           datasetDetails
                             ? {
@@ -1072,7 +1080,10 @@ const FiltersConfigForm = (
                         rules={[
                           {
                             required: !isRemoved,
-                            message: t('Dataset is required'),
+                            message:
+                              datasetLabel() === t('Datasource')
+                                ? t('Datasource is required')
+                                : t('Dataset is required'),
                           },
                         ]}
                         {...getFiltersConfigModalTestId('datasource-input')}
@@ -1098,7 +1109,7 @@ const FiltersConfigForm = (
                     ) : (
                       <StyledFormItem
                         expanded={expanded}
-                        label={<StyledLabel>{t('Dataset')}</StyledLabel>}
+                        label={<StyledLabel>{datasetLabel()}</StyledLabel>}
                       >
                         <Loading position="inline-centered" />
                       </StyledFormItem>
@@ -1322,7 +1333,7 @@ const FiltersConfigForm = (
                                             'time_grains',
                                           ]}
                                           initialValue={
-                                            filterToEdit?.time_grains
+                                            filterToEditWithTimeGrains?.time_grains
                                           }
                                           {...getFiltersConfigModalTestId(
                                             'time-grain-allowlist',

@@ -19,7 +19,14 @@
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { styled } from '@apache-superset/core/theme';
-import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  ReactNode,
+} from 'react';
 import cx from 'classnames';
 import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
@@ -265,6 +272,11 @@ export interface ListViewProps<T extends object = any> {
   columnsForWrapText?: string[];
   enableBulkTag?: boolean;
   bulkTagResourceName?: string;
+  /** Optional ref exposed to callers for programmatic filter control. */
+  filtersRef?: React.RefObject<{
+    clearFilters: () => void;
+    clearFilterById: (id: string) => void;
+  }>;
 }
 
 export function ListView<T extends object = any>({
@@ -291,6 +303,7 @@ export function ListView<T extends object = any>({
   columnsForWrapText,
   enableBulkTag = false,
   bulkTagResourceName,
+  filtersRef,
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
@@ -338,7 +351,21 @@ export function ListView<T extends object = any>({
     });
   }
 
-  const filterControlsRef = useRef<{ clearFilters: () => void }>(null);
+  const filterControlsRef = useRef<{
+    clearFilters: () => void;
+    clearFilterById: (id: string) => void;
+  }>(null);
+
+  // Wire the optional external filtersRef to our internal filterControlsRef.
+  // useLayoutEffect fires synchronously after DOM mutations, guaranteeing the
+  // ref is populated before the first paint and after every update.
+  useLayoutEffect(() => {
+    if (filtersRef) {
+      (
+        filtersRef as React.MutableRefObject<typeof filterControlsRef.current>
+      ).current = filterControlsRef.current;
+    }
+  });
 
   const handleClearFilterControls = useCallback(() => {
     if (query.filters) {

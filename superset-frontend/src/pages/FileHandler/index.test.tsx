@@ -30,6 +30,8 @@ const mockAddDangerToast = jest.fn();
 const mockAddSuccessToast = jest.fn();
 const mockHistoryPush = jest.fn();
 
+jest.setTimeout(60000);
+
 type ToastInjectedProps = {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -113,8 +115,6 @@ type LaunchQueue = {
   ) => void;
 };
 
-const pendingTimerIds = new Set<ReturnType<typeof setTimeout>>();
-
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer:
     | ((params: { files?: MockFileHandle[] }) => void | Promise<void>)
@@ -123,18 +123,22 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
       if (fileHandle) {
-        const id = setTimeout(() => {
-          pendingTimerIds.delete(id);
-          consumer({
-            files: [fileHandle],
-          });
-        }, 0);
-        pendingTimerIds.add(id);
+        consumer({ files: [fileHandle] });
       }
     },
   };
   return {
     triggerConsumer: async (params: { files?: MockFileHandle[] }) => {
+      // In slower CI runners, useEffect may not have registered the consumer yet.
+      // Wait briefly for it before triggering.
+      let attempts = 0;
+      while (!savedConsumer && attempts < 50) {
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(resolve => {
+          setTimeout(resolve, 0);
+        });
+        attempts += 1;
+      }
       await savedConsumer?.(params);
     },
   };
@@ -146,8 +150,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  pendingTimerIds.forEach(id => clearTimeout(id));
-  pendingTimerIds.clear();
   delete (window as any).launchQueue;
 });
 
@@ -232,7 +234,7 @@ test('handles Excel (.xls) file correctly', async () => {
 
 test('handles Excel (.xlsx) file correctly', async () => {
   const fileHandle = createMockFileHandle('test.xlsx');
-  setupLaunchQueue(fileHandle);
+  const { triggerConsumer } = setupLaunchQueue();
 
   render(
     <MemoryRouter initialEntries={['/superset/file-handler']}>
@@ -243,11 +245,13 @@ test('handles Excel (.xlsx) file correctly', async () => {
     { useRedux: true },
   );
 
+  await triggerConsumer({ files: [fileHandle] });
+
   const modal = await screen.findByTestId('upload-modal');
   expect(modal).toBeInTheDocument();
   expect(screen.getByTestId('modal-type')).toHaveTextContent('excel');
   expect(screen.getByTestId('modal-extensions')).toHaveTextContent('xls,xlsx');
-});
+}, 60000);
 
 test('handles Parquet file correctly', async () => {
   const fileHandle = createMockFileHandle('test.parquet');

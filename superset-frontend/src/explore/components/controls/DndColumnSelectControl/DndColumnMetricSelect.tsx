@@ -38,6 +38,7 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
+import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
 
 const AGGREGATED_DECK_GL_CHART_TYPES = [
   'deck_screengrid',
@@ -128,6 +129,16 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
     disabledTabs,
     formData,
   } = props;
+
+  // Semantic views do not support arbitrary SQL expressions as dimensions.
+  // Merge 'sqlExpression' into disabledTabs so the Custom SQL tab is hidden.
+  const effectiveDisabledTabs = useMemo(
+    () =>
+      String(datasource?.type) === 'semantic_view'
+        ? new Set([...(disabledTabs ?? []), 'sqlExpression'])
+        : disabledTabs,
+    [datasource?.type, disabledTabs],
+  );
 
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
@@ -303,7 +314,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
               }}
               editedColumn={column}
               isTemporal={isTemporal}
-              disabledTabs={disabledTabs}
+              disabledTabs={effectiveDisabledTabs}
             >
               <OptionWrapper
                 key={`column-${idx}`}
@@ -326,7 +337,10 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
             typeof item === 'object' &&
             'error_text' in item &&
             item.error_text)
-            ? t('This metric might be incompatible with current dataset')
+            ? t(
+                'This metric might be incompatible with current %s',
+                datasetLabelLower(),
+              )
             : undefined;
 
         return (
@@ -440,7 +454,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
         togglePopover={toggleColumnPopover}
         closePopover={closeColumnPopover}
         isTemporal={false}
-        disabledTabs={disabledTabs}
+        disabledTabs={effectiveDisabledTabs}
         metrics={savedMetrics}
         selectedMetrics={selectedMetrics}
       >

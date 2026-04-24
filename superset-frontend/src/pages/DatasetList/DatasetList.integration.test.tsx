@@ -27,6 +27,7 @@ import {
   mockAdminUser,
   mockDatasets,
   setupBulkDeleteMocks,
+  mockDatasetListEndpoints,
   API_ENDPOINTS,
 } from './DatasetList.testHelpers';
 
@@ -72,8 +73,7 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   // the ListView provider correctly merges them for the API call.
   // Component tests verify individual pieces persist; this verifies they COMBINE correctly.
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: mockDatasets,
     count: mockDatasets.length,
   });
@@ -91,31 +91,33 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   });
 
   const callsBeforeSort = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASETS,
+    API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
   await userEvent.click(nameHeader);
 
   // Wait for sort-triggered refetch to complete before applying filter
   await waitFor(() => {
     expect(
-      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED).length,
     ).toBeGreaterThan(callsBeforeSort);
   });
 
   // 2. Apply a filter using selectOption helper
   const beforeFilterCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASETS,
+    API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
   await selectOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+    const calls = fetchMock.callHistory.calls(
+      API_ENDPOINTS.DATASOURCE_COMBINED,
+    );
     expect(calls.length).toBeGreaterThan(beforeFilterCallCount);
   });
 
   // 3. Verify the final API call contains ALL three state pieces merged correctly
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
   const latestCall = calls[calls.length - 1];
   const { url } = latestCall;
 
@@ -151,8 +153,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
 
   setupBulkDeleteMocks();
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: mockDatasets,
     count: mockDatasets.length,
   });
@@ -218,7 +219,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
 
   // Capture datasets call count before confirming
   const datasetsCallCountBeforeDelete = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASETS,
+    API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
   const confirmButton = within(modal)
@@ -242,7 +243,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   // Wait for datasets refetch after delete
   await waitFor(() => {
     const datasetsCallCount = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASETS,
+      API_ENDPOINTS.DATASOURCE_COMBINED,
     ).length;
     expect(datasetsCallCount).toBeGreaterThan(datasetsCallCountBeforeDelete);
   });

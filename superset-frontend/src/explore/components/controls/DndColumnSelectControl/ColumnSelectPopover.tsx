@@ -142,6 +142,10 @@ const ColumnSelectPopover = ({
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
+  const compatibleDimensions = useSelector<
+    ExplorePageState,
+    string[] | null | undefined
+  >(state => state.explore.compatibleDimensions);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -167,21 +171,22 @@ const ColumnSelectPopover = ({
 
   const sqlEditorRef = useRef<editors.EditorHandle>(null);
 
-  const [calculatedColumns, simpleColumns] = useMemo(
-    () =>
-      columns?.reduce(
-        (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
-          if (column.expression) {
-            acc[0].push(column);
-          } else {
-            acc[1].push(column);
-          }
-          return acc;
-        },
-        [[], []],
-      ),
-    [columns],
-  );
+  const [calculatedColumns, simpleColumns] = useMemo(() => {
+    const [calc, simple] = (columns ?? []).reduce(
+      (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
+        if (column.expression) {
+          acc[0].push(column);
+        } else {
+          acc[1].push(column);
+        }
+        return acc;
+      },
+      [[], []],
+    );
+    const alpha = (a: ColumnMeta, b: ColumnMeta) =>
+      (a.column_name ?? '').localeCompare(b.column_name ?? '');
+    return [calc.sort(alpha), simple.sort(alpha)];
+  }, [columns]);
 
   // Filter metrics that are already selected in the chart
   const availableMetrics = useMemo(() => {
@@ -551,6 +556,11 @@ const ColumnSelectPopover = ({
                           key: `column-${simpleColumn.column_name}`,
                           column_name: simpleColumn.column_name,
                           verbose_name: simpleColumn.verbose_name ?? '',
+                          disabled:
+                            compatibleDimensions != null &&
+                            !compatibleDimensions.includes(
+                              simpleColumn.column_name,
+                            ),
                         })),
                         ...availableMetrics.map(metric => ({
                           value: metric.metric_name,
@@ -565,6 +575,9 @@ const ColumnSelectPopover = ({
                           key: `metric-${metric.metric_name}`,
                           metric_name: metric.metric_name,
                           verbose_name: metric.verbose_name ?? '',
+                          disabled:
+                            compatibleDimensions != null &&
+                            !compatibleDimensions.includes(metric.metric_name),
                         })),
                       ]}
                       optionFilterProps={[
