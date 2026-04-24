@@ -262,7 +262,7 @@ def test_title_alias_populates_dashboard_title() -> None:
     """Sending ``title`` instead of ``dashboard_title`` should populate the field."""
     req = GenerateDashboardRequest(
         chart_ids=[1],
-        title="My Dashboard",  # type: ignore[call-arg]
+        title="My Dashboard",
     )
     assert req.dashboard_title == "My Dashboard"
 
@@ -276,7 +276,7 @@ def test_name_alias_populates_chart_name() -> None:
             "x": {"name": "col"},
             "y": [{"name": "val", "aggregate": "SUM"}],
         },
-        name="My Chart",  # type: ignore[call-arg]
+        name="My Chart",
     )
     assert req.chart_name == "My Chart"
 
@@ -286,7 +286,7 @@ def test_xss_via_alias_title_is_rejected() -> None:
     with pytest.raises(ValueError, match="sanitization"):
         GenerateDashboardRequest(
             chart_ids=[1],
-            title="<script>alert(1)</script>",  # type: ignore[call-arg]
+            title="<script>alert(1)</script>",
         )
 
 
@@ -301,7 +301,7 @@ def test_chart_name_and_name_simultaneously_first_alias_wins() -> None:
             "y": [{"name": "val", "aggregate": "SUM"}],
         },
         chart_name="Primary Name",
-        name="Secondary Name",  # type: ignore[call-arg]
+        name="Secondary Name",
     )
     # chart_name is the canonical field and takes precedence via AliasChoices
     assert req.chart_name == "Primary Name"
