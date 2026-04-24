@@ -168,15 +168,16 @@ def _build_query_context_from_form_data(
         "metrics": metrics,
     }
 
-    # Pass time_range so timeseries charts include temporal filtering
+    # Pass time_range so timeseries charts include temporal filtering.
+    # QueryObjectFactory.create() accepts time_range as a top-level kwarg
+    # and converts it to from_dttm/to_dttm for the QueryObject.
     if time_range := form_data.get("time_range"):
         query_dict["time_range"] = time_range
 
-    # Pass adhoc_filters so dashboard native filters and time filters apply
-    if adhoc_filters := form_data.get("adhoc_filters"):
-        query_dict["adhoc_filters"] = adhoc_filters
-
-    # Pass simple filters
+    # Pass simple filters (column-level WHERE clauses).
+    # Note: adhoc_filters live in form_data and are processed by
+    # merge_extra_filters() during query context creation — they do NOT
+    # need to be in query_dict (QueryObject ignores unknown kwargs).
     if filters := form_data.get("filters"):
         query_dict["filters"] = filters
 

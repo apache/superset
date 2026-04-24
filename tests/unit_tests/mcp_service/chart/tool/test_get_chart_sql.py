@@ -403,12 +403,14 @@ class TestBuildQueryContextFromFormData:
             {"col": "city", "op": "==", "val": "NYC"}
         ]
 
-        # Verify time_range, adhoc_filters, and filters are also in the
-        # queries dict so QueryObjectFactory picks them up as kwargs
+        # Verify time_range and filters are in the queries dict so
+        # QueryObjectFactory picks them up as kwargs.
+        # Note: adhoc_filters are NOT in queries — they live in form_data
+        # and are processed by merge_extra_filters() during context creation.
         queries = call_kwargs["queries"]
         assert len(queries) == 1
         assert queries[0]["time_range"] == "Last 7 days"
-        assert queries[0]["adhoc_filters"] == form_data["adhoc_filters"]
+        assert "adhoc_filters" not in queries[0]
         assert queries[0]["filters"] == [{"col": "city", "op": "==", "val": "NYC"}]
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
