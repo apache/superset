@@ -120,7 +120,7 @@ export const FiltersDetailsContainer = styled.div`
     color: ${theme.colorText};
     
     &:focus:not(:focus-visible) {
-      outline: none;
+      outline: none; 
     }
   `}
 `;
