@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
@@ -683,7 +689,7 @@ test('bulk export triggers export with selected IDs', async () => {
   await userEvent.click(bulkSelectButton);
 
   // Wait for bulk select controls container to appear first (fast query)
-  await screen.findByTestId('bulk-select-controls');
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
 
   // Wait for table checkboxes to render (findAllByRole is faster than waitFor with getAll)
   const table = screen.getByTestId('listview-table');
@@ -697,14 +703,27 @@ test('bulk export triggers export with selected IDs', async () => {
   expect(datasetRow).toBeInTheDocument();
   await userEvent.click(within(datasetRow!).getByRole('checkbox'));
 
-  // Find and click bulk export button (fail-fast if not found)
-  const exportButton = await screen.findByRole('button', { name: /export/i });
+  // Wait for selection state to register before triggering export
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      /1 Selected/i,
+    );
+  });
+
+  // Scope to bulk toolbar to avoid matching row-level export actions
+  const exportButton = await within(bulkSelectControls).findByRole('button', {
+    name: /export/i,
+  });
   await userEvent.click(exportButton);
 
   await waitFor(() => {
-    expect(mockHandleResourceExport).toHaveBeenCalled();
+    expect(mockHandleResourceExport).toHaveBeenCalledWith(
+      'dataset',
+      [mockDatasets[0].id],
+      expect.any(Function),
+    );
   });
-});
+}, 30000);
 
 test('bulk delete opens confirmation modal', async () => {
   setupBulkDeleteMocks();
@@ -1384,10 +1403,9 @@ test('sort order persists after deleting a dataset', async () => {
   const modal = await screen.findByRole('dialog');
   await within(modal).findByText(datasetToDelete.table_name);
 
-  // Enable the danger button by typing DELETE
+  // Enable the danger button quickly (avoids slow character-by-character typing)
   const confirmInput = within(modal).getByTestId('delete-modal-input');
-  await userEvent.clear(confirmInput);
-  await userEvent.type(confirmInput, 'DELETE');
+  fireEvent.change(confirmInput, { target: { value: 'DELETE' } });
 
   // Record call count before delete to track refetch
   const callsBeforeDelete = fetchMock.callHistory.calls(
