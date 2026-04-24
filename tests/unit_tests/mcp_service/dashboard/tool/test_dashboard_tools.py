@@ -592,8 +592,9 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
             "user_can_view_data_model_metadata",
             return_value=False,
         ),
-        patch(
-            "superset.mcp_service.dashboard.tool.get_dashboard_info._get_permalink_state",
+        patch.object(
+            get_dashboard_info_module,
+            "_get_permalink_state",
             return_value=permalink_value,
         ),
     ):
