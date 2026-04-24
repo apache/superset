@@ -27,6 +27,9 @@ from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
+from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
+    PermissionViewMenuApi,
+)
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_group_role,
@@ -270,6 +273,62 @@ class SupersetGroupApi(GroupApi):
         _log_audit_event("GroupDeleted", {"group_name": item.name, "group_id": item.id})
 
 
+class _FilterPermissionNameContains(BaseFilter):
+    """Filter PermissionView rows by the related Permission.name column."""
+
+    name = "Permission name contains"
+    arg_name = "ct"
+    column_name = "permission.name"
+
+    def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
+        return (
+            query.join(Permission, PermissionView.permission_id == Permission.id)
+            .filter(Permission.name.ilike(f"%{value}%"))
+        )  # fmt: skip
+
+
+class _FilterViewMenuNameContains(BaseFilter):
+    """Filter PermissionView rows by the related ViewMenu.name column."""
+
+    name = "View menu name contains"
+    arg_name = "ct"
+    column_name = "view_menu.name"
+
+    def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
+        return (
+            query.join(ViewMenu, PermissionView.view_menu_id == ViewMenu.id)
+            .filter(ViewMenu.name.ilike(f"%{value}%"))
+        )  # fmt: skip
+
+
+class SupersetPermissionViewMenuApi(PermissionViewMenuApi):
+    """
+    Override PermissionViewMenuApi to allow filtering by relationship columns.
+
+    FAB's default PermissionViewMenuApi does not define search_columns,
+    which causes 400 errors when the frontend filters by permission.name
+    or view_menu.name. FAB's Filters.__init__ cannot auto-detect filters
+    for dotted relationship columns, so we inject them manually after the
+    parent initialises the Filters object.
+    """
+
+    search_columns = ["id"]
+
+    _custom_pvm_filters: dict[str, list[type[BaseFilter]]] = {
+        "permission.name": [_FilterPermissionNameContains],
+        "view_menu.name": [_FilterViewMenuNameContains],
+    }
+
+    def _init_properties(self) -> None:
+        super()._init_properties()
+        for col, filter_classes in self._custom_pvm_filters.items():
+            self._filters._search_filters.setdefault(col, [])
+            for fc in filter_classes:
+                self._filters._search_filters[col].append(fc(col, self.datamodel))
+            if col not in self._filters.search_columns:
+                self._filters.search_columns.append(col)
+
+
 # Limiting routes on FAB model views
 PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
 PermissionModelView.include_route_methods = {RouteMethod.LIST}
@@ -353,6 +412,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     role_api = SupersetRoleApi
     user_api = SupersetUserApi
     group_api = SupersetGroupApi
+    permission_view_menu_api = SupersetPermissionViewMenuApi
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
