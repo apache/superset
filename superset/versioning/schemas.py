@@ -35,6 +35,50 @@ class VersionChangedBySchema(Schema):
     last_name = fields.String()
 
 
+class VersionChangeRecordSchema(Schema):
+    """One field-level diff hunk from ``version_changes``.
+
+    The frontend renders human-readable prose from (``kind``,
+    ``from_value``, ``to_value``) via Flask-Babel. Server-side the
+    shape is deliberately machine-readable only — see spec FR-019.
+    """
+
+    kind = fields.String(
+        metadata={
+            "description": (
+                "Semantic category of the change. First-class values in V1: "
+                "'filter', 'metric', 'dimension', 'column', 'chart', "
+                "'time_range', 'color_palette'. Falls back to 'field' for "
+                "generic scalar changes that don't map to a named kind."
+            )
+        },
+    )
+    path = fields.Raw(
+        metadata={
+            "description": (
+                "Array of segments locating the change in the entity's state. "
+                "Example: ['params', 'adhoc_filters', 'country']."
+            )
+        },
+    )
+    from_value = fields.Raw(
+        allow_none=True,
+        metadata={
+            "description": (
+                "Value at path before the save; null when the field did not exist."
+            ),
+        },
+    )
+    to_value = fields.Raw(
+        allow_none=True,
+        metadata={
+            "description": (
+                "Value at path after the save; null when the field was removed."
+            ),
+        },
+    )
+
+
 class VersionListItemSchema(Schema):
     """A single version row in the version history response."""
 
@@ -62,6 +106,16 @@ class VersionListItemSchema(Schema):
             "description": (
                 "User who produced the version, or null when the commit had no "
                 "authenticated Flask user (CLI, Celery, import)."
+            )
+        },
+    )
+    changes = fields.List(
+        fields.Nested(VersionChangeRecordSchema),
+        metadata={
+            "description": (
+                "Structured diff records describing the atomic field-level "
+                "changes at this version, ordered by emission sequence. "
+                "Empty for baseline (op=0) transactions per spec M4."
             )
         },
     )

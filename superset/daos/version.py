@@ -238,12 +238,115 @@ class VersionDAO:
                             ver_tbl.c.transaction_id.in_(oldest_tx_ids),
                         )
                     )
+                    # Drop this entity's change records for the pruned txs too
+                    # (T052 item d). The DB-level FK on version_changes is
+                    # ON DELETE CASCADE against version_transaction, but we
+                    # don't delete the tx row here (it may be shared across
+                    # entities), so the cascade doesn't fire for us. Explicit
+                    # per-(entity_kind, entity_id) delete keeps other entities'
+                    # records on the same tx intact.
+                    from superset.versioning.changes import (  # noqa: E402
+                        _ENTITY_KIND_BY_CLASS_NAME,
+                        version_changes_table,
+                    )
+
+                    entity_kind = _ENTITY_KIND_BY_CLASS_NAME.get(
+                        model_cls.__name__
+                    )
+                    if entity_kind is not None:
+                        try:
+                            conn.execute(
+                                sa.delete(version_changes_table).where(
+                                    version_changes_table.c.entity_kind
+                                    == entity_kind,
+                                    version_changes_table.c.entity_id == entity_id,
+                                    version_changes_table.c.transaction_id.in_(
+                                        oldest_tx_ids
+                                    ),
+                                )
+                            )
+                        except Exception:  # pylint: disable=broad-except
+                            # version_changes table missing (pre-migration) —
+                            # don't block the shadow-row prune.
+                            logger.debug(
+                                "prune_versions: change-record cleanup skipped"
+                                " for %s id=%s",
+                                model_cls.__name__,
+                                entity_id,
+                            )
         except Exception:  # pylint: disable=broad-except
             logger.exception(
                 "prune_versions: failed for %s id=%s",
                 model_cls.__name__,
                 entity_id,
             )
+
+    @staticmethod
+    def list_change_records_batch(
+        entity_kind: str,
+        entity_id: int,
+        transaction_ids: list[int],
+    ) -> dict[int, list[dict[str, Any]]]:
+        """Return ``version_changes`` rows keyed by ``transaction_id``.
+
+        Batches the lookup across multiple transactions with a single
+        ``WHERE transaction_id IN (...) AND entity_kind = ? AND entity_id = ?``
+        query so the list endpoint avoids N+1 round-trips. Rows are
+        distributed into per-tx lists sorted by ``sequence`` ascending
+        (matching the replay order the diff engine emits). Missing
+        transactions are represented by an empty list in the result
+        so callers can use ``result.get(tx_id, [])`` without guarding.
+
+        If the ``version_changes`` table is missing (pre-migration or
+        freshly downgraded), returns an empty dict rather than
+        propagating the error — consistent with this being a
+        descriptive layer that should not break the list endpoint.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.changes import version_changes_table
+
+        if not transaction_ids:
+            return {}
+
+        try:
+            rows = (
+                db.session.connection()
+                .execute(
+                    sa.select(
+                        version_changes_table.c.transaction_id,
+                        version_changes_table.c.sequence,
+                        version_changes_table.c.kind,
+                        version_changes_table.c.path,
+                        version_changes_table.c.from_value,
+                        version_changes_table.c.to_value,
+                    )
+                    .where(
+                        version_changes_table.c.entity_kind == entity_kind,
+                        version_changes_table.c.entity_id == entity_id,
+                        version_changes_table.c.transaction_id.in_(transaction_ids),
+                    )
+                    .order_by(
+                        version_changes_table.c.transaction_id.asc(),
+                        version_changes_table.c.sequence.asc(),
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        except sa.exc.OperationalError:
+            return {}
+
+        grouped: dict[int, list[dict[str, Any]]] = {tx: [] for tx in transaction_ids}
+        for row in rows:
+            grouped[row["transaction_id"]].append(
+                {
+                    "kind": row["kind"],
+                    "path": row["path"],
+                    "from_value": row["from_value"],
+                    "to_value": row["to_value"],
+                }
+            )
+        return grouped
 
     @staticmethod
     def list_versions(
@@ -313,6 +416,23 @@ class VersionDAO:
 
         op_type_label = {0: "baseline", 1: "update", 2: "delete"}
 
+        # Batch-load change records for every listed transaction in one
+        # query, then distribute per-tx (T050). ``entity_kind`` is
+        # derived from the model class via the mapping in
+        # ``superset.versioning.changes`` so the API filter
+        # ``WHERE entity_kind = 'chart' AND entity_id = ?`` can be
+        # precise when multiple versioned entities share a flush.
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.changes import _ENTITY_KIND_BY_CLASS_NAME
+
+        entity_kind = _ENTITY_KIND_BY_CLASS_NAME.get(model_cls.__name__)
+        tx_ids = [row["transaction_id"] for row in rows]
+        changes_by_tx = (
+            VersionDAO.list_change_records_batch(entity_kind, entity.id, tx_ids)
+            if entity_kind is not None
+            else {}
+        )
+
         result: list[dict[str, Any]] = []
         for version_number, row in enumerate(rows):
             changed_by: Optional[dict[str, Any]]
@@ -338,6 +458,7 @@ class VersionDAO:
                     ),
                     "issued_at": row["issued_at"],
                     "changed_by": changed_by,
+                    "changes": changes_by_tx.get(row["transaction_id"], []),
                 }
             )
 
@@ -490,6 +611,17 @@ class VersionDAO:
                 "first_name": row["first_name"],
                 "last_name": row["last_name"],
             }
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.changes import _ENTITY_KIND_BY_CLASS_NAME
+
+        entity_kind = _ENTITY_KIND_BY_CLASS_NAME.get(model_cls.__name__)
+        changes = (
+            VersionDAO.list_change_records_batch(
+                entity_kind, entity.id, [row["transaction_id"]]
+            ).get(row["transaction_id"], [])
+            if entity_kind is not None
+            else []
+        )
         result["_version"] = {
             "version_uuid": str(version_uuid),
             "version_number": version_num,
@@ -499,6 +631,7 @@ class VersionDAO:
             ),
             "issued_at": row["issued_at"],
             "changed_by": changed_by,
+            "changes": changes,
         }
 
         # For datasets, attach the JSON snapshot's columns/metrics so the

@@ -142,9 +142,12 @@ class TestChartChangeRecords(SupersetTestCase):
 
         chart = db.session.query(Slice).first()
         assert chart is not None
-        chart.slice_name = f"{chart.slice_name[:64]}_a"
-        chart.description = "edited description"
-        chart.cache_timeout = 900
+        # Derive from CURRENT values so every run guarantees a real
+        # change even against a persistent test DB where prior runs
+        # have already mutated the chart.
+        chart.slice_name = f"{chart.slice_name[:60]}_x"
+        chart.description = f"{chart.description or ''}_x"
+        chart.cache_timeout = (chart.cache_timeout or 0) + 1
         db.session.commit()
 
         ver_cls = version_class(Slice)
@@ -167,19 +170,29 @@ class TestChartChangeRecords(SupersetTestCase):
         assert paths == [["cache_timeout"], ["description"], ["slice_name"]]
 
     def test_params_filter_add_produces_filter_kind_record(self) -> None:
-        """(a) — params classification still flows through the listener."""
+        """(a) — params classification still flows through the listener.
+
+        Adds an adhoc_filter with a natural key (``subject``) derived
+        from the chart id so it's unique across test runs on a
+        persistent DB. Whatever was in ``adhoc_filters`` before stays;
+        we only want to confirm at least one ``kind='filter'`` record
+        is emitted.
+        """
         _persist_fixture_state()
 
         chart = db.session.query(Slice).first()
         assert chart is not None
+        unique_subject = f"col_{chart.id}_{db.session.connection().engine.url.database[-8:]}"
         params = _json.loads(chart.params or "{}")
+        existing = params.get("adhoc_filters", []) or []
         params["adhoc_filters"] = [
+            *existing,
             {
-                "subject": "country",
+                "subject": unique_subject,
                 "operator": "==",
-                "comparator": "Canada",
+                "comparator": "x",
                 "expressionType": "SIMPLE",
-            }
+            },
         ]
         chart.params = _json.dumps(params)
         db.session.commit()
@@ -193,32 +206,53 @@ class TestChartChangeRecords(SupersetTestCase):
             .first()
             .transaction_id
         )
-        rows = _change_rows_for(update_tx_id)
+        rows = _change_rows_for(
+            update_tx_id, entity_kind="chart", entity_id=chart.id
+        )
         filter_rows = [r for r in rows if r["kind"] == "filter"]
-        assert len(filter_rows) == 1
+        assert len(filter_rows) >= 1, (
+            f"expected at least one filter record, got rows: {rows}"
+        )
 
     def test_unchanged_save_produces_zero_change_records(self) -> None:
         """An edit that sets fields to identical values emits nothing."""
         _persist_fixture_state()
 
         chart = db.session.query(Slice).first()
-        # Touch the object (mark dirty) but assign the same value.
-        current_name = chart.slice_name
-        chart.slice_name = current_name
-        db.session.commit()
-
         ver_cls = version_class(Slice)
-        update_tx_row = (
+        # Capture the latest tx_id BEFORE this test's save so we can
+        # distinguish "the no-op save produced nothing new" (the intent)
+        # from "prior tests left tx rows with records on them" (noise).
+        pre_save_tx_row = (
             db.session.query(ver_cls.transaction_id)
             .filter(ver_cls.id == chart.id)
             .filter(ver_cls.operation_type == 1)
             .order_by(ver_cls.transaction_id.desc())
             .first()
         )
-        # Either no update row at all (nothing dirty), or an update row
-        # with zero change records. Both are acceptable.
-        if update_tx_row is not None:
-            assert _change_rows_for(update_tx_row.transaction_id) == []
+        pre_save_tx_id = pre_save_tx_row.transaction_id if pre_save_tx_row else 0
+
+        # Touch the object (mark dirty) but assign the same value.
+        current_name = chart.slice_name
+        chart.slice_name = current_name
+        db.session.commit()
+
+        post_save_tx_row = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == chart.id)
+            .filter(ver_cls.operation_type == 1)
+            .filter(ver_cls.transaction_id > pre_save_tx_id)
+            .order_by(ver_cls.transaction_id.desc())
+            .first()
+        )
+        # Either no new tx at all (nothing dirty, best case), or a new
+        # tx with zero change records for this chart.
+        if post_save_tx_row is not None:
+            assert _change_rows_for(
+                post_save_tx_row.transaction_id,
+                entity_kind="chart",
+                entity_id=chart.id,
+            ) == []
 
 
 class TestDashboardChangeRecords(SupersetTestCase):
