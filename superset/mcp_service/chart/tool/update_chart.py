@@ -93,7 +93,28 @@ def _build_update_payload(
     when neither config nor chart_name is provided.
     """
     if request.config is not None:
-        config = parse_chart_config(request.config)
+        try:
+            config = parse_chart_config(request.config)
+        except (ValueError, TypeError) as e:
+            from superset.mcp_service.chart.validation.pipeline import (
+                _sanitize_validation_error,
+            )
+
+            sanitized = _sanitize_validation_error(e)
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "validation_error",
+                        "message": f"Invalid chart configuration: {sanitized}",
+                        "details": sanitized,
+                        "error_code": "INVALID_CHART_CONFIG",
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
         dataset_id = chart.datasource_id if chart.datasource_id else None
         new_form_data = map_config_to_form_data(config, dataset_id=dataset_id)
         new_form_data.pop("_mcp_warnings", None)
@@ -139,7 +160,28 @@ def _build_preview_form_data(
             existing_form_data = {}
 
     if request.config is not None:
-        config = parse_chart_config(request.config)
+        try:
+            config = parse_chart_config(request.config)
+        except (ValueError, TypeError) as e:
+            from superset.mcp_service.chart.validation.pipeline import (
+                _sanitize_validation_error,
+            )
+
+            sanitized = _sanitize_validation_error(e)
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "validation_error",
+                        "message": f"Invalid chart configuration: {sanitized}",
+                        "details": sanitized,
+                        "error_code": "INVALID_CHART_CONFIG",
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
         dataset_id = chart.datasource_id if chart.datasource_id else None
         new_form_data = map_config_to_form_data(config, dataset_id=dataset_id)
         new_form_data.pop("_mcp_warnings", None)
@@ -348,7 +390,10 @@ async def update_chart(  # noqa: C901
                 )
 
         # Parse config for analysis (may be None for name-only updates)
-        config = parse_chart_config(request.config) if request.config else None
+        try:
+            config = parse_chart_config(request.config) if request.config else None
+        except (ValueError, TypeError):
+            config = None
 
         chart_for_analysis = updated_chart if saved else chart
         capabilities = analyze_chart_capabilities(chart_for_analysis, config)

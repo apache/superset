@@ -99,7 +99,21 @@ async def generate_explore_link(
 
     try:
         # Parse the raw config dict into a typed ChartConfig
-        config = parse_chart_config(request.config)
+        try:
+            config = parse_chart_config(request.config)
+        except (ValueError, TypeError) as e:
+            from superset.mcp_service.chart.validation.pipeline import (
+                _sanitize_validation_error,
+            )
+
+            sanitized = _sanitize_validation_error(e)
+            await ctx.error("Invalid chart config: %s" % sanitized)
+            return {
+                "url": "",
+                "form_data": {},
+                "form_data_key": None,
+                "error": f"Invalid chart configuration: {sanitized}",
+            }
 
         await ctx.report_progress(1, 4, "Validating dataset exists")
         with event_logger.log_context(action="mcp.generate_explore_link.dataset_check"):
