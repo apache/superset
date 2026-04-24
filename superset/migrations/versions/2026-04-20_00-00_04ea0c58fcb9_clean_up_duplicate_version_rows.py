@@ -82,18 +82,25 @@ def _clean_version_table(
     # Step 1: delete orphan active rows — rows Continuum thinks are
     # still active but whose live entity row no longer exists.
     # ----------------------------------------------------------------
-    orphan_ids_sq = (
-        sa.select(vt.c.id)
-        .where(vt.c.end_transaction_id.is_(None))
-        .where(vt.c.operation_type != 2)
-        .where(~sa.exists(sa.select(lt.c.id).where(lt.c.id == vt.c.id)))
-        .scalar_subquery()
-    )
-    result = conn.execute(sa.delete(vt).where(vt.c.id.in_(orphan_ids_sq)))
-    if orphan_count := result.rowcount:
+    # NOTE: materialize the subquery into a Python list before the DELETE.
+    # MySQL raises error 1093 ("You can't specify target table X for
+    # update in FROM clause") if the DELETE's WHERE references a
+    # subquery that selects from the same table. A two-step fetch-then-
+    # delete sidesteps this and is cross-database compatible.
+    orphan_ids = [
+        row._mapping["id"]
+        for row in conn.execute(
+            sa.select(vt.c.id)
+            .where(vt.c.end_transaction_id.is_(None))
+            .where(vt.c.operation_type != 2)
+            .where(~sa.exists(sa.select(lt.c.id).where(lt.c.id == vt.c.id)))
+        )
+    ]
+    if orphan_ids:
+        result = conn.execute(sa.delete(vt).where(vt.c.id.in_(orphan_ids)))
         logger.info(
             "Deleted %d orphan active rows from %s",
-            orphan_count,
+            result.rowcount,
             version_table,
         )
 

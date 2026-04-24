@@ -606,7 +606,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         that VERSIONED_MODELS can be populated and configure_mappers() has run.
         """
         from sqlalchemy import event
-        from sqlalchemy.orm import configure_mappers, Session  # noqa: F401
+        from sqlalchemy.orm import Session  # noqa: F401
         from sqlalchemy_continuum import version_class
 
         from superset.connectors.sqla.models import SqlaTable
@@ -617,12 +617,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             VERSIONED_MODELS,
         )
 
-        # Run configure_mappers() BEFORE importing the snapshot modules:
-        # their Table declarations reference ``version_transaction``, which
-        # is created by Continuum during mapper configuration. Importing
-        # those modules earlier would raise NoReferencedTableError.
-        configure_mappers()
-
+        # Note: previously this block called ``configure_mappers()`` before
+        # importing the snapshot modules, believing their Table declarations
+        # needed ``version_transaction`` to exist. That's not actually the
+        # case — the snapshot tables reference ``version_transaction.id``
+        # only at the DB level (via the migration); the SQLAlchemy Table
+        # objects here intentionally declare ``transaction_id`` as a plain
+        # ``BigInteger`` without a FK to avoid the resolution dependency.
+        # Removing the global ``configure_mappers()`` avoids eagerly
+        # resolving relationships in other unrelated models (notably
+        # Flask-AppBuilder's AuditMixin on classes like Tag, whose
+        # ``created_by`` primaryjoin only resolves under specific class
+        # registry states in SQLAlchemy 1.4).
         from superset.versioning.dashboard_snapshots import (  # noqa: E402
             register_dashboard_snapshot_listener,
         )
