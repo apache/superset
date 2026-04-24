@@ -26,7 +26,7 @@ from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
 
 
 @pytest.fixture
-def mock_jwt_verifier():
+def mock_jwt_verifier() -> MagicMock:
     verifier = MagicMock()
     verifier.required_scopes = []
     verifier.verify_token = AsyncMock()
@@ -34,7 +34,7 @@ def mock_jwt_verifier():
 
 
 @pytest.fixture
-def composite_verifier(mock_jwt_verifier):
+def composite_verifier(mock_jwt_verifier: MagicMock) -> CompositeTokenVerifier:
     return CompositeTokenVerifier(
         jwt_verifier=mock_jwt_verifier,
         api_key_prefixes=["sst_", "pat_"],
@@ -42,7 +42,9 @@ def composite_verifier(mock_jwt_verifier):
 
 
 @pytest.mark.asyncio
-async def test_api_key_token_returns_passthrough(composite_verifier) -> None:
+async def test_api_key_token_returns_passthrough(
+    composite_verifier: CompositeTokenVerifier,
+) -> None:
     """Tokens matching an API key prefix return a pass-through AccessToken."""
     api_key = "sst_abc123secret"  # noqa: S105
     result = await composite_verifier.verify_token(api_key)
@@ -54,7 +56,9 @@ async def test_api_key_token_returns_passthrough(composite_verifier) -> None:
 
 
 @pytest.mark.asyncio
-async def test_second_prefix_matches(composite_verifier) -> None:
+async def test_second_prefix_matches(
+    composite_verifier: CompositeTokenVerifier,
+) -> None:
     """All configured prefixes are checked, not just the first."""
     result = await composite_verifier.verify_token("pat_mytoken")
 
@@ -64,7 +68,7 @@ async def test_second_prefix_matches(composite_verifier) -> None:
 
 @pytest.mark.asyncio
 async def test_jwt_token_delegates_to_wrapped_verifier(
-    composite_verifier, mock_jwt_verifier
+    composite_verifier: CompositeTokenVerifier, mock_jwt_verifier: MagicMock
 ) -> None:
     """Non-API-key tokens are delegated to the wrapped JWT verifier."""
     jwt_token = "eyJhbGciOiJSUzI1NiJ9.jwt_payload"  # noqa: S105
@@ -85,7 +89,9 @@ async def test_jwt_token_delegates_to_wrapped_verifier(
 
 
 @pytest.mark.asyncio
-async def test_invalid_jwt_returns_none(composite_verifier, mock_jwt_verifier) -> None:
+async def test_invalid_jwt_returns_none(
+    composite_verifier: CompositeTokenVerifier, mock_jwt_verifier: MagicMock
+) -> None:
     """When the JWT verifier rejects a token, None is returned."""
     mock_jwt_verifier.verify_token.return_value = None
 
@@ -97,7 +103,7 @@ async def test_invalid_jwt_returns_none(composite_verifier, mock_jwt_verifier) -
 
 @pytest.mark.asyncio
 async def test_api_key_does_not_call_jwt_verifier(
-    composite_verifier, mock_jwt_verifier
+    composite_verifier: CompositeTokenVerifier, mock_jwt_verifier: MagicMock
 ) -> None:
     """API key tokens bypass the JWT verifier entirely."""
     await composite_verifier.verify_token("sst_test_key")
