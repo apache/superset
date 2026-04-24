@@ -177,6 +177,60 @@ def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared(
     tool.run_tool(order_column="name")
 
 
+def test_model_list_tool_allows_created_by_fk_filter_for_current_user():
+    """created_by_fk filter is accepted when the value matches the current user's ID."""
+    from unittest.mock import patch, Mock
+
+    current_user = Mock()
+    current_user.is_authenticated = True
+    current_user.id = 42
+
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch(
+        "superset.mcp_service.mcp_core.current_user", current_user
+    ):
+        # Should not raise
+        tool.run_tool(filters=[{"col": "created_by_fk", "opr": "eq", "value": 42}])
+
+
+def test_model_list_tool_rejects_created_by_fk_filter_for_other_user():
+    """created_by_fk filter is rejected when the value is another user's ID."""
+    from unittest.mock import patch, Mock
+
+    current_user = Mock()
+    current_user.is_authenticated = True
+    current_user.id = 42
+
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch(
+        "superset.mcp_service.mcp_core.current_user", current_user
+    ):
+        with pytest.raises(ValueError, match="own user ID"):
+            tool.run_tool(
+                filters=[{"col": "created_by_fk", "opr": "eq", "value": 99}]
+            )
+
+
 def test_user_directory_fields_include_last_saved_relationships():
     assert "last_saved_by" in USER_DIRECTORY_FIELDS
     assert "last_saved_by_name" in USER_DIRECTORY_FIELDS

@@ -58,10 +58,12 @@ class DatasetFilter(ColumnOperator):
         "table_name",
         "schema",
         "database_name",
+        "created_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='dataset') for "
-        "available filter columns.",
+        "available filter columns. created_by_fk only accepts the current user's ID "
+        "(from get_instance_info's current_user.id).",
     )
     opr: ColumnOperatorEnum = Field(
         ...,

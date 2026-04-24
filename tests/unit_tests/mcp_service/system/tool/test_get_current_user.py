@@ -460,10 +460,10 @@ class TestGetInstanceInfoCurrentUserViaMCP:
 # ---------------------------------------------------------------------------
 
 
-def test_chart_filter_rejects_created_by_fk() -> None:
-    """Test that ChartFilter rejects user-directory columns."""
-    with pytest.raises(ValidationError):
-        ChartFilter(col="created_by_fk", opr="eq", value=42)
+def test_chart_filter_accepts_created_by_fk() -> None:
+    """ChartFilter accepts created_by_fk; enforcement is in run_tool, not schema."""
+    f = ChartFilter(col="created_by_fk", opr="eq", value=42)
+    assert f.col == "created_by_fk"
 
 
 def test_chart_filter_rejects_invalid_column():
@@ -472,10 +472,10 @@ def test_chart_filter_rejects_invalid_column():
         ChartFilter(col="nonexistent_column", opr="eq", value=42)
 
 
-def test_dashboard_filter_rejects_created_by_fk():
-    """Test that DashboardFilter rejects user-directory columns."""
-    with pytest.raises(ValidationError):
-        DashboardFilter(col="created_by_fk", opr="eq", value=42)
+def test_dashboard_filter_accepts_created_by_fk():
+    """DashboardFilter accepts created_by_fk; enforcement is in run_tool, not schema."""
+    f = DashboardFilter(col="created_by_fk", opr="eq", value=42)
+    assert f.col == "created_by_fk"
 
 
 def test_dashboard_filter_rejects_invalid_column():
@@ -498,6 +498,6 @@ def test_chart_filter_existing_columns_still_work():
 
 def test_dashboard_filter_existing_columns_still_work():
     """Test that pre-existing dashboard filter columns are not broken."""
-    for col in ("dashboard_title", "published", "favorite"):
+    for col in ("dashboard_title", "published", "favorite", "created_by_fk"):
         f = DashboardFilter(col=col, opr="eq", value="test")
         assert f.col == col
