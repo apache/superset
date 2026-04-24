@@ -18,15 +18,20 @@
 """Tests for MCP tool search transform configuration and application."""
 
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
 from fastmcp.server.transforms.search import BM25SearchTransform, RegexSearchTransform
+from flask import Flask, g
 
+from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
 from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+from superset.mcp_service.privacy import requires_data_model_metadata_access
 from superset.mcp_service.server import (
     _apply_tool_search_transform,
     _compact_schema,
     _create_search_result_serializer,
+    _extract_parameter_names,
+    _filter_tools_by_current_user_permission,
     _fix_call_tool_arguments,
     _normalize_call_tool_arguments,
     _serialize_tools_without_output_schema,
@@ -44,6 +49,7 @@ def test_tool_search_config_defaults():
     assert "get_instance_info" in MCP_TOOL_SEARCH_CONFIG["always_visible"]
     assert MCP_TOOL_SEARCH_CONFIG["search_tool_name"] == "search_tools"
     assert MCP_TOOL_SEARCH_CONFIG["call_tool_name"] == "call_tool"
+    assert MCP_TOOL_SEARCH_CONFIG["include_schemas"] is False
 
 
 def test_apply_bm25_transform():
@@ -309,7 +315,7 @@ def test_normalize_ignores_keys_not_in_schema():
 
 
 def test_compact_schema_removes_defs():
-    """$defs section is stripped from the schema."""
+    """$defs section is stripped and refs are inlined from definitions."""
     schema = {
         "type": "object",
         "properties": {
@@ -326,7 +332,11 @@ def test_compact_schema_removes_defs():
     result = _compact_schema(schema)
 
     assert "$defs" not in result
-    assert result["properties"]["filters"]["items"] == {"type": "object"}
+    # $ref is resolved by inlining the definition from $defs
+    assert result["properties"]["filters"]["items"] == {
+        "type": "object",
+        "properties": {"col": {"type": "string"}},
+    }
 
 
 def test_compact_schema_replaces_ref_with_object():
@@ -397,7 +407,7 @@ def test_compact_schema_preserves_multi_variant_anyof():
 
 
 def test_compact_schema_nested_in_items():
-    """$ref nested inside items/properties is also replaced."""
+    """$ref nested inside items/properties falls back to object when no $defs."""
     schema = {
         "type": "object",
         "properties": {
@@ -411,6 +421,7 @@ def test_compact_schema_nested_in_items():
 
     result = _compact_schema(schema)
 
+    # No $defs in schema → falls back to {"type": "object"}
     assert result["properties"]["filters"]["items"] == {"type": "object"}
     assert result["properties"]["name"] == {"type": "string"}
 
@@ -436,6 +447,181 @@ def test_compact_schema_handles_non_dict():
     assert _compact_schema(42) == 42
     assert _compact_schema(None) is None
     assert _compact_schema([1, 2]) == [1, 2]
+
+
+def test_compact_schema_inlines_columnref_like_model() -> None:
+    """$ref to a model with fields is inlined, preserving field structure."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "metrics": {
+                "type": "array",
+                "items": {"$ref": "#/$defs/ColumnRef"},
+            },
+        },
+        "$defs": {
+            "ColumnRef": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Column name"},
+                    "aggregate": {"type": "string", "description": "SQL aggregate"},
+                    "saved_metric": {"type": "boolean", "default": False},
+                },
+                "required": ["name"],
+            }
+        },
+    }
+
+    result = _compact_schema(schema)
+
+    assert "$defs" not in result
+    inlined = result["properties"]["metrics"]["items"]
+    assert inlined["type"] == "object"
+    assert "name" in inlined["properties"]
+    assert "aggregate" in inlined["properties"]
+    assert "saved_metric" in inlined["properties"]
+    assert inlined["required"] == ["name"]
+
+
+def test_compact_schema_inlines_nested_refs() -> None:
+    """Nested $ref chains are resolved transitively."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "config": {"$ref": "#/$defs/ChartConfig"},
+        },
+        "$defs": {
+            "ChartConfig": {
+                "type": "object",
+                "properties": {
+                    "metrics": {
+                        "type": "array",
+                        "items": {"$ref": "#/$defs/ColumnRef"},
+                    },
+                },
+            },
+            "ColumnRef": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                },
+                "required": ["name"],
+            },
+        },
+    }
+
+    result = _compact_schema(schema)
+
+    assert "$defs" not in result
+    config = result["properties"]["config"]
+    assert config["type"] == "object"
+    col_ref = config["properties"]["metrics"]["items"]
+    assert col_ref["type"] == "object"
+    assert "name" in col_ref["properties"]
+
+
+def test_compact_schema_circular_ref_fallback() -> None:
+    """Circular $ref falls back to {"type": "object"} to avoid infinite recursion."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "node": {"$ref": "#/$defs/TreeNode"},
+        },
+        "$defs": {
+            "TreeNode": {
+                "type": "object",
+                "properties": {
+                    "children": {
+                        "type": "array",
+                        "items": {"$ref": "#/$defs/TreeNode"},
+                    },
+                },
+            }
+        },
+    }
+
+    result = _compact_schema(schema)
+
+    assert "$defs" not in result
+    node = result["properties"]["node"]
+    assert node["type"] == "object"
+    # The self-reference falls back to {"type": "object"}
+    assert node["properties"]["children"]["items"] == {"type": "object"}
+
+
+def test_compact_schema_inline_with_sibling_description() -> None:
+    """Inlined $ref preserves sibling description via setdefault."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "col": {
+                "$ref": "#/$defs/ColumnRef",
+                "description": "The column to use",
+            },
+        },
+        "$defs": {
+            "ColumnRef": {
+                "type": "object",
+                "properties": {"name": {"type": "string"}},
+            }
+        },
+    }
+
+    result = _compact_schema(schema)
+
+    col = result["properties"]["col"]
+    assert col["type"] == "object"
+    assert "name" in col["properties"]
+    assert col["description"] == "The column to use"
+
+
+def test_compact_schema_inline_optional_ref() -> None:
+    """anyOf with $ref and null inlines the definition, not just {"type": "object"}."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "col": {
+                "anyOf": [
+                    {"$ref": "#/$defs/ColumnRef"},
+                    {"type": "null"},
+                ],
+                "description": "Optional column",
+            },
+        },
+        "$defs": {
+            "ColumnRef": {
+                "type": "object",
+                "properties": {"name": {"type": "string"}},
+            }
+        },
+    }
+
+    result = _compact_schema(schema)
+
+    col = result["properties"]["col"]
+    assert "anyOf" not in col
+    assert col["type"] == "object"
+    assert "name" in col["properties"]
+    assert col["description"] == "Optional column"
+
+
+def test_compact_schema_inlines_empty_def() -> None:
+    """Empty $defs entry ({}) is inlined as-is, not downgraded to {"type": "object"}."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "anything": {"$ref": "#/$defs/Anything"},
+        },
+        "$defs": {
+            "Anything": {},
+        },
+    }
+
+    result = _compact_schema(schema)
+
+    assert "$defs" not in result
+    # Empty dict is a valid schema — should be inlined as {}, not {"type": "object"}
+    assert result["properties"]["anything"] == {}
 
 
 # -- _truncate_description tests --
@@ -514,13 +700,19 @@ def test_create_serializer_compacts_schemas():
         },
     )
 
-    serializer = _create_search_result_serializer({"compact_schemas": True})
+    serializer = _create_search_result_serializer(
+        {"include_schemas": True, "compact_schemas": True}
+    )
     result = serializer([tool])
 
     assert len(result) == 1
     schema = result[0]["inputSchema"]
     assert "$defs" not in schema
-    assert schema["properties"]["filters"]["items"] == {"type": "object"}
+    # $ref is inlined from $defs, preserving field structure
+    assert schema["properties"]["filters"]["items"] == {
+        "type": "object",
+        "properties": {"col": {"type": "string"}},
+    }
 
 
 def test_create_serializer_truncates_descriptions():
@@ -550,7 +742,7 @@ def test_create_serializer_disabled():
     )
 
     serializer = _create_search_result_serializer(
-        {"compact_schemas": False, "max_description_length": 0}
+        {"include_schemas": True, "compact_schemas": False, "max_description_length": 0}
     )
     result = serializer([tool])
 
@@ -569,7 +761,9 @@ def test_create_serializer_compact_false_disables_truncation():
         {"type": "object", "$defs": {"Model": {"type": "object"}}},
     )
 
-    serializer = _create_search_result_serializer({"compact_schemas": False})
+    serializer = _create_search_result_serializer(
+        {"include_schemas": True, "compact_schemas": False}
+    )
     result = serializer([tool])
 
     # $defs should still be present (compaction disabled)
@@ -588,7 +782,11 @@ def test_create_serializer_compact_false_explicit_truncation():
     )
 
     serializer = _create_search_result_serializer(
-        {"compact_schemas": False, "max_description_length": 200}
+        {
+            "include_schemas": True,
+            "compact_schemas": False,
+            "max_description_length": 200,
+        }
     )
     result = serializer([tool])
 
@@ -599,7 +797,11 @@ def test_create_serializer_compact_false_explicit_truncation():
 
 
 def test_create_serializer_uses_config_defaults():
-    """Empty config uses defaults (compact=True, max_desc=300)."""
+    """Empty config defaults to summary mode (include_schemas=False).
+
+    The new default omits inputSchema and adds parameters_hint instead.
+    Descriptions are still truncated to 300 chars.
+    """
     long_desc = "First sentence. " + "x" * 500
     tool = _make_mock_tool(
         "test_tool",
@@ -614,7 +816,10 @@ def test_create_serializer_uses_config_defaults():
     serializer = _create_search_result_serializer({})
     result = serializer([tool])
 
-    assert "$defs" not in result[0]["inputSchema"]
+    # Summary mode: no inputSchema, parameters_hint present
+    assert "inputSchema" not in result[0]
+    assert result[0]["parameters_hint"] == "x"
+    # Description still truncated to default 300
     assert len(result[0]["description"]) <= 303
 
 
@@ -640,3 +845,354 @@ def test_apply_transform_uses_compact_serializer():
         transform._search_result_serializer
         is not _serialize_tools_without_output_schema
     )
+
+
+def test_tool_search_permission_filter_hides_disallowed_tools():
+    """Search candidates exclude tools the current user cannot execute."""
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+
+    def permitted_tool():
+        pass
+
+    def denied_tool():
+        pass
+
+    for func in (permitted_tool, denied_tool):
+        setattr(func, CLASS_PERMISSION_ATTR, "Dataset")
+        setattr(func, METHOD_PERMISSION_ATTR, "get_drill_info")
+
+    permitted = SimpleNamespace(fn=permitted_tool)
+    denied = SimpleNamespace(fn=denied_tool)
+    public = SimpleNamespace(fn=lambda: None)
+
+    with app.app_context():
+        g.user = SimpleNamespace(username="viewer")
+        with patch(
+            "superset.security_manager", new_callable=MagicMock
+        ) as security_manager:
+            security_manager.can_access.side_effect = [True, False]
+
+            result = _filter_tools_by_current_user_permission(
+                [permitted, denied, public]
+            )
+
+    assert result == [permitted, public]
+    security_manager.can_access.assert_any_call("can_get_drill_info", "Dataset")
+
+
+def test_tool_search_permission_filter_hides_protected_tools_without_user() -> None:
+    """Protected tools are hidden from search when no Flask user is present."""
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+
+    def protected_tool():
+        pass
+
+    setattr(protected_tool, CLASS_PERMISSION_ATTR, "Dataset")
+    setattr(protected_tool, METHOD_PERMISSION_ATTR, "get_drill_info")
+
+    protected = SimpleNamespace(fn=protected_tool)
+    public = SimpleNamespace(fn=lambda: None)
+
+    with app.app_context():
+        result = _filter_tools_by_current_user_permission([protected, public])
+
+    assert result == [public]
+
+
+def test_tool_search_filter_hides_metadata_tools_without_access() -> None:
+    """Privacy-marked tools are hidden even if broad Dataset read exists."""
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+
+    @requires_data_model_metadata_access
+    def metadata_tool():
+        pass
+
+    metadata = SimpleNamespace(fn=metadata_tool)
+    public = SimpleNamespace(fn=lambda: None)
+
+    with app.app_context():
+        g.user = SimpleNamespace(username="viewer")
+        with patch(
+            "superset.mcp_service.server.user_can_view_data_model_metadata",
+            return_value=False,
+        ):
+            result = _filter_tools_by_current_user_permission([metadata, public])
+
+    assert result == [public]
+
+
+def test_tool_search_permission_filter_still_applies_rbac_to_metadata_tools() -> None:
+    """Privacy-marked tools still require the underlying tool permission."""
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+
+    @requires_data_model_metadata_access
+    def metadata_tool():
+        pass
+
+    setattr(metadata_tool, CLASS_PERMISSION_ATTR, "Dataset")
+    setattr(metadata_tool, METHOD_PERMISSION_ATTR, "get_drill_info")
+
+    metadata = SimpleNamespace(fn=metadata_tool)
+    public = SimpleNamespace(fn=lambda: None)
+
+    with app.app_context():
+        g.user = SimpleNamespace(username="viewer")
+        with (
+            patch(
+                "superset.mcp_service.server.user_can_view_data_model_metadata",
+                return_value=True,
+            ),
+            patch("superset.security_manager", new_callable=Mock) as security_manager,
+        ):
+            security_manager.can_access.return_value = False
+            result = _filter_tools_by_current_user_permission([metadata, public])
+
+    assert result == [public]
+
+
+def test_tool_search_permission_filter_resolves_user_from_request() -> None:
+    """Search filtering resolves the current user when g.user is not already set."""
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+
+    def protected_tool():
+        pass
+
+    setattr(protected_tool, CLASS_PERMISSION_ATTR, "Dataset")
+    setattr(protected_tool, METHOD_PERMISSION_ATTR, "read")
+
+    protected = SimpleNamespace(fn=protected_tool)
+
+    with app.app_context():
+        with (
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=SimpleNamespace(username="viewer"),
+            ),
+            patch("superset.security_manager", new_callable=Mock) as security_manager,
+        ):
+            security_manager.can_access.return_value = True
+            result = _filter_tools_by_current_user_permission([protected])
+
+    assert result == [protected]
+
+
+def test_tool_search_permission_filter_keeps_get_schema_visible_without_metadata() -> (
+    None
+):
+    """get_schema remains discoverable when only safe model types are available."""
+    from superset.mcp_service.system.tool.get_schema import get_schema
+
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+
+    schema_tool = SimpleNamespace(fn=get_schema)
+
+    with app.app_context():
+        g.user = SimpleNamespace(username="viewer")
+        with (
+            patch(
+                "superset.mcp_service.server.user_can_view_data_model_metadata",
+                return_value=False,
+            ),
+            patch("superset.security_manager", new_callable=Mock) as security_manager,
+        ):
+            security_manager.can_access.return_value = True
+            result = _filter_tools_by_current_user_permission([schema_tool])
+
+    assert result == [schema_tool]
+
+
+# -- _extract_parameter_names tests --
+
+
+def test_extract_parameter_names_basic():
+    """Returns comma-separated top-level property names."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "page": {"type": "integer"},
+            "page_size": {"type": "integer"},
+            "search": {"type": "string"},
+        },
+    }
+
+    result = _extract_parameter_names(schema)
+
+    assert result == "page, page_size, search"
+
+
+def test_extract_parameter_names_empty_properties():
+    """Returns empty string when properties dict is empty."""
+    schema = {"type": "object", "properties": {}}
+
+    result = _extract_parameter_names(schema)
+
+    assert result == ""
+
+
+def test_extract_parameter_names_no_properties_key():
+    """Returns empty string when properties key is absent."""
+    schema = {"type": "object"}
+
+    result = _extract_parameter_names(schema)
+
+    assert result == ""
+
+
+def test_extract_parameter_names_with_refs():
+    """Extracts names regardless of the shape of property values."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "filters": {"type": "array", "items": {"$ref": "#/$defs/ChartFilter"}},
+            "select_columns": {"type": "array"},
+        },
+        "$defs": {"ChartFilter": {"type": "object"}},
+    }
+
+    result = _extract_parameter_names(schema)
+
+    assert result == "filters, select_columns"
+
+
+# -- _create_search_result_serializer summary mode (include_schemas=False) --
+
+
+def test_create_serializer_summary_mode_strips_input_schema():
+    """When include_schemas=False, inputSchema is absent from results."""
+    tool = _make_mock_tool(
+        "list_charts",
+        "List charts.",
+        {
+            "type": "object",
+            "properties": {
+                "page": {"type": "integer"},
+                "search": {"type": "string"},
+            },
+        },
+    )
+
+    serializer = _create_search_result_serializer({"include_schemas": False})
+    result = serializer([tool])
+
+    assert len(result) == 1
+    assert "inputSchema" not in result[0]
+    assert result[0]["name"] == "list_charts"
+
+
+def test_create_serializer_summary_mode_adds_parameters_hint():
+    """When include_schemas=False, parameters_hint lists top-level param names."""
+    tool = _make_mock_tool(
+        "list_charts",
+        "List charts.",
+        {
+            "type": "object",
+            "properties": {
+                "page": {"type": "integer"},
+                "page_size": {"type": "integer"},
+                "search": {"type": "string"},
+            },
+        },
+    )
+
+    serializer = _create_search_result_serializer({"include_schemas": False})
+    result = serializer([tool])
+
+    assert result[0]["parameters_hint"] == "page, page_size, search"
+
+
+def test_create_serializer_summary_mode_no_hint_when_no_properties():
+    """When inputSchema has no properties, parameters_hint is absent."""
+    tool = _make_mock_tool(
+        "health_check",
+        "Health check.",
+        {"type": "object"},
+    )
+
+    serializer = _create_search_result_serializer({"include_schemas": False})
+    result = serializer([tool])
+
+    assert "inputSchema" not in result[0]
+    assert "parameters_hint" not in result[0]
+
+
+def test_create_serializer_summary_mode_truncates_description():
+    """Summary mode still truncates descriptions to max_description_length."""
+    long_desc = "First sentence. " + "x" * 500
+    tool = _make_mock_tool(
+        "list_charts",
+        long_desc,
+        {"type": "object", "properties": {"page": {"type": "integer"}}},
+    )
+
+    serializer = _create_search_result_serializer(
+        {"include_schemas": False, "max_description_length": 50}
+    )
+    result = serializer([tool])
+
+    assert len(result[0]["description"]) <= 53
+
+
+def test_create_serializer_summary_mode_is_default():
+    """Empty config defaults to summary mode (include_schemas=False)."""
+    tool = _make_mock_tool(
+        "list_charts",
+        "List charts.",
+        {
+            "type": "object",
+            "properties": {"page": {"type": "integer"}},
+        },
+    )
+
+    serializer = _create_search_result_serializer({})
+    result = serializer([tool])
+
+    assert "inputSchema" not in result[0]
+    assert "parameters_hint" in result[0]
+
+
+def test_create_serializer_include_schemas_true_restores_full_schema():
+    """include_schemas=True preserves inputSchema in results."""
+    schema = {
+        "type": "object",
+        "properties": {"page": {"type": "integer"}},
+        "$defs": {"Model": {"type": "object"}},
+    }
+    tool = _make_mock_tool("list_charts", "List charts.", schema)
+
+    serializer = _create_search_result_serializer(
+        {"include_schemas": True, "compact_schemas": False, "max_description_length": 0}
+    )
+    result = serializer([tool])
+
+    assert "inputSchema" in result[0]
+    assert "parameters_hint" not in result[0]
+    assert "$defs" in result[0]["inputSchema"]
+
+
+def test_create_serializer_include_schemas_true_with_compact():
+    """include_schemas=True + compact_schemas=True still compacts the schema."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "filters": {"type": "array", "items": {"$ref": "#/$defs/ChartFilter"}}
+        },
+        "$defs": {"ChartFilter": {"type": "object"}},
+    }
+    tool = _make_mock_tool("list_charts", "List charts.", schema)
+
+    serializer = _create_search_result_serializer(
+        {"include_schemas": True, "compact_schemas": True}
+    )
+    result = serializer([tool])
+
+    assert "inputSchema" in result[0]
+    assert "$defs" not in result[0]["inputSchema"]
+    assert result[0]["inputSchema"]["properties"]["filters"]["items"] == {
+        "type": "object"
+    }

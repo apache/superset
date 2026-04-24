@@ -63,33 +63,40 @@ export const CopyToClipboardButton = ({
   data?: TabularDataRow[];
   columns?: string[];
   disabled?: boolean;
-}) => (
-  <CopyToClipboard
-    text={
-      !disabled && data && columns
-        ? prepareCopyToClipboardTabularData(data, columns)
-        : ''
-    }
-    disabled={disabled}
-    wrapped={false}
-    copyNode={
-      <Icons.CopyOutlined
-        iconSize="l"
-        aria-label={t('Copy')}
-        aria-disabled={disabled}
-        role="button"
-        tabIndex={disabled ? -1 : 0}
-        css={css`
-          opacity: ${disabled ? 0.3 : 1};
-          cursor: ${disabled ? 'not-allowed' : 'pointer'};
-          &.anticon > * {
-            line-height: 0;
-          }
-        `}
-      />
-    }
-  />
-);
+}) => {
+  const theme = useTheme();
+  return (
+    <CopyToClipboard
+      text={
+        !disabled && data && columns
+          ? prepareCopyToClipboardTabularData(data, columns)
+          : ''
+      }
+      disabled={disabled}
+      wrapped={false}
+      copyNode={
+        <span
+          role="button"
+          aria-label={t('Copy')}
+          aria-disabled={disabled}
+          tabIndex={disabled ? -1 : 0}
+        >
+          <Icons.CopyOutlined
+            iconColor={theme.colorIcon}
+            iconSize="l"
+            css={css`
+              opacity: ${disabled ? 0.3 : 1};
+              cursor: ${disabled ? 'not-allowed' : 'pointer'};
+              &.anticon > * {
+                line-height: 0;
+              }
+            `}
+          />
+        </span>
+      }
+    />
+  );
+};
 
 export const FilterInput = ({
   onChangeHandler,
