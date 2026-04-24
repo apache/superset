@@ -114,6 +114,25 @@ test('DateFilter popover should attach to parent node when overflowing in filter
   expect(popover?.parentElement).toBe(trigger.parentElement);
 });
 
+test('popover content uses scrollable body with pinned footer for Apply/Cancel', () => {
+  render(setup());
+  userEvent.click(screen.getByText(NO_TIME_RANGE));
+
+  const applyBtn = screen.getByTestId(DateFilterTestKey.ApplyButton);
+  const cancelBtn = screen.getByTestId(DateFilterTestKey.CancelButton);
+  const footer = applyBtn.closest('.footer') as HTMLElement;
+  const wrapper = footer.parentElement as HTMLElement;
+  const contentBody = wrapper.querySelector('.content-body') as HTMLElement;
+
+  expect(contentBody).toBeInTheDocument();
+  expect(footer).toBeInTheDocument();
+  // Footer is a sibling of content-body, not nested inside it,
+  // so it stays visible when the body scrolls.
+  expect(footer.parentElement).toBe(contentBody.parentElement);
+  expect(contentBody.contains(cancelBtn)).toBe(false);
+  expect(contentBody.contains(applyBtn)).toBe(false);
+});
+
 test('DateFilter should properly handle isOverflowingFilterBar prop changes', () => {
   const { rerender } = render(
     setup({ ...defaultProps, isOverflowingFilterBar: false }),

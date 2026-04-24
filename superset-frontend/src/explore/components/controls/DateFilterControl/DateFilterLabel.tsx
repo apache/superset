@@ -64,6 +64,10 @@ const StyledRangeType = styled(Select)`
 
 const ContentStyleWrapper = styled.div`
   ${({ theme }) => css`
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 100px);
+
     .ant-row {
       margin-top: 8px;
     }
@@ -99,7 +103,14 @@ const ContentStyleWrapper = styled.div`
       width: 217px;
     }
 
+    .content-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
     .footer {
+      flex-shrink: 0;
       text-align: right;
     }
   `}
@@ -273,51 +284,55 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const overlayContent = (
     <ContentStyleWrapper>
-      <div className="control-label">{t('Range type')}</div>
-      <StyledRangeType
-        ariaLabel={t('Range type')}
-        options={FRAME_OPTIONS}
-        value={frame}
-        onChange={onChangeFrame}
-      />
-      {frame !== 'No filter' && <Divider />}
-      {frame === 'Common' && (
-        <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
-      )}
-      {frame === 'Calendar' && (
-        <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
-      )}
-      {frame === 'Current' && (
-        <CurrentCalendarFrame
-          value={timeRangeValue}
-          onChange={setTimeRangeValue}
+      <div className="content-body">
+        <div className="control-label">{t('Range type')}</div>
+        <StyledRangeType
+          ariaLabel={t('Range type')}
+          options={FRAME_OPTIONS}
+          value={frame}
+          onChange={onChangeFrame}
         />
-      )}
-      {frame === 'Advanced' && (
-        <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />
-      )}
-      {frame === 'Custom' && (
-        <CustomFrame
-          value={timeRangeValue}
-          onChange={setTimeRangeValue}
-          isOverflowingFilterBar={isOverflowingFilterBar}
-        />
-      )}
-      {frame === 'No filter' && <div data-test={DateFilterTestKey.NoFilter} />}
-      <Divider />
-      <div>
-        <div className="section-title">{t('Actual time range')}</div>
-        {validTimeRange && (
-          <div>
-            {evalResponse === 'No filter' ? t('No filter') : evalResponse}
-          </div>
+        {frame !== 'No filter' && <Divider />}
+        {frame === 'Common' && (
+          <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
         )}
-        {!validTimeRange && (
-          <IconWrapper className="warning">
-            <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
-            <span className="text error">{evalResponse}</span>
-          </IconWrapper>
+        {frame === 'Calendar' && (
+          <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
         )}
+        {frame === 'Current' && (
+          <CurrentCalendarFrame
+            value={timeRangeValue}
+            onChange={setTimeRangeValue}
+          />
+        )}
+        {frame === 'Advanced' && (
+          <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+        )}
+        {frame === 'Custom' && (
+          <CustomFrame
+            value={timeRangeValue}
+            onChange={setTimeRangeValue}
+            isOverflowingFilterBar={isOverflowingFilterBar}
+          />
+        )}
+        {frame === 'No filter' && (
+          <div data-test={DateFilterTestKey.NoFilter} />
+        )}
+        <Divider />
+        <div>
+          <div className="section-title">{t('Actual time range')}</div>
+          {validTimeRange && (
+            <div>
+              {evalResponse === 'No filter' ? t('No filter') : evalResponse}
+            </div>
+          )}
+          {!validTimeRange && (
+            <IconWrapper className="warning">
+              <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
+              <span className="text error">{evalResponse}</span>
+            </IconWrapper>
+          )}
+        </div>
       </div>
       <Divider />
       <div className="footer">
