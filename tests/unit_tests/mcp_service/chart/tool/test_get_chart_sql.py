@@ -34,6 +34,7 @@ from superset.mcp_service.chart.tool.get_chart_sql import (
     _build_query_context_from_form_data,
     _extract_sql_from_result,
     _find_chart_by_identifier,
+    _resolve_datasource_name,
     _resolve_effective_form_data,
     _resolve_groupby,
     _resolve_metrics,
@@ -402,6 +403,14 @@ class TestBuildQueryContextFromFormData:
             {"col": "city", "op": "==", "val": "NYC"}
         ]
 
+        # Verify time_range, adhoc_filters, and filters are also in the
+        # queries dict so QueryObjectFactory picks them up as kwargs
+        queries = call_kwargs["queries"]
+        assert len(queries) == 1
+        assert queries[0]["time_range"] == "Last 7 days"
+        assert queries[0]["adhoc_filters"] == form_data["adhoc_filters"]
+        assert queries[0]["filters"] == [{"col": "city", "op": "==", "val": "NYC"}]
+
     @patch("superset.common.query_context_factory.QueryContextFactory")
     def test_metrics_and_groupby_in_queries(self, mock_factory_cls):
         """Resolved metrics and groupby are passed in queries parameter."""
@@ -427,6 +436,72 @@ class TestBuildQueryContextFromFormData:
         assert len(queries) == 1
         assert queries[0]["metrics"] == ["sum_revenue"]
         assert queries[0]["columns"] == ["product"]
+
+
+class TestResolveDatasourceName:
+    """Tests for _resolve_datasource_name helper."""
+
+    def test_returns_chart_datasource_name_when_chart_exists(self):
+        """When a chart object is provided, use its datasource_name."""
+        chart = Mock()
+        chart.datasource_name = "my_dataset"
+        result = _resolve_datasource_name({"datasource_id": 1}, chart)
+        assert result == "my_dataset"
+
+    @patch(
+        "superset.mcp_service.chart.tool.get_chart_sql.DatasourceDAO",
+        create=True,
+    )
+    def test_resolves_from_form_data_when_chart_is_none(self, mock_dao):
+        """Unsaved charts resolve datasource name via DAO lookup."""
+        mock_ds = Mock()
+        mock_ds.name = "resolved_dataset"
+
+        with patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            return_value=mock_ds,
+        ):
+            result = _resolve_datasource_name(
+                {"datasource_id": 42, "datasource_type": "table"}, chart=None
+            )
+        assert result == "resolved_dataset"
+
+    def test_returns_none_when_no_datasource_id(self):
+        """Returns None when form_data has no datasource info."""
+        result = _resolve_datasource_name({}, chart=None)
+        assert result is None
+
+    @patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource",
+        return_value=None,
+    )
+    def test_returns_none_when_datasource_not_found(self, mock_dao):
+        """Returns None when DAO lookup returns None."""
+        result = _resolve_datasource_name(
+            {"datasource_id": 999, "datasource_type": "table"}, chart=None
+        )
+        assert result is None
+
+    @patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource",
+        side_effect=ValueError("Invalid datasource type"),
+    )
+    def test_returns_none_on_dao_error(self, mock_dao):
+        """Returns None when DAO raises ValueError."""
+        result = _resolve_datasource_name(
+            {"datasource_id": 1, "datasource_type": "invalid"}, chart=None
+        )
+        assert result is None
+
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_resolves_combined_datasource_field(self, mock_get_ds):
+        """Handles combined 'datasource' field like '123__table'."""
+        mock_ds = Mock()
+        mock_ds.name = "combined_dataset"
+        mock_get_ds.return_value = mock_ds
+
+        result = _resolve_datasource_name({"datasource": "123__table"}, chart=None)
+        assert result == "combined_dataset"
 
 
 class TestGetChartSqlTool:
