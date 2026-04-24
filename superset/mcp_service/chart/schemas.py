@@ -1412,10 +1412,15 @@ class ListChartsRequest(MetadataCacheControl):
 
 # The tool input models
 class GenerateChartRequest(QueryCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
     chart_name: str | None = Field(
-        None, description="Auto-generates if omitted", max_length=255
+        None,
+        description="Auto-generates if omitted",
+        max_length=255,
+        validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     save_chart: bool = Field(default=False, description="Save permanently in Superset")
     generate_preview: bool = True
