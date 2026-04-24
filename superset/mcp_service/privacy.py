@@ -138,21 +138,22 @@ def remove_chart_data_model_columns(columns: Iterable[str]) -> list[str]:
 
 
 def redact_chart_data_model_fields(chart_info: Any) -> Any:
-    """Redact chart fields that expose dataset or database metadata."""
-    try:
-        from superset.mcp_service.chart.schemas import ChartInfo
+    """Redact chart fields that expose dataset or database metadata.
 
-        if isinstance(chart_info, ChartInfo):
-            return chart_info.model_copy(
-                update={
-                    "datasource_name": None,
-                    "datasource_type": None,
-                    "filters": None,
-                    "form_data": None,
-                }
-            )
-    except Exception:  # noqa: BLE001
-        return chart_info
+    Fails closed: if redaction cannot be applied, the exception propagates
+    rather than returning unredacted data.
+    """
+    from superset.mcp_service.chart.schemas import ChartInfo
+
+    if isinstance(chart_info, ChartInfo):
+        return chart_info.model_copy(
+            update={
+                "datasource_name": None,
+                "datasource_type": None,
+                "filters": None,
+                "form_data": None,
+            }
+        )
     return chart_info
 
 
