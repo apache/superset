@@ -275,6 +275,15 @@ class GetChartInfoRequest(BaseModel):
             "Can be used alone (without identifier) for unsaved charts."
         ),
     )
+    dashboard_id: int | None = Field(
+        default=None,
+        description=(
+            "When provided, resolves dashboard-level native filters that are in "
+            "scope for this chart on the given dashboard and returns them under "
+            "filters.dashboard_filters. Requires the chart to be on the dashboard "
+            "and the caller to have dashboard access."
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_identifier_or_form_data_key(self) -> "GetChartInfoRequest":
@@ -1956,6 +1965,38 @@ class AdhocFilter(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
+class AppliedDashboardFilter(BaseModel):
+    """A dashboard-level native filter resolved against a specific chart.
+
+    Returned when get_chart_info is called with a dashboard_id. Values come
+    from the filter's default state on the saved dashboard (not a permalink).
+    """
+
+    id: str | None = Field(None, description="Native filter ID")
+    name: str | None = Field(None, description="Filter display name")
+    filter_type: str | None = Field(
+        None, description="Native filter type (e.g. filter_select, filter_range)"
+    )
+    column: str | None = Field(None, description="Target column the filter applies to")
+    operator: str | None = Field(
+        None,
+        description=(
+            "Filter operator as stored in extra_form_data (e.g. 'IN', '==', 'LIKE', "
+            "or 'TIME_RANGE' for temporal filters with no target column)"
+        ),
+    )
+    value: Any | None = Field(
+        None, description="Filter value(s) from the default data mask"
+    )
+    status: str = Field(
+        ...,
+        description=(
+            "Whether the filter contributes to the chart query: 'applied', "
+            "'not_applied', or 'not_applied_uses_default_to_first_item_prequery'"
+        ),
+    )
+
+
 class ChartFiltersInfo(BaseModel):
     """Structured representation of all filters applied to a chart."""
 
@@ -1996,6 +2037,15 @@ class ChartFiltersInfo(BaseModel):
     having: str | None = Field(
         None,
         description="Custom HAVING clause applied to the chart query",
+    )
+    dashboard_filters: List[AppliedDashboardFilter] = Field(
+        default_factory=list,
+        description=(
+            "Dashboard-level native filters in scope for this chart on the "
+            "dashboard passed via get_chart_info's dashboard_id argument. Empty "
+            "when no dashboard_id was provided or no native filter targets this "
+            "chart."
+        ),
     )
 
 
