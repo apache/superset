@@ -286,9 +286,13 @@ class DatasetError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatasetError":
         """Create a standardized DatasetError with timestamp."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        return cls(error=error, error_type=error_type, timestamp=datetime.now())
+        return cls(
+            error=error,
+            error_type=error_type,
+            timestamp=datetime.now(timezone.utc),
+        )
 
 
 class GetDatasetInfoRequest(MetadataCacheControl):
