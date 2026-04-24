@@ -22,7 +22,7 @@ These tables store the full history of changes to each entity using Continuum's
 validity strategy: the current version row has end_transaction_id = NULL.
 
 Revision ID: 56cd24c07170
-Revises: fd0c8583b46d
+Revises: ce6bd21901ab
 Create Date: 2026-04-20 00:00:00.000000
 
 """
@@ -34,7 +34,7 @@ from alembic import op
 from sqlalchemy_utils import UUIDType
 
 revision = "56cd24c07170"
-down_revision = "fd0c8583b46d"
+down_revision = "ce6bd21901ab"
 
 
 def upgrade() -> None:
