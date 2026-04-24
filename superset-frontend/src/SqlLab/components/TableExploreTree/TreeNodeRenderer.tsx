@@ -388,6 +388,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                 />
                 <ActionButton
                   label={`toggle-${schema}-${tableName}`}
+                  tooltip={isManuallyOpen ? t('Collapse') : t('Expand')}
                   icon={
                     isManuallyOpen ? (
                       <Icons.UpOutlined iconSize="m" />
