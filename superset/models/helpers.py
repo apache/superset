@@ -1239,7 +1239,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> ColumnElement:
+    ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         raise NotImplementedError()
 
     def _get_top_groups(
@@ -1643,7 +1643,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
-                    outer = self.adhoc_column_to_sqla(
+                    outer, _unused = self.adhoc_column_to_sqla(
                         col=selected, template_processor=template_processor
                     )
                 groupby_all_columns[outer.name] = outer
@@ -1756,11 +1756,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             op = flt["op"].upper()
             col_obj: Optional["TableColumn"] = None
             sqla_col: Optional[Column] = None
+            adhoc_generic_type: Optional[GenericDataType] = None
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
                 try:
-                    sqla_col = self.adhoc_column_to_sqla(
+                    sqla_col, adhoc_generic_type = self.adhoc_column_to_sqla(
                         flt_col,
                         force_type_check=True,
                         template_processor=template_processor,
@@ -1799,6 +1800,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 if col_spec and not col_advanced_data_type:
                     target_generic_type = col_spec.generic_type
+                elif adhoc_generic_type is not None and not col_advanced_data_type:
+                    # Adhoc columns have no TableColumn metadata; fall back to
+                    # the generic type resolved by adhoc_column_to_sqla so
+                    # filter values get coerced to match the SQL expression
+                    # (e.g. numeric IN-lists stay unquoted when the expression
+                    # casts to BIGINT).
+                    target_generic_type = adhoc_generic_type
                 else:
                     target_generic_type = GenericDataType.STRING
                 eq = self.filter_values_handler(
