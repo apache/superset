@@ -293,12 +293,27 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         params: dict[str, Any],
     ) -> None:
         """
-        Remove `oauth2_client_info` from `encrypted_extra`.
+        Remove `oauth2_client_info` from `encrypted_extra` and wrap
+        service_account_info and catalog in adapter_kwargs for shillelagh.
         """
         ShillelaghEngineSpec.update_params_from_encrypted_extra(database, params)
 
         if "oauth2_client_info" in params:
             del params["oauth2_client_info"]
+
+        if "service_account_info" in params:
+            sa_info = params.pop("service_account_info")
+            connect_args = params.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            adapter_kwargs.setdefault("gsheetsapi", {})[
+                "service_account_info"
+            ] = sa_info
+
+        if "catalog" in params:
+            catalog = params["catalog"]  # keep in params for table listing
+            connect_args = params.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            adapter_kwargs.setdefault("gsheetsapi", {})["catalog"] = catalog
 
     @classmethod
     def get_parameters_from_uri(
@@ -362,8 +377,14 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
         engine = create_engine(
             "gsheets://",
-            service_account_info=encrypted_credentials,
-            subject=subject,
+            connect_args={
+                "adapter_kwargs": {
+                    "gsheetsapi": {
+                        "service_account_info": encrypted_credentials,
+                        "subject": subject,
+                    }
+                }
+            },
         )
         conn = engine.connect()
         idx = 0
