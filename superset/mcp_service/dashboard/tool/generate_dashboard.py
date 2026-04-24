@@ -415,18 +415,14 @@ def generate_dashboard(  # noqa: C901
             published=dashboard.published,
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
-            created_by=None,
-            changed_by=None,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/",
             chart_count=len(request.chart_ids),
-            owners=[],
             tags=[
                 serialize_tag_object(tag)
                 for tag in getattr(dashboard, "tags", [])
                 if serialize_tag_object(tag) is not None
             ],
-            roles=[],  # Dashboard roles not typically set at creation
             charts=[
                 obj
                 for chart in getattr(dashboard, "slices", [])
