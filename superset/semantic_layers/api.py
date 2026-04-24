@@ -910,7 +910,7 @@ class SemanticLayerRestApi(BaseSupersetApi):
                     Database.id,
                     Database.uuid,
                     Database.database_name,
-                    Database.backend,
+                    Database.sqlalchemy_uri,
                     Database.allow_run_async,
                     Database.allow_dml,
                     Database.allow_file_upload,
