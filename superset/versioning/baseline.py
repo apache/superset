@@ -26,7 +26,7 @@ from typing import Any, Optional
 
 import sqlalchemy as sa
 from sqlalchemy import event
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -143,12 +143,8 @@ def register_baseline_listener() -> None:
                         )
                         .scalar()
                     )
-            except DBAPIError:
-                # Version table does not yet exist (migration not yet
-                # applied). Raised as OperationalError on SQLite ("no
-                # such table") and ProgrammingError on Postgres /
-                # MySQL ("relation does not exist"); DBAPIError is
-                # the shared parent and catches both.
+            except OperationalError:
+                # Version table does not yet exist (migration not yet applied).
                 continue
             except Exception:  # pylint: disable=broad-except
                 logger.exception(

@@ -63,7 +63,7 @@ from typing import Any
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy import event
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from superset.utils import json as _superset_json
@@ -220,7 +220,7 @@ def _compute_records_for_entity(session: Session, obj: Any) -> list[ChangeRecord
 
     try:
         pre_state = _read_pre_state(session, model_cls, entity_id)
-    except DBAPIError:
+    except OperationalError:
         # Main entity table missing (pre-migration state, bootstrap).
         return []
     except Exception:  # pylint: disable=broad-except
@@ -336,7 +336,7 @@ def _dataset_child_records_for_tx(
             .mappings()
             .all()
         )
-    except sa.exc.DBAPIError:
+    except sa.exc.OperationalError:
         return {}
 
     result: dict[int, list[ChangeRecord]] = {}
@@ -400,7 +400,7 @@ def _dashboard_child_records_for_tx(
             .mappings()
             .all()
         )
-    except sa.exc.DBAPIError:
+    except sa.exc.OperationalError:
         return {}
 
     result: dict[int, list[ChangeRecord]] = {}
@@ -548,7 +548,7 @@ def register_change_record_listener() -> None:
 
         try:
             _bulk_insert_records(session, tx_id, buffer)
-        except DBAPIError:
+        except OperationalError:
             # version_changes table missing (migration not yet applied).
             pass
         except Exception:  # pylint: disable=broad-except

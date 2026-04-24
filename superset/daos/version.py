@@ -330,11 +330,7 @@ class VersionDAO:
                 .mappings()
                 .all()
             )
-        except sa.exc.DBAPIError:
-            # version_changes table missing (pre-migration). SQLite
-            # raises OperationalError ("no such table"); Postgres /
-            # MySQL raise ProgrammingError ("relation does not
-            # exist"); DBAPIError is the shared parent.
+        except sa.exc.OperationalError:
             return {}
 
         grouped: dict[int, list[dict[str, Any]]] = {tx: [] for tx in transaction_ids}
