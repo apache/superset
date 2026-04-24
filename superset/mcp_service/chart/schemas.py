@@ -1527,6 +1527,8 @@ class GenerateExploreLinkRequest(FormDataCacheControl):
 
 
 class UpdateChartRequest(QueryCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str = Field(..., description="Chart ID or UUID")
     config: Dict[str, Any] | None = Field(
         None,
@@ -1535,7 +1537,10 @@ class UpdateChartRequest(QueryCacheControl):
         ),
     )
     chart_name: str | None = Field(
-        None, description="Auto-generates if omitted", max_length=255
+        None,
+        description="Auto-generates if omitted",
+        max_length=255,
+        validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     generate_preview: bool = Field(
         default=True,

@@ -86,43 +86,23 @@ def _missing_config_or_name_error() -> GenerateChartResponse:
 def _build_update_payload(
     request: UpdateChartRequest,
     chart: Any,
+    parsed_config: Any = None,
 ) -> dict[str, Any] | GenerateChartResponse:
     """Build the update payload for a chart update.
 
     Returns a dict payload on success, or a GenerateChartResponse error
     when neither config nor chart_name is provided.
+    ``parsed_config`` is the pre-parsed chart config from the caller.
     """
-    if request.config is not None:
-        try:
-            config = parse_chart_config(request.config)
-        except (ValueError, TypeError) as e:
-            from superset.mcp_service.chart.validation.pipeline import (
-                _sanitize_validation_error,
-            )
-
-            sanitized = _sanitize_validation_error(e)
-            return GenerateChartResponse.model_validate(
-                {
-                    "chart": None,
-                    "error": {
-                        "error_type": "validation_error",
-                        "message": f"Invalid chart configuration: {sanitized}",
-                        "details": sanitized,
-                        "error_code": "INVALID_CHART_CONFIG",
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
-            )
+    if parsed_config is not None:
         dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(config, dataset_id=dataset_id)
+        new_form_data = map_config_to_form_data(parsed_config, dataset_id=dataset_id)
         new_form_data.pop("_mcp_warnings", None)
 
         chart_name = (
             request.chart_name
             if request.chart_name
-            else chart.slice_name or generate_chart_name(config)
+            else chart.slice_name or generate_chart_name(parsed_config)
         )
 
         return {
@@ -142,12 +122,14 @@ def _build_update_payload(
 def _build_preview_form_data(
     request: UpdateChartRequest,
     chart: Any,
+    parsed_config: Any = None,
 ) -> dict[str, Any] | GenerateChartResponse:
     """Merge the existing chart's form_data with the requested changes.
 
     Used by the preview-first flow so the user can review edits in Explore
     before clicking Save. Returns the merged form_data dict on success, or a
     GenerateChartResponse error when neither config nor chart_name is given.
+    ``parsed_config`` is the pre-parsed chart config from the caller.
     """
     existing_form_data: dict[str, Any] = {}
     if getattr(chart, "params", None):
@@ -159,31 +141,9 @@ def _build_preview_form_data(
             )
             existing_form_data = {}
 
-    if request.config is not None:
-        try:
-            config = parse_chart_config(request.config)
-        except (ValueError, TypeError) as e:
-            from superset.mcp_service.chart.validation.pipeline import (
-                _sanitize_validation_error,
-            )
-
-            sanitized = _sanitize_validation_error(e)
-            return GenerateChartResponse.model_validate(
-                {
-                    "chart": None,
-                    "error": {
-                        "error_type": "validation_error",
-                        "message": f"Invalid chart configuration: {sanitized}",
-                        "details": sanitized,
-                        "error_code": "INVALID_CHART_CONFIG",
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
-            )
+    if parsed_config is not None:
         dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(config, dataset_id=dataset_id)
+        new_form_data = map_config_to_form_data(parsed_config, dataset_id=dataset_id)
         new_form_data.pop("_mcp_warnings", None)
         merged = {**existing_form_data, **new_form_data}
     else:
@@ -361,10 +321,36 @@ async def update_chart(  # noqa: C901
         saved = False
         new_form_data: dict[str, Any] | None = None
 
+        # Parse config once upfront so helpers and analysis can reuse it.
+        parsed_config = None
+        if request.config is not None:
+            try:
+                parsed_config = parse_chart_config(request.config)
+            except (ValueError, TypeError) as e:
+                from superset.mcp_service.chart.validation.pipeline import (
+                    _sanitize_validation_error,
+                )
+
+                sanitized = _sanitize_validation_error(e)
+                return GenerateChartResponse.model_validate(
+                    {
+                        "chart": None,
+                        "error": {
+                            "error_type": "validation_error",
+                            "message": f"Invalid chart configuration: {sanitized}",
+                            "details": sanitized,
+                            "error_code": "INVALID_CHART_CONFIG",
+                        },
+                        "success": False,
+                        "schema_version": "2.0",
+                        "api_version": "v1",
+                    }
+                )
+
         if not request.generate_preview:
             from superset.commands.chart.update import UpdateChartCommand
 
-            payload_or_error = _build_update_payload(request, chart)
+            payload_or_error = _build_update_payload(request, chart, parsed_config)
             if isinstance(payload_or_error, GenerateChartResponse):
                 return payload_or_error
 
@@ -380,7 +366,7 @@ async def update_chart(  # noqa: C901
                 f"{get_superset_base_url()}/explore/?slice_id={updated_chart.id}"
             )
         else:
-            preview_or_error = _build_preview_form_data(request, chart)
+            preview_or_error = _build_preview_form_data(request, chart, parsed_config)
             if isinstance(preview_or_error, GenerateChartResponse):
                 return preview_or_error
 
@@ -389,15 +375,9 @@ async def update_chart(  # noqa: C901
                     chart, preview_or_error
                 )
 
-        # Parse config for analysis (may be None for name-only updates)
-        try:
-            config = parse_chart_config(request.config) if request.config else None
-        except (ValueError, TypeError):
-            config = None
-
         chart_for_analysis = updated_chart if saved else chart
-        capabilities = analyze_chart_capabilities(chart_for_analysis, config)
-        semantics = analyze_chart_semantics(chart_for_analysis, config)
+        capabilities = analyze_chart_capabilities(chart_for_analysis, parsed_config)
+        semantics = analyze_chart_semantics(chart_for_analysis, parsed_config)
 
         execution_time = int((time.time() - start_time) * 1000)
         performance = PerformanceMetadata(
