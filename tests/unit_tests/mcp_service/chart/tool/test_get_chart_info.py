@@ -23,9 +23,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.mcp_service.chart.chart_helpers import (
     _resolve_filter_operator_and_value,
     build_applied_dashboard_filters,
+    ChartNotOnDashboardError,
 )
 from superset.mcp_service.chart.schemas import GetChartInfoRequest
 
@@ -102,7 +104,7 @@ class TestBuildAppliedDashboardFilters:
             patch("superset.security_manager"),
         ):
             mock_db.session.query.return_value.filter_by.return_value.one_or_none.return_value = dashboard  # noqa: E501
-            with pytest.raises(ValueError, match="not on dashboard"):
+            with pytest.raises(ChartNotOnDashboardError, match="not on dashboard"):
                 build_applied_dashboard_filters(dashboard_id=10, chart_id=1)
 
     def test_dashboard_not_found_raises(self):
@@ -111,7 +113,7 @@ class TestBuildAppliedDashboardFilters:
             patch("superset.security_manager"),
         ):
             mock_db.session.query.return_value.filter_by.return_value.one_or_none.return_value = None  # noqa: E501
-            with pytest.raises(ValueError, match="not found"):
+            with pytest.raises(DashboardNotFoundError):
                 build_applied_dashboard_filters(dashboard_id=10, chart_id=1)
 
     def test_in_scope_filter_with_static_default(self):

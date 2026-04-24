@@ -36,6 +36,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class ChartNotOnDashboardError(ValueError):
+    """Raised when a chart is not part of the given dashboard's slices."""
+
+
 def find_chart_by_identifier(identifier: int | str) -> Slice | None:
     """Find a chart by numeric ID or UUID string.
 
@@ -133,8 +137,9 @@ def build_applied_dashboard_filters(
     native filter whose scope includes the chart, populated with the filter's
     default operator and value.
 
-    Raises ValueError if the dashboard is missing or the chart is not on it,
-    and SupersetSecurityException if the caller cannot access the dashboard.
+    Raises DashboardNotFoundError if the dashboard is missing,
+    ChartNotOnDashboardError if the chart is not on it, and
+    SupersetSecurityException if the caller cannot access the dashboard.
     """
     # Local imports avoid circular deps at module load
     from superset import db, security_manager
@@ -143,19 +148,22 @@ def build_applied_dashboard_filters(
         _get_filter_target_column,
         _is_filter_in_scope_for_chart,
     )
+    from superset.commands.dashboard.exceptions import DashboardNotFoundError
     from superset.mcp_service.chart.schemas import AppliedDashboardFilter
     from superset.models.dashboard import Dashboard
     from superset.utils import json
 
     dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
     if not dashboard:
-        raise ValueError(f"Dashboard {dashboard_id} not found")
+        raise DashboardNotFoundError(dashboard_id=str(dashboard_id))
 
     security_manager.raise_for_access(dashboard=dashboard)
 
     slice_ids = {slc.id for slc in dashboard.slices}
     if chart_id not in slice_ids:
-        raise ValueError(f"Chart {chart_id} is not on dashboard {dashboard_id}")
+        raise ChartNotOnDashboardError(
+            f"Chart {chart_id} is not on dashboard {dashboard_id}"
+        )
 
     metadata = json.loads(dashboard.json_metadata or "{}")
     native_filter_config = metadata.get("native_filter_configuration", [])

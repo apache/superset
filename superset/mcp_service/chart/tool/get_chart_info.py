@@ -25,10 +25,12 @@ from fastmcp import Context
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
     build_applied_dashboard_filters,
+    ChartNotOnDashboardError,
     get_cached_form_data,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
@@ -92,7 +94,10 @@ async def _attach_dashboard_filters(
     with event_logger.log_context(action="mcp.get_chart_info.dashboard_filters"):
         try:
             dashboard_filters = build_applied_dashboard_filters(dashboard_id, result.id)
-        except ValueError as exc:
+        except DashboardNotFoundError as exc:
+            await ctx.warning("Dashboard not found: %s" % (str(exc),))
+            return ChartError(error=str(exc), error_type="DashboardNotFound")
+        except ChartNotOnDashboardError as exc:
             await ctx.warning("Chart not on dashboard: %s" % (str(exc),))
             return ChartError(error=str(exc), error_type="ChartNotOnDashboard")
         except SupersetSecurityException as exc:
