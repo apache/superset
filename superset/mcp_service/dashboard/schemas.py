@@ -540,7 +540,7 @@ class GenerateDashboardRequest(BaseModel):
         if not isinstance(data, dict):
             return data
         data["sanitization_warnings"] = []
-        raw = data.get("dashboard_title")
+        raw = data.get("dashboard_title") or data.get("title") or data.get("name")
         if not isinstance(raw, str) or not raw.strip():
             return data
         sanitized, was_modified = sanitize_user_input_with_changes(
