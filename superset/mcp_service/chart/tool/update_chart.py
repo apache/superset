@@ -392,7 +392,11 @@ async def update_chart(  # noqa: C901
             else (
                 request.chart_name
                 or (chart.slice_name if hasattr(chart, "slice_name") else None)
-                or (generate_chart_name(config) if config else "Updated chart")
+                or (
+                    generate_chart_name(parsed_config)
+                    if parsed_config
+                    else "Updated chart"
+                )
             )
         )
         accessibility = AccessibilityMetadata(
