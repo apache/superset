@@ -25,11 +25,16 @@ from fastmcp import Context
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
-from superset.mcp_service.chart.chart_helpers import get_cached_form_data
+from superset.mcp_service.chart.chart_helpers import (
+    build_applied_dashboard_filters,
+    get_cached_form_data,
+)
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartError,
+    ChartFiltersInfo,
     ChartInfo,
     extract_filters_from_form_data,
     GetChartInfoRequest,
@@ -72,6 +77,34 @@ def _build_unsaved_chart_info(form_data_key: str) -> ChartInfo | ChartError:
         form_data_key=form_data_key,
         is_unsaved_state=True,
     )
+
+
+async def _attach_dashboard_filters(
+    result: ChartInfo, dashboard_id: int, ctx: Context
+) -> ChartError | None:
+    """Resolve dashboard-scoped native filters and attach them to result.filters.
+
+    Returns a ChartError to surface to the caller on validation / access
+    failures, or None on success (including the no-filters case).
+    """
+    if not result.id:
+        return None
+    with event_logger.log_context(action="mcp.get_chart_info.dashboard_filters"):
+        try:
+            dashboard_filters = build_applied_dashboard_filters(dashboard_id, result.id)
+        except ValueError as exc:
+            await ctx.warning("Chart not on dashboard: %s" % (str(exc),))
+            return ChartError(error=str(exc), error_type="ChartNotOnDashboard")
+        except SupersetSecurityException as exc:
+            await ctx.warning("Dashboard not accessible: %s" % (str(exc),))
+            return ChartError(error=str(exc), error_type="DashboardNotAccessible")
+
+        if dashboard_filters:
+            if result.filters is None:
+                result.filters = ChartFiltersInfo(dashboard_filters=dashboard_filters)
+            else:
+                result.filters.dashboard_filters = dashboard_filters
+    return None
 
 
 def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None:
@@ -145,6 +178,17 @@ async def get_chart_info(
         "form_data_key": "abc123def456"
     }
     ```
+
+    With dashboard context to resolve applied dashboard-level filters:
+    ```json
+    {
+        "identifier": 123,
+        "dashboard_id": 45
+    }
+    ```
+    When dashboard_id is provided, the response's filters.dashboard_filters
+    lists native filters (with column, operator, and value) that are in scope
+    for this chart on that dashboard.
 
     Returns chart details including name, type, and URL.
     """
@@ -226,6 +270,11 @@ async def get_chart_info(
                 # Log any warnings (e.g., virtual dataset warnings)
                 for warning in validation_result.warnings:
                     await ctx.warning("Dataset warning: %s" % (warning,))
+
+        if request.dashboard_id:
+            error = await _attach_dashboard_filters(result, request.dashboard_id, ctx)
+            if error is not None:
+                return error
     else:
         await ctx.warning("Chart retrieval failed: error=%s" % (str(result),))
 
