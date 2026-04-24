@@ -21,6 +21,7 @@ from marshmallow import ValidationError
 from superset.semantic_layers.schemas import (
     SemanticLayerPostSchema,
     SemanticLayerPutSchema,
+    SemanticViewPostSchema,
     SemanticViewPutSchema,
 )
 
@@ -205,4 +206,91 @@ def test_put_schema_unknown_field() -> None:
     schema = SemanticLayerPutSchema()
     with pytest.raises(ValidationError) as exc_info:
         schema.load({"unknown_field": "value"})
+    assert "unknown_field" in exc_info.value.messages
+
+
+# =============================================================================
+# SemanticViewPostSchema tests
+# =============================================================================
+
+
+def test_semantic_view_post_schema_all_fields() -> None:
+    """Test loading all SemanticViewPostSchema fields."""
+    schema = SemanticViewPostSchema()
+    result = schema.load(
+        {
+            "name": "Orders View",
+            "semantic_layer_uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "configuration": {"table": "orders"},
+            "description": "View over orders",
+            "cache_timeout": 120,
+        }
+    )
+    assert result == {
+        "name": "Orders View",
+        "semantic_layer_uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "configuration": {"table": "orders"},
+        "description": "View over orders",
+        "cache_timeout": 120,
+    }
+
+
+def test_semantic_view_post_schema_required_fields_with_default_configuration() -> None:
+    """Test required fields and configuration load_default behavior."""
+    schema = SemanticViewPostSchema()
+    result = schema.load(
+        {
+            "name": "Orders View",
+            "semantic_layer_uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        }
+    )
+    assert result == {
+        "name": "Orders View",
+        "semantic_layer_uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "configuration": {},
+    }
+
+
+def test_semantic_view_post_schema_missing_name() -> None:
+    """Test missing name validation."""
+    schema = SemanticViewPostSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"semantic_layer_uuid": "abc", "configuration": {}})
+    assert "name" in exc_info.value.messages
+
+
+def test_semantic_view_post_schema_missing_semantic_layer_uuid() -> None:
+    """Test missing semantic_layer_uuid validation."""
+    schema = SemanticViewPostSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"name": "Orders View", "configuration": {}})
+    assert "semantic_layer_uuid" in exc_info.value.messages
+
+
+def test_semantic_view_post_schema_null_optional_fields() -> None:
+    """Test optional nullable fields accept None."""
+    schema = SemanticViewPostSchema()
+    result = schema.load(
+        {
+            "name": "Orders View",
+            "semantic_layer_uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "description": None,
+            "cache_timeout": None,
+        }
+    )
+    assert result["description"] is None
+    assert result["cache_timeout"] is None
+
+
+def test_semantic_view_post_schema_unknown_field() -> None:
+    """Test unknown field validation for SemanticViewPostSchema."""
+    schema = SemanticViewPostSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "name": "Orders View",
+                "semantic_layer_uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "unknown_field": "value",
+            }
+        )
     assert "unknown_field" in exc_info.value.messages
