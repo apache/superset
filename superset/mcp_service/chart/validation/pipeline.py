@@ -21,11 +21,13 @@ Orchestrates schema, dataset, and runtime validations.
 """
 
 import logging
+import re
 from typing import Any, Dict, List, Tuple
 
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     GenerateChartRequest,
+    parse_chart_config,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -76,13 +78,27 @@ def _sanitize_validation_error(error: Exception) -> str:
     """SECURITY FIX: Sanitize validation errors to prevent disclosure."""
     error_str = str(error)
 
+    # Pydantic tagged-union errors prefix the message with a long
+    # ``1 validation error for tagged-union[...]`` header before the
+    # per-field body (e.g. ``Value error, ...``, ``Field required``,
+    # ``Input should be ...``). The body always lives on a line indented
+    # by exactly two spaces — pull it out so the 200-char truncation
+    # below doesn't swallow the actionable part. The pydantic footer
+    # ``\n    For further information ...`` uses four-space indent and
+    # is dropped here.
+    if "tagged-union[" in error_str:
+        body_match = re.search(r"\n  (?! )", error_str)
+        if body_match:
+            idx = body_match.end()
+            footer_idx = error_str.find("\n    For further information", idx)
+            end = footer_idx if footer_idx != -1 else len(error_str)
+            error_str = error_str[idx:end].strip()
+
     # SECURITY FIX: Limit length FIRST to prevent ReDoS attacks
     if len(error_str) > 200:
         error_str = error_str[:200] + "...[truncated]"
 
     # Remove potentially sensitive schema information
-    import re
-
     sensitive_patterns = [
         (r'\btable\s+[\'"`]?(\w+)[\'"`]?', "table [REDACTED]"),
         (r'\bcolumn\s+[\'"`]?(\w+)[\'"`]?', "column [REDACTED]"),
@@ -171,6 +187,10 @@ class ValidationPipeline:
             if request is None:
                 return ValidationResult(is_valid=False, error=error)
 
+            # Parse the raw config dict into a typed ChartConfig for
+            # downstream validators that need typed access.
+            typed_config = parse_chart_config(request.config)
+
             # Fetch dataset context once and reuse across validation layers
             dataset_context = ValidationPipeline._get_dataset_context(
                 request.dataset_id
@@ -178,20 +198,20 @@ class ValidationPipeline:
 
             # Layer 2: Dataset validation (reuses context)
             is_valid, error = ValidationPipeline._validate_dataset(
-                request.config, request.dataset_id, dataset_context
+                typed_config, request.dataset_id, dataset_context
             )
             if not is_valid:
                 return ValidationResult(is_valid=False, request=request, error=error)
 
             # Layer 3: Runtime validation - returns warnings as metadata, not errors
             _is_valid, warnings_metadata = ValidationPipeline._validate_runtime(
-                request.config, request.dataset_id
+                typed_config, request.dataset_id
             )
             # Runtime validation always returns True now, warnings are informational
 
             # Layer 4: Column name normalization (reuses context)
             normalized_request = ValidationPipeline._normalize_column_names(
-                request, dataset_context
+                request, dataset_context, typed_config=typed_config
             )
 
             return ValidationResult(
@@ -284,6 +304,7 @@ class ValidationPipeline:
     def _normalize_column_names(
         request: GenerateChartRequest,
         dataset_context: DatasetContext | None = None,
+        typed_config: ChartConfig | None = None,
     ) -> GenerateChartRequest:
         """
         Normalize column names in the request to match canonical dataset names.
@@ -297,6 +318,8 @@ class ValidationPipeline:
             request: The validated chart generation request
             dataset_context: Pre-fetched dataset context to avoid duplicate
                 DB queries. If None, fetches from the database.
+            typed_config: Pre-parsed typed ChartConfig. If None, parses from
+                request.config dict.
 
         Returns:
             A new request with normalized column names
@@ -304,8 +327,9 @@ class ValidationPipeline:
         try:
             from .dataset_validator import DatasetValidator
 
+            config = typed_config or parse_chart_config(request.config)
             normalized_config = DatasetValidator.normalize_column_names(
-                request.config,
+                config,
                 request.dataset_id,
                 dataset_context=dataset_context,
             )

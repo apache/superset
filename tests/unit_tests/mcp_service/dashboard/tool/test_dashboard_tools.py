@@ -75,7 +75,6 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = None
-    dashboard.position_json = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = "test-dashboard-uuid-1"
@@ -108,14 +107,14 @@ async def test_list_dashboards_basic(mock_list, mcp_server):
         dashboards = data["dashboards"]
         assert len(dashboards) == 1
         assert dashboards[0]["dashboard_title"] == "Test Dashboard"
-        assert dashboards[0]["uuid"] == "test-dashboard-uuid-1"
         assert dashboards[0]["slug"] == "test-dashboard"
         # Note: published is not in minimal default columns (id, dashboard_title,
-        # slug, uuid) - use select_columns to include it if needed
+        # slug, url, changed_on_humanized) - use select_columns to include it
 
-        assert "uuid" in data["columns_requested"]
+        assert "url" in data["columns_requested"]
         assert "slug" in data["columns_requested"]
-        assert "uuid" in data["columns_loaded"]
+        assert "changed_on_humanized" in data["columns_requested"]
+        assert "url" in data["columns_loaded"]
         assert "slug" in data["columns_loaded"]
 
 
@@ -142,7 +141,6 @@ async def test_list_dashboards_with_filters(mock_list, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = None
-    dashboard.position_json = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = None
@@ -236,7 +234,6 @@ async def test_list_dashboards_with_search(mock_list, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = None
-    dashboard.position_json = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.uuid = None
@@ -303,7 +300,6 @@ async def test_get_dashboard_info_success(mock_info, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = None
-    dashboard.position_json = None
     dashboard.published = True
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -367,6 +363,153 @@ async def test_get_dashboard_info_access_denied(mock_info, mcp_server):
         assert result.data["error_type"] == "not_found"
 
 
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_does_not_expose_access_list_or_roles(
+    mock_info, mcp_server
+):
+    creator = Mock()
+    creator.username = "workspace-admin"
+
+    owner_role = Mock()
+    owner_role.name = "Primary Contributor"
+    owner = Mock()
+    owner.id = 2
+    owner.username = "daniel"
+    owner.first_name = "Daniel"
+    owner.last_name = "Watania"
+    owner.email = "daniel.watania@preset.io"
+    owner.active = True
+    owner.roles = [owner_role]
+
+    dashboard_role = Mock()
+    dashboard_role.id = 3
+    dashboard_role.name = "PresetAlpha"
+    dashboard_role.permissions = []
+
+    chart = Mock()
+    chart.id = 10
+    chart.slice_name = "Chart with owner"
+    chart.viz_type = "table"
+    chart.datasource_name = "examples"
+    chart.datasource_type = "table"
+    chart.description = None
+    chart.cache_timeout = None
+    chart.changed_by_name = None
+    chart.changed_by = None
+    chart.changed_on = None
+    chart.created_by_name = None
+    chart.created_by = None
+    chart.created_on = None
+    chart.uuid = None
+    chart.tags = []
+    chart.owners = [owner]
+
+    dashboard = Mock()
+    dashboard.id = 1
+    dashboard.dashboard_title = "Customer Success Home Dashboard"
+    dashboard.slug = "customer-success-home"
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = None
+    dashboard.position_json = None
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_by = creator
+    dashboard.changed_by = creator
+    dashboard.uuid = None
+    dashboard.url = "/dashboard/1"
+    dashboard.created_on_humanized = None
+    dashboard.changed_on_humanized = None
+    dashboard.slices = [chart]
+    dashboard.owners = [owner]
+    dashboard.tags = []
+    dashboard.roles = [dashboard_role]
+
+    mock_info.return_value = dashboard
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_info", {"request": {"identifier": 1}}
+        )
+
+    assert result.data["dashboard_title"] == "Customer Success Home Dashboard"
+    assert "created_by" not in result.data
+    assert "changed_by" not in result.data
+    assert "owners" not in result.data
+    assert "roles" not in result.data
+    assert "created_by" not in result.data["charts"][0]
+    assert "changed_by" not in result.data["charts"][0]
+    assert "owners" not in result.data["charts"][0]
+
+
+@patch("superset.daos.dashboard.DashboardDAO.list")
+@pytest.mark.asyncio
+async def test_list_dashboards_omits_requested_user_directory_fields(
+    mock_list, mcp_server
+):
+    dashboard = Mock()
+    dashboard.id = 1
+    dashboard.dashboard_title = "Customer Success Home Dashboard"
+    dashboard.slug = "customer-success-home"
+    dashboard.url = "/dashboard/1"
+    dashboard.published = True
+    dashboard.changed_by_name = "workspace-admin"
+    dashboard.changed_on = None
+    dashboard.changed_on_humanized = None
+    dashboard.created_by_name = "workspace-admin"
+    dashboard.created_on = None
+    dashboard.created_on_humanized = None
+    dashboard.tags = []
+    dashboard.owners = [Mock()]
+    dashboard.slices = []
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = None
+    dashboard.position_json = None
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.uuid = "test-dashboard-uuid-1"
+    dashboard.roles = [Mock()]
+    dashboard._mapping = {}
+    mock_list.return_value = ([dashboard], 1)
+
+    async with Client(mcp_server) as client:
+        request = ListDashboardsRequest(
+            page=1,
+            page_size=10,
+            select_columns=[
+                "id",
+                "dashboard_title",
+                "owners",
+                "roles",
+                "created_by",
+                "changed_by",
+            ],
+        )
+        result = await client.call_tool(
+            "list_dashboards", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    dashboard_data = data["dashboards"][0]
+    assert dashboard_data == {
+        "id": 1,
+        "dashboard_title": "Customer Success Home Dashboard",
+    }
+    for field in ("owners", "roles", "created_by", "changed_by"):
+        assert field not in data["columns_requested"]
+        assert field not in data["columns_loaded"]
+        assert field not in data["columns_available"]
+
+
 # TODO (Phase 3+): Add tests for get_dashboard_available_filters tool
 
 
@@ -383,7 +526,6 @@ async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = "{}"
-    dashboard.position_json = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -423,7 +565,6 @@ async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = "{}"
-    dashboard.position_json = "{}"
     dashboard.published = True
     dashboard.is_managed_externally = False
     dashboard.external_url = None
@@ -475,7 +616,6 @@ async def test_list_dashboards_custom_uuid_slug_columns(mock_list, mcp_server):
     dashboard.certified_by = None
     dashboard.certification_details = None
     dashboard.json_metadata = None
-    dashboard.position_json = None
     dashboard.is_managed_externally = False
     dashboard.external_url = None
     dashboard.thumbnail_url = None
@@ -529,20 +669,24 @@ class TestDashboardDefaultColumnFiltering:
             DASHBOARD_DEFAULT_COLUMNS,
         )
 
-        # Should have exactly 4 minimal columns
-        assert len(DASHBOARD_DEFAULT_COLUMNS) == 4
         assert set(DASHBOARD_DEFAULT_COLUMNS) == {
             "id",
             "dashboard_title",
             "slug",
-            "uuid",
+            "description",
+            "certified_by",
+            "certification_details",
+            "url",
+            "changed_on",
+            "changed_on_humanized",
         }
 
         # Heavy columns should NOT be in defaults
         assert "charts" not in DASHBOARD_DEFAULT_COLUMNS
         assert "published" not in DASHBOARD_DEFAULT_COLUMNS
-        assert "json_metadata" not in DASHBOARD_DEFAULT_COLUMNS
-        assert "position_json" not in DASHBOARD_DEFAULT_COLUMNS
+        assert "native_filters" not in DASHBOARD_DEFAULT_COLUMNS
+        assert "cross_filters_enabled" not in DASHBOARD_DEFAULT_COLUMNS
+        assert "uuid" not in DASHBOARD_DEFAULT_COLUMNS
 
     def test_empty_select_columns_default(self):
         """Test that select_columns defaults to empty list which triggers
@@ -585,7 +729,6 @@ class TestDashboardDefaultColumnFiltering:
         dashboard.certified_by = None
         dashboard.certification_details = None
         dashboard.json_metadata = None
-        dashboard.position_json = None
         dashboard.is_managed_externally = False
         dashboard.external_url = None
         dashboard.thumbnail_url = None
@@ -604,11 +747,12 @@ class TestDashboardDefaultColumnFiltering:
             assert "id" in data["columns_requested"]
             assert "dashboard_title" in data["columns_requested"]
             assert "slug" in data["columns_requested"]
-            assert "uuid" in data["columns_requested"]
+            assert "url" in data["columns_requested"]
+            assert "changed_on_humanized" in data["columns_requested"]
 
             # Verify heavy columns are NOT in columns_loaded by default
-            assert "json_metadata" not in data["columns_loaded"]
-            assert "position_json" not in data["columns_loaded"]
+            assert "native_filters" not in data["columns_loaded"]
+            assert "cross_filters_enabled" not in data["columns_loaded"]
 
 
 class TestDashboardSortableColumns:

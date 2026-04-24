@@ -19,8 +19,10 @@
 import {
   AnnotationStyle,
   AnnotationType,
+  AnnotationSourceType,
   DataRecord,
   FormulaAnnotationLayer,
+  IntervalAnnotationLayer,
   VizType,
   ChartDataResponseResult,
 } from '@superset-ui/core';
@@ -108,11 +110,11 @@ const formData: EchartsMixedTimeseriesFormData = {
   truncateYAxisSecondary: false,
   xAxisLabelRotation: 0,
   xAxisTitle: '',
-  xAxisTitleMargin: 0,
+  xAxisTitleMargin: 40,
   yAxisBounds: [undefined, undefined],
   yAxisBoundsSecondary: [undefined, undefined],
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 50,
   yAxisTitlePosition: '',
   yAxisTitleSecondary: '',
   zoomable: false,
@@ -364,6 +366,67 @@ test('legend margin: right orientation sets grid.right correctly', () => {
   const transformed = transformProps(chartProps);
 
   expect((transformed.echartOptions.grid as any).right).toEqual(270);
+});
+
+test('should exclude unnamed annotation helper series from legend data', () => {
+  const interval: IntervalAnnotationLayer = {
+    annotationType: AnnotationType.Interval,
+    name: 'My Interval',
+    show: true,
+    showLabel: true,
+    sourceType: AnnotationSourceType.Table,
+    titleColumn: '',
+    timeColumn: 'start',
+    intervalEndColumn: 'end',
+    descriptionColumns: [],
+    style: AnnotationStyle.Dashed,
+    value: 2,
+  };
+
+  const annotationData = {
+    'My Interval': {
+      columns: ['start', 'end', 'title'],
+      records: [
+        {
+          start: 2000,
+          end: 3000,
+          title: 'My Title',
+        },
+      ],
+    },
+  };
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [],
+    formData: {
+      ...formData,
+      annotationLayers: [interval],
+      showLegend: true,
+      showQueryIdentifiers: true,
+    },
+    queriesData: [
+      createTestQueryData(defaultQueryRows, {
+        label_map: defaultLabelMap,
+        annotation_data: annotationData,
+      }),
+      createTestQueryData(defaultQueryRows, {
+        label_map: defaultLabelMap,
+        annotation_data: annotationData,
+      }),
+    ],
+  });
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.legend as any).data).toEqual([
+    'sum__num (Query A), girl',
+    'sum__num (Query A), boy',
+    'sum__num (Query B), girl',
+    'sum__num (Query B), boy',
+  ]);
 });
 
 test('should add a formula annotation when X-axis column has dataset-level label', () => {
