@@ -1343,6 +1343,24 @@ def test_has_destructive_ddl(sql: str, expected: bool) -> None:
     assert SQLScript(sql, "postgresql").has_destructive_ddl() == expected
 
 
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        (".drop table T", True),
+        (".alter table T (col:string)", True),
+        (".show tables", False),
+        ("T | count", False),
+    ],
+)
+def test_kusto_is_destructive_ddl(kql: str, expected: bool) -> None:
+    """
+    Test ``is_destructive_ddl`` on KustoKQLStatement.
+    """
+    from superset.sql.parse import KustoKQLStatement
+
+    assert KustoKQLStatement(kql, "kustokql").is_destructive_ddl() == expected
+
+
 def test_optimize() -> None:
     """
     Test that the `optimize` method works as expected.

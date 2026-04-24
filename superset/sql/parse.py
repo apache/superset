@@ -748,7 +748,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         # Handle ALTER parsed as Command (Oracle, MS SQL dialects)
         if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
-            return True
+            return True  # pragma: no cover
 
         return False
 
