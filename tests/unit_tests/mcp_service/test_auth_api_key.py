@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from flask import g
 
+from superset.app import SupersetApp
 from superset.mcp_service.auth import (
     _resolve_user_from_jwt_context,
     get_user_from_request,
@@ -229,7 +230,7 @@ def test_relationship_reload_failure_returns_original_user(app, mock_user) -> No
 
 
 @pytest.mark.usefixtures("_enable_api_keys")
-def test_non_matching_bearer_token_skips_api_key_auth(app) -> None:
+def test_non_matching_bearer_token_skips_api_key_auth(app: SupersetApp) -> None:
     """When a Bearer token is present but does not match FAB_API_KEY_PREFIXES
     (e.g., a JWT token), extract_api_key_from_request returns None and API key
     auth is skipped, falling through to the next auth method."""
@@ -254,7 +255,7 @@ def test_non_matching_bearer_token_skips_api_key_auth(app) -> None:
 # -- API key pass-through from CompositeTokenVerifier --
 
 
-def test_jwt_context_with_api_key_passthrough_returns_none(app) -> None:
+def test_jwt_context_with_api_key_passthrough_returns_none(app: SupersetApp) -> None:
     """When CompositeTokenVerifier passes through an API key token,
     _resolve_user_from_jwt_context should detect the _api_key_passthrough
     claim and return None so get_user_from_request falls through to
@@ -274,7 +275,7 @@ def test_jwt_context_with_api_key_passthrough_returns_none(app) -> None:
 # -- SecurityManager method name regression test --
 
 
-def test_security_manager_has_expected_api_key_methods(app) -> None:
+def test_security_manager_has_expected_api_key_methods(app: SupersetApp) -> None:
     """Regression test: verify the SecurityManager method names referenced in
     auth._resolve_user_from_api_key() actually exist on the FAB SecurityManager
     class.  This catches future renames before they silently break API key auth
