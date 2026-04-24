@@ -142,3 +142,14 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+# ── Canias ERP iframe entegrasyonu ──────────────────────────────────────────
+# X-Frame-Options'ı devre dışı bırak (iframe içinde gösterim için)
+HTTP_HEADERS = {"X-Frame-Options": "ALLOWALL"}
+
+# Talisman (CSP) — iframe embed için gerekli
+TALISMAN_ENABLED = False
+
+# HTML sanitizasyonunu kapat (Markdown chart'larda custom HTML desteği)
+HTML_SANITIZATION = False
+
