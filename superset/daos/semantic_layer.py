@@ -27,6 +27,7 @@ from superset_core.semantic_layers.daos import (
     AbstractSemanticViewDAO,
 )
 
+from superset import security_manager
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.semantic_layers.models import SemanticLayer, SemanticView
@@ -55,6 +56,9 @@ class SemanticLayerDAO(BaseDAO[SemanticLayer], AbstractSemanticLayerDAO):
     def find_all(cls, skip_base_filter: bool = False) -> list[SemanticLayer]:
         query = db.session.query(SemanticLayer)
         query = cls._apply_base_filter(query, skip_base_filter)
+        if not security_manager.can_access_all_datasources():
+            perms = security_manager.user_view_menu_names("datasource_access")
+            query = query.filter(SemanticLayer.perm.in_(perms))
         return query.all()
 
     @classmethod

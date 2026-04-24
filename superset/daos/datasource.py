@@ -33,7 +33,7 @@ from superset.daos.exceptions import (
     DatasourceValueIsIncorrect,
 )
 from superset.models.sql_lab import Query, SavedQuery
-from superset.semantic_layers.models import SemanticView
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils.core import DatasourceType
 from superset.utils.filters import get_dataset_access_filters
 
@@ -139,6 +139,14 @@ class DatasourceDAO(BaseDAO[Datasource]):
             SemanticView.changed_on,
             SemanticView.name.label("table_name"),
         ).select_from(SemanticView.__table__)
+
+        if not security_manager.can_access_all_datasources():
+            perms = security_manager.user_view_menu_names("datasource_access")
+            sv_q = sv_q.join(
+                SemanticLayer.__table__,
+                SemanticLayer.uuid == SemanticView.semantic_layer_uuid,
+            )
+            sv_q = sv_q.where(SemanticLayer.perm.in_(perms))
 
         if name_filter:
             escaped = _escape_ilike_fragment(name_filter)

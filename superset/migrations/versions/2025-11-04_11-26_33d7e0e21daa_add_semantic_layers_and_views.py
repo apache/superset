@@ -66,6 +66,7 @@ def upgrade() -> None:
             server_default="1",
         ),
         sa.Column("cache_timeout", sa.Integer(), nullable=True),
+        sa.Column("perm", sa.String(length=1000), nullable=True),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
         sa.PrimaryKeyConstraint("uuid"),

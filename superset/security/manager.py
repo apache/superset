@@ -93,6 +93,7 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
+    from superset.semantic_layers.models import SemanticLayer
     from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
@@ -2279,6 +2280,95 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 chart_table.c.datasource_id == target.id,
             )
             .values(perm=new_permission_name)
+        )
+
+    def semantic_layer_after_insert(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        """
+        Handle permission creation when a semantic layer is inserted.
+
+        Creates the datasource_access PVM and stores the perm string on the row.
+        """
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticLayer,
+        )
+
+        perm = target.get_perm()
+        self._insert_pvm_on_sqla_event(mapper, connection, "datasource_access", perm)
+        if target.perm != perm:
+            target.perm = perm
+            sl_table = SemanticLayer.__table__  # pylint: disable=no-member
+            connection.execute(
+                sl_table.update()
+                .where(sl_table.c.uuid == target.uuid)
+                .values(perm=perm)
+            )
+
+    def semantic_layer_before_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        """
+        Handle permission update when a semantic layer name changes.
+
+        Renames the FAB ViewMenu so the PVM stays in sync with the layer name.
+        """
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticLayer,
+        )
+
+        sl_table = SemanticLayer.__table__  # pylint: disable=no-member
+        current = connection.execute(
+            sl_table.select().where(sl_table.c.uuid == target.uuid)
+        ).one()
+
+        if current.name != target.name:
+            new_perm = target.get_perm()
+            old_perm = current.perm
+
+            view_menu_table = (
+                self.viewmenu_model.__table__  # pylint: disable=no-member
+            )
+            old_view_menu = self.find_view_menu(old_perm)
+            if old_view_menu:
+                connection.execute(
+                    view_menu_table.update()
+                    .where(view_menu_table.c.id == old_view_menu.id)
+                    .values(name=new_perm)
+                )
+                new_view_menu = self.find_view_menu(new_perm)
+                self.on_view_menu_after_update(mapper, connection, new_view_menu)
+            else:
+                self._insert_pvm_on_sqla_event(
+                    mapper, connection, "datasource_access", new_perm
+                )
+
+            target.perm = new_perm
+            connection.execute(
+                sl_table.update()
+                .where(sl_table.c.uuid == target.uuid)
+                .values(perm=new_perm)
+            )
+
+    def semantic_layer_after_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        """
+        Handle permission cleanup when a semantic layer is deleted.
+
+        Removes the datasource_access PVM.
+        """
+        self._delete_pvm_on_sqla_event(
+            mapper, connection, "datasource_access", target.perm
         )
 
     def _delete_pvm_on_sqla_event(  # pylint: disable=too-many-arguments

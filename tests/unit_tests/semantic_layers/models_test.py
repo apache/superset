@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pyarrow as pa
@@ -320,11 +321,17 @@ def mock_implementation(
 @pytest.fixture
 def semantic_view(mock_implementation: MagicMock) -> SemanticView:
     """Create a SemanticView with mocked implementation."""
+    layer = SemanticLayer()
+    layer.name = "Test Layer"
+    layer.uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    layer.perm = "[Test Layer](id:87654321432187654321876543218765)"
+
     view = SemanticView()
     view.name = "Orders View"
     view.description = "View of order data"
     view.uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
     view.semantic_layer_uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    view.semantic_layer = layer
     view.cache_timeout = 3600
     view.configuration = "{}"
 
@@ -403,14 +410,23 @@ def test_semantic_view_get_extra_cache_keys() -> None:
 
 
 def test_semantic_view_perm() -> None:
-    """Test SemanticView perm property."""
+    """Test SemanticView perm delegates to semantic_layer.perm."""
+    layer = SemanticLayer()
+    layer.name = "My Layer"
+    layer.uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    layer.perm = "[My Layer](id:87654321432187654321876543218765)"
+
     view = SemanticView()
     view.uuid = uuid.UUID("12345678-1234-5678-1234-567812345678")
-    view.semantic_layer_uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
-    assert (
-        view.perm
-        == "87654321432187654321876543218765::12345678123456781234567812345678"
-    )
+    view.semantic_layer = layer
+    assert view.perm == "[My Layer](id:87654321432187654321876543218765)"
+
+
+def test_semantic_view_perm_none_without_layer() -> None:
+    """Test SemanticView perm returns None when no semantic_layer."""
+    view = SemanticView()
+    view.semantic_layer = None  # type: ignore
+    assert view.perm is None
 
 
 def test_semantic_view_uid(
@@ -564,6 +580,8 @@ def test_semantic_view_data(
 
     layer = SemanticLayer()
     layer.name = "My Semantic Layer"
+    layer.uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    layer.perm = "[My Semantic Layer](id:87654321432187654321876543218765)"
 
     view = SemanticView()
     view.name = "Orders View"
@@ -649,6 +667,8 @@ def test_semantic_view_data_for_slices(
 
     layer = SemanticLayer()
     layer.name = "My Semantic Layer"
+    layer.uuid = uuid.UUID("87654321-4321-8765-4321-876543218765")
+    layer.perm = "[My Semantic Layer](id:87654321432187654321876543218765)"
 
     view = SemanticView()
     view.name = "Orders View"
@@ -777,3 +797,97 @@ def test_semantic_view_get_compatible_dimensions(
     args = mock_implementation.get_compatible_dimensions.call_args.args
     assert args[0] == {mock_metrics[1]}
     assert args[1] == {mock_dimensions[1]}
+
+
+# =============================================================================
+# SemanticLayer.get_perm tests
+# =============================================================================
+
+
+def test_semantic_layer_get_perm() -> None:
+    """Test SemanticLayer.get_perm() format."""
+    layer = SemanticLayer()
+    layer.name = "My Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    assert layer.get_perm() == "[My Layer](id:abcdef1234567890abcdef1234567890)"
+
+
+def test_semantic_layer_get_perm_special_characters() -> None:
+    """Test get_perm with special characters in the layer name."""
+    layer = SemanticLayer()
+    layer.name = "Layer [with] (parens)"
+    layer.uuid = uuid.UUID("11111111-1111-1111-1111-111111111111")
+    assert (
+        layer.get_perm()
+        == "[Layer [with] (parens)](id:11111111111111111111111111111111)"
+    )
+
+
+# =============================================================================
+# SemanticView.raise_for_access tests
+# =============================================================================
+
+
+def test_semantic_view_raise_for_access_all_datasources(app: Any) -> None:
+    """Test raise_for_access passes when user has all_datasource_access."""
+    from superset import security_manager
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    view = SemanticView()
+    view.semantic_layer = layer
+
+    with patch.object(
+        security_manager, "can_access_all_datasources", return_value=True
+    ):
+        view.raise_for_access()
+
+
+def test_semantic_view_raise_for_access_granted(app: Any) -> None:
+    """Test raise_for_access passes when user has datasource_access perm."""
+    from superset import security_manager
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    view = SemanticView()
+    view.semantic_layer = layer
+
+    with (
+        patch.object(
+            security_manager, "can_access_all_datasources", return_value=False
+        ),
+        patch.object(
+            security_manager, "can_access", return_value=True
+        ) as mock_can_access,
+    ):
+        view.raise_for_access()
+        mock_can_access.assert_called_once_with("datasource_access", layer.perm)
+
+
+def test_semantic_view_raise_for_access_denied(app: Any) -> None:
+    """Test raise_for_access raises SupersetSecurityException when denied."""
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    layer = SemanticLayer()
+    layer.name = "Layer"
+    layer.uuid = uuid.UUID("abcdef12-3456-7890-abcd-ef1234567890")
+    layer.perm = layer.get_perm()
+
+    view = SemanticView()
+    view.semantic_layer = layer
+
+    with (
+        patch.object(
+            security_manager, "can_access_all_datasources", return_value=False
+        ),
+        patch.object(security_manager, "can_access", return_value=False),
+    ):
+        with pytest.raises(SupersetSecurityException):
+            view.raise_for_access()
