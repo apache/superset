@@ -125,7 +125,7 @@ class TestChartChangeRecords(SupersetTestCase):
             .transaction_id
         )
 
-        rows = _change_rows_for(update_tx_id)
+        rows = _change_rows_for(update_tx_id, entity_kind="chart", entity_id=chart.id)
         assert len(rows) == 1
         assert rows[0]["kind"] == "field"
         path = (
@@ -159,7 +159,7 @@ class TestChartChangeRecords(SupersetTestCase):
             .first()
             .transaction_id
         )
-        rows = _change_rows_for(update_tx_id)
+        rows = _change_rows_for(update_tx_id, entity_kind="chart", entity_id=chart.id)
         assert len(rows) == 3
         assert [r["sequence"] for r in rows] == [0, 1, 2]
         # Sorted by field name (diff engine emits in sorted field order)
@@ -182,7 +182,9 @@ class TestChartChangeRecords(SupersetTestCase):
 
         chart = db.session.query(Slice).first()
         assert chart is not None
-        unique_subject = f"col_{chart.id}_{db.session.connection().engine.url.database[-8:]}"
+        unique_subject = (
+            f"col_{chart.id}_{db.session.connection().engine.url.database[-8:]}"
+        )
         params = _json.loads(chart.params or "{}")
         existing = params.get("adhoc_filters", []) or []
         params["adhoc_filters"] = [
@@ -206,9 +208,7 @@ class TestChartChangeRecords(SupersetTestCase):
             .first()
             .transaction_id
         )
-        rows = _change_rows_for(
-            update_tx_id, entity_kind="chart", entity_id=chart.id
-        )
+        rows = _change_rows_for(update_tx_id, entity_kind="chart", entity_id=chart.id)
         filter_rows = [r for r in rows if r["kind"] == "filter"]
         assert len(filter_rows) >= 1, (
             f"expected at least one filter record, got rows: {rows}"
@@ -248,11 +248,14 @@ class TestChartChangeRecords(SupersetTestCase):
         # Either no new tx at all (nothing dirty, best case), or a new
         # tx with zero change records for this chart.
         if post_save_tx_row is not None:
-            assert _change_rows_for(
-                post_save_tx_row.transaction_id,
-                entity_kind="chart",
-                entity_id=chart.id,
-            ) == []
+            assert (
+                _change_rows_for(
+                    post_save_tx_row.transaction_id,
+                    entity_kind="chart",
+                    entity_id=chart.id,
+                )
+                == []
+            )
 
 
 class TestDashboardChangeRecords(SupersetTestCase):
@@ -279,7 +282,9 @@ class TestDashboardChangeRecords(SupersetTestCase):
             .first()
             .transaction_id
         )
-        rows = _change_rows_for(update_tx_id)
+        rows = _change_rows_for(
+            update_tx_id, entity_kind="dashboard", entity_id=dashboard.id
+        )
         assert len(rows) >= 1
         field_rows = [r for r in rows if r["kind"] == "field"]
         paths = [
@@ -287,6 +292,68 @@ class TestDashboardChangeRecords(SupersetTestCase):
             for r in field_rows
         ]
         assert ["dashboard_title"] in paths
+
+
+class TestDatasetChildChangeRecords(SupersetTestCase):
+    """T048b — column and metric diff records for dataset saves.
+
+    Two snapshots must exist for any child diff to emit: the prior
+    save's and the current one. The fixture ``load_birth_names_data``
+    has already created the dataset before these tests run; their
+    first commit produces snapshot #1. The test's edit produces
+    snapshot #2, and the listener diffs the two.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _load_data(self, load_birth_names_dashboard_with_slices):  # noqa: F811, PT004
+        pass
+
+    def test_column_description_change_produces_column_record(self) -> None:
+        # pylint: disable=import-outside-toplevel
+        from sqlalchemy_continuum import version_class
+
+        from superset.connectors.sqla.models import SqlaTable
+
+        _persist_fixture_state()
+
+        dataset = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name == "birth_names")
+            .first()
+        )
+        assert dataset is not None
+        assert dataset.columns, "birth_names fixture should produce columns"
+        # First save establishes snapshot #1 (the pre-edit state).
+        # Scalar + child diffs won't emit anything yet because there's
+        # no prior snapshot to diff against.
+        dataset.description = f"{dataset.description or ''}_v1"
+        db.session.commit()
+        # Second save: edit a column AND touch a dataset scalar so
+        # the parent SqlaTable ends up in session.dirty. In real
+        # flows DatasetDAO.update_columns() marks the parent via its
+        # individual session.add / session.delete calls (T011); the
+        # direct-ORM test here needs an explicit parent touch.
+        column = dataset.columns[0]
+        column.description = f"{column.description or ''}_edited"
+        dataset.description = f"{dataset.description}_v2"
+        db.session.commit()
+
+        ver_cls = version_class(SqlaTable)
+        latest_tx_id = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == dataset.id)
+            .filter(ver_cls.operation_type == 1)
+            .order_by(ver_cls.transaction_id.desc())
+            .first()
+            .transaction_id
+        )
+        rows = _change_rows_for(
+            latest_tx_id, entity_kind="dataset", entity_id=dataset.id
+        )
+        column_rows = [r for r in rows if r["kind"] == "column"]
+        assert len(column_rows) >= 1, (
+            f"expected at least one kind='column' record, got {rows}"
+        )
 
 
 class TestBaselineProducesZeroChangeRecords(SupersetTestCase):
