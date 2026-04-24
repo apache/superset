@@ -42,6 +42,7 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     serialize_chart_summary,
 )
+from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -531,6 +532,7 @@ def add_chart_to_existing_dashboard(
             serialize_tag_object,
         )
 
+        include_data_model_metadata = user_can_view_data_model_metadata()
         dashboard_info = DashboardInfo(
             id=updated_dashboard.id,
             dashboard_title=updated_dashboard.dashboard_title,
@@ -554,7 +556,13 @@ def add_chart_to_existing_dashboard(
             charts=[
                 obj
                 for chart in getattr(updated_dashboard, "slices", [])
-                if (obj := serialize_chart_summary(chart)) is not None
+                if (
+                    obj := serialize_chart_summary(
+                        chart,
+                        include_data_model_metadata=include_data_model_metadata,
+                    )
+                )
+                is not None
             ],
         )
 

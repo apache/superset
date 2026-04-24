@@ -522,6 +522,88 @@ async def test_get_dashboard_info_restricted_user_redacts_data_model_metadata(
     assert result.data["native_filters"][0]["targets"] == []
 
 
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state(
+    mock_info,
+    mcp_server,
+):
+    dashboard = Mock()
+    dashboard.id = 1
+    dashboard.dashboard_title = "Sales Dashboard"
+    dashboard.slug = "sales"
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = None
+    dashboard.position_json = None
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_by = None
+    dashboard.changed_by = None
+    dashboard.uuid = None
+    dashboard.url = "/dashboard/1"
+    dashboard.created_on_humanized = None
+    dashboard.changed_on_humanized = None
+    dashboard.slices = []
+    dashboard.owners = []
+    dashboard.tags = []
+    dashboard.roles = []
+
+    mock_info.return_value = dashboard
+
+    permalink_value = {
+        "dashboardId": "1",
+        "state": {
+            "dataMask": {
+                "NATIVE_FILTER-product-line": {
+                    "extraFormData": {
+                        "filters": [
+                            {
+                                "col": "product_line",
+                                "op": "IN",
+                                "val": ["Classic Cars"],
+                                "datasetId": 3,
+                            }
+                        ],
+                    },
+                    "filterState": {"value": ["Classic Cars"]},
+                },
+            },
+            "activeTabs": ["TAB-products"],
+        },
+    }
+
+    with (
+        patch(
+            "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
+            return_value=False,
+        ),
+        patch(
+            "superset.mcp_service.dashboard.tool.get_dashboard_info."
+            "user_can_view_data_model_metadata",
+            return_value=False,
+        ),
+        patch(
+            "superset.mcp_service.dashboard.tool.get_dashboard_info._get_permalink_state",
+            return_value=permalink_value,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {"request": {"identifier": 1, "permalink_key": "abc123"}},
+            )
+
+    assert result.data["permalink_key"] == "abc123"
+    assert result.data["is_permalink_state"] is True
+    assert result.data["filter_state"] == {"activeTabs": ["TAB-products"]}
+
+
 @patch("superset.daos.dashboard.DashboardDAO.list")
 @pytest.mark.asyncio
 async def test_list_dashboards_omits_requested_user_directory_fields(

@@ -37,8 +37,10 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardError,
     DashboardInfo,
     GetDashboardInfoRequest,
+    redact_filter_state_data_model_metadata,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.privacy import user_can_view_data_model_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +167,10 @@ async def get_dashboard_info(
                         permalink_state = (
                             dict(raw_state) if isinstance(raw_state, dict) else {}
                         )
+                        if not user_can_view_data_model_metadata():
+                            permalink_state = redact_filter_state_data_model_metadata(
+                                permalink_state
+                            )
                         result.permalink_key = request.permalink_key
                         result.filter_state = permalink_state
                         result.is_permalink_state = True

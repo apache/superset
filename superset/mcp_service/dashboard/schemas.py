@@ -356,8 +356,8 @@ class DashboardInfo(BaseModel):
         default_factory=list,
         description=(
             "Native filters configured on this dashboard. Extracted from "
-            "json_metadata for LLM consumption — includes filter name, type, "
-            "and target columns."
+            "json_metadata for LLM consumption. Includes filter name/type, "
+            "and target columns only when data-model metadata is allowed."
         ),
     )
     cross_filters_enabled: bool | None = Field(
@@ -389,7 +389,8 @@ class DashboardInfo(BaseModel):
         description=(
             "Filter state from permalink. Contains dataMask (native filter values), "
             "activeTabs, anchor, and urlParams. When present, represents the actual "
-            "filters the user has applied to the dashboard."
+            "filters the user has applied to the dashboard. For users without "
+            "data-model metadata access, dataMask is omitted."
         ),
     )
     is_permalink_state: bool = Field(
@@ -615,7 +616,7 @@ def _parse_json_metadata(json_metadata_str: str | None) -> Dict[str, Any] | None
 def _extract_native_filters(
     json_metadata_str: str | None,
     *,
-    include_data_model_metadata: bool = True,
+    include_data_model_metadata: bool = False,
 ) -> List[NativeFilterSummary]:
     """Extract native filter summaries from raw json_metadata string.
 
@@ -701,7 +702,7 @@ def _build_omitted_fields(
 def serialize_chart_summary(
     chart: Any,
     *,
-    include_data_model_metadata: bool = True,
+    include_data_model_metadata: bool = False,
 ) -> DashboardChartSummary | None:
     """Serialize a chart to a lightweight summary for dashboard context."""
     if not chart:
@@ -725,6 +726,13 @@ def serialize_chart_summary(
     )
 
 
+def redact_filter_state_data_model_metadata(
+    filter_state: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Remove permalink filter state fields that expose data-model metadata."""
+    return {key: value for key, value in filter_state.items() if key != "dataMask"}
+
+
 def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     from superset.mcp_service.utils.url_utils import get_superset_base_url
 
@@ -732,6 +740,8 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     base_url = get_superset_base_url()
     relative_url = dashboard.url  # e.g. "/superset/dashboard/{slug_or_id}/"
     absolute_url = f"{base_url}{relative_url}" if relative_url else None
+    json_metadata_str = getattr(dashboard, "json_metadata", None)
+    position_json_str = getattr(dashboard, "position_json", None)
 
     return DashboardInfo(
         id=dashboard.id,
@@ -752,15 +762,13 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         changed_on_humanized=dashboard.changed_on_humanized,
         chart_count=len(dashboard.slices) if dashboard.slices else 0,
         native_filters=_extract_native_filters(
-            getattr(dashboard, "json_metadata", None),
+            json_metadata_str,
             include_data_model_metadata=include_data_model_metadata,
         ),
-        cross_filters_enabled=_extract_cross_filters_enabled(
-            getattr(dashboard, "json_metadata", None)
-        ),
+        cross_filters_enabled=_extract_cross_filters_enabled(json_metadata_str),
         omitted_fields=_build_omitted_fields(
-            getattr(dashboard, "json_metadata", None),
-            getattr(dashboard, "position_json", None),
+            json_metadata_str,
+            position_json_str,
         ),
         tags=[
             TagInfo.model_validate(tag, from_attributes=True) for tag in dashboard.tags

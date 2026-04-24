@@ -201,6 +201,38 @@ class TestGenerateDashboard:
                 "/superset/dashboard/10/" in result.structured_content["dashboard_url"]
             )
 
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_restricted_user_redacts_chart_datasource_name(
+        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
+    ):
+        chart = _mock_chart(id=1, slice_name="Sales Chart")
+        chart.datasource_name = "Vehicle Sales"
+        dashboard = _mock_dashboard(id=10, title="Analytics Dashboard")
+        dashboard.slices = [chart]
+        _setup_generate_dashboard_mocks(
+            mock_db_session, mock_find_by_id, mock_dashboard_cls, [chart], dashboard
+        )
+
+        request = {"chart_ids": [1], "dashboard_title": "Analytics Dashboard"}
+
+        with patch(
+            "superset.mcp_service.dashboard.tool.generate_dashboard.user_can_view_data_model_metadata",
+            return_value=False,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_dashboard", {"request": request}
+                )
+
+        assert result.structured_content["error"] is None
+        assert (
+            result.structured_content["dashboard"]["charts"][0]["datasource_name"]
+            is None
+        )
+
     @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_generate_dashboard_missing_charts(self, mock_db_session, mcp_server):
@@ -624,6 +656,43 @@ class TestAddChartToExistingDashboard:
             assert column_key.startswith("COLUMN-")
             assert column_key in layout
             assert layout[column_key]["type"] == "COLUMN"
+
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_add_chart_restricted_user_redacts_chart_datasource_name(
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
+    ):
+        mock_dashboard = _mock_dashboard(id=1, title="Existing Dashboard")
+        mock_dashboard.slices = []
+        mock_dashboard.position_json = "{}"
+
+        chart = _mock_chart(id=30, slice_name="New Chart")
+        chart.datasource_name = "Vehicle Sales"
+        mock_db_session.get.return_value = chart
+
+        updated_dashboard = _mock_dashboard(id=1, title="Existing Dashboard")
+        updated_dashboard.slices = [chart]
+        mock_update_command.return_value.run.return_value = updated_dashboard
+        mock_find_dashboard.side_effect = [mock_dashboard, updated_dashboard]
+
+        request = {"dashboard_id": 1, "chart_id": 30}
+
+        with patch(
+            "superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard.user_can_view_data_model_metadata",
+            return_value=False,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "add_chart_to_existing_dashboard", {"request": request}
+                )
+
+        assert result.structured_content["error"] is None
+        assert (
+            result.structured_content["dashboard"]["charts"][0]["datasource_name"]
+            is None
+        )
 
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @pytest.mark.asyncio
