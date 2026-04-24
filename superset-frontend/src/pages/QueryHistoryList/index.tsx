@@ -273,6 +273,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           );
         },
         id: 'duration',
+        disableSortBy: true,
       },
       {
         accessor: QueryObjectColumns.TabName,
