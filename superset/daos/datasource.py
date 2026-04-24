@@ -17,7 +17,7 @@
 
 import logging
 import uuid
-from typing import Any, Union
+from typing import Any, cast, Union
 
 from sqlalchemy import and_, func, literal, or_, select
 from sqlalchemy.orm import joinedload
@@ -33,7 +33,7 @@ from superset.daos.exceptions import (
     DatasourceValueIsIncorrect,
 )
 from superset.models.sql_lab import Query, SavedQuery
-from superset.semantic_layers.models import SemanticView
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils.core import DatasourceType
 from superset.utils.filters import get_dataset_access_filters
 
@@ -98,18 +98,23 @@ class DatasourceDAO(BaseDAO[Datasource]):
         database_id: int | None = None,
     ) -> Select:
         """Build a SELECT for datasets, applying access and content filters."""
+        ds_table = SqlaTable.__table__
+        db_table = sqla_models.Database.__table__
         ds_q = select(
-            SqlaTable.id.label("item_id"),
+            ds_table.c.id.label("item_id"),
             literal("database").label("source_type"),
-            SqlaTable.changed_on,
-            SqlaTable.table_name,
-        ).select_from(SqlaTable.__table__)
+            ds_table.c.changed_on,
+            ds_table.c.table_name,
+            db_table.c.database_name.label("database_name"),
+            ds_table.c.schema,
+        ).select_from(ds_table)
+
+        ds_q = ds_q.join(
+            db_table,
+            db_table.c.id == ds_table.c.database_id,
+        )
 
         if not security_manager.can_access_all_datasources():
-            ds_q = ds_q.join(
-                sqla_models.Database,
-                sqla_models.Database.id == SqlaTable.database_id,
-            )
             ds_q = ds_q.where(get_dataset_access_filters(SqlaTable))
 
         if name_filter:
@@ -133,12 +138,25 @@ class DatasourceDAO(BaseDAO[Datasource]):
         semantic_layer_uuid: str | None = None,
     ) -> Select:
         """Build a SELECT for semantic views, applying name and layer filters."""
+        sv_table = SemanticView.__table__
         sv_q = select(
-            SemanticView.id.label("item_id"),
+            sv_table.c.id.label("item_id"),
             literal("semantic_layer").label("source_type"),
-            SemanticView.changed_on,
-            SemanticView.name.label("table_name"),
-        ).select_from(SemanticView.__table__)
+            sv_table.c.changed_on,
+            sv_table.c.name.label("table_name"),
+            literal(None).label("database_name"),
+            literal(None).label("schema"),
+        ).select_from(sv_table)
+
+        if not security_manager.can_access_all_datasources():
+            perms = security_manager.user_view_menu_names("datasource_access")
+            sv_q = sv_q.join(
+                SemanticLayer.__table__,
+                SemanticLayer.uuid == SemanticView.semantic_layer_uuid,
+            )
+            sv_q = sv_q.where(
+                or_(SemanticView.perm.in_(perms), SemanticLayer.perm.in_(perms))
+            )
 
         if name_filter:
             escaped = _escape_ilike_fragment(name_filter)
@@ -162,6 +180,8 @@ class DatasourceDAO(BaseDAO[Datasource]):
             "changed_on": "changed_on",
             "changed_on_delta_humanized": "changed_on",
             "table_name": "table_name",
+            "database.database_name": "database_name",
+            "schema": "schema",
         }
         if order_column not in sort_col_map:
             raise ValueError(f"Invalid order column: {order_column}")
@@ -195,7 +215,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
                 joinedload(SqlaTable.owners),
                 joinedload(SqlaTable.changed_by),
             )
-            .filter(SqlaTable.id.in_(ids))
+            .filter(cast(Any, SqlaTable.id).in_(ids))
             .all()
         )
         return {obj.id: obj for obj in objs}
@@ -208,7 +228,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
         objs = (
             db.session.query(SemanticView)
             .options(joinedload(SemanticView.changed_by))
-            .filter(SemanticView.id.in_(ids))
+            .filter(cast(Any, SemanticView.id).in_(ids))
             .all()
         )
         return {obj.id: obj for obj in objs}

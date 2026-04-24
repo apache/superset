@@ -28,7 +28,7 @@ from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only
 
-from superset import db, event_logger, is_feature_enabled
+from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.semantic_layer.create import (
     CreateSemanticLayerCommand,
     CreateSemanticViewCommand,
@@ -1006,8 +1006,12 @@ class SemanticLayerRestApi(BaseSupersetApi):
                     SemanticLayer.description,
                     SemanticLayer.changed_on,
                     SemanticLayer.changed_by_fk,
+                    SemanticLayer.perm,
                 )
             )
+            if not security_manager.can_access_all_datasources():
+                perms = security_manager.user_view_menu_names("datasource_access")
+                sl_q = sl_q.filter(SemanticLayer.perm.in_(perms))
             if name_filter:
                 sl_q = sl_q.filter(SemanticLayer.name.ilike(f"%{name_filter}%"))
             sl_items = [("semantic_layer", obj) for obj in sl_q.all()]
