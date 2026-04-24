@@ -103,13 +103,16 @@ class DatasourceDAO(BaseDAO[Datasource]):
             literal("database").label("source_type"),
             SqlaTable.changed_on,
             SqlaTable.table_name,
+            sqla_models.Database.database_name.label("database_name"),
+            SqlaTable.schema,
         ).select_from(SqlaTable.__table__)
 
+        ds_q = ds_q.join(
+            sqla_models.Database,
+            sqla_models.Database.id == SqlaTable.database_id,
+        )
+
         if not security_manager.can_access_all_datasources():
-            ds_q = ds_q.join(
-                sqla_models.Database,
-                sqla_models.Database.id == SqlaTable.database_id,
-            )
             ds_q = ds_q.where(get_dataset_access_filters(SqlaTable))
 
         if name_filter:
@@ -138,6 +141,8 @@ class DatasourceDAO(BaseDAO[Datasource]):
             literal("semantic_layer").label("source_type"),
             SemanticView.changed_on,
             SemanticView.name.label("table_name"),
+            literal(None).label("database_name"),
+            literal(None).label("schema"),
         ).select_from(SemanticView.__table__)
 
         if not security_manager.can_access_all_datasources():
@@ -172,6 +177,8 @@ class DatasourceDAO(BaseDAO[Datasource]):
             "changed_on": "changed_on",
             "changed_on_delta_humanized": "changed_on",
             "table_name": "table_name",
+            "database.database_name": "database_name",
+            "schema": "schema",
         }
         if order_column not in sort_col_map:
             raise ValueError(f"Invalid order column: {order_column}")

@@ -121,6 +121,18 @@ class SemanticViewDAO(BaseDAO[SemanticView], AbstractSemanticViewDAO):
 
     model_cls = SemanticView
 
+    @staticmethod
+    def _as_configuration_dict(value: Any) -> dict[str, Any]:
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except (TypeError, ValueError):
+                return {}
+            return parsed if isinstance(parsed, dict) else {}
+        return {}
+
     @classmethod
     def validate_uniqueness(
         cls,
@@ -150,7 +162,10 @@ class SemanticViewDAO(BaseDAO[SemanticView], AbstractSemanticViewDAO):
             )
             .all()
         )
-        return not any(json.loads(c.configuration) == configuration for c in candidates)
+        return not any(
+            cls._as_configuration_dict(c.configuration) == configuration
+            for c in candidates
+        )
 
     @classmethod
     def validate_update_uniqueness(
@@ -181,7 +196,10 @@ class SemanticViewDAO(BaseDAO[SemanticView], AbstractSemanticViewDAO):
             )
             .all()
         )
-        return not any(json.loads(c.configuration) == configuration for c in candidates)
+        return not any(
+            cls._as_configuration_dict(c.configuration) == configuration
+            for c in candidates
+        )
 
     @classmethod
     def find_by_name(cls, name: str, layer_uuid: str) -> SemanticView | None:
