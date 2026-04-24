@@ -210,7 +210,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
 
   return (
     <StyledHeader backgroundColor={props.backgroundColor}>
-      <Row className="menu" role="navigation">
+      <Row className="menu" role="navigation" aria-label={t('Page navigation')}>
         {props.name && <div className="header">{props.name}</div>}
         <Menu
           mode={showMenu}
