@@ -230,6 +230,11 @@ async def generate_chart(  # noqa: C901
 
     # Track runtime warnings to include in response
     runtime_warnings: list[str] = []
+    # Surface warnings captured during pydantic validation (e.g. chart_name
+    # sanitization) so callers know when their input was altered.
+    sanitization_warnings: list[str] = list(
+        getattr(request, "sanitization_warnings", []) or []
+    )
 
     try:
         # Run comprehensive validation pipeline
@@ -735,18 +740,17 @@ async def generate_chart(  # noqa: C901
             from superset.models.slice import Slice
 
             # Re-fetch with eager-loaded relationships to avoid detached
-            # instance errors when serialize_chart_object accesses .tags
-            # and .owners.  The preceding commit may invalidate the session
+            # instance errors when serialize_chart_object accesses .tags.
+            # The preceding commit may invalidate the session
             # in multi-tenant environments; on failure, build a minimal
             # chart_data dict from scalar attributes that are already loaded
-            # — relationship fields (owners, tags) would trigger
-            # lazy-loading on the same dead session.
+            # — relationship fields like tags would trigger lazy-loading on
+            # the same dead session.
             try:
                 chart = (
                     ChartDAO.find_by_id(
                         chart.id,
                         query_options=[
-                            joinedload(Slice.owners),
                             joinedload(Slice.tags),
                         ],
                     )
@@ -781,7 +785,7 @@ async def generate_chart(  # noqa: C901
         # Safely serialize chart_info - handle both Pydantic models and dicts
         if chart_data is None and chart_info is not None:
             if hasattr(chart_info, "model_dump"):
-                chart_data = chart_info.model_dump()
+                chart_data = chart_info.model_dump(mode="json")
             elif isinstance(chart_info, dict):
                 chart_data = chart_info
             else:
@@ -810,8 +814,8 @@ async def generate_chart(  # noqa: C901
             else {},
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,
-            # Combined runtime and response warnings
-            "warnings": runtime_warnings + response_warnings,
+            # Combined runtime, response, and sanitization warnings
+            "warnings": sanitization_warnings + runtime_warnings + response_warnings,
             "success": True,
             "schema_version": "2.0",
             "api_version": "v1",

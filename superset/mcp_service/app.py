@@ -144,15 +144,6 @@ To create a chart:
      "config": {{...}}, "save_chart": true
    }}) -> save permanently
 
-To find your own charts/dashboards/databases:
-1. get_instance_info -> get current_user.id
-2. list_charts(request={{"filters": [{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}]}})
-3. Or: list_dashboards(request={{"filters": [{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}]}})
-4. Or: list_databases(request={{"filters": [{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}]}})
-
 To explore data with SQL:
 1. list_datasets(request={{}}) -> find a dataset and note its database_id
 2. execute_sql(request={{"database_id": <id>, "sql": "SELECT ..."}})
@@ -213,13 +204,6 @@ Query Examples:
   list_charts(request={{"filters": [{{"col": "viz_type",
     "opr": "sw", "value": "echarts_timeseries"}}]}})
 - Search by name: list_charts(request={{"search": "sales"}})
-- My charts (use current_user.id from get_instance_info):
-  list_charts(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
-- My dashboards:
-  list_dashboards(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
-- My databases:
-  list_databases(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
-
 To modify an existing chart (add filters, change metrics, etc.):
 1. get_chart_info(request={{"identifier": <chart_id>}})
    -> examine current configuration
@@ -276,6 +260,18 @@ Permission Awareness:
 - get_instance_info returns current_user.roles (e.g., ["Admin"], ["Alpha"], ["Viewer"]).
 - ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, dashboards, or running SQL).
+- Do NOT disclose dashboard access lists, dashboard owners, chart owners, dataset
+  owners, workspace admins, or other users' names, usernames, email addresses,
+  contact details, roles, admin status, ownership, or access-list information.
+- Do NOT infer access-list answers from dashboard metadata such as published status,
+  role restrictions, empty owner lists, or schema fields.
+- Do NOT use execute_sql to query user, role, owner, or access-list tables for this
+  information.
+- You may reference the current user's own identity details when appropriate, such
+  as confirming their own username.
+- If a user asks who can view/edit/access content, who owns content, who is an
+  admin, who to contact for access, or what role another user has, say that you
+  cannot provide that information and direct them to their workspace admin.
 - Common roles and their typical capabilities:
   - Admin: Full access to all features
   - Alpha: Can create and modify charts, dashboards, datasets, and run SQL

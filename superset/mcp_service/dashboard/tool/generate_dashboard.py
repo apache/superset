@@ -204,6 +204,11 @@ def generate_dashboard(  # noqa: C901
     from pydantic import ValidationError
     from sqlalchemy.exc import SQLAlchemyError
 
+    # Advisory messages (e.g. title sanitization) surfaced to the caller
+    # alongside the created dashboard so they can tell when their input
+    # was altered.
+    sanitization_warnings = list(getattr(request, "sanitization_warnings", []) or [])
+
     try:
         # Get chart objects from IDs (required for SQLAlchemy relationships)
         from superset import db
@@ -350,7 +355,7 @@ def generate_dashboard(  # noqa: C901
         # environments, causing "Can't reconnect until invalid transaction
         # is rolled back".  Wrap the DAO re-fetch in try/except; on failure,
         # return a minimal response using only scalar attributes that are
-        # already loaded — relationship fields (owners, tags, slices) would
+        # already loaded — relationship fields (tags, slices) would
         # trigger lazy-loading on the same dead session.
         from superset.daos.dashboard import DashboardDAO
 
@@ -359,9 +364,7 @@ def generate_dashboard(  # noqa: C901
                 DashboardDAO.find_by_id(
                     dashboard.id,
                     query_options=[
-                        subqueryload(Dashboard.slices).subqueryload(Slice.owners),
                         subqueryload(Dashboard.slices).subqueryload(Slice.tags),
-                        subqueryload(Dashboard.owners),
                         subqueryload(Dashboard.tags),
                     ],
                 )
@@ -393,13 +396,13 @@ def generate_dashboard(  # noqa: C901
                 ),
                 dashboard_url=dashboard_url,
                 error=None,
+                warnings=sanitization_warnings,
             )
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
             serialize_chart_summary,
             serialize_tag_object,
-            serialize_user_object,
         )
 
         dashboard_info = DashboardInfo(
@@ -410,16 +413,12 @@ def generate_dashboard(  # noqa: C901
             published=dashboard.published,
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
-            created_by=dashboard.created_by_name or None,
-            changed_by=dashboard.changed_by_name or None,
+            created_by=None,
+            changed_by=None,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/",
             chart_count=len(request.chart_ids),
-            owners=[
-                serialize_user_object(owner)
-                for owner in getattr(dashboard, "owners", [])
-                if serialize_user_object(owner) is not None
-            ],
+            owners=[],
             tags=[
                 serialize_tag_object(tag)
                 for tag in getattr(dashboard, "tags", [])
@@ -440,7 +439,10 @@ def generate_dashboard(  # noqa: C901
         )
 
         return GenerateDashboardResponse(
-            dashboard=dashboard_info, dashboard_url=dashboard_url, error=None
+            dashboard=dashboard_info,
+            dashboard_url=dashboard_url,
+            error=None,
+            warnings=sanitization_warnings,
         )
 
     except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:

@@ -118,11 +118,16 @@ class InstanceInfo(BaseModel):
     popular_content: PopularContent
     current_user: UserInfo | None = Field(
         None,
-        description=(
-            "Use current_user.id with created_by_fk filter to find your own assets."
-        ),
+        description="Information about the authenticated user.",
     )
     feature_availability: FeatureAvailability
+    data_model_metadata_redacted: bool = Field(
+        default=False,
+        description=(
+            "True when dataset/database summary fields were removed because "
+            "the current user cannot inspect data model metadata."
+        ),
+    )
     timestamp: datetime
 
 

@@ -24,9 +24,13 @@ Tests that serialize_dashboard_object correctly handles slug and other fields.
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+from pydantic import ValidationError
+
 from superset.mcp_service.dashboard.schemas import (
     _extract_cross_filters_enabled,
     _extract_native_filters,
+    GenerateDashboardRequest,
     serialize_dashboard_object,
 )
 from superset.utils.json import dumps as json_dumps
@@ -339,3 +343,63 @@ class TestOmittedFieldsBuilder:
 
         assert "json_metadata" in result.omitted_fields
         assert "position_json" in result.omitted_fields
+
+
+class TestGenerateDashboardRequestTitleSanitization:
+    """XSS / sanitization behavior for dashboard_title."""
+
+    def test_plain_title_passes_without_warning(self) -> None:
+        req = GenerateDashboardRequest(
+            chart_ids=[1], dashboard_title="Analytics Dashboard"
+        )
+        assert req.dashboard_title == "Analytics Dashboard"
+        assert req.sanitization_warnings == []
+
+    def test_title_image_onerror_only_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            GenerateDashboardRequest(
+                chart_ids=[1],
+                dashboard_title='<img src=x onerror="alert(1)">',
+            )
+
+    def test_title_script_only_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            GenerateDashboardRequest(
+                chart_ids=[1],
+                dashboard_title="<script>alert(1)</script>",
+            )
+
+    def test_title_partial_strip_emits_warning(self) -> None:
+        req = GenerateDashboardRequest(
+            chart_ids=[1],
+            dashboard_title="Q1 <b>Review</b>",
+        )
+        assert req.dashboard_title == "Q1 Review"
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+
+    def test_title_omitted_does_not_warn(self) -> None:
+        req = GenerateDashboardRequest(chart_ids=[1])
+        assert req.dashboard_title is None
+        assert req.sanitization_warnings == []
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only; client input is dropped."""
+        req = GenerateDashboardRequest(
+            chart_ids=[1],
+            dashboard_title="Plain Title",
+            sanitization_warnings=["<script>fake notice</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+    def test_client_warnings_discarded_even_when_server_also_warns(self) -> None:
+        """Client-supplied warnings must not survive, even when the server
+        appends one of its own during the same request."""
+        req = GenerateDashboardRequest(
+            chart_ids=[1],
+            dashboard_title="Q1 <b>Review</b>",
+            sanitization_warnings=["injected attacker text"],
+        )
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+        assert "injected" not in req.sanitization_warnings[0]
