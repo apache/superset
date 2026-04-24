@@ -173,7 +173,7 @@
     "geostyler": "^18.5.0",
     "geostyler-data": "^1.1.0",
     "geostyler-openlayers-parser": "^5.7.0",
-    "geostyler-style": "11.0.2",
+    "geostyler-style": "12.0.0",
     "geostyler-wfs-parser": "^3.0.1",
     "google-auth-library": "^10.6.2",
     "immer": "^11.1.4",
