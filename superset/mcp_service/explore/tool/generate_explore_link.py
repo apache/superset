@@ -102,12 +102,12 @@ async def generate_explore_link(
         try:
             config = parse_chart_config(request.config)
         except (ValueError, TypeError) as e:
-            from superset.mcp_service.chart.validation.pipeline import (
+            from superset.mcp_service.utils.error_sanitization import (
                 _sanitize_validation_error,
             )
 
             sanitized = _sanitize_validation_error(e)
-            await ctx.error("Invalid chart config: %s" % sanitized)
+            await ctx.error("Invalid chart configuration: %s" % sanitized)
             return {
                 "url": "",
                 "form_data": {},

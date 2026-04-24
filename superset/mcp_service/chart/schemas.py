@@ -1460,12 +1460,12 @@ class GenerateChartRequest(QueryCacheControl):
         if not isinstance(data, dict):
             return data
         data["sanitization_warnings"] = []
-        raw = (
-            data.get("chart_name")
-            or data.get("name")
-            or data.get("title")
-            or data.get("slice_name")
-        )
+        for key in ("chart_name", "name", "title", "slice_name"):
+            if key in data:
+                raw = data[key]
+                break
+        else:
+            raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
         sanitized, was_modified = sanitize_user_input_with_changes(

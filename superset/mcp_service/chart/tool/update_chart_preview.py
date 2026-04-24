@@ -108,14 +108,19 @@ def update_chart_preview(
         try:
             config = parse_chart_config(request.config)
         except (ValueError, TypeError) as e:
-            from superset.mcp_service.chart.validation.pipeline import (
+            from superset.mcp_service.utils.error_sanitization import (
                 _sanitize_validation_error,
             )
 
             sanitized = _sanitize_validation_error(e)
             return {
                 "chart": None,
-                "error": f"Invalid chart configuration: {sanitized}",
+                "error": {
+                    "error_type": "validation_error",
+                    "message": f"Invalid chart configuration: {sanitized}",
+                    "details": sanitized,
+                    "error_code": "INVALID_CHART_CONFIG",
+                },
                 "performance": {
                     "query_duration_ms": int((time.time() - start_time) * 1000),
                     "cache_status": "error",

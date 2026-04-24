@@ -288,7 +288,7 @@ async def generate_chart(  # noqa: C901
         try:
             config = parse_chart_config(request.config)
         except (ValueError, TypeError) as e:
-            from superset.mcp_service.chart.validation.pipeline import (
+            from superset.mcp_service.utils.error_sanitization import (
                 _sanitize_validation_error,
             )
 

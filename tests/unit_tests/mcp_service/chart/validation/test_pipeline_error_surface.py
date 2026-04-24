@@ -32,7 +32,11 @@ fields ``primary_kind`` / ``secondary_kind``.
 
 from unittest.mock import patch
 
+import pytest
+
+from superset.mcp_service.chart.schemas import GenerateChartRequest
 from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
+from superset.mcp_service.dashboard.schemas import GenerateDashboardRequest
 from superset.mcp_service.utils.error_builder import ChartErrorBuilder
 
 
@@ -249,3 +253,55 @@ def test_validation_error_template_suggestions_are_chart_type_agnostic() -> None
     assert "mixed_timeseries" not in joined
     assert "primary_kind" not in joined
     assert "secondary_kind" not in joined
+
+
+# --- Alias field tests ---
+
+
+def test_title_alias_populates_dashboard_title() -> None:
+    """Sending ``title`` instead of ``dashboard_title`` should populate the field."""
+    req = GenerateDashboardRequest(
+        chart_ids=[1],
+        title="My Dashboard",  # type: ignore[call-arg]
+    )
+    assert req.dashboard_title == "My Dashboard"
+
+
+def test_name_alias_populates_chart_name() -> None:
+    """Sending ``name`` instead of ``chart_name`` should populate the field."""
+    req = GenerateChartRequest(
+        dataset_id=1,
+        config={
+            "chart_type": "xy",
+            "x": {"name": "col"},
+            "y": [{"name": "val", "aggregate": "SUM"}],
+        },
+        name="My Chart",  # type: ignore[call-arg]
+    )
+    assert req.chart_name == "My Chart"
+
+
+def test_xss_via_alias_title_is_rejected() -> None:
+    """XSS payload via alias field ``title`` should be rejected by sanitization."""
+    with pytest.raises(ValueError, match="sanitization"):
+        GenerateDashboardRequest(
+            chart_ids=[1],
+            title="<script>alert(1)</script>",  # type: ignore[call-arg]
+        )
+
+
+def test_chart_name_and_name_simultaneously_first_alias_wins() -> None:
+    """When both ``chart_name`` and ``name`` are provided, ``chart_name``
+    takes precedence because it appears first in the alias list."""
+    req = GenerateChartRequest(
+        dataset_id=1,
+        config={
+            "chart_type": "xy",
+            "x": {"name": "col"},
+            "y": [{"name": "val", "aggregate": "SUM"}],
+        },
+        chart_name="Primary Name",
+        name="Secondary Name",  # type: ignore[call-arg]
+    )
+    # chart_name is the canonical field and takes precedence via AliasChoices
+    assert req.chart_name == "Primary Name"
