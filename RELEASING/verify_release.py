@@ -100,6 +100,18 @@ def get_gpg_info(filename: str) -> tuple[Optional[str], Optional[str]]:
         )
         output = result.stderr.decode()
 
+    # If the signature was not actually verified, do not trust the key ID or
+    # email pulled from signature metadata — returning them would let the
+    # caller report the release as "verified" when GPG never validated it.
+    if result.returncode != 0 or "Good signature" not in output:
+        print("Warning: GPG could not verify the signature.")
+        if "No public key" in output:
+            print(
+                "Hint: public key is not in your keyring. Import it with:\n"
+                f"  curl -s {KEYS_URL} | gpg --import"
+            )
+        return None, None
+
     rsa_key = re.search(r"RSA key ([0-9A-F]+)", output)
     eddsa_key = re.search(r"EDDSA key ([0-9A-F]+)", output)
 
@@ -129,11 +141,6 @@ def get_gpg_info(filename: str) -> tuple[Optional[str], Optional[str]]:
         print(f"Email found: {email_result}")
     else:
         print("Warning: No email address found in GPG verification output.")
-        if "No public key" in output:
-            print(
-                "Hint: public key is not in your keyring. Import it with:\n"
-                f"  curl -s {KEYS_URL} | gpg --import"
-            )
 
     return key_result, email_result
 
