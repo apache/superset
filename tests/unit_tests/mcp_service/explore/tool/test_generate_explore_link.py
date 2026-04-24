@@ -748,6 +748,50 @@ class TestGenerateExploreLink:
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
+    async def test_generate_explore_link_without_config(
+        self, mock_find_dataset, mcp_server
+    ):
+        """Omitting config returns a default dataset explore URL."""
+        mock_find_dataset.return_value = _mock_dataset(id=42)
+
+        request = GenerateExploreLinkRequest(dataset_id="42")
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["error"] is None
+            assert (
+                result.data["url"]
+                == "http://localhost:9001/explore/?datasource_type=table"
+                "&datasource_id=42"
+            )
+            assert result.data["form_data"] == {}
+            assert result.data["form_data_key"] is None
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_generate_explore_link_without_config_missing_dataset(
+        self, mock_find_dataset, mcp_server
+    ):
+        """Omitting config still surfaces a dataset-not-found error."""
+        mock_find_dataset.return_value = None
+
+        request = GenerateExploreLinkRequest(dataset_id="99999")
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["url"] == ""
+            assert result.data["form_data"] == {}
+            assert result.data["form_data_key"] is None
+            assert "Dataset not found: 99999" in result.data["error"]
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
     async def test_generate_explore_link_nonexistent_uuid_dataset(
         self, mock_find_dataset, mcp_server
     ):

@@ -60,10 +60,12 @@ async def generate_explore_link(
     - "Visualize [data]"
     - General data exploration
     - When user wants to SEE data visually
+    - Opening a dataset in Explore without a preconfigured chart (omit config)
 
     IMPORTANT:
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
-    - MUST include chart_type in config (either 'xy' or 'table')
+    - When config is provided, MUST include chart_type (e.g. 'xy' or 'table')
+    - Omit config entirely to return a default explore URL for the dataset
 
     Example usage:
     ```json
@@ -78,6 +80,11 @@ async def generate_explore_link(
     }
     ```
 
+    Or with no config to simply open the dataset in Explore:
+    ```json
+    {"dataset_id": 123}
+    ```
+
     Better UX because:
     - Users can interact with chart before saving
     - Easy to modify parameters instantly
@@ -88,9 +95,12 @@ async def generate_explore_link(
 
     Returns explore URL for immediate use.
     """
+    chart_type = (
+        request.config.get("chart_type", "unknown") if request.config else "none"
+    )
     await ctx.info(
         "Generating explore link for dataset_id=%s, chart_type=%s"
-        % (request.dataset_id, request.config.get("chart_type", "unknown"))
+        % (request.dataset_id, chart_type)
     )
     await ctx.debug(
         "Configuration details: use_cache=%s, force_refresh=%s, cache_form_data=%s"
@@ -98,9 +108,6 @@ async def generate_explore_link(
     )
 
     try:
-        # Parse the raw config dict into a typed ChartConfig
-        config = parse_chart_config(request.config)
-
         await ctx.report_progress(1, 4, "Validating dataset exists")
         with event_logger.log_context(action="mcp.generate_explore_link.dataset_check"):
             from superset.daos.dataset import DatasetDAO
@@ -132,8 +139,31 @@ async def generate_explore_link(
                     ),
                 }
 
+        # When no config is provided, return a default explore URL that opens
+        # the dataset in Superset without a preconfigured chart.
+        if request.config is None:
+            await ctx.report_progress(4, 4, "URL generation complete")
+            from superset.mcp_service.utils.url_utils import get_superset_base_url
+
+            base_url = get_superset_base_url()
+            default_url = (
+                f"{base_url}/explore/?datasource_type=table&datasource_id={dataset.id}"
+            )
+            await ctx.info(
+                "Default explore link generated: dataset_id=%s" % (request.dataset_id,)
+            )
+            return {
+                "url": default_url,
+                "form_data": {},
+                "form_data_key": None,
+                "error": None,
+            }
+
         await ctx.report_progress(2, 4, "Converting configuration to form data")
         with event_logger.log_context(action="mcp.generate_explore_link.form_data"):
+            # Parse the raw config dict into a typed ChartConfig
+            config = parse_chart_config(request.config)
+
             # Normalize column names to match canonical dataset column names
             # This fixes case sensitivity issues (e.g., 'order_date' vs 'OrderDate')
             try:
@@ -197,7 +227,7 @@ async def generate_explore_link(
             "Explore link generation failed for dataset_id=%s, chart_type=%s: %s: %s"
             % (
                 request.dataset_id,
-                request.config.get("chart_type", "unknown"),
+                chart_type,
                 type(e).__name__,
                 str(e),
             )

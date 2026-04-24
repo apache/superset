@@ -1508,11 +1508,20 @@ class GenerateChartRequest(QueryCacheControl):
 
 class GenerateExploreLinkRequest(FormDataCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
+    config: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            f"{_CHART_CONFIG_DESCRIPTION} Optional; omit to get a default "
+            "explore URL that opens the dataset in Superset without a "
+            "preconfigured chart."
+        ),
+    )
 
     @field_validator("config", mode="before")
     @classmethod
-    def coerce_config(cls, v: Any) -> Dict[str, Any]:
+    def coerce_config(cls, v: Any) -> Dict[str, Any] | None:
+        if v is None:
+            return None
         return _coerce_config_to_dict(v)
 
 
