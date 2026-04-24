@@ -59,6 +59,7 @@ from superset.mcp_service.system.schemas import (
 from superset.mcp_service.utils.sanitization import (
     sanitize_filter_value,
     sanitize_user_input,
+    sanitize_user_input_with_changes,
 )
 
 
@@ -1421,11 +1422,59 @@ class GenerateChartRequest(QueryCacheControl):
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
+    sanitization_warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Internal: warnings emitted when user input was altered by "
+            "sanitization. Populated by the ``mode='before'`` validator "
+            "before chart_name is rewritten, so the tool can surface a "
+            "notice to the caller instead of silently dropping content."
+        ),
+    )
 
     @field_validator("config", mode="before")
     @classmethod
     def coerce_config(cls, v: Any) -> Dict[str, Any]:
         return _coerce_config_to_dict(v)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _detect_chart_name_sanitization(cls, data: Any) -> Any:
+        """Record a warning when chart_name sanitization alters user input.
+
+        Runs before the ``chart_name`` field validator strips HTML, so we
+        can compare the caller's raw input against the sanitizer output
+        and tell the tool whether to notify the caller. Empty-after-
+        sanitization is rejected with a ValueError so the caller gets a
+        clear error instead of a silently auto-generated name.
+
+        ``sanitization_warnings`` is a server-only field — any value the
+        caller supplied is discarded here so the tool cannot be tricked
+        into echoing attacker-controlled text back through the response.
+        """
+        if not isinstance(data, dict):
+            return data
+        data["sanitization_warnings"] = []
+        raw = data.get("chart_name")
+        if not isinstance(raw, str) or not raw.strip():
+            return data
+        sanitized, was_modified = sanitize_user_input_with_changes(
+            raw, "Chart name", max_length=255, allow_empty=True
+        )
+        if was_modified and not sanitized:
+            raise ValueError(
+                "chart_name contained only disallowed content "
+                "(HTML/script/URL schemes) and was removed entirely by "
+                "sanitization. Provide a chart_name with plain text, or "
+                "omit it to auto-generate one."
+            )
+        if was_modified:
+            data["sanitization_warnings"].append(
+                "chart_name was modified during sanitization to remove "
+                "potentially unsafe content; the stored name differs "
+                "from the input."
+            )
+        return data
 
     @field_validator("chart_name")
     @classmethod

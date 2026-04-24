@@ -230,6 +230,11 @@ async def generate_chart(  # noqa: C901
 
     # Track runtime warnings to include in response
     runtime_warnings: list[str] = []
+    # Surface warnings captured during pydantic validation (e.g. chart_name
+    # sanitization) so callers know when their input was altered.
+    sanitization_warnings: list[str] = list(
+        getattr(request, "sanitization_warnings", []) or []
+    )
 
     try:
         # Run comprehensive validation pipeline
@@ -809,8 +814,8 @@ async def generate_chart(  # noqa: C901
             else {},
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,
-            # Combined runtime and response warnings
-            "warnings": runtime_warnings + response_warnings,
+            # Combined runtime, response, and sanitization warnings
+            "warnings": sanitization_warnings + runtime_warnings + response_warnings,
             "success": True,
             "schema_version": "2.0",
             "api_version": "v1",
