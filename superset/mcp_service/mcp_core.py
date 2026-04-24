@@ -186,25 +186,25 @@ class ModelListCore(BaseCore, Generic[L]):
 
         from flask_login import current_user
 
+        if not current_user or not current_user.is_authenticated:
+            raise ValueError("created_by_fk filter requires an authenticated user")
+
         filter_list = filters if isinstance(filters, list) else [filters]
         for f in filter_list:
             col = f.get("col") if isinstance(f, dict) else getattr(f, "col", None)
             if col != "created_by_fk":
                 continue
             value = f.get("value") if isinstance(f, dict) else getattr(f, "value", None)
-            if not current_user or not current_user.is_authenticated:
-                raise ValueError(
-                    "created_by_fk filter requires an authenticated user"
-                )
             try:
-                if int(value) != current_user.id:
-                    raise ValueError(
-                        "created_by_fk filter can only be used with your own user ID"
-                    )
+                user_id = int(value)
             except (TypeError, ValueError) as exc:
                 raise ValueError(
                     "created_by_fk filter value must be a valid user ID"
                 ) from exc
+            if user_id != current_user.id:
+                raise ValueError(
+                    "created_by_fk filter can only be used with your own user ID"
+                )
 
     def run_tool(
         self,
