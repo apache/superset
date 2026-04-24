@@ -30,6 +30,12 @@ from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
 
+from superset.commands.exceptions import (
+    CommandInvalidError,
+    ForbiddenError,
+    ObjectNotFoundError,
+)
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import event_logger
 from superset.mcp_service.constants import (
     DEFAULT_TOKEN_LIMIT,
@@ -93,6 +99,41 @@ def _sanitize_error_for_logging(error: Exception) -> str:
         return "Request validation failed"
 
     return error_str
+
+
+# Errors caused by the LLM/user — expected in normal MCP operation.
+# Agents send bad params, try tools they lack access to, request nonexistent
+# resources. These are 400-class errors and should be logged at WARNING.
+_USER_ERROR_TYPES = (
+    ToolError,
+    ValidationError,
+    PermissionError,
+    FileNotFoundError,
+    ValueError,
+    CommandInvalidError,
+    ObjectNotFoundError,
+    ForbiddenError,
+    SupersetSecurityException,
+)
+
+
+def _is_user_error(error: Exception) -> bool:
+    """Classify whether an error is user-caused (WARNING) or system-caused (ERROR).
+
+    User errors are expected in normal MCP operation — agents send bad params,
+    try tools they lack access to, request nonexistent resources. These are
+    400-class errors and should be logged at WARNING.
+
+    System errors are unexpected — database down, unexpected exceptions,
+    infrastructure failures. These are 500-class and should be logged at ERROR.
+    """
+    if isinstance(error, _USER_ERROR_TYPES):
+        return True
+    # SupersetException and CommandException have a .status attribute.
+    # 4xx = user error, 5xx = system error.
+    if isinstance(error, SupersetException):
+        return getattr(error, "status", 500) < 500
+    return False
 
 
 _SENSITIVE_PARAM_KEYS = frozenset(
@@ -369,11 +410,14 @@ class GlobalErrorHandlerMiddleware(Middleware):
         except Exception:
             user_id = None  # User not authenticated
 
-        # SECURITY FIX: Log the error with sanitized context
+        # Log with appropriate level: user errors (expected) → WARNING,
+        # system errors (unexpected) → ERROR
         sanitized_error = _sanitize_error_for_logging(error)
-        logger.error(
-            "MCP tool error: tool=%s, user_id=%s, duration_ms=%s, "
-            "error_type=%s, error=%s",
+        is_user = _is_user_error(error)
+        log_fn = logger.warning if is_user else logger.error
+        log_fn(
+            "MCP tool %s: tool=%s, user_id=%s, duration_ms=%s, error_type=%s, error=%s",
+            "warning" if is_user else "error",
             tool_name,
             user_id,
             duration_ms,
@@ -392,6 +436,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
                     "error_type": type(error).__name__,
                     "error_message": str(error),
                     "method": context.method,
+                    "severity": "warning" if is_user else "error",
                 },
             )
         except Exception as log_error:
@@ -436,8 +481,36 @@ class GlobalErrorHandlerMiddleware(Middleware):
             raise ToolError(
                 f"Invalid parameter in {tool_name}: {str(error)}"
             ) from error
+        elif isinstance(error, (ObjectNotFoundError, CommandInvalidError)):
+            # Superset command: not found (404) or validation (422)
+            raise ToolError(f"Invalid request for {tool_name}: {str(error)}") from error
+        elif isinstance(error, (ForbiddenError, SupersetSecurityException)):
+            # Superset access denied — agent tried a tool it can't use
+            raise ToolError(
+                f"Permission denied for {tool_name}: {str(error)}"
+            ) from error
+        elif isinstance(error, SupersetException):
+            # Other Superset errors — .status determines severity (already
+            # classified by _is_user_error above for log level)
+            status = getattr(error, "status", 500)
+            msg = "Invalid request" if status < 500 else "Internal error"
+            raise ToolError(f"{msg} in {tool_name}: {str(error)}") from error
+        elif isinstance(
+            error,
+            (
+                ConnectionError,
+                ConnectionRefusedError,
+                ConnectionResetError,
+                BrokenPipeError,
+            ),
+        ):
+            # Network errors — transient, expected during pod restarts
+            raise ToolError(
+                f"Connection error in {tool_name}: Service temporarily unavailable. "
+                f"Please try again in a few moments."
+            ) from error
         else:
-            # Generic internal errors
+            # Generic internal errors — truly unexpected
             error_id = f"err_{int(time.time())}"
             logger.error("Unexpected error [%s] in %s: %s", error_id, tool_name, error)
 
@@ -1157,8 +1230,8 @@ class ResponseSizeGuardMiddleware(Middleware):
                 if truncated is not None:
                     return truncated
 
-            # Log the blocked response
-            logger.error(
+            # Log the blocked response (user-caused: requested too much data)
+            logger.warning(
                 "Response blocked for %s: ~%d tokens exceeds limit of %d",
                 tool_name,
                 estimated_tokens,
