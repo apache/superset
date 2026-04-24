@@ -93,6 +93,7 @@ async def get_database_info(
         )
     )
 
+    # The decorator hides this tool from search; this check enforces direct calls.
     if not user_can_view_data_model_metadata():
         await ctx.warning("Database metadata lookup blocked by privacy controls")
         return DatabaseError.create(

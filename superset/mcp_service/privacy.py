@@ -51,12 +51,9 @@ DATA_MODEL_METADATA_ERROR_MESSAGE = (
     "You don't have permission to access underlying dataset or database details "
     "for your role."
 )
-DATA_MODEL_METADATA_DENIAL_MESSAGE = (
-    "I don't have permission to access underlying dataset or database details "
-    "for your role. I can't provide dataset names, schema details, columns, "
-    "field values, or SQL for that data model."
-)
 
+# Fields that reveal dataset/database metadata through chart list and schema surfaces.
+# ChartInfo only exposes a subset of these as direct model fields.
 CHART_DATA_MODEL_COLUMNS = frozenset(
     {
         "catalog_perm",
@@ -104,7 +101,12 @@ def tool_requires_data_model_metadata_access(func: Any) -> bool:
 
 
 def user_can_view_data_model_metadata() -> bool:
-    """Return whether the current user can inspect dataset/schema metadata."""
+    """Return whether the current user can inspect data-model metadata.
+
+    Dataset drill/write permissions indicate active data-model introspection access.
+    Dashboard-only viewers may have Dataset read access for chart rendering, but that
+    should not expose dataset/database metadata through MCP tools.
+    """
     try:
         from superset import security_manager
 

@@ -99,6 +99,7 @@ async def get_dataset_info(
         )
     )
 
+    # The decorator hides this tool from search; this check enforces direct calls.
     if not user_can_view_data_model_metadata():
         await ctx.warning("Dataset metadata lookup blocked by privacy controls")
         return DatasetError.create(
