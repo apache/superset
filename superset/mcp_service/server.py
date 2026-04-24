@@ -78,6 +78,45 @@ def _suppress_third_party_warnings() -> None:
     )
 
 
+class _FastMCPValidationFilter(logging.Filter):
+    """Downgrade FastMCP's user-error logs from ERROR to WARNING.
+
+    FastMCP's server.py logs ValidationError and ToolError at ERROR level
+    via logger.exception() before our GlobalErrorHandlerMiddleware sees it.
+    These are user errors (LLM sent bad params, access denied, not found)
+    and are expected in normal MCP operation — they should not pollute
+    ERROR-level logs in Datadog.
+
+    Patterns downgraded:
+    - "Error validating tool '...'" — Pydantic ValidationError (bad params)
+    - "Error calling tool '...'" when exc_info is a ToolError/FastMCPError
+      (our middleware converted the user error to ToolError before FastMCP
+      catches and re-logs it)
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno != logging.ERROR:
+            return True
+        msg = record.getMessage()
+        if "Error validating tool" in msg:
+            record.levelno = logging.WARNING
+            record.levelname = "WARNING"
+        elif "Error calling tool" in msg and record.exc_info:
+            # Only downgrade if the exception is ToolError/FastMCPError
+            # (user errors), not generic Exception (system errors)
+            exc_type = record.exc_info[0] if record.exc_info else None
+            if exc_type is not None:
+                try:
+                    from fastmcp.exceptions import FastMCPError
+
+                    if issubclass(exc_type, FastMCPError):
+                        record.levelno = logging.WARNING
+                        record.levelname = "WARNING"
+                except ImportError:
+                    pass
+        return True
+
+
 def configure_logging(debug: bool = False) -> None:
     """Configure logging for the MCP service."""
     import sys
@@ -105,6 +144,13 @@ def configure_logging(debug: bool = False) -> None:
 
         # Use logging instead of print to avoid stdout contamination
         logging.info("🔍 SQL Debug logging enabled")
+
+    # FastMCP's server.py logs ValidationError/ToolError at ERROR via
+    # logger.exception() before our middleware sees it. These are user errors
+    # (bad params from LLM) and should not pollute ERROR logs.
+    # Downgrade these specific messages from ERROR to WARNING.
+    fastmcp_server_logger = logging.getLogger("fastmcp.server.server")
+    fastmcp_server_logger.addFilter(_FastMCPValidationFilter())
 
 
 def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
