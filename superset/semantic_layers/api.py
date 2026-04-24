@@ -173,8 +173,11 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     resource_name = "semantic_view"
     allow_browser_login = True
     class_permission_name = "SemanticView"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    include_route_methods = {"put", "post", "delete", "bulk_delete"}
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "structure": "read",
+    }
+    include_route_methods = {"put", "post", "delete", "bulk_delete", "structure"}
     # SemanticViewRestApi exposes only write endpoints, but can_read must be
     # declared explicitly so that FAB registers the permission. It is used by
     # DatasourceRestApi.combined_list to gate access to semantic views in the
@@ -182,6 +185,76 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     base_permissions = ["can_read", "can_write"]
 
     edit_model_schema = SemanticViewPutSchema()
+
+    @expose("/<int:pk>/structure", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.structure",
+        log_to_statsd=False,
+    )
+    def structure(self, pk: int) -> Response:
+        """Get the structure (dimensions and metrics) of a semantic view.
+        ---
+        get:
+          summary: Get semantic view structure
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Semantic view structure
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
+        view = db.session.query(SemanticView).filter_by(id=pk).first()
+        if not view:
+            return self.response_404()
+
+        try:
+            dimensions = [
+                {
+                    "name": dim.name,
+                    "type": str(dim.type),
+                    "definition": dim.definition,
+                    "description": dim.description,
+                    "grain": dim.grain.name if dim.grain else None,
+                }
+                for dim in sorted(
+                    view.implementation.get_dimensions(), key=lambda d: d.name
+                )
+            ]
+            metrics = [
+                {
+                    "name": metric.name,
+                    "type": str(metric.type),
+                    "definition": metric.definition,
+                    "description": metric.description,
+                }
+                for metric in sorted(
+                    view.implementation.get_metrics(), key=lambda m: m.name
+                )
+            ]
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.error(
+                "Error fetching structure for semantic view %d: %s",
+                pk,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
+        return self.response(200, result={"dimensions": dimensions, "metrics": metrics})
 
     @expose("/", methods=("POST",))
     @protect()
