@@ -285,7 +285,34 @@ async def generate_chart(  # noqa: C901
             )
 
         # Parse the raw config dict into a typed ChartConfig for downstream use
-        config = parse_chart_config(request.config)
+        try:
+            config = parse_chart_config(request.config)
+        except (ValueError, TypeError) as e:
+            from superset.mcp_service.utils.error_sanitization import (
+                _sanitize_validation_error,
+            )
+
+            sanitized = _sanitize_validation_error(e)
+            execution_time = int((time.time() - start_time) * 1000)
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "validation_error",
+                        "message": f"Invalid chart configuration: {sanitized}",
+                        "details": sanitized,
+                        "error_code": "INVALID_CHART_CONFIG",
+                    },
+                    "performance": {
+                        "query_duration_ms": execution_time,
+                        "cache_status": "error",
+                        "optimization_suggestions": [],
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
 
         # Map the simplified config to Superset's form_data format
         # Pass dataset_id to enable column type checking for proper viz_type selection

@@ -71,6 +71,7 @@ from typing import Annotated, Any, Dict, List, Literal, TYPE_CHECKING
 
 import humanize
 from pydantic import (
+    AliasChoices,
     BaseModel,
     ConfigDict,
     Field,
@@ -497,6 +498,8 @@ class AddChartToDashboardResponse(BaseModel):
 class GenerateDashboardRequest(BaseModel):
     """Request schema for generating a dashboard."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     chart_ids: List[int] = Field(
         ..., description="List of chart IDs to include in the dashboard", min_length=1
     )
@@ -506,6 +509,7 @@ class GenerateDashboardRequest(BaseModel):
             "Title for the new dashboard. When omitted a descriptive title "
             "is generated from the included chart names."
         ),
+        validation_alias=AliasChoices("dashboard_title", "title", "name"),
     )
     description: str | None = Field(None, description="Description for the dashboard")
     published: bool = Field(
@@ -540,7 +544,12 @@ class GenerateDashboardRequest(BaseModel):
         if not isinstance(data, dict):
             return data
         data["sanitization_warnings"] = []
-        raw = data.get("dashboard_title")
+        for key in ("dashboard_title", "title", "name"):
+            if key in data:
+                raw = data[key]
+                break
+        else:
+            raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
         sanitized, was_modified = sanitize_user_input_with_changes(

@@ -1412,10 +1412,15 @@ class ListChartsRequest(MetadataCacheControl):
 
 # The tool input models
 class GenerateChartRequest(QueryCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
     chart_name: str | None = Field(
-        None, description="Auto-generates if omitted", max_length=255
+        None,
+        description="Auto-generates if omitted",
+        max_length=255,
+        validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     save_chart: bool = Field(default=False, description="Save permanently in Superset")
     generate_preview: bool = True
@@ -1455,7 +1460,12 @@ class GenerateChartRequest(QueryCacheControl):
         if not isinstance(data, dict):
             return data
         data["sanitization_warnings"] = []
-        raw = data.get("chart_name")
+        for key in ("chart_name", "name", "title", "slice_name"):
+            if key in data:
+                raw = data[key]
+                break
+        else:
+            raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
         sanitized, was_modified = sanitize_user_input_with_changes(
@@ -1517,6 +1527,8 @@ class GenerateExploreLinkRequest(FormDataCacheControl):
 
 
 class UpdateChartRequest(QueryCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str = Field(..., description="Chart ID or UUID")
     config: Dict[str, Any] | None = Field(
         None,
@@ -1525,7 +1537,10 @@ class UpdateChartRequest(QueryCacheControl):
         ),
     )
     chart_name: str | None = Field(
-        None, description="Auto-generates if omitted", max_length=255
+        None,
+        description="Auto-generates if omitted",
+        max_length=255,
+        validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     generate_preview: bool = Field(
         default=True,
