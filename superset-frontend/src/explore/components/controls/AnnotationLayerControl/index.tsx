@@ -18,14 +18,14 @@
  */
 import { connect } from 'react-redux';
 import { PureComponent } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   HandlerFunction,
   JsonObject,
   Payload,
   QueryFormData,
 } from '@superset-ui/core';
-import { SupersetTheme, withTheme } from '@apache-superset/core/ui';
+import { SupersetTheme, withTheme } from '@apache-superset/core/theme';
 import {
   AsyncEsmComponent,
   List,
@@ -257,7 +257,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
             )}
             title={t('Add annotation layer')}
             open={this.state.popoverVisible[addLayerPopoverKey]}
-            destroyTooltipOnHide
+            destroyOnHidden
             onOpenChange={visible =>
               this.handleVisibleChange(visible, addLayerPopoverKey)
             }

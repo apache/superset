@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useMemo, useCallback, useEffect, memo } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, memo } from 'react';
 
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
 import { useSelector } from 'react-redux';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { LayoutItem, RootState } from 'src/dashboard/types';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
@@ -31,6 +31,7 @@ import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
 import useFilterFocusHighlightStyles from 'src/dashboard/util/useFilterFocusHighlightStyles';
+import { AntdThemeProvider } from '@superset-ui/core/components';
 import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   GRID_BASE_UNIT,
@@ -105,6 +106,7 @@ const ChartHolder = ({
   `;
   const { chartId } = component.meta;
   const isFullSize = fullSizeChartId === chartId;
+  const chartHolderRef = useRef<HTMLDivElement | null>(null);
 
   const focusHighlightStyles = useFilterFocusHighlightStyles(chartId ?? 0);
   const directPathToChild = useSelector(
@@ -257,7 +259,19 @@ const ChartHolder = ({
         editMode={editMode}
       >
         <div
-          ref={dragSourceRef}
+          ref={el => {
+            if (typeof dragSourceRef === 'function') {
+              dragSourceRef(el);
+            } else if (
+              dragSourceRef &&
+              Object.prototype.hasOwnProperty.call(dragSourceRef, 'current')
+            ) {
+              (
+                dragSourceRef as React.MutableRefObject<HTMLDivElement | null>
+              ).current = el;
+            }
+            chartHolderRef.current = el;
+          }}
           data-test="dashboard-component-chart-holder"
           style={focusHighlightStyles}
           css={isFullSize ? fullSizeStyle : undefined}
@@ -269,46 +283,59 @@ const ChartHolder = ({
             outlinedComponentId ? 'fade-in' : 'fade-out',
           )}
         >
-          {!editMode && (
-            <AnchorLink
-              id={component.id}
-              scrollIntoView={outlinedComponentId === component.id}
+          <AntdThemeProvider
+            getPopupContainer={(triggerNode: HTMLElement) =>
+              document.fullscreenElement
+                ? (triggerNode?.closest?.(
+                    '[data-test="dashboard-component-chart-holder"]',
+                  ) as HTMLElement) || document.body
+                : document.body
+            }
+          >
+            {!editMode && (
+              <AnchorLink
+                id={component.id}
+                scrollIntoView={outlinedComponentId === component.id}
+              />
+            )}
+            {!!outlinedComponentId && (
+              <style>
+                {`label[for=${outlinedColumnName}] + .Select .Select__control {
+                      border-color: ${theme.colorPrimary};
+                      transition: border-color 1s ease-in-out;
+                    }`}
+              </style>
+            )}
+            <Chart
+              componentId={component.id}
+              id={component.meta.chartId ?? 0}
+              dashboardId={dashboardId}
+              width={chartWidth}
+              height={chartHeight}
+              sliceName={
+                component.meta.sliceNameOverride ||
+                component.meta.sliceName ||
+                ''
+              }
+              updateSliceName={(_sliceId: number, name: string) =>
+                handleUpdateSliceName(name)
+              }
+              isComponentVisible={isComponentVisible}
+              handleToggleFullSize={handleToggleFullSize}
+              isFullSize={isFullSize}
+              setControlValue={handleExtraControl}
+              extraControls={extraControls}
+              isInView={isInView}
+              chartHolderRef={chartHolderRef}
             />
-          )}
-          {!!outlinedComponentId && (
-            <style>
-              {`label[for=${outlinedColumnName}] + .Select .Select__control {
-                    border-color: ${theme.colorPrimary};
-                    transition: border-color 1s ease-in-out;
-                  }`}
-            </style>
-          )}
-          <Chart
-            componentId={component.id}
-            id={component.meta.chartId ?? 0}
-            dashboardId={dashboardId}
-            width={chartWidth}
-            height={chartHeight}
-            sliceName={
-              component.meta.sliceNameOverride || component.meta.sliceName || ''
-            }
-            updateSliceName={(_sliceId: number, name: string) =>
-              handleUpdateSliceName(name)
-            }
-            isComponentVisible={isComponentVisible}
-            handleToggleFullSize={handleToggleFullSize}
-            isFullSize={isFullSize}
-            setControlValue={handleExtraControl}
-            extraControls={extraControls}
-            isInView={isInView}
-          />
-          {editMode && (
-            <HoverMenu position="top">
-              <div data-test="dashboard-delete-component-button">
-                <DeleteComponentButton onDelete={handleDeleteComponent} />
-              </div>
-            </HoverMenu>
-          )}
+            {editMode && (
+              <HoverMenu position="top">
+                <div data-test="dashboard-delete-component-button">
+                  <DeleteComponentButton onDelete={handleDeleteComponent} />
+                </div>
+              </HoverMenu>
+            )}
+          </AntdThemeProvider>
         </div>
       </ResizableContainer>
     ),

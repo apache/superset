@@ -42,8 +42,8 @@ class ExtensionNames(TypedDict):
     # Backend package name with hyphens for distribution (e.g., "my_org-dashboard_widgets")
     backend_package: str
 
-    # Full backend import path (e.g., "superset_extensions.my_org.dashboard_widgets")
+    # Full backend import path (e.g., "my_org.dashboard_widgets")
     backend_path: str
 
-    # Backend entry point (e.g., "superset_extensions.my_org.dashboard_widgets.entrypoint")
+    # Backend entry point (e.g., "my_org.dashboard_widgets.entrypoint")
     backend_entry: str

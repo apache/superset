@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   Comparator,
   MultipleValueComparators,
@@ -170,7 +170,7 @@ const renderOperatorFields = (
           <FormItem
             name="targetValue"
             label={t('Target value')}
-            initialValue={''}
+            initialValue=""
             hidden
           />
         </Col>

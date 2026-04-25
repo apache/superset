@@ -19,8 +19,8 @@
 from contextlib import contextmanager
 from typing import Generator
 
-import prison
-from superset_core.api.tasks import TaskStatus
+import rison
+from superset_core.tasks.types import TaskStatus
 
 from superset import db
 from superset.models.tasks import Task
@@ -49,7 +49,7 @@ class TestTaskApi(SupersetTestCase):
                 # Use tasks in test
                 # Cleanup happens automatically even if test fails
         """
-        from superset_core.api.tasks import TaskScope
+        from superset_core.tasks.types import TaskScope
 
         from superset.daos.tasks import TaskDAO
 
@@ -205,7 +205,7 @@ class TestTaskApi(SupersetTestCase):
                     {"col": "status", "opr": "eq", "value": TaskStatus.PENDING.value}
                 ]
             }
-            uri = f"{self.TASK_API_BASE}/?q={prison.dumps(arguments)}"
+            uri = f"{self.TASK_API_BASE}/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -222,7 +222,7 @@ class TestTaskApi(SupersetTestCase):
             arguments = {
                 "filters": [{"col": "task_type", "opr": "eq", "value": "test_type"}]
             }
-            uri = f"{self.TASK_API_BASE}/?q={prison.dumps(arguments)}"
+            uri = f"{self.TASK_API_BASE}/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -241,7 +241,7 @@ class TestTaskApi(SupersetTestCase):
                 "order_column": "created_on",
                 "order_direction": "desc",
             }
-            uri = f"{self.TASK_API_BASE}/?q={prison.dumps(arguments)}"
+            uri = f"{self.TASK_API_BASE}/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -255,7 +255,7 @@ class TestTaskApi(SupersetTestCase):
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
             arguments = {"page": 0, "page_size": 2}
-            uri = f"{self.TASK_API_BASE}/?q={prison.dumps(arguments)}"
+            uri = f"{self.TASK_API_BASE}/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 

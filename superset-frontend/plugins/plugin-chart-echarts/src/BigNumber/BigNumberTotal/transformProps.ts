@@ -27,8 +27,9 @@ import {
   QueryFormData,
   getValueFormatter,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
+import { PROPORTION } from '../constants';
 import { getDateFormatter, getOriginalLabel, parseMetricValue } from '../utils';
 import { Refs } from '../../types';
 
@@ -76,8 +77,8 @@ export default function transformProps(
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const formattedSubtitle = subtitle?.trim() ? subtitle : subheader || '';
   const formattedSubtitleFontSize = subtitle?.trim()
-    ? (subtitleFontSize ?? 1)
-    : (subheaderFontSize ?? 1);
+    ? (subtitleFontSize ?? PROPORTION.SUBHEADER)
+    : (subheaderFontSize ?? subtitleFontSize ?? PROPORTION.SUBHEADER);
   const bigNumber =
     data.length === 0 ? null : parseMetricValue(data[0][metricName]);
 

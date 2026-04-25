@@ -94,13 +94,15 @@ export default function buildQuery(formData: QueryFormData) {
         time_offsets,
         /* Note that:
           1. The resample, rolling, cum, timeCompare operators should be after pivot.
-          2. the flatOperator makes multiIndex Dataframe into flat Dataframe
+          2. Resample must come before rolling so that imputed values are
+             included in the rolling window calculation.
+          3. the flatOperator makes multiIndex Dataframe into flat Dataframe
         */
         post_processing: [
           pivotOperatorInRuntime,
+          resampleOperator(formData, baseQueryObject),
           rollingWindowOperator(formData, baseQueryObject),
           timeCompareOperator(formData, baseQueryObject),
-          resampleOperator(formData, baseQueryObject),
           renameOperator(formData, baseQueryObject),
           contributionOperator(formData, baseQueryObject, time_offsets),
           sortOperator(formData, baseQueryObject),

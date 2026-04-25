@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
@@ -327,7 +327,7 @@ function GroupsList({ user }: GroupsListProps) {
           value: role.id,
         })),
         loading: loadingState.roles,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Users'),
@@ -338,7 +338,7 @@ function GroupsList({ user }: GroupsListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: async (filterValue, page, pageSize) =>
           fetchUserOptions(filterValue, page, pageSize, addDangerToast),
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [loadingState.roles, roles],

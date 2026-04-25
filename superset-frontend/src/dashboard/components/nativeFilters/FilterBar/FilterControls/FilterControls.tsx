@@ -26,7 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -38,7 +38,12 @@ import {
   isChartCustomizationDivider,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { css, SupersetTheme, useTheme, styled } from '@apache-superset/core/ui';
+import {
+  css,
+  SupersetTheme,
+  useTheme,
+  styled,
+} from '@apache-superset/core/theme';
 import {
   createHtmlPortalNode,
   InPortal,
@@ -217,6 +222,11 @@ const FilterControls: FC<FilterControlsProps> = ({
     chartCustomization: true,
   });
 
+  const showFiltersOutOfScope =
+    showCollapsePanel &&
+    (hideHeader || sectionsOpen.filters) &&
+    filtersOutOfScope.length > 0;
+
   const toggleSection = useCallback((section: keyof typeof sectionsOpen) => {
     setSectionsOpen(prev => ({
       ...prev,
@@ -338,7 +348,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           </SectionContainer>
         )}
 
-        {showCollapsePanel && (hideHeader || sectionsOpen.filters) && (
+        {showFiltersOutOfScope && (
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
             renderer={renderer}

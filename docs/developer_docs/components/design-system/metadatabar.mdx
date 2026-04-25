@@ -1,0 +1,174 @@
+---
+title: MetadataBar
+sidebar_label: MetadataBar
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# MetadataBar
+
+MetadataBar displays a row of metadata items (SQL info, owners, last modified, tags, dashboards, etc.) that collapse responsively based on available width.
+
+## Live Example
+
+<StoryWithControls
+  component="MetadataBar"
+  props={{
+  title: "Added to 3 dashboards",
+  createdBy: "Jane Smith",
+  modifiedBy: "Jane Smith",
+  description: "To preview the list of dashboards go to More settings.",
+  items: [
+    {
+      type: "sql",
+      title: "Click to view query"
+    },
+    {
+      type: "owner",
+      createdBy: "Jane Smith",
+      owners: [
+        "John Doe",
+        "Mary Wilson"
+      ],
+      createdOn: "a week ago"
+    },
+    {
+      type: "lastModified",
+      value: "a week ago",
+      modifiedBy: "Jane Smith"
+    },
+    {
+      type: "tags",
+      values: [
+        "management",
+        "research",
+        "poc"
+      ]
+    },
+    {
+      type: "dashboards",
+      title: "Added to 3 dashboards",
+      description: "To preview the list of dashboards go to More settings."
+    }
+  ]
+}}
+  controls={[
+  {
+    name: "title",
+    label: "Title",
+    type: "text"
+  },
+  {
+    name: "createdBy",
+    label: "Created By",
+    type: "text"
+  },
+  {
+    name: "modifiedBy",
+    label: "Modified By",
+    type: "text"
+  },
+  {
+    name: "description",
+    label: "Description",
+    type: "text"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  const items = [
+    { type: 'sql', title: 'Click to view query' },
+    {
+      type: 'owner',
+      createdBy: 'Jane Smith',
+      owners: ['John Doe', 'Mary Wilson'],
+      createdOn: 'a week ago',
+    },
+    {
+      type: 'lastModified',
+      value: 'a week ago',
+      modifiedBy: 'Jane Smith',
+    },
+    { type: 'tags', values: ['management', 'research', 'poc'] },
+  ];
+  return <MetadataBar items={items} />;
+}
+```
+
+## Minimal Metadata
+
+```tsx live
+function MinimalMetadata() {
+  const items = [
+    { type: 'owner', createdBy: 'Admin', owners: ['Admin'], createdOn: 'yesterday' },
+    { type: 'lastModified', value: '2 hours ago', modifiedBy: 'Admin' },
+  ];
+  return <MetadataBar items={items} />;
+}
+```
+
+## Full Metadata
+
+```tsx live
+function FullMetadata() {
+  const items = [
+    { type: 'sql', title: 'SELECT * FROM ...' },
+    { type: 'owner', createdBy: 'Jane Smith', owners: ['Jane Smith', 'John Doe', 'Bob Wilson'], createdOn: '2 weeks ago' },
+    { type: 'lastModified', value: '3 days ago', modifiedBy: 'John Doe' },
+    { type: 'tags', values: ['production', 'finance', 'quarterly'] },
+    { type: 'dashboards', title: 'Used in 12 dashboards' },
+    { type: 'description', value: 'This chart shows quarterly revenue breakdown by region and product line.' },
+    { type: 'rows', title: '1.2M rows' },
+    { type: 'table', title: 'public.revenue_data' },
+  ];
+  return <MetadataBar items={items} />;
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `string` | `"Added to 3 dashboards"` | - |
+| `createdBy` | `string` | `"Jane Smith"` | - |
+| `modifiedBy` | `string` | `"Jane Smith"` | - |
+| `description` | `string` | `"To preview the list of dashboards go to More settings."` | - |
+| `items` | `any` | `[{"type":"sql","title":"Click to view query"},{"type":"owner","createdBy":"Jane Smith","owners":["John Doe","Mary Wilson"],"createdOn":"a week ago"},{"type":"lastModified","value":"a week ago","modifiedBy":"Jane Smith"},{"type":"tags","values":["management","research","poc"]},{"type":"dashboards","title":"Added to 3 dashboards","description":"To preview the list of dashboards go to More settings."}]` | - |
+
+## Import
+
+```tsx
+import MetadataBar from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/MetadataBar/MetadataBar.stories.tsx).
+:::

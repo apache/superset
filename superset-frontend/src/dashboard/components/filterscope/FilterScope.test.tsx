@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   cleanup,
   render,
@@ -171,7 +171,7 @@ function getCheckboxIcon(element: HTMLElement): Element {
  * checkbox state change is the fill color of the SVG icon.
  */
 function getCheckboxState(name: string): CheckboxState {
-  const element = screen.getByRole('link', { name });
+  const element = screen.getByRole('button', { name });
   const svgPath = getCheckboxIcon(element).children[1].children[0].children[0];
   const fill = svgPath.getAttribute('fill');
   return fill === supersetTheme.colorPrimary
@@ -183,7 +183,7 @@ function getCheckboxState(name: string): CheckboxState {
 
 // Replace the original clickCheckbox function with the async version
 async function clickCheckbox(name: string) {
-  const element = screen.getByRole('link', { name });
+  const element = screen.getByRole('button', { name });
   const checkboxLabel = getCheckboxIcon(element);
   await userEvent.click(checkboxLabel);
 }
@@ -204,11 +204,11 @@ test('renders with empty filters', () => {
 
 test('renders with filters values', () => {
   render(<FilterScopeSelector {...createProps()} />, { useRedux: true });
-  expect(screen.getByRole('link', { name: FILTER_A })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: FILTER_B })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: FILTER_C })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: TAB_A })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: TAB_B })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: FILTER_A })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: FILTER_B })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: FILTER_C })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: TAB_A })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: TAB_B })).toBeInTheDocument();
   expect(screen.queryByText(CHART_A)).not.toBeInTheDocument();
   expect(screen.queryByText(CHART_B)).not.toBeInTheDocument();
   expect(screen.queryByText(CHART_C)).not.toBeInTheDocument();
@@ -222,21 +222,21 @@ test('collapses/expands all filters', () => {
     useRedux: true,
   });
   userEvent.click(screen.getAllByRole('button', { name: COLLAPSE_ALL })[0]);
-  expect(screen.getByRole('link', { name: ALL_FILTERS })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: ALL_FILTERS })).toBeInTheDocument();
   expect(
-    screen.queryByRole('link', { name: FILTER_A }),
+    screen.queryByRole('button', { name: FILTER_A }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole('link', { name: FILTER_B }),
+    screen.queryByRole('button', { name: FILTER_B }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole('link', { name: FILTER_C }),
+    screen.queryByRole('button', { name: FILTER_C }),
   ).not.toBeInTheDocument();
   userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[0]);
-  expect(screen.getByRole('link', { name: ALL_FILTERS })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: FILTER_A })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: FILTER_B })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: FILTER_C })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: ALL_FILTERS })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: FILTER_A })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: FILTER_B })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: FILTER_C })).toBeInTheDocument();
 });
 
 test('collapses/expands all charts', () => {
@@ -251,10 +251,10 @@ test('collapses/expands all charts', () => {
   expect(screen.queryByText(CHART_D)).not.toBeInTheDocument();
   userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[1]);
   expect(screen.getByText(ALL_CHARTS)).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: CHART_A })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: CHART_B })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: CHART_C })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: CHART_D })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: CHART_A })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: CHART_B })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: CHART_C })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: CHART_D })).toBeInTheDocument();
 });
 
 test('searches for a chart', () => {
@@ -262,9 +262,13 @@ test('searches for a chart', () => {
     useRedux: true,
   });
   userEvent.type(screen.getByPlaceholderText('Search...'), CHART_C);
-  expect(screen.queryByRole('link', { name: CHART_A })).not.toBeInTheDocument();
-  expect(screen.queryByRole('link', { name: CHART_B })).not.toBeInTheDocument();
-  expect(screen.getByRole('link', { name: CHART_C })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: CHART_A }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: CHART_B }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: CHART_C })).toBeInTheDocument();
 });
 
 // Update all tests that use clickCheckbox to be async and await the function call

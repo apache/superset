@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, SupersetTheme } from '@apache-superset/core';
+import { SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -25,7 +26,7 @@ import {
   SupersetClient,
   isMatrixifyEnabled,
 } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
@@ -665,7 +666,7 @@ function ChartList(props: ChartListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: createFetchDatasets,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(isFeatureEnabled(FeatureFlag.TaggingSystem) && canReadTag
         ? [
@@ -701,7 +702,7 @@ function ChartList(props: ChartListProps) {
         ),
         optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Dashboard'),
@@ -712,7 +713,7 @@ function ChartList(props: ChartListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: fetchDashboards,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(userId ? [favoritesFilter] : []),
       {
@@ -747,7 +748,7 @@ function ChartList(props: ChartListProps) {
           props.user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ] as ListViewFilters;
     return filtersList;

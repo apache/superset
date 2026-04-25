@@ -41,7 +41,7 @@ import {
   isPercentMetric,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isAdhocColumn,
@@ -54,7 +54,7 @@ import {
   validateServerPagination,
   withLabel,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { isEmpty, last } from 'lodash';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 
