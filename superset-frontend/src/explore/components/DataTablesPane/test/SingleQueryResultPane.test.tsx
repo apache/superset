@@ -31,7 +31,7 @@ const mockData: Record<string, unknown>[] = Array.from(
   (_, i) => ({
     id: i + 1,
     name: `Item ${i + 1}`,
-    category: i % 2 === 0 ? 'Action' : 'Horror',
+    category: (i + 1) % 2 === 0 ? 'Action' : 'Horror',
   }),
 );
 
