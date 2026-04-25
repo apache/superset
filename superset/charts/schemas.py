@@ -661,9 +661,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             Range(
                 min=0,
                 min_inclusive=True,
-                error=_(
-                    "`periods` must be greater than or equal to 0"
-                    ),
+                error=_("`periods` must be greater than or equal to 0"),
             ),
         ],
         required=True,
