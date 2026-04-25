@@ -135,13 +135,13 @@ def inject_current_user_for_created_by_fk(filters: Any, user: Any) -> Any:
     """
     if not filters:
         return filters
-    if not user or not getattr(user, "is_authenticated", False):
-        raise ValueError("created_by_fk filter requires an authenticated user")
     filter_list = filters if isinstance(filters, list) else [filters]
     result = []
     for f in filter_list:
         col = f.get("col") if isinstance(f, dict) else getattr(f, "col", None)
         if col == "created_by_fk":
+            if not user or not getattr(user, "is_authenticated", False):
+                raise ValueError("created_by_fk filter requires an authenticated user")
             f = (
                 {**f, "value": user.id}
                 if isinstance(f, dict)

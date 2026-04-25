@@ -248,12 +248,12 @@ async def test_list_databases_does_not_expose_user_directory_fields(
     assert data["databases"] == [{"id": 1, "database_name": "examples"}]
 
 
-def test_database_filter_rejects_user_directory_fields() -> None:
-    """Test user directory fields cannot be used for database filters."""
-    with pytest.raises(ValueError, match="created_by_fk"):
-        ListDatabasesRequest(
-            filters=[{"col": "created_by_fk", "opr": "eq", "value": 1}],
-        )
+def test_database_filter_accepts_created_by_fk() -> None:
+    """created_by_fk is a valid filter column (value is replaced server-side)."""
+    request = ListDatabasesRequest(
+        filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}],
+    )
+    assert request.filters[0].col == "created_by_fk"
 
 
 @patch("superset.daos.database.DatabaseDAO.list")

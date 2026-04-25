@@ -234,9 +234,7 @@ def test_model_list_tool_created_by_fk_requires_authenticated_user():
         return_value=current_user,
     ):
         with pytest.raises(ValueError, match="authenticated user"):
-            tool.run_tool(
-                filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}]
-            )
+            tool.run_tool(filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}])
 
 
 def test_user_directory_fields_include_last_saved_relationships():
