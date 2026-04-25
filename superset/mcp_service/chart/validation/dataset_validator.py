@@ -82,25 +82,19 @@ class DatasetValidator:
         # Collect all column references
         column_refs = DatasetValidator._extract_column_references(config)
 
-        # Validate each column exists
-        invalid_columns = []
-        for col_ref in column_refs:
-            if not DatasetValidator._column_exists(col_ref.name, dataset_context):
-                invalid_columns.append(col_ref)
+        # Validate saved metrics exist in dataset metrics specifically
+        invalid_saved = DatasetValidator._validate_saved_metrics(
+            column_refs, dataset_context
+        )
+        if invalid_saved:
+            return False, invalid_saved
 
-        if invalid_columns:
-            # Generate suggestions for invalid columns
-            suggestions_map = {}
-            for col_ref in invalid_columns:
-                suggestions = DatasetValidator._get_column_suggestions(
-                    col_ref.name, dataset_context
-                )
-                suggestions_map[col_ref.name] = suggestions
-
-            # Build error with suggestions
-            return False, DatasetValidator._build_column_error(
-                invalid_columns, suggestions_map, dataset_context
-            )
+        # Validate columns exist (skip saved metrics — already validated above)
+        column_error = DatasetValidator._validate_columns_exist(
+            column_refs, dataset_context
+        )
+        if column_error:
+            return False, column_error
 
         # Validate aggregation compatibility
         if isinstance(config, (TableChartConfig, XYChartConfig)):
@@ -111,6 +105,32 @@ class DatasetValidator:
                 return False, aggregation_errors[0]
 
         return True, None
+
+    @staticmethod
+    def _validate_columns_exist(
+        column_refs: List[ColumnRef], dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Validate that non-saved-metric column refs exist in the dataset."""
+        invalid_columns = []
+        for col_ref in column_refs:
+            if col_ref.saved_metric:
+                continue
+            if not DatasetValidator._column_exists(col_ref.name, dataset_context):
+                invalid_columns.append(col_ref)
+
+        if not invalid_columns:
+            return None
+
+        suggestions_map = {}
+        for col_ref in invalid_columns:
+            suggestions = DatasetValidator._get_column_suggestions(
+                col_ref.name, dataset_context
+            )
+            suggestions_map[col_ref.name] = suggestions
+
+        return DatasetValidator._build_column_error(
+            invalid_columns, suggestions_map, dataset_context
+        )
 
     @staticmethod
     def _get_dataset_context(dataset_id: int | str) -> DatasetContext | None:
@@ -184,7 +204,8 @@ class DatasetValidator:
         if isinstance(config, TableChartConfig):
             refs.extend(config.columns)
         elif isinstance(config, XYChartConfig):
-            refs.append(config.x)
+            if config.x is not None:
+                refs.append(config.x)
             refs.extend(config.y)
             if config.group_by:
                 refs.extend(config.group_by)
@@ -419,6 +440,49 @@ class DatasetValidator:
             )
 
     @staticmethod
+    def _validate_saved_metrics(
+        column_refs: List[ColumnRef], dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Validate that saved_metric refs exist in dataset metrics.
+
+        A ColumnRef with saved_metric=True must match an entry in
+        available_metrics, not just available_columns.  Without this check
+        a regular column name marked as saved_metric would pass
+        _column_exists (which checks both lists) but fail at query time.
+        """
+        metric_names = {m["name"].lower() for m in dataset_context.available_metrics}
+        invalid = [
+            col_ref.name
+            for col_ref in column_refs
+            if col_ref.saved_metric and col_ref.name.lower() not in metric_names
+        ]
+        if not invalid:
+            return None
+
+        from superset.mcp_service.utils.error_builder import ChartErrorBuilder
+
+        available = [m["name"] for m in dataset_context.available_metrics]
+        return ChartErrorBuilder.build_error(
+            error_type="invalid_saved_metric",
+            template_key="column_not_found",
+            template_vars={
+                "column": ", ".join(invalid),
+                "suggestions": (
+                    f"Available saved metrics: {', '.join(available[:10])}"
+                    if available
+                    else "This dataset has no saved metrics"
+                ),
+            },
+            custom_suggestions=[
+                f"'{name}' is not a saved metric in this dataset. "
+                "Remove saved_metric=True to use it as a column with an aggregate, "
+                "or use get_dataset_info to see available saved metrics."
+                for name in invalid
+            ],
+            error_code="INVALID_SAVED_METRIC",
+        )
+
+    @staticmethod
     def _validate_aggregations(
         column_refs: List[ColumnRef], dataset_context: DatasetContext
     ) -> List[ChartGenerationError]:
@@ -426,6 +490,8 @@ class DatasetValidator:
         errors = []
 
         for col_ref in column_refs:
+            if col_ref.saved_metric:
+                continue  # Saved metrics have built-in aggregation
             if not col_ref.aggregate:
                 continue
 

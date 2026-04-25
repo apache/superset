@@ -18,7 +18,7 @@ import logging
 from typing import Any
 
 from flask import current_app, request, Response
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
@@ -478,7 +478,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(delete_tags_schema)
+    @parse_rison(delete_tags_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
@@ -598,7 +598,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison({"type": "array", "items": {"type": "integer"}})
+    @parse_rison({"type": "array", "items": {"type": "integer"}})
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".favorite_status",
