@@ -281,6 +281,14 @@ def test_database_filter_rejects_user_directory_fields() -> None:
         )
 
 
+def test_database_filter_accepts_created_by_fk() -> None:
+    """created_by_fk is a valid filter column (value is replaced server-side)."""
+    request = ListDatabasesRequest(
+        filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}],
+    )
+    assert request.filters[0].col == "created_by_fk"
+
+
 @patch("superset.daos.database.DatabaseDAO.list")
 @pytest.mark.asyncio
 async def test_list_databases_api_error(mock_list, mcp_server):
