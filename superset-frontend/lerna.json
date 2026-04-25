@@ -14,13 +14,12 @@
   ],
   "command": {
     "publish": {
-      "message": "chore(superset-ui): publish %s",
-      "graphType": "all"
+      "message": "chore(superset-ui): publish %s"
     },
     "version": {
       "message": "chore(superset-ui): publish %s",
       "exact": true
     }
   },
-  "$schema": "node_modules/lerna/schemas/lerna-schema.json"
+  "$schema": "node_modules/@lerna-lite/cli/schemas/lerna-schema.json"
 }
