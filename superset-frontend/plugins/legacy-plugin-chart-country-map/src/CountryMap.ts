@@ -21,9 +21,12 @@
 import d3 from 'd3';
 import { extent as d3Extent } from 'd3-array';
 import {
+  BinaryQueryObjectFilterClause,
+  CategoricalColorNamespace,
+  ContextMenuFilters,
+  DataMask,
   ValueFormatter,
   getSequentialSchemeRegistry,
-  CategoricalColorNamespace,
 } from '@superset-ui/core';
 import countries, { countryOptions } from './countries';
 
@@ -64,13 +67,17 @@ interface CountryMapProps {
   formatter: ValueFormatter;
   colorScheme: string;
   sliceId: number;
-  onContextMenu?: (clientX: number, clientY: number, data: any) => void;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    data: ContextMenuFilters,
+  ) => void;
   emitCrossFilters?: boolean;
-  setDataMask?: (dataMask: any) => void;
+  setDataMask?: (dataMask: DataMask) => void;
   filterState?: {
     selectedValues?: string[];
     extraFormData?: {
-      filters?: any[];
+      filters?: BinaryQueryObjectFilterClause[];
     };
   };
   entity?: string;
@@ -160,7 +167,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   // Cross-filter support
   const getCrossFilterDataMask = (
     source: GeoFeature,
-  ): { dataMask: any; isCurrentValueSelected: boolean } | undefined => {
+  ): { dataMask: DataMask; isCurrentValueSelected: boolean } | undefined => {
     if (!entity) return undefined;
 
     const selected = filterState?.selectedValues || [];
@@ -281,6 +288,11 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
         tx = Math.max(Math.min(tx, maxX), minX);
         ty = Math.max(Math.min(ty, maxY), minY);
 
+        // Sync D3's internal translate state with the clamped values so the
+        // next wheel/zoom event starts from the constrained position rather
+        // than the unclamped one (otherwise the view jumps).
+        zoom.translate([tx, ty]);
+
         g.attr('transform', `translate(${tx}, ${ty}) scale(${scale})`);
         const prev = zoomStates.get(element);
         const changed =
@@ -338,27 +350,15 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
       return;
     }
 
+    const result = getCrossFilterDataMask(feature);
+    if (!result) return;
+
+    const { dataMask, isCurrentValueSelected } = result;
+    setDataMask(dataMask);
+
     const iso = feature?.properties?.ISO;
-    if (!iso) return;
-
-    const selectedValues = filterState?.selectedValues || [];
-    const isSelected = selectedValues.includes(iso);
-
-    const newSelection = isSelected ? [] : [iso];
-
-    setDataMask({
-      extraFormData: {
-        filters: newSelection.length
-          ? [{ col: entity, op: 'IN', val: newSelection }]
-          : [],
-      },
-      filterState: {
-        value: newSelection.length ? newSelection : null,
-        selectedValues: newSelection.length ? newSelection : null,
-      },
-    });
-
-    highlightSelectedRegion(newSelection.length ? newSelection : []);
+    const newSelection = isCurrentValueSelected || !iso ? [] : [iso];
+    highlightSelectedRegion(newSelection);
   };
 
   function drawMap(mapData: GeoData): void {
