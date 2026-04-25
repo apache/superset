@@ -386,7 +386,9 @@ test('useDatasetsList fetches datasets for schema-less databases without schema 
   const callArg = getSpy.mock.calls[0]?.[0]?.endpoint;
   expect(callArg).toBeDefined();
 
-  const risonParam = new URL(callArg!, 'http://localhost').searchParams.get('q');
+  const risonParam = new URL(callArg!, 'http://localhost').searchParams.get(
+    'q',
+  );
   expect(risonParam).toBeTruthy();
   const decoded = rison.decode(risonParam!) as {
     filters: Array<{ col: string; opr: string; value: unknown }>;
@@ -407,7 +409,7 @@ test('useDatasetsList skips fetching when schema-less database id is undefined',
     database_name: 'ydb',
     owners: [1] as [number],
     supports_schemas: false,
-  } as (typeof mockDb & { supports_schemas: boolean });
+  } as typeof mockDb & { supports_schemas: boolean };
 
   const { result } = renderHook(() => useDatasetsList(schemalessDb, null));
 
