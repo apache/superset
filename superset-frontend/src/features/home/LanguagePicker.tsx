@@ -25,9 +25,9 @@ import { Typography } from '@superset-ui/core/components/Typography';
 
 export interface Languages {
   [key: string]: {
-    flag: string;
-    url: string;
-    name: string;
+    flag?: string;
+    url?: string;
+    name?: string;
   };
 }
 
