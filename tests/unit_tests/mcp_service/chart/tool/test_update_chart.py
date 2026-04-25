@@ -609,7 +609,7 @@ class TestBuildUpdatePayload:
         chart = Mock()
         chart.datasource_id = None  # Avoid dataset lookup
 
-        result = _build_update_payload(request, chart)
+        result = _build_update_payload(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         assert result["slice_name"] == "My Custom Name"
@@ -627,7 +627,7 @@ class TestBuildUpdatePayload:
         chart.datasource_id = None
         chart.slice_name = "Existing Name"
 
-        result = _build_update_payload(request, chart)
+        result = _build_update_payload(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         assert result["slice_name"] == "Existing Name"
@@ -861,7 +861,7 @@ class TestBuildPreviewFormData:
         chart.slice_name = "Existing"
         chart.params = '{"viz_type": "line", "custom_flag": true}'
 
-        result = _build_preview_form_data(request, chart)
+        result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         # Existing keys not touched by the new config are preserved
@@ -918,7 +918,7 @@ class TestBuildPreviewFormData:
         chart.slice_name = "Broken"
         chart.params = "not-json"
 
-        result = _build_preview_form_data(request, chart)
+        result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         assert result["slice_id"] == 9
