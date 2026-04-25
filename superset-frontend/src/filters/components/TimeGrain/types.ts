@@ -24,6 +24,7 @@ import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 interface PluginFilterTimeGrainCustomizeProps {
   defaultValue?: string[] | null;
   inputRef?: RefObject<HTMLInputElement>;
+  time_grains?: string[];
 }
 
 export type PluginFilterTimeGrainQueryFormData = QueryFormData &
