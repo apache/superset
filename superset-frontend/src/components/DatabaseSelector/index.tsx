@@ -187,7 +187,8 @@ export function DatabaseSelector({
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
-  const showSchemaSelector = currentDb?.supports_schemas !== false;
+  const showSchemaSelector =
+    (db?.supports_schemas ?? currentDb?.supports_schemas) !== false;
   const [errorPayload, setErrorPayload] = useState<SupersetError | null>();
   const [currentCatalog, setCurrentCatalog] = useState<
     CatalogOption | null | undefined
