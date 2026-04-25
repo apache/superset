@@ -1048,6 +1048,18 @@ function generateMDX(component, storyContent) {
   // Use resolved import path if available, otherwise fall back to source config
   const componentImportPath = resolvedImportPath || sourceConfig.importPrefix;
 
+  // The displayed import in user docs should reflect the public package path,
+  // not the internal storybook alias.
+  const docImportPath = sourceConfig.importPrefix.startsWith('@superset/')
+    ? sourceConfig.docImportPrefix
+    : componentImportPath;
+
+  // When the source uses the internal storybook alias, the public package
+  // re-exports components as named exports (e.g. `export { default as Foo }`),
+  // so users must use named imports even when the story uses a default import.
+  const useDefaultImport =
+    isDefaultExport && !sourceConfig.importPrefix.startsWith('@superset/');
+
   // Determine component description based on source
   const defaultDesc = sourceConfig.category === 'ui'
     ? `The ${componentName} component from Superset's UI library.`
@@ -1137,7 +1149,7 @@ ${propsTable}` : ''}
 ## Import
 
 \`\`\`tsx
-${isDefaultExport ? `import ${componentName} from '${componentImportPath}';` : `import { ${componentName} } from '${componentImportPath}';`}
+${useDefaultImport ? `import ${componentName} from '${docImportPath}';` : `import { ${componentName} } from '${docImportPath}';`}
 \`\`\`
 
 ---
