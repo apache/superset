@@ -20,8 +20,8 @@ from datetime import datetime
 from unittest.mock import patch
 from urllib import parse
 
-import prison
 import pytest
+import rison
 from freezegun import freeze_time
 from markupsafe import Markup
 from sqlalchemy import and_
@@ -246,7 +246,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
                 }
             ],
         }
-        uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -254,7 +254,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
 
         # Only system tags
         query["filters"][0]["value"] = False
-        uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
+        uri = f"api/v1/tag/?{parse.urlencode({'q': rison.dumps(query)})}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -542,7 +542,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
         assert tags.count() == 3
         # delete the first tag
-        uri = f"api/v1/tag/?q={prison.dumps(example_tag_names[:1])}"
+        uri = f"api/v1/tag/?q={rison.dumps(example_tag_names[:1])}"
         rv = self.client.delete(uri, follow_redirects=True)
         # successful request
         assert rv.status_code == 200
@@ -552,7 +552,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
         assert tags.count() == 2
         # delete multiple tags
-        uri = f"api/v1/tag/?q={prison.dumps(example_tag_names[1:])}"
+        uri = f"api/v1/tag/?q={rison.dumps(example_tag_names[1:])}"
         rv = self.client.delete(uri, follow_redirects=True)
         # successful request
         assert rv.status_code == 200
