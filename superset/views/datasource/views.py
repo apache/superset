@@ -19,7 +19,7 @@ from typing import Any
 
 from flask import redirect, request
 from flask_appbuilder import expose, permission_name
-from flask_appbuilder.api import rison
+from flask_appbuilder.api import rison as parse_rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import _
 from marshmallow import ValidationError
@@ -42,12 +42,7 @@ from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import DatasourceType
-from superset.views.base import (
-    api,
-    BaseSupersetView,
-    deprecated,
-    json_error_response,
-)
+from superset.views.base import api, BaseSupersetView, deprecated, json_error_response
 from superset.views.datasource.schemas import (
     ExternalMetadataParams,
     ExternalMetadataSchema,
@@ -156,7 +151,7 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
-    @rison(get_external_metadata_schema)
+    @parse_rison(get_external_metadata_schema)
     def external_metadata_by_name(self, **kwargs: Any) -> FlaskResponse:
         """Gets table metadata from the source system and SQLAlchemy inspector"""
         try:
