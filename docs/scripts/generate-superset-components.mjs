@@ -186,6 +186,76 @@ const SKIP_STORIES = [
 
 
 /**
+ * Collect the set of value names exported from a barrel file, following
+ * `export * from './X'` re-exports one level deep. Used to verify that a
+ * component the docs claim is importable is actually re-exported from the
+ * public package entry point.
+ */
+function collectBarrelExports(barrelPath, visited = new Set()) {
+  const exports = new Set();
+  if (!fs.existsSync(barrelPath) || visited.has(barrelPath)) return exports;
+  visited.add(barrelPath);
+
+  const content = fs.readFileSync(barrelPath, 'utf8');
+
+  for (const m of content.matchAll(/export\s+\{([\s\S]*?)\}(?:\s+from\s+['"][^'"]+['"])?/g)) {
+    for (const part of m[1].split(',')) {
+      const cleaned = part.trim().replace(/^type\s+/, '');
+      if (!cleaned) continue;
+      const asMatch = cleaned.match(/(?:^|\s)as\s+([A-Za-z_]\w*)\s*$/);
+      if (asMatch) {
+        exports.add(asMatch[1]);
+      } else {
+        const plain = cleaned.match(/^([A-Za-z_]\w*)\s*$/);
+        if (plain) exports.add(plain[1]);
+      }
+    }
+  }
+
+  for (const m of content.matchAll(
+    /export\s+(?:const|let|var|function|class)\s+([A-Za-z_]\w*)/g
+  )) {
+    exports.add(m[1]);
+  }
+
+  for (const m of content.matchAll(/export\s+\*\s+from\s+['"]([^'"]+)['"]/g)) {
+    const target = m[1];
+    if (!target.startsWith('.')) continue;
+    const baseDir = path.dirname(barrelPath);
+    const candidates = [
+      path.resolve(baseDir, `${target}.ts`),
+      path.resolve(baseDir, `${target}.tsx`),
+      path.resolve(baseDir, target, 'index.ts'),
+      path.resolve(baseDir, target, 'index.tsx'),
+    ];
+    const resolved = candidates.find(p => fs.existsSync(p));
+    if (resolved) {
+      for (const name of collectBarrelExports(resolved, visited)) {
+        exports.add(name);
+      }
+    }
+  }
+
+  return exports;
+}
+
+const SOURCE_PUBLIC_EXPORTS = new Map();
+function getPublicExports(sourceConfig) {
+  if (SOURCE_PUBLIC_EXPORTS.has(sourceConfig)) {
+    return SOURCE_PUBLIC_EXPORTS.get(sourceConfig);
+  }
+  const sourceDir = path.join(FRONTEND_DIR, sourceConfig.path);
+  const candidates = [
+    path.join(sourceDir, 'index.ts'),
+    path.join(sourceDir, 'index.tsx'),
+  ];
+  const barrel = candidates.find(p => fs.existsSync(p));
+  const result = barrel ? collectBarrelExports(barrel) : null;
+  SOURCE_PUBLIC_EXPORTS.set(sourceConfig, result);
+  return result;
+}
+
+/**
  * Recursively find all story files in a directory
  */
 function walkDir(dir, files = []) {
@@ -1060,6 +1130,16 @@ function generateMDX(component, storyContent) {
   const useDefaultImport =
     isDefaultExport && !sourceConfig.importPrefix.startsWith('@superset/');
 
+  // Only render the import snippet if the component is actually re-exported
+  // from the public package barrel; otherwise the snippet would mislead users
+  // copy-pasting it (e.g. TableCollection, which has a story but is not
+  // re-exported from `@superset-ui/core/components`).
+  const publicExports = sourceConfig.importPrefix.startsWith('@superset/')
+    ? getPublicExports(sourceConfig)
+    : null;
+  const isPubliclyExported =
+    !publicExports || publicExports.has(componentName);
+
   // Determine component description based on source
   const defaultDesc = sourceConfig.category === 'ui'
     ? `The ${componentName} component from Superset's UI library.`
@@ -1146,13 +1226,13 @@ ${Object.keys(args).length > 0 ? `## Props
 |------|------|---------|-------------|
 ${propsTable}` : ''}
 
-## Import
+${isPubliclyExported ? `## Import
 
 \`\`\`tsx
 ${useDefaultImport ? `import ${componentName} from '${docImportPath}';` : `import { ${componentName} } from '${docImportPath}';`}
 \`\`\`
 
----
+---` : '---'}
 
 :::tip[Improve this page]
 This documentation is auto-generated from the component's Storybook story.
