@@ -600,6 +600,7 @@ function main() {
     /\/lib\//,
     /\/dist\//,
     /plugins\/legacy-/, // Legacy plugins can have old color patterns
+    /plugin-chart-point-cluster-map\/src\/controlPanel/, // Data visualization color choices
     /\/vendor\//, // Third-party vendor code
     /spec\/fixtures\//, // Test fixtures
     /theme\/exampleThemes/, // Theme examples legitimately have colors
@@ -628,6 +629,7 @@ function main() {
         '**/lib/**', // Build artifacts
         '**/dist/**', // Build artifacts
         'plugins/legacy-*/**', // Legacy plugins
+        'plugins/plugin-chart-point-cluster-map/src/controlPanel.*', // Data visualization color choices
         '**/vendor/**',
         'spec/fixtures/**',
         '**/theme/exampleThemes/**',
@@ -651,7 +653,7 @@ function main() {
   }
 
   // eslint-disable-next-line no-console
-  console.log(`Checking ${files.length} files for Superset custom rules...\\n`);
+  console.log(`Checking ${files.length} files for Superset custom rules...\n`);
 
   files.forEach(file => {
     // Resolve the file path
@@ -664,7 +666,7 @@ function main() {
   });
 
   // eslint-disable-next-line no-console
-  console.log(`\\n${errorCount} errors, ${warningCount} warnings`);
+  console.log(`\n${errorCount} errors, ${warningCount} warnings`);
 
   if (errorCount > 0) {
     process.exit(1);

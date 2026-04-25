@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
+    ChartError,
     ChartFilter,
     ChartInfo,
     ChartLike,
@@ -38,7 +39,12 @@ from superset.mcp_service.chart.schemas import (
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    remove_chart_data_model_columns,
+    request_uses_chart_data_model_filter,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +53,11 @@ DEFAULT_CHART_COLUMNS = [
     "id",
     "slice_name",
     "viz_type",
+    "description",
+    "certified_by",
+    "certification_details",
     "url",
+    "changed_on",
     "changed_on_humanized",
 ]
 
@@ -55,7 +65,6 @@ SORTABLE_CHART_COLUMNS = [
     "id",
     "slice_name",
     "viz_type",
-    "datasource_name",
     "description",
     "changed_on",
     "created_on",
@@ -71,15 +80,16 @@ SORTABLE_CHART_COLUMNS = [
         destructiveHint=False,
     ),
 )
-@parse_request(ListChartsRequest)
-async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
+async def list_charts(
+    request: ListChartsRequest, ctx: Context
+) -> ChartList | ChartError:
     """List charts with filtering and search.
 
     Returns chart metadata including id, name, viz_type, URL, and last
     modified time.
 
-    Sortable columns for order_column: id, slice_name, viz_type,
-    datasource_name, description, changed_on, created_on
+    Sortable columns for order_column: id, slice_name, viz_type, description,
+    changed_on, created_on
     """
     await ctx.info(
         "Listing charts: page=%s, page_size=%s, search=%s"
@@ -105,8 +115,26 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
         get_chart_columns,
     )
 
+    can_view_data_model_metadata = user_can_view_data_model_metadata()
+    if not can_view_data_model_metadata and request_uses_chart_data_model_filter(
+        request.filters
+    ):
+        return ChartError(
+            error=(
+                "You don't have permission to access underlying dataset or "
+                "database details for your role."
+            ),
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
+
     # Get all column names dynamically from the model
     all_columns = get_all_column_names(get_chart_columns())
+    sortable_columns = CHART_SORTABLE_COLUMNS
+    select_columns = request.select_columns
+    if not can_view_data_model_metadata:
+        all_columns = remove_chart_data_model_columns(all_columns)
+        sortable_columns = remove_chart_data_model_columns(sortable_columns)
+        select_columns = remove_chart_data_model_columns(select_columns)
 
     def _serialize_chart(
         obj: "Slice | None", cols: list[str] | None
@@ -127,7 +155,7 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
         list_field_name="charts",
         output_list_schema=ChartList,
         all_columns=all_columns,
-        sortable_columns=CHART_SORTABLE_COLUMNS,
+        sortable_columns=sortable_columns,
         logger=logger,
     )
 
@@ -136,7 +164,7 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
             result = tool.run_tool(
                 filters=request.filters,
                 search=request.search,
-                select_columns=request.select_columns,
+                select_columns=select_columns,
                 order_column=request.order_column,
                 order_direction=request.order_direction,
                 page=max(request.page - 1, 0),
