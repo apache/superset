@@ -19,7 +19,7 @@ from typing import Any
 
 from flask import current_app, request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.api import rison, safe, SQLAInterface
+from flask_appbuilder.api import rison as parse_rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
@@ -214,7 +214,7 @@ class RoleRestAPI(BaseSupersetApi):
     @event_logger.log_this
     @protect()
     @safe
-    @rison(get_list_schema)
+    @parse_rison(get_list_schema)
     @statsd_metrics
     @permission_name("list_roles")
     def get_list(self, **kwargs: Any) -> Response:

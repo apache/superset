@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import Split from 'react-split';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -33,6 +34,11 @@ import {
 import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import { updateExploreChartState } from 'src/explore/actions/exploreActions';
+import {
+  convertChartStateToOwnState,
+  hasChartStateConverter,
+} from 'src/dashboard/util/chartStateConverter';
 import {
   getItem,
   setItem,
@@ -43,6 +49,7 @@ import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
 import type { ChartState, Datasource } from 'src/explore/types';
+import type { ExploreState } from 'src/explore/reducers/exploreReducer';
 import type { Slice } from 'src/types/Chart';
 import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import { DataTablesPane } from '../DataTablesPane';
@@ -126,6 +133,28 @@ const Styles = styled.div<{ showSplite: boolean }>`
   }
 `;
 
+const EMPTY_OBJECT: Record<string, never> = {};
+
+const createOwnStateWithChartState = (
+  baseOwnState: JsonObject,
+  chartState: { state?: JsonObject } | undefined,
+  vizTypeArg: string,
+): JsonObject => {
+  if (!hasChartStateConverter(vizTypeArg)) {
+    return baseOwnState;
+  }
+  const state = chartState?.state;
+  if (!state) {
+    return baseOwnState;
+  }
+  const convertedState = convertChartStateToOwnState(vizTypeArg, state);
+  return {
+    ...baseOwnState,
+    ...convertedState,
+    chartState: state,
+  };
+};
+
 const ExploreChartPanel = ({
   chart,
   slice,
@@ -145,11 +174,36 @@ const ExploreChartPanel = ({
   can_download: canDownload,
 }: ExploreChartPanelProps) => {
   const theme = useTheme();
+  const dispatch = useDispatch();
   const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
+
+  const chartState = useSelector(
+    (state: { explore?: ExploreState }) =>
+      state.explore?.chartStates?.[chart.id],
+  );
+
+  const handleChartStateChange = useCallback(
+    (chartStateArg: JsonObject) => {
+      if (hasChartStateConverter(vizType)) {
+        dispatch(updateExploreChartState(chart.id, chartStateArg));
+      }
+    },
+    [dispatch, chart.id, vizType],
+  );
+
+  const mergedOwnState = useMemo(
+    () =>
+      createOwnStateWithChartState(
+        ownState || EMPTY_OBJECT,
+        chartState as { state?: JsonObject } | undefined,
+        vizType,
+      ),
+    [ownState, chartState, vizType],
+  );
+
   const {
     ref: chartPanelRef,
-    observerRef: resizeObserverRef,
     width: chartPanelWidth,
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
@@ -259,7 +313,7 @@ const ExploreChartPanel = ({
           <ChartContainer
             width={Math.floor(chartPanelWidth)}
             height={chartPanelHeight}
-            ownState={ownState}
+            ownState={mergedOwnState}
             annotationData={chart.annotationData}
             chartId={chart.id}
             triggerRender={triggerRender}
@@ -277,6 +331,7 @@ const ExploreChartPanel = ({
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={vizType}
+            onChartStateChange={handleChartStateChange}
             {...(chart.chartAlert && { chartAlert: chart.chartAlert })}
             {...(chart.chartStackTrace && {
               chartStackTrace: chart.chartStackTrace,
@@ -304,8 +359,9 @@ const ExploreChartPanel = ({
       errorMessage,
       force,
       formData,
+      handleChartStateChange,
       onQuery,
-      ownState,
+      mergedOwnState,
       timeout,
       triggerRender,
       vizType,
@@ -321,7 +377,6 @@ const ExploreChartPanel = ({
           flex-direction: column;
           padding-top: ${theme.sizeUnit * 2}px;
         `}
-        ref={resizeObserverRef}
       >
         {vizTypeNeedsDataset && (
           <Alert
@@ -398,8 +453,11 @@ const ExploreChartPanel = ({
             })}
             {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
             hideRowCount={
-              formData?.matrixify_enable_vertical_layout === true ||
-              formData?.matrixify_enable_horizontal_layout === true
+              formData?.matrixify_enable === true &&
+              ((formData?.matrixify_mode_rows !== undefined &&
+                formData?.matrixify_mode_rows !== 'disabled') ||
+                (formData?.matrixify_mode_columns !== undefined &&
+                  formData?.matrixify_mode_columns !== 'disabled'))
             }
             formData={formData}
           />
@@ -421,7 +479,6 @@ const ExploreChartPanel = ({
       </div>
     ),
     [
-      resizeObserverRef,
       showAlertBanner,
       errorMessage,
       onQuery,
@@ -431,8 +488,8 @@ const ExploreChartPanel = ({
       chart.chartUpdateEndTime,
       refreshCachedQuery,
       formData?.row_limit,
-      formData?.matrixify_enable_vertical_layout,
-      formData?.matrixify_enable_horizontal_layout,
+      formData?.matrixify_mode_rows,
+      formData?.matrixify_mode_columns,
       renderChart,
       theme.sizeUnit,
     ],
@@ -473,7 +530,7 @@ const ExploreChartPanel = ({
       document.body.className += ` ${standaloneClass}`;
     }
     return (
-      <div id="app" data-test="standalone-app" ref={resizeObserverRef}>
+      <div id="app" data-test="standalone-app">
         {standaloneChartBody}
       </div>
     );

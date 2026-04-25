@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useLocation } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
+import type { Location, Action } from 'history';
 import { t } from '@apache-superset/core/translation';
 import {
   getLabelsColorMap,
@@ -49,10 +50,14 @@ const isValidResult = (rv: JsonObject): boolean =>
 const hasDatasetId = (rv: JsonObject): boolean =>
   isDefined(rv?.result?.dataset?.id);
 
-const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
+const fetchExploreData = async (
+  exploreUrlParams: URLSearchParams,
+  signal?: AbortSignal,
+) => {
   const rv = await makeApi<{}, ExploreResponsePayload>({
     method: 'GET',
     endpoint: 'api/v1/explore/',
+    signal,
   })(exploreUrlParams);
   if (isValidResult(rv)) {
     if (hasDatasetId(rv)) {
@@ -84,11 +89,11 @@ const getDashboardPageContext = (pageId?: string | null) => {
   return getItem(LocalStorageKeys.DashboardExploreContext, {})[pageId] || null;
 };
 
-const getDashboardContextFormData = () => {
-  const dashboardPageId = getUrlParam(URL_PARAMS.dashboardPageId);
+const getDashboardContextFormData = (search: string) => {
+  const dashboardPageId = getUrlParam(URL_PARAMS.dashboardPageId, search);
   const dashboardContext = getDashboardPageContext(dashboardPageId);
   if (dashboardContext) {
-    const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
+    const sliceId = getUrlParam(URL_PARAMS.sliceId, search) || 0;
     const {
       colorScheme,
       labelsColor,
@@ -128,20 +133,34 @@ const getDashboardContextFormData = () => {
 
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
-  const isExploreInitialized = useRef(false);
+  const fetchGeneration = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const dispatch = useDispatch();
-  const location = useLocation();
+  const history = useHistory();
 
-  useEffect(() => {
-    const exploreUrlParams = getParsedExploreURLParams(location);
-    const saveAction = getUrlParam(
-      URL_PARAMS.saveAction,
-    ) as SaveActionType | null;
-    const dashboardContextFormData = getDashboardContextFormData();
+  const loadExploreData = useCallback(
+    (
+      loc: { search: string; pathname: string },
+      saveAction?: SaveActionType | null,
+    ) => {
+      // Abort any in-flight request before starting a new one
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
-    if (!isExploreInitialized.current || !!saveAction) {
-      fetchExploreData(exploreUrlParams)
+      fetchGeneration.current += 1;
+      const generation = fetchGeneration.current;
+      const exploreUrlParams = getParsedExploreURLParams(loc);
+      const dashboardContextFormData = getDashboardContextFormData(loc.search);
+
+      const isStale = () => generation !== fetchGeneration.current;
+
+      fetchExploreData(exploreUrlParams, controller.signal)
         .then(({ result }) => {
+          if (isStale()) {
+            return;
+          }
+
           const formData = dashboardContextFormData
             ? getFormDataWithDashboardContext(
                 result.form_data,
@@ -150,16 +169,48 @@ export default function ExplorePage() {
               )
             : result.form_data;
 
+          let chartStates: Record<number, JsonObject> | undefined;
+          if (result.chartState) {
+            const sliceId =
+              getUrlParam(URL_PARAMS.sliceId) ||
+              (formData as JsonObject).slice_id ||
+              0;
+            chartStates = {
+              [sliceId]: {
+                chartId: sliceId,
+                state: result.chartState,
+                lastModified: Date.now(),
+              },
+            };
+          }
+
           dispatch(
             hydrateExplore({
               ...result,
               form_data: formData,
               saveAction,
+              chartStates,
             }),
           );
         })
-        .catch(err => Promise.all([getClientErrorObject(err), err]))
+        .catch(err => {
+          // Silently ignore aborted requests - AbortError may be wrapped in SupersetApiError by makeApi
+          // or come through with statusText === 'abort' from SupersetClient
+          if (
+            err.name === 'AbortError' ||
+            err.statusText === 'abort' ||
+            err.originalError?.name === 'AbortError' ||
+            err.originalError?.statusText === 'abort'
+          ) {
+            return;
+          }
+          return Promise.all([getClientErrorObject(err), err]);
+        })
         .then(resolved => {
+          if (isStale()) {
+            return;
+          }
+
           const [clientError, err] = resolved || [];
           if (!err) {
             return Promise.resolve();
@@ -193,6 +244,9 @@ export default function ExplorePage() {
             )
               .then(
                 ({ result: { id, url, owners, form_data: _, ...data } }) => {
+                  if (isStale()) {
+                    return;
+                  }
                   const slice = {
                     ...data,
                     datasource: err.extra?.datasource_name,
@@ -209,6 +263,9 @@ export default function ExplorePage() {
                 },
               )
               .catch(() => {
+                if (isStale()) {
+                  return;
+                }
                 dispatch(hydrateExplore(exploreData));
               });
           }
@@ -216,12 +273,47 @@ export default function ExplorePage() {
           return Promise.resolve();
         })
         .finally(() => {
-          setIsLoaded(true);
-          isExploreInitialized.current = true;
+          if (!isStale() && !controller.signal.aborted) {
+            setIsLoaded(true);
+          }
         });
-    }
+    },
+    [dispatch],
+  );
+
+  // Cleanup: abort in-flight requests on unmount
+  useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+    },
+    [],
+  );
+
+  // Initial fetch on mount
+  useEffect(() => {
+    loadExploreData(history.location);
     getLabelsColorMap().source = LabelsColorMapSource.Explore;
-  }, [dispatch, location]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-fetch on navigation or post-save.
+  // PUSH/POP: full reload (unmount + re-fetch).
+  // REPLACE with saveAction state: re-fetch without unmount (keeps chart visible).
+  // Other REPLACE: ignored (URL sync from updateHistory).
+  useEffect(() => {
+    const unlisten = history.listen((loc: Location, action: Action) => {
+      const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
+        | SaveActionType
+        | undefined;
+      if (action === 'PUSH' || action === 'POP') {
+        setIsLoaded(false);
+        loadExploreData(loc, saveAction);
+      } else if (saveAction) {
+        loadExploreData(loc, saveAction);
+      }
+    });
+    return unlisten;
+  }, [history, loadExploreData]);
 
   if (!isLoaded) {
     return <Loading />;
