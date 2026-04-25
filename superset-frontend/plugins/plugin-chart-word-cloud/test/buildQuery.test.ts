@@ -86,5 +86,16 @@ describe('plugin-chart-word-cloud', () => {
         ['foo', true],
       ]);
     });
+
+    test('should order by series ASC when sort_by_series is undefined (legacy chart)', () => {
+      const queryContext = buildQuery({
+        ...basicFormData,
+        metric: 'count',
+        sort_by_metric: false,
+        row_limit: 100,
+      });
+      const [query] = queryContext.queries;
+      expect(query.orderby).toEqual([['foo', true]]);
+    });
   });
 });

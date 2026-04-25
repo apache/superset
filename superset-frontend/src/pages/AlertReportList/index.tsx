@@ -107,7 +107,7 @@ const StyledHeaderWithIcon = styled.div`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  > *:first-child {
+  > *:first-of-type {
     margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
@@ -498,7 +498,7 @@ function AlertList({
         ),
         optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Status'),
@@ -540,7 +540,7 @@ function AlertList({
           user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [],

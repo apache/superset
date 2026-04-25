@@ -31,6 +31,7 @@ from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.elements import ColumnElement
 
 from superset.superset_typing import AdhocColumn
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.jinja_context import BaseTemplateProcessor
@@ -1420,10 +1421,12 @@ def test_adhoc_column_to_sqla_with_column_reference(database: Database) -> None:
         "isColumnReference": True,
     }
 
-    result = table.adhoc_column_to_sqla(col_with_spaces)
+    result, generic_type = table.adhoc_column_to_sqla(col_with_spaces)
 
     # Should return a valid SQLAlchemy column
     assert result is not None
+    # TEXT column should resolve to STRING generic type
+    assert generic_type == GenericDataType.STRING
     result_str = str(result)
 
     # The column name should be present (may or may not be quoted depending on dialect)
@@ -1480,7 +1483,7 @@ def test_virtual_dataset_calculated_column_selected_via_templated_adhoc_dimensio
         "isColumnReference": True,
     }
 
-    result = table.adhoc_column_to_sqla(
+    result, _ = table.adhoc_column_to_sqla(
         adhoc_col,
         template_processor=cast("BaseTemplateProcessor", DummyTemplateProcessor()),
     )
@@ -1544,9 +1547,11 @@ def test_adhoc_column_to_sqla_preserves_column_type_for_time_grain(
     }
 
     # Should not raise ColumnNotFoundException
-    result = table.adhoc_column_to_sqla(date_col)
+    result, generic_type = table.adhoc_column_to_sqla(date_col)
 
     assert result is not None
+    # DATE column maps to the TEMPORAL generic type
+    assert generic_type == GenericDataType.TEMPORAL
     result_str = str(result)
 
     # Verify the column name is present (may be quoted depending on dialect)
@@ -1587,7 +1592,7 @@ def test_adhoc_column_to_sqla_with_temporal_column_types(database: Database) -> 
             "columnType": "BASE_AXIS",
         }
 
-        result = table.adhoc_column_to_sqla(time_col)
+        result, _ = table.adhoc_column_to_sqla(time_col)
 
         assert result is not None
         result_str = str(result)
@@ -1685,7 +1690,7 @@ def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> No
         "isColumnReference": True,
     }
 
-    result = table.adhoc_column_to_sqla(col_with_spaces)
+    result, _ = table.adhoc_column_to_sqla(col_with_spaces)
 
     # Compile the column to SQL to see how it's rendered
     with database.get_sqla_engine() as engine:
@@ -1706,7 +1711,7 @@ def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> No
         "isColumnReference": True,
     }
 
-    result_numeric = table.adhoc_column_to_sqla(col_numeric)
+    result_numeric, _ = table.adhoc_column_to_sqla(col_numeric)
 
     with database.get_sqla_engine() as engine:
         sql_numeric = str(
@@ -1755,8 +1760,8 @@ def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
     }
 
     # Get SQLAlchemy columns
-    customer_sqla = table.adhoc_column_to_sqla(customer_col)
-    order_sqla = table.adhoc_column_to_sqla(order_col)
+    customer_sqla, _ = table.adhoc_column_to_sqla(customer_col)
+    order_sqla, _ = table.adhoc_column_to_sqla(order_col)
 
     # Build a full query
     tbl = table.get_sqla_table()
@@ -1986,7 +1991,7 @@ def _run_probe(
         ),
         patch.object(spec_cls, "type_probe_needs_row", type_probe_needs_row),
     ):
-        result = table.adhoc_column_to_sqla(adhoc_col)
+        result, _ = table.adhoc_column_to_sqla(adhoc_col)
 
     assert result is not None
     assert len(captured) == 1, "Expected exactly one type-probe query"
@@ -2039,3 +2044,215 @@ def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
     assert not any(p in probe_sql for p in always_false_patterns), (
         f"Row-dependent engines: probe must NOT use WHERE false, got: {probe_sql}"
     )
+
+
+def _adhoc_col_with_probed_type(
+    database: Database,
+    probed_type: str,
+    probed_is_dttm: bool = False,
+) -> "GenericDataType | None":
+    """
+    Run adhoc_column_to_sqla against a mocked DB probe that returns
+    ``probed_type``, and return the resolved generic type.
+
+    Uses an expression (not a bare column name) so the metadata-lookup branch
+    is skipped and the probe branch runs.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="pending_duration_seconds", type="BIGINT")],
+    )
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "CAST(FLOOR(pending_duration_seconds / 86400) AS BIGINT)",
+        "label": "Pending Days",
+    }
+
+    def fake_get_columns_description(
+        db: object,
+        catalog: object,
+        schema: object,
+        sql: str,
+    ) -> list[dict[str, object]]:
+        """Return a single-column description mirroring SupersetResultSet output."""
+        # Mirror what SupersetResultSet.columns builds: it derives type_generic
+        # from the native type via db_engine_spec.get_column_spec().
+        spec = table.db_engine_spec.get_column_spec(native_type=probed_type)
+        type_generic = spec.generic_type if spec else None
+        return [
+            {
+                "column_name": "Pending Days",
+                "name": "Pending Days",
+                "type": probed_type,
+                "type_generic": type_generic,
+                "is_dttm": probed_is_dttm,
+            }
+        ]
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=fake_get_columns_description,
+    ):
+        _, generic_type = table.adhoc_column_to_sqla(
+            adhoc_col,
+            force_type_check=True,
+        )
+    return generic_type
+
+
+def test_adhoc_column_to_sqla_returns_numeric_type_from_probe(
+    database: Database,
+) -> None:
+    """
+    Regression: when the adhoc SQL expression casts to a numeric type,
+    adhoc_column_to_sqla must surface the NUMERIC generic type from the DB
+    probe so downstream filter-value coercion unquotes numeric values.
+    """
+    assert _adhoc_col_with_probed_type(database, "BIGINT") == GenericDataType.NUMERIC
+
+
+def test_adhoc_column_to_sqla_returns_string_type_from_probe(
+    database: Database,
+) -> None:
+    """String-typed adhoc expressions should report the STRING generic type."""
+    assert _adhoc_col_with_probed_type(database, "VARCHAR") == GenericDataType.STRING
+
+
+def test_adhoc_column_to_sqla_skips_probe_when_not_forced(
+    database: Database,
+) -> None:
+    """
+    Without ``force_type_check`` and no time grain, the probe is skipped and
+    the returned generic type is None (there's no cheap way to infer it).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "CAST(a AS BIGINT)",
+        "label": "a_bigint",
+    }
+
+    def _should_not_be_called(*_: object, **__: object) -> list[dict[str, object]]:
+        """Sentinel that fails if the DB probe is unexpectedly triggered."""
+        raise AssertionError("probe should not run without force_type_check")
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=_should_not_be_called,
+    ):
+        _, generic_type = table.adhoc_column_to_sqla(adhoc_col)
+
+    assert generic_type is None
+
+
+def test_adhoc_column_to_sqla_returns_type_from_column_metadata(
+    database: Database,
+) -> None:
+    """
+    When the adhoc ``sqlExpression`` resolves to a real column in the dataset,
+    the returned generic type comes from that column's ``type`` — not from a
+    DB probe.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="amount", type="BIGINT")],
+    )
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "amount",
+        "label": "amount",
+        "isColumnReference": True,
+    }
+
+    def _should_not_be_called(*_: object, **__: object) -> list[dict[str, object]]:
+        """Sentinel that fails if the DB probe runs despite metadata resolution."""
+        raise AssertionError(
+            "probe should not run when the column resolves from metadata"
+        )
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=_should_not_be_called,
+    ):
+        _, generic_type = table.adhoc_column_to_sqla(
+            adhoc_col,
+            force_type_check=True,
+        )
+
+    assert generic_type == GenericDataType.NUMERIC
+
+
+def test_numeric_adhoc_filter_value_is_unquoted_in_where_clause(
+    database: Database,
+) -> None:
+    """
+    End-to-end regression for the cross-filter bug: an IN-filter on an adhoc
+    numeric expression must render the value as an int (``IN (3)``) rather
+    than a string (``IN ('3')``).
+
+    Before the fix, filter value coercion defaulted to STRING for adhoc
+    columns because the filter path could not discover the column's type.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="pending_duration_seconds", type="BIGINT")],
+    )
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": (
+            "CAST(FLOOR(pending_duration_seconds / (60 * 60 * 24)) AS BIGINT)"
+        ),
+        "label": "Pending Days",
+    }
+
+    def fake_get_columns_description(
+        *_: object, **__: object
+    ) -> list[dict[str, object]]:
+        """Return a BIGINT column description for the numeric adhoc expression."""
+        return [
+            {
+                "column_name": "Pending Days",
+                "name": "Pending Days",
+                "type": "BIGINT",
+                "type_generic": GenericDataType.NUMERIC,
+                "is_dttm": False,
+            }
+        ]
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=fake_get_columns_description,
+    ):
+        sqla_query = table.get_sqla_query(
+            columns=["pending_duration_seconds"],
+            filter=[{"col": adhoc_col, "op": "IN", "val": ["3"]}],
+            is_timeseries=False,
+            row_limit=10,
+        )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The numeric value should be emitted without quotes.
+    assert "IN (3)" in sql, f"Expected numeric IN-list, got SQL: {sql}"
+    assert "IN ('3')" not in sql, f"Value should not be quoted, got SQL: {sql}"
