@@ -360,7 +360,7 @@
     "storybook": "8.6.18",
     "style-loader": "^4.0.0",
     "swc-loader": "^0.2.7",
-    "terser-webpack-plugin": "^5.4.0",
+    "terser-webpack-plugin": "^5.5.0",
     "thread-loader": "^4.0.4",
     "ts-jest": "^29.4.9",
     "tscw-config": "^1.1.2",
