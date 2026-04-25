@@ -30,6 +30,7 @@ import { ChartsState, RootState } from 'src/dashboard/types';
 import {
   NATIVE_FILTER_PREFIX,
   CHART_CUSTOMIZATION_PREFIX,
+  LEGACY_GROUPBY_PREFIX,
   isNativeFilter,
 } from '../FiltersConfigModal/utils';
 import { useFilterConfiguration } from '../state';
@@ -87,7 +88,8 @@ export const useAllAppliedDataMask = () => {
           const id = String(item.id);
           return (
             id.startsWith(NATIVE_FILTER_PREFIX) ||
-            id.startsWith(CHART_CUSTOMIZATION_PREFIX)
+            id.startsWith(CHART_CUSTOMIZATION_PREFIX) ||
+            id.startsWith(LEGACY_GROUPBY_PREFIX)
           );
         })
         .reduce(
@@ -108,10 +110,10 @@ export const useFilterUpdates = (
   const dataMaskApplied = useNativeFiltersDataMask();
   useEffect(() => {
     Object.keys(dataMaskSelected).forEach(selectedId => {
-      const isChartCustomization = String(selectedId).startsWith(
-        CHART_CUSTOMIZATION_PREFIX,
-      );
-      if (!isChartCustomization && !filters[selectedId]) {
+      const isChartCustomizationItem =
+        String(selectedId).startsWith(CHART_CUSTOMIZATION_PREFIX) ||
+        String(selectedId).startsWith(LEGACY_GROUPBY_PREFIX);
+      if (!isChartCustomizationItem && !filters[selectedId]) {
         setDataMaskSelected(draft => {
           delete draft[selectedId];
         });
@@ -139,7 +141,7 @@ export const useInitialization = () => {
     }
 
     if (
-      Object.values(filters).find(
+      Object.values(filters).some(
         filter => 'requiredFirst' in filter && filter.requiredFirst,
       )
     ) {

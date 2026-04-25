@@ -106,6 +106,7 @@ describe('safeHtmlSpan', () => {
     expect(safeSpan).toEqual(
       <span
         className="safe-html-wrapper"
+        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: htmlString }}
       />,
     );

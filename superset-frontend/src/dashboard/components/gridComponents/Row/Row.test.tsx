@@ -221,7 +221,7 @@ test('should render a DeleteComponentButton in editMode', () => {
 
 /* oxlint-disable-next-line jest/no-disabled-tests */
 test.skip('should render a BackgroundStyleDropdown when focused', () => {
-  let { rerender } = setup({ component: rowWithoutChildren });
+  const { rerender } = setup({ component: rowWithoutChildren });
   expect(screen.queryByTestId('background-style-dropdown')).toBeFalsy();
 
   // we cannot set props on the Row because of the WithDragDropContext wrapper

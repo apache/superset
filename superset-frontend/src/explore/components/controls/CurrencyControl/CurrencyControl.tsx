@@ -18,9 +18,9 @@
  */
 import { useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Currency, ensureIsArray, getCurrencySymbol } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { CSSObject } from '@emotion/react';
 import { Select, type SelectProps } from '@superset-ui/core/components';
 import { ViewState } from 'src/views/types';
@@ -29,7 +29,7 @@ import ControlHeader from '../../ControlHeader';
 
 export interface CurrencyControlProps {
   onChange: (currency: Partial<Currency>) => void;
-  value?: Partial<Currency>;
+  value?: Partial<Currency> | string | null;
   symbolSelectOverrideProps?: Partial<SelectProps>;
   currencySelectOverrideProps?: Partial<SelectProps>;
   symbolSelectAdditionalStyles?: CSSObject;
@@ -41,7 +41,7 @@ const CurrencyControlContainer = styled.div`
     display: flex;
     align-items: center;
 
-    & > :first-child {
+    & > :first-of-type {
       margin-right: ${theme.sizeUnit * 4}px;
       min-width: 0;
       flex: 1;
@@ -59,9 +59,12 @@ export const CURRENCY_SYMBOL_POSITION_OPTIONS = [
   { value: 'suffix', label: t('Suffix') },
 ];
 
+const isCurrencyObject = (value: unknown): value is Partial<Currency> =>
+  !!value && typeof value === 'object' && !Array.isArray(value);
+
 export const CurrencyControl = ({
   onChange,
-  value: currency = {},
+  value: rawCurrency = {},
   symbolSelectOverrideProps = {},
   currencySelectOverrideProps = {},
   symbolSelectAdditionalStyles,
@@ -69,6 +72,24 @@ export const CurrencyControl = ({
   ...props
 }: CurrencyControlProps) => {
   const theme = useTheme();
+  const normalizedCurrency = useMemo<Partial<Currency>>(() => {
+    if (isCurrencyObject(rawCurrency)) {
+      return rawCurrency;
+    }
+
+    if (typeof rawCurrency === 'string') {
+      try {
+        const parsed = JSON.parse(rawCurrency) as unknown;
+        if (isCurrencyObject(parsed)) {
+          return parsed;
+        }
+      } catch {
+        return {};
+      }
+    }
+
+    return {};
+  }, [rawCurrency]);
   const currencies = useSelector<ViewState, string[]>(
     state => state.common?.currencies,
   );
@@ -141,7 +162,7 @@ export const CurrencyControl = ({
       <ControlHeader {...props} />
       <CurrencyControlContainer
         css={css`
-          & > :first-child {
+          & > :first-of-type {
             ${symbolSelectAdditionalStyles};
           }
           & > :nth-child(2) {
@@ -155,10 +176,12 @@ export const CurrencyControl = ({
           options={CURRENCY_SYMBOL_POSITION_OPTIONS}
           placeholder={t('Prefix or suffix')}
           onChange={(symbolPosition: string) => {
-            onChange({ ...currency, symbolPosition });
+            onChange({ ...normalizedCurrency, symbolPosition });
           }}
-          onClear={() => onChange({ ...currency, symbolPosition: undefined })}
-          value={currency?.symbolPosition}
+          onClear={() =>
+            onChange({ ...normalizedCurrency, symbolPosition: undefined })
+          }
+          value={normalizedCurrency?.symbolPosition}
           allowClear
           {...symbolSelectOverrideProps}
         />
@@ -167,10 +190,10 @@ export const CurrencyControl = ({
           options={currenciesOptions}
           placeholder={t('Currency')}
           onChange={(symbol: string) => {
-            onChange({ ...currency, symbol });
+            onChange({ ...normalizedCurrency, symbol });
           }}
-          onClear={() => onChange({ ...currency, symbol: undefined })}
-          value={currency?.symbol}
+          onClear={() => onChange({ ...normalizedCurrency, symbol: undefined })}
+          value={normalizedCurrency?.symbol}
           allowClear
           allowNewOptions
           sortComparator={currencySortComparator}

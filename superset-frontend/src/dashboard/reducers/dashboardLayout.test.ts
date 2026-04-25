@@ -422,14 +422,17 @@ describe('dashboardLayout reducer', () => {
       [DASHBOARD_GRID_ID]: {
         id: DASHBOARD_GRID_ID,
         children: ['child', 'child2'],
+        parents: [DASHBOARD_ROOT_ID],
       },
       child: {
         id: 'child',
         children: [],
+        parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID],
       },
       child2: {
         id: 'child2',
         children: [],
+        parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID],
       },
     });
   });
@@ -465,6 +468,108 @@ describe('dashboardLayout reducer', () => {
     const newId = result[DASHBOARD_GRID_ID].children[1];
     expect(result[DASHBOARD_GRID_ID].children).toHaveLength(2);
     expect(result[newId].type).toBe(ROW_TYPE);
+  });
+
+  test('should update parents array when creating top-level tabs', () => {
+    const layout = {
+      [DASHBOARD_ROOT_ID]: {
+        id: DASHBOARD_ROOT_ID,
+        type: DASHBOARD_ROOT_TYPE,
+        children: [DASHBOARD_GRID_ID],
+        parents: [],
+      },
+      [DASHBOARD_GRID_ID]: {
+        id: DASHBOARD_GRID_ID,
+        type: DASHBOARD_GRID_TYPE,
+        children: ['row1'],
+        parents: [DASHBOARD_ROOT_ID],
+      },
+      row1: {
+        id: 'row1',
+        type: ROW_TYPE,
+        children: ['chart1'],
+        parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID],
+      },
+      chart1: {
+        id: 'chart1',
+        type: CHART_TYPE,
+        children: [],
+        parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, 'row1'],
+      },
+    };
+
+    const dropResult = {
+      source: { id: NEW_COMPONENTS_SOURCE_ID, type: '' },
+      destination: {
+        id: DASHBOARD_ROOT_ID,
+        type: DASHBOARD_ROOT_TYPE,
+        index: 0,
+      },
+      dragging: { id: NEW_TABS_ID, type: TABS_TYPE },
+    };
+
+    const result = testReducer(layout, {
+      type: CREATE_TOP_LEVEL_TABS,
+      payload: { dropResult },
+    });
+
+    const tabComponent = Object.values(result).find(
+      component => component.type === TAB_TYPE,
+    )!;
+
+    // Verify parents are updated for moved components
+    expect(result.row1.parents).toContain(tabComponent.id);
+    expect(result.chart1.parents).toContain(tabComponent.id);
+  });
+
+  test('should update parents array when moving a component', () => {
+    const layout = {
+      [DASHBOARD_ROOT_ID]: {
+        id: DASHBOARD_ROOT_ID,
+        type: DASHBOARD_ROOT_TYPE,
+        children: [DASHBOARD_GRID_ID],
+        parents: [],
+      },
+      [DASHBOARD_GRID_ID]: {
+        id: DASHBOARD_GRID_ID,
+        type: DASHBOARD_GRID_TYPE,
+        children: ['row1', 'row2'],
+        parents: [DASHBOARD_ROOT_ID],
+      },
+      row1: {
+        id: 'row1',
+        type: ROW_TYPE,
+        children: ['chart1'],
+        parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID],
+      },
+      row2: {
+        id: 'row2',
+        type: ROW_TYPE,
+        children: [],
+        parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID],
+      },
+      chart1: {
+        id: 'chart1',
+        type: CHART_TYPE,
+        children: [],
+        parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, 'row1'],
+      },
+    };
+
+    const dropResult = {
+      source: { id: 'row1', type: ROW_TYPE, index: 0 },
+      destination: { id: 'row2', type: ROW_TYPE, index: 0 },
+      dragging: { id: 'chart1', type: CHART_TYPE },
+    };
+
+    const result = testReducer(layout, {
+      type: MOVE_COMPONENT,
+      payload: { dropResult },
+    });
+
+    // Chart should now have row2 as parent instead of row1
+    expect(result.chart1.parents).toContain('row2');
+    expect(result.chart1.parents).not.toContain('row1');
   });
 
   test('recursivelyDeleteChildren should be error proof with bad inputs', () => {

@@ -98,6 +98,18 @@ class QueryContextProcessor:
             force_cached=force_cached,
         )
 
+        # If cache is loaded but missing applied_filter_columns and query has filters,
+        # treat as cache miss to ensure fresh query with proper applied_filter_columns
+        if (
+            query_obj
+            and cache_key
+            and cache.is_loaded
+            and not cache.applied_filter_columns
+            and query_obj.filter
+            and len(query_obj.filter) > 0
+        ):
+            cache.is_loaded = False
+
         if query_obj and cache_key and not cache.is_loaded:
             try:
                 if invalid_columns := [
@@ -247,7 +259,9 @@ class QueryContextProcessor:
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel.apply_column_types(df, coltypes)
-                result = excel.df_to_excel(df, **current_app.config["EXCEL_EXPORT"])
+                result = excel.df_to_excel(
+                    df, index=include_index, **current_app.config["EXCEL_EXPORT"]
+                )
             return result or ""
 
         return df.to_dict(orient="records")

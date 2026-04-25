@@ -45,6 +45,7 @@
 
     "baseUrl": ".",
     "paths": {
+      "@storybook-shared": ["./.storybook/shared"],
       "@superset-ui/core": ["./packages/superset-ui-core/src"],
       "@superset-ui/core/*": ["./packages/superset-ui-core/src/*"],
       "@superset-ui/chart-controls": [
@@ -68,6 +69,7 @@
     "./plugins/**/*",
     "./packages/**/*",
     "./scripts/**/*",
+    "./.storybook/**/*",
     "./webpack.config.js",
     "./webpack*.js",
     "./package.json"
@@ -81,17 +83,17 @@
     { "path": "./plugins/legacy-plugin-chart-chord" },
     { "path": "./plugins/legacy-plugin-chart-country-map" },
     { "path": "./plugins/legacy-plugin-chart-horizon" },
-    { "path": "./plugins/legacy-plugin-chart-map-box" },
     { "path": "./plugins/legacy-plugin-chart-paired-t-test" },
     { "path": "./plugins/legacy-plugin-chart-parallel-coordinates" },
     { "path": "./plugins/legacy-plugin-chart-partition" },
     { "path": "./plugins/legacy-plugin-chart-rose" },
     { "path": "./plugins/legacy-plugin-chart-world-map" },
-    { "path": "./plugins/legacy-preset-chart-deckgl" },
     { "path": "./plugins/legacy-preset-chart-nvd3" },
     { "path": "./plugins/plugin-chart-ag-grid-table" },
     { "path": "./plugins/plugin-chart-cartodiagram" },
+    { "path": "./plugins/preset-chart-deckgl" },
     { "path": "./plugins/plugin-chart-echarts" },
+    { "path": "./plugins/plugin-chart-point-cluster-map" },
     { "path": "./plugins/plugin-chart-handlebars" },
     { "path": "./plugins/plugin-chart-pivot-table" },
     { "path": "./plugins/plugin-chart-table" },

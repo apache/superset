@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps, getNumberFormatter } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps, { parseParams } from '../../src/Funnel/transformProps';
 import {
   EchartsFunnelChartProps,

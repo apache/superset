@@ -497,6 +497,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
   return (
     <div className="database-index">
       {/* Statistics Cards */}
+      {/* Statistics Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={6}>
           <Card>
@@ -579,7 +580,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
         columns={columns}
         rowKey={(record) => record.isCompatible ? `${record.compatibleWith}-${record.name}` : record.name}
         pagination={{
-          pageSize: 20,
+          defaultPageSize: 20,
           showSizeChanger: true,
           showTotal: (total) => `${total} databases`,
         }}

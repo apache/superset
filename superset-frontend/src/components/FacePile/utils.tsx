@@ -32,9 +32,9 @@ function stringAsciiPRNG(value: string, m: number) {
 
   let random = charCodes[0] % m;
 
-  new Array(len).fill(undefined).forEach(() => {
+  for (let i = 0; i < len; i += 1) {
     random = (a * random + c) % m;
-  });
+  }
 
   return random;
 }

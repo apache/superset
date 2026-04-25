@@ -23,7 +23,7 @@ import UserRegistrations from '.';
 
 const userRegistrationsEndpoint = 'glob:*/security/user_registrations/?*';
 
-const mockUserRegistrations = new Array(5).fill(undefined).map((_, i) => ({
+const mockUserRegistrations = Array.from({ length: 5 }, (_, i) => ({
   id: i,
   username: `user${i}`,
   first_name: `User${i}`,

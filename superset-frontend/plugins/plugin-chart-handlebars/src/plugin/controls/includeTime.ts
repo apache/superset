@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ControlSetItem } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { isAggMode } from './shared';
 
 export const includeTimeControlSetItem: ControlSetItem = {

@@ -38,22 +38,18 @@ const store = mockStore({});
 const rolesEndpoint = 'glob:*/security/roles/search/?*';
 const roleEndpoint = 'glob:*/api/v1/security/roles/*';
 const permissionsEndpoint = 'glob:*/api/v1/security/permissions-resources/?*';
+const groupsEndpoint = 'glob:*/api/v1/security/groups/?*';
 const usersEndpoint = 'glob:*/api/v1/security/users/?*';
 
-const mockRoles = new Array(3).fill(undefined).map((_, i) => ({
+const mockRoles = Array.from({ length: 3 }, (_, i) => ({
   id: i,
   name: `role ${i}`,
   user_ids: [i, i + 1],
   permission_ids: [i, i + 1, i + 2],
+  group_ids: [i, i + 10],
 }));
 
-const mockPermissions = new Array(10).fill(undefined).map((_, i) => ({
-  id: i,
-  permission: { name: `permission_${i}` },
-  view_menu: { name: `view_menu_${i}` },
-}));
-
-const mockUsers = new Array(5).fill(undefined).map((_, i) => ({
+const mockUsers = Array.from({ length: 5 }, (_, i) => ({
   id: i,
   username: `user_${i}`,
   first_name: `User`,
@@ -88,14 +84,17 @@ fetchMock.get(rolesEndpoint, {
   count: 3,
 });
 
-fetchMock.get(permissionsEndpoint, {
-  count: mockPermissions.length,
-  result: mockPermissions,
-});
-
 fetchMock.get(usersEndpoint, {
   count: mockUsers.length,
   result: mockUsers,
+});
+fetchMock.get(permissionsEndpoint, {
+  count: 0,
+  result: [],
+});
+fetchMock.get(groupsEndpoint, {
+  count: 0,
+  result: [],
 });
 
 fetchMock.delete(roleEndpoint, {});
@@ -139,11 +138,13 @@ describe('RolesList', () => {
     });
   });
 
-  test('fetches permissions on load', async () => {
+  test('does not fetch permissions or groups on load', async () => {
     await renderAndWait();
     await waitFor(() => {
       const permissionCalls = fetchMock.callHistory.calls(permissionsEndpoint);
-      expect(permissionCalls.length).toBeGreaterThan(0);
+      const groupCalls = fetchMock.callHistory.calls(groupsEndpoint);
+      expect(permissionCalls.length).toBe(0);
+      expect(groupCalls.length).toBe(0);
     });
   });
 
