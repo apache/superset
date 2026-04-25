@@ -491,10 +491,10 @@ class DetailedJWTVerifier(MCPJWTVerifier):
             # Step 1: Decode header and check algorithm
             try:
                 header = self._decode_token_header(token)
-            except (ValueError, DecodeError) as e:
+            except (ValueError, DecodeError):
                 reason = "Malformed token header"
                 _jwt_failure_reason.set(reason)
-                logger.debug("Malformed token header: %s", e)
+                logger.debug("Malformed token header")
                 return None
 
             token_alg = header.get("alg")
@@ -574,10 +574,10 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 reason = "Token has expired (detected during decode)"
                 _jwt_failure_reason.set(reason)
                 return None
-            except JoseError as e:
+            except JoseError:
                 reason = "Token decode failed"
                 _jwt_failure_reason.set(reason)
-                logger.debug("Token decode failed: %s", e)
+                logger.debug("Token decode failed")
                 return None
 
             # Extract client ID for logging
@@ -673,14 +673,9 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 token_scopes = set(scopes)
                 required = set(self.required_scopes)
                 if not required.issubset(token_scopes):
-                    missing = required - token_scopes
                     reason = "Missing required scopes"
                     _jwt_failure_reason.set(reason)
-                    logger.debug(
-                        "Missing required scopes: %s. Token has: %s",
-                        missing,
-                        token_scopes,
-                    )
+                    logger.debug("Missing required scopes")
                     return None
 
             # All validations passed. Log the successful authentication with
@@ -703,10 +698,10 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 claims=dict(claims),
             )
 
-        except (ValueError, JoseError, KeyError, AttributeError, TypeError) as e:
+        except (ValueError, JoseError, KeyError, AttributeError, TypeError):
             reason = "Token validation failed"
             _jwt_failure_reason.set(reason)
-            logger.debug("Token validation failed: %s", e)
+            logger.debug("Token validation failed")
             return None
 
     def get_middleware(self) -> list[Any]:
