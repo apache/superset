@@ -61,7 +61,7 @@ export const useLanguageMenuItems = ({
       key: langKey,
       label: (
         <StyledLabel className="f16">
-          <i className={`flag ${languages[langKey]?.flag ?? ''}`} />
+          <i className={`flag ${languages[langKey]?.flag ?? 'us'}`} />
           <Typography.Link href={languages[langKey]?.url}>
             {languages[langKey]?.name}
           </Typography.Link>
@@ -75,7 +75,7 @@ export const useLanguageMenuItems = ({
       type: 'submenu' as const,
       label: (
         <span className="f16" aria-label={t('Languages')}>
-          <i className={`flag ${languages[locale]?.flag ?? ''}`} />
+          <i className={`flag ${languages[locale]?.flag ?? 'us'}`} />
         </span>
       ),
       icon: <Icons.CaretDownOutlined iconSize="xs" />,
