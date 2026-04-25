@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 
 from superset.extensions import event_logger
 from superset.mcp_service.database.schemas import (
+    DatabaseError,
     DatabaseFilter,
     DatabaseInfo,
     DatabaseList,
@@ -40,8 +41,15 @@ from superset.mcp_service.database.schemas import (
     serialize_database_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
+
+_DEFAULT_LIST_DATABASES_REQUEST = ListDatabasesRequest()
 
 
 @tool(
@@ -53,7 +61,11 @@ logger = logging.getLogger(__name__)
         destructiveHint=False,
     ),
 )
-async def list_databases(request: ListDatabasesRequest, ctx: Context) -> DatabaseList:
+@requires_data_model_metadata_access
+async def list_databases(
+    request: ListDatabasesRequest | None = None,
+    ctx: Context | None = None,
+) -> DatabaseList | DatabaseError:
     """List database connections with filtering and search.
 
     Returns database metadata including name, backend type, and permissions.
@@ -61,6 +73,11 @@ async def list_databases(request: ListDatabasesRequest, ctx: Context) -> Databas
     Sortable columns for order_column: id, database_name, changed_on,
     created_on
     """
+    if ctx is None:
+        raise RuntimeError("FastMCP context is required for list_databases")
+
+    request = request or _DEFAULT_LIST_DATABASES_REQUEST.model_copy(deep=True)
+
     await ctx.info(
         "Listing databases: page=%s, page_size=%s, search=%s"
         % (
@@ -87,6 +104,13 @@ async def list_databases(request: ListDatabasesRequest, ctx: Context) -> Databas
             request.force_refresh,
         )
     )
+
+    if not user_can_view_data_model_metadata():
+        await ctx.warning("Database listing blocked by data-model privacy controls")
+        return DatabaseError.create(
+            error="You don't have permission to access database details for your role.",
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
 
     try:
         from superset.daos.database import DatabaseDAO

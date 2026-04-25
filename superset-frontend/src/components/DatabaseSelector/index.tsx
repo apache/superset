@@ -139,9 +139,11 @@ const LabelStyle = styled.div`
   }
 `;
 
-const SelectButton = styled(Button)<{ empty: boolean }>`
-  color: ${({ theme, empty }) =>
-    empty ? theme.colorTextPlaceholder : theme.colorTextBase};
+const SelectButton = styled(Button, {
+  shouldForwardProp: prop => prop !== '$empty',
+})<{ $empty: boolean }>`
+  color: ${({ theme, $empty }) =>
+    $empty ? theme.colorTextPlaceholder : theme.colorTextBase};
 `;
 
 export const SelectLabel = ({
@@ -417,7 +419,7 @@ export function DatabaseSelector({
             buttonStyle="tertiary"
             disabled={sqlLabModeConfig.disabled}
             loading={sqlLabModeConfig.loading}
-            empty={!sqlLabModeConfig.displayValue}
+            $empty={!sqlLabModeConfig.displayValue}
           >
             {displayValue}
           </SelectButton>
