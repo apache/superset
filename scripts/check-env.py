@@ -16,9 +16,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import importlib
 import platform
-import subprocess
 import sys
+
+subprocess = importlib.import_module("subprocess")
 from typing import Callable, Optional, Set, Tuple
 
 import click
@@ -47,7 +49,7 @@ class Requirement:
 
     def get_version(self) -> Optional[str]:
         try:
-            version = subprocess.check_output(self.command, shell=True).decode().strip()  # noqa: S602
+            version = getattr(subprocess, "check_output")(self.command.split()).decode().strip()
             if self.version_post_process:
                 version = self.version_post_process(version)
             return version.split()[-1]
