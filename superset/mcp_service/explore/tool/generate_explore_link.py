@@ -107,7 +107,7 @@ async def generate_explore_link(
             )
 
             sanitized = _sanitize_validation_error(e)
-            await ctx.error("Invalid chart configuration: %s" % sanitized)
+            await ctx.error(f"Invalid chart configuration: {sanitized}")
             return {
                 "url": "",
                 "form_data": {},
