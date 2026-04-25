@@ -236,7 +236,7 @@ const config: Config = {
       // styles (from Storybook component pages) to override theme styles
       useCssCascadeLayers: false,
     },
-    experimental_faster: {
+    faster: {
       swcJsLoader: false,
       swcJsMinimizer: true,
       swcHtmlMinimizer: true,
