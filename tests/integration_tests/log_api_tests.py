@@ -22,7 +22,7 @@ from typing import Optional
 from unittest.mock import ANY
 
 from flask_appbuilder.security.sqla.models import User
-import prison
+import rison
 from unittest.mock import patch
 
 from superset import db
@@ -80,7 +80,7 @@ class TestLogApi(SupersetTestCase):
             self.insert_log("some_action", admin_user)
             self.login(ADMIN_USERNAME)
             arguments = {"filters": [{"col": "action", "opr": "sw", "value": "some_"}]}
-            uri = f"api/v1/log/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/log/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 404
 
@@ -92,7 +92,7 @@ class TestLogApi(SupersetTestCase):
         log = self.insert_log("some_action", admin_user)
         self.login(ADMIN_USERNAME)
         arguments = {"filters": [{"col": "action", "opr": "sw", "value": "some_"}]}
-        uri = f"api/v1/log/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -228,7 +228,7 @@ class TestLogApi(SupersetTestCase):
         )
 
         arguments = {"actions": ["mount_dashboard"]}
-        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/recent_activity/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         db.session.delete(log)
@@ -263,7 +263,7 @@ class TestLogApi(SupersetTestCase):
         )
 
         arguments = {"distinct": False}
-        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/recent_activity/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         db.session.delete(log)
@@ -308,7 +308,7 @@ class TestLogApi(SupersetTestCase):
         log.dttm = now - timedelta(days=2)
 
         arguments = {"page": 0, "page_size": 2}
-        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/recent_activity/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         assert rv.status_code == 200
@@ -335,7 +335,7 @@ class TestLogApi(SupersetTestCase):
         }
 
         arguments = {"page": 1, "page_size": 2}
-        uri = f"api/v1/log/recent_activity/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/log/recent_activity/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         db.session.delete(log)

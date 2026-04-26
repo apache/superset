@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { SupersetClient } from '@superset-ui/core';
 import { useDeckLayerMetadata } from './useDeckLayerMetadata';
 
@@ -165,6 +165,35 @@ test('handles empty result from API', async () => {
 
   expect(result.current.layers).toEqual([]);
   expect(result.current.error).toBe(null);
+});
+
+test('clears isLoading when sliceIds transitions from non-empty to empty', async () => {
+  const mockResponse = {
+    json: {
+      result: [{ id: 1, slice_name: 'Layer 1', viz_type: 'deck_scatter' }],
+    },
+  };
+  mockSupersetClientGet.mockResolvedValue(mockResponse);
+
+  const { result, rerender } = renderHook(
+    ({ ids }) => useDeckLayerMetadata(ids),
+    {
+      initialProps: { ids: [1] },
+    },
+  );
+
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  expect(result.current.layers).toHaveLength(1);
+
+  act(() => {
+    rerender({ ids: [] });
+  });
+
+  expect(result.current.isLoading).toBe(false);
+  expect(result.current.layers).toEqual([]);
 });
 
 test('does not refetch when sliceIds array has same values', async () => {

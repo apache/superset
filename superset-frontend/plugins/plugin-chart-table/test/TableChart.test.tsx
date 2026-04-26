@@ -1741,6 +1741,200 @@ describe('plugin-chart-table', () => {
         );
       });
 
+      test('clicking a cell emits cross-filter, clicking again clears it', () => {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+        const { rerender } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // Click a string cell to apply cross-filter
+        const nameCell = screen.getByText('Michael');
+        fireEvent.click(nameCell);
+
+        // Find the cross-filter call (not the ownState call)
+        const crossFilterCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState?.filters,
+        );
+        expect(crossFilterCall).toBeDefined();
+        const firstCallArg = crossFilterCall![0];
+        // Should set the filter
+        expect(firstCallArg.filterState.filters).toEqual({
+          name: ['Michael'],
+        });
+        expect(firstCallArg.extraFormData.filters).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              col: 'name',
+              op: 'IN',
+              val: ['Michael'],
+            }),
+          ]),
+        );
+
+        // Now simulate Redux updating the filters prop (as would happen in dashboard)
+        setDataMask.mockClear();
+        rerender(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={{ name: ['Michael'] }}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The cell should now have the active filter class
+        const activeCells = document.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Click same cell again to clear cross-filter
+        setDataMask.mockClear();
+        const sameCellAgain = screen.getByText('Michael');
+        fireEvent.click(sameCellAgain);
+
+        // Find the cross-filter clearing call
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        const secondCallArg = clearCall![0];
+        // Should clear the filter
+        expect(secondCallArg.filterState.filters).toBeNull();
+        expect(secondCallArg.extraFormData.filters).toEqual([]);
+      });
+
+      test('cross-filter toggle works with DateWithFormatter values', () => {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+
+        // The data has a __timestamp column with DateWithFormatter values
+        // after processDataRecords. Let's verify this.
+        const timestampVal = props.data[0].__timestamp;
+        expect(timestampVal).toBeInstanceOf(DateWithFormatter);
+
+        const { rerender } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // Click a timestamp cell - find it by text content
+        const timestampCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(timestampCell);
+
+        const crossFilterCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState?.filters,
+        );
+        expect(crossFilterCall).toBeDefined();
+        const firstCallArg = crossFilterCall![0];
+
+        // Now re-render with the filters from the first click
+        // This simulates what happens via Redux in the real app
+        setDataMask.mockClear();
+        rerender(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={firstCallArg.filterState.filters}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The timestamp cell should be active
+        const activeCells = document.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Click the same timestamp cell again to clear
+        setDataMask.mockClear();
+        const sameCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(sameCell);
+
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        // Should CLEAR the filter (not re-apply it)
+        expect(clearCall![0].filterState.filters).toBeNull();
+        expect(clearCall![0].extraFormData.filters).toEqual([]);
+      });
+
+      test('cross-filter toggle clears when DateWithFormatter references differ', () => {
+        // Regression test: when memoizeOne cache misses between renders,
+        // new DateWithFormatter instances are created with different references.
+        // isActiveFilterValue must compare by time value, not reference.
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+
+        const timestampVal = props.data[0].__timestamp as DateWithFormatter;
+        expect(timestampVal).toBeInstanceOf(DateWithFormatter);
+
+        // Build filters with a DIFFERENT DateWithFormatter instance (same time value)
+        const filterKey = '__timestamp';
+        const differentRef = new DateWithFormatter(timestampVal.input, {
+          formatter: timestampVal.formatter,
+        });
+        expect(differentRef).not.toBe(timestampVal); // different reference
+        expect(differentRef.getTime()).toBe(timestampVal.getTime()); // same time
+
+        const { container } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={{ [filterKey]: [differentRef] }}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The cell should show active filter despite different reference
+        const activeCells = container.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Clicking should CLEAR the filter, not re-apply it
+        setDataMask.mockClear();
+        const timestampCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(timestampCell);
+
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        expect(clearCall![0].filterState.filters).toBeNull();
+        expect(clearCall![0].extraFormData.filters).toEqual([]);
+      });
+
       test('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,

@@ -51,7 +51,9 @@ export interface ModalProps {
   destroyOnHidden?: boolean;
   maskClosable?: boolean;
   zIndex?: number;
+  /** @deprecated Use styles.body instead */
   bodyStyle?: CSSProperties;
+  styles?: { body?: CSSProperties; [key: string]: CSSProperties | undefined };
   openerRef?: React.RefObject<HTMLElement>;
 }
 
