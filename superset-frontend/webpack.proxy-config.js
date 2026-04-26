@@ -20,8 +20,8 @@ const zlib = require('zlib');
 const { decompress: zstdDecompress } = require('simple-zstd');
 
 const yargs = require('yargs');
-// eslint-disable-next-line import/no-extraneous-dependencies
-const parsedArgs = yargs.argv;
+const { hideBin } = require('yargs/helpers');
+const parsedArgs = yargs(hideBin(process.argv)).parse();
 
 const parsedEnvArg = () => {
   let envArgs = {};
