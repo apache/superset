@@ -24,10 +24,13 @@ import time
 from typing import Any, Dict
 
 from fastmcp import Context
+from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.commands.exceptions import CommandException
+from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -102,7 +105,31 @@ def update_chart_preview(
 
     try:
         # Parse the raw config dict into a typed ChartConfig
-        config = parse_chart_config(request.config)
+        try:
+            config = parse_chart_config(request.config)
+        except (ValueError, TypeError) as e:
+            from superset.mcp_service.utils.error_sanitization import (
+                _sanitize_validation_error,
+            )
+
+            sanitized = _sanitize_validation_error(e)
+            return {
+                "chart": None,
+                "error": {
+                    "error_type": "validation_error",
+                    "message": f"Invalid chart configuration: {sanitized}",
+                    "details": sanitized,
+                    "error_code": "INVALID_CHART_CONFIG",
+                },
+                "performance": {
+                    "query_duration_ms": int((time.time() - start_time) * 1000),
+                    "cache_status": "error",
+                    "optimization_suggestions": [],
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
             # Map the new config to form_data format
@@ -123,9 +150,19 @@ def update_chart_preview(
             explore_url = generate_explore_link(request.dataset_id, new_form_data)
 
         # Extract new form_data_key from the explore URL
-        new_form_data_key = None
-        if "form_data_key=" in explore_url:
-            new_form_data_key = explore_url.split("form_data_key=")[1].split("&")[0]
+        new_form_data_key = extract_form_data_key_from_url(explore_url)
+        if not new_form_data_key:
+            return {
+                "chart": None,
+                "error": {
+                    "error_type": "PreviewError",
+                    "message": "Failed to generate preview: missing form_data_key",
+                    "details": "The explore URL did not contain a form_data_key",
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
 
         with event_logger.log_context(action="mcp.update_chart_preview.metadata"):
             # Generate semantic analysis
@@ -199,7 +236,15 @@ def update_chart_preview(
             "error": OAUTH2_CONFIG_ERROR_MESSAGE,
             "success": False,
         }
-    except Exception as e:
+    except (
+        SupersetException,
+        CommandException,
+        SQLAlchemyError,
+        KeyError,
+        ValueError,
+        TypeError,
+        AttributeError,
+    ) as e:
         execution_time = int((time.time() - start_time) * 1000)
         return {
             "chart": None,

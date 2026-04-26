@@ -24,12 +24,9 @@ from typing import Any, Callable
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.api.schemas import get_item_schema
-from flask_appbuilder.const import (
-    API_RESULT_RES_KEY,
-    API_SELECT_COLUMNS_RIS_KEY,
-)
+from flask_appbuilder.const import API_RESULT_RES_KEY, API_SELECT_COLUMNS_RIS_KEY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from jinja2.exceptions import TemplateSyntaxError
@@ -76,10 +73,7 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
-from superset.exceptions import (
-    SupersetSyntaxErrorException,
-    SupersetTemplateException,
-)
+from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
@@ -519,7 +513,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -854,7 +848,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
@@ -1171,7 +1165,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_uuid>", methods=("GET",))
     @protect()
     @safe
-    @rison(get_item_schema)
+    @parse_rison(get_item_schema)
     @statsd_metrics
     @handle_api_exception
     @event_logger.log_this_with_context(
@@ -1268,7 +1262,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))
     @protect()
-    @rison(get_drill_info_schema)
+    @parse_rison(get_drill_info_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(

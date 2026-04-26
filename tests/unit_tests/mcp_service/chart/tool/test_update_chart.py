@@ -26,6 +26,7 @@ import pytest
 from fastmcp import Client
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -40,7 +41,6 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.chart.tool.update_chart import (
     _build_preview_form_data,
     _build_update_payload,
-    _find_chart,
 )
 
 # The __init__.py re-exports the update_chart *function*, so a plain
@@ -519,7 +519,7 @@ class TestUpdateChartDatasetAccess:
 
 
 class TestFindChart:
-    """Tests for _find_chart helper."""
+    """Tests for find_chart_by_identifier helper (moved to chart_helpers)."""
 
     @patch("superset.daos.chart.ChartDAO.find_by_id")
     def test_find_chart_by_numeric_id(self, mock_find):
@@ -527,7 +527,7 @@ class TestFindChart:
         mock_chart = Mock()
         mock_find.return_value = mock_chart
 
-        result = _find_chart(42)
+        result = find_chart_by_identifier(42)
 
         mock_find.assert_called_once_with(42)
         assert result is mock_chart
@@ -538,7 +538,7 @@ class TestFindChart:
         mock_chart = Mock()
         mock_find.return_value = mock_chart
 
-        result = _find_chart("123")
+        result = find_chart_by_identifier("123")
 
         mock_find.assert_called_once_with(123)
         assert result is mock_chart
@@ -550,7 +550,7 @@ class TestFindChart:
         mock_find.return_value = mock_chart
 
         uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-        result = _find_chart(uuid)
+        result = find_chart_by_identifier(uuid)
 
         mock_find.assert_called_once_with(uuid, id_column="uuid")
         assert result is mock_chart
@@ -560,7 +560,7 @@ class TestFindChart:
         """Returns None when chart is not found."""
         mock_find.return_value = None
 
-        result = _find_chart(999)
+        result = find_chart_by_identifier(999)
 
         assert result is None
 
@@ -609,12 +609,14 @@ class TestBuildUpdatePayload:
         chart = Mock()
         chart.datasource_id = None  # Avoid dataset lookup
 
-        result = _build_update_payload(request, chart)
+        result = _build_update_payload(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         assert result["slice_name"] == "My Custom Name"
         assert "viz_type" in result
         assert "params" in result
+        # query_context must be cleared so get_chart_data uses updated params
+        assert result["query_context"] is None
 
     def test_config_update_keeps_existing_name(self):
         """When config is provided but no chart_name, keeps existing slice_name."""
@@ -627,10 +629,12 @@ class TestBuildUpdatePayload:
         chart.datasource_id = None
         chart.slice_name = "Existing Name"
 
-        result = _build_update_payload(request, chart)
+        result = _build_update_payload(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         assert result["slice_name"] == "Existing Name"
+        # query_context must be cleared so get_chart_data uses updated params
+        assert result["query_context"] is None
 
 
 class TestUpdateChartNameOnly:
@@ -690,6 +694,8 @@ class TestUpdateChartNameOnly:
             assert result.structured_content["success"] is True
             assert result.structured_content["chart"]["slice_name"] == "Renamed Chart"
             assert result.structured_content["chart"]["is_unsaved_state"] is False
+            # Rename-only: form_data should be empty (visualization unchanged)
+            assert result.structured_content["form_data"] == {}
 
             # Verify UpdateChartCommand was called with name-only payload
             mock_update_cmd_cls.assert_called_once_with(
@@ -861,7 +867,7 @@ class TestBuildPreviewFormData:
         chart.slice_name = "Existing"
         chart.params = '{"viz_type": "line", "custom_flag": true}'
 
-        result = _build_preview_form_data(request, chart)
+        result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         # Existing keys not touched by the new config are preserved
@@ -918,7 +924,7 @@ class TestBuildPreviewFormData:
         chart.slice_name = "Broken"
         chart.params = "not-json"
 
-        result = _build_preview_form_data(request, chart)
+        result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         assert result["slice_id"] == 9
@@ -990,6 +996,15 @@ class TestUpdateChartSaveWithConfig:
         assert chart["slice_name"] == "After-save"
         assert "slice_id=77" in result.structured_content["explore_url"]
         mock_update_cmd_cls.assert_called_once()
+
+        # Verify query_context is cleared so get_chart_data uses updated params
+        payload = mock_update_cmd_cls.call_args[0][1]
+        assert payload["query_context"] is None
+
+        # Verify form_data is returned in the response
+        form_data = result.structured_content["form_data"]
+        assert isinstance(form_data, dict)
+        assert "viz_type" in form_data
 
 
 class TestUpdateChartErrorPaths:
