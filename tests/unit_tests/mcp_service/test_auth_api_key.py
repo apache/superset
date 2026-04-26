@@ -61,7 +61,7 @@ def _disable_api_keys(app):
 def test_valid_api_key_returns_user(app, mock_user) -> None:
     """A valid API key should authenticate and return the user."""
     mock_sm = MagicMock()
-    mock_sm._extract_api_key_from_request.return_value = "sst_abc123"
+    mock_sm.extract_api_key_from_request.return_value = "sst_abc123"
     mock_sm.validate_api_key.return_value = mock_user
 
     with app.test_request_context(headers={"Authorization": "Bearer sst_abc123"}):
@@ -86,7 +86,7 @@ def test_valid_api_key_returns_user(app, mock_user) -> None:
 def test_invalid_api_key_raises(app) -> None:
     """An invalid API key should raise PermissionError."""
     mock_sm = MagicMock()
-    mock_sm._extract_api_key_from_request.return_value = "sst_bad_key"
+    mock_sm.extract_api_key_from_request.return_value = "sst_bad_key"
     mock_sm.validate_api_key.return_value = None
 
     with app.test_request_context(headers={"Authorization": "Bearer sst_bad_key"}):
@@ -117,7 +117,7 @@ def test_api_key_disabled_skips_auth(app) -> None:
             get_user_from_request()
 
     # SecurityManager API key methods should never be called
-    mock_sm._extract_api_key_from_request.assert_not_called()
+    mock_sm.extract_api_key_from_request.assert_not_called()
 
 
 # -- No request context -> API key auth skipped --
@@ -140,7 +140,7 @@ def test_no_request_context_skips_api_key_auth(app) -> None:
             with pytest.raises(ValueError, match="No authenticated user found"):
                 get_user_from_request()
 
-    mock_sm._extract_api_key_from_request.assert_not_called()
+    mock_sm.extract_api_key_from_request.assert_not_called()
 
 
 # -- g.user fallback when no higher-priority auth succeeds --
@@ -158,12 +158,12 @@ def test_g_user_fallback_when_no_jwt_or_api_key(app, mock_user) -> None:
     assert result.username == "api_key_user"
 
 
-# -- FAB version without _extract_api_key_from_request --
+# -- FAB version without extract_api_key_from_request --
 
 
 @pytest.mark.usefixtures("_enable_api_keys")
 def test_fab_without_extract_method_skips_gracefully(app) -> None:
-    """If FAB SecurityManager lacks _extract_api_key_from_request,
+    """If FAB SecurityManager lacks extract_api_key_from_request,
     API key auth should be skipped with a debug log, not crash."""
     mock_sm = MagicMock(spec=[])  # empty spec = no attributes
 
@@ -181,10 +181,10 @@ def test_fab_without_extract_method_skips_gracefully(app) -> None:
 
 @pytest.mark.usefixtures("_enable_api_keys")
 def test_fab_without_validate_method_raises(app) -> None:
-    """If FAB has _extract_api_key_from_request but not validate_api_key,
+    """If FAB has extract_api_key_from_request but not validate_api_key,
     should raise PermissionError about unavailable validation."""
-    mock_sm = MagicMock(spec=["_extract_api_key_from_request"])
-    mock_sm._extract_api_key_from_request.return_value = "sst_abc123"
+    mock_sm = MagicMock(spec=["extract_api_key_from_request"])
+    mock_sm.extract_api_key_from_request.return_value = "sst_abc123"
 
     with app.test_request_context(headers={"Authorization": "Bearer sst_abc123"}):
         g.user = None
@@ -205,7 +205,7 @@ def test_relationship_reload_failure_returns_original_user(app, mock_user) -> No
     """If load_user_with_relationships fails, the original user from
     validate_api_key should be returned as fallback."""
     mock_sm = MagicMock()
-    mock_sm._extract_api_key_from_request.return_value = "sst_abc123"
+    mock_sm.extract_api_key_from_request.return_value = "sst_abc123"
     mock_sm.validate_api_key.return_value = mock_user
 
     with app.test_request_context(headers={"Authorization": "Bearer sst_abc123"}):
@@ -220,3 +220,27 @@ def test_relationship_reload_failure_returns_original_user(app, mock_user) -> No
             result = get_user_from_request()
 
     assert result is mock_user
+
+
+# -- SecurityManager method name regression test --
+
+
+def test_security_manager_has_expected_api_key_methods() -> None:
+    """Regression test: verify the SecurityManager method names referenced in
+    auth._resolve_user_from_api_key() actually exist on the FAB SecurityManager
+    class.  This catches future renames before they silently break API key auth
+    at runtime (SC-99414: _extract_api_key_from_request vs
+    extract_api_key_from_request)."""
+    from superset import security_manager
+
+    sm = security_manager
+    assert hasattr(sm, "extract_api_key_from_request"), (
+        "FAB SecurityManager is missing 'extract_api_key_from_request'. "
+        "auth._resolve_user_from_api_key() references this method by name — "
+        "update auth.py if the FAB API changed."
+    )
+    assert hasattr(sm, "validate_api_key"), (
+        "FAB SecurityManager is missing 'validate_api_key'. "
+        "auth._resolve_user_from_api_key() references this method by name — "
+        "update auth.py if the FAB API changed."
+    )
