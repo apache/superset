@@ -36,10 +36,13 @@ const {
 } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-const parsedArgs = require('yargs').argv;
+const yargs = require('yargs');
+const { hideBin } = require('yargs/helpers');
 const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package.json');
+
+const parsedArgs = yargs(hideBin(process.argv)).parse();
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');

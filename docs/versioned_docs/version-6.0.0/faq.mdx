@@ -35,7 +35,7 @@ or a view.
 When working with tables, the solution would be to create a table that contains all the fields
 needed for your analysis, most likely through some scheduled batch process.
 
-A view is a simple logical layer that abstracts an arbitrary SQL queries as a virtual table. This can
+A view is a simple logical layer that abstracts an arbitrary SQL query as a virtual table. This can
 allow you to join and union multiple tables and to apply some transformation using arbitrary SQL
 expressions. The limitation there is your database performance, as Superset effectively will run a
 query on top of your query (view). A good practice may be to limit yourself to joining your main
