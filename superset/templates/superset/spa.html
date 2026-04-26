@@ -138,6 +138,29 @@
     {% endblock %}
 
     {% block tail_js %}
+      {#
+        Expose the language pack on window BEFORE the entry bundle loads,
+        so module-level `const X = t('...')` calls across webpack-split
+        chunks all find a configured translator on first access. The
+        bootstrap div is the single source of truth; we parse it once and
+        stash the pack on a global that the translator reads lazily.
+        See upstream issue #35330.
+      #}
+      <script nonce="{{ macros.get_nonce() }}">
+        (function () {
+          try {
+            var el = document.getElementById('app');
+            if (!el) return;
+            var data = JSON.parse(el.getAttribute('data-bootstrap') || '{}');
+            var pack = data && data.common && data.common.language_pack;
+            if (pack) {
+              window.__SUPERSET_LANGUAGE_PACK__ = pack;
+            }
+          } catch (e) {
+            /* swallow: fall back to async fetch in preamble.ts */
+          }
+        })();
+      </script>
       {% if entry %}
         {{ js_bundle(assets_prefix, entry) }}
       {% endif %}
