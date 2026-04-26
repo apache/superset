@@ -45,7 +45,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import DB2, Dremio, Firebolt, Pinot
+from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -93,7 +93,7 @@ SQLGLOT_DIALECTS = {
     "netezza": Dialects.POSTGRES,
     "oceanbase": Dialects.MYSQL,
     # "ocient": ???
-    # "odelasticsearch": ???
+    "odelasticsearch": OpenSearch,
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
@@ -1639,7 +1639,7 @@ def sanitize_clause(clause: str, engine: str) -> str:
         return Dialect.get_or_raise(dialect).generate(
             statement._parsed,  # pylint: disable=protected-access
             copy=True,
-            comments=False,
+            comments=True,
             pretty=False,
         )
     except SupersetParseError as ex:
