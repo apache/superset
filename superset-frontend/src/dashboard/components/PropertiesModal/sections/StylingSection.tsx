@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -30,6 +30,7 @@ import { EditorHost } from 'src/core/editors';
 import rison from 'rison';
 import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import { ModalFormField } from 'src/components/Modal';
+import LabelColorMapping from './LabelColorMapping';
 
 const StyledEditorHost = styled(EditorHost)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -84,6 +85,8 @@ interface StylingSectionProps {
   customCss: string;
   hasCustomLabelsColor: boolean;
   showChartTimestamps: boolean;
+  jsonMetadata: string; 
+  onJsonMetadataChange: (value: string) => void; 
   onThemeChange: (value: any) => void;
   onColorSchemeChange: (
     colorScheme: string,
@@ -101,6 +104,8 @@ const StylingSection = ({
   customCss,
   hasCustomLabelsColor,
   showChartTimestamps,
+  jsonMetadata, 
+  onJsonMetadataChange, 
   onThemeChange,
   onColorSchemeChange,
   onCustomCssChange,
@@ -141,7 +146,7 @@ const StylingSection = ({
 
   // Handle CSS template selection
   const handleTemplateSelect = useCallback(
-    (templateName: string) => {
+    (templateName: any) => {
       if (!templateName) {
         setSelectedTemplate(null);
         setOriginalTemplateContent('');
@@ -200,6 +205,13 @@ const StylingSection = ({
           showWarning={hasCustomLabelsColor}
         />
       </ModalFormField>
+      
+      {/* INJECTED COMPONENT */}
+      <LabelColorMapping 
+        jsonMetadata={jsonMetadata} 
+        onJsonMetadataChange={onJsonMetadataChange} 
+      />
+
       <StyledSwitchContainer data-test="dashboard-show-timestamps-field">
         <div className="switch-row">
           <Switch
@@ -228,7 +240,7 @@ const StylingSection = ({
           >
             <Select
               data-test="dashboard-css-template-select"
-              onChange={handleTemplateSelect}
+              onChange={(val: any) => handleTemplateSelect(val)}
               options={cssTemplates.map(template => ({
                 value: template.template_name,
                 label: template.template_name,
