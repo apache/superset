@@ -1,6 +1,6 @@
 {
   "name": "@apache-superset/core",
-  "version": "0.1.0-rc1",
+  "version": "0.1.0-rc2",
   "description": "This package contains UI elements, APIs, and utility functions used by Superset.",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -70,8 +70,8 @@
   "files": [
     "lib"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Apache Software Foundation",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@babel/cli": "^7.28.6",
     "@babel/core": "^7.29.0",

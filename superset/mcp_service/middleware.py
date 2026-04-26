@@ -130,6 +130,18 @@ class LoggingMiddleware(Middleware):
     in on_message().
     """
 
+    def _is_error_response(self, result: ToolResult) -> bool:
+        """Check if a tool result contains an error schema response.
+
+        MCP tools return error schemas (ChartError, DashboardError, etc.)
+        instead of raising exceptions. These serialize to JSON containing
+        an "error_type" field.
+        """
+        try:
+            return '"error_type"' in result.content[0].text
+        except (AttributeError, IndexError):
+            return False
+
     def _extract_context_info(
         self, context: MiddlewareContext
     ) -> tuple[
@@ -171,8 +183,11 @@ class LoggingMiddleware(Middleware):
         success = False
         try:
             result = await call_next(context)
-            success = True
+            success = not self._is_error_response(result)
             return result
+        except Exception:
+            success = False
+            raise
         finally:
             duration_ms = int((time.time() - start_time) * 1000)
             if has_app_context():
@@ -936,6 +951,59 @@ class ResponseSizeGuardMiddleware(Middleware):
             excluded_tools = [excluded_tools]
         self.excluded_tools = set(excluded_tools or [])
 
+    @staticmethod
+    def _extract_payload_from_tool_result(
+        response: Any,
+    ) -> dict[str, Any] | None:
+        """Extract the JSON payload dict from a ToolResult's content[0].text.
+
+        FastMCP converts tool return values into ToolResult before middleware
+        sees them.  The actual data (e.g. DashboardInfo dict) is serialized
+        as a JSON string inside ``content[0].text``.  Truncation must operate
+        on that parsed dict — not on the ToolResult wrapper — otherwise
+        phases like "truncate charts list" never find the right keys.
+
+        Returns the payload dict when extraction succeeds, or ``None`` when
+        the response is not a ToolResult or cannot be parsed.
+        """
+        from fastmcp.tools.tool import ToolResult
+
+        from superset.utils.json import loads as json_loads
+
+        if not isinstance(response, ToolResult):
+            return None
+
+        if (
+            not response.content
+            or not hasattr(response.content[0], "text")
+            or not response.content[0].text
+        ):
+            return None
+
+        try:
+            payload = json_loads(response.content[0].text)
+        except (ValueError, TypeError):
+            return None
+
+        if not isinstance(payload, dict):
+            return None
+
+        return payload
+
+    @staticmethod
+    def _rewrap_as_tool_result(payload: dict[str, Any], original: Any) -> Any:
+        """Re-serialize a truncated payload dict back into a ToolResult."""
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        from superset.utils.json import dumps as json_dumps
+
+        text = json_dumps(payload)
+        return ToolResult(
+            content=[TextContent(type="text", text=text)],
+            meta=original.meta if isinstance(original, ToolResult) else None,
+        )
+
     def _try_truncate_info_response(
         self,
         tool_name: str,
@@ -945,15 +1013,32 @@ class ResponseSizeGuardMiddleware(Middleware):
         """Attempt to dynamically truncate an info tool response to fit the limit.
 
         Returns the truncated response if successful, None otherwise.
+
+        When the response is a ToolResult (the normal case — FastMCP wraps
+        every tool return value), the actual data lives inside
+        ``content[0].text`` as a JSON string.  We parse that string, run the
+        truncation phases on the resulting dict, then re-wrap the result.
         """
         from superset.mcp_service.utils.token_utils import (
             estimate_response_tokens,
             truncate_oversized_response,
         )
 
+        # Unwrap ToolResult so truncation operates on the real payload
+        extracted = self._extract_payload_from_tool_result(response)
+        if extracted is not None:
+            truncation_target = extracted
+        else:
+            logger.debug(
+                "Could not extract dict payload from response for %s; "
+                "falling back to truncating the raw response object",
+                tool_name,
+            )
+            truncation_target = response
+
         try:
             truncated, was_truncated, notes = truncate_oversized_response(
-                response, self.token_limit
+                truncation_target, self.token_limit
             )
         except (MemoryError, RecursionError) as trunc_error:
             logger.warning(
@@ -1000,6 +1085,10 @@ class ResponseSizeGuardMiddleware(Middleware):
             truncated["_response_truncated"] = True
             truncated["_truncation_notes"] = notes
 
+        # Re-wrap into ToolResult if we unwrapped one
+        if extracted is not None and isinstance(truncated, dict):
+            return self._rewrap_as_tool_result(truncated, response)
+
         return truncated
 
     async def on_call_tool(
@@ -1023,8 +1112,14 @@ class ResponseSizeGuardMiddleware(Middleware):
             format_size_limit_error,
         )
 
+        # When the response is a ToolResult, estimate tokens on the actual
+        # payload inside content[0].text rather than on the ToolResult
+        # wrapper (which would double-serialize the JSON string).
+        extracted = self._extract_payload_from_tool_result(response)
+        estimation_target = extracted if extracted is not None else response
+
         try:
-            estimated_tokens = estimate_response_tokens(response)
+            estimated_tokens = estimate_response_tokens(estimation_target)
         except MemoryError as me:
             logger.warning(
                 "MemoryError while estimating tokens for %s: %s", tool_name, me

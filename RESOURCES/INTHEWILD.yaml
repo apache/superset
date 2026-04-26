@@ -287,6 +287,11 @@ categories:
       url: https://www.gfk.com/home
       contributors: ["@mherr"]
 
+    - name: Hifadih Business & Technology
+      url: https://hifadih.net/en
+      logo: hifadih.png
+      contributors: ["@saintLaurent00"]
+
     # Logo approved by @anmol-hpe on behalf of HPE
     - name: HPE
       url: https://www.hpe.com/in/en/home.html

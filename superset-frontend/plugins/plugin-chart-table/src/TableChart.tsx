@@ -415,7 +415,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const isActiveFilterValue = useCallback(
     function isActiveFilterValue(key: string, val: DataRecordValue) {
-      return !!filters && filters[key]?.includes(val);
+      if (!filters || !filters[key]) return false;
+      return filters[key].some(filterVal => {
+        if (filterVal === val) return true;
+        // DateWithFormatter extends Date — compare by time value
+        // since memoization cache misses can create new instances
+        if (filterVal instanceof Date && val instanceof Date) {
+          return filterVal.getTime() === val.getTime();
+        }
+        return false;
+      });
     },
     [filters],
   );
@@ -820,7 +829,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           th {
             border-right: 1px solid ${theme.colorSplit};
           }
-          th:first-child {
+          th:first-of-type {
             border-left: none;
           }
           th:last-child {
