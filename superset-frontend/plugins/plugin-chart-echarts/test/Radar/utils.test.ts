@@ -29,7 +29,7 @@ describe('renderNormalizedTooltip', () => {
   };
   const metricsWithCustomBounds = new Set<string>();
 
-  it('should render tooltip with formatted values when formatter is provided', () => {
+  test('should render tooltip with formatted values when formatter is provided', () => {
     const formatter = getNumberFormatter(',.2f');
     const tooltip = renderNormalizedTooltip(
       params,
@@ -42,7 +42,7 @@ describe('renderNormalizedTooltip', () => {
     expect(tooltip).toContain(formatter(200));
   });
 
-  it('should render tooltip with raw values when formatter is not provided', () => {
+  test('should render tooltip with raw values when formatter is not provided', () => {
     const tooltip = renderNormalizedTooltip(
       params,
       metrics,
