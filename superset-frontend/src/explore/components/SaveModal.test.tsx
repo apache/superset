@@ -240,6 +240,87 @@ test('renders a message when saving as with new dashboard', () => {
   );
 });
 
+test('does not preselect an externally managed dashboard on mount', async () => {
+  const dashboardId = 1;
+  fetchMock.removeRoutes();
+  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  fetchMock.get(`glob:*/api/v1/dashboard/${dashboardId}`, {
+    result: {
+      id: dashboardId,
+      dashboard_title: 'Managed Dashboard',
+      owners: [{ id: 1 }],
+      is_managed_externally: true,
+    },
+  });
+
+  const store = mockStore({
+    ...initialState,
+    explore: {
+      ...initialState.explore,
+      slice: {
+        ...initialState.explore.slice,
+        dashboards: [dashboardId],
+      },
+    },
+  });
+
+  const { queryByTestId } = setup(
+    {
+      ...defaultProps,
+      dashboardId,
+    },
+    store,
+  );
+
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(`glob:*/api/v1/dashboard/${dashboardId}`),
+    ).toHaveLength(1);
+  });
+
+  const selectInput = queryByTestId('mock-async-select') as HTMLInputElement;
+  expect(selectInput).toBeInTheDocument();
+  expect(
+    fetchMock.callHistory.calls(`glob:*/api/v1/dashboard/${dashboardId}/tabs`),
+  ).toHaveLength(0);
+
+  // Restore default mocks
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  fetchMock.get(fetchDashboardEndpoint, {
+    result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+  });
+});
+
+test('loadDashboards includes is_managed_externally filter', async () => {
+  const component = new TestSaveModal({
+    ...defaultProps,
+    user: { userId: 1 },
+  });
+  const dashboardListEndpoint = `glob:*/api/v1/dashboard/?q=*`;
+
+  fetchMock.removeRoutes();
+  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  fetchMock.get(fetchDashboardEndpoint, {
+    result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+  });
+  fetchMock.get(dashboardListEndpoint, {
+    result: [{ id: 1, dashboard_title: 'Test' }],
+    count: 1,
+  });
+
+  await component.loadDashboards('test', 0, 25);
+
+  const calls = fetchMock.callHistory.calls(dashboardListEndpoint);
+  const lastCall = calls[calls.length - 1];
+  expect(lastCall.url).toContain('is_managed_externally');
+  fetchMock.clearHistory();
+});
+
 test('disables overwrite option for new slice', () => {
   const { getByRole } = setup(
     {},

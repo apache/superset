@@ -143,7 +143,10 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     if (dashboardId) {
       try {
         const result = (await this.loadDashboard(dashboardId)) as Dashboard;
-        if (canUserEditDashboard(result, this.props.user)) {
+        if (
+          canUserEditDashboard(result, this.props.user) &&
+          !result.is_managed_externally
+        ) {
           this.setState({
             dashboard: { label: result.dashboard_title, value: result.id },
           });
@@ -478,6 +481,11 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           col: 'owners',
           opr: 'rel_m_m',
           value: this.props.user.userId,
+        },
+        {
+          col: 'is_managed_externally',
+          opr: 'eq',
+          value: false,
         },
       ],
       page,

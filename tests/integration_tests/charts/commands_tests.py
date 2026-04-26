@@ -26,6 +26,7 @@ from superset import db, security_manager
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.exceptions import (
     ChartNotFoundError,
+    DashboardsForbiddenError,
     WarmUpCacheChartNotFoundError,
 )
 from superset.commands.chart.export import ExportChartsCommand
@@ -365,6 +366,50 @@ class TestChartsCreateCommand(SupersetTestCase):
         db.session.delete(chart)
         db.session.commit()
 
+    @patch("superset.utils.core.g")
+    @patch("superset.commands.chart.create.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_create_chart_rejects_externally_managed_dashboard(
+        self, mock_sm_g, mock_c_g, mock_u_g
+    ):
+        """
+        Test that creating a chart fails when a selected dashboard is managed
+        externally
+        """
+        from superset.models.dashboard import Dashboard
+
+        user = security_manager.find_user(username="admin")
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
+
+        managed_dashboard = Dashboard(
+            dashboard_title="Externally Managed Dashboard",
+            slug="externally-managed-dashboard",
+            owners=[user],
+            published=False,
+            is_managed_externally=True,
+        )
+        db.session.add(managed_dashboard)
+        db.session.commit()
+
+        chart_data = {
+            "slice_name": "new chart",
+            "description": "new description",
+            "owners": [user.id],
+            "viz_type": "new_viz_type",
+            "params": json.dumps({"viz_type": "new_viz_type"}),
+            "cache_timeout": 1000,
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "dashboards": [managed_dashboard.id],
+        }
+        command = CreateChartCommand(chart_data)
+        with pytest.raises(DashboardsForbiddenError):
+            command.run()
+
+        db.session.delete(managed_dashboard)
+        db.session.commit()
+
 
 class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.commands.chart.update.g")
@@ -601,6 +646,43 @@ class TestChartsUpdateCommand(SupersetTestCase):
 
         # Clean up
         db.session.delete(alpha_dashboard)
+        db.session.commit()
+
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_chart_rejects_new_externally_managed_dashboard(
+        self, mock_sm_g, mock_u_g, mock_c_g
+    ):
+        """Test that updating a chart to add an externally managed dashboard fails"""
+        from superset.models.dashboard import Dashboard
+
+        admin = security_manager.find_user(username="admin")
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = admin
+
+        chart = db.session.query(Slice).first()
+        chart.owners = [admin]
+
+        managed_dashboard = Dashboard(
+            dashboard_title="Externally Managed Dashboard",
+            slug="externally-managed-dashboard",
+            owners=[admin],
+            published=False,
+            is_managed_externally=True,
+        )
+        db.session.add(managed_dashboard)
+        db.session.commit()
+
+        json_obj = {
+            "description": "Trying to add externally managed dashboard",
+            "dashboards": [managed_dashboard.id],
+        }
+        command = UpdateChartCommand(chart.id, json_obj)
+        with pytest.raises(DashboardsForbiddenError):
+            command.run()
+
+        db.session.delete(managed_dashboard)
         db.session.commit()
 
 

@@ -367,6 +367,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "changed_by",
         "dashboard_title",
         "id",
+        "is_managed_externally",
         "uuid",
         "owners",
         "published",

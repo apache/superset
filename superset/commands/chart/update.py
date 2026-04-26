@@ -30,6 +30,7 @@ from superset.commands.chart.exceptions import (
     ChartInvalidError,
     ChartNotFoundError,
     ChartUpdateFailedError,
+    DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
 )
@@ -86,13 +87,19 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         requested_dashboard_ids = {d.id for d in requested_dashboards}
 
         if new_dashboard_ids := requested_dashboard_ids - existing_dashboard_ids:
-            # For NEW dashboard relationships, verify user has access
+            # For NEW dashboard relationships, verify user has access first
+            # to avoid leaking information about inaccessible dashboards
             accessible_dashboards = DashboardDAO.find_by_ids(list(new_dashboard_ids))
             accessible_dashboard_ids = {d.id for d in accessible_dashboards}
             unauthorized_dashboard_ids = new_dashboard_ids - accessible_dashboard_ids
 
             if unauthorized_dashboard_ids:
                 exceptions.append(DashboardsNotFoundValidationError())
+                return
+
+            for dash in accessible_dashboards:
+                if dash.is_managed_externally or not security_manager.is_owner(dash):
+                    raise DashboardsForbiddenError()
 
     def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
