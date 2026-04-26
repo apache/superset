@@ -298,8 +298,10 @@ test('update adhoc metric name when column label in dataset changes', () => {
   expect(screen.getByText('SUM(new col B name)')).toBeVisible();
 });
 
-// Note: Drag-and-drop tests removed - @dnd-kit uses pointer events instead of
-// HTML5 drag events. These tests require @dnd-kit-compatible testing utilities.
+// TODO: Restore drag-and-drop coverage using @dnd-kit-compatible utilities
+// (e.g. @testing-library/user-event pointer event sequences). The previous
+// tests relied on HTML5 fireEvent.dragStart/dragOver/drop, which @dnd-kit
+// does not respond to, so they were removed rather than left as no-ops.
 
 test('title changes on custom SQL text change', async () => {
   let metricValues = [adhocMetricA, 'metric_b'];
