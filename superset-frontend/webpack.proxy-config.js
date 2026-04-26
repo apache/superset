@@ -181,7 +181,9 @@ module.exports = newManifest => {
             // eslint-disable-next-line no-console
             console.error(`Error requesting ${request.path} from proxy:`, e);
             if (!response.writableEnded) {
-              response.end(`Error requesting ${request.path} from proxy: ${e.message}`);
+              response.end(
+                `Error requesting ${request.path} from proxy: ${e.message}`,
+              );
             }
           });
         } else {
