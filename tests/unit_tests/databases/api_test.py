@@ -255,7 +255,7 @@ def test_database_connection(
                     "service_account_info": {
                         "type": "service_account",
                         "project_id": "black-sanctum-314419",
-                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",  # noqa: E501
                         "private_key": "XXXXXXXXXX",
                         "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                         "client_id": "114567578578109757129",
@@ -451,6 +451,76 @@ def test_import(
         ssh_tunnel_passwords=None,
         ssh_tunnel_private_keys=None,
         ssh_tunnel_priv_key_passwords=None,
+        encrypted_extra_secrets=None,
+    )
+
+
+def test_import_with_encrypted_extra_secrets(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that encrypted_extra_secrets are passed to ImportDatabasesCommand.
+    """
+    contents = {
+        "metadata.yaml": yaml.safe_dump(
+            {
+                "version": "1.0.0",
+                "type": "Database",
+                "timestamp": "2021-01-01T00:00:00Z",
+            }
+        ),
+        "databases/test.yaml": yaml.safe_dump(
+            {
+                "database_name": "test",
+                "sqlalchemy_uri": "bigquery://gcp-project-id/",
+                "cache_timeout": 0,
+                "expose_in_sqllab": True,
+                "allow_run_async": False,
+                "allow_ctas": False,
+                "allow_cvas": False,
+                "allow_dml": False,
+                "allow_file_upload": False,
+                "masked_encrypted_extra": json.dumps(
+                    {"credentials_info": {"private_key": "XXXXXXXXXX"}}
+                ),
+                "extra": json.dumps({"allows_virtual_table_explore": True}),
+                "uuid": "00000000-0000-0000-0000-123456789001",
+            }
+        ),
+    }
+    mocker.patch("superset.databases.api.is_zipfile", return_value=True)
+    mocker.patch("superset.databases.api.ZipFile")
+    mocker.patch(
+        "superset.databases.api.get_contents_from_bundle",
+        return_value=contents,
+    )
+    command = mocker.patch("superset.databases.api.ImportDatabasesCommand")
+
+    secrets = {
+        "databases/test.yaml": {
+            "$.credentials_info.private_key": "-----BEGIN PRIVATE KEY-----"
+        }
+    }
+    form_data = {
+        "formData": (BytesIO(b"test"), "test.zip"),
+        "encrypted_extra_secrets": json.dumps(secrets),
+    }
+    client.post(
+        "/api/v1/database/import/",
+        data=form_data,
+        content_type="multipart/form-data",
+    )
+
+    command.assert_called_with(
+        contents,
+        passwords=None,
+        overwrite=False,
+        ssh_tunnel_passwords=None,
+        ssh_tunnel_private_keys=None,
+        ssh_tunnel_priv_key_passwords=None,
+        encrypted_extra_secrets=secrets,
     )
 
 
@@ -621,6 +691,10 @@ def test_oauth2_happy_path(
         "expires_in": 3600,
         "refresh_token": "ZZZ",
     }
+    mocker.patch(
+        "superset.commands.database.oauth2.KeyValueDAO.get_value",
+        return_value=None,
+    )
 
     state: OAuth2State = {
         "user_id": 1,
@@ -641,7 +715,11 @@ def test_oauth2_happy_path(
         )
 
     assert response.status_code == 200
-    get_oauth2_token.assert_called_with({"id": "one", "secret": "two"}, "XXX")
+    get_oauth2_token.assert_called_with(
+        {"id": "one", "secret": "two"},
+        "XXX",
+        code_verifier=None,
+    )
 
     token = db.session.query(DatabaseUserOAuth2Tokens).one()
     assert token.user_id == 1
@@ -689,6 +767,10 @@ def test_oauth2_permissions(
         "expires_in": 3600,
         "refresh_token": "ZZZ",
     }
+    mocker.patch(
+        "superset.commands.database.oauth2.KeyValueDAO.get_value",
+        return_value=None,
+    )
 
     state: OAuth2State = {
         "user_id": 1,
@@ -709,7 +791,11 @@ def test_oauth2_permissions(
         )
 
     assert response.status_code == 200
-    get_oauth2_token.assert_called_with({"id": "one", "secret": "two"}, "XXX")
+    get_oauth2_token.assert_called_with(
+        {"id": "one", "secret": "two"},
+        "XXX",
+        code_verifier=None,
+    )
 
     token = db.session.query(DatabaseUserOAuth2Tokens).one()
     assert token.user_id == 1
@@ -762,6 +848,10 @@ def test_oauth2_multiple_tokens(
             "refresh_token": "ZZZ2",
         },
     ]
+    mocker.patch(
+        "superset.commands.database.oauth2.KeyValueDAO.get_value",
+        return_value=None,
+    )
 
     state: OAuth2State = {
         "user_id": 1,
@@ -2285,7 +2375,7 @@ def test_export_includes_configuration_method(
     """
     import zipfile
 
-    import prison
+    import rison
 
     from superset.models.core import Database
 
@@ -2299,7 +2389,7 @@ def test_export_includes_configuration_method(
     db.session.add(db_obj)
     db.session.commit()
 
-    rison_ids = prison.dumps([db_obj.id])
+    rison_ids = rison.dumps([db_obj.id])
     response = client.get(f"/api/v1/database/export/?q={rison_ids}")
     assert response.status_code == 200
 

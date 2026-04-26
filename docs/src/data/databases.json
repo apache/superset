@@ -1,16 +1,16 @@
 {
-  "generated": "2026-01-21T23:22:58.314Z",
+  "generated": "2026-02-24T20:28:17.222Z",
   "statistics": {
-    "totalDatabases": 67,
-    "withDocumentation": 67,
-    "withConnectionString": 67,
-    "withDrivers": 34,
+    "totalDatabases": 72,
+    "withDocumentation": 72,
+    "withConnectionString": 72,
+    "withDrivers": 36,
     "withAuthMethods": 4,
-    "supportsJoins": 63,
-    "supportsSubqueries": 64,
+    "supportsJoins": 68,
+    "supportsSubqueries": 69,
     "supportsDynamicSchema": 15,
     "supportsCatalog": 9,
-    "averageScore": 34,
+    "averageScore": 31,
     "maxScore": 201,
     "byCategory": {
       "Other Databases": [
@@ -33,6 +33,7 @@
         "Hologres",
         "IBM Db2 for i",
         "Azure Data Explorer",
+        "MongoDB",
         "Microsoft SQL Server",
         "Azure Synapse",
         "IBM Netezza Performance Server",
@@ -73,6 +74,7 @@
         "Apache Kylin",
         "Azure Synapse",
         "Ocient",
+        "Apache Phoenix",
         "Amazon Redshift",
         "RisingWave",
         "SingleStore",
@@ -108,6 +110,8 @@
       "Traditional RDBMS": [
         "Aurora MySQL (Data API)",
         "Aurora PostgreSQL (Data API)",
+        "Aurora MySQL",
+        "Aurora PostgreSQL",
         "CockroachDB",
         "Cloudflare D1",
         "IBM Db2",
@@ -132,6 +136,8 @@
       "Open Source": [
         "Aurora MySQL (Data API)",
         "Aurora PostgreSQL (Data API)",
+        "Aurora MySQL",
+        "Aurora PostgreSQL",
         "ClickHouse",
         "CockroachDB",
         "Couchbase",
@@ -146,12 +152,14 @@
         "Greenplum",
         "Apache Hive",
         "Apache Impala",
+        "Apache IoTDB",
         "Apache Kylin",
         "MariaDB",
         "MonetDB",
         "MySQL",
         "OceanBase",
         "Parseable",
+        "Apache Phoenix",
         "Apache Pinot",
         "PostgreSQL",
         "Presto",
@@ -175,12 +183,14 @@
         "Couchbase",
         "Amazon DynamoDB",
         "Elasticsearch",
+        "MongoDB",
         "Parseable",
         "Apache Solr"
       ],
       "Time Series Databases": [
         "CrateDB",
         "Apache Druid",
+        "Apache IoTDB",
         "Apache Pinot",
         "TDengine"
       ],
@@ -191,7 +201,9 @@
         "Apache Druid",
         "Apache Hive",
         "Apache Impala",
+        "Apache IoTDB",
         "Apache Kylin",
+        "Apache Phoenix",
         "Apache Pinot",
         "Apache Solr",
         "Apache Spark SQL"
@@ -438,6 +450,132 @@
     "Aurora PostgreSQL (Data API)": {
       "engine": "aurora_postgresql_(data_api)",
       "engine_name": "Aurora PostgreSQL (Data API)",
+      "module": "aurora",
+      "documentation": {
+        "description": "PostgreSQL is an advanced open-source relational database.",
+        "logo": "postgresql.svg",
+        "homepage_url": "https://www.postgresql.org/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "psycopg2"
+        ],
+        "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 5432,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "For localhost: localhost or 127.0.0.1. For AWS: endpoint URL",
+          "port": "Default 5432",
+          "database": "Database name"
+        },
+        "notes": "The psycopg2 library comes bundled with Superset Docker images.",
+        "connection_examples": [
+          {
+            "description": "Basic connection",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}"
+          },
+          {
+            "description": "With SSL required",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require"
+          }
+        ],
+        "docs_url": "https://www.postgresql.org/docs/",
+        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Aurora MySQL": {
+      "engine": "aurora_mysql",
+      "engine_name": "Aurora MySQL",
+      "module": "aurora",
+      "documentation": {
+        "description": "MySQL is a popular open-source relational database.",
+        "logo": "mysql.png",
+        "homepage_url": "https://www.mysql.com/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "mysqlclient"
+        ],
+        "connection_string": "mysql://{username}:{password}@{host}/{database}",
+        "default_port": 3306,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "localhost, 127.0.0.1, IP address, or hostname",
+          "database": "Database name"
+        },
+        "host_examples": [
+          {
+            "platform": "Localhost",
+            "host": "localhost or 127.0.0.1"
+          },
+          {
+            "platform": "Docker on Linux",
+            "host": "172.18.0.1"
+          },
+          {
+            "platform": "Docker on macOS",
+            "host": "docker.for.mac.host.internal"
+          },
+          {
+            "platform": "On-premise",
+            "host": "IP address or hostname"
+          }
+        ],
+        "drivers": [
+          {
+            "name": "mysqlclient",
+            "pypi_package": "mysqlclient",
+            "connection_string": "mysql://{username}:{password}@{host}/{database}",
+            "is_recommended": true,
+            "notes": "Recommended driver. May fail with caching_sha2_password auth."
+          },
+          {
+            "name": "mysql-connector-python",
+            "pypi_package": "mysql-connector-python",
+            "connection_string": "mysql+mysqlconnector://{username}:{password}@{host}/{database}",
+            "is_recommended": false,
+            "notes": "Required for newer MySQL databases using caching_sha2_password authentication."
+          }
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Aurora PostgreSQL": {
+      "engine": "aurora_postgresql",
+      "engine_name": "Aurora PostgreSQL",
       "module": "aurora",
       "documentation": {
         "description": "PostgreSQL is an advanced open-source relational database.",
@@ -874,7 +1012,7 @@
       "module": "crate",
       "documentation": {
         "description": "CrateDB is a distributed SQL database for machine data and IoT workloads.",
-        "logo": "cratedb.png",
+        "logo": "cratedb.svg",
         "homepage_url": "https://crate.io/",
         "categories": [
           "TIME_SERIES",
@@ -2758,6 +2896,47 @@
       "query_cost_estimation": false,
       "sql_validation": false
     },
+    "Apache IoTDB": {
+      "engine": "apache_iotdb",
+      "engine_name": "Apache IoTDB",
+      "module": "iotdb",
+      "documentation": {
+        "description": "Apache IoTDB is a time series database designed for IoT data, with efficient storage and query capabilities for massive time series data.",
+        "logo": "apache-iotdb.svg",
+        "homepage_url": "https://iotdb.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "TIME_SERIES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "apache-iotdb"
+        ],
+        "connection_string": "iotdb://{username}:{password}@{hostname}:{port}",
+        "default_port": 6667,
+        "parameters": {
+          "username": "Database username (default: root)",
+          "password": "Database password (default: root)",
+          "hostname": "IP address or hostname",
+          "port": "Default 6667"
+        },
+        "notes": "The IoTDB SQLAlchemy dialect was written to integrate with Apache Superset. IoTDB uses a hierarchical data model, which is reorganized into a relational model for SQL queries."
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
     "Azure Data Explorer": {
       "engine": "azure_data_explorer",
       "engine_name": "Azure Data Explorer",
@@ -2993,6 +3172,63 @@
           "database": "Database name"
         },
         "docs_url": "https://www.monetdb.org/documentation/"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "MongoDB": {
+      "engine": "mongodb",
+      "engine_name": "MongoDB",
+      "module": "mongodb",
+      "documentation": {
+        "description": "MongoDB is a document-oriented, operational NoSQL database.",
+        "logo": "mongodb.png",
+        "homepage_url": "https://www.mongodb.com/",
+        "categories": [
+          "SEARCH_NOSQL",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "pymongosql"
+        ],
+        "connection_string": "mongodb://{username}:{password}@{host}:{port}/{database}?mode=superset",
+        "parameters": {
+          "username": "Username for MongoDB",
+          "password": "Password for MongoDB",
+          "host": "MongoDB host",
+          "port": "MongoDB port",
+          "database": "Database name"
+        },
+        "drivers": [
+          {
+            "name": "MongoDB Atlas Cloud",
+            "pypi_package": "pymongosql",
+            "connection_string": "mongodb+srv://{username}:{password}@{host}/{database}?mode=superset",
+            "notes": "For MongoDB Atlas cloud service.",
+            "is_recommended": true
+          },
+          {
+            "name": "MongoDB Cluster",
+            "pypi_package": "pymongosql",
+            "connection_string": "mongodb://{username}:{password}@{host}:{port}/{database}?mode=superset",
+            "is_recommended": false,
+            "notes": "For self-hosted MongoDB instances."
+          }
+        ],
+        "notes": "Uses PartiQL for SQL queries. Requires mode=superset parameter.",
+        "docs_url": "https://github.com/passren/PyMongoSQL"
       },
       "time_grains": {},
       "score": 0,
@@ -3850,6 +4086,41 @@
       "query_cost_estimation": false,
       "sql_validation": false
     },
+    "Apache Phoenix": {
+      "engine": "apache_phoenix",
+      "engine_name": "Apache Phoenix",
+      "module": "phoenix",
+      "documentation": {
+        "description": "Apache Phoenix is a relational database layer over Apache HBase, providing low-latency SQL queries over HBase data.",
+        "logo": "apache-phoenix.png",
+        "homepage_url": "https://phoenix.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "phoenixdb"
+        ],
+        "connection_string": "phoenix://{hostname}:{port}/",
+        "default_port": 8765,
+        "notes": "Phoenix provides a SQL interface to Apache HBase. The phoenixdb driver connects via the Phoenix Query Server and supports a subset of SQLAlchemy."
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
     "Apache Pinot": {
       "engine": "apache_pinot",
       "engine_name": "Apache Pinot",
@@ -4016,6 +4287,80 @@
             "docs_url": "https://www.yugabyte.com/",
             "categories": [
               "OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "Supabase",
+            "description": "Open-source Firebase alternative built on top of PostgreSQL, providing a full backend-as-a-service with a hosted Postgres database.",
+            "logo": "supabase.svg",
+            "homepage_url": "https://supabase.com/",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+            "connection_examples": [
+              {
+                "description": "Supabase project (connection pooler)",
+                "connection_string": "postgresql://{username}.{project_ref}:{password}@aws-0-{region}.pooler.supabase.com:6543/{database}"
+              }
+            ],
+            "parameters": {
+              "username": "Database user (default: postgres)",
+              "password": "Database password",
+              "host": "Supabase project host (from project settings)",
+              "port": "Default 5432 (direct) or 6543 (pooler)",
+              "database": "Database name (default: postgres)",
+              "project_ref": "Supabase project reference (from project settings)",
+              "region": "Supabase project region (e.g., us-east-1)"
+            },
+            "notes": "Find connection details in your Supabase project dashboard under Settings > Database. Use the connection pooler (port 6543) for better connection management.",
+            "docs_url": "https://supabase.com/docs/guides/database/connecting-to-postgres",
+            "categories": [
+              "HOSTED_OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "Google AlloyDB",
+            "description": "Google Cloud's PostgreSQL-compatible database service for demanding transactional and analytical workloads.",
+            "logo": "alloydb.png",
+            "homepage_url": "https://cloud.google.com/alloydb",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+            "parameters": {
+              "username": "Database user (default: postgres)",
+              "password": "Database password",
+              "host": "AlloyDB instance IP or Auth Proxy address",
+              "port": "Default 5432",
+              "database": "Database name"
+            },
+            "notes": "For public IP connections, use the AlloyDB Auth Proxy for secure access. Private IP connections can connect directly.",
+            "docs_url": "https://cloud.google.com/alloydb/docs",
+            "categories": [
+              "CLOUD_GCP",
+              "HOSTED_OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "Neon",
+            "description": "Serverless PostgreSQL with branching, scale-to-zero, and bottomless storage.",
+            "logo": "neon.png",
+            "homepage_url": "https://neon.tech/",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql://{username}:{password}@{host}/{database}?sslmode=require",
+            "parameters": {
+              "username": "Neon role name",
+              "password": "Neon role password",
+              "host": "Neon hostname (e.g., ep-cool-name-123456.us-east-2.aws.neon.tech)",
+              "database": "Database name (default: neondb)"
+            },
+            "notes": "SSL is required for all connections. Find connection details in the Neon console under Connection Details.",
+            "docs_url": "https://neon.tech/docs/connect/connect-from-any-app",
+            "categories": [
+              "HOSTED_OPEN_SOURCE"
             ]
           },
           {
@@ -4518,7 +4863,7 @@
       "module": "risingwave",
       "documentation": {
         "description": "RisingWave is a distributed streaming database.",
-        "logo": "risingwave.png",
+        "logo": "risingwave.svg",
         "homepage_url": "https://risingwave.com/",
         "pypi_packages": [
           "psycopg2",

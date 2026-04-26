@@ -28,8 +28,12 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import { EditableTitle } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 
-import Tab from './Tab';
+import type { FC } from 'react';
+import ActualTab from './Tab';
 import Markdown from '../Markdown';
+
+// Cast to loosely-typed component to avoid needing every required prop in test mocks
+const Tab = ActualTab as unknown as FC<Record<string, unknown>>;
 
 jest.mock('src/dashboard/util/getChartIdsFromComponent', () =>
   jest.fn(() => []),
@@ -135,6 +139,9 @@ const createProps = () => ({
   handleComponentDrop: jest.fn(),
   updateComponents: jest.fn(),
   setDirectPathToChild: jest.fn(),
+  onResizeStart: jest.fn(),
+  onResize: jest.fn(),
+  onResizeStop: jest.fn(),
 });
 
 beforeEach(() => {
@@ -151,6 +158,44 @@ test('Render tab (no content)', () => {
   expect(screen.getByText('🚀 Aspiring Developers')).toBeInTheDocument();
   expect(EditableTitle).toHaveBeenCalledTimes(1);
   expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
+});
+
+test('passes correct canEdit and editing props to EditableTitle', () => {
+  const props = createProps();
+
+  props.editMode = true;
+  props.isFocused = false;
+  props.renderType = 'RENDER_TAB';
+  render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(EditableTitle).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: '🚀 Aspiring Developers',
+      canEdit: true,
+      editing: false,
+    }),
+    expect.anything(),
+  );
+
+  (EditableTitle as jest.Mock).mockClear();
+
+  const focusedProps = { ...props, isFocused: true };
+  render(<Tab {...focusedProps} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(EditableTitle).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: '🚀 Aspiring Developers',
+      canEdit: true,
+      editing: true,
+    }),
+    expect.anything(),
+  );
 });
 
 test('Render tab (no content) editMode:true', () => {
@@ -187,11 +232,15 @@ test('Drop on a tab', async () => {
       <Markdown
         id="MARKDOWN-1"
         parentId="GRID_ID"
-        parentComponent={{
-          id: 'GRID_ID',
-          type: 'GRID',
-          parents: ['ROOT_ID'],
-        }}
+        parentComponent={
+          {
+            id: 'GRID_ID',
+            type: 'GRID',
+            parents: ['ROOT_ID'],
+            children: [],
+            meta: {},
+          } as any
+        }
         depth={0}
         editMode
         index={1}
@@ -567,6 +616,7 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
     true, // Force refresh
     0, // Interval
     23, // Dashboard ID
+    false, // skipFiltersRefresh
     true, // isLazyLoad flag
   );
 });
@@ -656,7 +706,7 @@ test('Should not cause infinite refresh loop with nested tabs - regression test'
 
   // REGRESSION TEST: Multiple re-renders should NOT trigger additional refreshes
   // This simulates the infinite loop scenario that was happening with nested tabs
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 5; i += 1) {
     rerender(<Tab {...props} isComponentVisible />);
     await new Promise(resolve => setTimeout(resolve, 20));
   }
@@ -707,6 +757,7 @@ test('Should use isLazyLoad flag for tab refreshes', async () => {
     true, // force
     0, // interval
     42, // dashboardId
+    false, // skipFiltersRefresh
     true, // isLazyLoad should be true to prevent infinite loops
   );
 });

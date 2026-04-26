@@ -204,3 +204,63 @@ def test_update_command_failed_validation(
                 "objects_to_tag": objects_to_tag,
             },
         ).run()
+
+
+def test_update_command_remove_all_tagged_objects(
+    session_with_data: Session, mocker: MockerFixture
+):
+    """Test that removing all tagged objects from a tag works correctly.
+
+    This is a regression test for GitHub issue #36074 where bulk untagging
+    (removing all objects from a tag) caused a SQLAlchemy error because
+    the tag's 'objects' relationship still held references to deleted
+    TaggedObject instances.
+    """
+    from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
+    from superset.commands.tag.update import UpdateTagCommand
+    from superset.daos.tag import TagDAO
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tags.models import ObjectType, TaggedObject
+
+    dashboard = db.session.query(Dashboard).first()
+    chart = db.session.query(Slice).first()
+
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_admin", return_value=True
+    )
+    mocker.patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart)
+    mocker.patch(
+        "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+    )
+
+    # Create a tag with multiple objects
+    objects_to_tag = [
+        (ObjectType.dashboard, dashboard.id),
+        (ObjectType.chart, chart.id),
+    ]
+
+    CreateCustomTagWithRelationshipsCommand(
+        data={"name": "test_tag", "objects_to_tag": objects_to_tag}
+    ).run()
+
+    tag_to_update = TagDAO.find_by_name("test_tag")
+    assert len(tag_to_update.objects) == 2
+
+    # Remove all tagged objects by passing an empty list
+    # This should not raise a SQLAlchemy error about deleted instances
+    updated_tag = UpdateTagCommand(
+        tag_to_update.id,
+        {
+            "name": "test_tag",
+            "description": "updated description",
+            "objects_to_tag": [],
+        },
+    ).run()
+
+    assert updated_tag is not None
+    assert updated_tag.description == "updated description"
+    # Verify all tagged objects were removed
+    assert (
+        len(db.session.query(TaggedObject).filter_by(tag_id=updated_tag.id).all()) == 0
+    )

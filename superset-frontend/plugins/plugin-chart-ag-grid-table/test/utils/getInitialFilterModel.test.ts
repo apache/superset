@@ -21,7 +21,7 @@ import type { AgGridChartState } from '@superset-ui/core';
 
 describe('getInitialFilterModel', () => {
   describe('Priority: chartState > serverPaginationData', () => {
-    it('should prioritize chartState.filterModel over serverPaginationData', () => {
+    test('should prioritize chartState.filterModel over serverPaginationData', () => {
       const chartState: Partial<AgGridChartState> = {
         filterModel: {
           name: {
@@ -47,7 +47,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toEqual(chartState.filterModel);
     });
 
-    it('should use serverPaginationData when chartState.filterModel is unavailable', () => {
+    test('should use serverPaginationData when chartState.filterModel is unavailable', () => {
       const chartState: Partial<AgGridChartState> = {};
 
       const serverPaginationData = {
@@ -65,7 +65,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toEqual(serverPaginationData.agGridFilterModel);
     });
 
-    it('should use serverPaginationData when chartState is undefined', () => {
+    test('should use serverPaginationData when chartState is undefined', () => {
       const serverPaginationData = {
         agGridFilterModel: {
           status: { filterType: 'text', type: 'equals', filter: 'active' },
@@ -83,7 +83,7 @@ describe('getInitialFilterModel', () => {
   });
 
   describe('Empty object handling', () => {
-    it('should return undefined when chartState.filterModel is empty object', () => {
+    test('should return undefined when chartState.filterModel is empty object', () => {
       const chartState: Partial<AgGridChartState> = {
         filterModel: {},
       };
@@ -104,7 +104,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toEqual(serverPaginationData.agGridFilterModel);
     });
 
-    it('should return undefined when serverPaginationData.agGridFilterModel is empty object', () => {
+    test('should return undefined when serverPaginationData.agGridFilterModel is empty object', () => {
       const chartState: Partial<AgGridChartState> = {};
 
       const serverPaginationData = {
@@ -120,7 +120,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should handle both being empty objects', () => {
+    test('should handle both being empty objects', () => {
       const chartState: Partial<AgGridChartState> = {
         filterModel: {},
       };
@@ -140,19 +140,19 @@ describe('getInitialFilterModel', () => {
   });
 
   describe('Undefined/null handling', () => {
-    it('should return undefined when all inputs are undefined', () => {
+    test('should return undefined when all inputs are undefined', () => {
       const result = getInitialFilterModel(undefined, undefined, true);
 
       expect(result).toBeUndefined();
     });
 
-    it('should return undefined when chartState and serverPaginationData are undefined', () => {
+    test('should return undefined when chartState and serverPaginationData are undefined', () => {
       const result = getInitialFilterModel(undefined, undefined, false);
 
       expect(result).toBeUndefined();
     });
 
-    it('should return undefined when serverPagination is disabled', () => {
+    test('should return undefined when serverPagination is disabled', () => {
       const chartState: Partial<AgGridChartState> = {};
 
       const serverPaginationData = {
@@ -170,7 +170,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should use chartState even when serverPagination is disabled', () => {
+    test('should use chartState even when serverPagination is disabled', () => {
       const chartState: Partial<AgGridChartState> = {
         filterModel: {
           name: {
@@ -199,7 +199,7 @@ describe('getInitialFilterModel', () => {
   });
 
   describe('Complex filter models', () => {
-    it('should handle complex chartState filter model', () => {
+    test('should handle complex chartState filter model', () => {
       const chartState: Partial<AgGridChartState> = {
         filterModel: {
           name: { filterType: 'text', type: 'equals', filter: 'John' },
@@ -222,7 +222,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toEqual(chartState.filterModel);
     });
 
-    it('should handle complex serverPaginationData filter model', () => {
+    test('should handle complex serverPaginationData filter model', () => {
       const serverPaginationData = {
         agGridFilterModel: {
           category: { filterType: 'text', type: 'contains', filter: 'tech' },
@@ -241,7 +241,7 @@ describe('getInitialFilterModel', () => {
   });
 
   describe('Real-world scenarios', () => {
-    it('should handle permalink scenario with chartState', () => {
+    test('should handle permalink scenario with chartState', () => {
       // User shares a permalink with saved filter state
       const chartState: Partial<AgGridChartState> = {
         filterModel: {
@@ -258,7 +258,7 @@ describe('getInitialFilterModel', () => {
       expect(result?.revenue).toBeDefined();
     });
 
-    it('should handle fresh page load with server state', () => {
+    test('should handle fresh page load with server state', () => {
       // Fresh page load - no chartState, but has serverPaginationData from ownState
       const serverPaginationData = {
         agGridFilterModel: {
@@ -281,7 +281,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toEqual(serverPaginationData.agGridFilterModel);
     });
 
-    it('should handle chart without any filters applied', () => {
+    test('should handle chart without any filters applied', () => {
       // No filters applied anywhere
       const chartState: Partial<AgGridChartState> = {
         columnState: [],
@@ -301,7 +301,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should handle transition from no filters to filters via permalink', () => {
+    test('should handle transition from no filters to filters via permalink', () => {
       // User applies filters, creates permalink, then loads it
       const chartState: Partial<AgGridChartState> = {
         filterModel: {
@@ -324,7 +324,7 @@ describe('getInitialFilterModel', () => {
   });
 
   describe('Edge cases', () => {
-    it('should handle null values in serverPaginationData', () => {
+    test('should handle null values in serverPaginationData', () => {
       const serverPaginationData = {
         agGridFilterModel: null as any,
       };
@@ -338,7 +338,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should handle serverPaginationData without agGridFilterModel key', () => {
+    test('should handle serverPaginationData without agGridFilterModel key', () => {
       const serverPaginationData = {
         currentPage: 0,
         pageSize: 20,
@@ -353,7 +353,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should handle chartState with null filterModel', () => {
+    test('should handle chartState with null filterModel', () => {
       const chartState: Partial<AgGridChartState> = {
         filterModel: null as any,
       };
@@ -373,7 +373,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toEqual(serverPaginationData.agGridFilterModel);
     });
 
-    it('should handle serverPagination undefined (defaults to false)', () => {
+    test('should handle serverPagination undefined (defaults to false)', () => {
       const serverPaginationData = {
         agGridFilterModel: {
           name: { filterType: 'text', type: 'equals', filter: 'test' },
@@ -389,7 +389,7 @@ describe('getInitialFilterModel', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should preserve filter model structure without modification', () => {
+    test('should preserve filter model structure without modification', () => {
       const originalFilterModel = {
         complexFilter: {
           filterType: 'number',

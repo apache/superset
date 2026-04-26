@@ -26,7 +26,7 @@ import {
   useState,
 } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ChartDataResponseResult,
   Behavior,
@@ -41,12 +41,12 @@ import {
   getClientErrorObject,
   isChartCustomization,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
-import { Loading, Constants } from '@superset-ui/core/components';
+import { Loading, Constants, Flex } from '@superset-ui/core/components';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -61,7 +61,7 @@ import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
-import { useFilterDependencies } from './state';
+import { useFilterDependencies, useTransitiveParentIds } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
 
 const HEIGHT = 32;
@@ -83,6 +83,35 @@ const StyledDiv = styled.div<{
 `;
 
 const queriesDataPlaceholder = [{ data: [{}] }];
+
+type TimeGrainFilterConfig = {
+  time_grains?: string[];
+};
+
+export const applyTimeGrainAllowlist = (
+  filterType: string,
+  allowedTimeGrains: string[] | undefined,
+  results: ChartDataResponseResult[],
+): ChartDataResponseResult[] => {
+  if (filterType !== 'filter_timegrain' || !allowedTimeGrains?.length) {
+    return results;
+  }
+
+  return results.map(result => {
+    if (!Array.isArray(result.data)) {
+      return result;
+    }
+
+    return {
+      ...result,
+      data: result.data.filter(row =>
+        allowedTimeGrains.includes(
+          (row as { duration?: string }).duration ?? '',
+        ),
+      ),
+    };
+  });
+};
 
 const useShouldFilterRefresh = () => {
   const isDashboardRefreshing = useSelector<RootState, boolean>(
@@ -114,11 +143,15 @@ const FilterValue: FC<FilterValueProps> = ({
 }) => {
   const { id, targets, filterType } = filter;
   const isCustomization = isChartCustomization(filter);
+  const allowedTimeGrains = isCustomization
+    ? undefined
+    : (filter as TimeGrainFilterConfig).time_grains;
   const adhocFilters = isCustomization ? undefined : filter.adhoc_filters;
   const timeRange = isCustomization ? undefined : filter.time_range;
   const granularitySqla = isCustomization ? undefined : filter.granularity_sqla;
   const metadata = getChartMetadataRegistry().get(filterType);
   const dependencies = useFilterDependencies(id, dataMaskSelected);
+  const transitiveParentIds = useTransitiveParentIds(id);
   const shouldRefresh = useShouldFilterRefresh();
 
   const behaviors = useMemo(
@@ -128,6 +161,8 @@ const FilterValue: FC<FilterValueProps> = ({
     [isCustomization],
   );
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
+  const hasDeps = Boolean(filter.cascadeParentIds?.length);
+  const [hasDepsFilterValue, setHasDepsFilterValue] = useState(hasDeps);
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
@@ -161,6 +196,10 @@ const FilterValue: FC<FilterValueProps> = ({
   }, [dispatch, shouldRefresh]);
 
   useEffect(() => {
+    setHasDepsFilterValue(hasDeps);
+  }, [hasDeps]);
+
+  useEffect(() => {
     if (!inViewFirstTime && inView) {
       setInViewFirstTime(true);
     }
@@ -181,32 +220,38 @@ const FilterValue: FC<FilterValueProps> = ({
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
-    if ((filter.cascadeParentIds ?? []).length) {
-      // Prevent unnecessary backend requests by validating parent filter selections first
+    if (transitiveParentIds.length) {
+      // Prevent unnecessary backend requests by validating ancestor filter
+      // selections first. We walk the full transitive ancestor chain (not just
+      // direct parents) so the counts line up with `dependencies`, which is
+      // itself built from the transitive chain by `useFilterDependencies`.
 
       let selectedParentFilterValueCounts = 0;
-
-      (filter.cascadeParentIds ?? []).forEach(pId => {
+      let isTimeRangeSelected = false;
+      transitiveParentIds.forEach(pId => {
         const extraFormData = dataMaskSelected?.[pId]?.extraFormData;
         if (extraFormData?.filters?.length) {
           selectedParentFilterValueCounts += extraFormData.filters.length;
-        } else if (extraFormData?.time_range) {
-          selectedParentFilterValueCounts += 1;
+        }
+        if (extraFormData?.time_range) {
+          isTimeRangeSelected = true;
         }
       });
 
-      // check if all parent filters with defaults have a value selected
+      // check if all ancestor filters with defaults have a value selected
 
-      let depsCount = dependencies.filters?.length ?? 0;
+      const depsCount = dependencies.filters?.length ?? 0;
+      const hasTimeRangeDeps = Boolean(dependencies?.time_range);
 
-      if (dependencies?.time_range) {
-        depsCount += 1;
-      }
-      if (selectedParentFilterValueCounts !== depsCount) {
+      if (
+        selectedParentFilterValueCounts !== depsCount ||
+        (hasTimeRangeDeps && !isTimeRangeSelected)
+      ) {
         // child filter should not request backend until it
-        // has all the required information from parent filters
+        // has all the required information from ancestor filters
         return;
       }
+      setHasDepsFilterValue(false);
     }
 
     // TODO: We should try to improve our useEffect hooks to depend more on
@@ -238,12 +283,24 @@ const FilterValue: FC<FilterValueProps> = ({
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
             if (response.status === 200) {
-              setState([result]);
+              setState(
+                applyTimeGrainAllowlist(filterType, allowedTimeGrains, [
+                  result as ChartDataResponseResult,
+                ]),
+              );
+              setError(undefined);
               handleFilterLoadFinish();
             } else if (response.status === 202) {
-              waitForAsyncData(result)
+              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
                 .then((asyncResult: ChartDataResponseResult[]) => {
-                  setState(asyncResult);
+                  setState(
+                    applyTimeGrainAllowlist(
+                      filterType,
+                      allowedTimeGrains,
+                      asyncResult,
+                    ),
+                  );
+                  setError(undefined);
                   handleFilterLoadFinish();
                 })
                 .catch((error: Response) => {
@@ -258,7 +315,13 @@ const FilterValue: FC<FilterValueProps> = ({
               );
             }
           } else {
-            setState(json.result);
+            setState(
+              applyTimeGrainAllowlist(
+                filterType,
+                allowedTimeGrains,
+                json.result as ChartDataResponseResult[],
+              ),
+            );
             setError(undefined);
             handleFilterLoadFinish();
           }
@@ -277,10 +340,13 @@ const FilterValue: FC<FilterValueProps> = ({
     groupby,
     handleFilterLoadFinish,
     filter,
+    allowedTimeGrains,
     hasDataSource,
     isRefreshing,
     shouldRefresh,
     dataMaskSelected,
+    setHasDepsFilterValue,
+    transitiveParentIds,
   ]);
 
   useEffect(() => {
@@ -397,7 +463,12 @@ const FilterValue: FC<FilterValueProps> = ({
       overflow={overflow}
     >
       {isLoading ? (
-        <Loading position="inline-centered" size="s" muted />
+        <Flex align="center">
+          <Loading position="inline" size="s" muted />
+          {hasDepsFilterValue
+            ? t('Awaiting filter selection')
+            : t('Loading filter values')}
+        </Flex>
       ) : (
         <SuperChart
           height={HEIGHT}

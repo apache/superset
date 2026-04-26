@@ -31,8 +31,8 @@ from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from requests import Session
 from shillelagh.adapters.api.gsheets.lib import SCOPES
-from shillelagh.exceptions import UnauthenticatedError
 from sqlalchemy.engine import create_engine
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
 from superset import db, security_manager
@@ -42,6 +42,7 @@ from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.utils import json
+from superset.utils.oauth2 import get_oauth2_access_token
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -83,14 +84,16 @@ class GSheetsParametersSchema(Schema):
     )
 
 
-class GSheetsParametersType(TypedDict):
+class GSheetsParametersType(TypedDict, total=False):
     service_account_info: str
     catalog: dict[str, str] | None
+    oauth2_client_info: dict[str, str] | None
 
 
-class GSheetsPropertiesType(TypedDict):
+class GSheetsPropertiesType(TypedDict, total=False):
     parameters: GSheetsParametersType
     catalog: dict[str, str]
+    masked_encrypted_extra: str
 
 
 class GSheetsEngineSpec(ShillelaghEngineSpec):
@@ -123,7 +126,10 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
-    encrypted_extra_sensitive_fields = {"$.service_account_info.private_key"}
+    encrypted_extra_sensitive_fields = {
+        "$.service_account_info.private_key": "Service Account Private Key",
+        "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+    }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         SYNTAX_ERROR_REGEX: (
@@ -145,13 +151,13 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         "https://accounts.google.com/o/oauth2/v2/auth"
     )
     oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
-    oauth2_exception = UnauthenticatedError
 
     @classmethod
     def get_oauth2_authorization_uri(
         cls,
         config: "OAuth2ClientConfig",
         state: "OAuth2State",
+        code_verifier: str | None = None,
     ) -> str:
         """
         Return URI for initial OAuth2 request with Google-specific parameters.
@@ -163,10 +169,10 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         """
         from urllib.parse import urlencode, urljoin
 
-        from superset.utils.oauth2 import encode_oauth2_state
+        from superset.utils.oauth2 import encode_oauth2_state, generate_code_challenge
 
         uri = config["authorization_request_uri"]
-        params = {
+        params: dict[str, str] = {
             "scope": config["scope"],
             "response_type": "code",
             "state": encode_oauth2_state(state),
@@ -177,7 +183,36 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             "include_granted_scopes": "false",
             "prompt": "consent",
         }
+
+        # Add PKCE parameters (RFC 7636) if code_verifier is provided
+        if code_verifier:
+            params["code_challenge"] = generate_code_challenge(code_verifier)
+            params["code_challenge_method"] = "S256"
+
         return urljoin(uri, "?" + urlencode(params))
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Check if the exception is one that indicates OAuth2 is needed.
+
+        In case the token was manually revoked on Google side, `google-auth` will
+        try to automatically refresh credentials, but it fails since it only has the
+        access token. This override catches this scenario as well.
+
+        Also catches the case where no credentials are configured at all
+        (missing Application Default Credentials).
+        """
+        error_message = str(ex).lower()
+        return (
+            g
+            and hasattr(g, "user")
+            and (
+                isinstance(ex, cls.oauth2_exception)
+                or "credentials do not contain the necessary fields" in error_message
+                or "default credentials were not found" in error_message
+            )
+        )
 
     @classmethod
     def impersonate_user(
@@ -197,6 +232,28 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             url = url.update_query_dict({"access_token": user_token})
 
         return url, engine_kwargs
+
+    @classmethod
+    def get_table_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all sheets added to the connection.
+
+        For OAuth2 connections, force the OAuth2 dance in case the user
+        doesn't have a token yet to avoid showing table names berofe auth.
+        """
+        if database.is_oauth2_enabled() and not get_oauth2_access_token(
+            database.get_oauth2_config(),
+            database.id,
+            g.user.id,
+            database.db_engine_spec,
+        ):
+            database.start_oauth2_dance()
+        return super().get_table_names(database, inspector, schema)
 
     @classmethod
     def get_extra_table_metadata(
@@ -311,6 +368,14 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         conn = engine.connect()
         idx = 0
 
+        # Check for OAuth2 config. Skip URL access for OAuth2 connections (user
+        # might not have a token, or admin adding a sheet they don't have access to)
+        oauth2_config_in_params = parameters.get("oauth2_client_info")
+        oauth2_config_in_secure_extra = json.loads(
+            properties.get("masked_encrypted_extra", "{}")
+        ).get("oauth2_client_info")
+        is_oauth2_conn = bool(oauth2_config_in_params or oauth2_config_in_secure_extra)
+
         for name, url in table_catalog.items():
             if not name:
                 errors.append(
@@ -334,7 +399,11 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 )
                 return errors
 
+            if is_oauth2_conn:
+                continue
+
             try:
+                url = url.replace('"', '""')
                 results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')  # noqa: S608
                 results.fetchall()
             except Exception:  # pylint: disable=broad-except

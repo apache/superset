@@ -82,6 +82,43 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
 SYNTAX_ERROR_REGEX = re.compile('syntax error at or near "(?P<syntax_error>.*?)"')
 
 
+def _check_not_redshift(dbapi_connection: Any, connection_record: Any) -> None:
+    """
+    Event that checks if database is Amazon Redshift.
+
+    SQLAlchemy pool `connect` event that checks whether the database is actually
+    Amazon Redshift by running `SELECT version()`. Redshift returns a version string
+    containing `Redshift`, e.g.::
+
+        PostgreSQL 8.0.2 on ... Redshift 1.0.77467
+
+    If detected, a `ValueError` is raised so that the user is prompted to
+    switch to the `redshift+psycopg2://` driver, which ensures the correct
+    sqlglot dialect is used for SQL transpilation.
+    """
+    try:
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("SELECT version()")
+            version = cursor.fetchone()[0]
+        finally:
+            cursor.close()
+
+        if "redshift" in str(version).lower():
+            raise ValueError(
+                "It looks like you're connecting to Amazon Redshift using the "
+                "PostgreSQL driver. Please use the Redshift driver instead "
+                "(redshift+psycopg2://) to ensure proper SQL dialect support."
+            )
+    except ValueError:
+        raise
+    except Exception:
+        logger.debug(
+            "Failed to check database version for Redshift detection",
+            exc_info=True,
+        )
+
+
 def parse_options(connect_args: dict[str, Any]) -> dict[str, str]:
     """
     Parse ``options`` from  ``connect_args`` into a dictionary.
@@ -320,6 +357,107 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 "categories": [DatabaseCategory.OPEN_SOURCE],
             },
             {
+                "name": "Supabase",
+                "description": (
+                    "Open-source Firebase alternative built on top of PostgreSQL, "
+                    "providing a full backend-as-a-service with a hosted Postgres "
+                    "database."
+                ),
+                "logo": "supabase.svg",
+                "homepage_url": "https://supabase.com/",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "connection_examples": [
+                    {
+                        "description": "Supabase project (connection pooler)",
+                        "connection_string": (
+                            "postgresql://{username}.{project_ref}:{password}"
+                            "@aws-0-{region}.pooler.supabase.com:6543/{database}"
+                        ),
+                    },
+                ],
+                "parameters": {
+                    "username": "Database user (default: postgres)",
+                    "password": "Database password",
+                    "host": "Supabase project host (from project settings)",
+                    "port": "Default 5432 (direct) or 6543 (pooler)",
+                    "database": "Database name (default: postgres)",
+                    "project_ref": "Supabase project reference (from project settings)",
+                    "region": "Supabase project region (e.g., us-east-1)",
+                },
+                "notes": (
+                    "Find connection details in your Supabase project dashboard under "
+                    "Settings > Database. Use the connection pooler (port 6543) for "
+                    "better connection management."
+                ),
+                "docs_url": "https://supabase.com/docs/guides/database/connecting-to-postgres",
+                "categories": [
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+            {
+                "name": "Google AlloyDB",
+                "description": (
+                    "Google Cloud's PostgreSQL-compatible database service "
+                    "for demanding transactional and analytical workloads."
+                ),
+                "logo": "alloydb.png",
+                "homepage_url": "https://cloud.google.com/alloydb",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "parameters": {
+                    "username": "Database user (default: postgres)",
+                    "password": "Database password",
+                    "host": "AlloyDB instance IP or Auth Proxy address",
+                    "port": "Default 5432",
+                    "database": "Database name",
+                },
+                "notes": (
+                    "For public IP connections, use the AlloyDB Auth Proxy for "
+                    "secure access. Private IP connections can connect directly."
+                ),
+                "docs_url": "https://cloud.google.com/alloydb/docs",
+                "categories": [
+                    DatabaseCategory.CLOUD_GCP,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+            {
+                "name": "Neon",
+                "description": (
+                    "Serverless PostgreSQL with branching, scale-to-zero, "
+                    "and bottomless storage."
+                ),
+                "logo": "neon.png",
+                "homepage_url": "https://neon.tech/",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}"
+                    "@{host}/{database}?sslmode=require"
+                ),
+                "parameters": {
+                    "username": "Neon role name",
+                    "password": "Neon role password",
+                    "host": (
+                        "Neon hostname (e.g., "
+                        "ep-cool-name-123456.us-east-2.aws.neon.tech)"
+                    ),
+                    "database": "Database name (default: neondb)",
+                },
+                "notes": (
+                    "SSL is required for all connections. Find connection "
+                    "details in the Neon console under Connection Details."
+                ),
+                "docs_url": "https://neon.tech/docs/connect/connect-from-any-app",
+                "categories": [
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+            {
                 "name": "Amazon Aurora PostgreSQL",
                 "description": (
                     "Amazon Aurora PostgreSQL is a fully managed, "
@@ -358,6 +496,14 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
 
     max_column_name_length = 63
     try_remove_schema_from_table_name = False  # pylint: disable=invalid-name
+
+    # Sensitive fields that should be masked in encrypted_extra.
+    # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
+    # that specify exact paths rather than using the base class's catch-all "$.*".
+    encrypted_extra_sensitive_fields = {
+        "$.aws_iam.external_id": "AWS IAM External ID",
+        "$.aws_iam.role_arn": "AWS IAM Role ARN",
+    }
 
     column_type_mappings = (
         (
@@ -460,6 +606,67 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             uri = uri.set(database=catalog)
 
         return uri, connect_args
+
+    @staticmethod
+    def mutate_db_for_connection_test(database: Database) -> None:
+        """
+        Flag the database so that the Redshift `SELECT version()` check
+        runs during `test_connection`.  The actual check is injected as a
+        pool `connect` event inside `update_params_from_encrypted_extra`.
+        """
+        database._check_redshift_version = True
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Extract sensitive parameters from encrypted_extra.
+
+        Handles AWS IAM authentication if configured, then merges any
+        remaining encrypted_extra keys into params (standard behavior).
+        """
+        # During test_connection, inject a pool event to detect Redshift by
+        # checking SELECT version().  This catches cases where the hostname
+        # doesn't reveal Redshift (custom domains, private endpoints, etc.).
+        if getattr(database, "_check_redshift_version", False) is True:
+            pool_events = params.setdefault("pool_events", [])
+            pool_events.append((_check_not_redshift, "connect"))
+
+        if not database.encrypted_extra:
+            return
+
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise
+
+        # Handle AWS IAM auth: pop the key so it doesn't reach create_engine()
+        iam_config = encrypted_extra.pop("aws_iam", None)
+        if iam_config and iam_config.get("enabled"):
+            from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+            # Preserve a stricter existing sslmode (e.g. verify-full) if present
+            connect_args = params.get("connect_args") or {}
+            previous_sslmode = connect_args.get("sslmode")
+
+            AWSIAMAuthMixin._apply_iam_authentication(
+                database,
+                params,
+                iam_config,
+                ssl_args={"sslmode": "require"},
+                default_port=5432,
+            )
+
+            # Restore stricter sslmode if it was previously configured
+            if previous_sslmode in ("verify-ca", "verify-full"):
+                params.setdefault("connect_args", {})["sslmode"] = previous_sslmode
+
+        # Standard behavior: merge remaining keys into params
+        if encrypted_extra:
+            params.update(encrypted_extra)
 
     @classmethod
     def get_default_catalog(cls, database: Database) -> str:

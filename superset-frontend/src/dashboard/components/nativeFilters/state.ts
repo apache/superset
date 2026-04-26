@@ -32,6 +32,10 @@ import { FilterElement } from './FilterBar/FilterControls/types';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { isChartCustomizationId } from './FiltersConfigModal/utils';
+import {
+  migrateChartCustomizationArray,
+  isLegacyChartCustomizationFormat,
+} from '../../util/migrateChartCustomization';
 
 const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
 const defaultFilterConfiguration: (Filter | Divider)[] = [];
@@ -86,18 +90,28 @@ const selectDashboardChartIds = createSelector(
     new Set(
       Object.values(dashboardLayout)
         .filter(item => item.type === CHART_TYPE && item.meta?.chartId)
-        .map(item => item.meta.chartId),
+        .map(item => item.meta.chartId!),
     ),
 );
 
 const selectChartCustomizationConfiguration = createSelector(
   [
     (state: RootState) =>
-      state.dashboardInfo.metadata?.chart_customization_config || EMPTY_ARRAY,
+      state.dashboardInfo?.metadata?.chart_customization_config || EMPTY_ARRAY,
     selectDashboardChartIds,
   ],
-  (allCustomizations, dashboardChartIds): ChartCustomizationConfiguration =>
-    allCustomizations.filter(customization => {
+  (allCustomizations, dashboardChartIds): ChartCustomizationConfiguration => {
+    const truthyCustomizations = allCustomizations.filter(Boolean);
+
+    const hasLegacyFormat = truthyCustomizations.some(item =>
+      isLegacyChartCustomizationFormat(item),
+    );
+
+    const migratedCustomizations = hasLegacyFormat
+      ? migrateChartCustomizationArray(truthyCustomizations)
+      : (truthyCustomizations as ChartCustomizationConfiguration);
+
+    return migratedCustomizations.filter(customization => {
       if (
         !customization.chartsInScope ||
         customization.chartsInScope.length === 0
@@ -108,7 +122,8 @@ const selectChartCustomizationConfiguration = createSelector(
       return customization.chartsInScope.some((chartId: number) =>
         dashboardChartIds.has(chartId),
       );
-    }),
+    });
+  },
 );
 
 export function useChartCustomizationConfiguration() {
@@ -210,10 +225,9 @@ export function useIsFilterInScope() {
       if (hasChartsInScope) {
         isChartInScope = filter.chartsInScope!.some((chartId: number) => {
           const tabParents = selectChartTabParents(chartId);
+          // Note: every() returns true for empty arrays, so length check is unnecessary
           return (
-            !tabParents ||
-            tabParents.length === 0 ||
-            tabParents.every(tab => activeTabs.includes(tab))
+            !tabParents || tabParents.every(tab => activeTabs.includes(tab))
           );
         });
       }
@@ -271,21 +285,30 @@ export function useIsCustomizationInScope() {
     (customization: ChartCustomization | ChartCustomizationDivider) => {
       if ('title' in customization) return true;
 
-      const isChartInScope =
+      const hasChartsInScope =
         Array.isArray(customization.chartsInScope) &&
-        customization.chartsInScope.length > 0 &&
-        customization.chartsInScope.some((chartId: number) => {
+        customization.chartsInScope.length > 0;
+      const hasTabsInScope =
+        Array.isArray(customization.tabsInScope) &&
+        customization.tabsInScope.length > 0;
+
+      if (!hasChartsInScope && !hasTabsInScope) {
+        return true;
+      }
+
+      const isChartInScope =
+        hasChartsInScope &&
+        customization.chartsInScope!.some((chartId: number) => {
           const tabParents = selectChartTabParents(chartId);
+          // Note: every() returns true for empty arrays, so length check is unnecessary
           return (
-            !tabParents ||
-            tabParents.length === 0 ||
-            tabParents.every(tab => activeTabs.includes(tab))
+            !tabParents || tabParents.every(tab => activeTabs.includes(tab))
           );
         });
 
-      const isCustomizationInActiveTab = customization.tabsInScope?.some(tab =>
-        activeTabs.includes(tab),
-      );
+      const isCustomizationInActiveTab =
+        hasTabsInScope &&
+        customization.tabsInScope!.some(tab => activeTabs.includes(tab));
 
       return isChartInScope || isCustomizationInActiveTab;
     },

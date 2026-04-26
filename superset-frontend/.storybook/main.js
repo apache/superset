@@ -23,8 +23,13 @@ const customConfig = require('../webpack.config.js');
 // Filter out plugins that shouldn't be included in Storybook's static build
 // ReactRefreshWebpackPlugin adds Fast Refresh code that requires a dev server runtime,
 // which isn't available when serving the static storybook build
+// ForkTsCheckerWebpackPlugin causes TypeScript project reference errors in Storybook context
+const pluginsToExclude = [
+  'ReactRefreshWebpackPlugin',
+  'ForkTsCheckerWebpackPlugin',
+];
 const filteredPlugins = customConfig.plugins.filter(
-  plugin => plugin.constructor.name !== 'ReactRefreshWebpackPlugin',
+  plugin => !pluginsToExclude.includes(plugin.constructor.name),
 );
 
 // Deep clone and modify rules to disable React Fast Refresh and dev mode in SWC loader
@@ -73,9 +78,9 @@ const disableDevModeInRules = rules =>
 
 module.exports = {
   stories: [
-    '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.stories.@(tsx|jsx)',
-    '../packages/superset-ui-demo/storybook/stories/**/*.*.@(tsx|jsx)',
-    '../packages/superset-ui-core/src/components/**/*.stories.@(tsx|jsx)',
+    '../src/**/*.stories.tsx',
+    '../packages/superset-ui-core/src/**/*.stories.tsx',
+    '../plugins/*/src/**/*.stories.tsx',
   ],
 
   addons: [
@@ -102,13 +107,15 @@ module.exports = {
         ...customConfig.resolve?.alias,
         // Fix for Storybook 8.6.x with React 17 - resolve ESM module paths
         'react-dom/test-utils': require.resolve('react-dom/test-utils'),
+        // Shared storybook utilities
+        '@storybook-shared': join(__dirname, 'shared'),
       },
     },
     plugins: [...config.plugins, ...filteredPlugins],
   }),
 
   typescript: {
-    reactDocgen: 'react-docgen-typescript',
+    reactDocgen: getAbsolutePath('react-docgen-typescript'),
   },
 
   framework: {

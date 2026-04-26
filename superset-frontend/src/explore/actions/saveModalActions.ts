@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import { Dispatch } from 'redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
   type QueryFormData,
@@ -164,8 +164,8 @@ export const getSlicePayload = async (
     force: false,
     resultFormat: 'json',
     resultType: 'full',
-    setDataMask: null,
-    ownState: null,
+    setDataMask: undefined,
+    ownState: undefined,
   });
 
   const payload: Partial<PayloadSlice> = {

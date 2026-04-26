@@ -23,12 +23,9 @@ import os
 import threading
 import time
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from flask import Flask
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 

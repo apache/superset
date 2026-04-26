@@ -19,8 +19,8 @@
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t } from '@apache-superset/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -51,6 +51,7 @@ import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 
 import { nanoid } from 'nanoid';
+import type { ActiveFilters } from '../types';
 import { RootState } from '../types';
 import {
   chartContextMenuStyles,
@@ -62,6 +63,7 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
+import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
 
 export const DashboardPageIdContext = createContext('');
 
@@ -118,7 +120,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,
   );
-  const dashboardTheme = useSelector(
+  const reduxTheme = useSelector(
     (state: RootState) => state.dashboardInfo.theme,
   );
   const { addDangerToast } = useToasts();
@@ -175,14 +177,16 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       let dataMask = nativeFilterKeyValue || {};
       // activeTabs is initialized with undefined so that it doesn't override
       // the currently stored value when hydrating
-      let activeTabs: string[] | undefined;
-      let chartStates: DashboardChartStates | undefined;
+      let activeTabs: string[] | null | undefined;
+      let chartStates: DashboardChartStates | null | undefined;
       let anchor: string | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
         if (permalinkValue?.state) {
-          ({ dataMask, activeTabs, chartStates, anchor } =
-            permalinkValue.state);
+          ({ dataMask, activeTabs, anchor } = permalinkValue.state);
+          chartStates = permalinkValue.state.chartStates as
+            | DashboardChartStates
+            | undefined;
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
@@ -198,12 +202,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dispatch(
           hydrateDashboard({
             history,
-            dashboard,
-            charts,
-            activeTabs,
+            dashboard: dashboard!,
+            charts: charts!,
+            activeTabs: activeTabs ?? null,
             dataMask,
-            chartStates,
-          }),
+            chartStates: chartStates ?? null,
+          } as unknown as Parameters<typeof hydrateDashboard>[0]),
         );
 
         // Scroll to anchor element if specified in permalink state
@@ -291,18 +295,16 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
             <CrudThemeProvider
-              themeId={
-                dashboardTheme !== undefined
-                  ? dashboardTheme?.id
-                  : dashboard?.theme?.id
-              }
+              theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
             >
-              <DashboardContainer
-                activeFilters={activeFilters}
-                ownDataCharts={relevantDataMask}
-              >
-                {DashboardBuilderComponent}
-              </DashboardContainer>
+              <AutoRefreshProvider>
+                <DashboardContainer
+                  activeFilters={activeFilters as ActiveFilters}
+                  ownDataCharts={relevantDataMask}
+                >
+                  {DashboardBuilderComponent}
+                </DashboardContainer>
+              </AutoRefreshProvider>
             </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
         </>

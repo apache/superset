@@ -28,7 +28,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   getChartControlPanelRegistry,
@@ -42,7 +42,12 @@ import {
   FeatureFlag,
   VizType,
 } from '@superset-ui/core';
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import {
   ControlPanelSectionConfig,
   ControlState,
@@ -95,7 +100,8 @@ const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
-  actions: ExploreActions;
+  // Only setControlValue is used from actions in this component
+  actions: Pick<ExploreActions, 'setControlValue'>;
   datasource_type: DatasourceType;
   chart: ChartState;
   controls: Record<string, ControlState>;
@@ -642,6 +648,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </span>
     );
 
+    let isInSubSection = false;
     const PanelChildren = (
       <>
         <StashFormDataContainer
@@ -659,8 +666,19 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             .filter(Boolean)}
         />
         {isVisible && (
-          <>
+          <div style={{ paddingLeft: theme.sizeUnit * 2 }}>
             {section.controlSetRows.map((controlSets, i) => {
+              // Detect sub-section header rows (React elements with no name prop)
+              const isSubSectionHeaderRow = controlSets.some(
+                item =>
+                  isValidElement(item) &&
+                  !(item as React.ReactElement<Record<string, unknown>>).props
+                    ?.name,
+              );
+              if (isSubSectionHeaderRow) {
+                isInSubSection = true;
+              }
+
               const renderedControls = controlSets
                 .map(controlItem => {
                   if (!controlItem) {
@@ -709,14 +727,23 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               if (renderedControls.length === 0) {
                 return null;
               }
-              return (
+              // Indent controls within sub-sections for visual hierarchy
+              const paddingLeft =
+                isInSubSection && !isSubSectionHeaderRow
+                  ? theme.sizeUnit * 3
+                  : 0;
+              return paddingLeft ? (
+                <div key={`controlsetrow-${i}`} style={{ paddingLeft }}>
+                  <ControlRow controls={renderedControls} />
+                </div>
+              ) : (
                 <ControlRow
                   key={`controlsetrow-${i}`}
                   controls={renderedControls}
                 />
               );
             })}
-          </>
+          </div>
         )}
       </>
     );
@@ -726,7 +753,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       label: <PanelHeader />,
       children: PanelChildren,
       className: section.label ? '' : 'hidden-collapse-header',
-      style: { visibility: isVisible ? 'visible' : 'hidden' },
+      style: { display: isVisible ? 'block' : 'none' },
     };
   };
 
@@ -810,8 +837,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   // Check if matrixify is enabled in form_data
   const matrixifyIsEnabled =
-    form_data.matrixify_enable_vertical_layout ||
-    form_data.matrixify_enable_horizontal_layout;
+    form_data.matrixify_enable === true &&
+    ((form_data.matrixify_mode_rows !== undefined &&
+      form_data.matrixify_mode_rows !== 'disabled') ||
+      (form_data.matrixify_mode_columns !== undefined &&
+        form_data.matrixify_mode_columns !== 'disabled'));
 
   // Auto-switch to Matrixify tab when it's enabled
   useEffect(() => {

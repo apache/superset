@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 
-export default function validateInteger(v: any) {
+export default function validateNumber(v: unknown): string | false {
   if (
     (typeof v === 'string' &&
       v.trim().length > 0 &&

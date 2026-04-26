@@ -23,9 +23,9 @@ import {
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { NativeFilterScope } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import { BuildTreeLeafTitle, TreeItem } from './types';
 
 export const isShowTypeInTree = ({ type }: LayoutItem) =>
@@ -100,6 +100,7 @@ export const buildTree = (
   initiallyExcludedCharts: number[],
   buildTreeLeafTitle: BuildTreeLeafTitle,
   sliceEntities?: Record<number, Slice>,
+  visited: Set<string> = new Set(),
 ) => {
   if (!node) {
     return;
@@ -115,7 +116,7 @@ export const buildTree = (
   ) {
     const title = buildTreeLeafTitle(
       getNodeTitle(node),
-      initiallyExcludedCharts?.includes?.(node.meta?.chartId),
+      initiallyExcludedCharts?.includes?.(node.meta?.chartId as number),
       t(
         "This chart might be incompatible with the filter (datasets don't match)",
       ),
@@ -154,6 +155,10 @@ export const buildTree = (
 
   if (node.type !== CHART_TYPE) {
     node?.children?.forEach?.(child => {
+      if (visited.has(child)) {
+        return;
+      }
+      visited.add(child);
       const childNode = layout?.[child];
       if (childNode) {
         buildTree(
@@ -165,6 +170,7 @@ export const buildTree = (
           initiallyExcludedCharts,
           buildTreeLeafTitle,
           sliceEntities,
+          visited,
         );
       } else {
         logging.warn(
@@ -192,17 +198,23 @@ const checkTreeItem = (
   layout: Layout,
   items: string[],
   excluded: number[],
+  visited: Set<string> = new Set(),
 ) => {
   items.forEach(item => {
+    if (visited.has(item)) {
+      return;
+    }
+    visited.add(item);
     checkTreeItem(
       checkedItems,
       layout,
       addInvisibleParents(layout, item),
       excluded,
+      visited,
     );
     if (
       layout[item]?.type === CHART_TYPE &&
-      !excluded.includes(layout[item]?.meta.chartId)
+      !excluded.includes(layout[item]?.meta.chartId as number)
     ) {
       checkedItems.push(item);
     }
@@ -306,7 +318,7 @@ export const findFilterScope = (
       value.type === CHART_TYPE &&
       [DASHBOARD_ROOT_ID, ...parents]?.find(parent => isExcluded(parent, key))
     ) {
-      excluded.push(value.meta.chartId);
+      excluded.push(value.meta.chartId as number);
     }
   });
 

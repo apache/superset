@@ -16,14 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
 import { Metric } from '@superset-ui/core';
 import { Datasource } from 'src/explore/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
-import columnType from './columnType';
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from './AdhocMetric';
-import savedMetricType from './savedMetricType';
 import { savedMetricType as SavedMetricTypeDef } from './types';
 
 interface MetricDefinitionValueProps {
@@ -41,21 +38,6 @@ interface MetricDefinitionValueProps {
   datasourceWarningMessage?: string;
   type?: string;
 }
-
-const propTypes = {
-  option: PropTypes.oneOfType([PropTypes.object, PropTypes.string]).isRequired,
-  index: PropTypes.number.isRequired,
-  onMetricEdit: PropTypes.func,
-  onRemoveMetric: PropTypes.func,
-  onMoveLabel: PropTypes.func,
-  onDropLabel: PropTypes.func,
-  columns: PropTypes.arrayOf(columnType),
-  savedMetrics: PropTypes.arrayOf(savedMetricType),
-  savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
-  multi: PropTypes.bool,
-  datasource: PropTypes.object,
-  datasourceWarningMessage: PropTypes.string,
-};
 
 export default function MetricDefinitionValue({
   option,
@@ -107,4 +89,3 @@ export default function MetricDefinitionValue({
   }
   return null;
 }
-MetricDefinitionValue.propTypes = propTypes;

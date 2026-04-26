@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/theme';
 import { Flex } from '@superset-ui/core/components';
 import ViewListExtension from 'src/components/ViewListExtension';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { views } from 'src/core';
 import { SQL_EDITOR_STATUSBAR_HEIGHT } from 'src/SqlLab/constants';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 
 const Container = styled(Flex)`
   flex-direction: row-reverse;
@@ -38,16 +38,13 @@ const Container = styled(Flex)`
 `;
 
 const StatusBar = () => {
-  const statusBarContributions =
-    ExtensionsManager.getInstance().getViewContributions(
-      ViewContribution.StatusBar,
-    ) || [];
+  const statusBarViews = views.getViews(ViewLocations.sqllab.statusBar) || [];
 
   return (
     <>
-      {statusBarContributions.length > 0 && (
+      {statusBarViews.length > 0 && (
         <Container align="center" justify="space-between">
-          <ViewListExtension viewId={ViewContribution.StatusBar} />
+          <ViewListExtension viewId={ViewLocations.sqllab.statusBar} />
         </Container>
       )}
     </>

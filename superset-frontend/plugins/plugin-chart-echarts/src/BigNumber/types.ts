@@ -47,6 +47,7 @@ export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
     b: number;
   };
   compareLag?: string | number;
+  xAxis: string;
   showXAxis?: boolean;
   showXAxisMinMaxLabels?: boolean;
   showYAxis?: boolean;
@@ -96,6 +97,7 @@ export type BigNumberVizProps = {
   trendLineData?: TimeSeriesDatum[];
   mainColor?: string;
   echartOptions?: EChartsCoreOption;
+  isRefreshing?: boolean;
   onContextMenu?: (
     clientX: number,
     clientY: number,

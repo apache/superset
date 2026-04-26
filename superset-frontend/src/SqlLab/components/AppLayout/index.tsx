@@ -19,10 +19,10 @@
 import { useSelector } from 'react-redux';
 import { noop } from 'lodash';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { css, styled } from '@apache-superset/core';
+import { css, styled } from '@apache-superset/core/theme';
 import { useComponentDidUpdate } from '@superset-ui/core';
 import { Grid } from '@superset-ui/core/components';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { views } from 'src/core';
 import { Splitter } from 'src/components/Splitter';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
@@ -30,7 +30,7 @@ import {
   SQL_EDITOR_LEFTBAR_WIDTH,
   SQL_EDITOR_RIGHTBAR_WIDTH,
 } from 'src/SqlLab/constants';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import ViewListExtension from 'src/components/ViewListExtension';
 
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
@@ -53,7 +53,11 @@ const StyledContainer = styled.div`
 
 const StyledSidebar = styled.div`
   position: relative;
-  padding: ${({ theme }) => theme.sizeUnit * 2.5}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2.5}px 0;
+  margin: 0 ${({ theme }) => theme.sizeUnit * 2.5}px;
+  flex: 1;
+  height: 100%;
+  background-color: ${({ theme }) => theme.colorBgBase};
 `;
 
 const ContentWrapper = styled.div`
@@ -92,10 +96,7 @@ const AppLayout: React.FC = ({ children }) => {
       setRightWidth(possibleRightWidth);
     }
   };
-  const contributions =
-    ExtensionsManager.getInstance().getViewContributions(
-      ViewContribution.RightSidebar,
-    ) || [];
+  const viewItems = views.getViews(ViewLocations.sqllab.rightSidebar) || [];
 
   return (
     <StyledContainer>
@@ -124,7 +125,7 @@ const AppLayout: React.FC = ({ children }) => {
           </StyledSidebar>
         </Splitter.Panel>
         <Splitter.Panel className="sqllab-body">{children}</Splitter.Panel>
-        {contributions.length > 0 && (
+        {viewItems.length > 0 && (
           <Splitter.Panel
             collapsible={{
               start: true,
@@ -135,7 +136,7 @@ const AppLayout: React.FC = ({ children }) => {
             min={SQL_EDITOR_RIGHTBAR_WIDTH}
           >
             <ContentWrapper>
-              <ViewListExtension viewId={ViewContribution.RightSidebar} />
+              <ViewListExtension viewId={ViewLocations.sqllab.rightSidebar} />
             </ContentWrapper>
           </Splitter.Panel>
         )}

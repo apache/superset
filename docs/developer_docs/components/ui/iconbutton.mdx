@@ -1,0 +1,106 @@
+---
+title: IconButton
+sidebar_label: IconButton
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# IconButton
+
+The IconButton component is a versatile button that allows you to combine an icon with a text label. It is designed for use in situations where you want to display an icon along with some text in a single clickable element.
+
+## Live Example
+
+<StoryWithControls
+  component="IconButton"
+  props={{
+  buttonText: "IconButton",
+  altText: "Icon button alt text",
+  padded: true,
+  icon: "https://superset.apache.org/img/superset-logo-horiz.svg"
+}}
+  controls={[
+  {
+    name: "buttonText",
+    label: "Button Text",
+    type: "text",
+    description: "The text inside the button."
+  },
+  {
+    name: "altText",
+    label: "Alt Text",
+    type: "text",
+    description: "The alt text for the button. If not provided, the button text is used as the alt text by default."
+  },
+  {
+    name: "padded",
+    label: "Padded",
+    type: "boolean",
+    description: "Add padding between icon and button text."
+  },
+  {
+    name: "icon",
+    label: "Icon",
+    type: "text",
+    description: "Icon inside the button (URL or path)."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <IconButton
+      buttonText="IconButton"
+      altText="Icon button alt text"
+      padded
+      icon="https://superset.apache.org/img/superset-logo-horiz.svg"
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `buttonText` | `string` | `"IconButton"` | The text inside the button. |
+| `altText` | `string` | `"Icon button alt text"` | The alt text for the button. If not provided, the button text is used as the alt text by default. |
+| `padded` | `boolean` | `true` | Add padding between icon and button text. |
+| `icon` | `string` | `"https://superset.apache.org/img/superset-logo-horiz.svg"` | Icon inside the button (URL or path). |
+
+## Import
+
+```tsx
+import { IconButton } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/IconButton/IconButton.stories.tsx).
+:::

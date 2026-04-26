@@ -23,7 +23,7 @@ import { FILTER_INPUT_POSITIONS } from '../../src/consts';
 
 describe('filterStateManager', () => {
   describe('getCompleteFilterState', () => {
-    it('should return empty state when gridRef.current is null', async () => {
+    test('should return empty state when gridRef.current is null', async () => {
       const gridRef = { current: null } as RefObject<AgGridReact>;
 
       const result = await getCompleteFilterState(gridRef, []);
@@ -38,7 +38,7 @@ describe('filterStateManager', () => {
       });
     });
 
-    it('should return empty state when gridRef.current.api is undefined', async () => {
+    test('should return empty state when gridRef.current.api is undefined', async () => {
       const gridRef = {
         current: { api: undefined } as any,
       } as RefObject<AgGridReact>;
@@ -55,7 +55,7 @@ describe('filterStateManager', () => {
       });
     });
 
-    it('should convert simple filters correctly', async () => {
+    test('should convert simple filters correctly', async () => {
       const filterModel = {
         name: { filterType: 'text', type: 'equals', filter: 'John' },
         age: { filterType: 'number', type: 'greaterThan', filter: 25 },
@@ -86,7 +86,7 @@ describe('filterStateManager', () => {
       });
     });
 
-    it('should separate dimension and metric filters', async () => {
+    test('should separate dimension and metric filters', async () => {
       const filterModel = {
         state: { filterType: 'text', type: 'equals', filter: 'CA' },
         'SUM(revenue)': {
@@ -115,7 +115,7 @@ describe('filterStateManager', () => {
       expect(result.havingClause).toBe('SUM(revenue) > 1000');
     });
 
-    it('should detect first input position when active element is in first condition body', async () => {
+    test('should detect first input position when active element is in first condition body', async () => {
       const filterModel = {
         name: { filterType: 'text', type: 'equals', filter: 'test' },
       };
@@ -153,7 +153,7 @@ describe('filterStateManager', () => {
       expect(result.inputPosition).toBe(FILTER_INPUT_POSITIONS.FIRST);
     });
 
-    it('should detect second input position when active element is in second condition body', async () => {
+    test('should detect second input position when active element is in second condition body', async () => {
       const filterModel = {
         age: {
           filterType: 'number',
@@ -197,7 +197,7 @@ describe('filterStateManager', () => {
       expect(result.inputPosition).toBe(FILTER_INPUT_POSITIONS.SECOND);
     });
 
-    it('should return unknown position when active element is not in any condition body', async () => {
+    test('should return unknown position when active element is not in any condition body', async () => {
       const filterModel = {
         name: { filterType: 'text', type: 'equals', filter: 'test' },
       };
@@ -233,7 +233,7 @@ describe('filterStateManager', () => {
       expect(result.lastFilteredColumn).toBeUndefined();
     });
 
-    it('should handle multiple filtered columns and detect the correct one', async () => {
+    test('should handle multiple filtered columns and detect the correct one', async () => {
       const filterModel = {
         name: { filterType: 'text', type: 'equals', filter: 'John' },
         age: { filterType: 'number', type: 'greaterThan', filter: 25 },
@@ -287,7 +287,7 @@ describe('filterStateManager', () => {
       expect(result.inputPosition).toBe(FILTER_INPUT_POSITIONS.FIRST);
     });
 
-    it('should handle filter instance without eConditionBodies', async () => {
+    test('should handle filter instance without eConditionBodies', async () => {
       const filterModel = {
         name: { filterType: 'text', type: 'equals', filter: 'test' },
       };
@@ -314,7 +314,7 @@ describe('filterStateManager', () => {
       expect(result.lastFilteredColumn).toBeUndefined();
     });
 
-    it('should handle empty filter model', async () => {
+    test('should handle empty filter model', async () => {
       const filterModel = {};
 
       const mockApi = {
@@ -335,7 +335,7 @@ describe('filterStateManager', () => {
       expect(result.inputPosition).toBe(FILTER_INPUT_POSITIONS.UNKNOWN);
     });
 
-    it('should handle compound filters correctly', async () => {
+    test('should handle compound filters correctly', async () => {
       const filterModel = {
         age: {
           filterType: 'number',
@@ -363,7 +363,7 @@ describe('filterStateManager', () => {
       expect(result.complexWhere).toBe('(age >= 18 AND age < 65)');
     });
 
-    it('should handle set filters correctly', async () => {
+    test('should handle set filters correctly', async () => {
       const filterModel = {
         status: {
           filterType: 'set',
@@ -390,7 +390,7 @@ describe('filterStateManager', () => {
       });
     });
 
-    it('should break detection loop after finding active element', async () => {
+    test('should break detection loop after finding active element', async () => {
       const filterModel = {
         col1: { filterType: 'text', type: 'equals', filter: 'a' },
         col2: { filterType: 'text', type: 'equals', filter: 'b' },
@@ -405,7 +405,7 @@ describe('filterStateManager', () => {
       const mockApi = {
         getFilterModel: jest.fn(() => filterModel),
         getColumnFilterInstance: jest.fn((colId: string) => {
-          callCount++;
+          callCount += 1;
           // Return match on col2
           if (colId === 'col2') {
             return Promise.resolve({
@@ -437,7 +437,7 @@ describe('filterStateManager', () => {
       expect(callCount).toBeLessThanOrEqual(2);
     });
 
-    it('should handle null filter instance gracefully', async () => {
+    test('should handle null filter instance gracefully', async () => {
       const filterModel = {
         name: { filterType: 'text', type: 'equals', filter: 'test' },
       };
@@ -457,7 +457,7 @@ describe('filterStateManager', () => {
       expect(result.originalFilterModel).toEqual(filterModel);
     });
 
-    it('should maintain filter model reference integrity', async () => {
+    test('should maintain filter model reference integrity', async () => {
       const originalFilterModel = {
         name: { filterType: 'text', type: 'equals', filter: 'test' },
       };
@@ -477,7 +477,7 @@ describe('filterStateManager', () => {
       expect(result.originalFilterModel).toBe(originalFilterModel);
     });
 
-    it('should detect active element in eJoinAnds array', async () => {
+    test('should detect active element in eJoinAnds array', async () => {
       const filterModel = {
         age: {
           filterType: 'number',
@@ -524,7 +524,7 @@ describe('filterStateManager', () => {
       expect(result.inputPosition).toBe(FILTER_INPUT_POSITIONS.FIRST);
     });
 
-    it('should detect active element in eJoinOrs array', async () => {
+    test('should detect active element in eJoinOrs array', async () => {
       const filterModel = {
         status: {
           filterType: 'text',
@@ -571,7 +571,7 @@ describe('filterStateManager', () => {
       expect(result.inputPosition).toBe(FILTER_INPUT_POSITIONS.FIRST);
     });
 
-    it('should check condition bodies before join operators', async () => {
+    test('should check condition bodies before join operators', async () => {
       const filterModel = {
         name: { filterType: 'text', type: 'equals', filter: 'test' },
       };
@@ -613,7 +613,7 @@ describe('filterStateManager', () => {
       expect(result.inputPosition).toBe(FILTER_INPUT_POSITIONS.SECOND);
     });
 
-    it('should handle multiple eJoinAnds elements', async () => {
+    test('should handle multiple eJoinAnds elements', async () => {
       const filterModel = {
         score: { filterType: 'number', type: 'greaterThan', filter: 90 },
       };

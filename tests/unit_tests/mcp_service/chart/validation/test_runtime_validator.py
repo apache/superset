@@ -67,11 +67,16 @@ class TestRuntimeValidatorNonBlocking:
                 "Currency format '$,.2f' may not display dates correctly"
             ]
 
-            is_valid, error = RuntimeValidator.validate_runtime_issues(config, 1)
+            is_valid, warnings_metadata = RuntimeValidator.validate_runtime_issues(
+                config, 1
+            )
 
             # Should still return valid despite warnings
             assert is_valid is True
-            assert error is None
+            # Warnings are returned as metadata, not as blocking errors
+            assert warnings_metadata is not None
+            assert "warnings" in warnings_metadata
+            assert len(warnings_metadata["warnings"]) > 0
 
     def test_validate_runtime_issues_non_blocking_with_cardinality_warnings(self):
         """Test that cardinality warnings do NOT block chart generation."""
@@ -92,11 +97,16 @@ class TestRuntimeValidatorNonBlocking:
                 ["Consider using aggregation or filtering"],
             )
 
-            is_valid, error = RuntimeValidator.validate_runtime_issues(config, 1)
+            is_valid, warnings_metadata = RuntimeValidator.validate_runtime_issues(
+                config, 1
+            )
 
             # Should still return valid despite high cardinality warning
             assert is_valid is True
-            assert error is None
+            # Warnings are returned as metadata, not as blocking errors
+            assert warnings_metadata is not None
+            assert "warnings" in warnings_metadata
+            assert len(warnings_metadata["warnings"]) > 0
 
     def test_validate_runtime_issues_non_blocking_with_chart_type_suggestions(self):
         """Test that chart type suggestions do NOT block chart generation."""
@@ -117,11 +127,16 @@ class TestRuntimeValidatorNonBlocking:
                 ["Consider using bar chart for better visualization"],
             )
 
-            is_valid, error = RuntimeValidator.validate_runtime_issues(config, 1)
+            is_valid, warnings_metadata = RuntimeValidator.validate_runtime_issues(
+                config, 1
+            )
 
             # Should still return valid despite suggestion
             assert is_valid is True
-            assert error is None
+            # Warnings are returned as metadata, not as blocking errors
+            assert warnings_metadata is not None
+            assert "warnings" in warnings_metadata
+            assert len(warnings_metadata["warnings"]) > 0
 
     def test_validate_runtime_issues_non_blocking_with_multiple_warnings(self):
         """Test that multiple warnings combined do NOT block chart generation."""
@@ -158,11 +173,17 @@ class TestRuntimeValidatorNonBlocking:
                 ["Chart type suggestion"],
             )
 
-            is_valid, error = RuntimeValidator.validate_runtime_issues(config, 1)
+            is_valid, warnings_metadata = RuntimeValidator.validate_runtime_issues(
+                config, 1
+            )
 
             # Should still return valid despite multiple warnings
             assert is_valid is True
-            assert error is None
+            # Warnings are returned as metadata, not as blocking errors
+            assert warnings_metadata is not None
+            assert "warnings" in warnings_metadata
+            # Multiple warnings from different validators should all be collected
+            assert len(warnings_metadata["warnings"]) >= 3
 
     def test_validate_runtime_issues_logs_warnings(self):
         """Test that warnings are logged for debugging purposes."""
@@ -184,12 +205,16 @@ class TestRuntimeValidatorNonBlocking:
         ):
             mock_format.return_value = ["Test warning message"]
 
-            is_valid, error = RuntimeValidator.validate_runtime_issues(config, 1)
+            is_valid, warnings_metadata = RuntimeValidator.validate_runtime_issues(
+                config, 1
+            )
 
             # Verify warnings were logged
             assert mock_logger.info.called
             assert is_valid is True
-            assert error is None
+            # Warnings are returned as metadata
+            assert warnings_metadata is not None
+            assert "warnings" in warnings_metadata
 
     def test_validate_table_chart_skips_xy_validations(self):
         """Test that table charts skip XY-specific validations."""
@@ -211,7 +236,14 @@ class TestRuntimeValidatorNonBlocking:
                 "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
                 "_validate_cardinality"
             ) as mock_cardinality,
+            patch(
+                "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
+                "_validate_chart_type"
+            ) as mock_chart_type,
         ):
+            # Mock chart type validator to return no warnings
+            mock_chart_type.return_value = ([], [])
+
             is_valid, error = RuntimeValidator.validate_runtime_issues(config, 1)
 
             # Format and cardinality validation should not be called for table charts

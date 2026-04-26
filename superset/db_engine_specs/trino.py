@@ -25,6 +25,7 @@ from typing import Any, TYPE_CHECKING
 
 import requests
 from flask import copy_current_request_context, ctx, current_app as app, Flask, g
+from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
@@ -63,16 +64,6 @@ try:
     from trino.exceptions import HttpError
 except ImportError:
     HttpError = Exception
-
-
-class CustomTrinoAuthErrorMeta(type):
-    def __instancecheck__(cls, instance: object) -> bool:
-        logger.info("is this being called?")
-        return isinstance(instance, HttpError) and "error 401" in str(instance)
-
-
-class TrinoAuthError(HttpError, metaclass=CustomTrinoAuthErrorMeta):
-    pass
 
 
 class TrinoEngineSpec(PrestoBaseEngineSpec):
@@ -159,8 +150,21 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     # OAuth 2.0
     supports_oauth2 = True
-    oauth2_exception = TrinoAuthError
     oauth2_token_request_type = "data"  # noqa: S105
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Check if the exception indicates that OAuth2 authentication is required.
+
+        Trino returns an HTTP 401 error when the access token is missing or expired.
+        """
+        return (
+            bool(g)
+            and hasattr(g, "user")
+            and isinstance(ex, HttpError)
+            and "error 401" in str(ex)
+        )
 
     @classmethod
     def get_extra_table_metadata(
@@ -306,14 +310,25 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 )
                 break
 
+            needs_commit = False
             info = getattr(cursor, "stats", {}) or {}
             state = info.get("state", "UNKNOWN")
             completed_splits = float(info.get("completedSplits", 0))
             total_splits = float(info.get("totalSplits", 1) or 1)
             progress = math.floor((completed_splits / (total_splits or 1)) * 100)
+            progress_text = {
+                "PLANNING": __("Scheduled"),
+                "QUEUED": __("Queued"),
+            }.get(state, state)
 
             if progress != query.progress:
                 query.progress = progress
+                needs_commit = True
+            if progress_text != query.extra.get("progress_text"):
+                query.set_extra_json_key(key="progress_text", value=progress_text)
+                needs_commit = True
+
+            if needs_commit:
                 db.session.commit()  # pylint: disable=consider-using-transaction
 
             time.sleep(poll_interval)

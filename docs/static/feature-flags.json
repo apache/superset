@@ -52,6 +52,18 @@
         "description": "Enable Superset extensions for custom functionality without modifying core"
       },
       {
+        "name": "FAB_API_KEY_ENABLED",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable API key authentication via FAB SecurityManager When enabled, users can create/manage API keys in the User Info page"
+      },
+      {
+        "name": "GRANULAR_EXPORT_CONTROLS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable granular export controls (can_export_data, can_export_image, can_copy_clipboard) instead of the single can_csv permission"
+      },
+      {
         "name": "MATRIXIFY",
         "default": false,
         "lifecycle": "development",
@@ -113,6 +125,12 @@
         "default": false,
         "lifecycle": "testing",
         "description": "Allow users to export full CSV of table viz type. Warning: Could cause server memory/compute issues with large datasets."
+      },
+      {
+        "name": "AWS_DATABASE_IAM_AUTH",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enable AWS IAM authentication for database connections (Aurora, Redshift). Allows cross-account role assumption via STS AssumeRole. Security note: When enabled, ensure Superset's IAM role has restricted sts:AssumeRole permissions to prevent unauthorized access."
       },
       {
         "name": "CACHE_IMPERSONATION",
@@ -242,10 +260,25 @@
         "category": "path_to_deprecation"
       },
       {
+        "name": "DASHBOARD_VIRTUALIZATION_DEFER_DATA",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Supports simultaneous data and dashboard virtualization for backend performance",
+        "category": "runtime_config"
+      },
+      {
         "name": "DATAPANEL_CLOSED_BY_DEFAULT",
         "default": false,
         "lifecycle": "stable",
         "description": "Data panel closed by default in chart builder",
+        "category": "runtime_config"
+      },
+      {
+        "name": "DISABLE_EMBEDDED_SUPERSET_LOGOUT",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Hide the logout button in embedded contexts (e.g., when using SSO in iframes)",
+        "docs": "https://superset.apache.org/docs/configuration/networking-settings#hiding-the-logout-button-in-embedded-contexts",
         "category": "runtime_config"
       },
       {

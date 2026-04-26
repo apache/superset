@@ -17,7 +17,8 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
-import { logging, t } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   isFeatureEnabled,
@@ -35,7 +36,8 @@ import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
 } from 'src/logger/LogUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+
+import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { DownloadScreenshotFormat } from './types';
 
 export interface UseDownloadMenuItemsProps {
@@ -47,6 +49,7 @@ export interface UseDownloadMenuItemsProps {
   title: string;
   disabled?: boolean;
   userCanExport?: boolean;
+  canExportImage?: boolean;
 }
 
 export const useDownloadMenuItems = (
@@ -61,6 +64,7 @@ export const useDownloadMenuItems = (
     disabled,
     title,
     userCanExport,
+    canExportImage,
   } = props;
 
   const { addDangerToast, addSuccessToast } = useToasts();
@@ -104,11 +108,8 @@ export const useDownloadMenuItems = (
 
   const onExportAsExample = async () => {
     try {
-      const endpoint = ensureAppRoot(
-        `/api/v1/dashboard/${dashboardId}/export_as_example/`,
-      );
       const response = await SupersetClient.get({
-        endpoint,
+        endpoint: `/api/v1/dashboard/${dashboardId}/export_as_example/`,
         headers: {
           Accept: 'application/zip',
         },
@@ -152,28 +153,46 @@ export const useDownloadMenuItems = (
     }
   };
 
+  const imageDisabled = canExportImage === false;
+
+  const imageExportLabel = (text: string) =>
+    imageDisabled ? (
+      <span>
+        {text}
+        <MenuItemTooltip
+          title={t("You don't have permission to export images")}
+        />
+      </span>
+    ) : (
+      text
+    );
+
   const screenshotMenuItems: MenuItem[] = isWebDriverScreenshotEnabled
     ? [
         {
           key: DownloadScreenshotFormat.PDF,
-          label: pdfMenuItemTitle,
+          label: imageExportLabel(pdfMenuItemTitle),
+          disabled: imageDisabled,
           onClick: () => downloadScreenshot(DownloadScreenshotFormat.PDF),
         },
         {
           key: DownloadScreenshotFormat.PNG,
-          label: imageMenuItemTitle,
+          label: imageExportLabel(imageMenuItemTitle),
+          disabled: imageDisabled,
           onClick: () => downloadScreenshot(DownloadScreenshotFormat.PNG),
         },
       ]
     : [
         {
           key: 'download-pdf',
-          label: pdfMenuItemTitle,
+          label: imageExportLabel(pdfMenuItemTitle),
+          disabled: imageDisabled,
           onClick: (e: any) => onDownloadPdf(e.domEvent),
         },
         {
           key: 'download-image',
-          label: imageMenuItemTitle,
+          label: imageExportLabel(imageMenuItemTitle),
+          disabled: imageDisabled,
           onClick: (e: any) => onDownloadImage(e.domEvent),
         },
       ];

@@ -31,6 +31,7 @@ from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sql.parse import Table
+from superset.utils import json
 
 logger = logging.getLogger()
 
@@ -128,11 +129,16 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 },
             },
             {
-                "name": "IAM Credentials (Serverless)",
-                "description": "Use IAM-based credentials for Redshift Serverless",
+                "name": "IAM Role (Serverless)",
+                "description": (
+                    "Authenticate using the IAM role attached to the environment "
+                    "(EC2 instance profile, ECS task role, etc.). "
+                    "No credentials needed."
+                ),
                 "requirements": (
-                    "IAM role must have redshift-serverless:GetCredentials "
-                    "and redshift-serverless:GetWorkgroup permissions"
+                    "The attached IAM role must have "
+                    "redshift-serverless:GetCredentials and "
+                    "redshift-serverless:GetWorkgroup permissions."
                 ),
                 "connection_string": "redshift+redshift_connector://",
                 "engine_parameters": {
@@ -143,6 +149,34 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                         "serverless_work_group": "<redshift work group>",
                         "database": "<database>",
                         "user": "IAMR:<superset iam role name>",
+                    }
+                },
+            },
+            {
+                "name": "IAM Access Key (Serverless)",
+                "description": (
+                    "Authenticate using explicit AWS access key and secret. "
+                    "Suitable for local development or CI environments without "
+                    "an attached IAM role."
+                ),
+                "requirements": (
+                    "The IAM user must have "
+                    "redshift-serverless:GetCredentials and "
+                    "redshift-serverless:GetWorkgroup permissions."
+                ),
+                "connection_string": "redshift+redshift_connector://",
+                "engine_parameters": {
+                    "connect_args": {
+                        "iam": True,
+                        "is_serverless": True,
+                        "serverless_acct_id": "<aws account number>",
+                        "serverless_work_group": "<redshift work group>",
+                        "database": "<database>",
+                        "host": "<endpoint>",
+                        "port": 5439,
+                        "region": "<aws region>",
+                        "access_key_id": "<aws access key id>",
+                        "secret_access_key": "<aws secret access key>",
                     }
                 },
             },
@@ -200,6 +234,47 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             table_name.lower(),
             schema_name.lower() if schema_name else None,
         )
+
+    # Sensitive fields that should be masked in encrypted_extra.
+    # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
+    # that specify exact paths rather than using the base class's catch-all "$.*".
+    encrypted_extra_sensitive_fields = {
+        "$.aws_iam.external_id": "AWS IAM External ID",
+        "$.aws_iam.role_arn": "AWS IAM Role ARN",
+    }
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Extract sensitive parameters from encrypted_extra.
+
+        Handles AWS IAM authentication for Redshift Serverless if configured,
+        then merges any remaining encrypted_extra keys into params.
+        """
+        if not database.encrypted_extra:
+            return
+
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise
+
+        # Handle AWS IAM auth: pop the key so it doesn't reach create_engine()
+        iam_config = encrypted_extra.pop("aws_iam", None)
+        if iam_config and iam_config.get("enabled"):
+            from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+            AWSIAMAuthMixin._apply_redshift_iam_authentication(
+                database, params, iam_config
+            )
+
+        # Standard behavior: merge remaining keys into params
+        if encrypted_extra:
+            params.update(encrypted_extra)
 
     @classmethod
     def df_to_sql(

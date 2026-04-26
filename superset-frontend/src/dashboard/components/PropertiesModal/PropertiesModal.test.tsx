@@ -26,7 +26,7 @@ import fetchMock from 'fetch-mock';
 import * as ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import PropertiesModal from '.';
 
 // Increase timeout for CI environment
@@ -152,10 +152,12 @@ fetchMock.get('glob:*/api/v1/theme/*', {
       {
         id: 1,
         theme_name: 'Test Theme 1',
+        json_data: '{"token":{"colorPrimary":"#ff0000"}}',
       },
       {
         id: 2,
         theme_name: 'Test Theme 2',
+        json_data: '{"token":{"colorPrimary":"#0000ff"}}',
       },
     ],
   },
@@ -178,7 +180,7 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -414,6 +416,74 @@ describe('PropertiesModal', () => {
     userEvent.click(screen.getByRole('button', { name: 'Apply' }));
     await waitFor(() => {
       expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test('passes full theme object with json_data to onSubmit when theme is selected', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    props.onlyApply = true;
+    // Dashboard has theme id=1, which exists in the fetched themes list
+    const propsWithTheme = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+        theme: { id: 1, theme_name: 'Test Theme 1' },
+      },
+    };
+    render(<PropertiesModal {...propsWithTheme} />, {
+      useRedux: true,
+    });
+
+    expect(
+      await screen.findByTestId('dashboard-edit-properties-form'),
+    ).toBeInTheDocument();
+
+    userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+      const submitCall = props.onSubmit.mock.calls[0][0];
+      // Full theme object (including json_data) should be passed, not just the ID
+      expect(submitCall.theme).toEqual({
+        id: 1,
+        theme_name: 'Test Theme 1',
+        json_data: '{"token":{"colorPrimary":"#ff0000"}}',
+      });
+      // themeId removed — derived from theme.id at the save callsite
+      expect(submitCall).not.toHaveProperty('themeId');
+    });
+  });
+
+  test('does not clear theme when selected theme is missing from fetched options', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    props.onlyApply = true;
+    // Dashboard has theme id=99, but the theme fetch returns ids 1 and 2
+    const propsWithDashboardInfo = {
+      ...props,
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+        theme: { id: 99, theme_name: 'Deleted Theme' },
+      },
+    };
+    render(<PropertiesModal {...propsWithDashboardInfo} />, {
+      useRedux: true,
+    });
+
+    expect(
+      await screen.findByTestId('dashboard-edit-properties-form'),
+    ).toBeInTheDocument();
+
+    userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    await waitFor(() => {
+      expect(props.onSubmit).toHaveBeenCalledTimes(1);
+      const submitCall = props.onSubmit.mock.calls[0][0];
+      // theme should be undefined (not null) so Redux is not overwritten
+      expect(submitCall.theme).toBeUndefined();
+      // themeId removed — derived from theme.id at the save callsite
+      expect(submitCall).not.toHaveProperty('themeId');
     });
   });
 

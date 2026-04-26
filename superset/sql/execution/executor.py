@@ -69,6 +69,8 @@ from flask import current_app as app, g, has_app_context
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
@@ -77,7 +79,7 @@ from superset.sql.parse import SQLScript
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
-    from superset_core.api.types import (
+    from superset_core.queries.types import (
         AsyncQueryHandle,
         QueryOptions,
         QueryResult,
@@ -212,7 +214,7 @@ class SQLExecutor:
 
         See superset_core.api.models.Database.execute() for full documentation.
         """
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             QueryOptions as QueryOptionsType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -318,6 +320,10 @@ class SQLExecutor:
             )
         except SupersetSecurityException as ex:
             return self._create_error_result(QueryStatus.FAILED, str(ex), start_time)
+        except (OAuth2RedirectError, OAuth2Error):
+            # Let OAuth2 exceptions propagate so callers (MCP, API) can
+            # handle them with context-appropriate responses.
+            raise
         except Exception as ex:
             error_msg = self.database.db_engine_spec.extract_error_message(ex)
             return self._create_error_result(QueryStatus.FAILED, error_msg, start_time)
@@ -335,7 +341,7 @@ class SQLExecutor:
 
         See superset_core.api.models.Database.execute_async() for full documentation.
         """
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             QueryOptions as QueryOptionsType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -357,7 +363,7 @@ class SQLExecutor:
 
         # DRY RUN: Return transformed SQL as completed async handle
         if opts.dry_run:
-            from superset_core.api.types import StatementResult
+            from superset_core.queries.types import StatementResult
 
             original_sqls = [stmt.format() for stmt in original_script.statements]
             transformed_sqls = [stmt.format() for stmt in transformed_script.statements]
@@ -451,10 +457,22 @@ class SQLExecutor:
         :raises SupersetSecurityException: If security checks fail
         """
         # Check disallowed functions
-        if disallowed := self._check_disallowed_functions(script):
+        if disallowed_functions := self._check_disallowed_functions(script):
             raise SupersetSecurityException(
                 SupersetError(
-                    message=f"Disallowed SQL functions: {', '.join(disallowed)}",
+                    message=(
+                        f"Disallowed SQL functions: {', '.join(disallowed_functions)}"
+                    ),
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+        # Check disallowed tables
+        if disallowed_tables := self._check_disallowed_tables(script):
+            raise SupersetSecurityException(
+                SupersetError(
+                    message=f"Disallowed SQL tables: {', '.join(disallowed_tables)}",
                     error_type=SupersetErrorType.INVALID_SQL_ERROR,
                     level=ErrorLevel.ERROR,
                 )
@@ -492,7 +510,7 @@ class SQLExecutor:
         :param query: Query model for progress tracking
         :returns: List of StatementResult objects
         """
-        from superset_core.api.types import StatementResult
+        from superset_core.queries.types import StatementResult
 
         # Get original statement strings
         original_sqls = [stmt.format() for stmt in original_script.statements]
@@ -589,7 +607,7 @@ class SQLExecutor:
             statements before the failure
         :returns: QueryResult with error status
         """
-        from superset_core.api.types import QueryResult as QueryResultType
+        from superset_core.queries.types import QueryResult as QueryResultType
 
         return QueryResultType(
             status=status,
@@ -684,6 +702,31 @@ class SQLExecutor:
 
         return found if found else None
 
+    def _check_disallowed_tables(self, script: SQLScript) -> set[str] | None:
+        """
+        Check for disallowed SQL tables/views.
+
+        :param script: Parsed SQL script
+        :returns: Set of disallowed tables found, or None if none found
+        """
+        disallowed_config = app.config.get("DISALLOWED_SQL_TABLES", {})
+        engine_name = self.database.db_engine_spec.engine
+
+        # Get disallowed tables for this engine
+        engine_disallowed = disallowed_config.get(engine_name, set())
+        if not engine_disallowed:
+            return None
+
+        # Single-pass AST-based table detection
+        found: set[str] = set()
+        for statement in script.statements:
+            present = {table.table.lower() for table in statement.tables}
+            for table in engine_disallowed:
+                if table.lower() in present:
+                    found.add(table)
+
+        return found or None
+
     def _apply_rls_to_script(
         self, script: SQLScript, catalog: str | None, schema: str | None
     ) -> None:
@@ -750,7 +793,7 @@ class SQLExecutor:
         :param opts: Query options
         :returns: Cached QueryResult if found, None otherwise
         """
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             QueryResult as QueryResultType,
             QueryStatus,
             StatementResult,
@@ -790,7 +833,7 @@ class SQLExecutor:
         :param sql: SQL query (for cache key)
         :param opts: Query options
         """
-        from superset_core.api.types import QueryStatus
+        from superset_core.queries.types import QueryStatus
 
         if result.status != QueryStatus.SUCCESS:
             return
@@ -802,13 +845,22 @@ class SQLExecutor:
             or app.config.get("CACHE_DEFAULT_TIMEOUT", 300)
         )
 
-        # Serialize statement results for caching
+        # Serialize statement results for caching.
+        # Convert DataFrames to list-of-dicts so the cache backend
+        # does not need to pickle pandas objects (which can fail to
+        # deserialize correctly with some backends or pandas versions).
+        import pandas as pd
+
         cached_data = {
             "statements": [
                 {
                     "original_sql": stmt.original_sql,
                     "executed_sql": stmt.executed_sql,
-                    "data": stmt.data,
+                    "data": (
+                        stmt.data.to_dict(orient="records")
+                        if isinstance(stmt.data, pd.DataFrame)
+                        else stmt.data
+                    ),
                     "row_count": stmt.row_count,
                     "execution_time_ms": stmt.execution_time_ms,
                 }
@@ -879,7 +931,7 @@ class SQLExecutor:
         :param query_id: ID of the Query model
         :returns: AsyncQueryHandle with configured methods
         """
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             AsyncQueryHandle as AsyncQueryHandleType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -918,7 +970,7 @@ class SQLExecutor:
         :param cached_result: The cached QueryResult
         :returns: AsyncQueryHandle that returns the cached data
         """
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             AsyncQueryHandle as AsyncQueryHandleType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -949,7 +1001,7 @@ class SQLExecutor:
     @staticmethod
     def _get_async_query_status(query_id: int) -> Any:
         """Get the current status of an async query."""
-        from superset_core.api.types import QueryStatus as QueryStatusType
+        from superset_core.queries.types import QueryStatus as QueryStatusType
 
         from superset.models.sql_lab import Query as QueryModel
 
@@ -971,7 +1023,7 @@ class SQLExecutor:
     def _get_async_query_result(query_id: int) -> Any:
         """Get the result of an async query."""
         import pandas as pd
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             QueryResult as QueryResultType,
             QueryStatus as QueryStatusType,
             StatementResult,

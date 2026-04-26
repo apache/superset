@@ -19,7 +19,7 @@
 import rejectAfterTimeout from '../../../src/connection/callApi/rejectAfterTimeout';
 
 describe('rejectAfterTimeout()', () => {
-  it('returns a promise that rejects after the specified timeout', async () => {
+  test('returns a promise that rejects after the specified timeout', async () => {
     expect.assertions(1);
     jest.useFakeTimers();
     let error;

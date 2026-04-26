@@ -17,10 +17,10 @@
  * under the License.
  */
 import { useMemo, useState, useEffect, useRef, RefObject } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getTimeFormatter, safeHtmlSpan, TimeFormats } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
 import {
@@ -32,7 +32,10 @@ import {
   Radio,
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { prepareCopyToClipboardTabularData } from 'src/utils/common';
+import {
+  prepareCopyToClipboardTabularData,
+  TabularDataRow,
+} from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
@@ -55,29 +58,45 @@ export const CopyButton = styled(Button)`
 export const CopyToClipboardButton = ({
   data,
   columns,
+  disabled = false,
 }: {
-  data?: Record<string, any>;
+  data?: TabularDataRow[];
   columns?: string[];
-}) => (
-  <CopyToClipboard
-    text={
-      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
-    }
-    wrapped={false}
-    copyNode={
-      <Icons.CopyOutlined
-        iconSize="l"
-        aria-label={t('Copy')}
-        role="button"
-        css={css`
-          &.anticon > * {
-            line-height: 0;
-          }
-        `}
-      />
-    }
-  />
-);
+  disabled?: boolean;
+}) => {
+  const theme = useTheme();
+  return (
+    <CopyToClipboard
+      text={
+        !disabled && data && columns
+          ? prepareCopyToClipboardTabularData(data, columns)
+          : ''
+      }
+      disabled={disabled}
+      wrapped={false}
+      copyNode={
+        <span
+          role="button"
+          aria-label={t('Copy')}
+          aria-disabled={disabled}
+          tabIndex={disabled ? -1 : 0}
+        >
+          <Icons.CopyOutlined
+            iconColor={theme.colorIcon}
+            iconSize="l"
+            css={css`
+              opacity: ${disabled ? 0.3 : 1};
+              cursor: ${disabled ? 'not-allowed' : 'pointer'};
+              &.anticon > * {
+                line-height: 0;
+              }
+            `}
+          />
+        </span>
+      }
+    />
+  );
+};
 
 export const FilterInput = ({
   onChangeHandler,
@@ -164,6 +183,7 @@ const DataTableTemporalHeaderCell = ({
   onTimeColumnChange,
   datasourceId,
   isOriginalTimeColumn,
+  displayLabel,
 }: {
   columnName: string;
   onTimeColumnChange: (
@@ -172,6 +192,7 @@ const DataTableTemporalHeaderCell = ({
   ) => void;
   datasourceId?: string;
   isOriginalTimeColumn: boolean;
+  displayLabel?: string;
 }) => {
   const theme = useTheme();
 
@@ -215,10 +236,10 @@ const DataTableTemporalHeaderCell = ({
           onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
         />
       </Popover>
-      {columnName}
+      {displayLabel ?? columnName}
     </span>
   ) : (
-    <span>{columnName}</span>
+    <span>{displayLabel ?? columnName}</span>
   );
 };
 
@@ -258,6 +279,7 @@ export const useTableColumns = (
   isVisible?: boolean,
   moreConfigs?: { [key: string]: Partial<Column> },
   allowHTML?: boolean,
+  columnDisplayNames?: Record<string, string>,
 ) => {
   const [originalFormattedTimeColumns, setOriginalFormattedTimeColumns] =
     useState<string[]>(getTimeColumns(datasourceId));
@@ -302,6 +324,7 @@ export const useTableColumns = (
             .map((key, index) => {
               const colType = coltypes?.[index];
               const firstValue = data[0][key];
+              const headerLabel = columnDisplayNames?.[key] ?? key;
               const originalFormattedTimeColumnIndex =
                 colType === GenericDataType.Temporal
                   ? originalFormattedTimeColumns.indexOf(key)
@@ -310,7 +333,7 @@ export const useTableColumns = (
                 originalFormattedTimeColumns.includes(key);
               return {
                 // react-table requires a non-empty id, therefore we introduce a fallback value in case the key is empty
-                id: key || index,
+                id: key || String(index),
                 accessor: (row: Record<string, any>) => row[key],
                 Header:
                   colType === GenericDataType.Temporal &&
@@ -320,9 +343,10 @@ export const useTableColumns = (
                       datasourceId={datasourceId}
                       onTimeColumnChange={onTimeColumnChange}
                       isOriginalTimeColumn={isOriginalTimeColumn}
+                      displayLabel={headerLabel}
                     />
                   ) : (
-                    key
+                    headerLabel
                   ),
                 Cell: ({ value }) => {
                   if (value === true) {
@@ -357,6 +381,7 @@ export const useTableColumns = (
       datasourceId,
       moreConfigs,
       originalFormattedTimeColumns,
+      columnDisplayNames,
     ],
   );
 };

@@ -31,7 +31,7 @@ beforeEach(() => {
 });
 
 describe('assetUrl should prepend static asset prefix for relative paths', () => {
-  it.each(['', '/myapp'])("'%s' for relative path", app_root => {
+  test.each(['', '/myapp'])("'%s' for relative path", app_root => {
     staticAssetsPrefixMock.mockReturnValue(app_root);
     expect(assetUrl(resourcePath)).toBe(`${app_root}${resourcePath}`);
     expect(assetUrl(absoluteResourcePath)).toBe(
@@ -41,7 +41,7 @@ describe('assetUrl should prepend static asset prefix for relative paths', () =>
 });
 
 describe('assetUrl should ignore static asset prefix for absolute URLs', () => {
-  it.each(['', '/myapp'])("'%s' for absolute url", app_root => {
+  test.each(['', '/myapp'])("'%s' for absolute url", app_root => {
     staticAssetsPrefixMock.mockReturnValue(app_root);
     expect(ensureStaticPrefix(absoluteResourcePath)).toBe(absoluteResourcePath);
   });

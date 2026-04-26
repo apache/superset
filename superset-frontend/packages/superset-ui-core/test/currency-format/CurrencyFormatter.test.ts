@@ -67,18 +67,18 @@ test('CurrencyFormatter:hasValidCurrency', () => {
   expect(currencyFormatter.hasValidCurrency()).toBe(true);
 
   const currencyFormatterWithoutPosition = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error
     currency: { symbol: 'USD' },
   });
   expect(currencyFormatterWithoutPosition.hasValidCurrency()).toBe(true);
 
   const currencyFormatterWithoutSymbol = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error
     currency: { symbolPosition: 'prefix' },
   });
   expect(currencyFormatterWithoutSymbol.hasValidCurrency()).toBe(false);
 
-  // @ts-ignore
+  // @ts-expect-error
   const currencyFormatterWithoutCurrency = new CurrencyFormatter({});
   expect(currencyFormatterWithoutCurrency.hasValidCurrency()).toBe(false);
 });
@@ -129,12 +129,12 @@ test('CurrencyFormatter:format', () => {
   expect(currencyFormatterWithSuffix(VALUE)).toEqual('56.1M $');
 
   const currencyFormatterWithoutPosition = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error
     currency: { symbol: 'USD' },
   });
   expect(currencyFormatterWithoutPosition(VALUE)).toEqual('56.1M $');
 
-  // @ts-ignore
+  // @ts-expect-error
   const currencyFormatterWithoutCurrency = new CurrencyFormatter({});
   expect(currencyFormatterWithoutCurrency(VALUE)).toEqual('56.1M');
 
@@ -186,4 +186,82 @@ test('CurrencyFormatter gracefully handles invalid currency code', () => {
 
   // Should not throw, should return formatted value without currency symbol
   expect(formatter.format(1000)).toBe('1,000.00');
+});
+
+test('CurrencyFormatter AUTO mode uses suffix position from row context', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'AUTO', symbolPosition: 'suffix' },
+    d3Format: ',.2f',
+  });
+
+  const row = { currency: 'EUR' };
+  const result = formatter.format(1000, row, 'currency');
+  expect(result).toContain('€');
+  expect(result).toMatch(/1,000\.00.*€/);
+});
+
+test('CurrencyFormatter AUTO mode uses default suffix when symbolPosition is unknown', () => {
+  const formatter = new CurrencyFormatter({
+    // @ts-expect-error
+    currency: { symbol: 'AUTO' },
+    d3Format: ',.2f',
+  });
+
+  const row = { currency: 'EUR' };
+  const result = formatter.format(1000, row, 'currency');
+  expect(result).toContain('€');
+  expect(result).toMatch(/1,000\.00.*€/);
+});
+
+test('CurrencyFormatter AUTO mode returns plain value when row currency is not a string (line 52)', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  // Passing a numeric currency value causes normalizeCurrency to hit
+  // `typeof value !== 'string'` → return null, so no symbol is appended
+  const row = { currency: 123 };
+  expect(formatter.format(1000, row as any, 'currency')).toBe('1,000.00');
+});
+
+test('CurrencyFormatter AUTO mode returns plain value when getCurrencySymbol returns undefined (line 126 false branch)', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  const OrigNumberFormat = Intl.NumberFormat;
+  // Return formatToParts without a 'currency' entry so getCurrencySymbol → undefined
+  Intl.NumberFormat = jest.fn().mockImplementation(() => ({
+    formatToParts: () => [{ type: 'integer', value: '1' }],
+  })) as unknown as typeof Intl.NumberFormat;
+
+  const row = { currency: 'EUR' };
+  const result = formatter.format(1000, row, 'currency');
+
+  Intl.NumberFormat = OrigNumberFormat;
+
+  expect(result).toBe('1,000.00');
+});
+
+test('CurrencyFormatter AUTO mode falls back to plain value when getCurrencySymbol throws', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  // Mock Intl.NumberFormat to throw to simulate an environment where the
+  // currency code is rejected, triggering the catch block in format()
+  const OrigNumberFormat = Intl.NumberFormat;
+  Intl.NumberFormat = jest.fn().mockImplementation(() => {
+    throw new RangeError('Invalid currency code');
+  }) as unknown as typeof Intl.NumberFormat;
+
+  const row = { currency: 'ZZZ' };
+  const result = formatter.format(1000, row, 'currency');
+
+  Intl.NumberFormat = OrigNumberFormat;
+
+  expect(result).toBe('1,000.00');
 });

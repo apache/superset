@@ -24,6 +24,7 @@ from sqlalchemy.orm.session import Session
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.daos.dataset import DatasetDAO
+from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
 from superset.sql.parse import Table
@@ -906,3 +907,73 @@ def test_sqla_table_link_escapes_url(mocker: MockerFixture) -> None:
     # Verify that special characters are escaped in both name and URL
     assert "&lt;script&gt;" in str(link)
     assert "<script>" not in str(link)
+
+
+def test_data_for_slices_handles_missing_datasource(mocker: MockerFixture) -> None:
+    """
+    Test that data_for_slices gracefully handles a chart whose query_context
+    references a datasource that no longer exists.
+
+    When a chart's query_context references a deleted datasource, get_query_context()
+    raises DatasourceNotFound. The fix ensures this exception is caught and logged,
+    allowing the dashboard to load normally instead of returning a 404.
+    """
+    database = mocker.MagicMock()
+    database.id = 1
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[],
+        metrics=[],
+    )
+
+    # Create a mock slice whose get_query_context raises DatasourceNotFound
+    mock_slice = mocker.MagicMock()
+    mock_slice.id = 1
+    mock_slice.slice_name = "Test Chart"
+    mock_slice.form_data = {}
+    mock_slice.get_query_context.side_effect = DatasourceNotFound()
+
+    # Mock the columns and metrics properties to return empty lists
+    mocker.patch.object(SqlaTable, "columns", [])
+    mocker.patch.object(SqlaTable, "metrics", [])
+
+    # This should not raise an exception - the fix catches DatasourceNotFound
+    result = table.data_for_slices([mock_slice])
+
+    # Verify the method returns a valid data structure
+    assert "columns" in result
+    assert "metrics" in result
+    assert "verbose_map" in result
+
+
+def test_owners_data_includes_email(mocker: MockerFixture) -> None:
+    """Test that the owners_data property includes the email field."""
+    database = mocker.MagicMock()
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[],
+        metrics=[],
+    )
+
+    mock_owner = mocker.MagicMock()
+    mock_owner.first_name = "John"
+    mock_owner.last_name = "Doe"
+    mock_owner.username = "johndoe"
+    mock_owner.id = 1
+    mock_owner.email = "john@example.com"
+
+    table.owners = [mock_owner]
+
+    owners_data = table.owners_data
+    assert len(owners_data) == 1
+    assert owners_data[0] == {
+        "first_name": "John",
+        "last_name": "Doe",
+        "username": "johndoe",
+        "id": 1,
+        "email": "john@example.com",
+    }

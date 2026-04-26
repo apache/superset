@@ -27,6 +27,7 @@ from superset.mcp_service.mcp_core import (
     ModelGetSchemaCore,
     ModelListCore,
 )
+from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
 
 
 # Dummy Pydantic output schema
@@ -69,7 +70,7 @@ class DummyDAO:
         return [SimpleNamespace(id=1, name="foo"), SimpleNamespace(id=2, name="bar")], 2
 
     @classmethod
-    def find_by_id(cls, id):
+    def find_by_id(cls, id, **kwargs):
         if id == 1:
             return SimpleNamespace(id=1, name="foo")
         return None
@@ -95,10 +96,11 @@ def test_model_list_tool_basic():
     assert result.count == 2
     assert result.total_count == 2
     assert isinstance(result.items[0], DummyOutputSchema)
-    assert result.page == 1
+    # run_tool receives 0-based page; response reports 1-based (page+1)
+    assert result.page == 2
     assert result.page_size == 2
     assert result.total_pages == 1
-    # For page=1, ModelListCore sets has_previous=True
+    # For page=1 (0-based), ModelListCore sets has_previous=True
     assert result.has_previous is True
     assert result.has_next is False
     assert result.columns_requested == ["id", "name"]
@@ -122,6 +124,62 @@ def test_model_list_tool_with_filters_and_columns():
     )
     assert result.columns_requested == ["id"]
     assert "id" in result.columns_loaded
+
+
+def test_model_list_tool_rejects_only_user_directory_select_columns():
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with pytest.raises(ValueError, match="contains no valid columns"):
+        tool.run_tool(select_columns=["created_by", "owners"])
+
+
+def test_model_list_tool_rejects_private_order_column():
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        sortable_columns=["id", "name", "created_by_fk"],
+    )
+
+    with pytest.raises(ValueError, match="order_column"):
+        tool.run_tool(order_column="created_by_fk")
+
+
+def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared():
+    """When sortable_columns is not provided, order_column is passed through to the DAO
+    without validation (backward-compatible behaviour)."""
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        # sortable_columns intentionally omitted
+    )
+    # Should not raise even though "name" is not in the (empty) sortable list
+    tool.run_tool(order_column="name")
+
+
+def test_user_directory_fields_include_last_saved_relationships():
+    assert "last_saved_by" in USER_DIRECTORY_FIELDS
+    assert "last_saved_by_name" in USER_DIRECTORY_FIELDS
 
 
 def test_model_list_tool_empty_result():
@@ -196,7 +254,7 @@ def test_model_get_info_tool_not_found():
 def test_model_get_info_tool_exception():
     class FailingDAO:
         @classmethod
-        def find_by_id(cls, id):
+        def find_by_id(cls, id, **kwargs):
             raise Exception("fail")
 
     tool = ModelGetInfoCore(

@@ -17,11 +17,10 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { JsonValue, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import {
-  LabelPositionEnum,
   LegendFormData,
   LegendOrientation,
   LegendType,
@@ -48,23 +47,12 @@ export const TIMESERIES_CONSTANTS = {
   extraControlsOffset: 22,
   // Min right padding (px) for horizontal bar charts to ensure value labels are fully visible
   horizontalBarLabelRightPadding: 70,
+  // Height thresholds (px) for responsive y-axis behavior
+  compactChartHeight: 100,
+  microChartHeight: 60,
+  // One y-axis tick per this many pixels of chart height
+  yAxisPixelsPerTick: 80,
 };
-
-export const LABEL_POSITION: [LabelPositionEnum, string][] = [
-  [LabelPositionEnum.Top, 'Top'],
-  [LabelPositionEnum.Left, 'Left'],
-  [LabelPositionEnum.Right, 'Right'],
-  [LabelPositionEnum.Bottom, 'Bottom'],
-  [LabelPositionEnum.Inside, 'Inside'],
-  [LabelPositionEnum.InsideLeft, 'Inside left'],
-  [LabelPositionEnum.InsideRight, 'Inside right'],
-  [LabelPositionEnum.InsideTop, 'Inside top'],
-  [LabelPositionEnum.InsideBottom, 'Inside bottom'],
-  [LabelPositionEnum.InsideTopLeft, 'Inside top left'],
-  [LabelPositionEnum.InsideBottomLeft, 'Inside bottom left'],
-  [LabelPositionEnum.InsideTopRight, 'Inside top right'],
-  [LabelPositionEnum.InsideBottomRight, 'Inside bottom right'],
-];
 
 export enum OpacityEnum {
   Transparent = 0,
@@ -93,6 +81,14 @@ export const AreaChartStackControlOptions: [
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [...StackControlOptions, [StackControlsValue.Expand, t('Expand')]];
 
+export const StackControlOptionsWithoutStream: [
+  JsonValue,
+  Exclude<ReactNode, null | undefined | boolean>,
+][] = [
+  [null, t('None')],
+  [StackControlsValue.Stack, t('Stack')],
+];
+
 export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.HOUR]: 3600 * 1000,
   [TimeGranularity.DAY]: 3600 * 1000 * 24,
@@ -111,9 +107,9 @@ export const DEFAULT_LEGEND_FORM_DATA: LegendFormData = {
 
 export const DEFAULT_TITLE_FORM_DATA: TitleFormData = {
   xAxisTitle: '',
-  xAxisTitleMargin: 0,
+  xAxisTitleMargin: 40,
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 50,
   yAxisTitlePosition: 'Top',
 };
 

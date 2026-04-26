@@ -74,6 +74,14 @@ export default function Root({ children }) {
         window._paq.push(['trackSiteSearch', keyword, category, resultsCount]);
       };
 
+      // Helper to track page views
+      const trackPageView = (url, title) => {
+        if (devMode) {
+          console.log('Matomo trackPageView:', { url, title });
+        }
+        window._paq.push(['trackPageView']);
+      };
+
 
       // Track external link clicks using domain as category (vendor-agnostic)
       const handleLinkClick = (event) => {
@@ -221,7 +229,6 @@ export default function Root({ children }) {
           trackDocsVersion();
 
           if (devMode) {
-            console.log('Tracking page view:', currentPath, currentTitle);
             window._paq.push(['setDomains', ['superset.apache.org']]);
             window._paq.push([
               'setCustomUrl',
@@ -233,7 +240,7 @@ export default function Root({ children }) {
 
           window._paq.push(['setReferrerUrl', window.location.href]);
           window._paq.push(['setDocumentTitle', currentTitle]);
-          window._paq.push(['trackPageView']);
+          trackPageView(currentPath, currentTitle);
 
           // Check for 404 after page renders
           setTimeout(track404, 500);

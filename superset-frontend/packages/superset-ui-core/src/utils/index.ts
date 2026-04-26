@@ -17,6 +17,7 @@
  * under the License.
  */
 export { default as convertKeysToCamelCase } from './convertKeysToCamelCase';
+export { default as copyTextToClipboard } from './copy';
 export { default as ensureIsArray } from './ensureIsArray';
 export { default as ensureIsInt } from './ensureIsInt';
 export { default as isDefined } from './isDefined';
@@ -25,6 +26,7 @@ export { default as isEqualArray } from './isEqualArray';
 export { default as makeSingleton } from './makeSingleton';
 export { default as promiseTimeout } from './promiseTimeout';
 export { default as removeDuplicates } from './removeDuplicates';
+export { default as withLabel } from './withLabel';
 export { lruCache } from './lruCache';
 export { getSelectedText } from './getSelectedText';
 export * from './featureFlags';

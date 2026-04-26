@@ -26,7 +26,7 @@ import type {
 
 describe('agGridFilterConverter', () => {
   describe('Empty and invalid inputs', () => {
-    it('should handle empty filter model', () => {
+    test('should handle empty filter model', () => {
       const result = convertAgGridFiltersToSQL({});
 
       expect(result.simpleFilters).toEqual([]);
@@ -34,7 +34,7 @@ describe('agGridFilterConverter', () => {
       expect(result.havingClause).toBeUndefined();
     });
 
-    it('should handle null filter model', () => {
+    test('should handle null filter model', () => {
       const result = convertAgGridFiltersToSQL(null as any);
 
       expect(result.simpleFilters).toEqual([]);
@@ -42,7 +42,7 @@ describe('agGridFilterConverter', () => {
       expect(result.havingClause).toBeUndefined();
     });
 
-    it('should skip invalid column names', () => {
+    test('should skip invalid column names', () => {
       const filterModel: AgGridFilterModel = {
         valid_column: {
           filterType: 'text',
@@ -62,7 +62,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters[0].col).toBe('valid_column');
     });
 
-    it('should skip filters with invalid objects', () => {
+    test('should skip filters with invalid objects', () => {
       const filterModel = {
         column1: null,
         column2: 'invalid string',
@@ -81,7 +81,7 @@ describe('agGridFilterConverter', () => {
   });
 
   describe('Simple text filters', () => {
-    it('should convert equals filter', () => {
+    test('should convert equals filter', () => {
       const filterModel: AgGridFilterModel = {
         name: {
           filterType: 'text',
@@ -100,7 +100,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should convert notEqual filter', () => {
+    test('should convert notEqual filter', () => {
       const filterModel: AgGridFilterModel = {
         status: {
           filterType: 'text',
@@ -118,7 +118,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should convert contains filter with wildcard', () => {
+    test('should convert contains filter with wildcard', () => {
       const filterModel: AgGridFilterModel = {
         description: {
           filterType: 'text',
@@ -136,7 +136,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should convert notContains filter with wildcard', () => {
+    test('should convert notContains filter with wildcard', () => {
       const filterModel: AgGridFilterModel = {
         description: {
           filterType: 'text',
@@ -154,7 +154,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should convert startsWith filter with trailing wildcard', () => {
+    test('should convert startsWith filter with trailing wildcard', () => {
       const filterModel: AgGridFilterModel = {
         email: {
           filterType: 'text',
@@ -172,7 +172,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should convert endsWith filter with leading wildcard', () => {
+    test('should convert endsWith filter with leading wildcard', () => {
       const filterModel: AgGridFilterModel = {
         email: {
           filterType: 'text',
@@ -192,7 +192,7 @@ describe('agGridFilterConverter', () => {
   });
 
   describe('Numeric filters', () => {
-    it('should convert lessThan filter', () => {
+    test('should convert lessThan filter', () => {
       const filterModel: AgGridFilterModel = {
         age: {
           filterType: 'number',
@@ -210,7 +210,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should convert lessThanOrEqual filter', () => {
+    test('should convert lessThanOrEqual filter', () => {
       const filterModel: AgGridFilterModel = {
         price: {
           filterType: 'number',
@@ -228,7 +228,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should convert greaterThan filter', () => {
+    test('should convert greaterThan filter', () => {
       const filterModel: AgGridFilterModel = {
         score: {
           filterType: 'number',
@@ -246,7 +246,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should convert greaterThanOrEqual filter', () => {
+    test('should convert greaterThanOrEqual filter', () => {
       const filterModel: AgGridFilterModel = {
         rating: {
           filterType: 'number',
@@ -264,7 +264,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should convert inRange filter to BETWEEN', () => {
+    test('should convert inRange filter to BETWEEN', () => {
       const filterModel: AgGridFilterModel = {
         age: {
           filterType: 'number',
@@ -287,7 +287,7 @@ describe('agGridFilterConverter', () => {
   });
 
   describe('Null/blank filters', () => {
-    it('should convert blank filter to IS NULL', () => {
+    test('should convert blank filter to IS NULL', () => {
       const filterModel: AgGridFilterModel = {
         optional_field: {
           filterType: 'text',
@@ -304,7 +304,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should convert notBlank filter to IS NOT NULL', () => {
+    test('should convert notBlank filter to IS NOT NULL', () => {
       const filterModel: AgGridFilterModel = {
         required_field: {
           filterType: 'text',
@@ -323,7 +323,7 @@ describe('agGridFilterConverter', () => {
   });
 
   describe('Set filters', () => {
-    it('should convert set filter to IN operator', () => {
+    test('should convert set filter to IN operator', () => {
       const filterModel: AgGridFilterModel = {
         status: {
           filterType: 'set',
@@ -340,7 +340,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should handle set filter with numeric values', () => {
+    test('should handle set filter with numeric values', () => {
       const filterModel: AgGridFilterModel = {
         priority: {
           filterType: 'set',
@@ -357,7 +357,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should skip empty set filters', () => {
+    test('should skip empty set filters', () => {
       const filterModel: AgGridFilterModel = {
         status: {
           filterType: 'set',
@@ -372,7 +372,7 @@ describe('agGridFilterConverter', () => {
   });
 
   describe('Compound filters', () => {
-    it('should combine conditions with AND operator', () => {
+    test('should combine conditions with AND operator', () => {
       const filterModel: AgGridFilterModel = {
         age: {
           filterType: 'number',
@@ -395,7 +395,7 @@ describe('agGridFilterConverter', () => {
       expect(result.complexWhere).toBe('(age >= 18 AND age < 65)');
     });
 
-    it('should combine conditions with OR operator', () => {
+    test('should combine conditions with OR operator', () => {
       const filterModel: AgGridFilterModel = {
         status: {
           filterType: 'text',
@@ -420,7 +420,7 @@ describe('agGridFilterConverter', () => {
       );
     });
 
-    it('should handle compound filter with inRange', () => {
+    test('should handle compound filter with inRange', () => {
       const filterModel: AgGridFilterModel = {
         date: {
           filterType: 'date',
@@ -444,7 +444,7 @@ describe('agGridFilterConverter', () => {
       expect(result.complexWhere).toContain('IS NOT NULL');
     });
 
-    it('should handle compound filter with invalid conditions gracefully', () => {
+    test('should handle compound filter with invalid conditions gracefully', () => {
       const filterModel: AgGridFilterModel = {
         field: {
           filterType: 'text',
@@ -468,7 +468,7 @@ describe('agGridFilterConverter', () => {
       expect(result.complexWhere).toBe("field = 'valid'");
     });
 
-    it('should handle multi-condition filters (conditions array)', () => {
+    test('should handle multi-condition filters (conditions array)', () => {
       const filterModel: AgGridFilterModel = {
         category: {
           filterType: 'text',
@@ -502,7 +502,7 @@ describe('agGridFilterConverter', () => {
   });
 
   describe('Metric vs Dimension separation', () => {
-    it('should put dimension filters in simpleFilters/complexWhere', () => {
+    test('should put dimension filters in simpleFilters/complexWhere', () => {
       const filterModel: AgGridFilterModel = {
         state: {
           filterType: 'text',
@@ -517,7 +517,7 @@ describe('agGridFilterConverter', () => {
       expect(result.havingClause).toBeUndefined();
     });
 
-    it('should put metric filters in havingClause', () => {
+    test('should put metric filters in havingClause', () => {
       const filterModel: AgGridFilterModel = {
         'SUM(revenue)': {
           filterType: 'number',
@@ -532,7 +532,7 @@ describe('agGridFilterConverter', () => {
       expect(result.havingClause).toBe('SUM(revenue) > 1000');
     });
 
-    it('should separate mixed metric and dimension filters', () => {
+    test('should separate mixed metric and dimension filters', () => {
       const filterModel: AgGridFilterModel = {
         state: {
           filterType: 'text',
@@ -559,7 +559,7 @@ describe('agGridFilterConverter', () => {
       expect(result.havingClause).toBe('SUM(revenue) > 1000');
     });
 
-    it('should handle metric set filters in HAVING clause', () => {
+    test('should handle metric set filters in HAVING clause', () => {
       const filterModel: AgGridFilterModel = {
         'AVG(score)': {
           filterType: 'set',
@@ -573,7 +573,7 @@ describe('agGridFilterConverter', () => {
       expect(result.havingClause).toBe('AVG(score) IN (90, 95, 100)');
     });
 
-    it('should handle metric blank filters in HAVING clause', () => {
+    test('should handle metric blank filters in HAVING clause', () => {
       const filterModel: AgGridFilterModel = {
         'COUNT(*)': {
           filterType: 'number',
@@ -588,7 +588,7 @@ describe('agGridFilterConverter', () => {
   });
 
   describe('Multiple filters combination', () => {
-    it('should handle both simple and compound filters', () => {
+    test('should handle both simple and compound filters', () => {
       const filterModel: AgGridFilterModel = {
         status: {
           filterType: 'text',
@@ -625,7 +625,7 @@ describe('agGridFilterConverter', () => {
       expect(result.complexWhere).toBe('(age > 18 AND age < 65)');
     });
 
-    it('should combine multiple HAVING filters with AND', () => {
+    test('should combine multiple HAVING filters with AND', () => {
       const filterModel: AgGridFilterModel = {
         'SUM(revenue)': {
           filterType: 'number',
@@ -649,7 +649,7 @@ describe('agGridFilterConverter', () => {
       );
     });
 
-    it('should handle single WHERE filter without parentheses', () => {
+    test('should handle single WHERE filter without parentheses', () => {
       const filterModel: AgGridFilterModel = {
         age: {
           filterType: 'number',
@@ -674,7 +674,7 @@ describe('agGridFilterConverter', () => {
   });
 
   describe('SQL injection prevention', () => {
-    it('should escape single quotes in filter values', () => {
+    test('should escape single quotes in filter values', () => {
       const filterModel: AgGridFilterModel = {
         name: {
           filterType: 'text',
@@ -689,7 +689,7 @@ describe('agGridFilterConverter', () => {
       // The actual escaping happens in SQL generation, but value is preserved
     });
 
-    it('should escape single quotes in complex filters', () => {
+    test('should escape single quotes in complex filters', () => {
       const filterModel: AgGridFilterModel = {
         description: {
           filterType: 'text',
@@ -704,7 +704,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters[0].val).toBe("%It's working%");
     });
 
-    it('should reject column names with SQL injection attempts', () => {
+    test('should reject column names with SQL injection attempts', () => {
       const filterModel: AgGridFilterModel = {
         "name'; DROP TABLE users--": {
           filterType: 'text',
@@ -718,7 +718,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters).toHaveLength(0);
     });
 
-    it('should reject column names with special characters', () => {
+    test('should reject column names with special characters', () => {
       const filterModel: AgGridFilterModel = {
         'column<script>alert(1)</script>': {
           filterType: 'text',
@@ -732,7 +732,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters).toHaveLength(0);
     });
 
-    it('should accept valid column names with allowed special characters', () => {
+    test('should accept valid column names with allowed special characters', () => {
       const filterModel: AgGridFilterModel = {
         valid_column_123: {
           filterType: 'text',
@@ -756,7 +756,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters).toHaveLength(3);
     });
 
-    it('should handle very long column names', () => {
+    test('should handle very long column names', () => {
       const longColumnName = 'a'.repeat(300);
       const filterModel: AgGridFilterModel = {
         [longColumnName]: {
@@ -774,7 +774,7 @@ describe('agGridFilterConverter', () => {
   });
 
   describe('Edge cases', () => {
-    it('should skip filters with missing type', () => {
+    test('should skip filters with missing type', () => {
       const filterModel: AgGridFilterModel = {
         column: {
           filterType: 'text',
@@ -787,7 +787,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters).toHaveLength(0);
     });
 
-    it('should skip filters with unknown operator type', () => {
+    test('should skip filters with unknown operator type', () => {
       const filterModel: AgGridFilterModel = {
         column: {
           filterType: 'text',
@@ -801,7 +801,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters).toHaveLength(0);
     });
 
-    it('should skip filters with invalid value types', () => {
+    test('should skip filters with invalid value types', () => {
       const filterModel: AgGridFilterModel = {
         column: {
           filterType: 'text',
@@ -815,7 +815,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters).toHaveLength(0);
     });
 
-    it('should handle boolean filter values', () => {
+    test('should handle boolean filter values', () => {
       const filterModel: AgGridFilterModel = {
         is_active: {
           filterType: 'boolean',
@@ -833,7 +833,7 @@ describe('agGridFilterConverter', () => {
       });
     });
 
-    it('should handle null filter values for blank operators', () => {
+    test('should handle null filter values for blank operators', () => {
       const filterModel: AgGridFilterModel = {
         field: {
           filterType: 'text',
@@ -847,7 +847,7 @@ describe('agGridFilterConverter', () => {
       expect(result.simpleFilters[0].val).toBeNull();
     });
 
-    it('should handle metric filters with set filter', () => {
+    test('should handle metric filters with set filter', () => {
       const filterModel: AgGridFilterModel = {
         'SUM(amount)': {
           filterType: 'set',

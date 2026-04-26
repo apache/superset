@@ -32,6 +32,7 @@ from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import column, func, types
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import column as sql_column, select, sqltypes
@@ -190,7 +191,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
-    encrypted_extra_sensitive_fields = {"$.credentials_info.private_key"}
+    encrypted_extra_sensitive_fields = {
+        "$.credentials_info.private_key": "Service Account Private Key",
+    }
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -435,7 +438,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 sql = cls.select_star(
                     database,
                     table,
-                    engine,
+                    engine.dialect,
                     indent=False,
                     show_cols=False,
                     latest_partition=True,
@@ -772,7 +775,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         cls,
         database: Database,
         table: Table,
-        engine: Engine,
+        dialect: Dialect,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -832,7 +835,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return super().select_star(
             database,
             table,
-            engine,
+            dialect,
             limit,
             show_cols,
             indent,

@@ -109,7 +109,7 @@ test('renders chart customization divider in horizontal mode', () => {
     },
   };
 
-  const useSelector = jest.requireMock('react-redux').useSelector;
+  const { useSelector } = jest.requireMock('react-redux');
   useSelector.mockImplementation(
     (selector: (state: typeof horizontalStore) => unknown) =>
       selector(horizontalStore),
@@ -382,6 +382,19 @@ test('FilterControls should handle empty filters list', () => {
 
   const { container } = setupWithFilters(state);
   expect(container).toBeInTheDocument();
+});
+
+test('does not render "Filters out of scope" when all filters are in scope', () => {
+  const state = getDefaultState(FilterBarOrientation.Vertical);
+
+  const { useSelector } = jest.requireMock('react-redux');
+  useSelector.mockImplementation((selector: (s: typeof state) => unknown) =>
+    selector(state),
+  );
+
+  setupWithFilters(state);
+
+  expect(screen.queryByText(/Filters out of scope/)).not.toBeInTheDocument();
 });
 
 test('FilterControls overflowedByIndex updates when filters change scope', () => {

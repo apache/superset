@@ -36,7 +36,15 @@ import {
   isChartCustomization,
 } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import {
+  HYDRATE_EXPLORE,
+  HydrateExplore,
+} from 'src/explore/actions/hydrateExplore';
 import { SaveFilterChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
+import {
+  migrateChartCustomizationArray,
+  isLegacyChartCustomizationFormat,
+} from 'src/dashboard/util/migrateChartCustomization';
 import { isEqual } from 'lodash';
 import {
   AnyDataMaskAction,
@@ -136,21 +144,16 @@ function updateDataMaskForFilterChanges(
   initialDataMask?: Filters,
   isCustomizationChanges?: boolean,
 ) {
-  const dataMask = initialDataMask || {};
-
-  Object.entries(dataMask).forEach(([key, value]) => {
-    mergedDataMask[key] = { ...value, ...value.defaultDataMask };
-  });
-
   filterChanges.deleted.forEach((filterId: string) => {
     delete mergedDataMask[filterId];
   });
 
   filterChanges.modified.forEach((filter: Filter) => {
     const existingFilter = draftDataMask[filter.id] as FilterWithExtaFromData;
+    const prevFilterDef = initialDataMask?.[filter.id] as Filter | undefined;
 
     // Check if targets are equal
-    const areTargetsEqual = isEqual(existingFilter?.targets, filter?.targets);
+    const areTargetsEqual = isEqual(prevFilterDef?.targets, filter?.targets);
 
     // Preserve state only if filter exists, has enableEmptyFilter=true and targets match
     const shouldPreserveState =
@@ -171,6 +174,17 @@ function updateDataMaskForFilterChanges(
     };
   });
 
+  // Preserve state for native filters that were not modified or deleted
+  Object.entries(draftDataMask).forEach(([key, value]) => {
+    if (String(value?.id).startsWith(NATIVE_FILTER_PREFIX)) {
+      const wasDeleted = filterChanges.deleted.includes(key);
+      const wasModified = filterChanges.modified.some(f => f.id === key);
+      if (!wasDeleted && !wasModified) {
+        mergedDataMask[key] = value;
+      }
+    }
+  });
+
   Object.values(draftDataMask).forEach(filter => {
     const filterId = String(filter?.id);
     const shouldSkip = isCustomizationChanges
@@ -185,7 +199,7 @@ function updateDataMaskForFilterChanges(
 const dataMaskReducer = produce(
   (
     draft: DataMaskStateWithId,
-    action: AnyDataMaskAction | HydrateDashboardAction,
+    action: AnyDataMaskAction | HydrateDashboardAction | HydrateExplore,
   ) => {
     const cleanState: DataMaskStateWithId = {};
     switch (action.type) {
@@ -216,8 +230,17 @@ const dataMaskReducer = produce(
           loadedDataMask,
         );
 
-        const chartCustomizationConfig =
-          metadata?.chart_customization_config || [];
+        const rawChartCustomizationConfig = (
+          metadata?.chart_customization_config || []
+        ).filter(Boolean);
+
+        const hasLegacyFormat = rawChartCustomizationConfig.some(item =>
+          isLegacyChartCustomizationFormat(item),
+        );
+
+        const chartCustomizationConfig = hasLegacyFormat
+          ? migrateChartCustomizationArray(rawChartCustomizationConfig)
+          : (rawChartCustomizationConfig as ChartCustomization[]);
 
         chartCustomizationConfig.forEach(item => {
           if (!isChartCustomizationItem(item)) {
@@ -267,6 +290,20 @@ const dataMaskReducer = produce(
         });
 
         return cleanState;
+      }
+      case HYDRATE_EXPLORE: {
+        const hydrateExploreAction = action as HydrateExplore;
+        const loadedDataMask = hydrateExploreAction.data.dataMask;
+        if (loadedDataMask) {
+          Object.entries(loadedDataMask).forEach(([id, mask]) => {
+            draft[id] = {
+              ...getInitialDataMask(id),
+              ...draft[id],
+              ...mask,
+            };
+          });
+        }
+        return draft;
       }
       case SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE:
         updateDataMaskForFilterChanges(

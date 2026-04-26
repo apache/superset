@@ -24,7 +24,7 @@ import {
   RefObject,
 } from 'react';
 
-import { withTheme } from '@apache-superset/core/ui';
+import { withTheme } from '@apache-superset/core/theme';
 
 import type {
   ListViewFilterValue as FilterValue,
@@ -72,6 +72,7 @@ function UIFilters(
             key,
             id,
             input,
+            optionFilterProps,
             paginate,
             selects,
             toolTipDescription,
@@ -80,7 +81,7 @@ function UIFilters(
             dateFilterValueType,
             min,
             max,
-            dropdownStyle,
+            popupStyle,
             autoComplete,
             inputName,
           },
@@ -109,10 +110,11 @@ function UIFilters(
 
                   updateFilterValue(index, option);
                 }}
+                optionFilterProps={optionFilterProps}
                 paginate={paginate}
                 selects={selects}
                 loading={loading ?? false}
-                dropdownStyle={dropdownStyle}
+                dropdownStyle={popupStyle}
               />
             );
           }
