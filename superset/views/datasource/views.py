@@ -225,17 +225,24 @@ class Datasource(BaseSupersetView):
             ):
                 return json_error_response(_("Forbidden"), status=403)
         else:
-            try:
-                dataset = DatasourceDAO.get_datasource(
-                    params["datasource_type"],
-                    params["datasource_id"],
-                )
-            except (DatasourceNotFound, DatasourceTypeNotSupportedError):
-                return self.response_404()
-            try:
-                security_manager.raise_for_access(datasource=dataset)
-            except SupersetSecurityException:
-                return json_error_response(_("Forbidden"), status=403)
+            # Pre-fetch and access-check only for table-type datasources.
+            # Non-table types (query, saved_query) use a different access model;
+            # passing them to raise_for_access(datasource=...) would check the
+            # wrong attributes. Let get_samples() handle the lookup for those types.
+            if params["datasource_type"] == DatasourceType.TABLE:
+                try:
+                    dataset = DatasourceDAO.get_datasource(
+                        params["datasource_type"],
+                        params["datasource_id"],
+                    )
+                except (DatasourceNotFound, DatasourceTypeNotSupportedError):
+                    return self.response_404()
+                try:
+                    security_manager.raise_for_access(datasource=dataset)
+                except SupersetSecurityException:
+                    return json_error_response(_("Forbidden"), status=403)
+            else:
+                dataset = None
 
         rv = get_samples(
             datasource_type=params["datasource_type"],
