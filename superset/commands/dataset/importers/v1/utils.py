@@ -108,15 +108,25 @@ def validate_data_uri(data_uri: str) -> None:
     """
     Validate that the data URI is permitted for dataset import.
 
-    Local ``file://`` URIs (used for bundled example data) are always allowed
-    since they do not make network requests.  All other URIs must match a
-    pattern in ``DATASET_IMPORT_ALLOWED_DATA_URLS`` *and* resolve to a
-    publicly-routable host.
+    Local ``file://`` URIs are allowed only when the path is confined to the
+    bundled examples folder.  All other URIs must match a pattern in
+    ``DATASET_IMPORT_ALLOWED_DATA_URLS`` *and* resolve to a publicly-routable host.
 
     :param data_uri: the URI to validate
     :raises DatasetForbiddenDataURI: if the URI is not permitted
     """
     if data_uri.startswith("file://"):
+        import os
+
+        from superset.examples.helpers import get_examples_folder
+
+        # Strip the "file://" prefix to get the filesystem path.
+        file_path = data_uri[len("file://") :]
+        # Resolve symlinks and relative components before comparing.
+        real_path = os.path.realpath(file_path)
+        examples_folder = os.path.realpath(get_examples_folder())
+        if not real_path.startswith(examples_folder + os.sep):
+            raise DatasetForbiddenDataURI()
         return
 
     allowed_urls = app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"]

@@ -781,7 +781,12 @@ def test_import_dataset_without_owner_permission(
         (["*"], "https://host1.domain3.com/data.csv", False, re.error),
     ],
 )
-def test_validate_data_uri(allowed_urls, data_uri, expected, exception_class):
+def test_validate_data_uri(
+    allowed_urls: list[str],
+    data_uri: str,
+    expected: bool,
+    exception_class: type[Exception] | None,
+) -> None:
     """Tests allowlist pattern matching. is_safe_host is stubbed out so that
     fake/unresolvable test hostnames do not interfere with DNS-based checks
     (those are covered by the dedicated is_safe_host tests below)."""
@@ -798,11 +803,28 @@ def test_validate_data_uri(allowed_urls, data_uri, expected, exception_class):
                 validate_data_uri(data_uri)
 
 
-def test_validate_data_uri_file_scheme_always_allowed() -> None:
-    """file:// URIs must always pass regardless of allowlist or SSRF guards."""
+def test_validate_data_uri_file_scheme_examples_allowed() -> None:
+    """file:// URIs pointing inside the examples folder are permitted."""
+    import os
+
+    from superset.examples.helpers import get_examples_folder
+
+    examples_folder = get_examples_folder()
+    uri_in_examples = (
+        f"file://{os.path.join(examples_folder, 'birth_names', 'data.parquet')}"
+    )
     current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
     current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
-    validate_data_uri("file:///tmp/data.csv")
+    # Should not raise
+    validate_data_uri(uri_in_examples)
+
+
+def test_validate_data_uri_file_scheme_outside_examples_blocked() -> None:
+    """file:// URIs outside the examples folder are blocked."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with pytest.raises(DatasetForbiddenDataURI):
+        validate_data_uri("file:///etc/passwd")
 
 
 @pytest.mark.parametrize(
