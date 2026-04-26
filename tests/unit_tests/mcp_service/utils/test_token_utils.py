@@ -24,6 +24,11 @@ from typing import Any, List
 from pydantic import BaseModel
 
 from superset.mcp_service.utils.token_utils import (
+    _replace_collections_with_summaries,
+    _summarize_large_dicts,
+    _truncate_lists,
+    _truncate_strings,
+    _truncate_strings_recursive,
     CHARS_PER_TOKEN,
     estimate_response_tokens,
     estimate_token_count,
@@ -31,6 +36,8 @@ from superset.mcp_service.utils.token_utils import (
     format_size_limit_error,
     generate_size_reduction_suggestions,
     get_response_size_bytes,
+    INFO_TOOLS,
+    truncate_oversized_response,
 )
 
 
@@ -213,6 +220,8 @@ class TestGenerateSizeReductionSuggestions:
             token_limit=25000,
         )
         assert any("filter" in s.lower() for s in suggestions)
+        assert not any("owner" in s.lower() for s in suggestions)
+        assert any("non-user attributes" in s for s in suggestions)
 
     def test_tool_specific_suggestions_execute_sql(self) -> None:
         """Should provide SQL-specific suggestions for execute_sql."""
@@ -374,3 +383,259 @@ class TestCalculatedSuggestions:
         # Should mention ~66% reduction needed (int truncation of 66.6%)
         combined = " ".join(suggestions)
         assert "66%" in combined
+
+
+class TestInfoToolsSet:
+    """Test the INFO_TOOLS constant."""
+
+    def test_info_tools_contains_expected_tools(self) -> None:
+        """Should contain all info tools."""
+        assert "get_chart_info" in INFO_TOOLS
+        assert "get_dataset_info" in INFO_TOOLS
+        assert "get_dashboard_info" in INFO_TOOLS
+        assert "get_instance_info" in INFO_TOOLS
+
+    def test_info_tools_does_not_contain_list_tools(self) -> None:
+        """Should not contain list or write tools."""
+        assert "list_charts" not in INFO_TOOLS
+        assert "execute_sql" not in INFO_TOOLS
+        assert "generate_chart" not in INFO_TOOLS
+
+
+class TestTruncateStrings:
+    """Test _truncate_strings helper."""
+
+    def test_truncates_long_strings(self) -> None:
+        """Should truncate strings exceeding max_chars."""
+        data: dict[str, Any] = {"description": "x" * 1000, "name": "short"}
+        notes: list[str] = []
+        changed = _truncate_strings(data, notes, max_chars=500)
+        assert changed is True
+        assert len(data["description"]) < 1000
+        assert "[truncated from 1000 chars]" in data["description"]
+        assert data["name"] == "short"
+        assert len(notes) == 1
+
+    def test_does_not_truncate_short_strings(self) -> None:
+        """Should not truncate strings within limit."""
+        data: dict[str, Any] = {"name": "hello", "id": 123}
+        notes: list[str] = []
+        changed = _truncate_strings(data, notes, max_chars=500)
+        assert changed is False
+        assert data["name"] == "hello"
+        assert len(notes) == 0
+
+
+class TestTruncateStringsRecursive:
+    """Test _truncate_strings_recursive helper."""
+
+    def test_truncates_nested_strings_in_list_items(self) -> None:
+        """Should truncate strings inside list items (e.g. charts[i].description)."""
+        data: dict[str, Any] = {
+            "id": 1,
+            "charts": [
+                {"id": 1, "description": "x" * 1000},
+                {"id": 2, "description": "short"},
+            ],
+        }
+        notes: list[str] = []
+        changed = _truncate_strings_recursive(data, notes, max_chars=500)
+        assert changed is True
+        assert "[truncated" in data["charts"][0]["description"]
+        assert data["charts"][1]["description"] == "short"
+        assert len(notes) == 1
+        assert "charts[0].description" in notes[0]
+
+    def test_truncates_nested_strings_in_dicts(self) -> None:
+        """Should truncate strings inside nested dicts."""
+        data: dict[str, Any] = {
+            "filter_state": {
+                "dataMask": {"some_filter": "y" * 2000},
+            },
+        }
+        notes: list[str] = []
+        changed = _truncate_strings_recursive(data, notes, max_chars=500)
+        assert changed is True
+        assert "[truncated" in data["filter_state"]["dataMask"]["some_filter"]
+
+    def test_respects_depth_limit(self) -> None:
+        """Should stop recursing at depth 10."""
+        # Build a deeply nested structure (15 levels)
+        data: dict[str, Any] = {"level": "x" * 1000}
+        current = data
+        for _ in range(15):
+            current["nested"] = {"level": "x" * 1000}
+            current = current["nested"]
+        notes: list[str] = []
+        _truncate_strings_recursive(data, notes, max_chars=500)
+        # Should truncate levels 0-10 but stop before 15
+        assert len(notes) <= 11
+
+    def test_handles_empty_structures(self) -> None:
+        """Should handle empty dicts and lists gracefully."""
+        data: dict[str, Any] = {"items": [], "meta": {}, "name": "ok"}
+        notes: list[str] = []
+        changed = _truncate_strings_recursive(data, notes, max_chars=500)
+        assert changed is False
+
+    def test_dashboard_with_many_charts_edge_case(self) -> None:
+        """Simulate a dashboard with 30 charts each having long descriptions."""
+        data: dict[str, Any] = {
+            "id": 1,
+            "dashboard_title": "Big Dashboard",
+            "charts": [
+                {"id": i, "slice_name": f"Chart {i}", "description": "d" * 2000}
+                for i in range(30)
+            ],
+        }
+        notes: list[str] = []
+        changed = _truncate_strings_recursive(data, notes, max_chars=500)
+        assert changed is True
+        # All 30 chart descriptions should be truncated
+        assert len(notes) == 30
+        for chart in data["charts"]:
+            assert len(chart["description"]) < 2000
+            assert "[truncated" in chart["description"]
+
+
+class TestTruncateLists:
+    """Test _truncate_lists helper."""
+
+    def test_truncates_long_lists(self) -> None:
+        """Should truncate lists exceeding max_items without inline markers."""
+        data: dict[str, Any] = {
+            "columns": [{"name": f"col_{i}"} for i in range(50)],
+            "tags": [1, 2],
+        }
+        notes: list[str] = []
+        changed = _truncate_lists(data, notes, max_items=10)
+        assert changed is True
+        # Exactly 10 items — no marker appended (preserves type contract)
+        assert len(data["columns"]) == 10
+        assert all(isinstance(c, dict) and "name" in c for c in data["columns"])
+        assert data["tags"] == [1, 2]  # Not truncated
+        assert len(notes) == 1
+        assert "50" in notes[0]
+
+    def test_does_not_truncate_short_lists(self) -> None:
+        """Should not truncate lists within limit."""
+        data: dict[str, Any] = {"items": [1, 2, 3]}
+        notes: list[str] = []
+        changed = _truncate_lists(data, notes, max_items=10)
+        assert changed is False
+
+
+class TestSummarizeLargeDicts:
+    """Test _summarize_large_dicts helper."""
+
+    def test_summarizes_large_dicts(self) -> None:
+        """Should replace large dicts with key summaries."""
+        big_dict = {f"key_{i}": f"value_{i}" for i in range(30)}
+        data: dict[str, Any] = {"form_data": big_dict, "id": 1}
+        notes: list[str] = []
+        changed = _summarize_large_dicts(data, notes, max_keys=20)
+        assert changed is True
+        assert data["form_data"]["_truncated"] is True
+        assert "30 keys" in data["form_data"]["_message"]
+        assert data["id"] == 1
+
+    def test_does_not_summarize_small_dicts(self) -> None:
+        """Should not summarize dicts within limit."""
+        data: dict[str, Any] = {"params": {"a": 1, "b": 2}}
+        notes: list[str] = []
+        changed = _summarize_large_dicts(data, notes, max_keys=20)
+        assert changed is False
+
+
+class TestReplaceCollectionsWithSummaries:
+    """Test _replace_collections_with_summaries helper."""
+
+    def test_replaces_lists_and_dicts(self) -> None:
+        """Should clear non-empty collections to reduce size."""
+        data: dict[str, Any] = {
+            "columns": [1, 2, 3],
+            "params": {"a": 1},
+            "name": "test",
+            "empty": [],
+        }
+        notes: list[str] = []
+        changed = _replace_collections_with_summaries(data, notes)
+        assert changed is True
+        # Lists become empty lists (preserves type)
+        assert data["columns"] == []
+        # Dicts become empty dicts (preserves type)
+        assert data["params"] == {}
+        # Scalars unchanged
+        assert data["name"] == "test"
+        # Empty collections unchanged
+        assert data["empty"] == []
+        assert len(notes) == 2
+
+
+class TestTruncateOversizedResponse:
+    """Test truncate_oversized_response function."""
+
+    def test_no_truncation_needed(self) -> None:
+        """Should return original data when under limit."""
+        response = {"id": 1, "name": "test"}
+        result, was_truncated, notes = truncate_oversized_response(response, 10000)
+        assert was_truncated is False
+        assert notes == []
+
+    def test_truncates_large_string_fields(self) -> None:
+        """Should truncate long strings to fit."""
+        response = {
+            "id": 1,
+            "description": "x" * 50000,  # Very large description
+        }
+        result, was_truncated, notes = truncate_oversized_response(response, 500)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert "[truncated" in result["description"]
+        assert any("description" in n for n in notes)
+
+    def test_truncates_large_lists(self) -> None:
+        """Should truncate lists when strings alone are not enough."""
+        response = {
+            "id": 1,
+            "columns": [{"name": f"col_{i}", "type": "VARCHAR"} for i in range(200)],
+        }
+        result, was_truncated, notes = truncate_oversized_response(response, 500)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        # Should have been truncated
+        assert len(result["columns"]) < 200
+
+    def test_handles_pydantic_model(self) -> None:
+        """Should handle Pydantic model input."""
+
+        class FakeInfo(BaseModel):
+            id: int = 1
+            description: str = "x" * 5000
+
+        response = FakeInfo()
+        result, was_truncated, notes = truncate_oversized_response(response, 200)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+
+    def test_returns_non_dict_unchanged(self) -> None:
+        """Should return non-dict/model responses unchanged."""
+        result, was_truncated, notes = truncate_oversized_response("just a string", 100)
+        assert was_truncated is False
+        assert result == "just a string"
+
+    def test_progressive_truncation(self) -> None:
+        """Should progressively apply truncation phases."""
+        # Build a response that's quite large
+        response = {
+            "id": 1,
+            "description": "x" * 2000,
+            "css": "y" * 2000,
+            "columns": [{"name": f"col_{i}"} for i in range(100)],
+            "form_data": {f"key_{i}": f"val_{i}" for i in range(50)},
+        }
+        result, was_truncated, notes = truncate_oversized_response(response, 300)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert result["id"] == 1  # Scalar fields preserved
+        assert len(notes) > 0

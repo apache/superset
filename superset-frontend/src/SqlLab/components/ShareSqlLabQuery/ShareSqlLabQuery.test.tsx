@@ -124,6 +124,25 @@ describe('ShareSqlLabQuery', () => {
       ).toEqual(expected);
     });
 
+    test('does not show duplicate "Copy to clipboard" tooltip on hover', async () => {
+      await act(async () => {
+        render(<ShareSqlLabQuery {...defaultProps} />, {
+          useRedux: true,
+          store,
+        });
+      });
+      const button = screen.getByRole('button');
+      userEvent.hover(button);
+      expect(
+        await screen.findByText('Copy query link to your clipboard'),
+      ).toBeInTheDocument();
+      await waitFor(() => {
+        // CopyToClipboard default tooltip must NOT appear —
+        // only the Button-level "Copy query link to your clipboard" should show.
+        expect(screen.queryByText('Copy to clipboard')).not.toBeInTheDocument();
+      });
+    });
+
     test('calls storeQuery() with unsaved changes', async () => {
       await act(async () => {
         render(<ShareSqlLabQuery {...defaultProps} />, {

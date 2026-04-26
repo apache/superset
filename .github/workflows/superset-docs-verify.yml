@@ -72,7 +72,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: './docs/.nvmrc'
       - name: yarn install
@@ -104,7 +104,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: './docs/.nvmrc'
       - name: yarn install

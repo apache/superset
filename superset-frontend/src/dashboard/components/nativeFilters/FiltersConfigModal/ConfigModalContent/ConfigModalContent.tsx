@@ -25,7 +25,8 @@ import {
 } from '@superset-ui/core';
 import type { FormInstance } from '@superset-ui/core/components';
 import { styled } from '@apache-superset/core/theme';
-import { Flex } from '@superset-ui/core/components';
+import { EmptyState, Flex } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
 import FilterContentRenderer from './FilterContentRenderer';
 import CustomizationContentRenderer from './CustomizationContentRenderer';
 import { FiltersConfigFormHandle } from '../FiltersConfigForm/FiltersConfigForm';
@@ -104,6 +105,28 @@ function ConfigModalContent({
   const isCustomizationActive =
     isChartCustomizationId(currentItemId) &&
     chartCustomizationIds.includes(currentItemId);
+
+  const hasNoItems =
+    filterState.orderedIds.length === 0 &&
+    customizationState.orderedIds.length === 0;
+  const showEmptyState = hasNoItems || !currentItemId;
+
+  if (showEmptyState) {
+    return (
+      <StyledContentFlex vertical>
+        <Flex flex={1}>
+          <EmptyState
+            size="small"
+            title=""
+            image="empty.svg"
+            description={t(
+              'Manage filters and customizations to set scoping, descriptions, and limitations. Create new elements for better dashboard insights.',
+            )}
+          />
+        </Flex>
+      </StyledContentFlex>
+    );
+  }
 
   return (
     <StyledContentFlex vertical>
