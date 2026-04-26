@@ -12,7 +12,7 @@ on:
 
 jobs:
   config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -30,7 +30,7 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: Cleanup ephemeral envs
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     permissions:
       pull-requests: write
     steps:

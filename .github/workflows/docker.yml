@@ -16,7 +16,7 @@ concurrency:
 jobs:
 
   setup_matrix:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     outputs:
       matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
     steps:
