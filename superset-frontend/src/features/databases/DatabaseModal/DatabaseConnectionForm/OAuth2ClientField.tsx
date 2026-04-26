@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -103,7 +103,7 @@ export const OAuth2ClientField = ({
               <FormItem label={LABELS.AUTH_URI}>
                 <Input
                   data-test="client-authorization-request-uri"
-                  placeholder="https://"
+                  placeholder={t('https://')}
                   value={oauth2ClientInfo.authorization_request_uri}
                   onChange={handleChange('authorization_request_uri')}
                 />
@@ -111,7 +111,7 @@ export const OAuth2ClientField = ({
               <FormItem label={LABELS.TOKEN_URI}>
                 <Input
                   data-test="client-token-request-uri"
-                  placeholder="https://"
+                  placeholder={t('https://')}
                   value={oauth2ClientInfo.token_request_uri}
                   onChange={handleChange('token_request_uri')}
                 />
@@ -130,4 +130,3 @@ export const OAuth2ClientField = ({
     />
   );
 };
-// Code audit complete: OAuth2 client fields verified.
