@@ -7,7 +7,7 @@ on:
 
 jobs:
   welcome:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     if: github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
     permissions:
       pull-requests: write

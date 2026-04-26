@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   app-checks:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     timeout-minutes: 20
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"

@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   validate-all-ghas:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     permissions:
       contents: read
       # Required for the zizmor action to upload its SARIF results to
