@@ -25,7 +25,7 @@ from .base import BaseSupersetView
 
 class UsersListView(BaseSupersetView):
     route_base = "/"
-    class_permission_name = "security"
+    class_permission_name = "Security"
 
     @expose("/users/")
     @has_access
