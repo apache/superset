@@ -66,6 +66,7 @@ export const SamplesPane = ({
   const [rowLimit, setRowLimit] = useState(DEFAULT_ROW_LIMIT);
   const [data, setData] = useState<Record<string, any>[][]>([]);
   const [colnames, setColnames] = useState<string[]>([]);
+  const [collabels, setCollabels] = useState<string[]>([]);
   const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [rowcount, setRowCount] = useState<number>(0);
@@ -106,6 +107,7 @@ export const SamplesPane = ({
         .then(response => {
           setData(ensureIsArray(response.data));
           setColnames(ensureIsArray(response.colnames));
+          setCollabels(ensureIsArray(response.collabels));
           setColtypes(ensureIsArray(response.coltypes));
           setRowCount(response.rowcount);
           setResponseError('');
@@ -117,6 +119,7 @@ export const SamplesPane = ({
         .catch(error => {
           setData([]);
           setColnames([]);
+          setCollabels([]);
           setColtypes([]);
           setResponseError(`${error.name}: ${error.message}`);
         })
@@ -126,7 +129,7 @@ export const SamplesPane = ({
     }
   }, [datasource, queryFormData, isRequest, queryForce, rowLimit]);
 
-  const columns = useGridColumns(colnames, coltypes, data);
+  const columns = useGridColumns(colnames, coltypes, data, collabels);
   const keywordFilter = useKeywordFilter(filterText);
 
   const handleInputChange = useCallback(

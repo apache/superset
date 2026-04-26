@@ -28,7 +28,7 @@ export function useGridColumns(
   colnames: string[] | undefined,
   coltypes: GenericDataType[] | undefined,
   data: Record<string, any>[] | undefined,
-  columnDisplayNames?: Record<string, string>,
+  collabels?: string[] | undefined,
 ) {
   return useMemo(
     () =>
@@ -37,7 +37,7 @@ export function useGridColumns(
             .filter((column: string) => Object.keys(data[0]).includes(column))
             .map((key, index) => {
               const colType = coltypes?.[index];
-              const headerLabel = columnDisplayNames?.[key] ?? key;
+              const headerLabel = collabels?.[index];
               return {
                 label: key,
                 headerName: headerLabel,
@@ -69,7 +69,7 @@ export function useGridColumns(
               };
             })
         : [],
-    [colnames, data, coltypes, columnDisplayNames],
+    [colnames, data, coltypes, collabels],
   );
 }
 
