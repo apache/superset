@@ -17,7 +17,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
