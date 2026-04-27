@@ -113,7 +113,7 @@ type LaunchQueue = {
   ) => void;
 };
 
-const pendingTimerIds = new Set<ReturnType<typeof setTimeout>>();
+let consumerPromise: Promise<void> | null = null;
 
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer:
@@ -123,13 +123,9 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
       if (fileHandle) {
-        const id = setTimeout(() => {
-          pendingTimerIds.delete(id);
-          consumer({
-            files: [fileHandle],
-          });
-        }, 0);
-        pendingTimerIds.add(id);
+        consumerPromise = Promise.resolve(
+          consumer({ files: [fileHandle] }),
+        ).then(() => undefined);
       }
     },
   };
@@ -145,9 +141,11 @@ beforeEach(() => {
   delete (window as any).launchQueue;
 });
 
-afterEach(() => {
-  pendingTimerIds.forEach(id => clearTimeout(id));
-  pendingTimerIds.clear();
+afterEach(async () => {
+  if (consumerPromise) {
+    await consumerPromise.catch(() => {});
+    consumerPromise = null;
+  }
   delete (window as any).launchQueue;
 });
 
