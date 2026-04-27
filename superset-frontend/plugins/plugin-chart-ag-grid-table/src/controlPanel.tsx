@@ -314,6 +314,21 @@ const config: ControlPanelConfig = {
             config: percentMetricsControl,
           },
         ],
+        [
+          {
+            name: 'chart_columns',
+            config: {
+              type: 'ChartColumnsControl',
+              label: t('Chart columns'),
+              description: t(
+                'Add columns that display charts for each row. The charts will visualize the metrics selected above for each row. To control which metrics are visualized, select the desired metrics in the "Metrics" control. Best used when the metric columns make sense to be visualized in a chart.',
+              ),
+              default: [],
+              visibility: isAggMode,
+              resetOnHide: false,
+            },
+          },
+        ],
         ['adhoc_filters'],
         [
           {
@@ -578,6 +593,20 @@ const config: ControlPanelConfig = {
                   colnames = updatedColnames;
                   coltypes = updatedColtypes;
                 }
+
+                const chartColumns =
+                  explore?.controls?.chart_columns?.value || [];
+                if (Array.isArray(chartColumns)) {
+                  chartColumns.forEach(
+                    (col: { key: string; label: string }) => {
+                      if (!colnames.includes(col.label)) {
+                        colnames.push(col.label);
+                        coltypes.push(GenericDataType.Chart);
+                      }
+                    },
+                  );
+                }
+
                 return {
                   columnsPropsObject: {
                     colnames,

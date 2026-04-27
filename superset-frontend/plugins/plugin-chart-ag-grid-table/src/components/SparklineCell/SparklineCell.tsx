@@ -32,13 +32,17 @@ import {
   type SeriesProps,
   AxisScale,
 } from '@visx/xychart';
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import {
   getSparklineTextWidth,
   createYScaleConfig,
   transformChartData,
-} from '../../utils';
-import { SparkType } from '../../types';
+} from '../../utils/sparklineHelpers';
+
+dayjs.extend(utc);
+
+type SparkType = 'line' | 'bar' | 'area';
 
 interface Entry {
   time: string;
@@ -245,10 +249,7 @@ const SparklineCell = ({
                         fontSize: '12px',
                       })}
                     >
-                      {formatTime(
-                        dateFormat,
-                        extendedDayjs.utc(timeValue).toDate(),
-                      )}
+                      {formatTime(dateFormat, dayjs.utc(timeValue).toDate())}
                     </div>
                   )}
                 </div>

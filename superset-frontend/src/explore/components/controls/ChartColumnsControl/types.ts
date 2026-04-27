@@ -16,22 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sharedControlComponents } from '@superset-ui/chart-controls';
-import { Input, InputNumber, Select } from '@superset-ui/core/components';
-import Slider from '@superset-ui/core/components/Slider';
-import CurrencyControl from '../../CurrencyControl';
-import CheckboxControl from '../../CheckboxControl';
-import ColorPickerControl from '../../ColorPickerControl';
 
-export const ControlFormItemComponents = {
-  Slider,
-  InputNumber,
-  Input,
-  Select,
-  // Directly export Checkbox will result in "using name from external module" error
-  // ref: https://stackoverflow.com/questions/43900035/ts4023-exported-variable-x-has-or-is-using-name-y-from-external-module-but
-  Checkbox: CheckboxControl,
-  RadioButtonControl: sharedControlComponents.RadioButtonControl,
-  CurrencyControl,
-  ColorPickerControl,
+import { ReactNode } from 'react';
+import { PopoverProps } from '@superset-ui/core/components/Popover';
+import { ControlComponentProps } from '@superset-ui/chart-controls';
+
+export type ChartColumnConfig = {
+  key: string;
+  label: string;
+};
+
+export type ChartColumnsControlProps = ControlComponentProps<
+  ChartColumnConfig[]
+> & {
+  label: string;
+  description: string;
+};
+
+export type ChartColumnPopoverProps = PopoverProps & {
+  onChange: (value: ChartColumnConfig) => void;
+  config?: ChartColumnConfig;
+  title: string;
+  children: ReactNode;
 };
