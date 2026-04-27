@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import difflib
 from datetime import datetime, timezone
-from typing import Annotated, Any, Dict, List, Literal, Protocol
+from typing import Annotated, Any, cast, Dict, List, Literal, Protocol
 
 import humanize
 from pydantic import (
@@ -141,7 +141,7 @@ class ChartInfo(BaseModel):
         ),
     )
     form_data_key: str | None = Field(
-        None,
+        default=None,
         description=(
             "Cache key used to retrieve unsaved form_data. When present, indicates "
             "the form_data came from cache (unsaved edits) rather than the saved chart."
@@ -435,7 +435,7 @@ class ChartFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
+    col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "slice_name",
         "viz_type",
         "datasource_name",
@@ -1355,7 +1355,10 @@ class ListChartsRequest(MetadataCacheControl):
         """
         from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
 
-        return parse_json_or_model_list(v, ChartFilter, "filters")
+        return cast(
+            List[ChartFilter],
+            parse_json_or_model_list(v, ChartFilter, "filters"),
+        )
 
     @field_validator("select_columns", mode="before")
     @classmethod
