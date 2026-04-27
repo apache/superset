@@ -22,9 +22,11 @@ import { safeHtmlSpan } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { supersetTheme } from '@apache-superset/core/theme';
 import PropTypes from 'prop-types';
-import { FaSort } from 'react-icons/fa';
-import { FaSortDown as FaSortDesc } from 'react-icons/fa';
-import { FaSortUp as FaSortAsc } from 'react-icons/fa';
+import {
+  CaretUpOutlined,
+  CaretDownOutlined,
+  ColumnHeightOutlined,
+} from '@ant-design/icons';
 import {
   ColorFormatters,
   getTextColorForBackground,
@@ -855,7 +857,7 @@ export class TableRenderer extends Component<
 
           if (activeSortColumn !== key) {
             return (
-              <FaSort
+              <ColumnHeightOutlined
                 onClick={() =>
                   this.sortData(key, visibleColKeys, pivotData, maxRowIndex)
                 }
@@ -863,7 +865,8 @@ export class TableRenderer extends Component<
             );
           }
 
-          const SortIcon = sortingOrder[key] === 'asc' ? FaSortAsc : FaSortDesc;
+          const SortIcon =
+            sortingOrder[key] === 'asc' ? CaretUpOutlined : CaretDownOutlined;
           return (
             <SortIcon
               onClick={() =>
@@ -873,7 +876,9 @@ export class TableRenderer extends Component<
           );
         };
         const headerCellFormattedValue =
-          dateFormatters?.[attrName]?.(convertToNumberIfNumeric(colKey[attrIdx])) ?? colKey[attrIdx];
+          dateFormatters?.[attrName]?.(
+            convertToNumberIfNumeric(colKey[attrIdx]),
+          ) ?? colKey[attrIdx];
         const { backgroundColor, color } = getCellColor(
           [attrName],
           headerCellFormattedValue,
@@ -912,7 +917,7 @@ export class TableRenderer extends Component<
               allowRenderHtml,
             )}
             <span
-              role="columnheader"
+              role="button"
               tabIndex={0}
               // Prevents event bubbling to avoid conflict with column header click handlers
               // Ensures sort operation executes without triggering cross-filtration

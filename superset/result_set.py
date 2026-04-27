@@ -99,6 +99,38 @@ def convert_to_string(value: Any) -> str:
     return str(value)
 
 
+def normalize_cursor_description_names(
+    cursor_description: DbapiDescription,
+) -> list[str]:
+    """
+    Replace empty cursor.description names with synthetic names that do not
+    collide with any explicit column names.
+    """
+    normalized_names: list[str] = []
+    unavailable_names = {
+        convert_to_string(col[0])
+        for col in cursor_description
+        if convert_to_string(col[0])
+    }
+    synthetic_index = 0
+
+    for col in cursor_description:
+        column_name = convert_to_string(col[0])
+        if column_name:
+            normalized_names.append(column_name)
+            continue
+
+        while True:
+            synthetic_name = f"_col_{synthetic_index}"
+            synthetic_index += 1
+            if synthetic_name not in unavailable_names:
+                unavailable_names.add(synthetic_name)
+                normalized_names.append(synthetic_name)
+                break
+
+    return normalized_names
+
+
 class SupersetResultSet:
     def __init__(  # pylint: disable=too-many-locals  # noqa: C901
         self,
@@ -116,9 +148,14 @@ class SupersetResultSet:
 
         if cursor_description:
             # get deduped list of column names
-            column_names = dedup(
-                [convert_to_string(col[0]) for col in cursor_description]
-            )
+            # Some databases (e.g. SQL Server) return an empty string as the
+            # column name for un-aliased expressions like SELECT COUNT(*).
+            # An empty field name is illegal in NumPy structured arrays and in
+            # PyArrow tables, so we substitute a synthetic name when needed.
+            # Synthetic names are chosen to avoid colliding with any explicit
+            # column names before deduplication runs.
+            # See https://github.com/apache/superset/issues/23848
+            column_names = dedup(normalize_cursor_description_names(cursor_description))
 
             # fix cursor descriptor with the deduped names
             deduped_cursor_desc = [
