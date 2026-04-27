@@ -29,7 +29,7 @@ import fetchMock from 'fetch-mock';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { user, testQuery, mockdatasets } from 'src/SqlLab/fixtures';
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, SupersetClient } from '@superset-ui/core';
 
 const mockedProps = {
   visible: true,
@@ -339,6 +339,121 @@ describe('SaveDatasetModal', () => {
       sql: 'SELECT *',
       templateParams: undefined,
     });
+  });
+
+  const setupOverwriteFlow = async () => {
+    // Select the "Overwrite existing" radio
+    userEvent.click(screen.getByRole('radio', { name: /overwrite existing/i }));
+    // Open the select and pick an existing dataset
+    userEvent.click(
+      screen.getByRole('combobox', { name: /existing dataset/i }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText('Loading...')).not.toBeVisible(),
+    );
+    userEvent.click(screen.getAllByText('coolest table 0')[1]);
+    // First overwrite click → confirmation screen
+    userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
+    // Wait for the confirmation screen to render
+    await screen.findByText(/are you sure you want to overwrite this dataset/i);
+    // Second overwrite click → triggers the PUT
+    userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
+  };
+
+  test('sends template_params when overwriting a dataset with include template parameters checked', async () => {
+    // @ts-expect-error
+    global.featureFlags = {
+      [FeatureFlag.EnableTemplateProcessing]: true,
+    };
+
+    const putSpy = jest
+      .spyOn(SupersetClient, 'put')
+      .mockResolvedValue({ json: { result: { id: 0 } } } as any);
+
+    const dummyDispatch = jest.fn().mockResolvedValue({});
+    useDispatchMock.mockReturnValue(dummyDispatch);
+    useSelectorMock.mockReturnValue({ ...user });
+
+    const propsWithTemplateParam = {
+      ...mockedProps,
+      datasource: {
+        ...testQuery,
+        templateParams: JSON.stringify({ my_param: 12, _filters: 'foo' }),
+      },
+    };
+    render(<SaveDatasetModal {...propsWithTemplateParam} />, {
+      useRedux: true,
+    });
+
+    // Check the "Include Template Parameters" checkbox
+    userEvent.click(screen.getByRole('checkbox'));
+
+    await setupOverwriteFlow();
+
+    await waitFor(() => {
+      expect(
+        putSpy.mock.calls.some(([req]) =>
+          req.endpoint?.includes('api/v1/dataset/'),
+        ),
+      ).toBe(true);
+    });
+
+    const datasetPutCall = putSpy.mock.calls.find(([req]) =>
+      req.endpoint?.includes('api/v1/dataset/'),
+    )!;
+    const [req] = datasetPutCall;
+    expect(req.endpoint).toContain('override_columns=true');
+    const body = JSON.parse(req.body as string);
+    // _filters should be stripped, but my_param should be preserved
+    expect(body.template_params).toEqual(JSON.stringify({ my_param: 12 }));
+
+    putSpy.mockRestore();
+  });
+
+  test('does not send template_params when overwriting a dataset with include template parameters unchecked', async () => {
+    // @ts-expect-error
+    global.featureFlags = {
+      [FeatureFlag.EnableTemplateProcessing]: true,
+    };
+
+    const putSpy = jest
+      .spyOn(SupersetClient, 'put')
+      .mockResolvedValue({ json: { result: { id: 0 } } } as any);
+
+    const dummyDispatch = jest.fn().mockResolvedValue({});
+    useDispatchMock.mockReturnValue(dummyDispatch);
+    useSelectorMock.mockReturnValue({ ...user });
+
+    const propsWithTemplateParam = {
+      ...mockedProps,
+      datasource: {
+        ...testQuery,
+        templateParams: JSON.stringify({ my_param: 12 }),
+      },
+    };
+    render(<SaveDatasetModal {...propsWithTemplateParam} />, {
+      useRedux: true,
+    });
+
+    // Do NOT check the "Include Template Parameters" checkbox
+    await setupOverwriteFlow();
+
+    await waitFor(() => {
+      expect(
+        putSpy.mock.calls.some(([req]) =>
+          req.endpoint?.includes('api/v1/dataset/'),
+        ),
+      ).toBe(true);
+    });
+
+    const datasetPutCall = putSpy.mock.calls.find(([req]) =>
+      req.endpoint?.includes('api/v1/dataset/'),
+    )!;
+    const [req] = datasetPutCall;
+    const body = JSON.parse(req.body as string);
+    expect(body.template_params).toBeUndefined();
+
+    putSpy.mockRestore();
   });
 
   test('clears dataset cache when creating new dataset', async () => {
