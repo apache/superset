@@ -717,11 +717,7 @@ export default function Home(): JSX.Element {
               </span>
             </div>
             <img src="/img/community/line.png" alt="line" />
-<<<<<<< patch-1
-            <StyledButton className="default-button-theme" href="/user-docs/">
-=======
             <StyledButton className="default-button-theme" href="/user-docs/intro">
->>>>>>> master
               Get Started
             </StyledButton>
           </div>
