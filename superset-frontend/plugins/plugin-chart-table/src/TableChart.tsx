@@ -512,7 +512,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     // so that cross-filters work on the receiving chart
                     const resolvedCol = columnLabelToNameMap[col] ?? col;
                     const val = ensureIsArray(updatedFilters?.[col]);
-                    if (!val.length || val[0] === null)
+                    if (!val.length || val[0] === null || (val[0] instanceof DateWithFormatter && val[0].input === null))
                       return {
                         col: resolvedCol,
                         op: 'IS NULL' as const,
@@ -671,7 +671,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 filters: [
                   {
                     col: cellPoint.key,
-                    op: (cellPoint.value == null ? 'IS NULL' : '==') as any,
+                    op: (cellPoint.value == null || (cellPoint.value instanceof DateWithFormatter && cellPoint.value.input == null) ? 'IS NULL' : '==') as any,
                     val: extractTextFromHTML(cellPoint.value),
                   },
                 ],
@@ -1039,7 +1039,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   }, [filteredColumnsMeta, serverPagination, totals]);
 
   useEffect(() => {
-    const options = (columns as any).filter((col: any) => col?.sortType === 'alphanumeric').map((column: any) => ({ value: column.columnKey, label: column.columnKey }));
+    const options = (columns as (ColumnWithLooseAccessor & { columnKey: string; sortType?: string })[]).filter(col => col?.sortType === 'alphanumeric').map(column => ({ value: column.columnKey, label: column.columnKey }));
     if (!isEqual(options, searchOptions)) setSearchOptions(options || []);
   }, [columns, searchOptions]);
 
@@ -1064,11 +1064,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleSortByChange = useCallback((sortBy: SortByItem[]) => {
     if (!serverPagination) return;
-    updateTableOwnState(setDataMask, { ...serverPaginationData, sortBy } as any);
+    updateTableOwnState(setDataMask, { ...serverPaginationData, sortBy } as unknown as any);
   }, [serverPagination, serverPaginationData, setDataMask]);
 
   const debouncedSearch = debounce((searchText: string) => {
-    updateTableOwnState(setDataMask, { ...serverPaginationData, searchColumn: serverPaginationData?.searchColumn || searchOptions[0]?.value, searchText, currentPage: 0 } as any);
+    updateTableOwnState(setDataMask, { ...serverPaginationData, searchColumn: serverPaginationData?.searchColumn || searchOptions[0]?.value, searchText, currentPage: 0 } as unknown as any);
   }, 800);
 
   const [clientViewRows, setClientViewRows] = useState<DataRecord[]>([]);
