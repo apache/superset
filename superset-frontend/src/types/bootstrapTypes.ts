@@ -55,6 +55,7 @@ export interface PermissionsAndRoles {
     datasource_access?: string[];
   };
   roles: UserRoles;
+  groups: string[];
 }
 
 export type UserWithPermissionsAndRoles = User & PermissionsAndRoles;

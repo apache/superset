@@ -16,271 +16,469 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type React from 'react';
 import fetchMock from 'fetch-mock';
-import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
 import {
   render,
   screen,
   fireEvent,
   waitFor,
+  createStore,
 } from 'spec/helpers/testing-library';
+import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
-import React from 'react';
 import AlertListComponent from 'src/pages/AlertReportList';
 
-// Cast to accept partial mock props in tests
+jest.setTimeout(30000);
+
 const AlertList = AlertListComponent as unknown as React.FC<
   Record<string, any>
 >;
 
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
+// -- Mock data (IDs start at 1 to avoid the `if (data?.id)` falsy guard) --
 
-const alertsEndpoint = 'glob:*/api/v1/report/?*';
-const alertEndpoint = 'glob:*/api/v1/report/*';
-const alertsInfoEndpoint = 'glob:*/api/v1/report/_info*';
-const alertsCreatedByEndpoint = 'glob:*/api/v1/report/related/created_by*';
+const mockAlerts = [
+  {
+    id: 1,
+    name: 'Weekly Sales Alert',
+    active: true,
+    last_state: 'Success',
+    type: 'Alert',
+    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
+    recipients: [{ id: 1, type: 'Email' }],
+    changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
+    changed_on_delta_humanized: '1 day ago',
+    created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
+    created_on: new Date().toISOString(),
+    last_eval_dttm: Date.now(),
+    crontab: '0 9 * * 1',
+    crontab_humanized: 'Every Monday at 09:00',
+    timezone: 'UTC',
+  },
+  {
+    id: 2,
+    name: 'Daily Error Alert',
+    active: true,
+    last_state: 'Error',
+    type: 'Alert',
+    owners: [{ id: 2, first_name: 'Data', last_name: 'Analyst' }],
+    recipients: [{ id: 2, type: 'Slack' }],
+    changed_by: { id: 2, first_name: 'Data', last_name: 'Analyst' },
+    changed_on_delta_humanized: '2 days ago',
+    created_by: { id: 2, first_name: 'Data', last_name: 'Analyst' },
+    created_on: new Date().toISOString(),
+    last_eval_dttm: Date.now(),
+    crontab: '0 8 * * *',
+    crontab_humanized: 'Every day at 08:00',
+    timezone: 'US/Pacific',
+  },
+  {
+    id: 3,
+    name: 'Monthly Revenue Alert',
+    active: false,
+    last_state: 'Working',
+    type: 'Alert',
+    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
+    recipients: [{ id: 3, type: 'Email' }],
+    changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
+    changed_on_delta_humanized: '5 days ago',
+    created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
+    created_on: new Date().toISOString(),
+    last_eval_dttm: Date.now(),
+    crontab: '0 0 1 * *',
+    crontab_humanized: 'First day of the month',
+    timezone: 'UTC',
+  },
+];
 
-const mockalerts = Array.from({ length: 3 }, (_, i) => ({
-  active: true,
-  changed_by: {
-    first_name: `user ${i}`,
-    id: i,
+const mockReports = [
+  {
+    id: 10,
+    name: 'Weekly Dashboard Report',
+    active: true,
+    last_state: 'Success',
+    type: 'Report',
+    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
+    recipients: [{ id: 10, type: 'Email' }],
+    changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
+    changed_on_delta_humanized: '1 day ago',
+    created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
+    created_on: new Date().toISOString(),
+    last_eval_dttm: Date.now(),
+    crontab: '0 9 * * 1',
+    crontab_humanized: 'Every Monday at 09:00',
+    timezone: 'UTC',
   },
-  changed_on_delta_humanized: `${i} day(s) ago`,
-  created_by: {
-    first_name: `user ${i}`,
-    id: i,
+  {
+    id: 11,
+    name: 'Monthly KPI Report',
+    active: false,
+    last_state: 'Not triggered',
+    type: 'Report',
+    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
+    recipients: [{ id: 11, type: 'Slack' }],
+    changed_by: { id: 1, first_name: 'Admin', last_name: 'User' },
+    changed_on_delta_humanized: '3 days ago',
+    created_by: { id: 1, first_name: 'Admin', last_name: 'User' },
+    created_on: new Date().toISOString(),
+    last_eval_dttm: Date.now(),
+    crontab: '0 0 1 * *',
+    crontab_humanized: 'First day of the month',
+    timezone: 'UTC',
   },
-  created_on: new Date().toISOString,
-  id: i,
-  last_eval_dttm: Date.now(),
-  last_state: 'ok',
-  name: `alert ${i}  `,
-  owners: [{ id: 1 }],
-  recipients: [
-    {
-      id: `${i}`,
-      type: 'email',
-    },
-  ],
-  type: 'alert',
-}));
+];
 
 const mockUser = {
   userId: 1,
-  firstName: 'user 1',
-  lastName: 'lastname',
+  firstName: 'Admin',
+  lastName: 'User',
 };
 
-fetchMock.get(alertsEndpoint, {
-  ids: [2, 0, 1],
-  result: mockalerts,
-  count: 3,
-});
-fetchMock.get(alertsInfoEndpoint, {
-  permissions: ['can_write'],
-});
-fetchMock.get(alertsCreatedByEndpoint, { result: [] });
-fetchMock.put(alertEndpoint, { ...mockalerts[0], active: false });
-fetchMock.put(alertsEndpoint, { ...mockalerts[0], active: false });
-fetchMock.delete(alertEndpoint, {});
-fetchMock.delete(alertsEndpoint, {});
+// -- API endpoints (named for cleanup) --
 
-const renderAlertList = (props = {}) =>
-  render(
-    <MemoryRouter>
-      <QueryParamProvider adapter={ReactRouter5Adapter}>
-        <AlertList user={mockUser} {...props} />
-      </QueryParamProvider>
-    </MemoryRouter>,
-    {
-      useRedux: true,
-      store,
+const ENDPOINTS = {
+  LIST: 'glob:*/api/v1/report/?*',
+  INFO: 'glob:*/api/v1/report/_info*',
+  SINGLE: 'glob:*/api/v1/report/*',
+  CREATED_BY: 'glob:*/api/v1/report/related/created_by*',
+  OWNERS: 'glob:*/api/v1/report/related/owners*',
+  CHANGED_BY: 'glob:*/api/v1/report/related/changed_by*',
+};
+
+// -- Render helper --
+
+const renderAlertList = (props: Record<string, any> = {}) => {
+  const store = createStore();
+  return render(
+    <Provider store={store}>
+      <MemoryRouter>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          <AlertList user={mockUser} {...props} />
+        </QueryParamProvider>
+      </MemoryRouter>
+    </Provider>,
+  );
+};
+
+// -- Dynamic list endpoint: returns alerts or reports based on URL filter --
+
+const setupMocks = (
+  permissions: string[] = ['can_read', 'can_write'],
+  listData?: typeof mockAlerts,
+) => {
+  fetchMock.get(ENDPOINTS.INFO, { permissions }, { name: 'info' });
+
+  fetchMock.get(
+    ENDPOINTS.LIST,
+    ({ url }: any) => {
+      if (listData) {
+        return {
+          result: listData,
+          count: listData.length,
+          ids: listData.map(a => a.id),
+        };
+      }
+      const data = url.includes('value:Report') ? mockReports : mockAlerts;
+      return { result: data, count: data.length, ids: data.map(a => a.id) };
     },
+    { name: 'list' },
   );
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('AlertList', () => {
-  beforeEach(() => {
-    fetchMock.clearHistory();
+  fetchMock.get(ENDPOINTS.CREATED_BY, { result: [] }, { name: 'created-by' });
+
+  fetchMock.get(ENDPOINTS.OWNERS, { result: [], count: 0 }, { name: 'owners' });
+
+  fetchMock.get(
+    ENDPOINTS.CHANGED_BY,
+    { result: [], count: 0 },
+    { name: 'changed-by' },
+  );
+
+  fetchMock.put(
+    ENDPOINTS.SINGLE,
+    { result: { ...mockAlerts[0], active: false } },
+    { name: 'put-alert' },
+  );
+
+  fetchMock.delete(ENDPOINTS.SINGLE, {}, { name: 'delete-alert' });
+
+  fetchMock.delete(
+    ENDPOINTS.LIST,
+    { message: 'Deleted' },
+    { name: 'delete-bulk' },
+  );
+};
+
+// -- Setup / teardown --
+
+beforeEach(() => {
+  fetchMock.removeRoutes().clearHistory();
+  setupMocks();
+});
+
+afterEach(() => {
+  fetchMock.removeRoutes().clearHistory();
+});
+
+// -- Tests --
+
+test('loads rows from API and renders alert names, status, and actions', async () => {
+  renderAlertList();
+
+  // All 3 alert names appear
+  await screen.findByText('Weekly Sales Alert');
+  expect(screen.getByText('Daily Error Alert')).toBeInTheDocument();
+  expect(screen.getByText('Monthly Revenue Alert')).toBeInTheDocument();
+
+  // Active switches rendered for each row
+  const switches = screen.getAllByRole('switch');
+  expect(switches).toHaveLength(3);
+
+  // Delete actions present for owned alerts (userId=1 owns alerts 1 and 3)
+  const deleteButtons = screen.getAllByTestId('delete-action');
+  expect(deleteButtons.length).toBeGreaterThanOrEqual(2);
+
+  // Column headers
+  expect(screen.getByTitle('Last run')).toBeInTheDocument();
+  expect(
+    screen.getByRole('columnheader', { name: /name/i }),
+  ).toBeInTheDocument();
+  expect(screen.getByTitle('Schedule')).toBeInTheDocument();
+  expect(screen.getByTitle('Active')).toBeInTheDocument();
+  expect(screen.getByTitle('Actions')).toBeInTheDocument();
+
+  // API was called with Alert filter
+  const listCalls = fetchMock.callHistory.calls('list');
+  expect(listCalls.length).toBeGreaterThanOrEqual(1);
+  expect(listCalls[0].url).toContain('value:Alert');
+});
+
+test('toggle active sends PUT and updates switch state', async () => {
+  renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+
+  const switches = screen.getAllByRole('switch');
+  // First switch is for alert id=1 (owned by user, active: true)
+  expect(switches[0]).toBeChecked();
+
+  fireEvent.click(switches[0]);
+
+  // PUT called with active=false
+  await waitFor(() => {
+    const putCalls = fetchMock.callHistory.calls('put-alert');
+    expect(putCalls).toHaveLength(1);
   });
 
-  test('renders', async () => {
-    renderAlertList();
-    expect(await screen.findByText('Alerts & reports')).toBeInTheDocument();
+  const putCalls = fetchMock.callHistory.calls('put-alert');
+  const body = JSON.parse(putCalls[0].options.body as string);
+  expect(body.active).toBe(false);
+  expect(putCalls[0].url).toContain('/report/1');
+});
+
+test('toggle active rolls back on failed update', async () => {
+  renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+
+  // Replace PUT with 500 error
+  fetchMock.removeRoute('put-alert');
+  fetchMock.put(ENDPOINTS.SINGLE, 500, { name: 'put-fail' });
+
+  const switches = screen.getAllByRole('switch');
+  expect(switches[0]).toBeChecked();
+
+  fireEvent.click(switches[0]);
+
+  // PUT was attempted
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('put-fail')).toHaveLength(1);
   });
 
-  test('renders a SubMenu', async () => {
-    renderAlertList();
-    expect(await screen.findByRole('navigation')).toBeInTheDocument();
+  // Switch rolls back to checked (server rejected)
+  await waitFor(() => {
+    expect(switches[0]).toBeChecked();
+  });
+});
+
+test('switching to Reports refetches and renders only report rows', async () => {
+  // Render alerts mode first
+  const { unmount } = renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+  unmount();
+
+  // Render reports mode
+  fetchMock.clearHistory();
+  renderAlertList({ isReportEnabled: true });
+
+  await screen.findByText('Weekly Dashboard Report');
+  expect(screen.getByText('Monthly KPI Report')).toBeInTheDocument();
+
+  // Alert names should not appear
+  expect(screen.queryByText('Weekly Sales Alert')).not.toBeInTheDocument();
+  expect(screen.queryByText('Daily Error Alert')).not.toBeInTheDocument();
+
+  // API called with Report filter
+  const listCalls = fetchMock.callHistory.calls('list');
+  expect(listCalls.length).toBeGreaterThanOrEqual(1);
+  const reportCall = listCalls.find((c: any) => c.url.includes('value:Report'));
+  expect(reportCall).toBeDefined();
+});
+
+test('delete removes row after confirmation', async () => {
+  // Track deletions so the GET mock reflects them on refetch
+  const deletedIds = new Set<number>();
+  fetchMock.removeRoute('list');
+  fetchMock.get(
+    ENDPOINTS.LIST,
+    (_callLog: any) => {
+      const remaining = mockAlerts.filter(a => !deletedIds.has(a.id));
+      return {
+        result: remaining,
+        count: remaining.length,
+        ids: remaining.map(a => a.id),
+      };
+    },
+    { name: 'list' },
+  );
+
+  // Override DELETE to mark the alert as deleted before returning
+  fetchMock.removeRoute('delete-alert');
+  fetchMock.delete(
+    ENDPOINTS.SINGLE,
+    ({ url }: any) => {
+      const match = url.match(/\/report\/(\d+)/);
+      if (match) deletedIds.add(Number(match[1]));
+      return {};
+    },
+    { name: 'delete-alert' },
+  );
+
+  renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+
+  // Click delete on first owned alert
+  const deleteButtons = screen.getAllByTestId('delete-action');
+  fireEvent.click(deleteButtons[0]);
+
+  // Confirm in delete modal
+  const deleteInput = await screen.findByTestId('delete-modal-input');
+  fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
+  const confirmButton = await screen.findByTestId('modal-confirm-button');
+  fireEvent.click(confirmButton);
+
+  // Row disappears after refetch
+  await waitFor(() => {
+    expect(screen.queryByText('Weekly Sales Alert')).not.toBeInTheDocument();
   });
 
-  test('renders a ListView', async () => {
-    renderAlertList();
-    expect(await screen.findByTestId('alerts-list-view')).toBeInTheDocument();
+  // Other alerts remain
+  expect(screen.getByText('Daily Error Alert')).toBeInTheDocument();
+});
+
+test('delete failure leaves row visible', async () => {
+  // Replace DELETE with 500
+  fetchMock.removeRoute('delete-alert');
+  fetchMock.delete(ENDPOINTS.SINGLE, 500, { name: 'delete-fail' });
+
+  renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+
+  const deleteButtons = screen.getAllByTestId('delete-action');
+  fireEvent.click(deleteButtons[0]);
+
+  const deleteInput = await screen.findByTestId('delete-modal-input');
+  fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
+  const confirmButton = await screen.findByTestId('modal-confirm-button');
+  fireEvent.click(confirmButton);
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('delete-fail')).toHaveLength(1);
   });
 
-  test('renders switches', async () => {
-    renderAlertList();
-    // Wait for the list to load first
-    await screen.findByTestId('alerts-list-view');
-    const switches = await screen.findAllByRole('switch');
-    expect(switches).toHaveLength(3);
+  // Row stays visible
+  expect(screen.getByText('Weekly Sales Alert')).toBeInTheDocument();
+});
+
+test('bulk select shows selected count and enables bulk actions after row selection', async () => {
+  renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+
+  // Bulk select controls not visible initially
+  expect(screen.queryByTestId('bulk-select-controls')).not.toBeInTheDocument();
+
+  // Toggle bulk select
+  const bulkSelectButton = screen.getByTestId('bulk-select-toggle');
+  fireEvent.click(bulkSelectButton);
+
+  // Controls appear with "0 Selected" text
+  await screen.findByTestId('bulk-select-controls');
+  expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+    '0 Selected',
+  );
+
+  // Deselect-all and action button not yet visible (nothing selected)
+  expect(
+    screen.queryByTestId('bulk-select-deselect-all'),
+  ).not.toBeInTheDocument();
+
+  // Select all rows via checkboxes that appear in bulk mode
+  const checkboxes = screen.getAllByRole('checkbox');
+  // First checkbox is the header "select all" toggle
+  fireEvent.click(checkboxes[0]);
+
+  // Bulk action button and deselect-all appear after selection
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-action')).toBeInTheDocument();
   });
+  expect(screen.getByTestId('bulk-select-deselect-all')).toBeInTheDocument();
+  expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+    '3 Selected',
+  );
+});
 
-  test('deletes', async () => {
-    renderAlertList();
+test('read-only users do not see delete and bulk select controls', async () => {
+  fetchMock.removeRoutes().clearHistory();
+  setupMocks(['can_read']); // no can_write
 
-    // Wait for list to load
-    await screen.findByTestId('alerts-list-view');
+  const readOnlyUser = {
+    userId: 99,
+    firstName: 'Read',
+    lastName: 'Only',
+  };
 
-    // Find and click first delete button
-    const deleteButtons = await screen.findAllByTestId('delete-action');
-    fireEvent.click(deleteButtons[0]);
+  const store = createStore();
 
-    // Wait for modal to appear and find the delete input
-    const deleteInput = await screen.findByTestId('delete-modal-input');
-    fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
+  render(
+    <Provider store={store}>
+      <MemoryRouter>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          <AlertList user={readOnlyUser} />
+        </QueryParamProvider>
+      </MemoryRouter>
+    </Provider>,
+  );
 
-    // Click confirm button
-    const confirmButton = await screen.findByTestId('modal-confirm-button');
-    fireEvent.click(confirmButton);
+  await screen.findByText('Weekly Sales Alert');
 
-    // Wait for delete request
-    await waitFor(() => {
-      expect(
-        fetchMock.callHistory.calls(/report\/0/, { method: 'DELETE' }),
-      ).toHaveLength(1);
-    });
-  }, 15000);
+  // No delete action buttons
+  expect(screen.queryAllByTestId('delete-action')).toHaveLength(0);
 
-  test('shows/hides bulk actions when bulk actions is clicked', async () => {
-    renderAlertList();
+  // No bulk select toggle
+  expect(screen.queryByTestId('bulk-select-toggle')).not.toBeInTheDocument();
 
-    // Wait for list to load and initial state
-    await screen.findByTestId('alerts-list-view');
-    expect(
-      screen.queryByTestId('bulk-select-controls'),
-    ).not.toBeInTheDocument();
+  // Switches are all disabled (user 99 doesn't own any alerts)
+  const switches = screen.getAllByRole('switch');
+  switches.forEach(sw => {
+    expect(sw).toBeDisabled();
+  });
+});
 
-    // Click bulk select toggle
-    const bulkSelectButton = await screen.findByTestId('bulk-select-toggle');
-    fireEvent.click(bulkSelectButton);
+test('empty API result shows empty state', async () => {
+  fetchMock.removeRoutes().clearHistory();
+  setupMocks(['can_read', 'can_write'], []);
 
-    // Verify bulk select controls appear
-    expect(
-      await screen.findByTestId('bulk-select-controls'),
-    ).toBeInTheDocument();
-  }, 15000);
+  renderAlertList();
 
-  test('hides bulk actions when switch between alert and report list', async () => {
-    // Start with alert list
-    renderAlertList();
-
-    // Wait for list to load
-    await screen.findByTestId('alerts-list-view');
-
-    // Click bulk select to show controls
-    const bulkSelectButton = await screen.findByTestId('bulk-select-toggle');
-    fireEvent.click(bulkSelectButton);
-
-    // Verify bulk select controls appear
-    expect(
-      await screen.findByTestId('bulk-select-controls'),
-    ).toBeInTheDocument();
-
-    // Verify alert tab is active
-    const alertTab = await screen.findByTestId('alert-list');
-    expect(alertTab).toHaveClass('active');
-    const reportTab = screen.getByTestId('report-list');
-    expect(reportTab).not.toHaveClass('active');
-
-    // Switch to report list
-    renderAlertList({ isReportEnabled: true });
-
-    // Wait for report list API call and tab states to update
-    await waitFor(async () => {
-      // Check API call
-      const calls = fetchMock.callHistory.calls(/report\/\?q/);
-      const hasReportCall = calls.some(call =>
-        call.url.includes('filters:!((col:type,opr:eq,value:Report))'),
-      );
-
-      // Check tab states
-      const reportTabs = screen.getAllByTestId('report-list');
-      const alertTabs = screen.getAllByTestId('alert-list');
-      const hasActiveReport = reportTabs.some(tab =>
-        tab.classList.contains('active'),
-      );
-      const hasNoActiveAlert = alertTabs.every(
-        tab => !tab.classList.contains('active'),
-      );
-
-      return hasReportCall && hasActiveReport && hasNoActiveAlert;
-    });
-
-    // Click bulk select toggle again to hide controls
-    const bulkSelectButtons =
-      await screen.findAllByTestId('bulk-select-toggle');
-    fireEvent.click(bulkSelectButtons[0]);
-
-    // Verify final state
-    await waitFor(() => {
-      expect(
-        screen.queryByTestId('bulk-select-controls'),
-      ).not.toBeInTheDocument();
-    });
-
-    // Verify correct API call was made
-    const reportCalls = fetchMock.callHistory.calls(/report\/\?q/);
-    const lastReportCall = reportCalls[reportCalls.length - 1].url;
-    expect(lastReportCall).toContain(
-      'filters:!((col:type,opr:eq,value:Report))',
-    );
-  }, 15000);
-
-  test('renders listview table correctly', async () => {
-    renderAlertList();
-    await screen.findByTestId('alerts-list-view');
-
-    const table = await screen.findByTestId('listview-table');
-    expect(table).toBeInTheDocument();
-    expect(table).toBeVisible();
-  }, 15000);
-
-  test('renders correct column headers for alerts', async () => {
-    renderAlertList();
-    await screen.findByTestId('alerts-list-view');
-
-    expect(screen.getByTitle('Last run')).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', { name: /name/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByTitle('Schedule')).toBeInTheDocument();
-    expect(screen.getByTitle('Notification method')).toBeInTheDocument();
-    expect(screen.getByTitle('Owners')).toBeInTheDocument();
-    expect(screen.getByTitle('Last modified')).toBeInTheDocument();
-    expect(screen.getByTitle('Active')).toBeInTheDocument();
-    expect(screen.getByTitle('Actions')).toBeInTheDocument();
-  }, 15000);
-
-  test('renders correct column headers for reports', async () => {
-    renderAlertList({ isReportEnabled: true });
-    await screen.findByTestId('alerts-list-view');
-
-    expect(screen.getByTitle('Last run')).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', { name: /name/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByTitle('Schedule')).toBeInTheDocument();
-    expect(screen.getByTitle('Notification method')).toBeInTheDocument();
-    expect(screen.getByTitle('Owners')).toBeInTheDocument();
-    expect(screen.getByTitle('Last modified')).toBeInTheDocument();
-    expect(screen.getByTitle('Active')).toBeInTheDocument();
-    expect(screen.getByTitle('Actions')).toBeInTheDocument();
-  }, 15000);
+  expect(await screen.findByText(/no alerts yet/i)).toBeInTheDocument();
 });
