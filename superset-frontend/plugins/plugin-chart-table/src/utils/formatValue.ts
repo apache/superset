@@ -23,7 +23,7 @@ import {
   isProbablyHTML,
   sanitizeHtml,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { DataColumnMeta } from '../types';
 import DateWithFormatter from './DateWithFormatter';
 

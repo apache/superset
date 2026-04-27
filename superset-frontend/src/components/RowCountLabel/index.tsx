@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, tn } from '@apache-superset/core';
+import { t, tn } from '@apache-superset/core/translation';
 import { getNumberFormatter } from '@superset-ui/core';
 
 import { Label, Tooltip } from '@superset-ui/core/components';
@@ -39,7 +39,7 @@ export default function RowCountLabel(props: RowCountLabelProps) {
     limitReached || (rowcount === 0 && !loading) ? 'error' : 'default';
   const formattedRowCount = getNumberFormatter()(rowcount);
   const labelText = (
-    <Label type={type}>
+    <Label type={type} monospace>
       {loading ? (
         t('Loading...')
       ) : (

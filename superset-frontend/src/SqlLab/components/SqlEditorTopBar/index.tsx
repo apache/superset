@@ -17,9 +17,9 @@
  * under the License.
  */
 import { Flex } from '@superset-ui/core/components';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { MenuItemType } from '@superset-ui/core/components/Menu';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import PanelToolbar from 'src/components/PanelToolbar';
 
 const StyledFlex = styled(Flex)`
@@ -41,7 +41,7 @@ const SqlEditorTopBar = ({
     <Flex gap="small" align="center">
       <Flex gap="small" align="center">
         <PanelToolbar
-          viewId={ViewContribution.Editor}
+          viewId={ViewLocations.sqllab.editor}
           defaultPrimaryActions={defaultPrimaryActions}
           defaultSecondaryActions={defaultSecondaryActions}
         />

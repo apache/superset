@@ -19,6 +19,7 @@
 Tests for the get_schema unified schema discovery tool.
 """
 
+import importlib
 from unittest.mock import patch
 
 import pytest
@@ -40,6 +41,10 @@ from superset.mcp_service.common.schema_discovery import (
 )
 from superset.utils import json
 
+get_schema_module = importlib.import_module(
+    "superset.mcp_service.system.tool.get_schema"
+)
+
 
 @pytest.fixture
 def mcp_server():
@@ -57,6 +62,17 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def allow_data_model_metadata():
+    """Keep the standalone get_schema suite in the unrestricted default path."""
+    with patch.object(
+        get_schema_module,
+        "user_can_view_data_model_metadata",
+        return_value=True,
+    ):
+        yield
 
 
 class TestGetSchemaRequest:
@@ -116,34 +132,57 @@ class TestModelSchemaInfo:
         assert info.model_type == "chart"
         assert len(info.select_columns) > 0
         # Check default columns include required minimal set
-        required_columns = {"id", "slice_name", "viz_type", "uuid"}
+        required_columns = {
+            "id",
+            "slice_name",
+            "viz_type",
+            "url",
+            "changed_on_humanized",
+        }
         assert required_columns.issubset(set(info.default_select))
         assert "slice_name" in info.filter_columns
         assert info.default_sort == "changed_on"
 
     def test_dataset_default_columns(self):
         """Test dataset default columns include required minimal set."""
-        required_columns = {"id", "table_name", "schema", "uuid"}
+        required_columns = {"id", "table_name", "schema", "changed_on_humanized"}
         assert required_columns.issubset(set(DATASET_DEFAULT_COLUMNS))
         # These should NOT be in defaults
         assert "columns" not in DATASET_DEFAULT_COLUMNS
         assert "metrics" not in DATASET_DEFAULT_COLUMNS
+        assert "uuid" not in DATASET_DEFAULT_COLUMNS
 
     def test_dashboard_default_columns(self):
         """Test dashboard default columns include required minimal set."""
-        required_columns = {"id", "dashboard_title", "slug", "uuid"}
+        required_columns = {
+            "id",
+            "dashboard_title",
+            "slug",
+            "url",
+            "changed_on_humanized",
+        }
         assert required_columns.issubset(set(DASHBOARD_DEFAULT_COLUMNS))
         # These should NOT be in defaults
         assert "published" not in DASHBOARD_DEFAULT_COLUMNS
         assert "charts" not in DASHBOARD_DEFAULT_COLUMNS
+        assert "uuid" not in DASHBOARD_DEFAULT_COLUMNS
 
     def test_chart_default_columns(self):
         """Test chart default columns include required minimal set."""
-        required_columns = {"id", "slice_name", "viz_type", "uuid"}
-        assert required_columns.issubset(set(CHART_DEFAULT_COLUMNS))
-        # These should NOT be in defaults
-        assert "description" not in CHART_DEFAULT_COLUMNS
+        assert set(CHART_DEFAULT_COLUMNS) == {
+            "id",
+            "slice_name",
+            "viz_type",
+            "description",
+            "certified_by",
+            "certification_details",
+            "url",
+            "changed_on",
+            "changed_on_humanized",
+        }
+        # Heavy columns should NOT be in defaults
         assert "form_data" not in CHART_DEFAULT_COLUMNS
+        assert "uuid" not in CHART_DEFAULT_COLUMNS
 
 
 class TestGetSchemaToolViaClient:
@@ -177,7 +216,13 @@ class TestGetSchemaToolViaClient:
             assert "search_columns" in info
 
             # Check default columns include required minimal set
-            required_columns = {"id", "slice_name", "viz_type", "uuid"}
+            required_columns = {
+                "id",
+                "slice_name",
+                "viz_type",
+                "url",
+                "changed_on_humanized",
+            }
             assert required_columns.issubset(set(info["default_select"]))
 
     @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
@@ -201,7 +246,7 @@ class TestGetSchemaToolViaClient:
             assert info["model_type"] == "dataset"
 
             # Check default columns include required minimal set
-            required_columns = {"id", "table_name", "schema", "uuid"}
+            required_columns = {"id", "table_name", "schema", "changed_on_humanized"}
             assert required_columns.issubset(set(info["default_select"]))
 
             # Check search columns
@@ -229,28 +274,18 @@ class TestGetSchemaToolViaClient:
             assert info["model_type"] == "dashboard"
 
             # Check default columns include required minimal set
-            required_columns = {"id", "dashboard_title", "slug", "uuid"}
+            required_columns = {
+                "id",
+                "dashboard_title",
+                "slug",
+                "url",
+                "changed_on_humanized",
+            }
             assert required_columns.issubset(set(info["default_select"]))
 
             # Check sortable columns include expected values
             assert "dashboard_title" in info["sortable_columns"]
             assert "changed_on" in info["sortable_columns"]
-
-    @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
-    @pytest.mark.asyncio
-    async def test_get_schema_with_json_string_request(self, mock_filters, mcp_server):
-        """Test get_schema accepts JSON string request (Claude Code compatibility)."""
-        mock_filters.return_value = {"slice_name": ["eq"]}
-
-        async with Client(mcp_server) as client:
-            # Send request as JSON string (Claude Code bug workaround)
-            result = await client.call_tool(
-                "get_schema", {"request": '{"model_type": "chart"}'}
-            )
-
-            assert result.content is not None
-            data = json.loads(result.content[0].text)
-            assert data["schema_info"]["model_type"] == "chart"
 
     @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
     @pytest.mark.asyncio
@@ -274,12 +309,51 @@ class TestGetSchemaToolViaClient:
             assert id_col["type"] == "int"
             assert id_col["is_default"] is True
 
-            # Find a non-default column (description is on the model)
+            # description is now a default column
             desc_col = next(
                 (c for c in select_cols if c["name"] == "description"), None
             )
             assert desc_col is not None
-            assert desc_col["is_default"] is False
+            assert desc_col["is_default"] is True
+
+            # Find a non-default column (uuid is on the model but not default)
+            uuid_col = next((c for c in select_cols if c["name"] == "uuid"), None)
+            assert uuid_col is not None
+            assert uuid_col["is_default"] is False
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_omits_user_directory_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that schema discovery does not advertise user/access fields."""
+        mock_filters.return_value = {
+            "dashboard_title": ["eq", "ilike"],
+            "owner": ["rel_m_m"],
+            "published": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dashboard"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+        select_column_names = {column["name"] for column in info["select_columns"]}
+
+        for field in (
+            "owners",
+            "roles",
+            "created_by",
+            "created_by_fk",
+            "changed_by",
+            "changed_by_fk",
+            "owner",
+        ):
+            assert field not in select_column_names
+            assert field not in info["filter_columns"]
+            assert field not in info["sortable_columns"]
 
 
 class TestGetSchemaEdgeCases:

@@ -24,7 +24,7 @@ import {
   type RefObject,
 } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Select, AsyncSelect, FormLabel } from '@superset-ui/core/components';
 import { ListViewFilter as Filter, SelectOption } from '../types';
 import type { BaseFilter, FilterHandler } from './types';
@@ -35,6 +35,7 @@ interface SelectFilterProps extends BaseFilter {
   fetchSelects?: Filter['fetchSelects'];
   name?: string;
   onSelect: (selected: SelectOption | undefined, isClear?: boolean) => void;
+  optionFilterProps?: string[];
   paginate?: boolean;
   selects: Filter['selects'];
   loading?: boolean;
@@ -48,6 +49,7 @@ function SelectFilter(
     fetchSelects,
     initialValue,
     onSelect,
+    optionFilterProps,
     selects = [],
     loading = false,
     dropdownStyle,
@@ -58,7 +60,15 @@ function SelectFilter(
 
   const onChange = (selected: SelectOption) => {
     onSelect(
-      selected ? { label: selected.label, value: selected.value } : undefined,
+      selected
+        ? {
+            label:
+              typeof selected.label === 'string'
+                ? selected.label
+                : String(selected.value),
+            value: selected.value,
+          }
+        : undefined,
     );
     setSelectedOption(selected);
   };
@@ -108,6 +118,7 @@ function SelectFilter(
           onChange={onChange}
           onClear={onClear}
           options={fetchAndFormatSelects}
+          optionFilterProps={optionFilterProps}
           placeholder={placeholder}
           dropdownStyle={dropdownStyle}
           showSearch

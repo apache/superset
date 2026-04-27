@@ -18,6 +18,11 @@
  */
 import '@testing-library/jest-dom';
 import {
+  getTextColorForBackground,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
+import { supersetTheme } from '@apache-superset/core/theme';
+import {
   render,
   screen,
   fireEvent,
@@ -25,8 +30,14 @@ import {
   within,
 } from '@superset-ui/core/spec';
 import { cloneDeep } from 'lodash';
+import {
+  QueryMode,
+  TimeGranularity,
+  SMART_DATE_ID,
+  getTimeFormatterForGranularity,
+} from '@superset-ui/core';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
@@ -376,6 +387,52 @@ describe('plugin-chart-table', () => {
       expect(percentMetric2?.originalLabel).toBe('metric_2');
     });
 
+    test('should not apply time grain formatting in Raw Records mode', () => {
+      const rawRecordsProps = {
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Raw,
+          time_grain_sqla: TimeGranularity.MONTH,
+          table_timestamp_format: SMART_DATE_ID,
+        },
+      };
+
+      const transformedProps = transformProps(rawRecordsProps);
+      const timestampColumn = transformedProps.columns.find(
+        col => col.key === '__timestamp',
+      );
+
+      expect(timestampColumn).toBeDefined();
+      const testValue = new Date('2023-01-15T10:30:45');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const formatted = (timestampColumn?.formatter as any)?.(testValue);
+      const granularityFormatted = getTimeFormatterForGranularity(
+        TimeGranularity.MONTH,
+      )(testValue as number | Date | null);
+      expect(formatted).not.toBe(granularityFormatted);
+      expect(typeof formatted).toBe('string');
+      expect(formatted).toContain('2023');
+    });
+
+    test('should handle null/undefined timestamp values correctly', () => {
+      const rawRecordsProps = {
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Raw,
+        },
+      };
+
+      const transformedProps = transformProps(rawRecordsProps);
+      expect(transformedProps.isRawRecords).toBe(true);
+
+      const timestampColumn = transformedProps.columns.find(
+        col => col.key === '__timestamp',
+      );
+      expect(timestampColumn).toBeDefined();
+    });
+
     describe('TableChart', () => {
       test('render basic data', () => {
         render(
@@ -385,7 +442,8 @@ describe('plugin-chart-table', () => {
         const firstDataRow = screen.getAllByRole('rowgroup')[1];
         const cells = firstDataRow.querySelectorAll('td');
         expect(cells).toHaveLength(12);
-        expect(cells[0]).toHaveTextContent('2020-01-01 12:34:56');
+        // Date is rendered as ISO string format
+        expect(cells[0]).toHaveTextContent('2020-01-01T12:34:56');
         expect(cells[1]).toHaveTextContent('Michael');
         // number is not in `metrics` list, so it should output raw value
         // (in real world Superset, this would mean the column is used in GROUP BY)
@@ -614,10 +672,54 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           '',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+      });
+
+      test('preserves muted null styling when no formatter resolves text color', () => {
+        const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
+        dataWithEmptyCell.data.push({
+          __timestamp: null,
+          name: 'Noah',
+          sum__num: null,
+          '%pct_nice': 0.643,
+          'abc.com': 'bazzinga',
+        });
+
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  queriesData: [dataWithEmptyCell],
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '<',
+                        targetValue: 12342,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        const noahRow = screen.getByText('Noah').closest('tr');
+        expect(noahRow).not.toBeNull();
+
+        const nullCell = noahRow?.querySelector('td.dt-is-null');
+        expect(nullCell).not.toBeNull();
+        expect((nullCell as HTMLElement).style.color).toBe('');
+        expect(getComputedStyle(nullCell as Element).color).toBe(
+          'rgba(0, 0, 0, 0.45)',
         );
       });
+
       test('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
 
@@ -1252,7 +1354,7 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toAllRow: true,
+                        columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
                       },
                     ],
                   },
@@ -1288,7 +1390,7 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toTextColor: true,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
                     ],
                   },
@@ -1299,11 +1401,9 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
-          'rgba(0, 0, 0, 0.88)',
-        );
+        expect((screen.getByTitle('2467') as HTMLElement).style.color).toBe('');
       });
 
       test('display text color using column color formatter for entire row', () => {
@@ -1321,8 +1421,8 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toAllRow: true,
-                        toTextColor: true,
+                        columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
                     ],
                   },
@@ -1333,13 +1433,182 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Michael')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('0.123456')).color).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('derive readable text color from dark background formatting', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(255, 255, 255)',
+        );
+      });
+
+      test('keep explicit text color over adaptive contrast', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('support legacy toTextColor formatters', () => {
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: '#111111',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        useGradient: false,
+                      },
+                      {
+                        colorScheme: '#ACE1C4',
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2467,
+                        toTextColor: true,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
+          'rgb(17, 17, 17)',
+        );
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          'rgb(172, 225, 196)',
+        );
+      });
+
+      test('use striped row surface when deriving adaptive text color', () => {
+        const backgroundColor = Array.from(
+          { length: 0xff },
+          (_, index) => `#000000${(index + 1).toString(16).padStart(2, '0')}`,
+        ).find(candidate => {
+          const baseColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgBase,
+          );
+          const layoutColor = getTextColorForBackground(
+            { backgroundColor: candidate },
+            supersetTheme.colorBgLayout,
+          );
+          return baseColor !== layoutColor;
+        });
+
+        expect(backgroundColor).toBeDefined();
+
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart
+                {...transformProps({
+                  ...testData.advanced,
+                  rawFormData: {
+                    ...testData.advanced.rawFormData,
+                    conditional_formatting: [
+                      {
+                        colorScheme: backgroundColor,
+                        column: 'sum__num',
+                        operator: '>',
+                        targetValue: 2000,
+                        useGradient: false,
+                      },
+                    ],
+                  },
+                })}
+              />
+            ),
+          }),
+        );
+
+        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgLayout,
+          ),
+        );
+        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
+          getTextColorForBackground(
+            { backgroundColor },
+            supersetTheme.colorBgBase,
+          ),
         );
       });
 
@@ -1423,7 +1692,6 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        // useGradient is undefined
                       },
                     ],
                   },
@@ -1473,6 +1741,200 @@ describe('plugin-chart-table', () => {
         );
       });
 
+      test('clicking a cell emits cross-filter, clicking again clears it', () => {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+        const { rerender } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // Click a string cell to apply cross-filter
+        const nameCell = screen.getByText('Michael');
+        fireEvent.click(nameCell);
+
+        // Find the cross-filter call (not the ownState call)
+        const crossFilterCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState?.filters,
+        );
+        expect(crossFilterCall).toBeDefined();
+        const firstCallArg = crossFilterCall![0];
+        // Should set the filter
+        expect(firstCallArg.filterState.filters).toEqual({
+          name: ['Michael'],
+        });
+        expect(firstCallArg.extraFormData.filters).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              col: 'name',
+              op: 'IN',
+              val: ['Michael'],
+            }),
+          ]),
+        );
+
+        // Now simulate Redux updating the filters prop (as would happen in dashboard)
+        setDataMask.mockClear();
+        rerender(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={{ name: ['Michael'] }}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The cell should now have the active filter class
+        const activeCells = document.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Click same cell again to clear cross-filter
+        setDataMask.mockClear();
+        const sameCellAgain = screen.getByText('Michael');
+        fireEvent.click(sameCellAgain);
+
+        // Find the cross-filter clearing call
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        const secondCallArg = clearCall![0];
+        // Should clear the filter
+        expect(secondCallArg.filterState.filters).toBeNull();
+        expect(secondCallArg.extraFormData.filters).toEqual([]);
+      });
+
+      test('cross-filter toggle works with DateWithFormatter values', () => {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+
+        // The data has a __timestamp column with DateWithFormatter values
+        // after processDataRecords. Let's verify this.
+        const timestampVal = props.data[0].__timestamp;
+        expect(timestampVal).toBeInstanceOf(DateWithFormatter);
+
+        const { rerender } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // Click a timestamp cell - find it by text content
+        const timestampCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(timestampCell);
+
+        const crossFilterCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState?.filters,
+        );
+        expect(crossFilterCall).toBeDefined();
+        const firstCallArg = crossFilterCall![0];
+
+        // Now re-render with the filters from the first click
+        // This simulates what happens via Redux in the real app
+        setDataMask.mockClear();
+        rerender(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={firstCallArg.filterState.filters}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The timestamp cell should be active
+        const activeCells = document.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Click the same timestamp cell again to clear
+        setDataMask.mockClear();
+        const sameCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(sameCell);
+
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        // Should CLEAR the filter (not re-apply it)
+        expect(clearCall![0].filterState.filters).toBeNull();
+        expect(clearCall![0].extraFormData.filters).toEqual([]);
+      });
+
+      test('cross-filter toggle clears when DateWithFormatter references differ', () => {
+        // Regression test: when memoizeOne cache misses between renders,
+        // new DateWithFormatter instances are created with different references.
+        // isActiveFilterValue must compare by time value, not reference.
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+
+        const timestampVal = props.data[0].__timestamp as DateWithFormatter;
+        expect(timestampVal).toBeInstanceOf(DateWithFormatter);
+
+        // Build filters with a DIFFERENT DateWithFormatter instance (same time value)
+        const filterKey = '__timestamp';
+        const differentRef = new DateWithFormatter(timestampVal.input, {
+          formatter: timestampVal.formatter,
+        });
+        expect(differentRef).not.toBe(timestampVal); // different reference
+        expect(differentRef.getTime()).toBe(timestampVal.getTime()); // same time
+
+        const { container } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={{ [filterKey]: [differentRef] }}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The cell should show active filter despite different reference
+        const activeCells = container.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Clicking should CLEAR the filter, not re-apply it
+        setDataMask.mockClear();
+        const timestampCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(timestampCell);
+
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        expect(clearCall![0].filterState.filters).toBeNull();
+        expect(clearCall![0].extraFormData.filters).toEqual([]);
+      });
+
       test('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,
@@ -1518,6 +1980,146 @@ describe('plugin-chart-table', () => {
           expect(totalCellAfter).toBeInTheDocument();
         });
       });
+    });
+
+    test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'Name_Renamed',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Name_Renamed', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ Name_Renamed: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({
+        Name_Renamed: 'name',
+      });
+    });
+
+    test('should not populate columnLabelToNameMap for physical columns', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: ['name'],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ name: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({});
+    });
+
+    test('should not populate columnLabelToNameMap when adhoc label matches sqlExpression', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'name',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ name: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({});
+    });
+
+    test('cross-filter on adhoc column with custom label emits original column name', () => {
+      const setDataMask = jest.fn();
+      const baseProps = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'Name_Renamed',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        filterState: { filters: {} },
+        ownState: {},
+        hooks: {
+          onAddFilter: jest.fn(),
+          setDataMask,
+          onContextMenu: jest.fn(),
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Name_Renamed', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [
+              { Name_Renamed: 'Michael', sum__num: 2467063 },
+              { Name_Renamed: 'Joe', sum__num: 2467 },
+            ],
+          },
+        ],
+      });
+
+      render(
+        <ProviderWrapper>
+          <TableChart {...baseProps} emitCrossFilters sticky={false} />
+        </ProviderWrapper>,
+      );
+
+      // Verify the table rendered with data
+      expect(screen.getByText('Michael')).toBeInTheDocument();
+
+      // Find the td cell containing "Michael" and click it
+      const cell = screen.getByText('Michael').closest('td')!;
+      fireEvent.click(cell);
+
+      expect(setDataMask).toHaveBeenCalled();
+      const lastCall =
+        setDataMask.mock.calls[setDataMask.mock.calls.length - 1][0];
+      const { filters } = lastCall.extraFormData;
+      expect(filters).toHaveLength(1);
+      // Should emit the original column name, not the label
+      expect(filters[0].col).toBe('name');
+      expect(filters[0].val).toEqual(['Michael']);
     });
   });
 });

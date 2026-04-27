@@ -19,6 +19,7 @@
 
 import type { Response, APIResponse } from '@playwright/test';
 import { expect } from '@playwright/test';
+import * as unzipper from 'unzipper';
 
 /**
  * Common interface for response types with status() method.
@@ -58,4 +59,77 @@ export function expectStatusOneOf<T extends ResponseLike>(
     `Expected status to be one of ${expected.join(', ')}, got ${response.status()}`,
   ).toContain(response.status());
   return response;
+}
+
+/**
+ * Extract the resource ID from a JSON response body.
+ * Handles both `{ result: { id } }` and `{ id }` shapes.
+ * @param response - Playwright Response or APIResponse object
+ * @returns The extracted numeric ID
+ */
+export async function extractIdFromResponse(
+  response: ResponseLike,
+): Promise<number> {
+  const body = await response.json();
+  const id: number = body.result?.id ?? body.id;
+  expect(typeof id, 'Response body must contain a numeric id').toBe('number');
+  expect(Number.isNaN(id), 'Response id must not be NaN').toBe(false);
+  return id;
+}
+
+interface ExportZipOptions {
+  /** Directory name containing resource yaml files (e.g. 'charts', 'datasets') */
+  resourceDir: string;
+  /** Minimum number of resource yaml files expected (default: 1) */
+  minCount?: number;
+  /** Regex to validate Content-Disposition header (skipped if omitted) */
+  contentDispositionPattern?: RegExp;
+  /** Resource names that must each appear in at least one YAML filepath */
+  expectedNames?: string[];
+}
+
+/**
+ * Validate an export zip response: content-type, zip structure, and resource yaml files.
+ * Shared across chart and dataset export tests.
+ */
+export async function expectValidExportZip(
+  response: ResponseLike,
+  options: ExportZipOptions,
+): Promise<void> {
+  const {
+    resourceDir,
+    minCount = 1,
+    contentDispositionPattern,
+    expectedNames,
+  } = options;
+
+  expect(response.headers()['content-type']).toContain('application/zip');
+
+  if (contentDispositionPattern) {
+    expect(response.headers()['content-disposition']).toMatch(
+      contentDispositionPattern,
+    );
+  }
+
+  const body = await response.body();
+  expect(body.length).toBeGreaterThan(0);
+
+  const entries: string[] = [];
+  const directory = await unzipper.Open.buffer(body);
+  directory.files.forEach(file => entries.push(file.path));
+
+  const resourceYamlFiles = entries.filter(
+    entry => entry.includes(`${resourceDir}/`) && entry.endsWith('.yaml'),
+  );
+  expect(resourceYamlFiles.length).toBeGreaterThanOrEqual(minCount);
+  expect(entries.some(entry => entry.endsWith('metadata.yaml'))).toBe(true);
+
+  if (expectedNames) {
+    for (const name of expectedNames) {
+      expect(
+        resourceYamlFiles.some(f => f.includes(name)),
+        `Expected export zip to contain a YAML file matching "${name}"`,
+      ).toBe(true);
+    }
+  }
 }

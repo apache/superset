@@ -27,7 +27,8 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { t, editors } from '@apache-superset/core';
+import { editors } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   isAdhocColumn,
@@ -35,7 +36,7 @@ import {
   Metric,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -596,9 +597,7 @@ const ColumnSelectPopover = ({
                   height={`${height - 120}px`}
                   lineNumbers={false}
                   wordWrap
-                  keywords={keywords.map((k: any) =>
-                    typeof k === 'string' ? k : k.value || k.name || k,
-                  )}
+                  keywords={keywords}
                   showValidation
                   expressionType="column"
                   datasourceId={datasource?.id}

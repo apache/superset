@@ -16,182 +16,121 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement } from 'react';
+import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import type { contributions, core } from '@apache-superset/core';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
-import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
+import { views } from 'src/core';
 import ViewListExtension from '.';
-
-function createMockView(
-  id: string,
-  overrides: Partial<contributions.ViewContribution> = {},
-): contributions.ViewContribution {
-  return {
-    id,
-    name: `${id} View`,
-    ...overrides,
-  };
-}
-
-function createMockExtension(
-  options: Partial<core.Extension> & {
-    views?: Record<string, contributions.ViewContribution[]>;
-  } = {},
-): core.Extension {
-  const {
-    id = 'test-extension',
-    name = 'Test Extension',
-    views = {},
-  } = options;
-
-  return {
-    id,
-    name,
-    description: 'A test extension',
-    version: '1.0.0',
-    dependencies: [],
-    remoteEntry: '',
-    exposedModules: [],
-    extensionDependencies: [],
-    contributions: {
-      commands: [],
-      menus: {},
-      views,
-    },
-    activate: jest.fn(),
-    deactivate: jest.fn(),
-  };
-}
-
-function setupActivatedExtension(
-  manager: ExtensionsManager,
-  extension: core.Extension,
-) {
-  const context = { disposables: [] };
-  (manager as any).contextIndex.set(extension.id, context);
-  (manager as any).extensionContributions.set(extension.id, {
-    commands: extension.contributions.commands,
-    menus: extension.contributions.menus,
-    views: extension.contributions.views,
-  });
-}
-
-async function createActivatedExtension(
-  manager: ExtensionsManager,
-  extensionOptions: Parameters<typeof createMockExtension>[0] = {},
-): Promise<core.Extension> {
-  const mockExtension = createMockExtension(extensionOptions);
-  await manager.initializeExtension(mockExtension);
-  setupActivatedExtension(manager, mockExtension);
-  return mockExtension;
-}
 
 const TEST_VIEW_ID = 'test.view';
 
-const renderWithExtensionsProvider = (ui: ReactElement) =>
-  render(ui, { wrapper: ExtensionsProvider as any });
-
-beforeEach(() => {
-  (ExtensionsManager as any).instance = undefined;
-});
+const disposables: Array<{ dispose: () => void }> = [];
 
 afterEach(() => {
-  (ExtensionsManager as any).instance = undefined;
+  disposables.forEach(d => d.dispose());
+  disposables.length = 0;
 });
 
 test('renders nothing when no view contributions exist', () => {
-  const { container } = renderWithExtensionsProvider(
-    <ViewListExtension viewId={TEST_VIEW_ID} />,
-  );
+  const { container } = render(<ViewListExtension viewId={TEST_VIEW_ID} />);
 
   expect(container.firstChild?.childNodes.length ?? 0).toBe(0);
 });
 
-test('renders placeholder for unregistered view provider', async () => {
-  const manager = ExtensionsManager.getInstance();
+test('renders provider content for registered view', () => {
+  const provider = () =>
+    React.createElement('div', null, 'My Extension Content');
+  disposables.push(
+    views.registerView(
+      { id: 'test-view-1', name: 'test-view-1 View' },
+      TEST_VIEW_ID,
+      provider,
+    ),
+  );
 
-  await createActivatedExtension(manager, {
-    views: {
-      [TEST_VIEW_ID]: [createMockView('test-view-1')],
-    },
-  });
+  render(<ViewListExtension viewId={TEST_VIEW_ID} />);
 
-  renderWithExtensionsProvider(<ViewListExtension viewId={TEST_VIEW_ID} />);
-
-  expect(screen.getByText(/test-view-1/)).toBeInTheDocument();
+  expect(screen.getByText('My Extension Content')).toBeInTheDocument();
 });
 
-test('renders multiple view placeholders for multiple contributions', async () => {
-  const manager = ExtensionsManager.getInstance();
+test('renders content for multiple registered views', () => {
+  const provider1 = () => React.createElement('div', null, 'Content One');
+  const provider2 = () => React.createElement('div', null, 'Content Two');
 
-  await createActivatedExtension(manager, {
-    views: {
-      [TEST_VIEW_ID]: [
-        createMockView('test-view-1'),
-        createMockView('test-view-2'),
-      ],
-    },
-  });
+  disposables.push(
+    views.registerView(
+      { id: 'test-view-1', name: 'test-view-1 View' },
+      TEST_VIEW_ID,
+      provider1,
+    ),
+    views.registerView(
+      { id: 'test-view-2', name: 'test-view-2 View' },
+      TEST_VIEW_ID,
+      provider2,
+    ),
+  );
 
-  renderWithExtensionsProvider(<ViewListExtension viewId={TEST_VIEW_ID} />);
+  render(<ViewListExtension viewId={TEST_VIEW_ID} />);
 
-  expect(screen.getByText(/test-view-1/)).toBeInTheDocument();
-  expect(screen.getByText(/test-view-2/)).toBeInTheDocument();
+  expect(screen.getByText('Content One')).toBeInTheDocument();
+  expect(screen.getByText('Content Two')).toBeInTheDocument();
 });
 
 test('renders nothing for viewId with no matching contributions', () => {
-  const { container } = renderWithExtensionsProvider(
-    <ViewListExtension viewId="nonexistent.view" />,
-  );
+  const { container } = render(<ViewListExtension viewId="nonexistent.view" />);
 
   expect(container.firstChild?.childNodes.length ?? 0).toBe(0);
 });
 
-test('handles multiple extensions with views for same viewId', async () => {
-  const manager = ExtensionsManager.getInstance();
+test('handles multiple views registered at the same location', () => {
+  const provider1 = () => React.createElement('div', null, 'Ext1 Content');
+  const provider2 = () => React.createElement('div', null, 'Ext2 Content');
 
-  await createActivatedExtension(manager, {
-    id: 'extension-1',
-    views: {
-      [TEST_VIEW_ID]: [createMockView('ext1-view')],
-    },
-  });
+  disposables.push(
+    views.registerView(
+      { id: 'ext1-view', name: 'ext1-view View' },
+      TEST_VIEW_ID,
+      provider1,
+    ),
+    views.registerView(
+      { id: 'ext2-view', name: 'ext2-view View' },
+      TEST_VIEW_ID,
+      provider2,
+    ),
+  );
 
-  await createActivatedExtension(manager, {
-    id: 'extension-2',
-    views: {
-      [TEST_VIEW_ID]: [createMockView('ext2-view')],
-    },
-  });
+  render(<ViewListExtension viewId={TEST_VIEW_ID} />);
 
-  renderWithExtensionsProvider(<ViewListExtension viewId={TEST_VIEW_ID} />);
-
-  expect(screen.getByText(/ext1-view/)).toBeInTheDocument();
-  expect(screen.getByText(/ext2-view/)).toBeInTheDocument();
+  expect(screen.getByText('Ext1 Content')).toBeInTheDocument();
+  expect(screen.getByText('Ext2 Content')).toBeInTheDocument();
 });
 
-test('renders views for different viewIds independently', async () => {
-  const manager = ExtensionsManager.getInstance();
+test('renders views for different viewIds independently', () => {
   const VIEW_ID_A = 'view.a';
   const VIEW_ID_B = 'view.b';
 
-  await createActivatedExtension(manager, {
-    views: {
-      [VIEW_ID_A]: [createMockView('view-a-component')],
-      [VIEW_ID_B]: [createMockView('view-b-component')],
-    },
-  });
+  const providerA = () => React.createElement('div', null, 'View A Content');
+  const providerB = () => React.createElement('div', null, 'View B Content');
 
-  const { rerender } = renderWithExtensionsProvider(
-    <ViewListExtension viewId={VIEW_ID_A} />,
+  disposables.push(
+    views.registerView(
+      { id: 'view-a-component', name: 'view-a-component View' },
+      VIEW_ID_A,
+      providerA,
+    ),
+    views.registerView(
+      { id: 'view-b-component', name: 'view-b-component View' },
+      VIEW_ID_B,
+      providerB,
+    ),
   );
 
-  expect(screen.getByText(/view-a-component/)).toBeInTheDocument();
-  expect(screen.queryByText(/view-b-component/)).not.toBeInTheDocument();
+  const { rerender } = render(<ViewListExtension viewId={VIEW_ID_A} />);
+
+  expect(screen.getByText('View A Content')).toBeInTheDocument();
+  expect(screen.queryByText('View B Content')).not.toBeInTheDocument();
 
   rerender(<ViewListExtension viewId={VIEW_ID_B} />);
 
-  expect(screen.getByText(/view-b-component/)).toBeInTheDocument();
-  expect(screen.queryByText(/view-a-component/)).not.toBeInTheDocument();
+  expect(screen.getByText('View B Content')).toBeInTheDocument();
+  expect(screen.queryByText('View A Content')).not.toBeInTheDocument();
 });

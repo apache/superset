@@ -18,7 +18,7 @@
  */
 
 import PropTypes from 'prop-types';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 
 type SortFunction = (
   a: string | number | null,
@@ -142,8 +142,8 @@ const naturalSort: SortFunction = (as, bs) => {
   }
 
   // finally, "smart" string sorting per http://stackoverflow.com/a/4373421/112871
-  let a = String(as);
-  let b = String(bs);
+  const a = String(as);
+  const b = String(bs);
   if (a === b) {
     return 0;
   }

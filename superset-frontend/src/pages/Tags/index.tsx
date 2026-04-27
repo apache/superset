@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   Actions,

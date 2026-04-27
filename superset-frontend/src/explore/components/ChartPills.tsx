@@ -18,7 +18,7 @@
  */
 import { forwardRef, RefObject } from 'react';
 import { QueryData } from '@superset-ui/core';
-import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import {
   CachedLabel,
   type LabelType,
@@ -77,7 +77,11 @@ export const ChartPills = forwardRef(
     const actualRowCount =
       isTableChart && countFromSecondQuery != null
         ? countFromSecondQuery
-        : Number(firstQueryResponse?.sql_rowcount ?? 0);
+        : Number(
+            firstQueryResponse?.sql_rowcount ??
+              firstQueryResponse?.rowcount ??
+              0,
+          );
 
     return (
       <div ref={ref}>

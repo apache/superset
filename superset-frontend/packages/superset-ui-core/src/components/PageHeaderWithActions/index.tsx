@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ReactNode, ReactElement } from 'react';
-import { t } from '@apache-superset/core';
-import { css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DropdownProps } from '../Dropdown/types';
 import type { TooltipPlacement } from '../Tooltip/types';
@@ -155,19 +155,21 @@ export const PageHeaderWithActions = ({
               popupRender={() => additionalActionsMenu}
               {...menuDropdownProps}
             >
-              <Button
-                css={menuTriggerStyles}
-                buttonStyle="tertiary"
-                aria-label={t('Menu actions trigger')}
-                tooltip={tooltipProps?.text}
-                placement={tooltipProps?.placement}
-                data-test="actions-trigger"
-              >
-                <Icons.EllipsisOutlined
-                  iconColor={theme.colorPrimary}
-                  iconSize="l"
-                />
-              </Button>
+              <span>
+                <Button
+                  css={menuTriggerStyles}
+                  buttonStyle="tertiary"
+                  aria-label={t('Menu actions trigger')}
+                  tooltip={tooltipProps?.text}
+                  placement={tooltipProps?.placement}
+                  data-test="actions-trigger"
+                >
+                  <Icons.EllipsisOutlined
+                    iconColor={theme.colorPrimary}
+                    iconSize="l"
+                  />
+                </Button>
+              </span>
             </Dropdown>
           )}
         </div>

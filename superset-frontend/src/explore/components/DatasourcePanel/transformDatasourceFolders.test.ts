@@ -21,6 +21,10 @@ import { Metric } from '@superset-ui/core';
 import { transformDatasourceWithFolders } from './transformDatasourceFolders';
 import { DatasourceFolder, DatasourcePanelColumn } from './types';
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
+import {
+  DEFAULT_METRICS_FOLDER_UUID,
+  DEFAULT_COLUMNS_FOLDER_UUID,
+} from 'src/components/Datasource/FoldersEditor/constants';
 
 const mockMetrics: Metric[] = [
   { metric_name: 'metric1', uuid: 'metric1-uuid', expression: 'SUM(col1)' },
@@ -45,13 +49,13 @@ test('transforms data into default folders when no folder config is provided', (
 
   expect(result).toHaveLength(2);
 
-  expect(result[0].id).toBe('metrics-default');
+  expect(result[0].id).toBe(DEFAULT_METRICS_FOLDER_UUID);
   expect(result[0].name).toBe('Metrics');
   expect(result[0].items).toHaveLength(3);
   expect(result[0].items[0].uuid).toBe('metric1-uuid');
   expect(result[0].items[0].type).toBe(FoldersEditorItemType.Metric);
 
-  expect(result[1].id).toBe('columns-default');
+  expect(result[1].id).toBe(DEFAULT_COLUMNS_FOLDER_UUID);
   expect(result[1].name).toBe('Columns');
   expect(result[1].items).toHaveLength(3);
   expect(result[1].items[0].uuid).toBe('column1-uuid');
@@ -118,11 +122,11 @@ test('transforms data according to folder configuration', () => {
   expect(result[1].items).toHaveLength(1);
   expect(result[1].items[0].uuid).toBe('column1-uuid');
 
-  expect(result[2].id).toBe('metrics-default');
+  expect(result[2].id).toBe(DEFAULT_METRICS_FOLDER_UUID);
   expect(result[2].items).toHaveLength(1);
   expect(result[2].items[0].uuid).toBe('metric3-uuid');
 
-  expect(result[3].id).toBe('columns-default');
+  expect(result[3].id).toBe(DEFAULT_COLUMNS_FOLDER_UUID);
   expect(result[3].items).toHaveLength(2);
 });
 

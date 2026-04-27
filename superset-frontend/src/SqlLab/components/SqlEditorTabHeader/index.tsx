@@ -22,9 +22,14 @@ import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { MenuDotsDropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { QueryState } from '@superset-ui/core';
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import {
   removeQueryEditor,
   removeAllOtherQueryEditors,
@@ -102,6 +107,8 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   );
 
   function renameTab() {
+    // TODO: Replace native prompt with a proper modal dialog
+    // eslint-disable-next-line no-alert
     const newTitle = prompt(t('Enter a new title for the tab'));
     if (newTitle) {
       actions.queryEditorSetTitle(qe, newTitle, qe.id);

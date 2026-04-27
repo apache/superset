@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Register TypeScript require hook so ESLint can load .ts plugin files
+require('tsx/cjs');
+
 const packageConfig = require('./package.json');
 
 const importCoreModules = [];
@@ -79,9 +83,6 @@ module.exports = {
   extends: [
     'eslint:recommended',
     'plugin:import/recommended',
-    'plugin:react/recommended',
-    'plugin:jsx-a11y/recommended',
-    'plugin:react-hooks/recommended',
     'plugin:react-prefer-function-component/recommended',
     'plugin:storybook/recommended',
     'prettier',
@@ -126,15 +127,12 @@ module.exports = {
   },
   plugins: [
     'import',
-    'react',
-    'jsx-a11y',
-    'react-hooks',
-    'file-progress',
     'lodash',
     'theme-colors',
     'icons',
     'i18n-strings',
     'react-prefer-function-component',
+    'react-you-might-not-need-an-effect',
     'prettier',
   ],
   rules: {
@@ -146,7 +144,7 @@ module.exports = {
     // Custom Superset rules
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',
-    'i18n-strings/no-template-vars': ['error', true],
+    'i18n-strings/no-template-vars': 'error',
 
     // Core ESLint overrides for Superset
     'no-console': 'warn',
@@ -193,53 +191,40 @@ module.exports = {
           '**/jest.setup.js',
           '**/webpack.config.js',
           '**/webpack.config.*.js',
-          '**/.eslintrc.js',
+          '**/.eslintrc*.js',
         ],
         optionalDependencies: false,
       },
     ],
 
     // React plugin overrides
-    'react/prop-types': 0,
-    'react/require-default-props': 0,
-    'react/forbid-prop-types': 0,
-    'react/forbid-component-props': 1,
-    'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
-    'react/jsx-fragments': 1,
-    'react/jsx-no-bind': 0,
-    'react/jsx-props-no-spreading': 0,
-    'react/no-array-index-key': 0,
-    'react/no-string-refs': 0,
-    'react/no-unescaped-entities': 0,
-    'react/no-unused-prop-types': 0,
-    'react/destructuring-assignment': 0,
-    'react/sort-comp': 0,
-    'react/static-property-placement': 0,
     'react-prefer-function-component/react-prefer-function-component': 1,
-    'react/react-in-jsx-scope': 0,
-    'react/no-unknown-property': 0,
-    'react/no-void-elements': 0,
-    'react/function-component-definition': [
-      0,
-      {
-        namedComponents: 'arrow-function',
-      },
-    ],
-    'react/no-unstable-nested-components': 0,
-    'react/jsx-no-useless-fragment': 0,
-    'react/no-unused-class-component-methods': 0,
 
-    // JSX-a11y overrides
-    'jsx-a11y/anchor-is-valid': 1,
-    'jsx-a11y/click-events-have-key-events': 0,
-    'jsx-a11y/mouse-events-have-key-events': 0,
-    'jsx-a11y/no-static-element-interactions': 0,
+    // React effect best practices
+    'react-you-might-not-need-an-effect/no-empty-effect': 'error',
+    'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'error',
+    'react-you-might-not-need-an-effect/no-initialize-state': 'error',
 
     // Lodash
     'lodash/import-scope': [2, 'member'],
 
+    // React effect best practices
+    'react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change':
+      'error',
+    'react-you-might-not-need-an-effect/no-chain-state-updates': 'error',
+    'react-you-might-not-need-an-effect/no-event-handler': 'error',
+    'react-you-might-not-need-an-effect/no-derived-state': 'error',
+
+    // Storybook
+    'storybook/prefer-pascal-case': 'error',
+
     // File progress
     'file-progress/activate': 1,
+
+    // React effect rules
+    'react-you-might-not-need-an-effect/no-adjust-state-on-prop-change':
+      'error',
+    'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'error',
 
     // Restricted imports
     'no-restricted-imports': [
@@ -306,7 +291,6 @@ module.exports = {
       files: ['packages/**/src/**/*.js', 'packages/**/src/**/*.jsx'],
       excludedFiles: [
         'packages/generator-superset/**/*', // Yeoman generator templates run via Node
-        'packages/superset-ui-demo/.storybook/**/*', // Storybook config files
         'packages/**/__mocks__/**/*', // Test mocks
       ],
       rules: {
@@ -350,7 +334,7 @@ module.exports = {
         ],
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
-        '@typescript-eslint/no-use-before-define': 1,
+        '@typescript-eslint/no-use-before-define': 'error',
         '@typescript-eslint/no-non-null-assertion': 0,
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0,
@@ -509,7 +493,6 @@ module.exports = {
         'icons/no-fa-icons-usage': 0,
         'i18n-strings/no-template-vars': 0,
         'no-restricted-imports': 0,
-        'react/no-void-elements': 0,
       },
     },
     {

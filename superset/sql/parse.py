@@ -45,7 +45,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import DB2, Dremio, Firebolt, Pinot
+from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -60,6 +60,7 @@ SQLGLOT_DIALECTS = {
     "ascend": Dialects.HIVE,
     "awsathena": Dialects.ATHENA,
     "bigquery": Dialects.BIGQUERY,
+    "datastore": Dialects.BIGQUERY,
     "clickhouse": Dialects.CLICKHOUSE,
     "clickhousedb": Dialects.CLICKHOUSE,
     "cockroachdb": Dialects.POSTGRES,
@@ -92,7 +93,7 @@ SQLGLOT_DIALECTS = {
     "netezza": Dialects.POSTGRES,
     "oceanbase": Dialects.MYSQL,
     # "ocient": ???
-    # "odelasticsearch": ???
+    "odelasticsearch": OpenSearch,
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
@@ -259,19 +260,20 @@ class RLSAsSubqueryTransformer(RLSTransformer):
             if node.alias:
                 alias = node.alias
             else:
-                name = ".".join(
-                    part
-                    for part in (node.catalog or "", node.db or "", node.name)
-                    if part
-                )
-                alias = exp.TableAlias(this=exp.Identifier(this=name, quoted=True))
+                # Use just the table name (not schema-qualified) so that
+                # column references like ``table.column`` still resolve after
+                # the table is replaced with a subquery.  Using the full
+                # ``schema.table`` path as a quoted identifier creates a
+                # mismatch: the columns reference ``table`` but the alias is
+                # ``"schema.table"``, which are different identifiers.
+                alias = exp.TableAlias(this=exp.Identifier(this=node.name, quoted=True))
 
             node.set("alias", None)
             node = exp.Subquery(
                 this=exp.Select(
                     expressions=[exp.Star()],
                     where=exp.Where(this=predicate),
-                    **{"from": exp.From(this=node.copy())},
+                    from_=exp.From(this=node.copy()),
                 ),
                 alias=alias,
             )
@@ -816,7 +818,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 limit=exp.Limit(
                     expression=exp.Literal(this=str(limit), is_string=False)
                 ),
-                **{"from": exp.From(this=exp.Subquery(this=self._parsed.copy()))},
+                from_=exp.From(this=exp.Subquery(this=self._parsed.copy())),
             )
         else:  # method == LimitMethod.FETCH_MANY
             pass
@@ -827,7 +829,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: True if the statement has a CTE at the top level.
         """
-        return "with" in self._parsed.args
+        return bool(self._parsed.args.get("with_"))
 
     def as_cte(self, alias: str = "__cte") -> SQLStatement:
         """
@@ -840,8 +842,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param alias: The alias to use for the CTE.
         :return: A new SQLStatement with the CTE.
         """
-        existing_ctes = self._parsed.args["with"].expressions if self.has_cte() else []
-        self._parsed.args["with"] = None
+        existing_ctes = self._parsed.args["with_"].expressions if self.has_cte() else []
+        self._parsed.args["with_"] = None
         new_cte = exp.CTE(
             this=self._parsed.copy(),
             alias=exp.TableAlias(this=exp.Identifier(this=alias)),
@@ -1555,7 +1557,7 @@ def sanitize_clause(clause: str, engine: str) -> str:
         return Dialect.get_or_raise(dialect).generate(
             statement._parsed,  # pylint: disable=protected-access
             copy=True,
-            comments=False,
+            comments=True,
             pretty=False,
         )
     except SupersetParseError as ex:

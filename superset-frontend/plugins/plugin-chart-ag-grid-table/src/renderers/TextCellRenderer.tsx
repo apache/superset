@@ -18,7 +18,7 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { isProbablyHTML, sanitizeHtml } from '@superset-ui/core';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Tooltip } from '@superset-ui/core/components';
@@ -64,6 +64,8 @@ export const TextCellRenderer = (params: CellRendererProps) => {
       );
     }
     if (allowRenderHtml && isProbablyHTML(value)) {
+      // Safe: HTML is sanitized before rendering
+      // eslint-disable-next-line react/no-danger
       return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(value) }} />;
     }
   }

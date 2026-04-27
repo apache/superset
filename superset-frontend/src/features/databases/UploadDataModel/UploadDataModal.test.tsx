@@ -412,8 +412,10 @@ describe('UploadDataModal - Database and Schema Population', () => {
     await userEvent.click(selectDatabase);
     await userEvent.click(screen.getByText('database2'));
     await userEvent.click(selectSchema);
-    await waitFor(() => screen.getAllByText('schema1'));
-    await waitFor(() => screen.getAllByText('schema2'));
+    await waitFor(() => {
+      expect(screen.getAllByText('schema1')).not.toHaveLength(0);
+      expect(screen.getAllByText('schema2')).not.toHaveLength(0);
+    });
   }, 60000);
 });
 

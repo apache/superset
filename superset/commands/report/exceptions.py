@@ -39,6 +39,18 @@ class DatabaseNotFoundValidationError(ValidationError):
         super().__init__(_("Database does not exist"), field_name="database")
 
 
+class ReportScheduleDatabaseNotAllowedValidationError(ValidationError):
+    """
+    Marshmallow validation error for database reference on a Report type schedule
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("Database reference is not allowed on a report"),
+            field_name="database",
+        )
+
+
 class DashboardNotFoundValidationError(ValidationError):
     """
     Marshmallow validation error for dashboard does not exist

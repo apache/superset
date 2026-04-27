@@ -104,6 +104,10 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
     </div>
   );
 
+  // Ensure db filename can be obtained regardless of how db doc gets generated
+  // by either Flask app (superset.db_engine_specs.postgres) or fallback mode (postgres)
+  const databaseModuleFilename = `${database.module?.split('.').pop()}.py`;
+
   // Render driver information
   const renderDrivers = () => {
     if (!docs?.drivers?.length) return null;
@@ -770,11 +774,11 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
               Help improve this documentation by editing the engine spec:
             </Text>
             <a
-              href={`https://github.com/apache/superset/edit/master/superset/db_engine_specs/${database.module}.py`}
+              href={`https://github.com/apache/superset/edit/master/superset/db_engine_specs/${databaseModuleFilename}`}
               target="_blank"
               rel="noreferrer"
             >
-              <EditOutlined /> Edit {database.module}.py
+              <EditOutlined /> Edit {databaseModuleFilename}
             </a>
           </Space>
         </Card>

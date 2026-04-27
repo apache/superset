@@ -36,7 +36,7 @@ import type {
   QueryResponse,
   TimeFormatter,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
@@ -170,6 +170,7 @@ export type InternalControlType =
   | 'FixedOrMetricControl'
   | 'ColorBreakpointsControl'
   | 'HiddenControl'
+  | 'JSEditorControl'
   | 'SelectAsyncControl'
   | 'SelectControl'
   | 'SliderControl'
@@ -491,16 +492,25 @@ export type ConditionalFormattingConfig = {
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
+  columnFormatting?: string;
+  objectFormatting?: ObjectFormattingEnum;
 };
 
 export type ColorFormatters = {
   column: string;
   toAllRow?: boolean;
   toTextColor?: boolean;
+  columnFormatting?: string;
+  objectFormatting?: ObjectFormattingEnum;
   getColorFromValue: (
     value: number | string | boolean | null,
   ) => string | undefined;
 }[];
+
+export type ResolvedColorFormatterResult = {
+  backgroundColor?: string;
+  color?: string;
+};
 
 export default {};
 
@@ -613,6 +623,13 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
                 defaultValue?: Currency;
               }
             : {});
+
+export enum ObjectFormattingEnum {
+  BACKGROUND_COLOR = 'BACKGROUND_COLOR',
+  TEXT_COLOR = 'TEXT_COLOR',
+  CELL_BAR = 'CELL_BAR',
+  ENTIRE_ROW = 'ENTIRE_ROW',
+}
 
 export enum ColorSchemeEnum {
   Green = 'Green',

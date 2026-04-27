@@ -44,7 +44,7 @@ import {
   ErrorMessageWithStackTrace,
 } from 'src/components';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   QueryState,
   usePrevious,
@@ -52,8 +52,9 @@ import {
   getExtensionsRegistry,
   ErrorTypeEnum,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core';
-import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
+import { tn } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import {
   ISaveableDatasource,
   ISimpleColumn,
@@ -81,7 +82,7 @@ import {
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
 } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { findPermission } from 'src/utils/findPermission';
+import { usePermissions } from 'src/hooks/usePermissions';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
@@ -90,7 +91,7 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 
 enum LimitingFactor {
   Query = 'QUERY',
@@ -117,7 +118,7 @@ export interface ResultSetProps {
 const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
-  row-gap: ${({ theme }) => theme.sizeUnit * 2}px;
+  row-gap: ${({ theme }) => theme.sizeUnit * 3}px;
   height: 100%;
 `;
 
@@ -171,7 +172,6 @@ const ResultSet = ({
   defaultQueryLimit,
   useFixedHeight = false,
 }: ResultSetProps) => {
-  const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
   const streamingThreshold = useSelector(
     (state: SqlLabRootState) =>
       state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD || 1000,
@@ -226,6 +226,10 @@ const ResultSet = ({
     [query.results?.expanded_columns],
   );
 
+  const {
+    canExportDataSqlLab: canExportData,
+    canCopyClipboardSqlLab: canCopyClipboard,
+  } = usePermissions();
   const history = useHistory();
   const dispatch = useDispatch();
   const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
@@ -360,12 +364,6 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
-      const canExportData = findPermission(
-        'can_export_csv',
-        'SQLLab',
-        user?.roles,
-      );
-
       const handleDownloadCsv = (event: React.MouseEvent<HTMLElement>) => {
         logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
 
@@ -395,19 +393,26 @@ const ResultSet = ({
               onClick={createExploreResultsOnClick}
             />
           )}
-          {csv && canExportData && (
+          {csv && (
             <Button
               buttonSize="small"
               variant="text"
               color="primary"
               icon={<Icons.DownloadOutlined iconSize="m" />}
-              tooltip={t('Download to CSV')}
+              tooltip={
+                !canExportData
+                  ? t("You don't have permission to export data")
+                  : t('Download to CSV')
+              }
               aria-label={t('Download to CSV')}
-              {...(!shouldUseStreamingExport() && {
-                href: getExportCsvUrl(query.id),
-              })}
+              disabled={!canExportData}
+              {...(canExportData &&
+                !shouldUseStreamingExport() && {
+                  href: getExportCsvUrl(query.id),
+                })}
               data-test="export-csv-button"
               onClick={e => {
+                if (!canExportData) return;
                 const useStreaming = shouldUseStreamingExport();
 
                 if (useStreaming) {
@@ -426,30 +431,38 @@ const ResultSet = ({
               }}
             />
           )}
-          {canExportData && (
-            <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(
-                data,
-                columns.map(c => c.column_name),
-              )}
-              wrapped={false}
-              copyNode={
-                <Button
-                  buttonSize="small"
-                  variant="text"
-                  color="primary"
-                  icon={<Icons.CopyOutlined iconSize="m" />}
-                  tooltip={t('Copy to Clipboard')}
-                  aria-label={t('Copy to Clipboard')}
-                  data-test="copy-to-clipboard-button"
-                />
-              }
-              hideTooltip
-              onCopyEnd={() =>
-                logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
-              }
-            />
-          )}
+          <CopyToClipboard
+            text={
+              canCopyClipboard
+                ? prepareCopyToClipboardTabularData(
+                    data,
+                    columns.map(c => c.column_name),
+                  )
+                : ''
+            }
+            disabled={!canCopyClipboard}
+            wrapped={false}
+            copyNode={
+              <Button
+                buttonSize="small"
+                variant="text"
+                color="primary"
+                icon={<Icons.CopyOutlined iconSize="m" />}
+                tooltip={
+                  !canCopyClipboard
+                    ? t("You don't have permission to copy to clipboard")
+                    : t('Copy to Clipboard')
+                }
+                aria-label={t('Copy to Clipboard')}
+                disabled={!canCopyClipboard}
+                data-test="copy-to-clipboard-button"
+              />
+            }
+            hideTooltip
+            onCopyEnd={() =>
+              logAction(LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD, {})
+            }
+          />
         </>
       );
 
@@ -466,7 +479,7 @@ const ResultSet = ({
             datasource={datasource}
           />
           <PanelToolbar
-            viewId={ViewContribution.Results}
+            viewId={ViewLocations.sqllab.results}
             defaultPrimaryActions={defaultPrimaryActions}
           />
         </ResultSetButtons>
@@ -531,6 +544,7 @@ const ResultSet = ({
           placement="left"
         >
           <Label
+            monospace
             css={css`
               line-height: ${theme.fontSizeLG}px;
             `}
@@ -747,6 +761,7 @@ const ResultSet = ({
               <div
                 css={css`
                   flex: 1 1 auto;
+                  padding-bottom: ${theme.sizeUnit * 3}px;
                 `}
               >
                 <AutoSizer disableWidth>
