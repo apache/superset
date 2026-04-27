@@ -109,7 +109,7 @@ class SemanticViewListSchema(Schema):
     source_type = fields.Constant("semantic_layer")
     description = fields.String(allow_none=True)
     explore_url = fields.String()
-    database = fields.Constant(None)
+    database = fields.Method("get_database")
     catalog = fields.Constant(None)
     schema = fields.Constant(None)
     sql = fields.Constant(None)
@@ -129,6 +129,14 @@ class SemanticViewListSchema(Schema):
 
     def get_table_name(self, obj: SemanticView) -> str:
         return obj.name
+
+    def get_database(self, obj: SemanticView) -> dict[str, object] | None:
+        if not obj.semantic_layer:
+            return None
+        return {
+            "id": str(obj.semantic_layer_uuid),
+            "database_name": obj.semantic_layer.name,
+        }
 
     def get_changed_by(self, obj: SemanticView) -> dict[str, object] | None:
         if not obj.changed_by:
