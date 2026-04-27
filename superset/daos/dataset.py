@@ -488,48 +488,60 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     def _parse_tables_from_virtual_datasets(
         virtual_datasets: list[tuple[int, str, str | None, int]],
         db_engines: dict[int, str] | None = None,
-    ) -> tuple[dict[int, set[str]], dict[int, int]]:
+    ) -> tuple[dict[int, set[Table]], dict[int, int]]:
         """
         Parse SQL from virtual datasets and return:
-        - ds_to_tables: mapping of dataset_id -> set of referenced table names
+        - ds_to_tables: mapping of dataset_id -> set of referenced Table objects
+          (with schema/catalog preserved from the SQL, unqualified refs resolved
+          to the virtual dataset's own schema)
         - ds_db_map: mapping of dataset_id -> database_id
         """
         if db_engines is None:
             db_engines = {}
-        ds_to_tables: dict[int, set[str]] = {}
+        ds_to_tables: dict[int, set[Table]] = {}
         ds_db_map: dict[int, int] = {}
-        for ds_id, sql, _schema, database_id in virtual_datasets:
+        for ds_id, sql, default_schema, database_id in virtual_datasets:
             ds_db_map[ds_id] = database_id
             engine = db_engines.get(database_id, "")
             try:
                 parsed = SQLScript(sql, engine=engine)
-                table_names: set[str] = set()
+                table_refs: set[Table] = set()
                 for statement in parsed.statements:
                     for table_ref in statement.tables:
-                        table_names.add(table_ref.table)
-                if table_names:
-                    ds_to_tables[ds_id] = table_names
+                        # Qualify unqualified references with the virtual dataset's
+                        # own schema so we match the correct physical dataset.
+                        table_refs.add(table_ref.qualify(schema=default_schema))
+                if table_refs:
+                    ds_to_tables[ds_id] = table_refs
             except Exception:  # noqa: BLE001
-                logger.debug("Failed to parse SQL for virtual dataset %d", ds_id)
+                logger.warning(
+                    "Failed to parse SQL for virtual dataset %d", ds_id, exc_info=True
+                )
         return ds_to_tables, ds_db_map
 
     @staticmethod
     def _fetch_physical_rls_map(
-        all_table_names: set[str],
+        all_tables: set[Table],
         db_ids: set[int],
-    ) -> tuple[dict[tuple[str, int], int], dict[int, list[dict[str, Any]]]]:
+    ) -> tuple[dict[tuple[str, str | None, int], int], dict[int, list[dict[str, Any]]]]:
         """
-        Look up physical datasets matching the given table names and database IDs,
+        Look up physical datasets matching the given Table objects and database IDs,
         then fetch their RLS filters.
 
         Returns:
-        - physical_map: (table_name, database_id) -> physical dataset id
+        - physical_map: (table_name, schema, database_id) -> physical dataset id
         - phys_rls: physical dataset id -> list of RLS filter summaries
         """
         from superset.connectors.sqla.models import RowLevelSecurityFilter
 
+        all_table_names = {t.table for t in all_tables}
         physical_tables = (
-            db.session.query(SqlaTable.id, SqlaTable.table_name, SqlaTable.database_id)
+            db.session.query(
+                SqlaTable.id,
+                SqlaTable.table_name,
+                SqlaTable.schema,
+                SqlaTable.database_id,
+            )
             .filter(
                 SqlaTable.table_name.in_(all_table_names),
                 SqlaTable.database_id.in_(db_ids),
@@ -538,10 +550,10 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             .all()
         )
 
-        physical_map: dict[tuple[str, int], int] = {}
+        physical_map: dict[tuple[str, str | None, int], int] = {}
         physical_ids: set[int] = set()
-        for phys_id, table_name, db_id in physical_tables:
-            physical_map[(table_name, db_id)] = phys_id
+        for phys_id, table_name, schema, db_id in physical_tables:
+            physical_map[(table_name, schema, db_id)] = phys_id
             physical_ids.add(phys_id)
 
         if not physical_ids:
@@ -607,21 +619,23 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         if not ds_to_tables:
             return {}
 
-        all_table_names: set[str] = set()
+        all_table_refs: set[Table] = set()
         db_ids: set[int] = set()
-        for ds_id, table_names in ds_to_tables.items():
-            all_table_names.update(table_names)
+        for ds_id, table_refs in ds_to_tables.items():
+            all_table_refs.update(table_refs)
             db_ids.add(ds_db_map[ds_id])
 
         physical_map, phys_rls = DatasetDAO._fetch_physical_rls_map(
-            all_table_names, db_ids
+            all_table_refs, db_ids
         )
 
         result: dict[int, list[dict[str, Any]]] = {}
-        for ds_id, table_names in ds_to_tables.items():
+        for ds_id, table_refs in ds_to_tables.items():
             database_id = ds_db_map[ds_id]
-            for table_name in table_names:
-                phys_id = physical_map.get((table_name, database_id))
+            for table_ref in table_refs:
+                phys_id = physical_map.get(
+                    (table_ref.table, table_ref.schema, database_id)
+                )
                 if phys_id and phys_id in phys_rls:
                     result.setdefault(ds_id, []).extend(phys_rls[phys_id])
 
@@ -634,11 +648,14 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         For virtual datasets, also includes RLS filters from physical tables
         referenced in the dataset's SQL.
         """
+        from sqlalchemy.orm import joinedload
+
         from superset.connectors.sqla.models import RowLevelSecurityFilter
 
-        # Direct RLS filters on this dataset
+        # Direct RLS filters on this dataset — eager-load roles to avoid N+1
         filters = (
             db.session.query(RowLevelSecurityFilter)
+            .options(joinedload(RowLevelSecurityFilter.roles))
             .join(
                 RLSFilterTables,
                 RLSFilterTables.c.rls_filter_id == RowLevelSecurityFilter.id,
@@ -676,26 +693,41 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 if database_obj:
                     engine = database_obj.backend
                 parsed = SQLScript(dataset.sql, engine=engine)
-                table_names: set[str] = set()
+                table_refs: set[Table] = set()
                 for statement in parsed.statements:
                     for table_ref in statement.tables:
-                        table_names.add(table_ref.table)
+                        table_refs.add(table_ref.qualify(schema=dataset.schema))
 
-                if table_names:
+                if table_refs:
+                    # Build filter conditions that respect schema
+                    all_table_names = {t.table for t in table_refs}
                     physical_tables = (
-                        db.session.query(SqlaTable.id)
+                        db.session.query(
+                            SqlaTable.id,
+                            SqlaTable.table_name,
+                            SqlaTable.schema,
+                        )
                         .filter(
-                            SqlaTable.table_name.in_(table_names),
+                            SqlaTable.table_name.in_(all_table_names),
                             SqlaTable.database_id == dataset.database_id,
                             SqlaTable.sql.is_(None),
                         )
                         .all()
                     )
-                    physical_ids = [row[0] for row in physical_tables]
+                    # Only select physical tables whose schema matches
+                    physical_ids = [
+                        row.id
+                        for row in physical_tables
+                        if any(
+                            t.table == row.table_name and t.schema == row.schema
+                            for t in table_refs
+                        )
+                    ]
 
                     if physical_ids:
                         inherited_filters = (
                             db.session.query(RowLevelSecurityFilter)
+                            .options(joinedload(RowLevelSecurityFilter.roles))
                             .join(
                                 RLSFilterTables,
                                 RLSFilterTables.c.rls_filter_id
@@ -724,7 +756,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                                     }
                                 )
             except Exception:  # noqa: BLE001
-                logger.debug("Failed to parse SQL for virtual dataset %d", dataset_id)
+                logger.warning(
+                    "Failed to resolve inherited RLS for virtual dataset %d",
+                    dataset_id,
+                    exc_info=True,
+                )
 
         return result
 

@@ -311,14 +311,32 @@ def test_virtual_dataset_no_matching_physical_tables(session: Session) -> None:
 
 
 def test_parse_tables_from_virtual_datasets_with_engine() -> None:
-    """_parse_tables_from_virtual_datasets should use the provided engine."""
+    """_parse_tables_from_virtual_datasets returns Table objects with schema."""
+
     ds_to_tables, ds_db_map = DatasetDAO._parse_tables_from_virtual_datasets(
         [(1, "SELECT * FROM orders", "main", 10)],
         db_engines={10: "sqlite"},
     )
     assert 1 in ds_to_tables
-    assert "orders" in ds_to_tables[1]
+    # Returns Table objects; unqualified ref gets default schema applied
+    table_names = {t.table for t in ds_to_tables[1]}
+    assert "orders" in table_names
+    # Schema should be qualified with default_schema="main"
+    schemas = {t.schema for t in ds_to_tables[1]}
+    assert "main" in schemas
     assert ds_db_map[1] == 10
+
+
+def test_parse_tables_from_virtual_datasets_preserves_explicit_schema() -> None:
+    """Explicitly qualified schema in SQL should not be overridden by default."""
+    ds_to_tables, _ = DatasetDAO._parse_tables_from_virtual_datasets(
+        [(1, "SELECT * FROM other_schema.orders", "main", 10)],
+        db_engines={10: ""},
+    )
+    assert 1 in ds_to_tables
+    table_schemas = {(t.table, t.schema) for t in ds_to_tables[1]}
+    # The explicit schema 'other_schema' should be preserved, not replaced with 'main'
+    assert ("orders", "other_schema") in table_schemas
 
 
 def test_parse_tables_from_virtual_datasets_bad_sql() -> None:
@@ -329,6 +347,79 @@ def test_parse_tables_from_virtual_datasets_bad_sql() -> None:
     )
     assert 1 not in ds_to_tables
     assert ds_db_map[1] == 10
+
+
+def test_schema_isolation_prevents_wrong_rls(session: Session) -> None:
+    """Virtual dataset must not pick up RLS from a table in the wrong schema."""
+    from superset import db
+    from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+    from superset.models.core import Database
+
+    _setup_tables(session)
+
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    # Physical table in the WRONG schema
+    wrong_schema_table = SqlaTable(
+        table_name="orders", schema="other_schema", database=database
+    )
+    rls_filter = RowLevelSecurityFilter(
+        name="wrong_schema_filter",
+        filter_type="Regular",
+        group_key=None,
+        clause="1=0",
+        tables=[wrong_schema_table],
+    )
+    # Virtual dataset in 'main' schema references unqualified 'orders'
+    # (which should resolve to main.orders, not other_schema.orders)
+    virtual = SqlaTable(
+        table_name="my_report",
+        schema="main",
+        database=database,
+        sql="SELECT * FROM orders",
+    )
+    db.session.add_all([database, wrong_schema_table, virtual, rls_filter])
+    db.session.flush()
+
+    # Should NOT inherit the filter since main.orders doesn't exist
+    list_result = DatasetDAO.get_rls_filters_for_datasets([virtual.id])
+    assert list_result.get(virtual.id) is None
+
+    detail_result = DatasetDAO.get_rls_filters_for_dataset(virtual.id)
+    assert detail_result == []
+
+
+def test_schema_qualified_sql_inherits_correct_rls(session: Session) -> None:
+    """Schema-qualified SQL in virtual dataset must match the right physical table."""
+    from superset import db
+    from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+    from superset.models.core import Database
+
+    _setup_tables(session)
+
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    correct_table = SqlaTable(table_name="orders", schema="sales", database=database)
+    decoy_table = SqlaTable(table_name="orders", schema="main", database=database)
+    rls_filter = RowLevelSecurityFilter(
+        name="sales_filter",
+        filter_type="Regular",
+        group_key=None,
+        clause="region='EU'",
+        tables=[correct_table],
+    )
+    virtual = SqlaTable(
+        table_name="my_report",
+        schema="main",
+        database=database,
+        sql="SELECT * FROM sales.orders",  # explicitly qualified
+    )
+    db.session.add_all([database, correct_table, decoy_table, virtual, rls_filter])
+    db.session.flush()
+
+    # Should pick up filter from sales.orders, not main.orders
+    detail_result = DatasetDAO.get_rls_filters_for_dataset(virtual.id)
+    assert len(detail_result) == 1
+    assert detail_result[0]["name"] == "sales_filter"
+    assert detail_result[0]["inherited"] is True
 
 
 def test_multiple_filters_on_same_dataset(session: Session) -> None:

@@ -328,7 +328,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                             item["rls_filters"] = filters
                         else:
                             item["rls_filters"] = [
-                                {"id": f["id"], "name": f["name"]} for f in filters
+                                {
+                                    "id": f["id"],
+                                    "name": f["name"],
+                                    "filter_type": f["filter_type"],
+                                    "group_key": f.get("group_key"),
+                                }
+                                for f in filters
                             ]
                     response = self.response(200, **payload)
             except Exception:  # noqa: BLE001

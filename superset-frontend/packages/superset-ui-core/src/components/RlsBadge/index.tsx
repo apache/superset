@@ -25,7 +25,7 @@ import type { IconType } from '@superset-ui/core/components/Icons/types';
 export interface RlsFilterSummary {
   id: number;
   name: string;
-  filter_type: string;
+  filter_type?: string;
   group_key?: string | null;
   inherited?: boolean;
   clause?: string;
@@ -58,7 +58,8 @@ export function RlsBadge({ rlsFilters, size = 'l' }: RlsBadgeProps) {
         {rlsFilters.map(filter => (
           <li key={filter.id}>
             <div>
-              {filter.name} ({filter.filter_type})
+              {filter.name}
+              {filter.filter_type ? ` (${filter.filter_type})` : ''}
               {filter.group_key ? ` [${filter.group_key}]` : ''}
               {filter.inherited ? ` — ${t('from underlying table')}` : ''}
             </div>
