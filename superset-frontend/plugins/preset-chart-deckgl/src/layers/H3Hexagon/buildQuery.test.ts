@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryFormColumn } from '@superset-ui/core';
 import buildQuery, { H3FormData } from './buildQuery';
 
 const baseFormData: H3FormData = {
@@ -36,7 +37,7 @@ test('H3 buildQuery should throw when h3_index is missing', () => {
 test('H3 buildQuery should throw when h3_index is undefined', () => {
   const formData = {
     ...baseFormData,
-    h3_index: undefined as unknown as string,
+    h3_index: undefined as unknown as QueryFormColumn,
   };
 
   expect(() => buildQuery(formData)).toThrow('H3 index is required');
@@ -78,6 +79,27 @@ test('H3 buildQuery should throw when h3_index array is empty', () => {
   };
 
   expect(() => buildQuery(formData)).toThrow('H3 index is required');
+});
+
+test('H3 buildQuery should derive label from adhoc column object', () => {
+  const adhocColumn: QueryFormColumn = {
+    label: 'h3_expr',
+    sqlExpression: "h3_index('foo')",
+    expressionType: 'SQL',
+  };
+  const formData: H3FormData = {
+    ...baseFormData,
+    h3_index: adhocColumn,
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  expect(query.columns).toContainEqual(adhocColumn);
+  expect(query.filters).toContainEqual({
+    col: 'h3_expr',
+    op: 'IS NOT NULL',
+  });
 });
 
 test('H3 buildQuery should include metric when provided', () => {

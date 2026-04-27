@@ -105,6 +105,27 @@ test('H3 transformProps should handle h3_index as array', () => {
   expect(features[0].hexagon).toBe('891f1d48177ffff');
 });
 
+test('H3 transformProps should resolve adhoc column object using its label', () => {
+  const adhocColumn = {
+    label: 'h3_col',
+    sqlExpression: "h3_index('foo')",
+    expressionType: 'SQL',
+  };
+  const props = {
+    ...baseMockChartProps,
+    rawFormData: {
+      ...baseMockChartProps.rawFormData,
+      h3_index: adhocColumn,
+    },
+  };
+
+  const result = transformProps(props as ChartProps);
+  const features = result.payload.data.features as H3Feature[];
+
+  expect(features).toHaveLength(2);
+  expect(features[0].hexagon).toBe('891f1d48177ffff');
+});
+
 test('H3 transformProps should auto-detect H3 column when h3_index is not specified', () => {
   const props = {
     ...baseMockChartProps,

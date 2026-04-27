@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { ChartProps, getMetricLabel } from '@superset-ui/core';
+import {
+  ChartProps,
+  getColumnLabel,
+  getMetricLabel,
+  QueryFormColumn,
+} from '@superset-ui/core';
 import {
   createBaseTransformResult,
   getRecordsFromQuery,
@@ -37,11 +42,13 @@ export default function transformProps(chartProps: ChartProps) {
 
   const records = getRecordsFromQuery(chartProps.queriesData);
 
-  // Resolve the H3 column name
-  const h3Index = (() => {
-    const columnName = Array.isArray(h3IndexRaw) ? h3IndexRaw[0] : h3IndexRaw;
-    if (columnName) {
-      return columnName;
+  // Resolve the H3 column label, deriving a string consistently
+  const h3Index = ((): string | undefined => {
+    const column: QueryFormColumn | undefined = Array.isArray(h3IndexRaw)
+      ? h3IndexRaw[0]
+      : h3IndexRaw;
+    if (column) {
+      return getColumnLabel(column);
     }
     // Auto-detect H3 column if not specified
     if (records.length > 0) {
@@ -54,13 +61,13 @@ export default function transformProps(chartProps: ChartProps) {
         return possibleH3Keys[0];
       }
     }
-    return columnName;
+    return undefined;
   })();
 
   const metricLabel = metric ? getMetricLabel(metric) : undefined;
 
   const features: H3Feature[] = records.map((record, index) => {
-    const hexagonValue = record[h3Index];
+    const hexagonValue = h3Index ? record[h3Index] : undefined;
     const feature: H3Feature = {
       hexagon: String(hexagonValue || ''),
     };
