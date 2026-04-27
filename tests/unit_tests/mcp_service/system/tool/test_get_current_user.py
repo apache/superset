@@ -473,7 +473,7 @@ def test_chart_filter_rejects_invalid_column():
 
 
 def test_dashboard_filter_rejects_created_by_fk():
-    """created_by_fk is not a valid DashboardFilter column; use created_by_me instead."""
+    """created_by_fk is not a valid DashboardFilter column; use created_by_me."""
     with pytest.raises(ValidationError):
         DashboardFilter(col="created_by_fk", opr="eq", value=42)
 

@@ -143,9 +143,7 @@ def inject_current_user_for_created_by_fk(filters: Any, user: Any) -> Any:
         col = f.get("col") if isinstance(f, dict) else getattr(f, "col", None)
         if col in SELF_REFERENCING_FILTER_COLUMNS:
             if not user or not getattr(user, "is_authenticated", False):
-                raise ValueError(
-                    f"{col} filter requires an authenticated user"
-                )
+                raise ValueError(f"{col} filter requires an authenticated user")
             f = (
                 {**f, "value": user.id}
                 if isinstance(f, dict)
