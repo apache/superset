@@ -62,10 +62,15 @@ function SelectFilter(
     onSelect(
       selected
         ? {
+            // Options may supply a ReactNode label (e.g. OwnerSelectLabel for
+            // the chart list Owner filter). Since this object is serialized
+            // into the URL and rehydrated as the filter pill on return, we
+            // need a plain string. Prefer `title` (set by callers to the
+            // human-readable name) before falling back to the value.
             label:
               typeof selected.label === 'string'
                 ? selected.label
-                : String(selected.value),
+                : (selected.title ?? String(selected.value)),
             value: selected.value,
           }
         : undefined,
