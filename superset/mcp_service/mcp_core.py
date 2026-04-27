@@ -23,6 +23,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
 
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel
 
 from superset.daos.base import BaseDAO
@@ -339,8 +340,6 @@ class ModelGetInfoCore(BaseCore):
         DashboardAccessFilter excludes rows the current user is not
         allowed to see. Mirrors DashboardDAO.get_by_id_or_slug.
         """
-        from flask_appbuilder.models.sqla.interface import SQLAInterface
-
         model_class = self.dao_class.model_cls
         query = db.session.query(model_class)
 

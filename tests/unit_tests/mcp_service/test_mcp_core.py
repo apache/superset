@@ -202,7 +202,7 @@ def test_title_fallback_respects_base_filter_rbac() -> None:
 
     with (
         patch("superset.mcp_service.mcp_core.db") as mock_db,
-        patch("flask_appbuilder.models.sqla.interface.SQLAInterface") as mock_interface,
+        patch("superset.mcp_service.mcp_core.SQLAInterface") as mock_interface,
     ):
         mock_db.session.query.return_value = raw_query
         mock_interface.return_value = MagicMock()
