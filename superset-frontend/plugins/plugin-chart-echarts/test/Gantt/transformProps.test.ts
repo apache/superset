@@ -303,4 +303,69 @@ describe('legend sorting', () => {
     const legendData = (result.echartOptions.legend as any).data;
     expect(legendData).toEqual(['series value 2', 'series value 1']);
   });
+
+  test('falls back to scroll for plain legends with an overlong legend item', () => {
+    const props = new ChartProps({
+      ...chartPropsConfig,
+      width: 320,
+      formData: {
+        ...formData,
+        legendType: LegendType.Plain,
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              startTime: Date.UTC(2025, 1, 1, 13, 0, 0),
+              endTime: Date.UTC(2025, 1, 1, 14, 0, 0),
+              'Y Axis': 'first',
+              tooltip_column: 'tooltip value 1',
+              series:
+                'This is a ridiculously long legend label that should switch to scroll',
+            },
+            {
+              startTime: Date.UTC(2025, 1, 1, 18, 0, 0),
+              endTime: Date.UTC(2025, 1, 1, 20, 0, 0),
+              'Y Axis': 'second',
+              tooltip_column: 'tooltip value 2',
+              series: 'short label',
+            },
+          ],
+          colnames: [
+            'startTime',
+            'endTime',
+            'Y Axis',
+            'tooltip_column',
+            'series',
+          ],
+        },
+      ],
+    });
+
+    const result = transformProps(props as EchartsGanttChartProps);
+
+    expect((result.echartOptions.legend as any).type).toBe(LegendType.Scroll);
+  });
+
+  test('keeps legend visibility driven by showLegend for single-series charts', () => {
+    const props = new ChartProps({
+      ...chartPropsConfig,
+      queriesData: [
+        {
+          data: [queriesData[0].data[0]],
+          colnames: [
+            'startTime',
+            'endTime',
+            'Y Axis',
+            'tooltip_column',
+            'series',
+          ],
+        },
+      ],
+    });
+
+    const result = transformProps(props as EchartsGanttChartProps);
+
+    expect((result.echartOptions.legend as any).show).toBe(true);
+  });
 });

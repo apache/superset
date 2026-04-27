@@ -23,41 +23,99 @@ import logging
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
-from superset_core.mcp.decorators import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.exceptions import CommandException
-from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_helpers import get_cached_form_data
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartInfo,
+    extract_filters_from_form_data,
     GetChartInfoRequest,
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.privacy import (
+    redact_chart_data_model_fields,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def _get_cached_form_data(form_data_key: str) -> str | None:
-    """Retrieve form_data from cache using form_data_key.
+def _build_unsaved_chart_info(form_data_key: str) -> ChartInfo | ChartError:
+    """Build a ChartInfo from cached form_data when no chart identifier exists."""
+    from superset.utils import json as utils_json
 
-    Returns the JSON string of form_data if found, None otherwise.
-    """
-    from superset.commands.explore.form_data.get import GetFormDataCommand
-
+    cached_form_data = get_cached_form_data(form_data_key)
+    if not cached_form_data:
+        return ChartError(
+            error="No cached chart data found for form_data_key. "
+            "The cache may have expired.",
+            error_type="NotFound",
+        )
     try:
-        cmd_params = CommandParameters(key=form_data_key)
-        return GetFormDataCommand(cmd_params).run()
-    except (KeyError, ValueError, CommandException) as e:
-        logger.warning("Failed to retrieve form_data from cache: %s", e)
-        return None
+        form_data = utils_json.loads(cached_form_data)
+    except (TypeError, ValueError) as e:
+        return ChartError(
+            error=f"Failed to parse cached form_data: {e}",
+            error_type="ParseError",
+        )
+    if not isinstance(form_data, dict):
+        return ChartError(
+            error="Cached form_data is not a valid JSON object.",
+            error_type="ParseError",
+        )
+    return ChartInfo(
+        viz_type=form_data.get("viz_type"),
+        datasource_name=form_data.get("datasource_name"),
+        datasource_type=form_data.get("datasource_type"),
+        filters=extract_filters_from_form_data(form_data),
+        form_data=form_data,
+        form_data_key=form_data_key,
+        is_unsaved_state=True,
+    )
 
 
-@tool(tags=["discovery"])
-@parse_request(GetChartInfoRequest)
+def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None:
+    """Override a ChartInfo's form_data with cached unsaved state."""
+    from superset.utils import json as utils_json
+
+    if cached_form_data := get_cached_form_data(form_data_key):
+        try:
+            result.form_data = utils_json.loads(cached_form_data)
+            result.form_data_key = form_data_key
+            result.is_unsaved_state = True
+
+            # Update viz_type from cached form_data if present
+            if result.form_data and "viz_type" in result.form_data:
+                result.viz_type = result.form_data["viz_type"]
+
+            # Update filters from cached form_data
+            result.filters = extract_filters_from_form_data(result.form_data)
+        except (TypeError, ValueError) as e:
+            logger.warning(
+                "Failed to parse cached form_data: %s. "
+                "Using saved chart configuration.",
+                e,
+            )
+    else:
+        logger.warning(
+            "form_data_key provided but no cached data found. "
+            "The cache may have expired. Using saved chart configuration."
+        )
+
+
+@tool(
+    tags=["discovery"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Get chart info",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context
 ) -> ChartInfo | ChartError:
@@ -96,16 +154,34 @@ async def get_chart_info(
     """
     from superset.daos.chart import ChartDAO
     from superset.models.slice import Slice
-    from superset.utils import json as utils_json
 
     await ctx.info(
         "Retrieving chart information: identifier=%s, form_data_key=%s"
         % (request.identifier, request.form_data_key)
     )
+    can_view_data_model_metadata = user_can_view_data_model_metadata()
 
-    # Eager load owners and tags to avoid N+1 queries during serialization
+    # Handle unsaved chart (form_data_key only, no identifier)
+    if not request.identifier and request.form_data_key:
+        with event_logger.log_context(
+            action="mcp.get_chart_info.unsaved_chart_from_cache"
+        ):
+            await ctx.info(
+                "No chart identifier provided - retrieving unsaved chart from cache: "
+                "form_data_key=%s" % (request.form_data_key,)
+            )
+            result = _build_unsaved_chart_info(request.form_data_key)
+            if not can_view_data_model_metadata:
+                return redact_chart_data_model_fields(result)
+            return result
+
+    # At this point identifier must be set (validator ensures at least one
+    # of identifier/form_data_key is provided, and the form_data_key-only
+    # branch returned above).
+    assert request.identifier is not None
+
+    # Eager load tags to avoid N+1 queries during serialization.
     eager_options = [
-        subqueryload(Slice.owners),
         subqueryload(Slice.tags),
     ]
 
@@ -125,35 +201,17 @@ async def get_chart_info(
     if isinstance(result, ChartInfo):
         # If form_data_key is provided, override form_data with cached version
         if request.form_data_key:
-            await ctx.info(
-                "Retrieving unsaved chart state from cache: form_data_key=%s"
-                % (request.form_data_key,)
-            )
-            cached_form_data = _get_cached_form_data(request.form_data_key)
-
-            if cached_form_data:
-                try:
-                    result.form_data = utils_json.loads(cached_form_data)
-                    result.form_data_key = request.form_data_key
-                    result.is_unsaved_state = True
-
-                    # Update viz_type from cached form_data if present
-                    if result.form_data and "viz_type" in result.form_data:
-                        result.viz_type = result.form_data["viz_type"]
-
-                    await ctx.info(
-                        "Chart form_data overridden with unsaved state from cache"
-                    )
-                except (TypeError, ValueError) as e:
-                    await ctx.warning(
-                        "Failed to parse cached form_data: %s. "
-                        "Using saved chart configuration." % (str(e),)
-                    )
-            else:
-                await ctx.warning(
-                    "form_data_key provided but no cached data found. "
-                    "The cache may have expired. Using saved chart configuration."
+            with event_logger.log_context(
+                action="mcp.get_chart_info.unsaved_state_override"
+            ):
+                await ctx.info(
+                    "Retrieving unsaved chart state from cache: form_data_key=%s"
+                    % (request.form_data_key,)
                 )
+                _apply_unsaved_state_override(result, request.form_data_key)
+
+        if not can_view_data_model_metadata:
+            result = redact_chart_data_model_fields(result)
 
         await ctx.info(
             "Chart information retrieved successfully: chart_name=%s, "
