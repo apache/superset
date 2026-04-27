@@ -43,6 +43,7 @@ from superset.initialization import SupersetAppInitializer
 
 logger = logging.getLogger(__name__)
 
+
 def create_app(
     superset_config_module: Optional[str] = None,
     superset_app_root: Optional[str] = None,
@@ -58,6 +59,7 @@ def create_app(
     except Exception:
         logger.exception("Failed to create app")
         raise
+
 
 def _configure_app(
     app: Flask,
@@ -82,6 +84,7 @@ def _configure_app(
     if app_root != "/":
         _configure_subdirectory_deployment(app, app_root)
 
+
 def _configure_subdirectory_deployment(app: Flask, app_root: str) -> None:
     app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
     # If not set, manually configure options that depend on the
@@ -95,14 +98,16 @@ def _configure_subdirectory_deployment(app: Flask, app_root: str) -> None:
     if app.config["APPLICATION_ROOT"] == "/":
         app.config["APPLICATION_ROOT"] = app_root
 
+
 def _update_app_icon_for_subdirectory(app: Flask, app_root: str) -> None:
     # Prefix APP_ICON path with subdirectory root for subdirectory deployments
     app_icon = app.config.get("APP_ICON", "")
     if app_icon.startswith("/static/"):
         app.config["APP_ICON"] = f"{app_root}{app_icon}"
 
+
 def _update_theme_tokens_for_subdirectory(app: Flask, app_root: str) -> None:
-     # Prefix theme tokens for subdirectory deployments
+    # Prefix theme tokens for subdirectory deployments
     for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
         theme = app.config[theme_key]
         token = theme.get("token", {})
@@ -116,14 +121,17 @@ def _update_theme_tokens_for_subdirectory(app: Flask, app_root: str) -> None:
         if token.get("brandLogoHref") == "/":
             token["brandLogoHref"] = app_root
 
+
 def _initialize_app(app: Flask) -> None:
     app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
     app_initializer.init_app()
+
 
 def _setup_debug_features(app: Flask) -> None:
     # Set up LOCAL_EXTENSIONS file watcher when in debug mode
     if app.debug:
         start_local_extensions_watcher_thread(app)
+
 
 class SupersetApp(Flask):
     def send_static_file(self, filename: str) -> Response:
