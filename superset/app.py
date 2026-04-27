@@ -109,13 +109,13 @@ def _update_app_icon_for_subdirectory(app: Flask, app_root: str) -> None:
 def _update_theme_tokens_for_subdirectory(app: Flask, app_root: str) -> None:
     # Prefix theme tokens for subdirectory deployments
     for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
-        theme = app.config[theme_key]
+        theme = app.config.get(theme_key)
         token = theme.get("token", {})
 
         # Update URLs if they point to /static/
         for url_key in ("brandSpinnerUrl", "brandLogoUrl"):
             url = token.get(url_key, "")
-            if url.startswith("/static/"):
+            if url and url.startswith("/static/"):
                 token[url_key] = f"{app_root}{url}"
         # Update brandLogoHref if it's the default "/"
         if token.get("brandLogoHref") == "/":
