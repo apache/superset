@@ -23,8 +23,8 @@ from io import BytesIO
 from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
-import prison
 import pytest
+import rison
 import yaml
 from freezegun import freeze_time
 from sqlalchemy import inspect
@@ -265,7 +265,7 @@ class TestDatasetApi(SupersetTestCase):
                 {"col": "table_name", "opr": "eq", "value": "birth_names"},
             ]
         }
-        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -581,7 +581,7 @@ class TestDatasetApi(SupersetTestCase):
         """
 
         def pg_test_query_parameter(query_parameter, expected_response):
-            uri = f"api/v1/dataset/distinct/schema?q={prison.dumps(query_parameter)}"
+            uri = f"api/v1/dataset/distinct/schema?q={rison.dumps(query_parameter)}"
             rv = self.client.get(uri)
             response = json.loads(rv.data.decode("utf-8"))
             assert rv.status_code == 200
@@ -689,7 +689,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/dataset/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/dataset/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -2160,7 +2160,7 @@ class TestDatasetApi(SupersetTestCase):
             view_menu_names.append(dataset.get_perm())
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(dataset_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -2186,7 +2186,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset_ids = [dataset.id for dataset in datasets]
 
         self.login(ALPHA_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(dataset_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 403
 
@@ -2201,7 +2201,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset_ids.append(db.session.query(func.max(SqlaTable.id)).scalar())
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(dataset_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404
 
@@ -2215,7 +2215,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset_ids = [dataset.id for dataset in datasets]
 
         self.login(GAMMA_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(dataset_ids)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 403
 
@@ -2230,7 +2230,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset_ids.append("Wrong")
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(dataset_ids)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(dataset_ids)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 400
 
@@ -2299,7 +2299,7 @@ class TestDatasetApi(SupersetTestCase):
             return
 
         argument = [birth_names_dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
 
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
@@ -2327,7 +2327,7 @@ class TestDatasetApi(SupersetTestCase):
         max_id = db.session.query(func.max(SqlaTable.id)).scalar()
         # Just one does not exist and we get 404
         argument = [max_id + 1, 1]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
@@ -2341,7 +2341,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.get_fixture_datasets()[0]
 
         argument = [dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
 
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
@@ -2374,7 +2374,7 @@ class TestDatasetApi(SupersetTestCase):
             return
 
         argument = [birth_names_dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
 
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
@@ -2391,7 +2391,7 @@ class TestDatasetApi(SupersetTestCase):
 
         # Just one does not exist and we get 404
         argument = [-1, 1]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
 
@@ -2406,7 +2406,7 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.get_fixture_datasets()[0]
 
         argument = [dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
 
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
@@ -2446,7 +2446,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         argument = [first_dataset.id, second_dataset.id]
-        uri = f"api/v1/dataset/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dataset/export/?q={rison.dumps(argument)}"
         rv = self.get_assert_metric(uri, "export")
 
         assert rv.status_code == 200
@@ -2519,7 +2519,7 @@ class TestDatasetApi(SupersetTestCase):
             ]
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         assert rv.status_code == 200
@@ -2534,7 +2534,7 @@ class TestDatasetApi(SupersetTestCase):
             ]
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
 
@@ -2813,7 +2813,7 @@ class TestDatasetApi(SupersetTestCase):
             "filters": [{"col": "id", "opr": "dataset_is_certified", "value": True}]
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dataset/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
 
         assert rv.status_code == 200

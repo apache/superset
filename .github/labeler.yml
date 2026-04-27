@@ -17,6 +17,11 @@
   - any-glob-to-any-file:
     - 'superset/migrations/**'
 
+"risk:ci-script":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'scripts/**'
+
 ############################################
 # Dependencies
 ############################################

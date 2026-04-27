@@ -29,6 +29,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    field_validator,
     model_serializer,
     model_validator,
     PositiveInt,
@@ -37,11 +38,10 @@ from pydantic import (
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
-    serialize_user_object,
     TagInfo,
-    UserInfo,
 )
 from superset.utils import json
 
@@ -58,7 +58,6 @@ class DatasetFilter(ColumnOperator):
         "table_name",
         "schema",
         "database_name",
-        "owner",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='dataset') for "
@@ -108,22 +107,17 @@ class DatasetInfo(BaseModel):
     certification_details: str | None = Field(
         None, description="Certification details or reason"
     )
-    changed_by: str | None = Field(None, description="Last modifier (username)")
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
     changed_on_humanized: str | None = Field(
         None, description="Humanized modification time"
     )
-    created_by: str | None = Field(None, description="Dataset creator (username)")
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
     )
     tags: List[TagInfo] = Field(default_factory=list, description="Dataset tags")
-    owners: List[UserInfo] = Field(
-        default_factory=list, description="DatasetInfo owners"
-    )
     is_virtual: bool | None = Field(
         None, description="Whether the dataset is virtual (uses SQL)"
     )
@@ -157,7 +151,7 @@ class DatasetInfo(BaseModel):
         populate_by_name=True,  # Allow both 'schema' (alias) and 'schema_name' (field)
     )
 
-    @model_serializer(mode="wrap", when_used="json")
+    @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
         """Filter fields based on serialization context.
 
@@ -165,7 +159,7 @@ class DatasetInfo(BaseModel):
         Otherwise, include all fields (default behavior).
         """
         # Get full serialization
-        data = serializer(self)
+        data = filter_user_directory_fields(serializer(self))
 
         # Normalize alias: Pydantic serializes as 'schema_name' (field name)
         # but the DAO column and API convention is 'schema'
@@ -292,9 +286,13 @@ class DatasetError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatasetError":
         """Create a standardized DatasetError with timestamp."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        return cls(error=error, error_type=error_type, timestamp=datetime.now())
+        return cls(
+            error=error,
+            error_type=error_type,
+            timestamp=datetime.now(timezone.utc),
+        )
 
 
 class GetDatasetInfoRequest(MetadataCacheControl):
@@ -304,6 +302,82 @@ class GetDatasetInfoRequest(MetadataCacheControl):
         int | str,
         Field(description="Dataset identifier - can be numeric ID or UUID string"),
     ]
+
+
+class CreateVirtualDatasetRequest(BaseModel):
+    """Request schema for create_virtual_dataset."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    database_id: int = Field(
+        ...,
+        description="ID of the database connection to use. "
+        "Use list_databases to find valid IDs.",
+    )
+    sql: str = Field(
+        ...,
+        description="SQL query to save as a virtual dataset. "
+        "Can be a JOIN, CTE, aggregation, or any valid SELECT.",
+    )
+    dataset_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=250,
+        description="Name for the new virtual dataset.",
+    )
+    schema_name: str | None = Field(
+        None,
+        alias="schema",
+        description="Schema to associate with the dataset (optional).",
+    )
+    catalog: str | None = Field(
+        None,
+        description="Catalog to associate with the dataset (optional).",
+    )
+    description: str | None = Field(
+        None,
+        description="Human-readable description of the dataset (optional).",
+    )
+
+    @field_validator("sql")
+    @classmethod
+    def sql_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("sql must not be empty")
+        return v.strip()
+
+    @field_validator("dataset_name")
+    @classmethod
+    def dataset_name_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("dataset_name must not be empty")
+        return v.strip()
+
+
+class CreateVirtualDatasetResponse(BaseModel):
+    """Response schema for create_virtual_dataset."""
+
+    id: int | None = Field(
+        None,
+        description="Dataset ID. Pass this as dataset_id to generate_chart "
+        "or generate_explore_link. None if creation failed.",
+    )
+    dataset_name: str = Field(..., description="Name of the created dataset.")
+    sql: str = Field(..., description="SQL query stored in the dataset.")
+    database_id: int = Field(..., description="Database ID used.")
+    columns: List[str] = Field(
+        default_factory=list,
+        description="Column names available for charting. "
+        "Use these when building chart configs.",
+    )
+    url: str | None = Field(
+        None,
+        description="URL to view/edit the dataset in Superset. None if failed.",
+    )
+    error: str | None = Field(
+        None,
+        description="Error message if creation failed, otherwise null.",
+    )
 
 
 def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
@@ -371,12 +445,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         description=getattr(dataset, "description", None),
         certified_by=getattr(dataset, "certified_by", None),
         certification_details=getattr(dataset, "certification_details", None),
-        changed_by=getattr(dataset, "changed_by_name", None)
-        or (str(dataset.changed_by) if getattr(dataset, "changed_by", None) else None),
         changed_on=getattr(dataset, "changed_on", None),
         changed_on_humanized=_humanize_timestamp(getattr(dataset, "changed_on", None)),
-        created_by=getattr(dataset, "created_by_name", None)
-        or (str(dataset.created_by) if getattr(dataset, "created_by", None) else None),
         created_on=getattr(dataset, "created_on", None),
         created_on_humanized=_humanize_timestamp(getattr(dataset, "created_on", None)),
         tags=[
@@ -384,13 +454,6 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
             for tag in getattr(dataset, "tags", [])
         ]
         if getattr(dataset, "tags", None)
-        else [],
-        owners=[
-            info
-            for owner in getattr(dataset, "owners", [])
-            if (info := serialize_user_object(owner)) is not None
-        ]
-        if getattr(dataset, "owners", None)
         else [],
         is_virtual=getattr(dataset, "is_virtual", None),
         database_id=getattr(dataset, "database_id", None),
