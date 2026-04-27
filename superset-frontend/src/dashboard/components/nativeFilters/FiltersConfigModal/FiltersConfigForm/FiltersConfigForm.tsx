@@ -107,6 +107,7 @@ import RemovedFilter from './RemovedFilter';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import {
   hasTemporalColumns,
+  getTimeGrainOptions,
   isValidFilterValue,
   mostUsedDataset,
   setNativeFilterFieldValues,
@@ -261,6 +262,12 @@ export interface FiltersConfigFormProps {
 }
 
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
+
+const getOptionDataTest = (
+  prefix: string,
+  value: string | number | undefined,
+) =>
+  `${prefix}-${String(value ?? 'undefined').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
 // TODO: Rename the filter plugins and remove this mapping
 const FILTER_TYPE_NAME_MAPPING = {
@@ -579,6 +586,10 @@ const FiltersConfigForm = (
     !!filterToEdit?.adhoc_filters?.length ||
     !!filterToEdit?.time_range;
 
+  const hasTimeGrainPreFilter = !!(
+    formFilter?.time_grains?.length || filterToEdit?.time_grains?.length
+  );
+
   const hasEnableSingleValue =
     formFilter?.controlValues?.enableSingleValue !== undefined ||
     filterToEdit?.controlValues?.enableSingleValue !== undefined;
@@ -746,6 +757,7 @@ const FiltersConfigForm = (
             'schema',
             'sql',
             'table_name',
+            'time_grain_sqla',
           ],
         })}`,
       })
@@ -936,6 +948,16 @@ const FiltersConfigForm = (
                             label: name || pluginKey,
                           };
                         })}
+                        optionRender={option => (
+                          <span
+                            data-test={getOptionDataTest(
+                              'customization-type-option',
+                              option.value,
+                            )}
+                          >
+                            {option.label || option.value}
+                          </span>
+                        )}
                         onChange={value => {
                           setNativeFilterFieldValues(form, filterId, {
                             filterType: value,
@@ -994,6 +1016,16 @@ const FiltersConfigForm = (
                             disabled: isDisabled,
                           };
                         })}
+                        optionRender={option => (
+                          <span
+                            data-test={getOptionDataTest(
+                              'filter-type-option',
+                              option.value,
+                            )}
+                          >
+                            {option.label || option.value}
+                          </span>
+                        )}
                         onChange={value => {
                           setNativeFilterFieldValues(form, filterId, {
                             filterType: value,
@@ -1254,6 +1286,78 @@ const FiltersConfigForm = (
                                     </CollapsibleControl>
                                   </FormItem>
                                 )}
+                                {itemTypeField === 'filter_timegrain' &&
+                                  hasDataset &&
+                                  datasetDetails?.time_grain_sqla &&
+                                  datasetDetails.time_grain_sqla.length > 0 && (
+                                    <FormItem
+                                      name={[
+                                        'filters',
+                                        filterId,
+                                        'preFilterTimegrain',
+                                      ]}
+                                    >
+                                      <CollapsibleControl
+                                        initialValue={hasTimeGrainPreFilter}
+                                        title={t('Pre-filter available values')}
+                                        tooltip={t(
+                                          'Select which time grains are available in the filter control. This is a UI allow list only and does not add extra conditions to the underlying queries.',
+                                        )}
+                                        onChange={checked => {
+                                          if (!checked) {
+                                            setNativeFilterFieldValues(
+                                              form,
+                                              filterId,
+                                              { time_grains: undefined },
+                                            );
+                                            forceUpdate();
+                                          }
+                                          formChanged();
+                                        }}
+                                      >
+                                        <FormItem
+                                          name={[
+                                            'filters',
+                                            filterId,
+                                            'time_grains',
+                                          ]}
+                                          initialValue={
+                                            filterToEdit?.time_grains
+                                          }
+                                          {...getFiltersConfigModalTestId(
+                                            'time-grain-allowlist',
+                                          )}
+                                        >
+                                          <Select
+                                            mode="multiple"
+                                            ariaLabel={t('Time grain options')}
+                                            options={getTimeGrainOptions(
+                                              datasetDetails.time_grain_sqla,
+                                            )}
+                                            sortComparator={() => 0}
+                                            onChange={(values: string[]) => {
+                                              setNativeFilterFieldValues(
+                                                form,
+                                                filterId,
+                                                {
+                                                  time_grains:
+                                                    values.length > 0 &&
+                                                    values.length <
+                                                      datasetDetails
+                                                        .time_grain_sqla.length
+                                                      ? values
+                                                      : undefined,
+                                                },
+                                              );
+                                              forceUpdate();
+                                              formChanged();
+                                            }}
+                                            css={{ width: INPUT_WIDTH }}
+                                          />
+                                        </FormItem>
+                                      </CollapsibleControl>
+                                    </FormItem>
+                                  )}
                                 {itemTypeField !== 'filter_range' ? (
                                   <FormItem
                                     name={['filters', filterId, 'sortFilter']}
@@ -1347,24 +1451,21 @@ const FiltersConfigForm = (
                                               }),
                                             )}
                                             onChange={value => {
-                                              if (value !== undefined) {
-                                                const previous =
-                                                  form.getFieldValue(
-                                                    'filters',
-                                                  )?.[filterId].controlValues ||
-                                                  {};
-                                                setNativeFilterFieldValues(
-                                                  form,
-                                                  filterId,
-                                                  {
-                                                    controlValues: {
-                                                      ...previous,
-                                                      sortMetric: value,
-                                                    },
+                                              const previous =
+                                                form.getFieldValue('filters')?.[
+                                                  filterId
+                                                ].controlValues || {};
+                                              setNativeFilterFieldValues(
+                                                form,
+                                                filterId,
+                                                {
+                                                  controlValues: {
+                                                    ...previous,
+                                                    sortMetric: value,
                                                   },
-                                                );
-                                                forceUpdate();
-                                              }
+                                                },
+                                              );
+                                              forceUpdate();
                                               formChanged();
                                             }}
                                           />
