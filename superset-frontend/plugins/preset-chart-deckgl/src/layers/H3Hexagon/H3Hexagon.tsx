@@ -91,7 +91,11 @@ export const getLayer: GetLayerType<H3HexagonLayer> = function ({
     elevationScale: elevationScale,
 
     getHexagon: (d: JsonObject) => d.hexagon,
-    getFillColor: (d: JsonObject) => [255, (1 - d.elevation / 500) * 255, 0],
+    getFillColor: (d: JsonObject) => [
+      255,
+      (1 - (d.elevation || 0) / 500) * 255,
+      0,
+    ],
     getElevation: (d: JsonObject) => d.elevation || 0,
 
     ...commonLayerProps({
