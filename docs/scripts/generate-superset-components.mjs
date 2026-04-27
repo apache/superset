@@ -203,6 +203,48 @@ function resolveRelativeModule(fromFile, specifier) {
 }
 
 /**
+ * Collect every `Identifier` bound by a destructuring (or simple) pattern
+ * into `out`. Handles object/array destructuring, rest elements, defaults,
+ * and TS-specific assignment patterns. Used so that `export const { Foo } = X`
+ * contributes `Foo` to the public export set.
+ */
+function collectPatternIdentifiers(node, out) {
+  if (!node) return;
+  switch (node.type) {
+    case 'Identifier':
+      out.add(node.name);
+      return;
+    case 'ObjectPattern':
+      for (const prop of node.properties) {
+        if (prop.type === 'RestElement') {
+          collectPatternIdentifiers(prop.argument, out);
+        } else {
+          // ObjectProperty: bound name is the value side
+          // (`{ foo: bar }` binds `bar`, `{ foo }` binds `foo` via shorthand).
+          collectPatternIdentifiers(prop.value, out);
+        }
+      }
+      return;
+    case 'ArrayPattern':
+      for (const el of node.elements) {
+        if (el) collectPatternIdentifiers(el, out);
+      }
+      return;
+    case 'RestElement':
+      collectPatternIdentifiers(node.argument, out);
+      return;
+    case 'AssignmentPattern':
+      collectPatternIdentifiers(node.left, out);
+      return;
+    default:
+      // TypeScript wraps patterns in TSParameterProperty / TSAsExpression /
+      // TSTypeAssertion etc. Probe common holders.
+      if (node.parameter) collectPatternIdentifiers(node.parameter, out);
+      if (node.expression) collectPatternIdentifiers(node.expression, out);
+  }
+}
+
+/**
  * Collect the set of value names exported from a barrel file, following
  * `export * from './X'` re-exports recursively. Used to verify that a
  * component the docs claim is importable is actually re-exported from the
@@ -231,11 +273,12 @@ function collectBarrelExports(barrelPath, visited = new Set()) {
       if (node.exportKind === 'type') continue;
 
       if (node.declaration) {
-        // `export const Foo = ...`, `export function Foo() {}`, `export class Foo {}`
+        // `export const Foo = ...`, `export function Foo() {}`, `export class Foo {}`,
+        // `export const { Foo, Bar: Baz } = ...`, `export const [a, b] = ...`
         const decl = node.declaration;
         if (decl.type === 'VariableDeclaration') {
           for (const d of decl.declarations) {
-            if (d.id?.type === 'Identifier') exports.add(d.id.name);
+            collectPatternIdentifiers(d.id, exports);
           }
         } else if (decl.id?.type === 'Identifier') {
           exports.add(decl.id.name);
