@@ -54,6 +54,25 @@ export function getQueryMode(formData: TableChartFormData) {
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
+const getColumnSelectionKey = (column: string | AdhocColumn): string => {
+  if (typeof column === 'string') {
+    return column;
+  }
+  if (typeof column.label === 'string' && column.label.length > 0) {
+    return column.label;
+  }
+  if (
+    typeof column.sqlExpression === 'string' &&
+    column.sqlExpression.length > 0
+  ) {
+    return column.sqlExpression;
+  }
+  return '';
+};
+
+const isSyntheticPercentColumn = (column: unknown): column is string =>
+  typeof column === 'string' && column.trim().startsWith('%');
+
 const buildQuery: BuildQuery<TableChartFormData> = (
   formData: TableChartFormData,
   options,
@@ -84,6 +103,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
   return buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
+    columns = columns.filter(column => !isSyntheticPercentColumn(column));
     const { extras = {} } = baseQueryObject;
     const postProcessing: PostProcessingRule[] = [];
     const nonCustomNorInheritShifts = ensureIsArray(
@@ -129,7 +149,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     if (queryMode === QueryMode.Aggregate) {
       metrics = metrics || [];
       // override orderby with timeseries metric when in aggregation mode
-      if (sortByMetric) {
+      if (sortByMetric && !isSyntheticPercentColumn(sortByMetric)) {
         orderby = [[sortByMetric, !orderDesc]];
       } else if (metrics?.length > 0) {
         // default to ordering by first metric in descending order
@@ -226,6 +246,34 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     if (isDownloadQuery) {
       moreProps.row_limit = Number(formDataCopy.row_limit) || 0;
       moreProps.row_offset = 0;
+    }
+
+    const visibleColumnKeys = Array.isArray(ownState?.visibleColumns)
+      ? ownState.visibleColumns.map(String)
+      : [];
+    const visibleColumnSet = new Set(visibleColumnKeys);
+
+    if (isDownloadQuery && visibleColumnSet.size > 0) {
+      columns = columns.filter(column =>
+        visibleColumnSet.has(
+          getColumnSelectionKey(column as string | AdhocColumn),
+        ),
+      );
+
+      if (Array.isArray(metrics) && metrics.length > 0) {
+        metrics = metrics.filter(metric =>
+          visibleColumnSet.has(getMetricLabel(metric)),
+        );
+      }
+
+      if (Array.isArray(orderby) && orderby.length > 0) {
+        orderby = orderby.filter(([orderValue]) => {
+          if (typeof orderValue === 'string') {
+            return visibleColumnSet.has(orderValue);
+          }
+          return visibleColumnSet.has(getMetricLabel(orderValue));
+        });
+      }
     }
 
     if (!isDownloadQuery && formDataCopy.server_pagination) {
@@ -335,7 +383,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     if (interactiveGroupBy && queryObject.columns) {
       queryObject.columns = [
         ...new Set([...queryObject.columns, ...interactiveGroupBy]),
-      ];
+      ].filter(column => !isSyntheticPercentColumn(column));
     }
 
     // Now since row limit control is always visible even

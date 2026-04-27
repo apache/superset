@@ -41,9 +41,9 @@ export const getRelevantDataMask = (
           prop === 'ownState' &&
           value &&
           typeof value === 'object' &&
-          'clientView' in value
+          ('clientView' in value || 'visibleColumns' in value)
         ) {
-          return [item.id, omit(value, ['clientView'])];
+          return [item.id, omit(value, ['clientView', 'visibleColumns'])];
         }
         return [item.id, value];
       }),
@@ -86,8 +86,16 @@ export const getAllActiveFilters = ({
   allSliceIds: number[];
 }): ActiveFilters => {
   const activeFilters: ActiveFilters = {};
+  const relevantDataMaskItems = Object.values(dataMask).filter(
+    ({ id, extraFormData }) => {
+      const hasNativeFilterConfig = Boolean(nativeFilters?.[id]);
+      const hasExtraFormData =
+        Boolean(extraFormData) && Object.keys(extraFormData).length > 0;
+      return hasNativeFilterConfig || hasExtraFormData;
+    },
+  );
 
-  const hasLayerSelectionsInAnyFilter = Object.values(dataMask).some(
+  const hasLayerSelectionsInAnyFilter = relevantDataMaskItems.some(
     ({ id: filterId }) => {
       const selectedLayers = (nativeFilters?.[filterId]?.scope as any)
         ?.selectedLayers;
@@ -98,7 +106,7 @@ export const getAllActiveFilters = ({
   let masterSelectedLayers: string[] = [];
   let masterExcluded: number[] = [];
   if (hasLayerSelectionsInAnyFilter) {
-    Object.values(dataMask).forEach(({ id: filterId }) => {
+    relevantDataMaskItems.forEach(({ id: filterId }) => {
       const selectedLayers = (nativeFilters?.[filterId]?.scope as any)
         ?.selectedLayers;
       const excluded =
@@ -110,7 +118,7 @@ export const getAllActiveFilters = ({
     });
   }
 
-  Object.values(dataMask).forEach(({ id: filterId, extraFormData = {} }) => {
+  relevantDataMaskItems.forEach(({ id: filterId, extraFormData = {} }) => {
     const nativeFilter = nativeFilters?.[filterId];
     let scope =
       (nativeFilter && 'chartsInScope' in nativeFilter
