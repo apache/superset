@@ -18,7 +18,8 @@
  */
 import { H3HexagonLayer } from '@deck.gl/geo-layers';
 import { cellToBoundary } from 'h3-js';
-import { JsonObject, QueryFormData, t } from '@superset-ui/core';
+import { JsonObject, QueryFormData } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Color } from '@deck.gl/core';
 import { commonLayerProps, getColorForBreakpoints } from '../common';
 import { createDeckGLComponent, GetLayerType } from '../../factory';
