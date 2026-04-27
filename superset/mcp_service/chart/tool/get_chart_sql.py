@@ -348,7 +348,8 @@ def _extract_sql_from_result(
 
 @tool(
     tags=["data"],
-    class_permission_name="Chart",
+    class_permission_name="SQLLab",
+    method_permission_name="execute_sql_query",
     annotations=ToolAnnotations(
         title="Get chart SQL",
         readOnlyHint=True,

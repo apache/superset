@@ -105,7 +105,31 @@ def update_chart_preview(
 
     try:
         # Parse the raw config dict into a typed ChartConfig
-        config = parse_chart_config(request.config)
+        try:
+            config = parse_chart_config(request.config)
+        except (ValueError, TypeError) as e:
+            from superset.mcp_service.utils.error_sanitization import (
+                _sanitize_validation_error,
+            )
+
+            sanitized = _sanitize_validation_error(e)
+            return {
+                "chart": None,
+                "error": {
+                    "error_type": "validation_error",
+                    "message": f"Invalid chart configuration: {sanitized}",
+                    "details": sanitized,
+                    "error_code": "INVALID_CHART_CONFIG",
+                },
+                "performance": {
+                    "query_duration_ms": int((time.time() - start_time) * 1000),
+                    "cache_status": "error",
+                    "optimization_suggestions": [],
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
             # Map the new config to form_data format
