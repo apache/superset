@@ -127,6 +127,27 @@ def _resolve_metrics_and_groupby(
     return _resolve_metrics(form_data, viz_type), _resolve_groupby(form_data)
 
 
+def _resolve_engine(
+    datasource_id: Any,
+    datasource_type: str,
+) -> str:
+    """Return the DB engine name for *datasource_id*, or ``"base"`` on any error."""
+    if not isinstance(datasource_id, (int, str)):
+        return "base"
+    try:
+        from superset.daos.datasource import DatasourceDAO
+        from superset.utils.core import DatasourceType
+
+        ds = DatasourceDAO.get_datasource(
+            datasource_type=DatasourceType(datasource_type),
+            database_id_or_uuid=datasource_id,
+        )
+        return ds.database.db_engine_spec.engine
+    except Exception:  # noqa: BLE001
+        logger.debug("Could not resolve engine for datasource %s", datasource_id)
+        return "base"
+
+
 def _build_query_context_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None" = None,
@@ -159,8 +180,22 @@ def _build_query_context_from_form_data(
 
     metrics, groupby = _resolve_metrics_and_groupby(form_data, chart)
 
-    # Build a query object with temporal fields so that timeseries charts
-    # produce SQL with the correct time column and time range filtering.
+    # Preprocess adhoc_filters into where/having/filters on form_data so
+    # that the QueryObject receives concrete filter clauses.  This mirrors
+    # the view-layer call in viz.py:process_query_filters.
+    from superset.utils.core import (
+        merge_extra_filters,
+        split_adhoc_filters_into_base_filters,
+    )
+
+    resolved_type_str: str = (
+        datasource_type if isinstance(datasource_type, str) else "table"
+    )
+    engine = _resolve_engine(datasource_id, resolved_type_str)
+    merge_extra_filters(form_data)
+    split_adhoc_filters_into_base_filters(form_data, engine)
+
+    # Build query dict with temporal and filter fields.
     # QueryObjectFactory.create() accepts time_range as a top-level kwarg
     # and converts it to from_dttm/to_dttm for the QueryObject.
     query_dict: dict[str, Any] = {
@@ -168,16 +203,9 @@ def _build_query_context_from_form_data(
         "metrics": metrics,
     }
 
-    # Pass time_range so timeseries charts include temporal filtering.
-    # QueryObjectFactory.create() accepts time_range as a top-level kwarg
-    # and converts it to from_dttm/to_dttm for the QueryObject.
     if time_range := form_data.get("time_range"):
         query_dict["time_range"] = time_range
 
-    # Pass simple filters (column-level WHERE clauses).
-    # Note: adhoc_filters live in form_data and are processed by
-    # merge_extra_filters() during query context creation — they do NOT
-    # need to be in query_dict (QueryObject ignores unknown kwargs).
     if filters := form_data.get("filters"):
         query_dict["filters"] = filters
 
@@ -193,12 +221,9 @@ def _build_query_context_from_form_data(
             "'datasource_id' or 'datasource'."
         )
     resolved_id: int | str = datasource_id
-    resolved_type: str = (
-        datasource_type if isinstance(datasource_type, str) else "table"
-    )
 
     return factory.create(
-        datasource={"id": resolved_id, "type": resolved_type},
+        datasource={"id": resolved_id, "type": resolved_type_str},
         queries=[query_dict],
         form_data=form_data,
         result_type=ChartDataResultType.QUERY,
@@ -311,14 +336,24 @@ def _resolve_datasource_name(
 
     try:
         from superset.daos.datasource import DatasourceDAO
+        from superset.daos.exceptions import (
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
+        )
         from superset.utils.core import DatasourceType
 
         datasource = DatasourceDAO.get_datasource(
             datasource_type=DatasourceType(datasource_type),
             database_id_or_uuid=datasource_id,
         )
-        return getattr(datasource, "name", None) if datasource else None
-    except (ValueError, KeyError):
+        return getattr(datasource, "name", None)
+    except (
+        ValueError,
+        DatasourceNotFound,
+        DatasourceTypeNotSupportedError,
+        DatasourceValueIsIncorrect,
+    ):
         return None
 
 

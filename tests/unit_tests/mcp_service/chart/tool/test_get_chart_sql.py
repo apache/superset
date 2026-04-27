@@ -357,9 +357,14 @@ class TestBuildQueryContextFromFormData:
     """
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
-    def test_temporal_fields_passed_to_factory(self, mock_factory_cls):
-        """time_range, granularity_sqla, adhoc_filters from form_data are
-        forwarded via form_data= to the factory, not dropped."""
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_temporal_fields_passed_to_factory(self, mock_get_ds, mock_factory_cls):
+        """time_range, adhoc_filters from form_data are processed and
+        forwarded to the factory — not dropped."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
         mock_factory = Mock()
         mock_factory.create.return_value = Mock()
         mock_factory_cls.return_value = mock_factory
@@ -391,27 +396,22 @@ class TestBuildQueryContextFromFormData:
             mock_result_type.QUERY = "QUERY"
             _build_query_context_from_form_data(form_data, chart=None)
 
-        # Verify factory.create was called with form_data containing all fields
         call_kwargs = mock_factory.create.call_args[1]
         assert call_kwargs["form_data"] is form_data
         assert call_kwargs["form_data"]["time_range"] == "Last 7 days"
         assert call_kwargs["form_data"]["granularity_sqla"] == "created_at"
-        assert call_kwargs["form_data"]["adhoc_filters"] is not None
-        assert call_kwargs["form_data"]["where"] == "region = 'US'"
-        assert call_kwargs["form_data"]["having"] == "count > 10"
-        assert call_kwargs["form_data"]["filters"] == [
-            {"col": "city", "op": "==", "val": "NYC"}
-        ]
 
-        # Verify time_range and filters are in the queries dict so
-        # QueryObjectFactory picks them up as kwargs.
-        # Note: adhoc_filters are NOT in queries — they live in form_data
-        # and are processed by merge_extra_filters() during context creation.
+        # adhoc_filters are preprocessed by split_adhoc_filters_into_base_filters
+        # into form_data["filters"]/["where"]/["having"], then included
+        # in the query dict as concrete filter clauses.
         queries = call_kwargs["queries"]
         assert len(queries) == 1
         assert queries[0]["time_range"] == "Last 7 days"
         assert "adhoc_filters" not in queries[0]
-        assert queries[0]["filters"] == [{"col": "city", "op": "==", "val": "NYC"}]
+        # The simple adhoc WHERE filter (status == active) should be
+        # merged into filters by split_adhoc_filters_into_base_filters.
+        filters = queries[0].get("filters", [])
+        assert {"col": "status", "op": "==", "val": "active"} in filters
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     def test_metrics_and_groupby_in_queries(self, mock_factory_cls):
@@ -473,26 +473,30 @@ class TestResolveDatasourceName:
         result = _resolve_datasource_name({}, chart=None)
         assert result is None
 
-    @patch(
-        "superset.daos.datasource.DatasourceDAO.get_datasource",
-        return_value=None,
-    )
-    def test_returns_none_when_datasource_not_found(self, mock_dao):
-        """Returns None when DAO lookup returns None."""
-        result = _resolve_datasource_name(
-            {"datasource_id": 999, "datasource_type": "table"}, chart=None
-        )
+    def test_returns_none_when_datasource_not_found(self):
+        """Returns None when DAO raises DatasourceNotFound."""
+        from superset.daos.exceptions import DatasourceNotFound
+
+        with patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            side_effect=DatasourceNotFound(),
+        ):
+            result = _resolve_datasource_name(
+                {"datasource_id": 999, "datasource_type": "table"}, chart=None
+            )
         assert result is None
 
-    @patch(
-        "superset.daos.datasource.DatasourceDAO.get_datasource",
-        side_effect=ValueError("Invalid datasource type"),
-    )
-    def test_returns_none_on_dao_error(self, mock_dao):
-        """Returns None when DAO raises ValueError."""
-        result = _resolve_datasource_name(
-            {"datasource_id": 1, "datasource_type": "invalid"}, chart=None
-        )
+    def test_returns_none_on_unsupported_type(self):
+        """Returns None when DAO raises DatasourceTypeNotSupportedError."""
+        from superset.daos.exceptions import DatasourceTypeNotSupportedError
+
+        with patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            side_effect=DatasourceTypeNotSupportedError(),
+        ):
+            result = _resolve_datasource_name(
+                {"datasource_id": 1, "datasource_type": "invalid"}, chart=None
+            )
         assert result is None
 
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
