@@ -101,6 +101,30 @@ def _build_core(
     return core, dao_class
 
 
+def _install_base_filtered_query(
+    core: ModelGetInfoCore,
+    *,
+    slug_result: MagicMock | None,
+    title_rows: list[MagicMock],
+) -> MagicMock:
+    """Replace _base_filtered_query with a two-call mock.
+
+    The slug branch calls `.filter(...).one_or_none()`; the title branch
+    calls `.all()`. Returning a fresh MagicMock on each invocation keeps
+    those paths independent.
+    """
+    slug_query = MagicMock()
+    slug_query.filter.return_value = slug_query
+    slug_query.one_or_none.return_value = slug_result
+
+    title_query = MagicMock()
+    title_query.all.return_value = title_rows
+
+    mock = MagicMock(side_effect=[slug_query, title_query])
+    core._base_filtered_query = mock  # type: ignore[method-assign]
+    return mock
+
+
 def test_slugify_matches_agent_guesses() -> None:
     """Agents slugify titles by lowercasing and hyphenating non-alphanumerics."""
     assert _slugify("World Bank's Data") == "world-banks-data"
@@ -108,33 +132,11 @@ def test_slugify_matches_agent_guesses() -> None:
     assert _slugify("!!!") == ""
 
 
-def _make_db_mocks(*, all_rows: list[MagicMock]) -> tuple[MagicMock, MagicMock]:
-    """Return (slug_query, title_query) for db.session.query.side_effect.
-
-    The core calls db.session.query twice during a string-identifier lookup:
-    once for the id_or_slug_filter query (returns None to force fallback),
-    and once for the slugified-title scan (returns `all_rows`).
-    """
-    slug_query = MagicMock()
-    slug_query.filter.return_value = slug_query
-    slug_query.options.return_value = slug_query
-    slug_query.one_or_none.return_value = None
-
-    title_query = MagicMock()
-    title_query.options.return_value = title_query
-    title_query.all.return_value = all_rows
-    return slug_query, title_query
-
-
-@patch("superset.extensions.db")
-def test_title_fallback_resolves_dashboard_with_empty_slug(
-    mock_db: MagicMock,
-) -> None:
+def test_title_fallback_resolves_dashboard_with_empty_slug() -> None:
     """Regression: slug lookup must not silently fail when slug is empty."""
     core, _ = _build_core()
     dashboard = _make_dashboard(id_=2, title="World Bank's Data", slug="")
-    slug_query, title_query = _make_db_mocks(all_rows=[dashboard])
-    mock_db.session.query.side_effect = [slug_query, title_query]
+    _install_base_filtered_query(core, slug_result=None, title_rows=[dashboard])
 
     result = core.run_tool("world-banks-data")
 
@@ -143,16 +145,14 @@ def test_title_fallback_resolves_dashboard_with_empty_slug(
     assert result.title == "World Bank's Data"
 
 
-@patch("superset.extensions.db")
 def test_title_fallback_ambiguous_picks_first_and_warns(
-    mock_db: MagicMock, caplog: pytest.LogCaptureFixture
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Two dashboards slugify to the same identifier — pick the first, warn."""
     core, _ = _build_core()
     dash_a = _make_dashboard(id_=2, title="World Bank's Data")
     dash_b = _make_dashboard(id_=7, title="World Banks Data")
-    slug_query, title_query = _make_db_mocks(all_rows=[dash_a, dash_b])
-    mock_db.session.query.side_effect = [slug_query, title_query]
+    _install_base_filtered_query(core, slug_result=None, title_rows=[dash_a, dash_b])
 
     with caplog.at_level("WARNING"):
         result = core.run_tool("world-banks-data")
@@ -162,19 +162,57 @@ def test_title_fallback_ambiguous_picks_first_and_warns(
     assert any("matched 2 rows" in rec.message for rec in caplog.records)
 
 
-@patch("superset.extensions.db")
-def test_not_found_error_when_no_title_match(
-    mock_db: MagicMock,
-) -> None:
+def test_not_found_error_when_no_title_match() -> None:
     """No slug, no title, no slugified-title match — plain not_found."""
     core, _ = _build_core()
-    slug_query, title_query = _make_db_mocks(all_rows=[])
-    mock_db.session.query.side_effect = [slug_query, title_query]
+    _install_base_filtered_query(core, slug_result=None, title_rows=[])
 
     result = core.run_tool("does-not-exist")
 
     assert isinstance(result, _FakeError)
     assert result.error_type == "not_found"
+
+
+def test_title_fallback_respects_base_filter_rbac() -> None:
+    """_base_filtered_query applies the DAO's base_filter before scanning.
+
+    Regression guard: without base_filter, slugified-title lookups could
+    return dashboards the current user is not allowed to access. The
+    fallback must only see rows the base_filter has already vetted.
+    """
+    core, dao_class = _build_core()
+    allowed = _make_dashboard(id_=2, title="World Bank's Data", slug="")
+
+    filtered_query = MagicMock()
+    filtered_query.all.return_value = [allowed]
+    # DAO.base_filter(...)(...).apply(...) returns a filtered query that only
+    # yields `allowed`. The "forbidden" row (id=9, title slugifies the same)
+    # would resolve via fallback if base_filter were skipped — by omitting it
+    # from filtered_query.all(), we prove the fallback honors RBAC.
+    base_filter_instance = MagicMock()
+    base_filter_instance.apply.return_value = filtered_query
+    dao_class.base_filter = MagicMock(return_value=base_filter_instance)
+
+    raw_query = MagicMock()
+    raw_query.filter.return_value = raw_query
+    raw_query.one_or_none.return_value = None
+    filtered_query.filter.return_value = filtered_query
+    filtered_query.one_or_none.return_value = None
+    filtered_query.options.return_value = filtered_query
+
+    with (
+        patch("superset.mcp_service.mcp_core.db") as mock_db,
+        patch("flask_appbuilder.models.sqla.interface.SQLAInterface") as mock_interface,
+    ):
+        mock_db.session.query.return_value = raw_query
+        mock_interface.return_value = MagicMock()
+
+        result = core.run_tool("world-banks-data")
+
+    # RBAC honored: `forbidden` never made it into the scan.
+    assert isinstance(result, _FakeOutput)
+    assert result.id == 2
+    dao_class.base_filter.assert_called()
 
 
 def test_title_fallback_disabled_returns_not_found() -> None:

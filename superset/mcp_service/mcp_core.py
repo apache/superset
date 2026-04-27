@@ -26,6 +26,7 @@ from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
 from pydantic import BaseModel
 
 from superset.daos.base import BaseDAO
+from superset.extensions import db
 from superset.mcp_service.constants import ModelType
 from superset.mcp_service.utils import _is_uuid
 
@@ -297,13 +298,36 @@ class ModelGetInfoCore(BaseCore):
             dao_class, "title_column", None
         )
 
+    def _base_filtered_query(self) -> Any:
+        """Build a query for this DAO's model with base_filter applied.
+
+        Ensures slug-like and title-based lookups respect RBAC — e.g.
+        DashboardAccessFilter excludes rows the current user is not
+        allowed to see. Mirrors DashboardDAO.get_by_id_or_slug.
+        """
+        from flask_appbuilder.models.sqla.interface import SQLAInterface
+
+        model_class = self.dao_class.model_cls
+        query = db.session.query(model_class)
+
+        if (base_filter := getattr(self.dao_class, "base_filter", None)) is not None:
+            query = base_filter(
+                self.dao_class.id_column_name,
+                SQLAInterface(model_class, db.session),
+            ).apply(query, None)
+
+        if self.query_options:
+            query = query.options(*self.query_options)
+        return query
+
     def _find_by_slugified_title(self, identifier: str) -> Any:
         """Resolve a slug-like identifier by matching against slugified titles.
 
-        Loads all rows and compares `_slugify(row.title)` to `_slugify(identifier)`.
-        If multiple rows match, logs a warning and returns the first one —
-        collisions in real dashboards are rare and the caller can always
-        disambiguate by id or UUID.
+        Loads rows allowed by the DAO's base_filter and compares
+        `_slugify(row.title)` to `_slugify(identifier)`. If multiple rows
+        match, logs a warning and returns the first one — collisions in
+        real dashboards are rare and the caller can always disambiguate
+        by id or UUID.
         """
         if not self.title_column_name:
             return None
@@ -311,15 +335,9 @@ class ModelGetInfoCore(BaseCore):
         if not target:
             return None
 
-        from superset.extensions import db
-
-        model_class = self.dao_class.model_cls
-        query = db.session.query(model_class)
-        if self.query_options:
-            query = query.options(*self.query_options)
         matches = [
             obj
-            for obj in query.all()
+            for obj in self._base_filtered_query().all()
             if _slugify(getattr(obj, self.title_column_name, "") or "") == target
         ]
         if not matches:
@@ -363,15 +381,15 @@ class ModelGetInfoCore(BaseCore):
             if result:
                 return result
 
-            # Fallback to the existing id_or_slug_filter for complex cases
-            from superset.extensions import db
+            # Fallback to the existing id_or_slug_filter for complex cases.
+            # Apply base_filter so disallowed rows aren't exposed here.
             from superset.models.dashboard import id_or_slug_filter
 
-            model_class = self.dao_class.model_cls
-            query = db.session.query(model_class).filter(id_or_slug_filter(identifier))
-            if opts:
-                query = query.options(*opts)
-            slug_result = query.one_or_none()
+            slug_result = (
+                self._base_filtered_query()
+                .filter(id_or_slug_filter(identifier))
+                .one_or_none()
+            )
             if slug_result is not None:
                 return slug_result
 
