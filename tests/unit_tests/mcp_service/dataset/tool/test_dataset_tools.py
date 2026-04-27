@@ -16,6 +16,7 @@
 # under the License.
 
 
+import importlib
 import logging
 from unittest.mock import MagicMock, patch
 
@@ -25,11 +26,24 @@ from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
-from superset.mcp_service.dataset.schemas import ListDatasetsRequest
+from superset.mcp_service.dataset.schemas import (
+    CreateVirtualDatasetRequest,
+    ListDatasetsRequest,
+)
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    tool_requires_data_model_metadata_access,
+)
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+list_datasets_module = importlib.import_module(
+    "superset.mcp_service.dataset.tool.list_datasets"
+)
+get_dataset_info_module = importlib.import_module(
+    "superset.mcp_service.dataset.tool.get_dataset_info"
+)
 
 
 def create_mock_dataset(
@@ -75,6 +89,70 @@ def create_mock_dataset(
     return dataset
 
 
+def test_dataset_discovery_tools_require_drill_permission() -> None:
+    """Dataset discovery tools are marked as metadata-restricted."""
+    from superset.mcp_service.dataset.tool.get_dataset_info import get_dataset_info
+    from superset.mcp_service.dataset.tool.list_datasets import list_datasets
+
+    assert tool_requires_data_model_metadata_access(list_datasets) is True
+    assert tool_requires_data_model_metadata_access(get_dataset_info) is True
+
+
+@pytest.mark.asyncio
+async def test_list_datasets_returns_structured_privacy_error(mcp_server) -> None:
+    """Restricted users receive a structured denial for dataset listing."""
+    with patch.object(
+        list_datasets_module,
+        "user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_datasets",
+                {"request": ListDatasetsRequest().model_dump()},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+@pytest.mark.asyncio
+async def test_list_datasets_without_request_returns_structured_privacy_error(
+    mcp_server,
+) -> None:
+    """Restricted users are denied even when the request payload is omitted."""
+    with patch.object(
+        list_datasets_module,
+        "user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("list_datasets", {})
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+@pytest.mark.asyncio
+async def test_get_dataset_info_returns_structured_privacy_error(mcp_server) -> None:
+    """Restricted users receive a structured denial for dataset details."""
+    from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+    with patch.object(
+        get_dataset_info_module,
+        "user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dataset_info",
+                {"request": GetDatasetInfoRequest(identifier=1).model_dump()},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
 @pytest.fixture
 def mcp_server():
     return mcp
@@ -91,6 +169,24 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def allow_data_model_metadata():
+    """Keep dataset tests in the normal metadata-allowed path by default."""
+    with (
+        patch.object(
+            list_datasets_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch.object(
+            get_dataset_info_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+    ):
+        yield
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -1506,3 +1602,291 @@ class TestDatasetSortableColumns:
             data = json.loads(result.content[0].text)
             assert data["count"] == 0
             assert data["datasets"] == []
+
+
+# ---------------------------------------------------------------------------
+# create_virtual_dataset tests
+# ---------------------------------------------------------------------------
+
+
+def _make_mock_db(database_name: str = "examples") -> MagicMock:
+    """Create a mock database object with a configurable database name."""
+    db = MagicMock()
+    db.database_name = database_name
+    return db
+
+
+def _make_mock_virtual_dataset(
+    id: int = 21,
+    table_name: str = "Customer Revenue",
+    column_names: list[str] | None = None,
+) -> MagicMock:
+    """Create a mock virtual dataset object with configurable columns."""
+    if column_names is None:
+        column_names = ["name", "revenue"]
+    dataset = MagicMock()
+    dataset.id = id
+    dataset.table_name = table_name
+    dataset.columns = [MagicMock(column_name=c) for c in column_names]
+    return dataset
+
+
+# --- Schema tests ---
+
+
+def test_create_virtual_dataset_request_valid() -> None:
+    req = CreateVirtualDatasetRequest(
+        database_id=1,
+        sql="SELECT a.name, COUNT(*) FROM a JOIN b ON a.id = b.a_id GROUP BY a.name",
+        dataset_name="Customer Revenue",
+    )
+    assert req.database_id == 1
+    assert req.dataset_name == "Customer Revenue"
+    assert req.schema_name is None
+
+
+def test_create_virtual_dataset_request_empty_sql_fails() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="sql must not be empty"):
+        CreateVirtualDatasetRequest(database_id=1, sql="   ", dataset_name="Test")
+
+
+def test_create_virtual_dataset_request_empty_name_fails() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="dataset_name must not be empty"):
+        CreateVirtualDatasetRequest(database_id=1, sql="SELECT 1", dataset_name="   ")
+
+
+def test_create_virtual_dataset_request_name_too_long() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        CreateVirtualDatasetRequest(
+            database_id=1, sql="SELECT 1", dataset_name="a" * 251
+        )
+
+
+def test_create_virtual_dataset_request_optional_fields() -> None:
+    req = CreateVirtualDatasetRequest(
+        database_id=1,
+        sql="SELECT 1",
+        dataset_name="Test",
+        schema_name="public",
+        catalog="main",
+        description="A virtual dataset",
+    )
+    assert req.schema_name == "public"
+    assert req.catalog == "main"
+    assert req.description == "A virtual dataset"
+
+
+# --- Tool logic tests ---
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_success(mcp_server: object) -> None:
+    """Happy path: dataset created, columns and URL returned."""
+    mock_dataset = _make_mock_virtual_dataset(
+        id=21, table_name="Customer Revenue", column_names=["name", "revenue"]
+    )
+    mock_command = MagicMock()
+    mock_command.run.return_value = mock_dataset
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            return_value=mock_command,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            sql = (
+                "SELECT a.name, SUM(b.revenue) FROM a"
+                " JOIN b ON a.id = b.a_id GROUP BY a.name"
+            )
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql=sql,
+                dataset_name="Customer Revenue",
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] == 21
+    assert data["dataset_name"] == "Customer Revenue"
+    assert data["columns"] == ["name", "revenue"]
+    assert "datasource_type=table" in data["url"]
+    assert "datasource_id=21" in data["url"]
+    assert data["error"] is None
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_db_not_found(mcp_server: object) -> None:
+    """When the database ID does not exist, CreateDatasetCommand raises
+    DatasetInvalidError containing DatabaseNotFoundValidationError."""
+    from superset.commands.dataset.exceptions import (
+        DatabaseNotFoundValidationError,
+        DatasetInvalidError,
+    )
+
+    invalid_exc = DatasetInvalidError()
+    invalid_exc.append(DatabaseNotFoundValidationError())
+    mock_command = MagicMock()
+    mock_command.run.side_effect = invalid_exc
+
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=999, sql="SELECT 1", dataset_name="Test"
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["columns"] == []
+    assert data["error"] is not None
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_invalid_error(mcp_server: object) -> None:
+    """DatasetInvalidError is caught and returned as an error response."""
+    from marshmallow.exceptions import ValidationError as MarshmallowValidationError
+
+    from superset.commands.dataset.exceptions import DatasetInvalidError
+
+    invalid_exc = DatasetInvalidError()
+    invalid_exc.append(
+        MarshmallowValidationError(
+            {"table_name": ["Dataset with this name already exists"]}
+        )
+    )
+    mock_command = MagicMock()
+    mock_command.run.side_effect = invalid_exc
+
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1, sql="SELECT 1", dataset_name="Test"
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["columns"] == []
+    assert data["error"] is not None
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_create_failed(mcp_server: object) -> None:
+    """DatasetCreateFailedError is caught and returned as an error response."""
+    from superset.commands.dataset.exceptions import DatasetCreateFailedError
+
+    mock_command = MagicMock()
+    mock_command.run.side_effect = DatasetCreateFailedError()
+
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1, sql="SELECT 1", dataset_name="Test"
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["columns"] == []
+    assert data["error"] is not None
+    assert "Failed to create dataset" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_permission_denied(mcp_server: object) -> None:
+    """SQL access denied surfaces as DatasetInvalidError with id=None."""
+    from superset.commands.dataset.exceptions import (
+        DatasetDataAccessIsNotAllowed,
+        DatasetInvalidError,
+    )
+
+    invalid_exc = DatasetInvalidError()
+    invalid_exc.append(DatasetDataAccessIsNotAllowed("Access denied to schema public"))
+    mock_command = MagicMock()
+    mock_command.run.side_effect = invalid_exc
+
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT * FROM sensitive_table",
+                dataset_name="Restricted",
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["columns"] == []
+    assert data["error"] is not None
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_optional_fields_forwarded(
+    mcp_server: object,
+) -> None:
+    """schema_name, catalog, and description are forwarded to CreateDatasetCommand."""
+    mock_dataset = _make_mock_virtual_dataset(column_names=["col1"])
+    mock_command_instance = MagicMock()
+    mock_command_instance.run.return_value = mock_dataset
+    mock_command_cls = MagicMock(return_value=mock_command_instance)
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            mock_command_cls,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT col1 FROM t",
+                dataset_name="My Dataset",
+                schema="public",
+                catalog="main",
+                description="A test dataset",
+            )
+            await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+
+    props = mock_command_cls.call_args[0][0]
+    assert props["schema"] == "public"
+    assert props["catalog"] == "main"
+    assert props["description"] == "A test dataset"

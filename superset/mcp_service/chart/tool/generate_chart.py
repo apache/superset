@@ -22,7 +22,6 @@ import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
-from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -32,6 +31,7 @@ from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
+from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -230,6 +230,11 @@ async def generate_chart(  # noqa: C901
 
     # Track runtime warnings to include in response
     runtime_warnings: list[str] = []
+    # Surface warnings captured during pydantic validation (e.g. chart_name
+    # sanitization) so callers know when their input was altered.
+    sanitization_warnings: list[str] = list(
+        getattr(request, "sanitization_warnings", []) or []
+    )
 
     try:
         # Run comprehensive validation pipeline
@@ -280,7 +285,34 @@ async def generate_chart(  # noqa: C901
             )
 
         # Parse the raw config dict into a typed ChartConfig for downstream use
-        config = parse_chart_config(request.config)
+        try:
+            config = parse_chart_config(request.config)
+        except (ValueError, TypeError) as e:
+            from superset.mcp_service.utils.error_sanitization import (
+                _sanitize_validation_error,
+            )
+
+            sanitized = _sanitize_validation_error(e)
+            execution_time = int((time.time() - start_time) * 1000)
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "validation_error",
+                        "message": f"Invalid chart configuration: {sanitized}",
+                        "details": sanitized,
+                        "error_code": "INVALID_CHART_CONFIG",
+                    },
+                    "performance": {
+                        "query_duration_ms": execution_time,
+                        "cache_status": "error",
+                        "optimization_suggestions": [],
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
 
         # Map the simplified config to Superset's form_data format
         # Pass dataset_id to enable column type checking for proper viz_type selection
@@ -540,13 +572,8 @@ async def generate_chart(  # noqa: C901
             explore_url = generate_explore_link(request.dataset_id, form_data)
             await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
 
-            # Extract form_data_key from the explore URL using proper URL parsing
-            if explore_url:
-                parsed = urlparse(explore_url)
-                query_params = parse_qs(parsed.query)
-                form_data_key_list = query_params.get("form_data_key", [])
-                if form_data_key_list:
-                    form_data_key = form_data_key_list[0]
+            # Extract form_data_key from the explore URL
+            form_data_key = extract_form_data_key_from_url(explore_url)
 
             # Compile check for preview-only mode
             # Validate dataset existence and user access before running queries
@@ -740,18 +767,17 @@ async def generate_chart(  # noqa: C901
             from superset.models.slice import Slice
 
             # Re-fetch with eager-loaded relationships to avoid detached
-            # instance errors when serialize_chart_object accesses .tags
-            # and .owners.  The preceding commit may invalidate the session
+            # instance errors when serialize_chart_object accesses .tags.
+            # The preceding commit may invalidate the session
             # in multi-tenant environments; on failure, build a minimal
             # chart_data dict from scalar attributes that are already loaded
-            # — relationship fields (owners, tags) would trigger
-            # lazy-loading on the same dead session.
+            # — relationship fields like tags would trigger lazy-loading on
+            # the same dead session.
             try:
                 chart = (
                     ChartDAO.find_by_id(
                         chart.id,
                         query_options=[
-                            joinedload(Slice.owners),
                             joinedload(Slice.tags),
                         ],
                     )
@@ -786,7 +812,7 @@ async def generate_chart(  # noqa: C901
         # Safely serialize chart_info - handle both Pydantic models and dicts
         if chart_data is None and chart_info is not None:
             if hasattr(chart_info, "model_dump"):
-                chart_data = chart_info.model_dump()
+                chart_data = chart_info.model_dump(mode="json")
             elif isinstance(chart_info, dict):
                 chart_data = chart_info
             else:
@@ -815,8 +841,8 @@ async def generate_chart(  # noqa: C901
             else {},
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,
-            # Combined runtime and response warnings
-            "warnings": runtime_warnings + response_warnings,
+            # Combined runtime, response, and sanitization warnings
+            "warnings": sanitization_warnings + runtime_warnings + response_warnings,
             "success": True,
             "schema_version": "2.0",
             "api_version": "v1",
