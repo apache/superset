@@ -35,7 +35,6 @@ import { CheckboxChangeEvent } from '@superset-ui/core/components/Checkbox/types
 
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-import { makeUrl } from 'src/utils/pathUtils';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
   Button,
@@ -1824,7 +1823,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          redirectURL(makeUrl(`/sqllab?db=true`));
+          // redirectURL() delegates to history.push; React Router's basename
+          // already prefixes the application root, so pass a relative path.
+          redirectURL('/sqllab?db=true');
         }}
       >
         {t('Query data in SQL Lab')}

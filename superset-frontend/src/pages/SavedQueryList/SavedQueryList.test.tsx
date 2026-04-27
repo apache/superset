@@ -25,10 +25,19 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import * as getBootstrapData from 'src/utils/getBootstrapData';
 import SavedQueryList from '.';
+
+// Renders the current router pathname+search so tests can assert navigation.
+function LocationDisplay() {
+  const location = useLocation();
+  return (
+    <div data-test="location-display">{`${location.pathname}${location.search}`}</div>
+  );
+}
 
 // Increase default timeout
 jest.setTimeout(30000);
@@ -88,6 +97,7 @@ const renderList = (props = {}, storeOverrides = {}) =>
     <MemoryRouter>
       <QueryParamProvider adapter={ReactRouter5Adapter}>
         <SavedQueryList user={mockUser} {...props} />
+        <LocationDisplay />
       </QueryParamProvider>
     </MemoryRouter>,
     {
@@ -241,5 +251,40 @@ describe('SavedQueryList', () => {
 
     // Verify delete buttons are not shown
     expect(screen.queryByTestId('delete-action')).not.toBeInTheDocument();
+  });
+
+  test('"+ Query" button pushes a router-relative path (subdirectory deployment)', async () => {
+    // Simulate SUPERSET_APP_ROOT=/superset. ensureAppRoot/makeUrl read
+    // applicationRoot() dynamically, so mocking it here makes the buggy code
+    // path (makeUrl() around history.push) produce '/superset/sqllab?new=true'
+    // instead of being a no-op. React Router's <Router basename> prefixes the
+    // app root on its own, so history.push MUST receive a path without the
+    // app-root prefix — otherwise navigation lands at /superset/superset/sqllab
+    // and shows a blank page (sc-103661).
+    const applicationRootSpy = jest
+      .spyOn(getBootstrapData, 'applicationRoot')
+      .mockReturnValue('/superset');
+
+    try {
+      renderList();
+
+      await screen.findByTestId('saved_query-list-view');
+
+      const queryButton = await screen.findByRole('button', {
+        name: /query/i,
+      });
+      fireEvent.click(queryButton);
+
+      await waitFor(() => {
+        // The MemoryRouter in renderList uses the default ('/') basename, so
+        // useLocation reflects exactly what history.push received. A correct
+        // router-relative push produces '/sqllab?new=true'; a buggy push that
+        // re-applied the app root would produce '/superset/sqllab?new=true'.
+        const location = screen.getByTestId('location-display').textContent;
+        expect(location).toBe('/sqllab?new=true');
+      });
+    } finally {
+      applicationRootSpy.mockRestore();
+    }
   });
 });
