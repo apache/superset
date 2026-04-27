@@ -31,8 +31,8 @@
  * export const glossaryDefinition: GlossaryDefinition = {
  *   Query: {
  *     Row_Limit: {
- *       short: t('Limits the number of rows...'),
- *       extended: t('Additional details...'), // optional
+ *       short: noTranslate('Limits the number of rows...'),
+ *       extended: noTranslate('Additional details...'), // optional
  *     },
  *   },
  * };
@@ -45,20 +45,20 @@
 export const glossaryDefinition: GlossaryDefinition = {
   Query: {
     Dimension: {
-      short: t(
+      short: noTranslate(
         'Dimensions contain qualitative values such as names, dates, or geographical data. ' +
           'Use dimensions to categorize, segment, and reveal the details in your data. ' +
           'Dimensions affect the level of detail in the view.',
       ),
     },
     Metric: {
-      short: t(
+      short: noTranslate(
         'Select one or many metrics to display. ' +
           'You can use an aggregation function on a column or write custom SQL to create a metric.',
       ),
     },
     Series: {
-      short: t(
+      short: noTranslate(
         'Limits the number of series that get displayed. ' +
           'A joined subquery (or an extra phase where subqueries are not supported) is applied ' +
           'to limit the number of series that get fetched and rendered. ' +
@@ -67,14 +67,14 @@ export const glossaryDefinition: GlossaryDefinition = {
       ),
     },
     Row_Limit: {
-      short: t(
+      short: noTranslate(
         'Limits the number of rows that get displayed. ' +
           'This feature is useful when grouping by high cardinality column(s) ' +
           'though does increase the query complexity and cost.',
       ),
     },
     Sort: {
-      short: t(
+      short: noTranslate(
         'Orders the query result that generates the source data for this chart. ' +
           'If a series or row limit is reached, this determines what data are truncated. ' +
           'If undefined, defaults to the first metric (where appropriate).',
@@ -83,7 +83,7 @@ export const glossaryDefinition: GlossaryDefinition = {
   },
   Advanced_Analytics: {
     Time_Shift: {
-      short: t(
+      short: noTranslate(
         'Overlay results from a relative time period. ' +
           'Expects relative time deltas in natural language (example: 24 hours, 7 days, ' +
           '52 weeks, 365 days). Free text is supported. ' +
@@ -95,9 +95,14 @@ export const glossaryDefinition: GlossaryDefinition = {
 };
 
 /**
- * Use this identity translate function as some environments (docs) do not have i18n setup.
+ * Identity passthrough used in environments (such as the docs site) that do
+ * not have an i18n runtime. Translation of glossary strings is performed at
+ * resolution time by callers in app contexts that do have i18n available.
+ *
+ * Named `noTranslate` (rather than `t`) so it does not visually shadow the
+ * imported i18n `t` used elsewhere in this package.
  */
-function t(message: string): string {
+function noTranslate(message: string): string {
   return message;
 }
 

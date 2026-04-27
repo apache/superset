@@ -7,7 +7,7 @@ sidebar_position: 10
 import { getAllGlossaryTopics } from '../../superset-frontend/packages/superset-ui-core/src/glossary';
 import { Table, ConfigProvider, theme } from 'antd';
 import { useColorMode } from '@docusaurus/theme-common';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 export const GlossaryStructure = [
   {
@@ -28,7 +28,7 @@ export const GlossaryContent = () => {
   const isDark = colorMode === 'dark';
   const tableRefs = useRef({});
 
-  const scrollToRow = (topic, rowKey) => {
+  const scrollToRow = useCallback((topic, rowKey) => {
     const topicId = encodeURIComponent(topic);
     const encRowKey = encodeURIComponent(rowKey);
     const row = tableRefs.current[topicId]?.[encRowKey];
@@ -37,15 +37,22 @@ export const GlossaryContent = () => {
       row.classList.add('table-row-highlight');
       setTimeout(() => row.classList.remove('table-row-highlight'), 2000);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    const hash = decodeURIComponent(window.location.hash.slice(1));
+    let hash = '';
+    try {
+      hash = decodeURIComponent(window.location.hash.slice(1));
+    } catch (e) {
+      // Malformed percent-encoding in the URL hash — silently skip the
+      // scroll-to-row behavior rather than letting the page render fail.
+      return;
+    }
     if (!hash) return;
 
     const [topic, term] = hash.split('__');
     if (topic && term) scrollToRow(topic, hash);
-  }, []);
+  }, [scrollToRow]);
 
   return (
     <div>

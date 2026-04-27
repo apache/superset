@@ -239,7 +239,7 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   ],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
-  description: t(ROW_LIMIT_DESCRIPTION),
+  description: ROW_LIMIT_DESCRIPTION,
 };
 
 const order_desc: SharedControlConfig<'CheckboxControl'> = {
@@ -252,7 +252,7 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   visibility: ({ controls }) =>
     Boolean(
       controls?.timeseries_limit_metric.value &&
-        !isEmpty(controls?.timeseries_limit_metric.value),
+      !isEmpty(controls?.timeseries_limit_metric.value),
     ),
 };
 
@@ -264,7 +264,7 @@ const limit: SharedControlConfig<'SelectControl'> = {
   validators: [legacyValidateInteger],
   choices: formatSelectOptions(SERIES_LIMITS),
   clearable: true,
-  description: t(SERIES_DESCRIPTION),
+  description: SERIES_DESCRIPTION,
 };
 
 const series_limit: SharedControlConfig<'SelectControl'> = {
@@ -274,7 +274,7 @@ const series_limit: SharedControlConfig<'SelectControl'> = {
   placeholder: t('None'),
   validators: [legacyValidateInteger],
   choices: formatSelectOptions(SERIES_LIMITS),
-  description: t(SERIES_DESCRIPTION),
+  description: SERIES_DESCRIPTION,
 };
 
 const group_others_when_limit_reached: SharedControlConfig<'CheckboxControl'> =

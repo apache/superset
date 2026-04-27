@@ -126,7 +126,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
             ['156 weeks ago', t('156 weeks ago')],
             ['3 years ago', t('3 years ago')],
           ],
-          description: t(TIME_SHIFT_DESCRIPTION),
+          description: TIME_SHIFT_DESCRIPTION,
         },
       },
     ],

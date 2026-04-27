@@ -24,5 +24,3 @@ export {
   getGlossaryTopic,
 } from './glossaryUtils';
 export { resolveGlossaryString } from './tooltipUtils';
-
-export default {};

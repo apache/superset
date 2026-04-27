@@ -84,7 +84,7 @@ export const dndGroupByControl: SharedControlConfig<
   clearable: true,
   default: [],
   includeTime: false,
-  description: t(DIMENSION_DESCRIPTION),
+  description: DIMENSION_DESCRIPTION,
   optionRenderer: (c: ColumnMeta) => <ColumnOption showType column={c} />,
   valueRenderer: (c: ColumnMeta) => <ColumnOption column={c} />,
   valueKey: 'column_name',
@@ -182,7 +182,7 @@ export const dndAdhocMetricsControl: SharedControlConfig<
     datasource,
     datasourceType: datasource?.type,
   }),
-  description: t(METRIC_DESCRIPTION),
+  description: METRIC_DESCRIPTION,
 };
 
 export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
@@ -222,7 +222,7 @@ export const dndSortByControl: SharedControlConfig<
   type: 'DndMetricSelect',
   label: t('Sort query by'),
   default: null,
-  description: t(SORT_DESCRIPTION),
+  description: SORT_DESCRIPTION,
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
     savedMetrics: defineSavedMetrics(datasource),

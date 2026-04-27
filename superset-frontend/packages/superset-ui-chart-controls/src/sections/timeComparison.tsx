@@ -85,7 +85,7 @@ export const timeComparisonControls: ({
           placeholder: t('Select or type a custom value...'),
           label: t('Time shift'),
           choices: showFullChoices ? fullChoices : reducedChoices,
-          description: t(TIME_SHIFT_DESCRIPTION),
+          description: TIME_SHIFT_DESCRIPTION,
         },
       },
     ],
