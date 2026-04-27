@@ -20,6 +20,7 @@ Unit tests for MCP dashboard tools (list_dashboards, get_dashboard_info)
 """
 
 import logging
+from importlib import import_module
 from unittest.mock import Mock, patch
 
 import pytest
@@ -34,6 +35,9 @@ from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+get_dashboard_info_module = import_module(
+    "superset.mcp_service.dashboard.tool.get_dashboard_info"
+)
 
 
 @pytest.fixture
@@ -446,6 +450,171 @@ async def test_get_dashboard_info_does_not_expose_access_list_or_roles(
     assert "created_by" not in result.data["charts"][0]
     assert "changed_by" not in result.data["charts"][0]
     assert "owners" not in result.data["charts"][0]
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_restricted_user_redacts_data_model_metadata(
+    mock_info,
+    mcp_server,
+):
+    chart = Mock()
+    chart.id = 10
+    chart.slice_name = "Revenue by Deal Size"
+    chart.viz_type = "echarts_timeseries_bar"
+    chart.datasource_name = "Vehicle Sales"
+    chart.description = None
+    chart.tags = []
+
+    dashboard = Mock()
+    dashboard.id = 1
+    dashboard.dashboard_title = "Sales Dashboard"
+    dashboard.slug = "sales"
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = json.dumps(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-product-line",
+                    "name": "Product Line",
+                    "filterType": "filter_select",
+                    "targets": [
+                        {"column": {"name": "product_line"}, "datasetId": 3},
+                    ],
+                },
+            ],
+            "cross_filters_enabled": True,
+        }
+    )
+    dashboard.position_json = None
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_by = None
+    dashboard.changed_by = None
+    dashboard.uuid = None
+    dashboard.url = "/dashboard/1"
+    dashboard.created_on_humanized = None
+    dashboard.changed_on_humanized = None
+    dashboard.slices = [chart]
+    dashboard.owners = []
+    dashboard.tags = []
+    dashboard.roles = []
+
+    mock_info.return_value = dashboard
+
+    with patch(
+        "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {"request": {"identifier": 1}},
+            )
+
+    assert result.data["dashboard_title"] == "Sales Dashboard"
+    assert result.data["charts"][0]["slice_name"] == "Revenue by Deal Size"
+    assert result.data["charts"][0]["viz_type"] == "echarts_timeseries_bar"
+    assert result.data["charts"][0]["datasource_name"] is None
+    assert result.data["native_filters"][0]["name"] == "Product Line"
+    assert result.data["native_filters"][0]["targets"] == []
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state(
+    mock_info,
+    mcp_server,
+):
+    dashboard = Mock()
+    dashboard.id = 1
+    dashboard.dashboard_title = "Sales Dashboard"
+    dashboard.slug = "sales"
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = None
+    dashboard.position_json = None
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_by = None
+    dashboard.changed_by = None
+    dashboard.uuid = None
+    dashboard.url = "/dashboard/1"
+    dashboard.created_on_humanized = None
+    dashboard.changed_on_humanized = None
+    dashboard.slices = []
+    dashboard.owners = []
+    dashboard.tags = []
+    dashboard.roles = []
+
+    mock_info.return_value = dashboard
+
+    permalink_value = {
+        "dashboardId": "1",
+        "state": {
+            "dataMask": {
+                "NATIVE_FILTER-product-line": {
+                    "extraFormData": {
+                        "filters": [
+                            {
+                                "col": "product_line",
+                                "op": "IN",
+                                "val": ["Classic Cars"],
+                                "datasetId": 3,
+                            }
+                        ],
+                    },
+                    "filterState": {"value": ["Classic Cars"]},
+                },
+            },
+            "chartStates": {
+                "42": {
+                    "state": {
+                        "columnState": [{"colId": "customer_email"}],
+                        "filterModel": {"revenue": {"filter": 100}},
+                    },
+                },
+            },
+            "activeTabs": ["TAB-products"],
+        },
+    }
+
+    with (
+        patch(
+            "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
+            return_value=False,
+        ),
+        patch.object(
+            get_dashboard_info_module,
+            "user_can_view_data_model_metadata",
+            return_value=False,
+        ),
+        patch.object(
+            get_dashboard_info_module,
+            "_get_permalink_state",
+            return_value=permalink_value,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {"request": {"identifier": 1, "permalink_key": "abc123"}},
+            )
+
+    assert result.data["permalink_key"] == "abc123"
+    assert result.data["is_permalink_state"] is True
+    assert result.data["filter_state"] == {"activeTabs": ["TAB-products"]}
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")

@@ -230,6 +230,11 @@ async def generate_chart(  # noqa: C901
 
     # Track runtime warnings to include in response
     runtime_warnings: list[str] = []
+    # Surface warnings captured during pydantic validation (e.g. chart_name
+    # sanitization) so callers know when their input was altered.
+    sanitization_warnings: list[str] = list(
+        getattr(request, "sanitization_warnings", []) or []
+    )
 
     try:
         # Run comprehensive validation pipeline
@@ -280,7 +285,34 @@ async def generate_chart(  # noqa: C901
             )
 
         # Parse the raw config dict into a typed ChartConfig for downstream use
-        config = parse_chart_config(request.config)
+        try:
+            config = parse_chart_config(request.config)
+        except (ValueError, TypeError) as e:
+            from superset.mcp_service.utils.error_sanitization import (
+                _sanitize_validation_error,
+            )
+
+            sanitized = _sanitize_validation_error(e)
+            execution_time = int((time.time() - start_time) * 1000)
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "validation_error",
+                        "message": f"Invalid chart configuration: {sanitized}",
+                        "details": sanitized,
+                        "error_code": "INVALID_CHART_CONFIG",
+                    },
+                    "performance": {
+                        "query_duration_ms": execution_time,
+                        "cache_status": "error",
+                        "optimization_suggestions": [],
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
 
         # Map the simplified config to Superset's form_data format
         # Pass dataset_id to enable column type checking for proper viz_type selection
@@ -809,8 +841,8 @@ async def generate_chart(  # noqa: C901
             else {},
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,
-            # Combined runtime and response warnings
-            "warnings": runtime_warnings + response_warnings,
+            # Combined runtime, response, and sanitization warnings
+            "warnings": sanitization_warnings + runtime_warnings + response_warnings,
             "success": True,
             "schema_version": "2.0",
             "api_version": "v1",

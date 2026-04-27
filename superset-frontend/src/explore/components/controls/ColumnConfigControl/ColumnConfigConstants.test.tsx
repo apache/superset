@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,27 +17,17 @@
  * under the License.
  */
 
-import { buildQueryContext, QueryFormOrderBy } from '@superset-ui/core';
-import { WordCloudFormData } from '../types';
+import { SHARED_COLUMN_CONFIG_PROPS } from './constants';
 
-export default function buildQuery(formData: WordCloudFormData) {
-  const { metric, sort_by_metric, sort_by_series, series, row_limit } =
-    formData;
-  const orderby: QueryFormOrderBy[] = [];
-  const shouldApplyOrderBy =
-    row_limit !== undefined && row_limit !== null && row_limit !== 0;
+const tokenSeparators =
+  SHARED_COLUMN_CONFIG_PROPS.d3NumberFormat.tokenSeparators;
 
-  if (sort_by_metric && metric) {
-    orderby.push([metric, false]);
-  }
-  if (sort_by_series !== false && series) {
-    orderby.push([series, true]);
-  }
+test('should allow commas in D3 format inputs', () => {
+  expect(tokenSeparators).toBeDefined();
+  expect(tokenSeparators).not.toContain(',');
+});
 
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      ...(shouldApplyOrderBy && orderby.length > 0 && { orderby }),
-    },
-  ]);
-}
+test('should have correct default token separators', () => {
+  const expectedSeparators = ['\r\n', '\n', '\t', ';'];
+  expect(tokenSeparators).toEqual(expectedSeparators);
+});

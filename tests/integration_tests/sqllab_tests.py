@@ -23,7 +23,7 @@ import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
 from unittest import mock
-import prison
+import rison
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable  # noqa: F401
@@ -515,7 +515,7 @@ class TestSqlLab(SupersetTestCase):
                 {"col": "sql_editor_id", "opr": "eq", "value": str(tab_state_id)}
             ]
         }
-        url = f"/api/v1/query/?q={prison.dumps(arguments)}"
+        url = f"/api/v1/query/?q={rison.dumps(arguments)}"
         assert {"SELECT 1", "SELECT 2"} == {
             r.get("sql") for r in self.get_json_resp(url)["result"]
         }
@@ -547,7 +547,7 @@ class TestSqlLab(SupersetTestCase):
             "page": 0,
             "page_size": -1,
         }
-        url = f"api/v1/database/?q={prison.dumps(arguments)}"
+        url = f"api/v1/database/?q={rison.dumps(arguments)}"
 
         assert {"examples", "fake_db_100", "main"} == {
             r.get("database_name") for r in self.get_json_resp(url)["result"]

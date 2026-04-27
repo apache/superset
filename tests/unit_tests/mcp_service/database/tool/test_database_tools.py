@@ -16,6 +16,7 @@
 # under the License.
 
 
+import importlib
 import logging
 from unittest.mock import MagicMock, patch
 
@@ -25,10 +26,17 @@ from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.database.schemas import ListDatabasesRequest
+from superset.mcp_service.privacy import DATA_MODEL_METADATA_ERROR_TYPE
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+list_databases_module = importlib.import_module(
+    "superset.mcp_service.database.tool.list_databases"
+)
+get_database_info_module = importlib.import_module(
+    "superset.mcp_service.database.tool.get_database_info"
+)
 
 
 def create_mock_database(
@@ -88,6 +96,41 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def allow_data_model_metadata():
+    """Keep database tests in the normal metadata-allowed path by default."""
+    with (
+        patch.object(
+            list_databases_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch.object(
+            get_database_info_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+    ):
+        yield
+
+
+@pytest.mark.asyncio
+async def test_list_databases_without_request_returns_structured_privacy_error(
+    mcp_server,
+) -> None:
+    """Restricted users are denied even when the request payload is omitted."""
+    with patch.object(
+        list_databases_module,
+        "user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("list_databases", {})
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
