@@ -19,6 +19,7 @@
 import {
   buildQueryContext,
   ensureIsArray,
+  getColumnLabel,
   normalizeOrderBy,
   QueryFormColumn,
   QueryFormData,
@@ -26,27 +27,29 @@ import {
 import { addTooltipColumnsToQuery } from '../buildQueryUtils';
 
 export interface H3FormData extends QueryFormData {
-  h3_index: string | string[];
+  h3_index: QueryFormColumn | QueryFormColumn[];
   metric?: string;
   js_columns?: string[];
   tooltip_contents?: unknown[];
 }
 
 export default function buildQuery(formData: H3FormData) {
-  let { h3_index: h3Index } = formData;
   const {
+    h3_index: h3IndexRaw,
     metric,
     js_columns: jsColumns,
     tooltip_contents: tooltipContents,
   } = formData;
 
-  if (Array.isArray(h3Index)) {
-    h3Index = h3Index[0];
-  }
+  const h3Index: QueryFormColumn | undefined = Array.isArray(h3IndexRaw)
+    ? h3IndexRaw[0]
+    : h3IndexRaw;
 
   if (!h3Index) {
     throw new Error('H3 index is required');
   }
+
+  const h3IndexLabel = getColumnLabel(h3Index);
 
   return buildQueryContext(formData, {
     buildQuery: baseQueryObject => {
@@ -54,9 +57,11 @@ export default function buildQuery(formData: H3FormData) {
       const metrics = metric ? [metric] : [];
 
       if (jsColumns?.length) {
+        const existingLabels = new Set(columns.map(getColumnLabel));
         jsColumns.forEach((col: string) => {
-          if (!columns.includes(col)) {
+          if (!existingLabels.has(col)) {
             columns.push(col);
+            existingLabels.add(col);
           }
         });
       }
@@ -65,7 +70,7 @@ export default function buildQuery(formData: H3FormData) {
 
       const filters = ensureIsArray(baseQueryObject.filters || []);
       filters.push({
-        col: h3Index,
+        col: h3IndexLabel,
         op: 'IS NOT NULL',
       });
 
