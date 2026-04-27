@@ -32,17 +32,17 @@ def get_since_until_from_time_range(
     extras: dict[str, Any] | None = None,
 ) -> tuple[datetime | None, datetime | None]:
     return get_since_until(
-        relative_start=(extras or {}).get(
-            "relative_start", current_app.config["DEFAULT_RELATIVE_START_TIME"]
-        ),
-        relative_end=(extras or {}).get(
-            "relative_end", current_app.config["DEFAULT_RELATIVE_END_TIME"]
-        ),
-        time_range=time_range,
-        time_shift=time_shift,
-        instant_time_comparison_range=(extras or {}).get(
-            "instant_time_comparison_range"
-        ),
+    relative_start=(extras or {}).get(
+        "relative_start", current_app.config["DEFAULT_RELATIVE_START_TIME"]
+    ),
+    relative_end=(extras or {}).get(
+        "relative_end", current_app.config["DEFAULT_RELATIVE_END_TIME"]
+    ),
+    time_range=time_range,
+    time_shift=time_shift,
+    instant_time_comparison_range=(extras or {}).get(
+        "instant_time_comparison_range"
+    ),
     )
 
 
