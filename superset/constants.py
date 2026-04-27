@@ -212,6 +212,7 @@ LOCALES_LANGUAGE_MAP = {
     "zh_TW": "zh_TW",
     "ja": "ja_JP",
     "de": "de_DE",
+    "pl": "pl_PL",
     "pt": "pt_PT",
     "pt_BR": "pt_BR",
     "ru": "ru_RU",
