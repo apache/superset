@@ -122,6 +122,7 @@ interface TableOwnState {
   sortColumn?: string;
   sortOrder?: 'asc' | 'desc';
   searchText?: string;
+  visibleColumns?: string[];
 
   clientView?: ClientViewSnapshot;
 }

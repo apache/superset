@@ -752,7 +752,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   const previousOwnState = usePrevious(props.ownState);
   useEffect(() => {
     const strip = (s: JsonObject | undefined) =>
-      s && typeof s === 'object' ? omit(s, ['clientView']) : s;
+      s && typeof s === 'object'
+        ? omit(s, ['clientView', 'visibleColumns'])
+        : s;
     if (!isEqual(strip(previousOwnState), strip(props.ownState))) {
       onQuery();
       reRenderChart();
@@ -1141,8 +1143,11 @@ function mapStateToProps(state: ExploreRootState) {
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
 
-  // exclude clientView from extra_form_data; keep other ownState pieces
-  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, ['clientView']);
+  // exclude clientView and visibleColumns from extra_form_data; keep query-relevant ownState
+  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, [
+    'clientView',
+    'visibleColumns',
+  ]);
 
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
