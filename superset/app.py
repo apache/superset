@@ -110,6 +110,10 @@ def _update_theme_tokens_for_subdirectory(app: Flask, app_root: str) -> None:
     # Prefix theme tokens for subdirectory deployments
     for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
         theme = app.config.get(theme_key)
+        # Skip if theme is None or missing
+        if not theme:
+            continue
+
         token = theme.get("token", {})
 
         # Update URLs if they point to /static/
