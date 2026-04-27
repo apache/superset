@@ -127,8 +127,9 @@ Recommended Workflows:
 To filter dashboards/charts/datasets by a person ("show me what <name> is working on"):
 1. find_users(request={{"query": "<name>"}}) -> resolve to user IDs
 2. Pick the matching user.id from the response
-3. list_dashboards / list_charts / list_datasets with
-   filters=[{{"col": "created_by_fk", "opr": "eq", "value": <id>}}]
+3. list_dashboards(request={{"filters": [
+     {{"col": "created_by_fk", "opr": "eq", "value": <id>}}
+   ]}}) — same shape for list_charts / list_datasets.
    (use changed_by_fk for "last modified by", or "in" with a list of IDs for
    multiple matches). Do NOT pass the person's name as the search parameter —
    search matches titles, not people.

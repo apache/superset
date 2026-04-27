@@ -180,6 +180,21 @@ async def test_find_users_rejects_empty_query_via_client(mcp_server):
             await client.call_tool("find_users", {"request": {"query": ""}})
 
 
+@pytest.mark.parametrize("blank", [" ", "   ", "\t", "\n  \t"])
+def test_find_users_request_rejects_whitespace_only_query(blank):
+    # Whitespace-only queries would strip to "" and produce a LIKE "%%" pattern
+    # that enumerates the entire user directory. The validator must reject them.
+    with pytest.raises(ValidationError):
+        FindUsersRequest(query=blank)
+
+
+def test_find_users_request_strips_query_whitespace():
+    # Validator should normalize the stored query so downstream LIKE patterns
+    # don't carry leading/trailing whitespace.
+    request = FindUsersRequest(query="  maxime  ")
+    assert request.query == "maxime"
+
+
 # ---------------------------------------------------------------------------
 # Filter contract: created_by_fk / changed_by_fk filtering on list tools
 # ---------------------------------------------------------------------------

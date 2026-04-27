@@ -27,7 +27,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 
@@ -204,6 +204,17 @@ class FindUsersRequest(BaseModel):
             description=f"Maximum number of matches to return (max {MAX_PAGE_SIZE}).",
         ),
     ]
+
+    @field_validator("query")
+    @classmethod
+    def _reject_blank_query(cls, value: str) -> str:
+        # min_length=1 alone admits whitespace-only strings, which strip to "" and
+        # produce a "%%" LIKE pattern that matches every user. Strip and require
+        # at least one non-space character.
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("query must contain at least one non-whitespace character")
+        return stripped
 
 
 class FindUsersResponse(BaseModel):
