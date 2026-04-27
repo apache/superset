@@ -147,8 +147,16 @@ export const DynamicEditableTitle = memo(
 
     const handleChange = useCallback(
       (ev: ChangeEvent<HTMLInputElement>) => {
-        if (!canEdit || !isEditing) {
+        if (!canEdit) {
           return;
+        }
+        // Any change implies the user is editing. Ensure isEditing is true
+        // even if the change event arrives before the click handler has
+        // committed (e.g. focus via tab, autofocus, or batched click+type
+        // events). Otherwise the keystroke would be dropped and the
+        // controlled input would revert to the previous value.
+        if (!isEditing) {
+          setIsEditing(true);
         }
         setCurrentTitle(ev.target.value);
       },
