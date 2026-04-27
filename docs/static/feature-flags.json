@@ -168,7 +168,7 @@
         "default": false,
         "lifecycle": "testing",
         "description": "Allows users to add a superset:// DB that can query across databases. Experimental with potential security/performance risks. See SUPERSET_META_DB_LIMIT.",
-        "docs": "https://superset.apache.org/docs/configuration/databases/#querying-across-databases"
+        "docs": "https://superset.apache.org/user-docs/databases/supported/superset-meta-database"
       },
       {
         "name": "ESTIMATE_QUERY_COST",
