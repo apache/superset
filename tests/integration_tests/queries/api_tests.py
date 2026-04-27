@@ -431,9 +431,7 @@ class TestQueryApi(SupersetTestCase):
         arguments = {
             "order_column": "duration",
             "order_direction": "asc",
-            "filters": [
-                {"col": "sql_editor_id", "opr": "eq", "value": test_editor_id}
-            ],
+            "filters": [{"col": "sql_editor_id", "opr": "eq", "value": test_editor_id}],
         }
         uri = f"api/v1/query/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
