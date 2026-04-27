@@ -168,6 +168,9 @@ class TestQueryObjectFactory:
         assert result == NO_TIME_RANGE
 
     def test_process_time_range_fallback_first_temporal_when_no_xaxis(self) -> None:
+        """
+        With no BASE_AXIS columns, keep legacy behavior: use the first TEMPORAL_RANGE value.
+        """
         filters = [
             {
                 "col": "event_b",
@@ -181,6 +184,10 @@ class TestQueryObjectFactory:
         assert result == "2025-02-01 : 2025-02-28"
 
     def test_process_time_range_prefers_temporal_on_x_axis_column(self) -> None:
+        """
+        When several TEMPORAL_RANGE filters exist, pick the one on the BASE_AXIS column,
+        not the first filter in the list.
+        """
         columns: list[Any] = [
             {
                 "label": "event_a",
@@ -206,6 +213,10 @@ class TestQueryObjectFactory:
         assert result == "2025-03-01 : 2025-03-31"
 
     def test_process_time_range_matches_adhoc_filter_col_to_xaxis(self) -> None:
+        """
+        TEMPORAL_RANGE filter col as an adhoc dict (sqlExpression/label) must match the
+        x-axis label so the correct range string is returned.
+        """
         columns: list[Any] = [
             {
                 "label": "event_a",
