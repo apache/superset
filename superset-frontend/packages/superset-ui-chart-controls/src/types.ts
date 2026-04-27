@@ -666,6 +666,7 @@ export interface ServerPaginationData {
   sortBy?: SortByItem[];
   searchText?: string;
   searchColumn?: string;
+  visibleColumns?: string[];
 }
 
 export type TableColumnConfig = {
