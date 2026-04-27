@@ -575,7 +575,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Schema'),
@@ -592,7 +592,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Owner'),
@@ -613,7 +613,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
         optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Certified'),
@@ -647,7 +647,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [user],

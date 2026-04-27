@@ -22,14 +22,16 @@ import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
-from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
+from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
+from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -42,9 +44,13 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     GenerateChartRequest,
     GenerateChartResponse,
+    parse_chart_config,
     PerformanceMetadata,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -89,13 +95,23 @@ def _compile_chart(
         query_filters = adhoc_filters_to_query_filters(
             form_data.get("adhoc_filters", [])
         )
+
+        # Big Number charts use singular "metric" instead of "metrics"
+        metrics = form_data.get("metrics", [])
+        if not metrics and form_data.get("metric"):
+            metrics = [form_data["metric"]]
+
+        # Big Number with trendline uses granularity_sqla as the time column
+        if not columns and form_data.get("granularity_sqla"):
+            columns = [form_data["granularity_sqla"]]
+
         factory = QueryContextFactory()
         query_context = factory.create(
             datasource={"id": dataset_id, "type": "table"},
             queries=[
                 {
                     "columns": columns,
-                    "metrics": form_data.get("metrics", []),
+                    "metrics": metrics,
                     "orderby": form_data.get("orderby", []),
                     "row_limit": 2,
                     "filters": query_filters,
@@ -132,7 +148,6 @@ def _compile_chart(
         destructiveHint=False,
     ),
 )
-@parse_request(GenerateChartRequest)
 async def generate_chart(  # noqa: C901
     request: GenerateChartRequest, ctx: Context
 ) -> GenerateChartResponse:
@@ -200,17 +215,26 @@ async def generate_chart(  # noqa: C901
         "save_chart=%s, preview_formats=%s"
         % (
             request.dataset_id,
-            request.config.chart_type,
+            request.config.get("chart_type", "unknown"),
             request.save_chart,
             request.preview_formats,
         )
     )
     await ctx.debug(
-        "Chart configuration details: config=%s" % (request.config.model_dump(),)
+        "Chart configuration details: chart_type=%s, keys=%s"
+        % (
+            request.config.get("chart_type", "unknown"),
+            sorted(request.config.keys()),
+        )
     )
 
     # Track runtime warnings to include in response
     runtime_warnings: list[str] = []
+    # Surface warnings captured during pydantic validation (e.g. chart_name
+    # sanitization) so callers know when their input was altered.
+    sanitization_warnings: list[str] = list(
+        getattr(request, "sanitization_warnings", []) or []
+    )
 
     try:
         # Run comprehensive validation pipeline
@@ -260,11 +284,39 @@ async def generate_chart(  # noqa: C901
                 }
             )
 
+        # Parse the raw config dict into a typed ChartConfig for downstream use
+        try:
+            config = parse_chart_config(request.config)
+        except (ValueError, TypeError) as e:
+            from superset.mcp_service.utils.error_sanitization import (
+                _sanitize_validation_error,
+            )
+
+            sanitized = _sanitize_validation_error(e)
+            execution_time = int((time.time() - start_time) * 1000)
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "validation_error",
+                        "message": f"Invalid chart configuration: {sanitized}",
+                        "details": sanitized,
+                        "error_code": "INVALID_CHART_CONFIG",
+                    },
+                    "performance": {
+                        "query_duration_ms": execution_time,
+                        "cache_status": "error",
+                        "optimization_suggestions": [],
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
+
         # Map the simplified config to Superset's form_data format
         # Pass dataset_id to enable column type checking for proper viz_type selection
-        form_data = map_config_to_form_data(
-            request.config, dataset_id=request.dataset_id
-        )
+        form_data = map_config_to_form_data(config, dataset_id=request.dataset_id)
 
         chart = None
         chart_id = None
@@ -358,7 +410,7 @@ async def generate_chart(  # noqa: C901
                 dataset, "table_name", None
             )
             chart_name = request.chart_name or generate_chart_name(
-                request.config, dataset_name=dataset_name
+                config, dataset_name=dataset_name
             )
             await ctx.debug("Chart name: chart_name=%s" % (chart_name,))
 
@@ -520,13 +572,8 @@ async def generate_chart(  # noqa: C901
             explore_url = generate_explore_link(request.dataset_id, form_data)
             await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
 
-            # Extract form_data_key from the explore URL using proper URL parsing
-            if explore_url:
-                parsed = urlparse(explore_url)
-                query_params = parse_qs(parsed.query)
-                form_data_key_list = query_params.get("form_data_key", [])
-                if form_data_key_list:
-                    form_data_key = form_data_key_list[0]
+            # Extract form_data_key from the explore URL
+            form_data_key = extract_form_data_key_from_url(explore_url)
 
             # Compile check for preview-only mode
             # Validate dataset existence and user access before running queries
@@ -598,8 +645,8 @@ async def generate_chart(  # noqa: C901
                 response_warnings.extend(compile_result.warnings)
 
         # Generate semantic analysis
-        capabilities = analyze_chart_capabilities(chart, request.config)
-        semantics = analyze_chart_semantics(chart, request.config)
+        capabilities = analyze_chart_capabilities(chart, config)
+        semantics = analyze_chart_semantics(chart, config)
 
         # Create performance metadata
         execution_time = int((time.time() - start_time) * 1000)
@@ -613,7 +660,7 @@ async def generate_chart(  # noqa: C901
         chart_name = (
             chart.slice_name
             if chart and hasattr(chart, "slice_name")
-            else generate_chart_name(request.config)
+            else generate_chart_name(config)
         )
         accessibility = AccessibilityMetadata(
             color_blind_safe=True,  # Would need actual analysis
@@ -710,38 +757,62 @@ async def generate_chart(  # noqa: C901
 
         # Build chart info using serialize_chart_object for saved charts
         chart_info = None
+        chart_data = None
         if request.save_chart and chart:
             from sqlalchemy.orm import joinedload
 
+            from superset import db
             from superset.daos.chart import ChartDAO
             from superset.mcp_service.chart.schemas import serialize_chart_object
             from superset.models.slice import Slice
 
             # Re-fetch with eager-loaded relationships to avoid detached
-            # instance errors when serialize_chart_object accesses .tags
-            # and .owners.  Use joinedload (single JOIN query) since we
-            # are fetching a single chart.
-            chart = (
-                ChartDAO.find_by_id(
-                    chart.id,
-                    query_options=[
-                        joinedload(Slice.owners),
-                        joinedload(Slice.tags),
-                    ],
+            # instance errors when serialize_chart_object accesses .tags.
+            # The preceding commit may invalidate the session
+            # in multi-tenant environments; on failure, build a minimal
+            # chart_data dict from scalar attributes that are already loaded
+            # — relationship fields like tags would trigger lazy-loading on
+            # the same dead session.
+            try:
+                chart = (
+                    ChartDAO.find_by_id(
+                        chart.id,
+                        query_options=[
+                            joinedload(Slice.tags),
+                        ],
+                    )
+                    or chart
                 )
-                or chart
-            )
+            except SQLAlchemyError:
+                logger.warning(
+                    "Re-fetch of chart %s failed; returning minimal response",
+                    chart.id,
+                    exc_info=True,
+                )
+                try:
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Database rollback failed during chart re-fetch error handling",
+                        exc_info=True,
+                    )
+                chart_data = {
+                    "id": chart.id,
+                    "slice_name": chart.slice_name,
+                    "viz_type": chart.viz_type,
+                    "url": explore_url,
+                    "uuid": str(chart.uuid) if chart.uuid else None,
+                }
 
-            chart_info = serialize_chart_object(chart)
-            if chart_info:
-                # Override the URL with explore_url
-                chart_info.url = explore_url
+            if chart_data is None:
+                chart_info = serialize_chart_object(chart)
+                if chart_info:
+                    chart_info.url = explore_url
 
         # Safely serialize chart_info - handle both Pydantic models and dicts
-        chart_data = None
-        if chart_info:
+        if chart_data is None and chart_info is not None:
             if hasattr(chart_info, "model_dump"):
-                chart_data = chart_info.model_dump()
+                chart_data = chart_info.model_dump(mode="json")
             elif isinstance(chart_info, dict):
                 chart_data = chart_info
             else:
@@ -770,8 +841,8 @@ async def generate_chart(  # noqa: C901
             else {},
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,
-            # Combined runtime and response warnings
-            "warnings": runtime_warnings + response_warnings,
+            # Combined runtime, response, and sanitization warnings
+            "warnings": sanitization_warnings + runtime_warnings + response_warnings,
             "success": True,
             "schema_version": "2.0",
             "api_version": "v1",
@@ -786,7 +857,46 @@ async def generate_chart(  # noqa: C901
         )
         return GenerateChartResponse.model_validate(result)
 
-    except Exception as e:
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Chart generation requires OAuth authentication: dataset_id=%s"
+            % request.dataset_id
+        )
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "success": False,
+                "error": {
+                    "error_type": "OAUTH2_REDIRECT",
+                    "message": build_oauth2_redirect_message(ex),
+                    "details": "OAuth2 authentication required",
+                },
+            }
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration error: dataset_id=%s" % request.dataset_id
+        )
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "success": False,
+                "error": {
+                    "error_type": "OAUTH2_REDIRECT_ERROR",
+                    "message": OAUTH2_CONFIG_ERROR_MESSAGE,
+                    "details": "OAuth2 configuration or provider error",
+                },
+            }
+        )
+    except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         await ctx.error(
             "Chart generation failed: error=%s, execution_time_ms=%s"
             % (
@@ -801,9 +911,9 @@ async def generate_chart(  # noqa: C901
         # Extract chart_type from different sources for better error context
         chart_type = "unknown"
         try:
-            if hasattr(request, "config") and hasattr(request.config, "chart_type"):
-                chart_type = request.config.chart_type
-        except AttributeError as extract_error:
+            if hasattr(request, "config") and isinstance(request.config, dict):
+                chart_type = request.config.get("chart_type", "unknown")
+        except (AttributeError, TypeError) as extract_error:
             # Ignore errors when extracting chart type for error context
             logger.debug("Could not extract chart type: %s", extract_error)
 

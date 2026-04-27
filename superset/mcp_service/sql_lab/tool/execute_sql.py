@@ -22,12 +22,11 @@ Tool for executing SQL queries against databases using the unified
 Database.execute() API with RLS, template rendering, and security validation.
 """
 
-from __future__ import annotations
-
 import logging
 from decimal import Decimal
 from typing import Any
 
+import pandas as pd
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_core.queries.types import (
@@ -37,8 +36,8 @@ from superset_core.queries.types import (
     QueryStatus,
 )
 
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.errors import SupersetErrorType
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.sql_lab.schemas import (
     ColumnInfo,
@@ -47,7 +46,10 @@ from superset.mcp_service.sql_lab.schemas import (
     StatementData,
     StatementInfo,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +64,6 @@ logger = logging.getLogger(__name__)
         destructiveHint=True,
     ),
 )
-@parse_request(ExecuteSqlRequest)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database using the unified Database.execute() API."""
     await ctx.info(
@@ -94,21 +95,23 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                 db.session.query(Database).filter_by(id=request.database_id).first()
             )
             if not database:
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=f"Database with ID {request.database_id} not found",
-                        error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
-                        level=ErrorLevel.ERROR,
-                    )
+                await ctx.error(
+                    "Database not found: database_id=%s" % request.database_id
+                )
+                return ExecuteSqlResponse(
+                    success=False,
+                    error=f"Database with ID {request.database_id} not found",
+                    error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR.value,
                 )
 
             if not security_manager.can_access_database(database):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        message=(f"Access denied to database {database.database_name}"),
-                        error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
-                        level=ErrorLevel.ERROR,
-                    )
+                await ctx.error(
+                    "Access denied to database: %s" % database.database_name
+                )
+                return ExecuteSqlResponse(
+                    success=False,
+                    error=f"Access denied to database {database.database_name}",
+                    error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR.value,
                 )
 
         # 2. Build QueryOptions and execute query
@@ -149,6 +152,25 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
 
         return response
 
+    except OAuth2RedirectError as ex:
+        await ctx.error(
+            "Database requires OAuth authentication: database_id=%s"
+            % request.database_id
+        )
+        return ExecuteSqlResponse(
+            success=False,
+            error=build_oauth2_redirect_message(ex),
+            error_type=SupersetErrorType.OAUTH2_REDIRECT.value,
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration/flow error: database_id=%s" % request.database_id
+        )
+        return ExecuteSqlResponse(
+            success=False,
+            error=OAUTH2_CONFIG_ERROR_MESSAGE,
+            error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR.value,
+        )
     except Exception as e:
         await ctx.error(
             "SQL execution failed: error=%s, database_id=%s"
@@ -176,6 +198,46 @@ def _sanitize_row_values(rows: list[dict[str, Any]]) -> None:
                 row[key] = str(value)
 
 
+def _data_to_statement_data(data: Any) -> StatementData:
+    """Convert statement data (DataFrame, list, dict, bytes) to StatementData.
+
+    When results come from cache, data may be a dict/list/bytes instead of
+    a pandas DataFrame. This function handles all cases defensively.
+    """
+    from superset.utils import json as json_utils
+
+    if isinstance(data, list):
+        rows_data = data
+    elif isinstance(data, dict):
+        rows_data = data.get("data", [data])
+        if not isinstance(rows_data, list):
+            rows_data = [rows_data]
+    elif isinstance(data, pd.DataFrame):
+        rows_data = data.to_dict(orient="records")
+        _sanitize_row_values(rows_data)
+        return StatementData(
+            rows=rows_data,
+            columns=[
+                ColumnInfo(name=col, type=str(data[col].dtype)) for col in data.columns
+            ],
+        )
+    elif isinstance(data, bytes):
+        try:
+            decoded = json_utils.loads(data)
+            rows_data = decoded if isinstance(decoded, list) else [decoded]
+        except (ValueError, UnicodeDecodeError):
+            rows_data = []
+    else:
+        rows_data = [{"value": str(data)}]
+
+    _sanitize_row_values(rows_data)
+    col_names = list(rows_data[0].keys()) if rows_data else []
+    return StatementData(
+        rows=rows_data,
+        columns=[ColumnInfo(name=col, type="object") for col in col_names],
+    )
+
+
 def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
     """Convert QueryResult to ExecuteSqlResponse."""
     if result.status != QueryStatus.SUCCESS:
@@ -193,15 +255,7 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
     for stmt in result.statements:
         stmt_data: StatementData | None = None
         if stmt.data is not None:
-            df = stmt.data
-            rows_data = df.to_dict(orient="records")
-            _sanitize_row_values(rows_data)
-            stmt_data = StatementData(
-                rows=rows_data,
-                columns=[
-                    ColumnInfo(name=col, type=str(df[col].dtype)) for col in df.columns
-                ],
-            )
+            stmt_data = _data_to_statement_data(stmt.data)
             data_bearing_count += 1
 
         statements.append(

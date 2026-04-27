@@ -22,10 +22,11 @@ import {
   DataRecordFilters,
   DataRecordValue,
   ensureIsArray,
+  getColumnLabel,
   JsonObject,
   PartialFilters,
-  QueryFormExtraFilter,
   ChartCustomization,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import {
   ChartConfiguration,
@@ -123,8 +124,13 @@ function extractColumnNames(columns: unknown[]): string[] {
     columns.forEach((col: unknown) => {
       if (typeof col === 'string') {
         columnNames.push(col);
-      } else if (col && typeof col === 'object' && 'column_name' in col) {
-        columnNames.push((col as { column_name: string }).column_name);
+      } else if (col && typeof col === 'object') {
+        if ('column_name' in col) {
+          columnNames.push((col as { column_name: string }).column_name);
+        } else if ('sqlExpression' in col) {
+          const label = getColumnLabel(col as QueryFormColumn);
+          if (label) columnNames.push(label);
+        }
       }
     });
   }
@@ -136,7 +142,7 @@ function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
   const chartType = chart.form_data?.viz_type;
 
   const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
-  existingGroupBy.forEach((col: string) => existingColumns.add(col));
+  extractColumnNames(existingGroupBy).forEach(col => existingColumns.add(col));
 
   const xAxisColumn = chart.form_data?.x_axis;
   if (xAxisColumn && chartType !== 'heatmap' && chartType !== 'heatmap_v2') {
@@ -251,7 +257,8 @@ function applyChartSpecificGroupBy(
       groupByFormData.target = limitedColumns[1];
     }
   } else if (['chord'].includes(chartType)) {
-    groupByFormData.groupby = [...existingGroupBy, ...groupByColumns];
+    groupByFormData.groupby =
+      groupByColumns.length > 0 ? [groupByColumns[0]] : existingGroupBy;
   } else if (chartType === 'bubble_v2') {
     const { limitedColumns } = limitColumnsForChartType(
       chartType,
@@ -283,7 +290,6 @@ function processGroupByCustomizations(
 ): {
   groupby?: string[];
   order_by_cols?: string[];
-  filters?: QueryFormExtraFilter[];
   x_axis?: string;
   series?: string;
   columns?: string[];
@@ -319,7 +325,7 @@ function processGroupByCustomizations(
   });
 
   const chartType = chart.form_data?.viz_type;
-  if (isChartWithoutGroupBy(chartType)) {
+  if (isChartWithoutGroupBy(chartType) || chartType === 'chord') {
     return {};
   }
 
@@ -328,7 +334,6 @@ function processGroupByCustomizations(
   const xAxisColumn = chart.form_data?.x_axis;
 
   const groupByColumns: string[] = [];
-  const allFilters: QueryFormExtraFilter[] = [];
   let orderByConfig: string[] | undefined;
   let heatmapColumnAdded = false;
 
@@ -342,7 +347,9 @@ function processGroupByCustomizations(
       return;
     }
 
-    const selectedValues = groupByInfo.selectedValues || [];
+    const selectedValues = (groupByInfo.selectedValues || []).filter(
+      (value): value is string => typeof value === 'string' && value.length > 0,
+    );
     const columnNames = selectedValues;
 
     if (columnNames.length === 0) {
@@ -376,16 +383,6 @@ function processGroupByCustomizations(
       });
     }
 
-    columnNames.forEach(columnName => {
-      if (selectedValues.length > 0) {
-        allFilters.push({
-          col: columnName,
-          op: 'IN',
-          val: selectedValues,
-        });
-      }
-    });
-
     const sortMetric = item.controlValues?.sortMetric;
     const sortAscending = item.controlValues?.sortAscending;
     if (sortMetric) {
@@ -399,10 +396,6 @@ function processGroupByCustomizations(
     existingGroupBy,
     xAxisColumn,
   );
-
-  if (allFilters.length > 0) {
-    groupByFormData.filters = allFilters;
-  }
 
   if (orderByConfig) {
     groupByFormData.order_by_cols = orderByConfig;
@@ -548,7 +541,11 @@ export default function getFormDataWithExtraFilters({
 
       const selectedValues = mask.filterState?.value;
       groupByState[key] = {
-        selectedValues: Array.isArray(selectedValues) ? selectedValues : [],
+        selectedValues: Array.isArray(selectedValues)
+          ? selectedValues
+          : typeof selectedValues === 'string'
+            ? [selectedValues]
+            : [],
         hasInteracted: mask.filterState?.value !== undefined,
       };
     }

@@ -48,6 +48,7 @@ const fakeApiResult = {
       lastName: 'last name',
       permissions: {},
       roles: {},
+      groups: [],
     },
   },
 };

@@ -16,6 +16,8 @@ concurrency:
 jobs:
   test-mysql:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -68,11 +70,12 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
         with:
           flags: python,mysql
-          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+          use_oidc: true
+          slug: apache/superset
       - name: Generate database diagnostics for docs
         if: steps.check.outputs.python
         env:
@@ -98,13 +101,15 @@ jobs:
           "
       - name: Upload database diagnostics artifact
         if: steps.check.outputs.python
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: database-diagnostics
           path: databases-diagnostics.json
           retention-days: 7
   test-postgres:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     strategy:
       matrix:
         python-version: ["current", "previous", "next"]
@@ -159,14 +164,17 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
         with:
           flags: python,postgres
-          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+          use_oidc: true
+          slug: apache/superset
 
   test-sqlite:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -211,8 +219,9 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
         with:
           flags: python,sqlite
-          token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+          use_oidc: true
+          slug: apache/superset

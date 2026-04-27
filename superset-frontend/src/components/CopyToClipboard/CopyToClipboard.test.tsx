@@ -80,6 +80,30 @@ test('triggers onCopyEnd', async () => {
   await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
 });
 
+test('does not copy when disabled', async () => {
+  const callback = jest.fn();
+  document.execCommand = callback;
+
+  const originalClipboard = { ...global.navigator.clipboard };
+  // @ts-expect-error
+  global.navigator.clipboard = { write: callback, writeText: callback };
+
+  render(<CopyToClipboard disabled text="Text" />, { useRedux: true });
+
+  const copyButton = screen.getByText('Copy');
+  expect(copyButton).toHaveAttribute('aria-disabled', 'true');
+
+  userEvent.click(copyButton);
+
+  await waitFor(() => {
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  jest.resetAllMocks();
+  // @ts-expect-error
+  global.navigator.clipboard = originalClipboard;
+});
+
 test('renders unwrapped', () => {
   const text = 'Text';
   render(<CopyToClipboard text={text} wrapped={false} />, {
