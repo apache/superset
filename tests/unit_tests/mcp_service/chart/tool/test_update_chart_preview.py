@@ -375,6 +375,24 @@ class TestUpdateChartPreview:
             assert request.form_data_key == key
 
     @pytest.mark.asyncio
+    async def test_update_chart_preview_form_data_key_optional(self):
+        """Test that form_data_key can be omitted for fresh previews."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+
+        # Omit form_data_key entirely
+        request = UpdateChartPreviewRequest(dataset_id=1, config=config)
+        assert request.form_data_key is None
+
+        # Explicitly pass None
+        request2 = UpdateChartPreviewRequest(
+            form_data_key=None, dataset_id=1, config=config
+        )
+        assert request2.form_data_key is None
+
+    @pytest.mark.asyncio
     async def test_update_chart_preview_cache_control(self):
         """Test cache control parameters in update preview request."""
         config = TableChartConfig(
