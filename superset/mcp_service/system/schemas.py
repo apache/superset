@@ -217,10 +217,25 @@ class FindUsersRequest(BaseModel):
         return stripped
 
 
+class UserMatch(BaseModel):
+    """Minimal user projection returned by find_users.
+
+    Intentionally narrower than UserInfo: only the fields needed to disambiguate
+    matches and pass an id to created_by_fk / changed_by_fk filters. Email,
+    active flag, and roles are deliberately excluded to limit identity
+    exposure through this directory-resolution path.
+    """
+
+    id: int | None = None
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+
+
 class FindUsersResponse(BaseModel):
     """Response schema for find_users tool."""
 
-    users: List["UserInfo"] = Field(
+    users: List[UserMatch] = Field(
         default_factory=list,
         description=(
             "Matching users. Pass user.id as the value for created_by_fk or "

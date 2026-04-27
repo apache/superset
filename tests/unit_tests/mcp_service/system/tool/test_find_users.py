@@ -135,6 +135,12 @@ async def test_find_users_returns_matches(mcp_server):
     assert data["truncated"] is False
     assert data["users"][0]["id"] == 7
     assert data["users"][0]["username"] == "maxime"
+    assert data["users"][0]["first_name"] == "Maxime"
+    assert data["users"][0]["last_name"] == "Beauchemin"
+    # Privacy: minimal projection excludes identity attributes that aren't
+    # required for filter resolution. Catch regressions on the response shape.
+    for forbidden in ("email", "active", "roles"):
+        assert forbidden not in data["users"][0]
     # or_ should have been built across the four matched columns
     assert mock_or.called
     assert len(mock_or.call_args.args) == 4

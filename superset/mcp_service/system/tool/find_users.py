@@ -27,8 +27,7 @@ from superset.extensions import db, event_logger, security_manager
 from superset.mcp_service.system.schemas import (
     FindUsersRequest,
     FindUsersResponse,
-    serialize_user_object,
-    UserInfo,
+    UserMatch,
 )
 
 logger = logging.getLogger(__name__)
@@ -86,11 +85,15 @@ async def find_users(request: FindUsersRequest, ctx: Context) -> FindUsersRespon
     truncated = len(rows) > request.page_size
     rows = rows[: request.page_size]
 
-    users: list[UserInfo] = []
-    for row in rows:
-        info = serialize_user_object(row)
-        if info is not None:
-            users.append(info)
+    users: list[UserMatch] = [
+        UserMatch(
+            id=getattr(row, "id", None),
+            username=getattr(row, "username", None),
+            first_name=getattr(row, "first_name", None),
+            last_name=getattr(row, "last_name", None),
+        )
+        for row in rows
+    ]
 
     await ctx.info(
         "Resolved user query: matches=%s, truncated=%s" % (len(users), truncated)
