@@ -158,7 +158,8 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
 
           .draggable-trigger {
             cursor: move;
-            padding: ${theme.sizeUnit * 4}px;
+            padding: ${theme.sizeUnit * 4}px ${closeButtonWidth}px
+              ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
             width: 100%;
           }
         }
