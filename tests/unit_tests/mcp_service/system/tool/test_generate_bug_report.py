@@ -91,6 +91,26 @@ def test_sanitize_text_redacts_bearer_token():
     assert "token" in redactions
 
 
+def test_sanitize_text_redacts_bearer_base64_padding():
+    """Regression: base64-padded tokens must be fully consumed, no '==' tail."""
+    redactions: set[str] = set()
+    out = _sanitize_text("got 'Bearer AAAA==' from server", redactions)
+    assert "AAAA" not in out
+    assert "==" not in out  # padding tail must not leak
+    assert "Bearer [REDACTED_TOKEN]" in out
+    assert "token" in redactions
+
+
+def test_sanitize_text_redacts_bearer_with_slash_and_plus():
+    """Regression: base64 alphabet (+ / =) must be fully consumed."""
+    redactions: set[str] = set()
+    out = _sanitize_text("retry with 'Bearer abc+/=/xyz' header", redactions)
+    assert "abc+/=/xyz" not in out
+    assert "+/=/xyz" not in out  # no fragment of the token leaks
+    assert "Bearer [REDACTED_TOKEN]" in out
+    assert "token" in redactions
+
+
 def test_sanitize_text_redacts_key_value_secret():
     redactions: set[str] = set()
     out = _sanitize_text("connected with password=hunter2 to db", redactions)
@@ -196,7 +216,8 @@ class TestGenerateBugReportViaMCP:
         data = json.loads(result.content[0].text)
 
         assert "report" in data
-        assert data["support_contact"].startswith("Preset support team")
+        # Default neutral contact when MCP_BUG_REPORT_CONTACT is unset.
+        assert "Apache Superset" in data["support_contact"]
         report = data["report"]
 
         # Structure
@@ -250,3 +271,156 @@ class TestGenerateBugReportViaMCP:
         assert "MCP tool:** not provided" in report
         assert "LLM / client:** not provided" in report
         assert "_not provided_" in report  # empty sections
+
+    @pytest.mark.asyncio
+    async def test_generate_bug_report_sanitizes_llm_used(self, mcp_server):
+        """llm_used must be sanitized — defense in depth, consistent with schema."""
+        with patch("flask.g") as mock_g:
+            mock_g.user = None
+
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_bug_report",
+                    {
+                        "request": {
+                            # Pathological: someone pastes an account-tagged
+                            # model path that includes an email.
+                            "llm_used": "claude@account-alice@example.com",
+                        }
+                    },
+                )
+
+        data = json.loads(result.content[0].text)
+        assert "alice@example.com" not in data["report"]
+        assert "[REDACTED_EMAIL]" in data["report"]
+        assert "email" in data["redactions_applied"]
+
+    @pytest.mark.asyncio
+    async def test_generate_bug_report_uses_configured_contact(self, mcp_server, app):
+        """When MCP_BUG_REPORT_CONTACT is set, the response surfaces it verbatim."""
+        configured = "Acme support (support@acme.example)"
+        app.config["MCP_BUG_REPORT_CONTACT"] = configured
+        try:
+            with patch("flask.g") as mock_g:
+                mock_g.user = None
+
+                async with Client(mcp_server) as client:
+                    result = await client.call_tool(
+                        "generate_bug_report",
+                        {"request": {}},
+                    )
+
+            data = json.loads(result.content[0].text)
+            assert data["support_contact"] == configured
+        finally:
+            app.config.pop("MCP_BUG_REPORT_CONTACT", None)
+
+
+# ---------------------------------------------------------------------------
+# Schema-level tests: max_length caps
+# ---------------------------------------------------------------------------
+
+
+def test_request_rejects_oversized_error_message():
+    """error_message has a 4000-char cap to bound regex work on adversarial input."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.system.schemas import GenerateBugReportRequest
+
+    with pytest.raises(ValidationError):
+        GenerateBugReportRequest(error_message="x" * 4001)
+
+
+def test_request_rejects_oversized_tool_name():
+    """tool_name has a tighter 200-char cap (it's an identifier, not free text)."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.system.schemas import GenerateBugReportRequest
+
+    with pytest.raises(ValidationError):
+        GenerateBugReportRequest(tool_name="x" * 201)
+
+
+# ---------------------------------------------------------------------------
+# Fallback coverage: the "never fail the bug report" contract
+# ---------------------------------------------------------------------------
+
+
+def test_collect_environment_falls_back_when_version_unavailable():
+    """If get_version_metadata raises, the env block stays valid."""
+    from superset.mcp_service.system.tool.generate_bug_report import (
+        _collect_environment,
+    )
+
+    with patch(
+        "superset.mcp_service.system.tool.generate_bug_report.get_version_metadata",
+        side_effect=RuntimeError("no version file"),
+    ):
+        env = _collect_environment()
+
+    assert env["superset_version"] == "unknown"
+    # Other fields still populated from platform / current_app.
+    assert env["python_version"]
+    assert env["platform"]
+
+
+def test_collect_user_context_with_no_flask_g():
+    """If flask.g.user access raises, we get the empty default."""
+    from superset.mcp_service.system.tool.generate_bug_report import (
+        _collect_user_context,
+    )
+
+    with patch(
+        "superset.mcp_service.system.tool.generate_bug_report.flask"
+    ) as mock_flask:
+        # Accessing attribute on g raises — simulating outside-of-request.
+        type(mock_flask.g).user = property(
+            lambda self: (_ for _ in ()).throw(RuntimeError("no app context"))
+        )
+        ctx = _collect_user_context()
+
+    assert ctx == {"user_id": None, "roles": []}
+
+
+def test_collect_user_context_handles_role_typeerror():
+    """If user.roles is unexpectedly non-iterable, roles fall back to []."""
+    from superset.mcp_service.system.tool.generate_bug_report import (
+        _collect_user_context,
+    )
+
+    bad_user = Mock()
+    bad_user.id = 7
+    # An object that has .name but isn't iterable — for-loop raises TypeError.
+    bad_user.roles = 42
+
+    with patch("flask.g") as mock_g:
+        mock_g.user = bad_user
+        ctx = _collect_user_context()
+
+    assert ctx["user_id"] == 7
+    assert ctx["roles"] == []
+
+
+def test_resolve_support_contact_returns_default_when_unset(app):
+    """Without MCP_BUG_REPORT_CONTACT, the neutral default wins."""
+    from superset.mcp_service.system.tool.generate_bug_report import (
+        _resolve_support_contact,
+        DEFAULT_SUPPORT_CONTACT,
+    )
+
+    app.config.pop("MCP_BUG_REPORT_CONTACT", None)
+    assert _resolve_support_contact() == DEFAULT_SUPPORT_CONTACT
+
+
+def test_resolve_support_contact_ignores_blank_override(app):
+    """Whitespace-only overrides fall back to the default."""
+    from superset.mcp_service.system.tool.generate_bug_report import (
+        _resolve_support_contact,
+        DEFAULT_SUPPORT_CONTACT,
+    )
+
+    app.config["MCP_BUG_REPORT_CONTACT"] = "   "
+    try:
+        assert _resolve_support_contact() == DEFAULT_SUPPORT_CONTACT
+    finally:
+        app.config.pop("MCP_BUG_REPORT_CONTACT", None)

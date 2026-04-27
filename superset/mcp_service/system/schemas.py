@@ -197,14 +197,16 @@ class GenerateBugReportRequest(BaseModel):
     """Request schema for the generate_bug_report tool.
 
     All fields are optional so users can invoke the tool even when they only
-    remember part of what happened. The handler performs PII sanitization on
-    free-text fields before building the final report.
+    remember part of what happened. Every free-text field is run through a
+    PII / secret sanitizer before being written into the report, and each
+    field has a ``max_length`` cap to bound regex work on adversarial input.
     """
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     tool_name: str | None = Field(
         None,
+        max_length=200,
         description=(
             "The MCP tool the user was using when the issue occurred "
             "(e.g. 'generate_chart', 'execute_sql')."
@@ -212,6 +214,7 @@ class GenerateBugReportRequest(BaseModel):
     )
     error_message: str | None = Field(
         None,
+        max_length=4000,
         description=(
             "The error message or unexpected behavior the user encountered. "
             "Emails, IPs, tokens and similar secrets are automatically redacted."
@@ -219,6 +222,7 @@ class GenerateBugReportRequest(BaseModel):
     )
     llm_used: str | None = Field(
         None,
+        max_length=200,
         description=(
             "The LLM / client the user was running when the issue occurred "
             "(e.g. 'Claude Sonnet 4.6', 'ChatGPT', 'Cursor + GPT-4')."
@@ -226,10 +230,12 @@ class GenerateBugReportRequest(BaseModel):
     )
     steps_to_reproduce: str | None = Field(
         None,
+        max_length=4000,
         description="Optional free-text description of what the user was trying to do.",
     )
     additional_context: str | None = Field(
         None,
+        max_length=4000,
         description=(
             "Any other information the user wants to include. "
             "PII and secrets are sanitized before being written to the report."

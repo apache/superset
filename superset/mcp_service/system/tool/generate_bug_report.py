@@ -30,7 +30,7 @@ import datetime
 import logging
 import platform
 import re
-from typing import Any, Callable, Union
+from typing import Any, Callable
 
 import flask
 from flask import current_app
@@ -45,7 +45,10 @@ from superset.utils.version import get_version_metadata
 
 logger = logging.getLogger(__name__)
 
-SUPPORT_CONTACT = "Preset support team (support@preset.io)"
+DEFAULT_SUPPORT_CONTACT = (
+    "your Superset administrator or the Apache Superset community "
+    "(https://github.com/apache/superset/issues)"
+)
 
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 _IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
@@ -67,7 +70,11 @@ _IPV6_RE = re.compile(
     r"(?:[0-9a-fA-F]{1,4}:){3,7}[0-9a-fA-F]{1,4}\b"
     r")"
 )
-_BEARER_RE = re.compile(r"(?i)\b(bearer|token|api[_-]?key)\s+[A-Za-z0-9._\-]+")
+# Header-style "Bearer <value>" tokens. The value matcher is \S+ rather than a
+# narrower character class so base64-encoded tokens with =/+// characters
+# (e.g. "Bearer AAAA==") are fully consumed instead of leaking trailing
+# padding. The leading \b…\s+ prevents over-matching across whitespace.
+_BEARER_RE = re.compile(r"(?i)\b(bearer|token|api[_-]?key)\s+\S+")
 _KEY_VALUE_SECRET_RE = re.compile(
     r"(?i)\b(password|passwd|pwd|secret|api[_-]?key|access[_-]?key|"
     r"auth[_-]?token|authorization|bearer|session[_-]?id)"
@@ -91,7 +98,7 @@ def _sanitize_text(text: str, redactions: set[str]) -> str:
 
     def _sub(
         pattern: re.Pattern[str],
-        replacement: Union[str, Callable[[re.Match[str]], str]],
+        replacement: str | Callable[[re.Match[str]], str],
         category: str,
         value: str,
     ) -> str:
@@ -182,8 +189,19 @@ def _collect_user_context() -> dict[str, Any]:
     return ctx
 
 
+def _resolve_support_contact() -> str:
+    """Read MCP_BUG_REPORT_CONTACT from app config or fall back to default."""
+    try:
+        configured = current_app.config.get("MCP_BUG_REPORT_CONTACT")
+    except Exception:  # noqa: BLE001
+        # current_app unavailable outside a Flask context — fall through
+        configured = None
+    if isinstance(configured, str) and configured.strip():
+        return configured
+    return DEFAULT_SUPPORT_CONTACT
+
+
 def _format_report(
-    request: GenerateBugReportRequest,
     sanitized: dict[str, str | None],
     environment: dict[str, str],
     user_context: dict[str, Any],
@@ -202,8 +220,8 @@ def _format_report(
         f"- **Roles:** {', '.join(user_context['roles']) or 'none'}",
         "",
         "## What the user was doing",
-        f"- **MCP tool:** {request.tool_name or 'not provided'}",
-        f"- **LLM / client:** {request.llm_used or 'not provided'}",
+        f"- **MCP tool:** {sanitized.get('tool_name') or 'not provided'}",
+        f"- **LLM / client:** {sanitized.get('llm_used') or 'not provided'}",
         "",
         "## Error / unexpected behavior",
         sanitized.get("error_message") or "_not provided_",
@@ -237,26 +255,39 @@ def _format_report(
 async def generate_bug_report(
     request: GenerateBugReportRequest = _DEFAULT_BUG_REPORT_REQUEST,
 ) -> GenerateBugReportResponse:
-    """Generate a copy-pasteable bug report for the Preset support team.
+    """Generate a copy-pasteable bug report for whoever runs this MCP.
 
     Use this tool when something goes wrong with the MCP service and the
     user wants to report it. The tool collects a safe snapshot of the
     environment, combines it with the context the user provides (tool
     that failed, error seen, LLM / client in use, optional free-text
-    notes) and returns a markdown report that the user can paste into
-    their support ticket.
+    notes) and returns a markdown report the user can paste into their
+    support channel.
 
-    PII and secrets are redacted from free-text fields before they are
-    written to the report (emails, IP addresses, bearer tokens, API keys,
-    credentialed URLs, JWTs, long hex blobs). The response lists every
-    category that was actually redacted so the user can spot-check.
+    PII and secrets are redacted from every user-supplied field before
+    they are written to the report (emails, IP addresses, bearer tokens,
+    API keys, credentialed URLs, JWTs, long hex blobs, key/value
+    secrets). The response lists every category that was actually
+    redacted so the user can spot-check.
+
+    The support contact in the response is configurable via the
+    ``MCP_BUG_REPORT_CONTACT`` setting in ``superset_config.py`` so each
+    deployment can point users at the right channel. The default points
+    at the user's Superset administrator and the Apache Superset issue
+    tracker.
 
     All request fields are optional — the tool still produces a useful
     report when the user only remembers part of what happened.
     """
     with event_logger.log_context(action="mcp.generate_bug_report"):
         redactions: set[str] = set()
+        # Every user-supplied free-text field goes through the redactor —
+        # even tool_name and llm_used, where secrets are unlikely but cheap
+        # to defend against (defense in depth, consistency with the schema's
+        # "PII is redacted from free-text fields" promise).
         sanitized = {
+            "tool_name": _sanitize_text(request.tool_name or "", redactions) or None,
+            "llm_used": _sanitize_text(request.llm_used or "", redactions) or None,
             "error_message": _sanitize_text(request.error_message or "", redactions)
             or None,
             "steps_to_reproduce": _sanitize_text(
@@ -272,9 +303,9 @@ async def generate_bug_report(
         environment = _collect_environment()
         user_context = _collect_user_context()
         timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        support_contact = _resolve_support_contact()
 
         report = _format_report(
-            request=request,
             sanitized=sanitized,
             environment=environment,
             user_context=user_context,
@@ -284,5 +315,5 @@ async def generate_bug_report(
     return GenerateBugReportResponse(
         report=report,
         redactions_applied=sorted(redactions),
-        support_contact=SUPPORT_CONTACT,
+        support_contact=support_contact,
     )
