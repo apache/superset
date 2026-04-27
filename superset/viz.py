@@ -79,6 +79,10 @@ from superset.utils.core import (
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.hashing import hash_from_str
+from superset.utils.pandas_postprocessing.utils import (
+    escape_separator,
+    FLAT_COLUMN_SEPARATOR,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -747,6 +751,11 @@ class TimeTableViz(BaseViz):
         pt = df.pivot_table(index=DTTM_ALIAS, columns=columns, values=values)
         pt.index = pt.index.map(str)
         pt = pt.sort_index()
+        if isinstance(pt.columns, pd.MultiIndex):
+            pt.columns = [
+                FLAT_COLUMN_SEPARATOR.join(escape_separator(str(s)) for s in col)
+                for col in pt.columns
+            ]
         return {
             "records": pt.to_dict(orient="index"),
             "columns": list(pt.columns),
