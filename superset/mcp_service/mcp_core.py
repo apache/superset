@@ -356,11 +356,17 @@ class ModelGetInfoCore(BaseCore):
     def _find_by_slugified_title(self, identifier: str) -> Any:
         """Resolve a slug-like identifier by matching against slugified titles.
 
-        Loads rows allowed by the DAO's base_filter and compares
-        `_slugify(row.title)` to `_slugify(identifier)`. If multiple rows
-        match, logs a warning and returns the first one — collisions in
-        real dashboards are rare and the caller can always disambiguate
-        by id or UUID.
+        First narrows candidates with an ILIKE on the title column so the
+        DB does the heavy filtering — a slug like "world-banks-data" maps
+        to the pattern "%world%banks%data%". Then confirms each candidate
+        with `_slugify` to weed out coincidental ILIKE matches (e.g.
+        "Worldwide Bank Sandbox Data"). Without the ILIKE prefilter this
+        loaded every base_filter-allowed row and slugified them in Python
+        on each lookup.
+
+        If multiple rows match, logs a warning and returns the first —
+        collisions on real dashboards are rare and the caller can always
+        disambiguate by id or UUID.
         """
         if not self.title_column_name:
             return None
@@ -368,9 +374,22 @@ class ModelGetInfoCore(BaseCore):
         if not target:
             return None
 
+        model_class = self.dao_class.model_cls
+        title_col = getattr(model_class, self.title_column_name, None)
+        if title_col is None:
+            return None
+
+        parts = [p for p in target.split("-") if p]
+        # parts is non-empty: target is non-empty and contains at least one
+        # alphanumeric run. The pattern preserves the agent's word order so
+        # we don't return rows whose titles only happen to share the same
+        # tokens shuffled.
+        pattern = "%" + "%".join(parts) + "%"
+        candidates = self._base_filtered_query().filter(title_col.ilike(pattern)).all()
+
         matches = [
             obj
-            for obj in self._base_filtered_query().all()
+            for obj in candidates
             if _slugify(getattr(obj, self.title_column_name, "") or "") == target
         ]
         if not matches:

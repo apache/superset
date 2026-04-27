@@ -109,15 +109,17 @@ def _install_base_filtered_query(
 ) -> MagicMock:
     """Replace _base_filtered_query with a two-call mock.
 
-    The slug branch calls `.filter(...).one_or_none()`; the title branch
-    calls `.all()`. Returning a fresh MagicMock on each invocation keeps
-    those paths independent.
+    Both branches narrow with `.filter(...)` first: the slug branch then
+    calls `.one_or_none()`, the title branch calls `.all()`. Each call
+    to _base_filtered_query() returns a fresh query so the two paths
+    don't share state.
     """
     slug_query = MagicMock()
     slug_query.filter.return_value = slug_query
     slug_query.one_or_none.return_value = slug_result
 
     title_query = MagicMock()
+    title_query.filter.return_value = title_query
     title_query.all.return_value = title_rows
 
     mock = MagicMock(side_effect=[slug_query, title_query])
@@ -171,6 +173,35 @@ def test_not_found_error_when_no_title_match() -> None:
 
     assert isinstance(result, _FakeError)
     assert result.error_type == "not_found"
+
+
+def test_title_fallback_ilike_pattern_preserves_word_order() -> None:
+    """ILIKE pattern is built as %word1%word2%...% from the slug parts."""
+    core, _ = _build_core()
+    dashboard = _make_dashboard(id_=2, title="World Bank's Data", slug="")
+
+    # Capture the filter() argument so we can assert on the ILIKE pattern.
+    title_query = MagicMock()
+    title_query.filter.return_value = title_query
+    title_query.all.return_value = [dashboard]
+
+    slug_query = MagicMock()
+    slug_query.filter.return_value = slug_query
+    slug_query.one_or_none.return_value = None
+
+    core._base_filtered_query = MagicMock(  # type: ignore[method-assign]
+        side_effect=[slug_query, title_query]
+    )
+
+    # Replace the column's `ilike` so we can capture its argument.
+    ilike_capture = MagicMock(return_value=MagicMock())
+    title_col = core.dao_class.model_cls.dashboard_title  # type: ignore[union-attr]
+    title_col.ilike = ilike_capture
+
+    result = core.run_tool("world-banks-data")
+
+    assert isinstance(result, _FakeOutput)
+    ilike_capture.assert_called_once_with("%world%banks%data%")
 
 
 def test_title_fallback_respects_base_filter_rbac() -> None:
