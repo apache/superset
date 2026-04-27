@@ -206,6 +206,7 @@ export * from './Result';
 export {
   ThemedAgGridReact,
   type ThemedAgGridReactProps,
+  type AgGridContainerElement,
   setupAGGridModules,
   defaultModules,
 } from './ThemedAgGridReact';

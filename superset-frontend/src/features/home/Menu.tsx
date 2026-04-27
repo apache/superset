@@ -18,6 +18,7 @@
  */
 import { useState, useEffect } from 'react';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -176,6 +177,7 @@ const StyledCol = styled(Col)`
   ${({ theme }) => css`
     display: flex;
     gap: ${theme.sizeUnit * 4}px;
+    flex-wrap: wrap;
   `}
 `;
 
@@ -279,8 +281,10 @@ export function Menu({
     return {
       key: label,
       label,
-      icon: <Icons.DownOutlined iconSize="xs" />,
-      popupOffset: NAVBAR_MENU_POPUP_OFFSET,
+      ...(screens.md && {
+        icon: <Icons.DownOutlined iconSize="xs" />,
+        popupOffset: NAVBAR_MENU_POPUP_OFFSET,
+      }),
       children: childItems,
     };
   };
@@ -331,7 +335,7 @@ export function Menu({
     return <>{link}</>;
   };
   return (
-    <StyledHeader className="top" id="main-menu" role="navigation">
+    <StyledHeader className="top" id="main-menu" role="navigation" aria-label={t('Main navigation')}>
       <StyledRow>
         <StyledCol md={16} xs={24}>
           <Tooltip
@@ -348,7 +352,7 @@ export function Menu({
             </StyledBrandText>
           )}
           <StyledMainNav
-            mode="horizontal"
+            mode={screens.md ? 'horizontal' : 'inline'}
             data-test="navbar-top"
             className="main-nav"
             selectedKeys={activeTabs}
