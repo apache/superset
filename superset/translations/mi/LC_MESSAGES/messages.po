@@ -12077,8 +12077,15 @@ msgstr "Tuku"
 msgid "Subtitle"
 msgstr "Taitara-iti"
 
-msgid "Subtotal"
-msgstr "Tapeke-iti"
+msgid "Subtitle Font Size"
+msgstr "Rahi Momotuhi Taitara-iti"
+
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "Tapeke-iti (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "Tapeke-iti (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "Angitu"

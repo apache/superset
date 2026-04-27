@@ -12387,8 +12387,16 @@ msgstr "Senden"
 msgid "Subtitle"
 msgstr "Registerkartentitel"
 
-msgid "Subtotal"
-msgstr "Zwischensumme"
+#, fuzzy
+msgid "Subtitle Font Size"
+msgstr "Blasengröße"
+
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "Zwischensumme (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "Zwischensumme (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "Erfolg"

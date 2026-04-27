@@ -13169,8 +13169,12 @@ msgstr "Soumettre"
 msgid "Subtitle"
 msgstr "Titre de l’onglet"
 
-msgid "Subtotal"
-msgstr "Sous-total"
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "Sous-total (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "Sous-total (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "Réussite"

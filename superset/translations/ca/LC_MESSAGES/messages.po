@@ -12164,8 +12164,15 @@ msgstr "Enviar"
 msgid "Subtitle"
 msgstr "Subtítol"
 
-msgid "Subtotal"
-msgstr "Subtotal"
+msgid "Subtitle Font Size"
+msgstr "Mida de Font del Subtítol"
+
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "Subtotal (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "Subtotal (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "Èxit"

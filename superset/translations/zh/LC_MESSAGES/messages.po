@@ -12233,8 +12233,16 @@ msgstr "提交"
 msgid "Subtitle"
 msgstr "选项卡标题"
 
-msgid "Subtotal"
+#, fuzzy
+msgid "Subtitle Font Size"
+msgstr "气泡尺寸"
+
+msgid "Subvalue (%(aggfunc)s)"
 msgstr ""
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr ""
+
 
 msgid "Success"
 msgstr "成功"

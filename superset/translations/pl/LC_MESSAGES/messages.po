@@ -12768,8 +12768,16 @@ msgstr "Zatwierdź"
 msgid "Subtitle"
 msgstr "Tytuł zakładki"
 
-msgid "Subtotal"
-msgstr "Suma częściowa"
+#, fuzzy
+msgid "Subtitle Font Size"
+msgstr "Rozmiar bąbelków"
+
+msgid "Subvalue (%(aggfunc)s)"
+msgstr "Suma częściowa (%(aggfunc)s)"
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr "Suma częściowa (%(aggregatorName)s)"
+
 
 msgid "Success"
 msgstr "Sukces"
