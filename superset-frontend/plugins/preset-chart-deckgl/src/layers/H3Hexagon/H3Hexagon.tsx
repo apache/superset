@@ -24,13 +24,14 @@ import { createDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { createTooltipContent } from '../../utilities/tooltipUtils';
 import sandboxedEval from '../../utils/sandbox';
+import { H3Feature } from './transformProps';
 
 function defaultTooltipContent(_formData: QueryFormData) {
   const TooltipContent = (o: JsonObject) => {
-    const obj = o.object as any;
+    const obj = o.object as H3Feature | undefined;
     return (
       <div className="deckgl-tooltip">
-        <TooltipRow label={`${t('H3 Index')}: `} value={obj?.hexagon} />
+        <TooltipRow label={`${t('H3 Index')}: `} value={obj?.hexagon ?? ''} />
         {obj?.elevation !== undefined && (
           <TooltipRow label={`${t('Value')}: `} value={`${obj.elevation}`} />
         )}
@@ -41,11 +42,11 @@ function defaultTooltipContent(_formData: QueryFormData) {
   return TooltipContent;
 }
 
-export function getPoints(data: JsonObject[]) {
+export function getPoints(data: H3Feature[]) {
   const points: [number, number][] = [];
 
-  data.forEach((d: JsonObject) => {
-    const hexagon = d.hexagon;
+  data.forEach(d => {
+    const { hexagon } = d;
     if (!hexagon) {
       return;
     }
