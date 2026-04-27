@@ -460,10 +460,18 @@ class TestGetInstanceInfoCurrentUserViaMCP:
 # ---------------------------------------------------------------------------
 
 
-def test_chart_filter_rejects_created_by_fk() -> None:
-    """Test that ChartFilter rejects user-directory columns."""
-    with pytest.raises(ValidationError):
-        ChartFilter(col="created_by_fk", opr="eq", value=42)
+def test_chart_filter_rejects_user_directory_columns_other_than_fk() -> None:
+    """ChartFilter still rejects user-directory columns that expose names."""
+    for col in ("created_by_name", "owners", "changed_by"):
+        with pytest.raises(ValidationError):
+            ChartFilter(col=col, opr="eq", value="anything")
+
+
+def test_chart_filter_accepts_created_and_changed_by_fk() -> None:
+    """ChartFilter allows filtering by created_by_fk / changed_by_fk (user IDs)."""
+    for col in ("created_by_fk", "changed_by_fk"):
+        f = ChartFilter(col=col, opr="eq", value=42)
+        assert f.col == col
 
 
 def test_chart_filter_rejects_invalid_column():
@@ -472,10 +480,18 @@ def test_chart_filter_rejects_invalid_column():
         ChartFilter(col="nonexistent_column", opr="eq", value=42)
 
 
-def test_dashboard_filter_rejects_created_by_fk():
-    """Test that DashboardFilter rejects user-directory columns."""
-    with pytest.raises(ValidationError):
-        DashboardFilter(col="created_by_fk", opr="eq", value=42)
+def test_dashboard_filter_rejects_user_directory_columns_other_than_fk() -> None:
+    """DashboardFilter still rejects user-directory columns that expose names."""
+    for col in ("created_by_name", "owners", "changed_by"):
+        with pytest.raises(ValidationError):
+            DashboardFilter(col=col, opr="eq", value="anything")
+
+
+def test_dashboard_filter_accepts_created_and_changed_by_fk() -> None:
+    """DashboardFilter allows filtering by created_by_fk / changed_by_fk."""
+    for col in ("created_by_fk", "changed_by_fk"):
+        f = DashboardFilter(col=col, opr="eq", value=42)
+        assert f.col == col
 
 
 def test_dashboard_filter_rejects_invalid_column():

@@ -29,6 +29,7 @@ from superset.mcp_service.constants import ModelType
 from superset.mcp_service.privacy import (
     filter_user_directory_columns,
     USER_DIRECTORY_FIELDS,
+    USER_FILTER_FIELDS,
 )
 from superset.mcp_service.utils import _is_uuid
 
@@ -612,7 +613,9 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         self.default_sort = default_sort
         self.default_sort_direction = default_sort_direction
         self.exclude_filter_columns = set(exclude_filter_columns or set())
-        self.exclude_filter_columns.update(USER_DIRECTORY_FIELDS)
+        # Hide user-directory columns from filter discovery, except the small
+        # set callers may legitimately filter by ID (resolved via find_users).
+        self.exclude_filter_columns.update(USER_DIRECTORY_FIELDS - USER_FILTER_FIELDS)
 
     def _get_filter_columns(self) -> Dict[str, List[str]]:
         """Get filterable columns and operators from the DAO."""

@@ -90,6 +90,10 @@ async def list_charts(
 
     Sortable columns for order_column: id, slice_name, viz_type, description,
     changed_on, created_on
+
+    To filter by a person, call find_users to resolve the name to a user ID,
+    then pass it as a filter: filters=[{"col": "created_by_fk", "opr": "eq",
+    "value": <id>}] (or "changed_by_fk"). Do not pass the name as search.
     """
     await ctx.info(
         "Listing charts: page=%s, page_size=%s, search=%s"

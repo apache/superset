@@ -98,6 +98,10 @@ async def list_datasets(
 
     Sortable columns for order_column: id, table_name, schema, changed_on,
     created_on
+
+    To filter by a person, call find_users to resolve the name to a user ID,
+    then pass it as a filter: filters=[{"col": "created_by_fk", "opr": "eq",
+    "value": <id>}] (or "changed_by_fk"). Do not pass the name as search.
     """
     if ctx is None:
         raise RuntimeError("FastMCP context is required for list_datasets")

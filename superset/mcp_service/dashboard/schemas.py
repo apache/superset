@@ -159,12 +159,16 @@ class DashboardFilter(ColumnOperator):
         "dashboard_title",
         "published",
         "favorite",
+        "created_by_fk",
+        "changed_by_fk",
     ] = Field(
         ...,
         description=(
             "Column to filter on. Use "
             "get_schema(model_type='dashboard') for available "
-            "filter columns."
+            "filter columns. To filter by a person, first call find_users to "
+            "resolve a name to a user ID, then filter by created_by_fk or "
+            "changed_by_fk with that integer ID."
         ),
     )
     opr: ColumnOperatorEnum = Field(
