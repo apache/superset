@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useHistory } from 'react-router-dom';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import { useDownloadMenuItems } from 'src/dashboard/components/menu/DownloadMenuItems';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
-import CssEditor from 'src/dashboard/components/CssEditor';
-import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import SaveModal from 'src/dashboard/components/SaveModal';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
@@ -36,7 +36,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
-import { updateDashboardTheme } from 'src/dashboard/actions/dashboardInfo';
+import { usePermissions } from 'src/hooks/usePermissions';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -54,46 +54,36 @@ export const useHeaderActionsMenu = ({
   userCanShare,
   userCanSave,
   userCanCurate,
+  userCanExport,
   isLoading,
-  refreshLimit,
-  refreshWarning,
   lastModifiedTime,
   addSuccessToast,
   addDangerToast,
   forceRefreshAllCharts,
   showPropertiesModal,
+  showRefreshModal,
   showReportModal,
   manageEmbedded,
-  onChange,
-  updateCss,
-  startPeriodicRender,
-  setRefreshFrequency,
   dashboardTitle,
   logEvent,
   setCurrentReportDeleting,
-}: HeaderDropdownProps) => {
-  const dispatch = useDispatch();
-  const [css, setCss] = useState(customCss || '');
+}: HeaderDropdownProps): [
+  ReactElement,
+  boolean,
+  Dispatch<SetStateAction<boolean>>,
+] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const { canExportImage } = usePermissions();
+  const history = useHistory();
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
 
   useEffect(() => {
-    if (customCss !== css) {
-      setCss(customCss || '');
+    if (customCss) {
       injectCustomCss(customCss);
     }
-  }, [css, customCss]);
-
-  const handleThemeChange = useCallback(
-    async (themeId: number | null) => {
-      // Save the theme to the dashboard
-      // The CrudThemeProvider will handle applying the theme to dashboard content only
-      dispatch(updateDashboardTheme(themeId));
-    },
-    [dispatch],
-  );
+  }, [customCss]);
 
   const handleMenuClick = useCallback(
     ({ key }: { key: string }) => {
@@ -105,6 +95,9 @@ export const useHeaderActionsMenu = ({
         case MenuKeys.EditProperties:
           showPropertiesModal();
           break;
+        case MenuKeys.AutorefreshModal:
+          showRefreshModal();
+          break;
         case MenuKeys.ToggleFullscreen: {
           const isCurrentlyStandalone =
             Number(getUrlParam(URL_PARAMS.standalone)) === 1;
@@ -114,7 +107,7 @@ export const useHeaderActionsMenu = ({
             hash: window.location.hash,
             standalone: isCurrentlyStandalone ? null : 1,
           });
-          window.location.replace(url);
+          history.replace(url);
           break;
         }
         case MenuKeys.ManageEmbedded:
@@ -129,24 +122,10 @@ export const useHeaderActionsMenu = ({
       forceRefreshAllCharts,
       addSuccessToast,
       showPropertiesModal,
+      showRefreshModal,
       manageEmbedded,
+      history,
     ],
-  );
-
-  const changeCss = useCallback(
-    (newCss: string) => {
-      onChange();
-      updateCss(newCss);
-    },
-    [onChange, updateCss],
-  );
-
-  const changeRefreshInterval = useCallback(
-    (refreshInterval: number, isPersistent: boolean) => {
-      setRefreshFrequency(refreshInterval, isPersistent);
-      startPeriodicRender(refreshInterval * 1000);
-    },
-    [setRefreshFrequency, startPeriodicRender],
   );
 
   const emailSubject = useMemo(
@@ -186,17 +165,21 @@ export const useHeaderActionsMenu = ({
   const downloadMenuItem = useDownloadMenuItems({
     pdfMenuItemTitle: t('Export to PDF'),
     imageMenuItemTitle: t('Download as Image'),
-    dashboardTitle,
+    dashboardTitle: dashboardTitle ?? '',
     dashboardId,
     title: t('Download'),
     disabled: isLoading,
     logEvent,
+    userCanExport,
+    canExportImage,
   });
 
   const reportMenuItem = useHeaderReportMenuItems({
     dashboardId: dashboardInfo?.id,
     showReportModal,
-    setCurrentReportDeleting,
+    setCurrentReportDeleting: setCurrentReportDeleting as (
+      report: unknown,
+    ) => void,
   });
 
   // Helper function to create menu items for components with triggerNode
@@ -210,8 +193,6 @@ export const useHeaderActionsMenu = ({
 
   const menu = useMemo(() => {
     const isEmbedded = !dashboardInfo?.userId;
-    const refreshIntervalOptions =
-      dashboardInfo?.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
 
     const menuItems: MenuItem[] = [];
 
@@ -220,6 +201,16 @@ export const useHeaderActionsMenu = ({
       menuItems.push({
         key: MenuKeys.RefreshDashboard,
         label: t('Refresh dashboard'),
+        disabled: isLoading,
+      });
+
+      // Auto-refresh settings (session-only in view mode)
+      menuItems.push({
+        key: MenuKeys.AutorefreshModal,
+        label:
+          refreshFrequency > 0
+            ? t('Update auto-refresh')
+            : t('Set auto-refresh'),
         disabled: isLoading,
       });
     }
@@ -242,23 +233,6 @@ export const useHeaderActionsMenu = ({
       });
     }
 
-    // Edit CSS
-    if (editMode) {
-      menuItems.push(
-        createModalMenuItem(
-          MenuKeys.EditCss,
-          <CssEditor
-            triggerNode={<div>{t('Theme & CSS')}</div>}
-            initialCss={css}
-            onChange={changeCss}
-            addDangerToast={addDangerToast}
-            currentThemeId={dashboardInfo.theme?.id || null}
-            onThemeChange={handleThemeChange}
-          />,
-        ),
-      );
-    }
-
     // Divider
     menuItems.push({ type: 'divider' });
 
@@ -271,22 +245,22 @@ export const useHeaderActionsMenu = ({
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
             dashboardId={dashboardId}
-            dashboardTitle={dashboardTitle}
+            dashboardTitle={dashboardTitle ?? ''}
             dashboardInfo={dashboardInfo}
             saveType={SAVE_TYPE_NEWDASHBOARD}
             layout={layout}
-            expandedSlices={expandedSlices}
+            expandedSlices={expandedSlices ?? {}}
             refreshFrequency={refreshFrequency}
             shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
             lastModifiedTime={lastModifiedTime}
-            customCss={customCss}
+            customCss={customCss ?? ''}
             colorNamespace={colorNamespace}
             colorScheme={colorScheme}
             onSave={onSave}
             triggerNode={
               <div data-test="save-as-menu-item">{t('Save as')}</div>
             }
-            canOverwrite={userCanEdit}
+            canOverwrite={userCanEdit ?? false}
           />,
         ),
       );
@@ -308,8 +282,14 @@ export const useHeaderActionsMenu = ({
       });
     }
 
-    // Divider
-    menuItems.push({ type: 'divider' });
+    // Only add divider if there are items after it
+    const hasItemsAfterDivider =
+      (!editMode && reportMenuItem) ||
+      (editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes));
+
+    if (hasItemsAfterDivider) {
+      menuItems.push({ type: 'divider' });
+    }
 
     // Report dropdown
     if (!editMode && reportMenuItem) {
@@ -328,23 +308,6 @@ export const useHeaderActionsMenu = ({
       );
     }
 
-    // Auto-refresh interval
-    menuItems.push(
-      createModalMenuItem(
-        MenuKeys.AutorefreshModal,
-        <RefreshIntervalModal
-          addSuccessToast={addSuccessToast}
-          refreshFrequency={refreshFrequency}
-          refreshLimit={refreshLimit}
-          refreshWarning={refreshWarning}
-          onChange={changeRefreshInterval}
-          editMode={editMode}
-          refreshIntervalOptions={refreshIntervalOptions}
-          triggerNode={<div>{t('Set auto-refresh interval')}</div>}
-        />,
-      ),
-    );
-
     return (
       <Menu
         selectable={false}
@@ -356,11 +319,8 @@ export const useHeaderActionsMenu = ({
   }, [
     addDangerToast,
     addSuccessToast,
-    changeRefreshInterval,
-    changeCss,
     colorNamespace,
     colorScheme,
-    css,
     customCss,
     dashboardId,
     dashboardInfo,
@@ -374,8 +334,6 @@ export const useHeaderActionsMenu = ({
     layout,
     onSave,
     refreshFrequency,
-    refreshLimit,
-    refreshWarning,
     reportMenuItem,
     shareMenuItems,
     shouldPersistRefreshFrequency,

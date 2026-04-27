@@ -23,7 +23,7 @@ from typing import Any, TYPE_CHECKING
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -43,13 +43,61 @@ class YDBEngineSpec(BaseEngineSpec):
     sqlalchemy_uri_placeholder = "ydb://{host}:{port}/{database_name}"
 
     # pylint: disable=invalid-name
-    encrypted_extra_sensitive_fields = {"$.connect_args.credentials", "$.credentials"}
+    encrypted_extra_sensitive_fields = {
+        "$.connect_args.credentials": "Connection Credentials",
+        "$.credentials": "Credentials",
+    }
 
     disable_ssh_tunneling = False
 
     supports_file_upload = False
 
     allows_alias_in_orderby = True
+
+    metadata = {
+        "description": "YDB is a distributed SQL database by Yandex.",
+        "logo": "ydb.svg",
+        "homepage_url": "https://ydb.tech/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["ydb-sqlalchemy"],
+        "connection_string": "ydb://{host}:{port}/{database_name}",
+        "default_port": 2135,
+        "engine_parameters": [
+            {
+                "name": "Protocol",
+                "description": "Specify connection protocol (default: grpc)",
+                "secure_extra": {"protocol": "grpcs"},
+            },
+        ],
+        "authentication_methods": [
+            {
+                "name": "Static Credentials",
+                "description": "Username/password authentication",
+                "secure_extra": {"credentials": {"username": "...", "password": "..."}},
+            },
+            {
+                "name": "Access Token",
+                "description": "Token-based authentication",
+                "secure_extra": {"credentials": {"token": "..."}},
+            },
+            {
+                "name": "Service Account",
+                "description": "Service account JSON credentials",
+                "secure_extra": {
+                    "credentials": {
+                        "service_account_json": {
+                            "id": "...",
+                            "service_account_id": "...",
+                            "private_key": "...",
+                        },
+                    },
+                },
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",

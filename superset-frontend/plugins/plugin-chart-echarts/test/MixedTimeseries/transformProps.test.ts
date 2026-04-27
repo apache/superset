@@ -16,7 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme, VizType } from '@superset-ui/core';
+import {
+  AnnotationStyle,
+  AnnotationType,
+  AnnotationSourceType,
+  DataRecord,
+  FormulaAnnotationLayer,
+  IntervalAnnotationLayer,
+  VizType,
+  ChartDataResponseResult,
+} from '@superset-ui/core';
 import {
   LegendOrientation,
   LegendType,
@@ -27,6 +36,48 @@ import {
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesProps,
 } from '../../src/MixedTimeseries/types';
+import { DEFAULT_FORM_DATA } from '../../src/MixedTimeseries/types';
+import { createEchartsTimeseriesTestChartProps } from '../helpers';
+import type { SeriesOption } from 'echarts';
+
+/**
+ * Creates a partial ChartDataResponseResult for testing.
+ * Only includes the fields needed for tests, with sensible defaults for required fields.
+ */
+function createTestQueryData(
+  data: unknown[],
+  overrides?: Partial<ChartDataResponseResult> & {
+    label_map?: Record<string, string[]>;
+  },
+): ChartDataResponseResult {
+  return {
+    annotation_data: null,
+    cache_key: null,
+    cache_timeout: null,
+    cached_dttm: null,
+    queried_dttm: null,
+    data: data as DataRecord[],
+    colnames: [],
+    coltypes: [],
+    error: null,
+    is_cached: false,
+    query: '',
+    rowcount: data.length,
+    sql_rowcount: data.length,
+    stacktrace: null,
+    status: 'success',
+    from_dttm: null,
+    to_dttm: null,
+    label_map: {},
+    ...overrides,
+  } as ChartDataResponseResult & { label_map?: Record<string, string[]> };
+}
+
+/** Defaults for createEchartsTimeseriesTestChartProps in Mixed Timeseries tests. */
+const MIXED_TIMESERIES_CHART_PROPS_DEFAULTS = {
+  defaultFormData: DEFAULT_FORM_DATA,
+  defaultVizType: 'mixed_timeseries' as const,
+};
 
 const formData: EchartsMixedTimeseriesFormData = {
   annotationLayers: [],
@@ -59,11 +110,11 @@ const formData: EchartsMixedTimeseriesFormData = {
   truncateYAxisSecondary: false,
   xAxisLabelRotation: 0,
   xAxisTitle: '',
-  xAxisTitleMargin: 0,
+  xAxisTitleMargin: 40,
   yAxisBounds: [undefined, undefined],
   yAxisBoundsSecondary: [undefined, undefined],
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 50,
   yAxisTitlePosition: '',
   yAxisTitleSecondary: '',
   zoomable: false,
@@ -81,51 +132,31 @@ const formData: EchartsMixedTimeseriesFormData = {
   forecastPeriods: [],
   forecastInterval: 0,
   forecastSeasonalityDaily: 0,
+  legendSort: null,
 };
 
-const queriesData = [
-  {
-    data: [
-      { boy: 1, girl: 2, ds: 599616000000 },
-      { boy: 3, girl: 4, ds: 599916000000 },
-    ],
-    label_map: {
-      ds: ['ds'],
-      boy: ['boy'],
-      girl: ['girl'],
-    },
-  },
-  {
-    data: [
-      { boy: 1, girl: 2, ds: 599616000000 },
-      { boy: 3, girl: 4, ds: 599916000000 },
-    ],
-    label_map: {
-      ds: ['ds'],
-      boy: ['boy'],
-      girl: ['girl'],
-    },
-  },
+const defaultQueryRows = [
+  { boy: 1, girl: 2, ds: 599616000000 },
+  { boy: 3, girl: 4, ds: 599916000000 },
+];
+const defaultLabelMap = { ds: ['ds'], boy: ['boy'], girl: ['girl'] };
+
+const queriesData: ChartDataResponseResult[] = [
+  createTestQueryData(defaultQueryRows, { label_map: defaultLabelMap }),
+  createTestQueryData(defaultQueryRows, { label_map: defaultLabelMap }),
 ];
 
-const chartPropsConfig = {
-  formData,
-  width: 800,
-  height: 600,
-  queriesData,
-  theme: supersetTheme,
-};
-
-it('should transform chart props for viz with showQueryIdentifiers=false', () => {
-  const chartPropsConfigWithoutIdentifiers = {
-    ...chartPropsConfig,
-    formData: {
-      ...formData,
-      showQueryIdentifiers: false,
-    },
-  };
-  const chartProps = new ChartProps(chartPropsConfigWithoutIdentifiers);
-  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+test('should transform chart props for viz with showQueryIdentifiers=false', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: { ...formData, showQueryIdentifiers: false },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps);
 
   // Check that series IDs don't include query identifiers
   const seriesIds = (transformed.echartOptions.series as any[]).map(
@@ -137,18 +168,37 @@ it('should transform chart props for viz with showQueryIdentifiers=false', () =>
   expect(seriesIds).not.toContain('sum__num (Query A), boy');
   expect(seriesIds).not.toContain('sum__num (Query B), girl');
   expect(seriesIds).not.toContain('sum__num (Query B), boy');
+
+  // Check that series name include query identifiers
+  const seriesName = (transformed.echartOptions.series as any[]).map(
+    (s: any) => s.name,
+  );
+  expect(seriesName).toContain('sum__num, girl');
+  expect(seriesName).toContain('sum__num, boy');
+  expect(seriesName).not.toContain('sum__num (Query A), girl');
+  expect(seriesName).not.toContain('sum__num (Query A), boy');
+  expect(seriesName).not.toContain('sum__num (Query B), girl');
+  expect(seriesName).not.toContain('sum__num (Query B), boy');
+
+  expect((transformed.echartOptions.legend as any).data).toEqual([
+    'sum__num, girl',
+    'sum__num, boy',
+    'sum__num, girl',
+    'sum__num, boy',
+  ]);
 });
 
-it('should transform chart props for viz with showQueryIdentifiers=true', () => {
-  const chartPropsConfigWithIdentifiers = {
-    ...chartPropsConfig,
-    formData: {
-      ...formData,
-      showQueryIdentifiers: true,
-    },
-  };
-  const chartProps = new ChartProps(chartPropsConfigWithIdentifiers);
-  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+test('should transform chart props for viz with showQueryIdentifiers=true', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: { ...formData, showQueryIdentifiers: true },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps);
 
   // Check that series IDs include query identifiers
   const seriesIds = (transformed.echartOptions.series as any[]).map(
@@ -160,4 +210,289 @@ it('should transform chart props for viz with showQueryIdentifiers=true', () => 
   expect(seriesIds).toContain('sum__num (Query B), boy');
   expect(seriesIds).not.toContain('sum__num, girl');
   expect(seriesIds).not.toContain('sum__num, boy');
+
+  // Check that series name include query identifiers
+  const seriesName = (transformed.echartOptions.series as any[]).map(
+    (s: any) => s.name,
+  );
+  expect(seriesName).toContain('sum__num (Query A), girl');
+  expect(seriesName).toContain('sum__num (Query A), boy');
+  expect(seriesName).toContain('sum__num (Query B), girl');
+  expect(seriesName).toContain('sum__num (Query B), boy');
+  expect(seriesName).not.toContain('sum__num, girl');
+  expect(seriesName).not.toContain('sum__num, boy');
+
+  expect((transformed.echartOptions.legend as any).data).toEqual([
+    'sum__num (Query A), girl',
+    'sum__num (Query A), boy',
+    'sum__num (Query B), girl',
+    'sum__num (Query B), boy',
+  ]);
+});
+
+describe('legend sorting', () => {
+  const getChartProps = (overrides = {}) =>
+    createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: queriesData,
+      formData: {
+        ...formData,
+        ...overrides,
+        showQueryIdentifiers: true,
+      },
+      queriesData,
+    });
+
+  test('sort legend by data', () => {
+    const chartProps = getChartProps({
+      legendSort: null,
+    });
+    const transformed = transformProps(chartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'sum__num (Query A), girl',
+      'sum__num (Query A), boy',
+      'sum__num (Query B), girl',
+      'sum__num (Query B), boy',
+    ]);
+  });
+
+  test('sort legend by label ascending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'asc',
+    });
+    const transformed = transformProps(chartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'sum__num (Query A), boy',
+      'sum__num (Query A), girl',
+      'sum__num (Query B), boy',
+      'sum__num (Query B), girl',
+    ]);
+  });
+
+  test('sort legend by label descending', () => {
+    const chartProps = getChartProps({
+      legendSort: 'desc',
+    });
+    const transformed = transformProps(chartProps);
+
+    expect((transformed.echartOptions.legend as any).data).toEqual([
+      'sum__num (Query B), girl',
+      'sum__num (Query B), boy',
+      'sum__num (Query A), girl',
+      'sum__num (Query A), boy',
+    ]);
+  });
+});
+
+test('legend margin: top orientation sets grid.top correctly', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      legendMargin: 250,
+      showLegend: true,
+    },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.grid as any).top).toEqual(270);
+});
+
+test('legend margin: bottom orientation sets grid.bottom correctly', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      legendMargin: 250,
+      showLegend: true,
+      legendOrientation: LegendOrientation.Bottom,
+    },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.grid as any).bottom).toEqual(270);
+});
+
+test('legend margin: left orientation sets grid.left correctly', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      legendMargin: 250,
+      showLegend: true,
+      legendOrientation: LegendOrientation.Left,
+    },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.grid as any).left).toEqual(270);
+});
+
+test('legend margin: right orientation sets grid.right correctly', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      legendMargin: 270,
+      showLegend: true,
+      legendOrientation: LegendOrientation.Right,
+    },
+    queriesData,
+  });
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.grid as any).right).toEqual(270);
+});
+
+test('should exclude unnamed annotation helper series from legend data', () => {
+  const interval: IntervalAnnotationLayer = {
+    annotationType: AnnotationType.Interval,
+    name: 'My Interval',
+    show: true,
+    showLabel: true,
+    sourceType: AnnotationSourceType.Table,
+    titleColumn: '',
+    timeColumn: 'start',
+    intervalEndColumn: 'end',
+    descriptionColumns: [],
+    style: AnnotationStyle.Dashed,
+    value: 2,
+  };
+
+  const annotationData = {
+    'My Interval': {
+      columns: ['start', 'end', 'title'],
+      records: [
+        {
+          start: 2000,
+          end: 3000,
+          title: 'My Title',
+        },
+      ],
+    },
+  };
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [],
+    formData: {
+      ...formData,
+      annotationLayers: [interval],
+      showLegend: true,
+      showQueryIdentifiers: true,
+    },
+    queriesData: [
+      createTestQueryData(defaultQueryRows, {
+        label_map: defaultLabelMap,
+        annotation_data: annotationData,
+      }),
+      createTestQueryData(defaultQueryRows, {
+        label_map: defaultLabelMap,
+        annotation_data: annotationData,
+      }),
+    ],
+  });
+  const transformed = transformProps(chartProps);
+
+  expect((transformed.echartOptions.legend as any).data).toEqual([
+    'sum__num (Query A), girl',
+    'sum__num (Query A), boy',
+    'sum__num (Query B), girl',
+    'sum__num (Query B), boy',
+  ]);
+});
+
+test('should add a formula annotation when X-axis column has dataset-level label', () => {
+  const formula: FormulaAnnotationLayer = {
+    name: 'My Formula',
+    annotationType: AnnotationType.Formula,
+    value: 'x*2',
+    style: AnnotationStyle.Solid,
+    show: true,
+    showLabel: true,
+  };
+  const timeColumnName = 'ds';
+  const timeColumnLabel = 'Time Label';
+  const testData = [
+    {
+      [timeColumnLabel]: 599616000000,
+      boy: 1,
+      girl: 2,
+    },
+    {
+      [timeColumnLabel]: 599916000000,
+      boy: 3,
+      girl: 4,
+    },
+  ];
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [],
+    formData: {
+      ...formData,
+      x_axis: timeColumnName,
+      annotationLayers: [formula],
+    },
+    queriesData: [
+      createTestQueryData(testData, {
+        label_map: {
+          [timeColumnName]: [timeColumnLabel],
+          boy: ['boy'],
+          girl: ['girl'],
+        },
+      }),
+      createTestQueryData(testData, {
+        label_map: {
+          [timeColumnName]: [timeColumnLabel],
+          boy: ['boy'],
+          girl: ['girl'],
+        },
+      }),
+    ],
+    datasource: {
+      verboseMap: {
+        [timeColumnName]: timeColumnLabel,
+      },
+      columnFormats: {},
+      currencyFormats: {},
+    },
+  });
+  const result = transformProps(chartProps);
+  const formulaSeries = (
+    result.echartOptions.series as SeriesOption[] | undefined
+  )?.find((s: SeriesOption) => s.name === 'My Formula');
+  expect(formulaSeries).toBeDefined();
+  expect(formulaSeries?.data).toBeDefined();
+  expect(Array.isArray(formulaSeries?.data)).toBe(true);
+  expect((formulaSeries!.data as unknown[]).length).toBeGreaterThan(0);
 });

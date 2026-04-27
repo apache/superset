@@ -19,7 +19,8 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { styled, t, useTheme, css } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { MenuProps } from '@superset-ui/core/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -50,6 +51,7 @@ const StyledMenuLabel = styled.span`
 const CROSS_FILTERS_MENU_KEY = 'cross-filters-menu-key';
 const CROSS_FILTERS_SCOPING_MENU_KEY = 'cross-filters-scoping-menu-key';
 const ADD_EDIT_FILTERS_MENU_KEY = 'add-edit-filters-menu-key';
+const CHART_CUSTOMIZATION_MENU_KEY = 'chart-customization-menu-key';
 
 const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
   o === FilterBarOrientation.Vertical || o === FilterBarOrientation.Horizontal;
@@ -82,7 +84,7 @@ const FilterBarSettings = () => {
 
   const { openFilterConfigModal, FilterConfigModalComponent } =
     useFilterConfigModal({
-      createNewOnOpen: filterValues.length === 0,
+      createNewOnOpen: false,
       dashboardId,
     });
 
@@ -134,6 +136,8 @@ const FilterBarSettings = () => {
         openScopingModal();
       } else if (selectedKey === ADD_EDIT_FILTERS_MENU_KEY) {
         openFilterConfigModal();
+      } else if (selectedKey === CHART_CUSTOMIZATION_MENU_KEY) {
+        openFilterConfigModal();
       }
     },
     [
@@ -167,7 +171,7 @@ const FilterBarSettings = () => {
         key: ADD_EDIT_FILTERS_MENU_KEY,
         label: (
           <FilterConfigurationLink>
-            {t('Add or edit filters')}
+            {t('Add or edit filters and controls')}
           </FilterConfigurationLink>
         ),
       });
@@ -190,6 +194,7 @@ const FilterBarSettings = () => {
       items.push({
         key: 'placement',
         label: t('Orientation of filter bar'),
+        className: 'filter-bar-orientation-submenu',
         children: [
           {
             key: FilterBarOrientation.Vertical,
@@ -200,10 +205,8 @@ const FilterBarSettings = () => {
                   FilterBarOrientation.Vertical && (
                   <Icons.CheckOutlined
                     iconColor={theme.colorPrimary}
-                    css={css`
-                      vertical-align: -${theme.sizeUnit * 0.03125}em;
-                    `}
                     iconSize="m"
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>
@@ -221,13 +224,13 @@ const FilterBarSettings = () => {
                     css={css`
                       vertical-align: middle;
                     `}
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>
             ),
           },
         ],
-        ...{ 'data-test': 'dropdown-selectable-icon-submenu' },
       });
     }
     return items;
@@ -239,7 +242,7 @@ const FilterBarSettings = () => {
     filterValues,
   ]);
 
-  if (!menuItems.length) {
+  if (!menuItems.length || !canEdit) {
     return null;
   }
 
@@ -252,6 +255,18 @@ const FilterBarSettings = () => {
           selectedKeys: [selectedFilterBarOrientation],
         }}
         trigger={['click']}
+        popupRender={menu => (
+          <div
+            css={css`
+              .filter-bar-orientation-submenu.ant-dropdown-menu-submenu-selected
+                > .ant-dropdown-menu-submenu-title {
+                color: inherit;
+              }
+            `}
+          >
+            {menu}
+          </div>
+        )}
       >
         <Button
           buttonStyle="link"

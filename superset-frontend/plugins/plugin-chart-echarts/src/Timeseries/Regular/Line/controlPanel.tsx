@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { getColumnLabel, QueryFormColumn } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
+  checkColumnType,
   ControlPanelConfig,
   ControlPanelsContainerProps,
   ControlSubSectionHeader,
@@ -27,7 +30,6 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { EchartsTimeseriesSeriesType } from '../../types';
 import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
@@ -42,6 +44,7 @@ import {
   xAxisBounds,
   xAxisLabelRotation,
   xAxisLabelInterval,
+  forceMaxInterval,
 } from '../../../controls';
 
 const {
@@ -52,7 +55,6 @@ const {
   minorSplitLine,
   opacity,
   rowLimit,
-  seriesType,
   truncateYAxis,
   yAxisBounds,
 } = DEFAULT_FORM_DATA;
@@ -70,27 +72,6 @@ const config: ControlPanelConfig = {
         ...seriesOrderSection,
         ['color_scheme'],
         ['time_shift_color'],
-        [
-          {
-            name: 'seriesType',
-            config: {
-              type: 'SelectControl',
-              label: t('Series Style'),
-              renderTrigger: true,
-              default: seriesType,
-              choices: [
-                [EchartsTimeseriesSeriesType.Line, t('Line')],
-                [EchartsTimeseriesSeriesType.Scatter, t('Scatter')],
-                [EchartsTimeseriesSeriesType.Smooth, t('Smooth Line')],
-                [EchartsTimeseriesSeriesType.Bar, t('Bar')],
-                [EchartsTimeseriesSeriesType.Start, t('Step - start')],
-                [EchartsTimeseriesSeriesType.Middle, t('Step - middle')],
-                [EchartsTimeseriesSeriesType.End, t('Step - end')],
-              ],
-              description: t('Series chart type (line, bar etc)'),
-            },
-          },
-        ],
         ...showValueSection,
         [
           {
@@ -168,11 +149,36 @@ const config: ControlPanelConfig = {
               ...sharedControls.x_axis_time_format,
               default: 'smart_date',
               description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Temporal],
+                ),
+              disableStash: true,
+              resetOnHide: false,
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_number_format',
+            config: {
+              ...sharedControls.x_axis_number_format,
+              default: '~g',
+              mapStateToProps: undefined,
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                checkColumnType(
+                  getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+                  controls?.datasource?.datasource,
+                  [GenericDataType.Numeric],
+                ),
             },
           },
         ],
         [xAxisLabelRotation],
         [xAxisLabelInterval],
+        [forceMaxInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
@@ -237,6 +243,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['echart_options'],
       ],
     },
   ],

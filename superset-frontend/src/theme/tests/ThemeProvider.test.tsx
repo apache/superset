@@ -17,7 +17,11 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { type ThemeContextType, Theme, ThemeMode } from '@superset-ui/core';
+import {
+  type ThemeContextType,
+  Theme,
+  ThemeMode,
+} from '@apache-superset/core/theme';
 import { act, render, screen } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react-hooks';
 import { SupersetThemeProvider, useThemeContext } from '../ThemeProvider';
@@ -61,6 +65,7 @@ const createWrapper =
     </SupersetThemeProvider>
   );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SupersetThemeProvider', () => {
   let mockThemeController: jest.Mocked<ThemeController>;
   let mockOnChangeCallback: jest.Mock;
@@ -76,6 +81,15 @@ describe('SupersetThemeProvider', () => {
       onChange: jest.fn().mockReturnValue(jest.fn()),
       canUpdateTheme: jest.fn().mockReturnValue(true),
       canUpdateMode: jest.fn().mockReturnValue(true),
+      setTemporaryTheme: jest.fn(),
+      clearLocalOverrides: jest.fn(),
+      getCurrentCrudThemeId: jest.fn().mockReturnValue(null),
+      hasDevOverride: jest.fn().mockReturnValue(false),
+      canSetMode: jest.fn().mockReturnValue(true),
+      canSetTheme: jest.fn().mockReturnValue(true),
+      canDetectOSPreference: jest.fn().mockReturnValue(true),
+      createDashboardThemeProvider: jest.fn(),
+      getAppliedThemeId: jest.fn().mockReturnValue(null),
       destroy: jest.fn(),
     } as unknown as jest.Mocked<ThemeController>;
 
@@ -91,8 +105,9 @@ describe('SupersetThemeProvider', () => {
     jest.clearAllMocks();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Provider Initialization', () => {
-    it('should render children within theme provider wrapper', () => {
+    test('should render children within theme provider wrapper', () => {
       render(
         <SupersetThemeProvider themeController={mockThemeController}>
           <div data-test="test-child">Hello Superset</div>
@@ -103,7 +118,7 @@ describe('SupersetThemeProvider', () => {
       expect(screen.getByTestId('test-child')).toBeInTheDocument();
     });
 
-    it('should initialize theme state from controller', () => {
+    test('should initialize theme state from controller', () => {
       const wrapper = createWrapper(mockThemeController);
 
       const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -116,7 +131,7 @@ describe('SupersetThemeProvider', () => {
       expect(result.current.themeMode).toBe(ThemeMode.DEFAULT);
     });
 
-    it('should register onChange listener on mount', () => {
+    test('should register onChange listener on mount', () => {
       const wrapper = createWrapper(mockThemeController);
 
       renderHook((): ThemeContextType => useThemeContext(), { wrapper });
@@ -126,7 +141,7 @@ describe('SupersetThemeProvider', () => {
       );
     });
 
-    it('should unregister onChange listener on unmount', () => {
+    test('should unregister onChange listener on unmount', () => {
       const unsubscribeMock = jest.fn();
       mockThemeController.onChange.mockReturnValue(unsubscribeMock);
 
@@ -143,8 +158,9 @@ describe('SupersetThemeProvider', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Theme State Updates', () => {
-    it('should update theme state when controller notifies change', () => {
+    test('should update theme state when controller notifies change', () => {
       const wrapper = createWrapper(mockThemeController);
 
       const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -166,7 +182,7 @@ describe('SupersetThemeProvider', () => {
       expect(result.current.theme).toBe(mockDarkTheme);
     });
 
-    it('should update both theme and mode when controller changes', () => {
+    test('should update both theme and mode when controller changes', () => {
       const wrapper = createWrapper(mockThemeController);
 
       const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -183,8 +199,9 @@ describe('SupersetThemeProvider', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Theme Actions', () => {
-    it('should call setTheme when invoked', () => {
+    test('should call setTheme when invoked', () => {
       const wrapper = createWrapper(mockThemeController);
 
       const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -205,7 +222,7 @@ describe('SupersetThemeProvider', () => {
       expect(mockThemeController.setTheme).toHaveBeenCalledWith(customTheme);
     });
 
-    it('should call setThemeMode when invoked', () => {
+    test('should call setThemeMode when invoked', () => {
       const wrapper = createWrapper(mockThemeController);
 
       const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -221,7 +238,7 @@ describe('SupersetThemeProvider', () => {
       );
     });
 
-    it('should call resetTheme when invoked', () => {
+    test('should call resetTheme when invoked', () => {
       const wrapper = createWrapper(mockThemeController);
 
       const { result } = renderHook((): ThemeContextType => useThemeContext(), {
@@ -233,6 +250,30 @@ describe('SupersetThemeProvider', () => {
       });
 
       expect(mockThemeController.resetTheme).toHaveBeenCalled();
+    });
+
+    test('should call setTemporaryTheme with config and themeId when invoked', () => {
+      const wrapper = createWrapper(mockThemeController);
+
+      const { result } = renderHook((): ThemeContextType => useThemeContext(), {
+        wrapper,
+      });
+
+      const tempTheme = {
+        token: {
+          colorPrimary: '#00ff00',
+          colorBgBase: '#ffffff',
+        },
+      };
+
+      act(() => {
+        result.current.setTemporaryTheme(tempTheme, 42);
+      });
+
+      expect(mockThemeController.setTemporaryTheme).toHaveBeenCalledWith(
+        tempTheme,
+        42,
+      );
     });
   });
 });

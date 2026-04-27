@@ -55,6 +55,7 @@ export interface EchartsProps {
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
   refs: Refs;
+  vizType?: string;
 }
 
 export interface EchartsHandler {
@@ -91,6 +92,7 @@ export type ForecastValue = {
   forecastTrend?: number;
   forecastLower?: number;
   forecastUpper?: number;
+  color?: string;
 };
 
 export type LegendFormData = {
@@ -98,6 +100,7 @@ export type LegendFormData = {
   legendOrientation: LegendOrientation;
   legendType: LegendType;
   showLegend: boolean;
+  legendSort: 'asc' | 'desc' | null;
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;
@@ -126,6 +129,7 @@ export interface BaseTransformedProps<F> {
   echartOptions: EChartsCoreOption;
   formData: F;
   height: number;
+  isRefreshing?: boolean;
   onContextMenu?: (
     clientX: number,
     clientY: number,

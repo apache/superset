@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Component, cloneElement, ReactElement } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import copyTextToClipboard from 'src/utils/copy';
 import { Tooltip } from '@superset-ui/core/components';
 import withToasts from '../MessageToasts/withToasts';
@@ -42,6 +43,9 @@ class CopyToClip extends Component<CopyToClipboardProps> {
   }
 
   onClick() {
+    if (this.props.disabled) {
+      return;
+    }
     if (this.props.getText) {
       this.props.getText((d: string) => {
         this.copyToClipboard(Promise.resolve(d));
@@ -52,9 +56,16 @@ class CopyToClip extends Component<CopyToClipboardProps> {
   }
 
   getDecoratedCopyNode() {
-    return cloneElement(this.props.copyNode as ReactElement, {
-      style: { cursor: 'pointer' },
-      onClick: this.onClick,
+    const copyNode = this.props.copyNode as ReactElement;
+    const { disabled } = this.props;
+    return cloneElement(copyNode, {
+      style: {
+        ...copyNode.props.style,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      },
+      onClick: disabled ? undefined : this.onClick,
+      'aria-disabled': disabled || undefined,
+      tabIndex: disabled ? -1 : copyNode.props.tabIndex,
     });
   }
 
@@ -97,16 +108,23 @@ class CopyToClip extends Component<CopyToClipboardProps> {
   }
 
   renderNotWrapped() {
-    return this.renderTooltip('pointer');
+    return this.renderTooltip(this.props.disabled ? 'not-allowed' : 'pointer');
   }
 
   renderLink() {
     return (
       <span css={{ display: 'inline-flex', alignItems: 'center' }}>
         {this.props.shouldShowText && this.props.text && (
-          <span data-test="short-url">{this.props.text}</span>
+          <span
+            data-test="short-url"
+            css={(theme: SupersetTheme) => css`
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          >
+            {this.props.text}
+          </span>
         )}
-        {this.renderTooltip('pointer')}
+        {this.renderTooltip(this.props.disabled ? 'not-allowed' : 'pointer')}
       </span>
     );
   }

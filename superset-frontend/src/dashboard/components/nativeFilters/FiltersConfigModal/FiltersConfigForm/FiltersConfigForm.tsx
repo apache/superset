@@ -18,27 +18,26 @@
  */
 /* eslint-disable react-hooks/rules-of-hooks */
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core/translation';
 import {
-  AdhocFilter,
   Behavior,
   ChartDataResponseResult,
   Column,
   isFeatureEnabled,
   FeatureFlag,
   Filter,
-  GenericDataType,
+  ChartCustomization,
+  ChartCustomizationType,
   getChartMetadataRegistry,
   JsonResponse,
   NativeFilterType,
-  styled,
   SupersetApiError,
-  t,
   ClientErrorObject,
   getClientErrorObject,
-  useTheme,
-  css,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import { debounce, isEqual } from 'lodash';
 import {
   forwardRef,
@@ -46,12 +45,16 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
   RefObject,
   memo,
 } from 'react';
 import rison from 'rison';
-import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/types';
+import {
+  PluginFilterSelectCustomizeProps,
+  SelectFilterOperatorType,
+} from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import {
@@ -80,6 +83,7 @@ import {
 } from 'src/dashboard/types';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
+import type AdhocFilterClass from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { RangeDisplayMode } from 'src/filters/components/Range/types';
@@ -103,11 +107,18 @@ import RemovedFilter from './RemovedFilter';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import {
   hasTemporalColumns,
+  getTimeGrainOptions,
+  isValidFilterValue,
   mostUsedDataset,
   setNativeFilterFieldValues,
+  shouldShowTimeRangePicker,
   useForceUpdate,
 } from './utils';
-import { FILTER_SUPPORTED_TYPES, INPUT_WIDTH } from './constants';
+import {
+  CHART_CUSTOMIZATION_SUPPORTED_TYPES,
+  FILTER_SUPPORTED_TYPES,
+  INPUT_WIDTH,
+} from './constants';
 import DependencyList from './DependencyList';
 
 const FORM_ITEM_WIDTH = 260;
@@ -165,7 +176,7 @@ export const StyledLabel = styled.span`
 const DefaultValueContainer = styled.div`
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
 `;
 
 const StyledAsterisk = styled.span`
@@ -183,7 +194,7 @@ const FilterTypeInfo = styled.div<{ expanded: boolean }>`
   ${({ theme, expanded }) => `
     width: ${expanded ? '49%' : `${FORM_ITEM_WIDTH}px`};
     font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colors.grayscale.light1};
+    color: ${theme.colorTextSecondary};
     margin:
       ${theme.sizeUnit * 2}px
       0px
@@ -214,10 +225,27 @@ export const FilterPanels = {
   },
 };
 
+export const CustomizationPanels = {
+  configuration: {
+    key: 'configuration',
+    name: t('Display control configuration'),
+  },
+  settings: {
+    key: 'settings',
+    name: t('Display control settings'),
+  },
+};
+
+export interface FiltersConfigFormHandle {
+  changeTab: (tab: 'configuration' | 'scoping') => void;
+}
+
 export interface FiltersConfigFormProps {
   expanded: boolean;
   filterId: string;
   filterToEdit?: Filter;
+  customizationToEdit?: ChartCustomization;
+  itemType?: 'filter' | 'chartCustomization';
   removedFilters: Record<string, FilterRemoval>;
   restoreFilter: (filterId: string) => void;
   onModifyFilter: (filterId: string) => void;
@@ -234,6 +262,12 @@ export interface FiltersConfigFormProps {
 }
 
 const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
+
+const getOptionDataTest = (
+  prefix: string,
+  value: string | number | undefined,
+) =>
+  `${prefix}-${String(value ?? 'undefined').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
 // TODO: Rename the filter plugins and remove this mapping
 const FILTER_TYPE_NAME_MAPPING = {
@@ -254,6 +288,8 @@ const FiltersConfigForm = (
     expanded,
     filterId,
     filterToEdit,
+    customizationToEdit,
+    itemType = 'filter',
     removedFilters,
     form,
     getAvailableFilters,
@@ -266,9 +302,10 @@ const FiltersConfigForm = (
     getDependencySuggestion,
     isActive,
   }: FiltersConfigFormProps,
-  ref: RefObject<any>,
+  ref: RefObject<FiltersConfigFormHandle>,
 ) => {
   const theme = useTheme();
+  const isChartCustomization = itemType === 'chartCustomization';
   const isRemoved = !!removedFilters[filterId];
   const [error, setError] = useState<ClientErrorObject>();
   const [metrics, setMetrics] = useState<Metric[]>([]);
@@ -298,11 +335,20 @@ const FiltersConfigForm = (
   const dependencies: string[] =
     formFilter?.dependencies || filterToEdit?.cascadeParentIds || [];
 
-  const nativeFilterItems = getChartMetadataRegistry().items;
-  const nativeFilterVizTypes = Object.entries(nativeFilterItems)
-    // @ts-ignore
+  const nativeFilterAndCustomizationItems = getChartMetadataRegistry().items;
+  const nativeFilterVizTypes = Object.entries(nativeFilterAndCustomizationItems)
+    // @ts-expect-error
     .filter(([, { value }]) => value.behaviors?.includes(Behavior.NativeFilter))
     .map(([key]) => key as keyof typeof FILTER_SUPPORTED_TYPES);
+
+  const chartCustomizationVizTypes = Object.entries(
+    nativeFilterAndCustomizationItems,
+  )
+    // @ts-expect-error
+    .filter(([, { value }]) =>
+      value.behaviors?.includes(Behavior.ChartCustomization),
+    )
+    .map(([key]) => key as keyof typeof CHART_CUSTOMIZATION_SUPPORTED_TYPES);
 
   const loadedDatasets = useSelector<RootState, DatasourcesState>(
     ({ datasources }) => datasources,
@@ -322,18 +368,37 @@ const FiltersConfigForm = (
     const currentDataset = Object.values(loadedDatasets).find(
       dataset => dataset.id === formFilter?.dataset?.value,
     );
-
-    return currentDataset ? hasTemporalColumns(currentDataset) : true;
+    return shouldShowTimeRangePicker(currentDataset);
   }, [formFilter?.dataset?.value, loadedDatasets]);
 
-  const hasDataset =
-    // @ts-ignore
-    !!nativeFilterItems[formFilter?.filterType]?.value?.datasourceCount;
+  const itemTypeField =
+    formFilter?.filterType ||
+    (isChartCustomization
+      ? customizationToEdit?.filterType
+      : filterToEdit?.filterType || 'filter_select');
 
-  const datasetId =
-    formFilter?.dataset?.value ??
-    filterToEdit?.targets[0]?.datasetId ??
-    mostUsedDataset(loadedDatasets, charts);
+  const hasDataset =
+    // @ts-expect-error
+    !!nativeFilterAndCustomizationItems[itemTypeField]?.value?.datasourceCount;
+
+  const getDatasetId = () => {
+    if (isChartCustomization) {
+      if (formFilter?.dataset?.value) {
+        return formFilter.dataset.value;
+      }
+      if (customizationToEdit?.targets?.[0]?.datasetId) {
+        return customizationToEdit.targets[0].datasetId;
+      }
+      return mostUsedDataset(loadedDatasets, charts);
+    }
+    return (
+      formFilter?.dataset?.value ??
+      filterToEdit?.targets?.[0]?.datasetId ??
+      mostUsedDataset(loadedDatasets, charts)
+    );
+  };
+
+  const datasetId = getDatasetId();
 
   const formChanged = useCallback(() => {
     form.setFields([
@@ -359,16 +424,18 @@ const FiltersConfigForm = (
         formChanged,
         form,
         filterId,
-        filterType: formFilter?.filterType,
+        filterType: itemTypeField,
         filterToEdit,
+        customizationToEdit,
         formFilter,
         removed: isRemoved,
       })
     : {};
   const hasColumn = !!mainControlItems.groupby;
 
-  const nativeFilterItem = nativeFilterItems[formFilter?.filterType] ?? {};
-  // @ts-ignore
+  const nativeFilterItem =
+    nativeFilterAndCustomizationItems[itemTypeField] ?? {};
+  // @ts-expect-error
   const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
 
   const hasMetrics = hasColumn && !!metrics.length;
@@ -417,12 +484,12 @@ const FiltersConfigForm = (
 
   const refreshHandler = useCallback(
     (force = false) => {
-      if (!hasDataset || !formFilter?.dataset?.value) {
+      if (!hasDataset || !datasetId) {
         forceUpdate();
         return;
       }
       const formData = getFormData({
-        datasetId: formFilter?.dataset?.value,
+        datasetId,
         dashboardId,
         groupby: formFilter?.column,
         ...formFilter,
@@ -444,10 +511,10 @@ const FiltersConfigForm = (
 
             if (response.status === 200) {
               setNativeFilterFieldValuesWrapper({
-                defaultValueQueriesData: [result],
+                defaultValueQueriesData: [result as ChartDataResponseResult],
               });
             } else if (response.status === 202) {
-              waitForAsyncData(result)
+              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
                 .then((asyncResult: ChartDataResponseResult[]) => {
                   setNativeFilterFieldValuesWrapper({
                     defaultValueQueriesData: asyncResult,
@@ -475,7 +542,16 @@ const FiltersConfigForm = (
           });
         });
     },
-    [filterId, forceUpdate, form, formFilter, hasDataset, dependenciesText],
+    [
+      datasetId,
+      dashboardId,
+      filterId,
+      forceUpdate,
+      form,
+      formFilter,
+      hasDataset,
+      dependenciesText,
+    ],
   );
 
   // TODO: refreshHandler changes itself because of the dependencies. Needs refactor.
@@ -491,13 +567,13 @@ const FiltersConfigForm = (
   newFormData.extra_form_data = dependenciesDefaultValues;
 
   const [hasDefaultValue, isRequired, defaultValueTooltip, setHasDefaultValue] =
-    useDefaultValue(formFilter, filterToEdit);
+    useDefaultValue(formFilter, filterToEdit, customizationToEdit);
 
   const showDataset =
     !datasetId || datasetDetails || formFilter?.dataset?.label;
 
   const updateFormValues = useCallback(
-    (values: any, triggerFormChange = true) => {
+    (values: Record<string, unknown>, triggerFormChange = true) => {
       setNativeFilterFieldValues(form, filterId, values);
       if (triggerFormChange) formChanged();
     },
@@ -510,6 +586,10 @@ const FiltersConfigForm = (
     !!filterToEdit?.adhoc_filters?.length ||
     !!filterToEdit?.time_range;
 
+  const hasTimeGrainPreFilter = !!(
+    formFilter?.time_grains?.length || filterToEdit?.time_grains?.length
+  );
+
   const hasEnableSingleValue =
     formFilter?.controlValues?.enableSingleValue !== undefined ||
     filterToEdit?.controlValues?.enableSingleValue !== undefined;
@@ -521,17 +601,21 @@ const FiltersConfigForm = (
 
   const hasSorting =
     typeof formFilter?.controlValues?.sortAscending === 'boolean' ||
-    typeof filterToEdit?.controlValues?.sortAscending === 'boolean';
+    typeof filterToEdit?.controlValues?.sortAscending === 'boolean' ||
+    typeof customizationToEdit?.controlValues?.sortAscending === 'boolean';
 
-  let sort = filterToEdit?.controlValues?.sortAscending;
+  let sort =
+    filterToEdit?.controlValues?.sortAscending ??
+    customizationToEdit?.controlValues?.sortAscending;
   if (typeof formFilter?.controlValues?.sortAscending === 'boolean') {
     sort = formFilter.controlValues.sortAscending;
   }
 
-  const showDefaultValue =
-    !hasDataset ||
-    (!isDataDirty && hasFilledDataset) ||
-    !mainControlItems.groupby;
+  const showDefaultValue = isChartCustomization
+    ? !hasDataset || !isDataDirty
+    : !hasDataset ||
+      (!isDataDirty && hasFilledDataset) ||
+      !mainControlItems.groupby;
 
   const onSortChanged = (value: boolean | undefined) => {
     const previous = form.getFieldValue('filters')?.[filterId].controlValues;
@@ -555,6 +639,49 @@ const FiltersConfigForm = (
     forceUpdate();
   };
 
+  const currentOperatorType: SelectFilterOperatorType =
+    formFilter?.controlValues?.operatorType ??
+    filterToEdit?.controlValues?.operatorType ??
+    SelectFilterOperatorType.Exact;
+
+  const selectedColumnIsString = useMemo(() => {
+    const columnName = formFilter?.column;
+    if (!columnName || !datasetDetails?.columns) return true;
+    const colMeta = datasetDetails.columns.find(
+      (c: { column_name: string }) => c.column_name === columnName,
+    );
+    if (!colMeta) return true;
+    return colMeta.type_generic === GenericDataType.String;
+  }, [formFilter?.column, datasetDetails?.columns]);
+
+  const onOperatorTypeChanged = (value: SelectFilterOperatorType) => {
+    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    setNativeFilterFieldValues(form, filterId, {
+      controlValues: {
+        ...previous,
+        operatorType: value,
+      },
+      defaultDataMask: null,
+    });
+    formChanged();
+    forceUpdate();
+  };
+
+  const prevColumnRef = useRef(formFilter?.column);
+  const datasetLoaded = !!datasetDetails?.columns;
+  useEffect(() => {
+    const columnChanged = prevColumnRef.current !== formFilter?.column;
+    if (
+      (columnChanged || datasetLoaded) &&
+      !selectedColumnIsString &&
+      currentOperatorType !== SelectFilterOperatorType.Exact
+    ) {
+      onOperatorTypeChanged(SelectFilterOperatorType.Exact);
+    }
+    prevColumnRef.current = formFilter?.column;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formFilter?.column, selectedColumnIsString, datasetLoaded]);
+
   const validatePreFilter = () =>
     setTimeout(
       () =>
@@ -573,8 +700,13 @@ const FiltersConfigForm = (
   const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
 
   const initialDefaultValue =
-    formFilter?.filterType === filterToEdit?.filterType
-      ? filterToEdit?.defaultDataMask
+    itemTypeField ===
+    (isChartCustomization
+      ? customizationToEdit?.filterType
+      : filterToEdit?.filterType)
+      ? isChartCustomization
+        ? customizationToEdit?.defaultDataMask
+        : filterToEdit?.defaultDataMask
       : null;
 
   const preFilterValidator = () => {
@@ -584,7 +716,10 @@ const FiltersConfigForm = (
     return Promise.reject(new Error(t('Pre-filter is required')));
   };
 
-  const availableFilters = getAvailableFilters(filterId);
+  const availableFilters = useMemo(
+    () => getAvailableFilters(filterId),
+    [getAvailableFilters, filterId, filters],
+  );
   const hasAvailableFilters = availableFilters.length > 0;
   const hasTimeDependency = availableFilters
     .filter(filter => filter.type === 'filter_time')
@@ -608,6 +743,7 @@ const FiltersConfigForm = (
             'columns.filterable',
             'columns.is_dttm',
             'columns.type',
+            'columns.type_generic',
             'columns.verbose_name',
             'database.id',
             'database.database_name',
@@ -621,6 +757,7 @@ const FiltersConfigForm = (
             'schema',
             'sql',
             'table_name',
+            'time_grain_sqla',
           ],
         })}`,
       })
@@ -647,7 +784,11 @@ const FiltersConfigForm = (
   useBackendFormUpdate(form, filterId);
 
   useEffect(() => {
-    if (hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty) {
+    const shouldRefresh = isChartCustomization
+      ? hasDataset && hasDefaultValue && isDataDirty
+      : hasDataset && hasFilledDataset && hasDefaultValue && isDataDirty;
+
+    if (shouldRefresh) {
       refreshHandler();
     }
   }, [
@@ -657,6 +798,7 @@ const FiltersConfigForm = (
     isDataDirty,
     refreshHandler,
     showDataset,
+    isChartCustomization,
   ]);
 
   const initiallyExcludedCharts = useMemo(() => {
@@ -737,14 +879,13 @@ const FiltersConfigForm = (
       />
     </StyledRowFormItem>
   );
-  const isValidFilterValue = (value: any, isRangeFilter: boolean) => {
-    if (isRangeFilter) {
-      return Array.isArray(value) && (value[0] !== null || value[1] !== null);
-    }
-    return !!value;
-  };
   return (
     <Tabs
+      allowOverflow={false}
+      contentHeight={`calc(100vh - ${theme.sizeUnit * 55}px)`}
+      contentPadding={css`
+        padding-top: ${theme.sizeUnit * 4}px;
+      `}
       activeKey={activeTabKey}
       onChange={activeKey => setActiveTabKey(activeKey)}
       items={[
@@ -758,17 +899,19 @@ const FiltersConfigForm = (
                 <StyledContainer>
                   <StyledFormItem
                     expanded={expanded}
-                    name={['filters', filterId, 'type']}
-                    hidden
-                    initialValue={NativeFilterType.NativeFilter}
-                  >
-                    <Input onChange={formChanged} />
-                  </StyledFormItem>
-                  <StyledFormItem
-                    expanded={expanded}
                     name={['filters', filterId, 'name']}
-                    label={<StyledLabel>{t('Filter name')}</StyledLabel>}
-                    initialValue={filterToEdit?.name}
+                    label={
+                      <StyledLabel>
+                        {isChartCustomization
+                          ? t('Display control name')
+                          : t('Filter name')}
+                      </StyledLabel>
+                    }
+                    initialValue={
+                      isChartCustomization
+                        ? customizationToEdit?.name
+                        : filterToEdit?.name
+                    }
                     rules={[
                       { required: !isRemoved, message: t('Name is required') },
                     ]}
@@ -778,57 +921,123 @@ const FiltersConfigForm = (
                       onChange={debouncedFormChanged}
                     />
                   </StyledFormItem>
-                  <StyledFormItem
-                    expanded={expanded}
-                    name={['filters', filterId, 'filterType']}
-                    rules={[
-                      { required: !isRemoved, message: t('Name is required') },
-                    ]}
-                    initialValue={filterToEdit?.filterType || 'filter_select'}
-                    label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
-                    {...getFiltersConfigModalTestId('filter-type')}
-                  >
-                    <Select
-                      ariaLabel={t('Filter type')}
-                      options={nativeFilterVizTypes.map(filterType => {
-                        // @ts-ignore
-                        const name = nativeFilterItems[filterType]?.value.name;
-                        const mappedName = name
-                          ? FILTER_TYPE_NAME_MAPPING[name]
-                          : undefined;
-                        const isDisabled =
-                          FILTER_SUPPORTED_TYPES[filterType]?.length === 1 &&
-                          FILTER_SUPPORTED_TYPES[filterType]?.includes(
-                            GenericDataType.Temporal,
-                          ) &&
-                          !doLoadedDatasetsHaveTemporalColumns;
-                        return {
-                          value: filterType,
-                          label: isDisabled ? (
-                            <Tooltip
-                              title={t(
-                                'Datasets do not contain a temporal column',
-                              )}
-                            >
-                              {mappedName || name}
-                            </Tooltip>
-                          ) : (
-                            mappedName || name
-                          ),
-                          disabled: isDisabled,
-                        };
-                      })}
-                      onChange={value => {
-                        setNativeFilterFieldValues(form, filterId, {
-                          filterType: value,
-                          defaultDataMask: null,
-                          column: null,
-                        });
-                        forceUpdate();
-                        formChanged();
-                      }}
-                    />
-                  </StyledFormItem>
+                  {isChartCustomization ? (
+                    <StyledFormItem
+                      expanded={expanded}
+                      name={['filters', filterId, 'filterType']}
+                      rules={[
+                        {
+                          required: !isRemoved,
+                          message: t('Type is required'),
+                        },
+                      ]}
+                      initialValue={customizationToEdit?.filterType}
+                      label={
+                        <StyledLabel>{t('Display control type')}</StyledLabel>
+                      }
+                    >
+                      <Select
+                        ariaLabel={t('Customization type')}
+                        options={chartCustomizationVizTypes.map(pluginKey => {
+                          const name =
+                            // @ts-expect-error
+                            nativeFilterAndCustomizationItems[pluginKey]?.value
+                              ?.name;
+                          return {
+                            value: pluginKey,
+                            label: name || pluginKey,
+                          };
+                        })}
+                        optionRender={option => (
+                          <span
+                            data-test={getOptionDataTest(
+                              'customization-type-option',
+                              option.value,
+                            )}
+                          >
+                            {option.label || option.value}
+                          </span>
+                        )}
+                        onChange={value => {
+                          setNativeFilterFieldValues(form, filterId, {
+                            filterType: value,
+                            controlValues: {},
+                            defaultDataMask: null,
+                            column: null,
+                          });
+                          forceUpdate();
+                          formChanged();
+                        }}
+                      />
+                    </StyledFormItem>
+                  ) : (
+                    <StyledFormItem
+                      expanded={expanded}
+                      name={['filters', filterId, 'filterType']}
+                      rules={[
+                        {
+                          required: !isRemoved,
+                          message: t('Name is required'),
+                        },
+                      ]}
+                      initialValue={filterToEdit?.filterType || 'filter_select'}
+                      label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
+                      {...getFiltersConfigModalTestId('filter-type')}
+                    >
+                      <Select
+                        ariaLabel={t('Filter type')}
+                        options={nativeFilterVizTypes.map(filterType => {
+                          const name =
+                            // @ts-expect-error
+                            nativeFilterAndCustomizationItems[filterType]?.value
+                              .name;
+                          const mappedName = name
+                            ? FILTER_TYPE_NAME_MAPPING[name]
+                            : undefined;
+                          const isDisabled =
+                            FILTER_SUPPORTED_TYPES[filterType]?.length === 1 &&
+                            FILTER_SUPPORTED_TYPES[filterType]?.includes(
+                              GenericDataType.Temporal,
+                            ) &&
+                            !doLoadedDatasetsHaveTemporalColumns;
+                          return {
+                            value: filterType,
+                            label: isDisabled ? (
+                              <Tooltip
+                                title={t(
+                                  'Datasets do not contain a temporal column',
+                                )}
+                              >
+                                {mappedName || name}
+                              </Tooltip>
+                            ) : (
+                              mappedName || name
+                            ),
+                            disabled: isDisabled,
+                          };
+                        })}
+                        optionRender={option => (
+                          <span
+                            data-test={getOptionDataTest(
+                              'filter-type-option',
+                              option.value,
+                            )}
+                          >
+                            {option.label || option.value}
+                          </span>
+                        )}
+                        onChange={value => {
+                          setNativeFilterFieldValues(form, filterId, {
+                            filterType: value,
+                            defaultDataMask: null,
+                            column: null,
+                          });
+                          forceUpdate();
+                          formChanged();
+                        }}
+                      />
+                    </StyledFormItem>
+                  )}
                 </StyledContainer>
                 {formFilter?.filterType === 'filter_time' && (
                   <FilterTypeInfo expanded={expanded}>
@@ -870,13 +1079,13 @@ const FiltersConfigForm = (
                       >
                         <DatasetSelect
                           onChange={(value: {
-                            label: string;
+                            label: string | React.ReactNode;
                             value: number;
                           }) => {
-                            // We need to reset the column when the dataset has changed
                             if (value.value !== datasetId) {
                               setNativeFilterFieldValues(form, filterId, {
                                 dataset: value,
+                                datasetInfo: value,
                                 defaultDataMask: null,
                                 column: null,
                               });
@@ -895,6 +1104,7 @@ const FiltersConfigForm = (
                       </StyledFormItem>
                     )}
                     {hasDataset &&
+                      !isChartCustomization &&
                       Object.keys(mainControlItems).map(
                         key => mainControlItems[key].element,
                       )}
@@ -909,16 +1119,19 @@ const FiltersConfigForm = (
                   expandIconPosition="end"
                   key={`native-filter-config-${filterId}`}
                   items={[
-                    ...(formFilter?.filterType !== 'filter_time'
+                    ...(itemTypeField !== 'filter_time'
                       ? [
                           {
                             key: `${filterId}-${FilterPanels.configuration.key}`,
                             forceRender: true,
-                            label: FilterPanels.configuration.name,
+                            label: isChartCustomization
+                              ? CustomizationPanels.configuration.name
+                              : FilterPanels.configuration.name,
                             children: (
                               <>
                                 {canDependOnOtherFilters &&
-                                  hasAvailableFilters && (
+                                  (hasAvailableFilters ||
+                                    dependencies.length > 0) && (
                                     <StyledRowFormItem
                                       expanded={expanded}
                                       name={[
@@ -1001,7 +1214,7 @@ const FiltersConfigForm = (
                                           }
                                           datasource={datasetDetails}
                                           onChange={(
-                                            filters: AdhocFilter[],
+                                            filters: AdhocFilterClass[],
                                           ) => {
                                             setNativeFilterFieldValues(
                                               form,
@@ -1073,13 +1286,90 @@ const FiltersConfigForm = (
                                     </CollapsibleControl>
                                   </FormItem>
                                 )}
-                                {formFilter?.filterType !== 'filter_range' ? (
+                                {itemTypeField === 'filter_timegrain' &&
+                                  hasDataset &&
+                                  datasetDetails?.time_grain_sqla &&
+                                  datasetDetails.time_grain_sqla.length > 0 && (
+                                    <FormItem
+                                      name={[
+                                        'filters',
+                                        filterId,
+                                        'preFilterTimegrain',
+                                      ]}
+                                    >
+                                      <CollapsibleControl
+                                        initialValue={hasTimeGrainPreFilter}
+                                        title={t('Pre-filter available values')}
+                                        tooltip={t(
+                                          'Select which time grains are available in the filter control. This is a UI allow list only and does not add extra conditions to the underlying queries.',
+                                        )}
+                                        onChange={checked => {
+                                          if (!checked) {
+                                            setNativeFilterFieldValues(
+                                              form,
+                                              filterId,
+                                              { time_grains: undefined },
+                                            );
+                                            forceUpdate();
+                                          }
+                                          formChanged();
+                                        }}
+                                      >
+                                        <FormItem
+                                          name={[
+                                            'filters',
+                                            filterId,
+                                            'time_grains',
+                                          ]}
+                                          initialValue={
+                                            filterToEdit?.time_grains
+                                          }
+                                          {...getFiltersConfigModalTestId(
+                                            'time-grain-allowlist',
+                                          )}
+                                        >
+                                          <Select
+                                            mode="multiple"
+                                            ariaLabel={t('Time grain options')}
+                                            options={getTimeGrainOptions(
+                                              datasetDetails.time_grain_sqla,
+                                            )}
+                                            sortComparator={() => 0}
+                                            onChange={(values: string[]) => {
+                                              setNativeFilterFieldValues(
+                                                form,
+                                                filterId,
+                                                {
+                                                  time_grains:
+                                                    values.length > 0 &&
+                                                    values.length <
+                                                      datasetDetails
+                                                        .time_grain_sqla.length
+                                                      ? values
+                                                      : undefined,
+                                                },
+                                              );
+                                              forceUpdate();
+                                              formChanged();
+                                            }}
+                                            css={{ width: INPUT_WIDTH }}
+                                          />
+                                        </FormItem>
+                                      </CollapsibleControl>
+                                    </FormItem>
+                                  )}
+                                {itemTypeField !== 'filter_range' ? (
                                   <FormItem
                                     name={['filters', filterId, 'sortFilter']}
+                                    initialValue={hasSorting}
                                   >
                                     <CollapsibleControl
                                       initialValue={hasSorting}
-                                      title={t('Sort filter values')}
+                                      title={
+                                        isChartCustomization
+                                          ? t('Sort display control values')
+                                          : t('Sort filter values')
+                                      }
                                       onChange={checked => {
                                         onSortChanged(checked || undefined);
                                         formChanged();
@@ -1123,10 +1413,14 @@ const FiltersConfigForm = (
                                           name={[
                                             'filters',
                                             filterId,
+                                            'controlValues',
                                             'sortMetric',
                                           ]}
                                           initialValue={
-                                            filterToEdit?.sortMetric
+                                            filterToEdit?.controlValues
+                                              ?.sortMetric ??
+                                            customizationToEdit?.controlValues
+                                              ?.sortMetric
                                           }
                                           label={
                                             <>
@@ -1157,16 +1451,21 @@ const FiltersConfigForm = (
                                               }),
                                             )}
                                             onChange={value => {
-                                              if (value !== undefined) {
-                                                setNativeFilterFieldValues(
-                                                  form,
-                                                  filterId,
-                                                  {
+                                              const previous =
+                                                form.getFieldValue('filters')?.[
+                                                  filterId
+                                                ].controlValues || {};
+                                              setNativeFilterFieldValues(
+                                                form,
+                                                filterId,
+                                                {
+                                                  controlValues: {
+                                                    ...previous,
                                                     sortMetric: value,
                                                   },
-                                                );
-                                                forceUpdate();
-                                              }
+                                                },
+                                              );
+                                              forceUpdate();
                                               formChanged();
                                             }}
                                           />
@@ -1312,7 +1611,9 @@ const FiltersConfigForm = (
                         ]
                       : []),
                     {
-                      label: FilterPanels.settings.name,
+                      label: isChartCustomization
+                        ? CustomizationPanels.settings.name
+                        : FilterPanels.settings.name,
                       key: `${filterId}-${FilterPanels.settings.key}`,
                       forceRender: true,
                       children: (
@@ -1320,13 +1621,26 @@ const FiltersConfigForm = (
                           <StyledFormItem
                             expanded={expanded}
                             name={['filters', filterId, 'description']}
-                            initialValue={filterToEdit?.description}
+                            initialValue={
+                              isChartCustomization
+                                ? customizationToEdit?.description
+                                : filterToEdit?.description
+                            }
                             label={
                               <StyledLabel>{t('Description')}</StyledLabel>
                             }
                           >
                             <Input.TextArea onChange={debouncedFormChanged} />
                           </StyledFormItem>
+                          <FormItem
+                            name={['filters', filterId, 'type']}
+                            hidden
+                            initialValue={
+                              isChartCustomization
+                                ? ChartCustomizationType.ChartCustomization
+                                : NativeFilterType.NativeFilter
+                            }
+                          />
                           <FormItem
                             name={[
                               'filters',
@@ -1336,6 +1650,67 @@ const FiltersConfigForm = (
                             hidden
                             initialValue={null}
                           />
+                          {!isChartCustomization &&
+                            itemTypeField === 'filter_select' && (
+                              <StyledRowFormItem
+                                expanded={expanded}
+                                name={[
+                                  'filters',
+                                  filterId,
+                                  'controlValues',
+                                  'operatorType',
+                                ]}
+                                initialValue={currentOperatorType}
+                                label={
+                                  <>
+                                    <StyledLabel>{t('Match type')}</StyledLabel>
+                                    &nbsp;
+                                    <InfoTooltip
+                                      placement="top"
+                                      tooltip={t(
+                                        'Warning: ILIKE queries may be slow on large datasets as they cannot use indexes effectively.',
+                                      )}
+                                    />
+                                  </>
+                                }
+                              >
+                                <Select
+                                  ariaLabel={t('Match type')}
+                                  options={[
+                                    {
+                                      value: SelectFilterOperatorType.Exact,
+                                      label: t('Exact match (IN)'),
+                                    },
+                                    ...(selectedColumnIsString
+                                      ? [
+                                          {
+                                            value:
+                                              SelectFilterOperatorType.Contains,
+                                            label: t(
+                                              'Contains text (ILIKE %x%)',
+                                            ),
+                                          },
+                                          {
+                                            value:
+                                              SelectFilterOperatorType.StartsWith,
+                                            label: t('Starts with (ILIKE x%)'),
+                                          },
+                                          {
+                                            value:
+                                              SelectFilterOperatorType.EndsWith,
+                                            label: t('Ends with (ILIKE %x)'),
+                                          },
+                                        ]
+                                      : []),
+                                  ]}
+                                  onChange={value => {
+                                    onOperatorTypeChanged(
+                                      value as SelectFilterOperatorType,
+                                    );
+                                  }}
+                                />
+                              </StyledRowFormItem>
+                            )}
                           <FormItem
                             name={['filters', filterId, 'defaultValue']}
                           >
@@ -1343,7 +1718,11 @@ const FiltersConfigForm = (
                               checked={hasDefaultValue}
                               disabled={isRequired || defaultToFirstItem}
                               initialValue={hasDefaultValue}
-                              title={t('Filter has default value')}
+                              title={
+                                isChartCustomization
+                                  ? t('Display control has default value')
+                                  : t('Filter has default value')
+                              }
                               tooltip={defaultValueTooltip}
                               onChange={value => {
                                 setHasDefaultValue(value);
@@ -1415,7 +1794,7 @@ const FiltersConfigForm = (
                                             prevErroredFilters => {
                                               if (
                                                 prevErroredFilters.length &&
-                                                !formValidationFields.find(
+                                                !formValidationFields.some(
                                                   f => f.errors.length > 0,
                                                 )
                                               ) {
@@ -1512,6 +1891,8 @@ const FiltersConfigForm = (
                                             css={css`
                                               margin-left: ${theme.sizeUnit *
                                               2}px;
+                                              margin-top: ${theme.sizeUnit *
+                                              1.5}px;
                                             `}
                                             onClick={() => refreshHandler(true)}
                                           />
@@ -1552,7 +1933,11 @@ const FiltersConfigForm = (
               updateFormValues={updateFormValues}
               pathToFormValue={['filters', filterId]}
               forceUpdate={forceUpdate}
-              filterScope={filterToEdit?.scope}
+              filterScope={
+                isChartCustomization
+                  ? customizationToEdit?.scope
+                  : filterToEdit?.scope
+              }
               formFilterScope={formFilter?.scope}
               initiallyExcludedCharts={initiallyExcludedCharts}
             />
@@ -1564,7 +1949,7 @@ const FiltersConfigForm = (
 };
 
 export default memo(
-  forwardRef<typeof FiltersConfigForm, FiltersConfigFormProps>(
+  forwardRef<FiltersConfigFormHandle, FiltersConfigFormProps>(
     FiltersConfigForm,
   ),
 );

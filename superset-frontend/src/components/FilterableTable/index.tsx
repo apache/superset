@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useRef, useCallback } from 'react';
-import { styled } from '@superset-ui/core';
+import { useMemo, useCallback, memo } from 'react';
 import { GridSize } from 'src/components/GridTable/constants';
 import { GridTable } from 'src/components/GridTable';
 import { type ColDef } from 'src/components/GridTable/types';
@@ -30,11 +29,6 @@ import type { FilterableTableProps, Datum, CellDataType } from './types';
 // exponential notation, NaN, and Infinity.
 // See https://stackoverflow.com/a/30987109 for more details
 const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
-
-const StyledFilterableTable = styled.div`
-  height: 100%;
-  overflow: hidden;
-`;
 
 const parseNumberFromString = (value: string | number | null) => {
   if (typeof value === 'string' && ONLY_NUMBER_REGEX.test(value)) {
@@ -115,25 +109,21 @@ export const FilterableTable = ({
     [orderedColumnKeys, allowHTML, getCellContent],
   );
 
-  const keyword = useRef<string | undefined>(filterText);
-  keyword.current = filterText;
-
-  const keywordFilter = useCallback(node => {
-    if (keyword.current && node.data) {
-      return hasMatch(keyword.current, node.data);
-    }
-    return true;
-  }, []);
+  const keywordFilter = useCallback(
+    node => {
+      if (filterText && node.data) {
+        return hasMatch(filterText, node.data);
+      }
+      return true;
+    },
+    [filterText],
+  );
 
   return (
-    <StyledFilterableTable
-      className="filterable-table-container"
-      data-test="table-container"
-    >
+    <div className="filterable-table-container" data-test="table-container">
       <GridTable
         size={GridSize.Small}
         height={height}
-        usePagination={false}
         columns={columns}
         data={data}
         externalFilter={keywordFilter}
@@ -142,8 +132,9 @@ export const FilterableTable = ({
         enableActions
         columnReorderable
       />
-    </StyledFilterableTable>
+    </div>
   );
 };
 
 export type { FilterableTableProps };
+export default memo(FilterableTable);

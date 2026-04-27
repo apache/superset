@@ -26,8 +26,9 @@ jest.mock('../sanitizeFormData', () => ({
   }),
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('alterForComparison', () => {
-  it.each([
+  test.each([
     [null, null],
     ['', null],
     [[], null],
@@ -43,23 +44,25 @@ describe('alterForComparison', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('isEqualish', () => {
-  it('returns true for semantically equal values with different formats', () => {
+  test('returns true for semantically equal values with different formats', () => {
     expect(isEqualish('', null)).toBe(true);
     expect(isEqualish([], null)).toBe(true);
     expect(isEqualish({}, null)).toBe(true);
     expect(isEqualish([1], [1])).toBe(true);
   });
 
-  it('returns false for clearly different values', () => {
+  test('returns false for clearly different values', () => {
     expect(isEqualish([1], [2])).toBe(false);
     expect(isEqualish({ a: 1 }, { a: 2 })).toBe(false);
     expect(isEqualish('foo', 'bar')).toBe(false);
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getChartFormDiffs', () => {
-  it('returns diffs for changed values', () => {
+  test('returns diffs for changed values', () => {
     const original = { metric: 'count', adhoc_filters: [] };
     const current = { metric: 'sum__num', adhoc_filters: [] };
 
@@ -72,7 +75,7 @@ describe('getChartFormDiffs', () => {
     });
   });
 
-  it('ignores noisy keys', () => {
+  test('ignores noisy keys', () => {
     const original = { where: 'a = 1', metric: 'count' };
     const current = { where: 'a = 2', metric: 'sum__num' };
 
@@ -82,7 +85,7 @@ describe('getChartFormDiffs', () => {
     expect(diffs).toHaveProperty('metric');
   });
 
-  it('does not include values that are equalish', () => {
+  test('does not include values that are equalish', () => {
     const original = { filters: [], metric: 'count' };
     const current = { filters: null, metric: 'count' };
 
@@ -91,7 +94,7 @@ describe('getChartFormDiffs', () => {
     expect(diffs).toEqual({});
   });
 
-  it('handles missing keys in original or current gracefully', () => {
+  test('handles missing keys in original or current gracefully', () => {
     const original = { metric: 'count' };
     const current = { metric: 'count', new_field: 'value' };
 
@@ -104,7 +107,7 @@ describe('getChartFormDiffs', () => {
     });
   });
 
-  it('ignores keys that are missing in current and not explicitly changed', () => {
+  test('ignores keys that are missing in current and not explicitly changed', () => {
     const original = { metric: 'count', removed_field: 'gone' };
     const current = { metric: 'count' };
 

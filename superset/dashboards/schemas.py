@@ -145,6 +145,7 @@ class DashboardJSONMetadataSchema(Schema):
     # global_chart_configuration keeps data about global cross-filter scoping
     # for charts - can be overridden by chart_configuration for each chart
     global_chart_configuration = fields.Dict()
+    chart_customization_config = fields.List(fields.Dict(), allow_none=True)
     timed_refresh_immune_slices = fields.List(fields.Integer())
     # deprecated wrt dashboard-native filters
     filter_scopes = fields.Dict()
@@ -162,6 +163,8 @@ class DashboardJSONMetadataSchema(Schema):
     map_label_colors = fields.Dict()
     color_scheme_domain = fields.List(fields.Str())
     cross_filters_enabled = fields.Boolean(dump_default=True)
+    # controls visibility of "last queried at" timestamp on charts in dashboard view
+    show_chart_timestamps = fields.Boolean(dump_default=False)
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
@@ -235,13 +238,21 @@ class DashboardGetResponseSchema(Schema):
     owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
     roles = fields.List(fields.Nested(RolesSchema))
     tags = fields.Nested(TagSchema, many=True)
+    custom_tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     created_on_humanized = fields.String(data_key="created_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+    uuid = fields.UUID(allow_none=True)
 
     # pylint: disable=unused-argument
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        # Handle custom_tags → tags renaming when flag is enabled
+        # When DASHBOARD_LIST_CUSTOM_TAGS_ONLY=True, FAB populates custom_tags
+        # Rename it to tags for frontend compatibility
+        if "custom_tags" in serialized:
+            serialized["tags"] = serialized.pop("custom_tags")
+
         if security_manager.is_guest_user():
             del serialized["owners"]
             del serialized["changed_by_name"]
@@ -284,6 +295,7 @@ class DashboardDatasetSchema(Schema):
     sql = fields.Str()
     select_star = fields.Str()
     main_dttm_col = fields.Str()
+    currency_code_column = fields.Str()
     health_check_message = fields.Str()
     fetch_values_predicate = fields.Str()
     template_params = fields.Str()
@@ -365,6 +377,7 @@ class DashboardPostSchema(BaseDashboardSchema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
 
 
 class DashboardCopySchema(Schema):
@@ -431,9 +444,16 @@ class DashboardPutSchema(BaseDashboardSchema):
     tags = fields.List(
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
+    uuid = fields.UUID(allow_none=True)
 
 
 class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
+    deleted = fields.List(fields.String(), allow_none=False)
+    modified = fields.List(fields.Raw(), allow_none=False)
+    reordered = fields.List(fields.String(), allow_none=False)
+
+
+class DashboardChartCustomizationsConfigUpdateSchema(BaseDashboardSchema):
     deleted = fields.List(fields.String(), allow_none=False)
     modified = fields.List(fields.Raw(), allow_none=False)
     reordered = fields.List(fields.String(), allow_none=False)
@@ -497,6 +517,8 @@ class ImportV1DashboardSchema(Schema):
     certification_details = fields.String(allow_none=True)
     published = fields.Boolean(allow_none=True)
     tags = fields.List(fields.String(), allow_none=True)
+    theme_uuid = fields.UUID(allow_none=True)
+    theme_id = fields.Integer(allow_none=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):

@@ -22,34 +22,29 @@ import AdhocFilterControl from '.';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 
-interface Column {
-  column_name: string;
-  type: string;
-}
-
-interface Database {
-  id: number;
-}
-
-interface Datasource {
-  type: string;
-  database: Database;
-  schema: string;
-  datasource_name: string;
-}
-
-interface Props {
+interface TestProps {
   name: string;
   label: string;
   value: AdhocFilter[];
-  datasource: Datasource;
-  columns: Column[];
+  datasource: {
+    type: string;
+    database: { id: number };
+    schema: string;
+    datasource_name: string;
+    [key: string]: unknown;
+  };
+  columns: Array<{
+    column_name: string;
+    type?: string;
+    [key: string]: unknown;
+  }>;
   onChange: jest.Mock;
   sections: string[];
   operators: string[];
+  [key: string]: unknown;
 }
 
-const createProps = (): Props => ({
+const createProps = (): TestProps => ({
   name: 'filter_control',
   label: 'Filters',
   value: [],
@@ -68,13 +63,20 @@ const createProps = (): Props => ({
   operators: ['==', '>', '<'],
 });
 
-const renderComponent = (props: Partial<Props> = {}) =>
-  render(<AdhocFilterControl {...createProps()} {...props} />, {
-    useDnd: true,
-  });
+const renderComponent = (props: Partial<TestProps> = {}) =>
+  render(
+    <AdhocFilterControl
+      {...(createProps() as Record<string, unknown>)}
+      {...props}
+    />,
+    {
+      useDnd: true,
+    },
+  );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterControl', () => {
-  it('should render with default props', () => {
+  test('should render with default props', () => {
     renderComponent();
     expect(screen.getByText('Add filter')).toBeInTheDocument();
     expect(screen.getByTestId('adhoc-filter-control')).toBeInTheDocument();
@@ -111,13 +113,13 @@ describe('AdhocFilterControl', () => {
     expect(onChange).toHaveBeenCalledWith([]);
   });
 
-  it('should show add filter button when no filters exist', () => {
+  test('should show add filter button when no filters exist', () => {
     renderComponent();
     const addButton = screen.getByTestId('add-filter-button');
     expect(addButton).toBeInTheDocument();
   });
 
-  it('should handle partition column data', async () => {
+  test('should handle partition column data', async () => {
     const mockPartitionColumn = 'date_column';
     const mockResponse = {
       partitions: {

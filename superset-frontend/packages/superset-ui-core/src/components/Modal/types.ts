@@ -51,7 +51,9 @@ export interface ModalProps {
   destroyOnHidden?: boolean;
   maskClosable?: boolean;
   zIndex?: number;
+  /** @deprecated Use styles.body instead */
   bodyStyle?: CSSProperties;
+  styles?: { body?: CSSProperties; [key: string]: CSSProperties | undefined };
   openerRef?: React.RefObject<HTMLElement>;
 }
 
@@ -67,8 +69,8 @@ export interface StyledModalProps {
 export type { ModalFuncProps };
 
 export interface FormModalProps extends ModalProps {
-  initialValues?: Object;
-  formSubmitHandler: (values: Object) => Promise<void>;
+  initialValues?: object;
+  formSubmitHandler: (values: object) => Promise<void>;
   onSave: () => void;
   requiredFields: string[];
 }

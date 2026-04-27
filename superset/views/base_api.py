@@ -22,7 +22,13 @@ from typing import Any, Callable, cast
 
 from flask import request, Response
 from flask_appbuilder import Model, ModelRestApi
-from flask_appbuilder.api import BaseApi, expose, protect, rison, safe
+from flask_appbuilder.api import (
+    BaseApi,
+    expose,
+    protect,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -534,7 +540,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_related_schema)
+    @parse_rison(get_related_schema)
     @handle_api_exception
     def related(self, column_name: str, **kwargs: Any) -> FlaskResponse:
         """Get related fields data.
@@ -613,7 +619,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_related_schema)
+    @parse_rison(get_related_schema)
     @handle_api_exception
     def distinct(self, column_name: str, **kwargs: Any) -> FlaskResponse:
         """Get distinct values from field data.
@@ -657,15 +663,13 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         # Create generic base filters with added request filter
         filters = self._get_distinct_filter(column_name, args.get("filter"))
         # Make the query
-        query_count = self.appbuilder.get_session.query(
+        query_count = db.session.query(
             func.count(distinct(getattr(self.datamodel.obj, column_name)))
         )
         count = self.datamodel.apply_filters(query_count, filters).scalar()
         if count == 0:
             return self.response(200, count=count, result=[])
-        query = self.appbuilder.get_session.query(
-            distinct(getattr(self.datamodel.obj, column_name))
-        )
+        query = db.session.query(distinct(getattr(self.datamodel.obj, column_name)))
         # Apply generic base filters with added request filter
         query = self.datamodel.apply_filters(query, filters)
         # Apply sort

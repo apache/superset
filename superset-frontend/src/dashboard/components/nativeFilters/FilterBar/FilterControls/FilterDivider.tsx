@@ -17,12 +17,8 @@
  * under the License.
  */
 
-import {
-  css,
-  useTheme,
-  useCSSTextTruncation,
-  truncationCSS,
-} from '@superset-ui/core';
+import { useCSSTextTruncation, truncationCSS } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -49,7 +45,7 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
         border-left: 1px solid ${theme.colorSplit};
         padding-left: ${4 * theme.sizeUnit}px;
 
-        .filter-item-wrapper:first-child & {
+        .filter-item-wrapper:first-of-type & {
           border-left: none;
           padding-left: 0;
         }
@@ -130,7 +126,7 @@ const HorizontalOverflowDivider = ({
               ${truncationCSS};
               display: block;
               font-size: ${theme.fontSizeSM}px;
-              color: ${theme.colors.grayscale.base};
+              color: ${theme.colorTextDescription};
               margin: ${theme.sizeUnit}px 0 0 0;
             `}
           >

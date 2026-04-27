@@ -25,19 +25,16 @@ import {
   ChangeEvent,
 } from 'react';
 
-import {
-  t,
-  SupersetTheme,
-  getClientErrorObject,
-  VizType,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { getClientErrorObject, VizType } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   addReport,
   editReport,
 } from 'src/features/reports/ReportModal/actions';
 import {
-  Alert,
   Input,
   LabeledErrorBoundInput,
   type CronError,
@@ -211,11 +208,12 @@ function ReportModal({
 
     setCurrentReport({ isSubmitting: true, error: undefined });
     try {
-      if (isEditMode) {
+      if (isEditMode && currentReport.id) {
         await dispatch(
           editReport(currentReport.id, newReportValues as ReportObject),
         );
       } else {
+        // Create new report (either not in edit mode, or edit mode without valid ID)
         await dispatch(addReport(newReportValues as ReportObject));
       }
       onHide();

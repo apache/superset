@@ -22,7 +22,7 @@ from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import redirect, request, Response, send_file, url_for
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -45,6 +45,7 @@ from superset.charts.filters import (
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartCacheWarmUpRequestSchema,
+    ChartGetResponseSchema,
     ChartPostSchema,
     ChartPutSchema,
     get_delete_ids_schema,
@@ -79,7 +80,8 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
-from superset.extensions import event_logger
+from superset.exceptions import ScreenshotImageNotAvailableException
+from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
@@ -131,34 +133,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    show_columns = [
-        "cache_timeout",
-        "certified_by",
-        "certification_details",
-        "changed_on_delta_humanized",
-        "dashboards.dashboard_title",
-        "dashboards.id",
-        "dashboards.json_metadata",
-        "description",
-        "id",
-        "owners.first_name",
-        "owners.id",
-        "owners.last_name",
-        "dashboards.id",
-        "dashboards.dashboard_title",
-        "params",
-        "slice_name",
-        "thumbnail_url",
-        "url",
-        "viz_type",
-        "query_context",
-        "is_managed_externally",
-        "tags.id",
-        "tags.name",
-        "tags.type",
-    ]
 
-    show_select_columns = show_columns + ["table.id"]
     list_columns = [
         "is_managed_externally",
         "certified_by",
@@ -192,6 +167,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.id",
         "owners.last_name",
+        "owners.email",
         "dashboards.id",
         "dashboards.dashboard_title",
         "params",
@@ -230,6 +206,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "datasource_type",
         "description",
         "id",
+        "uuid",
         "owners",
         "dashboards",
         "slice_name",
@@ -255,6 +232,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     add_model_schema = ChartPostSchema()
     edit_model_schema = ChartPutSchema()
+    chart_get_response_schema = ChartGetResponseSchema()
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
@@ -286,6 +264,53 @@ class ChartRestApi(BaseSupersetModelRestApi):
     }
 
     allowed_rel_fields = {"owners", "created_by", "changed_by"}
+
+    @expose("/<id_or_uuid>", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        log_to_statsd=False,
+    )
+    def get(self, id_or_uuid: str) -> Response:
+        """Gets a chart
+        ---
+        get:
+          description: >-
+            Get a chart
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_uuid
+            description: Either the id of the chart, or its uuid
+          responses:
+            200:
+              description: Chart
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/ChartGetResponseSchema'
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=arguments-differ
+        try:
+            dash = ChartDAO.get_by_id_or_uuid(id_or_uuid)
+            result = self.chart_get_response_schema.dump(dash)
+            return self.response(200, result=result)
+        except ChartNotFoundError:
+            return self.response_404()
 
     @expose("/", methods=("POST",))
     @protect()
@@ -489,7 +514,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
@@ -545,12 +570,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
     @protect()
-    @rison(screenshot_query_schema)
+    @parse_rison(screenshot_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".cache_screenshot",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.cache_screenshot"
+        ),
         log_to_statsd=False,
     )
     def cache_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
@@ -591,6 +617,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         rison_dict = kwargs["rison"]
         force = rison_dict.get("force")
         window_size = rison_dict.get("window_size") or DEFAULT_CHART_WINDOW_SIZE
@@ -674,6 +704,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         chart = self.datamodel.get(pk, self._base_filters)
 
         if not chart:
@@ -681,8 +715,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         if cache_payload := ChartScreenshot.get_from_cache_key(digest):
             if cache_payload.status == StatusValues.UPDATED:
+                try:
+                    image = cache_payload.get_image()
+                except ScreenshotImageNotAvailableException:
+                    return self.response_404()
                 return Response(
-                    FileWrapper(cache_payload.get_image()),
+                    FileWrapper(image),
                     mimetype="image/png",
                     direct_passthrough=True,
                 )
@@ -690,7 +728,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
     @protect()
-    @rison(thumbnail_query_schema)
+    @parse_rison(thumbnail_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -732,6 +770,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
@@ -768,8 +810,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
         self.incr_stats("from_cache", self.thumbnail.__name__)
+        try:
+            image = cache_payload.get_image()
+        except ScreenshotImageNotAvailableException:
+            return self.response_404()
         return Response(
-            FileWrapper(cache_payload.get_image()),
+            FileWrapper(image),
             mimetype="image/png",
             direct_passthrough=True,
         )
@@ -778,7 +824,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -840,11 +886,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @expose("/favorite_status/", methods=("GET",))
     @protect()
     @safe
-    @rison(get_fav_star_ids_schema)
+    @parse_rison(get_fav_star_ids_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".favorite_status",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.favorite_status"
+        ),
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
@@ -935,8 +982,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".remove_favorite",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.remove_favorite"
+        ),
         log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:

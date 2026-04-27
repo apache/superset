@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import {
   Form,
   FormLabel,
@@ -34,7 +35,7 @@ import { AuthType } from '.';
 const StyledDiv = styled.div`
   padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
   label {
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorText};
     margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;
@@ -158,11 +159,11 @@ const SSHTunnelForm = ({
                 data-test="ssh-tunnel-password-input"
                 iconRender={visible =>
                   visible ? (
-                    <Tooltip title="Hide password.">
+                    <Tooltip title={t('Hide password.')}>
                       <Icons.EyeInvisibleOutlined />
                     </Tooltip>
                   ) : (
-                    <Tooltip title="Show password.">
+                    <Tooltip title={t('Show password.')}>
                       <Icons.EyeOutlined />
                     </Tooltip>
                   )
@@ -206,11 +207,11 @@ const SSHTunnelForm = ({
                   data-test="ssh-tunnel-private_key_password-input"
                   iconRender={visible =>
                     visible ? (
-                      <Tooltip title="Hide password.">
+                      <Tooltip title={t('Hide password.')}>
                         <Icons.EyeInvisibleOutlined />
                       </Tooltip>
                     ) : (
-                      <Tooltip title="Show password.">
+                      <Tooltip title={t('Show password.')}>
                         <Icons.EyeOutlined />
                       </Tooltip>
                     )

@@ -16,84 +16,120 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
-import dayjs from 'dayjs';
-// eslint-disable-next-line no-restricted-imports
-import {
-  configure,
-  makeApi,
-  initFeatureFlags,
-  SupersetClient,
-  LanguagePack,
-} from '@superset-ui/core';
+import { configure, LanguagePack } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
+import { makeApi, initFeatureFlags } from '@superset-ui/core';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
 import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
+import { makeUrl } from './utils/pathUtils';
+import './hooks/useLocale';
 
-configure();
+// Import dayjs plugin types for global TypeScript support
+import 'dayjs/plugin/utc';
+import 'dayjs/plugin/timezone';
+import 'dayjs/plugin/calendar';
+import 'dayjs/plugin/relativeTime';
+import 'dayjs/plugin/customParseFormat';
+import 'dayjs/plugin/duration';
+import 'dayjs/plugin/updateLocale';
+import 'dayjs/plugin/localizedFormat';
 
-// Set hot reloader config
-if (process.env.WEBPACK_MODE === 'development') {
-  setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
-}
+let initPromise: Promise<void> | null = null;
 
-// Grab initial bootstrap data
-const bootstrapData = getBootstrapData();
+const LANGUAGE_PACK_REQUEST_TIMEOUT_MS = 5000;
 
-// Setup SupersetClient early so we can fetch language pack
-setupClient({ appRoot: applicationRoot() });
-
-// Load language pack before anything else
-(async () => {
-  const lang = bootstrapData.common.locale || 'en';
-  if (lang !== 'en') {
-    try {
-      // Second call to configure to set the language pack
-      const { json } = await SupersetClient.get({
-        endpoint: `/superset/language_pack/${lang}/`,
-      });
-      configure({ languagePack: json as LanguagePack });
-      dayjs.locale(lang);
-    } catch (err) {
-      console.warn(
-        'Failed to fetch language pack, falling back to default.',
-        err,
-      );
-      configure();
-      dayjs.locale('en');
-    }
+export default function initPreamble(): Promise<void> {
+  if (initPromise) {
+    return initPromise;
   }
 
-  // Continue with rest of setup
-  initFeatureFlags(bootstrapData.common.feature_flags);
+  initPromise = (async () => {
+    configure();
 
-  setupColors(
-    bootstrapData.common.extra_categorical_color_schemes,
-    bootstrapData.common.extra_sequential_color_schemes,
-  );
+    // Grab initial bootstrap data
+    const bootstrapData = getBootstrapData();
 
-  setupFormatters(
-    bootstrapData.common.d3_format,
-    bootstrapData.common.d3_time_format,
-  );
+    setupFormatters(
+      bootstrapData.common.d3_format,
+      bootstrapData.common.d3_time_format,
+    );
 
-  setupDashboardComponents();
+    // Setup SupersetClient early so we can fetch language pack
+    setupClient({ appRoot: applicationRoot() });
 
-  const getMe = makeApi<void, User>({
-    method: 'GET',
-    endpoint: '/api/v1/me/',
+    // Load language pack before rendering
+    // Use native fetch to avoid race condition with SupersetClient initialization
+    const lang = bootstrapData.common.locale || 'en';
+    if (lang !== 'en') {
+      const abortController = new AbortController();
+      const timeoutId = window.setTimeout(() => {
+        abortController.abort();
+      }, LANGUAGE_PACK_REQUEST_TIMEOUT_MS);
+
+      try {
+        const languagePackUrl = makeUrl(`/superset/language_pack/${lang}/`);
+        const resp = await fetch(languagePackUrl, {
+          signal: abortController.signal,
+        });
+        if (!resp.ok) {
+          throw new Error(`Failed to fetch language pack: ${resp.status}`);
+        }
+        const json = await resp.json();
+        configure({ languagePack: json as LanguagePack });
+        dayjs.locale(lang);
+      } catch (err) {
+        logging.warn(
+          'Failed to fetch language pack, falling back to default.',
+          err,
+        );
+        configure();
+        dayjs.locale('en');
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    }
+
+    // Continue with rest of setup
+    initFeatureFlags(bootstrapData.common.feature_flags);
+
+    setupColors(
+      bootstrapData.common.extra_categorical_color_schemes,
+      bootstrapData.common.extra_sequential_color_schemes,
+    );
+
+    setupDashboardComponents();
+
+    const getMe = makeApi<void, User>({
+      method: 'GET',
+      endpoint: '/api/v1/me/',
+    });
+
+    if (bootstrapData.user?.isActive) {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          getMe().catch(() => {
+            // SupersetClient will redirect to login on 401
+          });
+        }
+      });
+    }
+  })().catch(err => {
+    // Allow retry by clearing the cached promise on failure
+    initPromise = null;
+    throw err;
   });
 
-  if (bootstrapData.user?.isActive) {
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        getMe().catch(() => {
-          // SupersetClient will redirect to login on 401
-        });
-      }
-    });
-  }
-})();
+  return initPromise;
+}
+
+// This module is prepended to multiple webpack entrypoints (see `webpack.config.js`).
+// Kick off initialization eagerly, while still allowing entrypoints to `await` it
+// before rendering when needed (e.g. the login page).
+initPreamble().catch(err => {
+  logging.warn('Preamble initialization failed.', err);
+});

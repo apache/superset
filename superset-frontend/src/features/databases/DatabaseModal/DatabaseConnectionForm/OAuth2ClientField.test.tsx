@@ -21,6 +21,7 @@ import { render, fireEvent } from 'spec/helpers/testing-library';
 import { DatabaseObject } from 'src/features/databases/types';
 import { OAuth2ClientField } from './OAuth2ClientField';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('OAuth2ClientField', () => {
   const mockChangeMethods = {
     onEncryptedExtraInputChange: jest.fn(),
@@ -70,7 +71,7 @@ describe('OAuth2ClientField', () => {
     jest.clearAllMocks();
   });
 
-  it('does not show input fields until the collapse trigger is clicked', () => {
+  test('does not show input fields until the collapse trigger is clicked', () => {
     const { getByText, getByTestId, queryByTestId } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
@@ -93,7 +94,7 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-scope')).toBeInTheDocument();
   });
 
-  it('renders the OAuth2ClientField component with initial values', () => {
+  test('renders the OAuth2ClientField component with initial values', () => {
     const { getByTestId, getByText } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
@@ -112,7 +113,7 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-scope')).toHaveValue('test-scope');
   });
 
-  it('handles input changes and triggers onEncryptedExtraInputChange', () => {
+  test('handles input changes and triggers onEncryptedExtraInputChange', () => {
     const { getByTestId, getByText } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
@@ -140,7 +141,7 @@ describe('OAuth2ClientField', () => {
     );
   });
 
-  it('does not render when supports_oauth2 is false', () => {
+  test('does not render when supports_oauth2 is false', () => {
     const props = {
       ...defaultProps,
       db: {
@@ -156,7 +157,7 @@ describe('OAuth2ClientField', () => {
     expect(queryByTestId('client-id')).not.toBeInTheDocument();
   });
 
-  it('renders empty fields when masked_encrypted_extra is empty', () => {
+  test('renders empty fields when masked_encrypted_extra is empty', () => {
     const props = {
       ...defaultProps,
       db: {

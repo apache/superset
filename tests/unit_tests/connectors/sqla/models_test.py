@@ -24,6 +24,7 @@ from sqlalchemy.orm.session import Session
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.daos.dataset import DatasetDAO
+from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
 from superset.sql.parse import Table
@@ -616,7 +617,7 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
             "test_table",
             "test_project",
             "test_dataset",
-            "test_project.test_dataset.test_table",
+            '"test_project"."test_dataset"."test_table"',
             None,
         ),
         # Database supports cross-catalog queries, catalog only (no schema)
@@ -625,7 +626,7 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
             "test_table",
             "test_project",
             None,
-            "test_project.test_table",
+            '"test_project"."test_table"',
             None,
         ),
         # Database supports cross-catalog queries, schema only (no catalog)
@@ -675,12 +676,14 @@ def test_get_sqla_table_with_catalog(
     expected_name: str,
     expected_schema: str | None,
 ) -> None:
-    """Test that get_sqla_table handles catalog inclusion correctly based on
-    database cross-catalog support
+    """
+    Test that `get_sqla_table` handles catalog inclusion correctly.
     """
     # Mock database with specified cross-catalog support
     database = mocker.MagicMock()
     database.db_engine_spec.supports_cross_catalog_queries = supports_cross_catalog
+    # Provide a simple quote_identifier
+    database.quote_identifier = lambda x: f'"{x}"'
 
     # Create table with specified parameters
     table = SqlaTable(
@@ -696,3 +699,281 @@ def test_get_sqla_table_with_catalog(
     # Verify expected table name and schema
     assert sqla_table.name == expected_name
     assert sqla_table.schema == expected_schema
+
+
+@pytest.mark.parametrize(
+    "table_name, catalog, schema, expected_in_sql, not_expected_in_sql",
+    [
+        (
+            "My-Table",
+            "My-DB",
+            "My-Schema",
+            '"My-DB"."My-Schema"."My-Table"',
+            '"My-DB.My-Schema.My-Table"',  # Should NOT be one quoted string
+        ),
+        (
+            "ORDERS",
+            "PROD_DB",
+            "SALES",
+            '"PROD_DB"."SALES"."ORDERS"',
+            '"PROD_DB.SALES.ORDERS"',  # Should NOT be one quoted string
+        ),
+        (
+            "My Table",
+            "My DB",
+            "My Schema",
+            '"My DB"."My Schema"."My Table"',
+            '"My DB.My Schema.My Table"',  # Should NOT be one quoted string
+        ),
+    ],
+)
+def test_get_sqla_table_quoting_for_cross_catalog(
+    mocker: MockerFixture,
+    table_name: str,
+    catalog: str | None,
+    schema: str | None,
+    expected_in_sql: str,
+    not_expected_in_sql: str,
+) -> None:
+    """
+    Test that `get_sqla_table` properly quotes each component of the identifier.
+    """
+    from sqlalchemy import create_engine, select
+
+    # Create a Postgres-like engine to test proper quoting
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    # Mock database with cross-catalog support and proper quote_identifier
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = True
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Create table
+    table = SqlaTable(
+        table_name=table_name,
+        database=database,
+        schema=schema,
+        catalog=catalog,
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # The compiled SQL should contain each part quoted separately
+    assert expected_in_sql in compiled, f"Expected {expected_in_sql} in SQL: {compiled}"
+    # Should NOT have the entire identifier quoted as one string
+    assert not_expected_in_sql not in compiled, (
+        f"Should not have {not_expected_in_sql} in SQL: {compiled}"
+    )
+
+
+def test_get_sqla_table_without_cross_catalog_ignores_catalog(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that databases without cross-catalog support ignore the catalog field.
+    """
+    from sqlalchemy import create_engine, select
+
+    # Create a PostgreSQL engine (doesn't support cross-catalog queries)
+    engine = create_engine("postgresql://user:pass@localhost/db")
+
+    # Mock database without cross-catalog support
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Create table with catalog - should be ignored
+    table = SqlaTable(
+        table_name="my_table",
+        database=database,
+        schema="my_schema",
+        catalog="my_catalog",
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+
+    # Compile to SQL
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # Should only have schema.table, not catalog.schema.table
+    assert "my_schema" in compiled
+    assert "my_table" in compiled
+    assert "my_catalog" not in compiled
+
+
+def test_quoted_name_prevents_double_quoting(mocker: MockerFixture) -> None:
+    """
+    Test that `quoted_name(..., quote=False)` does not cause double quoting.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    # Mock database
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = True
+    database.quote_identifier = engine.dialect.identifier_preparer.quote
+
+    # Use uppercase table name to force quoting
+    table = SqlaTable(
+        table_name="MY_TABLE",
+        database=database,
+        schema="MY_SCHEMA",
+        catalog="MY_DB",
+    )
+
+    # Get the SQLAlchemy table representation
+    sqla_table = table.get_sqla_table()
+
+    # Compile to SQL
+    query = select(sqla_table)
+    compiled = str(query.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # Should NOT have the entire identifier quoted as one:
+    # BAD:  '"MY_DB.MY_SCHEMA.MY_TABLE"'
+    # This would cause: SQL compilation error: Object '"MY_DB.MY_SCHEMA.MY_TABLE"'
+    # does not exist
+    assert '"MY_DB.MY_SCHEMA.MY_TABLE"' not in compiled
+
+    # Should have each part quoted separately:
+    # GOOD: "MY_DB"."MY_SCHEMA"."MY_TABLE"
+    assert '"MY_DB"."MY_SCHEMA"."MY_TABLE"' in compiled
+
+
+def test_sqla_table_currency_code_column_property() -> None:
+    """
+    Test currency_code_column property on SqlaTable.
+    """
+    database = Database(database_name="my_db")
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        currency_code_column="currency",
+    )
+    assert table.currency_code_column == "currency"
+
+
+def test_sqla_table_data_includes_currency_code_column(mocker: MockerFixture) -> None:
+    """
+    Test that data property includes currency_code_column.
+    """
+    database = mocker.MagicMock()
+    database.get_sqla_engine.return_value.__enter__ = mocker.MagicMock()
+    database.get_sqla_engine.return_value.__exit__ = mocker.MagicMock()
+
+    table = SqlaTable(
+        table_name="sales",
+        database=database,
+        currency_code_column="currency_code",
+        main_dttm_col="ds",
+    )
+    table.columns = []
+    table.metrics = []
+
+    # Mock the columns property to return empty list
+    mocker.patch.object(SqlaTable, "columns", [])
+    mocker.patch.object(SqlaTable, "metrics", [])
+
+    data = table.data
+    assert data["currency_code_column"] == "currency_code"
+    assert data["main_dttm_col"] == "ds"
+
+
+def test_sqla_table_link_escapes_url(mocker: MockerFixture) -> None:
+    """
+    Test that link property properly escapes URL to prevent XSS.
+    """
+    database = Database(database_name="my_db")
+    table = SqlaTable(
+        table_name='test<script>alert("xss")</script>',
+        database=database,
+        id=1,
+    )
+
+    # Mock explore_url to return a URL with special characters
+    mocker.patch.object(
+        SqlaTable,
+        "explore_url",
+        new_callable=mocker.PropertyMock,
+        return_value='/explore/?datasource_type=table&datasource_id=1&name=<script>alert("xss")</script>',
+    )
+
+    link = table.link
+    # Verify that special characters are escaped in both name and URL
+    assert "&lt;script&gt;" in str(link)
+    assert "<script>" not in str(link)
+
+
+def test_data_for_slices_handles_missing_datasource(mocker: MockerFixture) -> None:
+    """
+    Test that data_for_slices gracefully handles a chart whose query_context
+    references a datasource that no longer exists.
+
+    When a chart's query_context references a deleted datasource, get_query_context()
+    raises DatasourceNotFound. The fix ensures this exception is caught and logged,
+    allowing the dashboard to load normally instead of returning a 404.
+    """
+    database = mocker.MagicMock()
+    database.id = 1
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[],
+        metrics=[],
+    )
+
+    # Create a mock slice whose get_query_context raises DatasourceNotFound
+    mock_slice = mocker.MagicMock()
+    mock_slice.id = 1
+    mock_slice.slice_name = "Test Chart"
+    mock_slice.form_data = {}
+    mock_slice.get_query_context.side_effect = DatasourceNotFound()
+
+    # Mock the columns and metrics properties to return empty lists
+    mocker.patch.object(SqlaTable, "columns", [])
+    mocker.patch.object(SqlaTable, "metrics", [])
+
+    # This should not raise an exception - the fix catches DatasourceNotFound
+    result = table.data_for_slices([mock_slice])
+
+    # Verify the method returns a valid data structure
+    assert "columns" in result
+    assert "metrics" in result
+    assert "verbose_map" in result
+
+
+def test_owners_data_includes_email(mocker: MockerFixture) -> None:
+    """Test that the owners_data property includes the email field."""
+    database = mocker.MagicMock()
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[],
+        metrics=[],
+    )
+
+    mock_owner = mocker.MagicMock()
+    mock_owner.first_name = "John"
+    mock_owner.last_name = "Doe"
+    mock_owner.username = "johndoe"
+    mock_owner.id = 1
+    mock_owner.email = "john@example.com"
+
+    table.owners = [mock_owner]
+
+    owners_data = table.owners_data
+    assert len(owners_data) == 1
+    assert owners_data[0] == {
+        "first_name": "John",
+        "last_name": "Doe",
+        "username": "johndoe",
+        "id": 1,
+        "email": "john@example.com",
+    }

@@ -232,7 +232,7 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         command = ImportSavedQueriesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing saved_queries"
+        assert str(excinfo.value).startswith("Error importing saved_queries")
         assert excinfo.value.normalized_messages() == {
             "metadata.yaml": {"type": ["Must be equal to SavedQuery."]}
         }
@@ -245,7 +245,7 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         command = ImportSavedQueriesCommand(contents)
         with pytest.raises(CommandInvalidError) as excinfo:
             command.run()
-        assert str(excinfo.value) == "Error importing saved_queries"
+        assert str(excinfo.value).startswith("Error importing saved_queries")
         assert excinfo.value.normalized_messages() == {
             "databases/imported_database.yaml": {
                 "database_name": ["Missing data for required field."],

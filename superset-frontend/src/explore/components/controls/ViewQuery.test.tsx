@@ -73,21 +73,29 @@ const formatSqlEndpoint = 'glob:*/api/v1/sqllab/format_sql/';
 const formattedSQL = 'SELECT * FROM table;';
 
 beforeEach(() => {
-  fetchMock.get(datasetApiEndpoint, {
-    result: {
-      database: {
-        backend: 'sqlite',
+  fetchMock.get(
+    datasetApiEndpoint,
+    {
+      result: {
+        database: {
+          backend: 'sqlite',
+        },
       },
     },
-  });
-  fetchMock.post(formatSqlEndpoint, {
-    result: formattedSQL,
-  });
+    { name: datasetApiEndpoint },
+  );
+  fetchMock.post(
+    formatSqlEndpoint,
+    {
+      result: formattedSQL,
+    },
+    { name: formatSqlEndpoint },
+  );
 });
 
 afterEach(() => {
   jest.resetAllMocks();
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const getFormatSwitch = () =>
@@ -100,7 +108,7 @@ test('renders the component with Formatted SQL and buttons', async () => {
   expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
 
   await waitFor(() =>
-    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(1),
   );
 
   expect(container).toHaveTextContent(formattedSQL);
@@ -121,7 +129,7 @@ test('shows the original SQL when Format switch is unchecked', async () => {
   const formatButton = getFormatSwitch();
 
   await waitFor(() =>
-    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(1),
   );
 
   fireEvent.click(formatButton);
@@ -134,7 +142,7 @@ test('toggles back to formatted SQL when Format switch is clicked', async () => 
   const formatButton = getFormatSwitch();
 
   await waitFor(() =>
-    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(1),
   );
 
   // Click to format SQL
@@ -190,4 +198,98 @@ test('hides View in SQL Lab button when user does not have SQL Lab access', () =
 
   expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
   expect(screen.getByText('Copy')).toBeInTheDocument(); // Copy button should still be visible
+});
+
+test('handles undefined datasource without crashing', () => {
+  const propsWithUndefinedDatasource = {
+    ...mockProps,
+    datasource: undefined as any,
+  };
+
+  expect(() => setup(propsWithUndefinedDatasource)).not.toThrow();
+});
+
+test('handles dataset API error gracefully when no exploreBackend', async () => {
+  const stateWithoutBackend = {
+    ...mockState(),
+    explore: undefined,
+  };
+
+  fetchMock.removeRoute(datasetApiEndpoint);
+  fetchMock.get(datasetApiEndpoint, { throws: new Error('API Error') });
+
+  setup(mockProps, stateWithoutBackend);
+
+  await waitFor(() => {
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
+  expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(0);
+});
+
+test('handles SQL formatting API error gracefully', async () => {
+  const stateWithoutBackend = {
+    ...mockState(),
+    explore: undefined,
+  };
+
+  fetchMock.removeRoute(formatSqlEndpoint);
+  fetchMock.post(formatSqlEndpoint, { throws: new Error('Format Error') });
+
+  setup(mockProps, stateWithoutBackend);
+
+  await waitFor(() => {
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+});
+
+test('uses exploreBackend from Redux state when available', async () => {
+  const stateWithBackend = {
+    ...mockState(),
+    explore: {
+      datasource: {
+        database: {
+          backend: 'postgresql',
+        },
+      },
+    },
+  };
+
+  setup(mockProps, stateWithBackend);
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(1);
+  });
+
+  const formatCallBody = JSON.parse(
+    fetchMock.callHistory.lastCall(formatSqlEndpoint)?.options.body as string,
+  );
+  expect(formatCallBody.engine).toBe('postgresql');
+  expect(fetchMock.callHistory.calls(datasetApiEndpoint)).toHaveLength(0);
+});
+
+test('sends engine as string (not object) when fetched from dataset API', async () => {
+  const stateWithoutBackend = {
+    ...mockState(),
+    explore: undefined,
+  };
+
+  setup(mockProps, stateWithoutBackend);
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(datasetApiEndpoint)).toHaveLength(1);
+  });
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(1);
+  });
+
+  const formatCallBody = JSON.parse(
+    fetchMock.callHistory.lastCall(formatSqlEndpoint)?.options.body as string,
+  );
+
+  expect(formatCallBody).toEqual({
+    sql: mockProps.sql,
+    engine: 'sqlite',
+  });
 });

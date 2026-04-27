@@ -19,13 +19,15 @@
 
 import { ThemeObject } from './types';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Theme Types', () => {
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('ThemeObject', () => {
-    it('should accept valid theme objects', () => {
+    test('should accept valid theme objects', () => {
       const validTheme: ThemeObject = {
         id: 1,
         theme_name: 'Test Theme',
-        json_data: '{"colors": {"primary": "#1890ff"}}',
+        json_data: '{"token": {"colorPrimary": "#1890ff"}}',
         uuid: '123e4567-e89b-12d3-a456-426614174000',
         is_system: false,
         is_system_default: false,
@@ -51,7 +53,7 @@ describe('Theme Types', () => {
       expect(validTheme.is_system_dark).toBe(false);
     });
 
-    it('should handle optional fields', () => {
+    test('should handle optional fields', () => {
       const minimalTheme: ThemeObject = {
         theme_name: 'Minimal Theme',
         json_data: '{}',
@@ -64,11 +66,11 @@ describe('Theme Types', () => {
       expect(minimalTheme.is_system_dark).toBeUndefined();
     });
 
-    it('should handle system theme fields correctly', () => {
+    test('should handle system theme fields correctly', () => {
       const systemTheme: ThemeObject = {
         id: 2,
         theme_name: 'System Theme',
-        json_data: '{"colors": {"primary": "#000000"}}',
+        json_data: '{}',
         is_system: true,
         is_system_default: true,
         is_system_dark: false,
@@ -79,7 +81,7 @@ describe('Theme Types', () => {
       expect(systemTheme.is_system_dark).toBe(false);
     });
 
-    it('should handle both system default and dark flags', () => {
+    test('should handle both system default and dark flags', () => {
       // This should not happen in practice (a theme shouldn't be both)
       // but the type allows it for flexibility
       const theme: ThemeObject = {
@@ -96,19 +98,21 @@ describe('Theme Types', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Theme JSON Data', () => {
-    it('should parse valid JSON data', () => {
+    test('should parse valid JSON data', () => {
       const theme: ThemeObject = {
         theme_name: 'Parse Test',
-        json_data: '{"colors": {"primary": "#1890ff", "secondary": "#52c41a"}}',
+        json_data:
+          '{"token": {"colorPrimary": "#1890ff", "colorSuccess": "#52c41a"}}',
       };
 
       const parsed = JSON.parse(theme.json_data!);
-      expect(parsed.colors.primary).toBe('#1890ff');
-      expect(parsed.colors.secondary).toBe('#52c41a');
+      expect(parsed.token.colorPrimary).toBe('#1890ff');
+      expect(parsed.token.colorSuccess).toBe('#52c41a');
     });
 
-    it('should handle empty JSON', () => {
+    test('should handle empty JSON', () => {
       const theme: ThemeObject = {
         theme_name: 'Empty Theme',
         json_data: '{}',
@@ -119,8 +123,9 @@ describe('Theme Types', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Type Guards', () => {
-    it('should identify system themes', () => {
+    test('should identify system themes', () => {
       const isSystemTheme = (theme: ThemeObject): boolean =>
         theme.is_system === true;
 
@@ -140,7 +145,7 @@ describe('Theme Types', () => {
       expect(isSystemTheme(userTheme)).toBe(false);
     });
 
-    it('should identify deletable themes', () => {
+    test('should identify deletable themes', () => {
       const isDeletable = (theme: ThemeObject): boolean =>
         !theme.is_system && !theme.is_system_default && !theme.is_system_dark;
 

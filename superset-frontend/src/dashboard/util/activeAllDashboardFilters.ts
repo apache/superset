@@ -16,14 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMaskStateWithId, PartialFilters } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  DataMaskWithId,
+  JsonObject,
+  PartialFilters,
+} from '@superset-ui/core';
+import { omit } from 'lodash';
 import { ActiveFilters, ChartConfiguration } from '../types';
 
 export const getRelevantDataMask = (
   dataMask: DataMaskStateWithId,
-  filterId: string,
-): DataMaskStateWithId =>
-  dataMask[filterId] ? { [filterId]: dataMask[filterId] } : {};
+  prop: keyof DataMaskWithId,
+): JsonObject =>
+  Object.fromEntries(
+    Object.values(dataMask)
+      .filter(item => item[prop])
+      .map(item => {
+        const value = item[prop];
+        // TableChart writes clientView to ownState on every filtered-row change for export
+        // but clientView changes should NOT trigger chart re-queries
+        // Only clone when clientView exists to avoid unnecessary allocations
+        if (
+          prop === 'ownState' &&
+          value &&
+          typeof value === 'object' &&
+          'clientView' in value
+        ) {
+          return [item.id, omit(value, ['clientView'])];
+        }
+        return [item.id, value];
+      }),
+  );
 
 interface LayerInfo {
   layerMap: { [chartId: number]: number[] };
@@ -87,8 +111,11 @@ export const getAllActiveFilters = ({
   }
 
   Object.values(dataMask).forEach(({ id: filterId, extraFormData = {} }) => {
+    const nativeFilter = nativeFilters?.[filterId];
     let scope =
-      nativeFilters?.[filterId]?.chartsInScope ??
+      (nativeFilter && 'chartsInScope' in nativeFilter
+        ? nativeFilter.chartsInScope
+        : undefined) ??
       chartConfiguration?.[parseInt(filterId, 10)]?.crossFilters
         ?.chartsInScope ??
       allSliceIds ??

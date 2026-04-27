@@ -21,7 +21,7 @@ import '@testing-library/jest-dom';
 import { Breadcrumb } from '.';
 
 describe('Breadcrumb Component', () => {
-  it('renders breadcrumb items correctly', () => {
+  test('renders breadcrumb items correctly', () => {
     render(
       <Breadcrumb>
         <Breadcrumb.Item>Home</Breadcrumb.Item>

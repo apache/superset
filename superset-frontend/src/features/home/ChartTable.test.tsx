@@ -25,13 +25,25 @@ import {
 import { VizType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
+import handleResourceExport from 'src/utils/export';
+import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import ChartTable from './ChartTable';
+
+// Mock the export module
+jest.mock('src/utils/export', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+const mockExport = handleResourceExport as jest.MockedFunction<
+  typeof handleResourceExport
+>;
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
 const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status*';
 
-const mockCharts = [...new Array(3)].map((_, i) => ({
+const mockCharts = Array.from({ length: 3 }).map((_, i) => ({
   changed_on_utc: new Date().toISOString(),
   created_by: 'super user',
   id: i,
@@ -42,12 +54,16 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
   thumbnail_url: '',
 }));
 
-fetchMock.get(chartsEndpoint, {
-  result: mockCharts,
-});
+fetchMock.get(
+  chartsEndpoint,
+  {
+    result: mockCharts,
+  },
+  { name: chartsEndpoint },
+);
 
 fetchMock.get(chartsInfoEndpoint, {
-  permissions: ['can_add', 'can_edit', 'can_delete'],
+  permissions: ['can_add', 'can_write', 'can_delete', 'can_export'],
 });
 
 fetchMock.get(chartFavoriteStatusEndpoint, {
@@ -88,6 +104,10 @@ const renderChartTable = (props: any) =>
     render(<ChartTable {...props} />, renderOptions);
   });
 
+beforeEach(() => {
+  window.localStorage.removeItem(LocalStorageKeys.HomepageChartFilter);
+});
+
 test('renders with EmptyState if no data present', async () => {
   await renderChartTable(mockedProps);
   expect(screen.getAllByRole('tab')).toHaveLength(3);
@@ -98,7 +118,9 @@ test('fetches chart favorites and renders chart cards', async () => {
   await renderChartTable(mockedProps);
   userEvent.click(screen.getByText(/favorite/i));
   await waitFor(() => {
-    expect(fetchMock.calls(chartFavoriteStatusEndpoint)).toHaveLength(1);
+    expect(
+      fetchMock.callHistory.calls(chartFavoriteStatusEndpoint),
+    ).toHaveLength(1);
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
   });
 });
@@ -114,4 +136,109 @@ test('renders mine tab on click', async () => {
   await waitFor(() => {
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
   });
+});
+
+test('handles chart export with correct ID and shows spinner', async () => {
+  // Mock export to take some time before calling the done callback
+  mockExport.mockImplementation(
+    (resource: string, ids: number[], done: () => void) =>
+      new Promise(resolve => {
+        setTimeout(() => {
+          done();
+          resolve();
+        }, 100);
+      }),
+  );
+
+  await renderChartTable(mineTabProps);
+
+  // Click Mine tab to see charts
+  userEvent.click(screen.getByText(/mine/i));
+
+  await waitFor(() => {
+    expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
+  });
+
+  // Find and click the more options button for the first chart
+  const moreButtons = screen.getAllByRole('img', { name: /more/i });
+  await userEvent.click(moreButtons[0]);
+
+  // Wait for dropdown menu
+  await waitFor(() => {
+    expect(screen.getByText('Export')).toBeInTheDocument();
+  });
+
+  const exportOption = screen.getByText('Export');
+  await userEvent.click(exportOption);
+
+  // Verify spinner appears during export
+  await waitFor(() => {
+    expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
+  // Verify the export was called with correct parameters
+  expect(mockExport).toHaveBeenCalledWith('chart', [0], expect.any(Function));
+
+  // Wait for export to complete and spinner to disappear
+  await waitFor(
+    () => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
+});
+
+test('refreshes other tab data after deleting a chart', async () => {
+  fetchMock.removeRoute(chartsEndpoint);
+  fetchMock.get(
+    chartsEndpoint,
+    {
+      result: mockCharts.slice(1),
+      count: mockCharts.length - 1,
+    },
+    { name: chartsEndpoint },
+  );
+  fetchMock.delete('glob:*/api/v1/chart/0', {
+    message: 'Chart deleted',
+  });
+
+  await renderChartTable({
+    ...otherTabProps,
+    otherTabTitle: 'All',
+  });
+
+  expect(screen.getByText('cool chart 0')).toBeInTheDocument();
+
+  const refreshCallsBeforeDelete =
+    fetchMock.callHistory.calls(chartsEndpoint).length;
+
+  const moreButtons = screen.getAllByRole('img', { name: /more/i });
+  await userEvent.click(moreButtons[0]);
+
+  await userEvent.click(await screen.findByText('Delete'));
+
+  const deleteInput = screen.getByTestId('delete-modal-input');
+  await userEvent.type(deleteInput, 'DELETE');
+  await userEvent.click(screen.getByTestId('modal-confirm-button'));
+
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls(/api\/v1\/chart\/0/, {
+        method: 'DELETE',
+      }),
+    ).toHaveLength(1);
+  });
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(chartsEndpoint).length).toBe(
+      refreshCallsBeforeDelete + 1,
+    );
+  });
+
+  await waitFor(() => {
+    expect(screen.queryByText('cool chart 0')).not.toBeInTheDocument();
+  });
+
+  expect(screen.getByText('cool chart 1')).toBeInTheDocument();
+  expect(screen.getByText('cool chart 2')).toBeInTheDocument();
 });

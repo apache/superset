@@ -36,6 +36,7 @@ def mock_header_data() -> HeaderDataType:
         "chart_id": None,
         "dashboard_id": None,
         "slack_channels": ["some_channel"],
+        "execution_id": "test-execution-id",
     }
 
 
@@ -376,3 +377,57 @@ def test_send_slack_no_feature_flag(
 ```
 """,
     )
+
+
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_slackv2_send_without_channels_raises(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data,
+) -> None:
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.exceptions import NotificationParamException
+
+    flask_global_mock.logs_context = {}
+    content = NotificationContent(name="test", header_data=mock_header_data)
+    notification = SlackV2Notification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACKV2,
+            recipient_config_json='{"target": ""}',
+        ),
+        content=content,
+    )
+    with pytest.raises(NotificationParamException, match="No recipients"):
+        notification.send()
+
+
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_slack_mixin_get_body_truncates_large_table(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data,
+) -> None:
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    flask_global_mock.logs_context = {}
+    # Create a large DataFrame that exceeds the 4000-char message limit
+    large_df = pd.DataFrame({"col_" + str(i): range(100) for i in range(10)})
+    content = NotificationContent(
+        name="test",
+        header_data=mock_header_data,
+        embedded_data=large_df,
+        description="desc",
+    )
+    notification = SlackV2Notification(
+        recipient=ReportRecipients(
+            type=ReportRecipientType.SLACKV2,
+            recipient_config_json='{"target": "some_channel"}',
+        ),
+        content=content,
+    )
+    body = notification._get_body(content=content)
+    assert "(table was truncated)" in body

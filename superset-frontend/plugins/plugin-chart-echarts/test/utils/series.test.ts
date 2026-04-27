@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SortSeriesType } from '@superset-ui/chart-controls';
+import { LegendPaddingType, SortSeriesType } from '@superset-ui/chart-controls';
 import {
   AxisType,
   DataRecord,
-  GenericDataType,
   getNumberFormatter,
   getTimeFormatter,
-  supersetTheme as theme,
 } from '@superset-ui/core';
+import { supersetTheme as theme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   calculateLowerLogTick,
   dedupSeries,
@@ -51,9 +51,74 @@ import {
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
 
+const {
+  getHorizontalLegendAvailableWidth,
+  getLegendLayoutResult,
+}: {
+  getHorizontalLegendAvailableWidth: (args: {
+    chartWidth: number;
+    orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+    padding?: LegendPaddingType;
+    zoomable?: boolean;
+  }) => number;
+  getLegendLayoutResult: (args: {
+    availableHeight?: number;
+    availableWidth?: number;
+    chartHeight: number;
+    chartWidth: number;
+    legendItems?: (
+      | string
+      | number
+      | null
+      | undefined
+      | { name?: string | number | null }
+    )[];
+    legendMargin?: string | number | null;
+    orientation: LegendOrientation;
+    show: boolean;
+    showSelectors?: boolean;
+    theme: typeof theme;
+    type: LegendType;
+  }) => {
+    effectiveMargin?: number;
+    effectiveType: LegendType;
+  };
+} = require('../../src/utils/series');
+
+const {
+  resolveLegendLayout,
+}: {
+  resolveLegendLayout: (args: {
+    availableHeight?: number;
+    availableWidth?: number;
+    chartHeight: number;
+    chartWidth: number;
+    legendItems?: (
+      | string
+      | number
+      | null
+      | undefined
+      | { name?: string | number | null }
+    )[];
+    legendMargin?: string | number | null;
+    orientation: LegendOrientation;
+    show: boolean;
+    showSelectors?: boolean;
+    theme: typeof theme;
+    type: LegendType;
+  }) => {
+    effectiveLegendMargin?: string | number | null;
+    effectiveLegendType: LegendType;
+    legendLayout: {
+      effectiveMargin?: number;
+      effectiveType: LegendType;
+    };
+  };
+} = require('../../src/utils/legendLayout');
+
 const expectedThemeProps = {
   selector: ['all', 'inverse'],
-  selected: undefined,
+  selected: {},
   selectorLabel: {
     fontFamily: theme.fontFamily,
     fontSize: theme.fontSizeSM,
@@ -402,7 +467,7 @@ test('sortAndFilterSeries by name with numbers desc', () => {
 });
 
 describe('extractSeries', () => {
-  it('should generate a valid ECharts timeseries series object', () => {
+  test('should generate a valid ECharts timeseries series object', () => {
     const data = [
       {
         __timestamp: '2000-01-01',
@@ -447,7 +512,7 @@ describe('extractSeries', () => {
     ]);
   });
 
-  it('should remove rows that have a null x-value', () => {
+  test('should remove rows that have a null x-value', () => {
     const data = [
       {
         x: 1,
@@ -493,7 +558,44 @@ describe('extractSeries', () => {
     ]);
   });
 
-  it('should do missing value imputation', () => {
+  test('should convert NULL x-values to NULL_STRING for categorical axis', () => {
+    const data = [
+      {
+        browser: 'Firefox',
+        count: 5,
+      },
+      {
+        browser: null,
+        count: 10,
+      },
+      {
+        browser: 'Chrome',
+        count: 8,
+      },
+    ];
+    expect(
+      extractSeries(data, {
+        xAxis: 'browser',
+        xAxisType: AxisType.Category,
+      }),
+    ).toEqual([
+      [
+        {
+          id: 'count',
+          name: 'count',
+          data: [
+            ['Firefox', 5],
+            [NULL_STRING, 10],
+            ['Chrome', 8],
+          ],
+        },
+      ],
+      [],
+      5,
+    ]);
+  });
+
+  test('should do missing value imputation', () => {
     const data = [
       {
         __timestamp: '2000-01-01',
@@ -565,7 +667,7 @@ describe('extractSeries', () => {
 });
 
 describe('extractGroupbyLabel', () => {
-  it('should join together multiple groupby labels', () => {
+  test('should join together multiple groupby labels', () => {
     expect(
       extractGroupbyLabel({
         datum: { a: 'abc', b: 'qwerty' },
@@ -574,13 +676,13 @@ describe('extractGroupbyLabel', () => {
     ).toEqual('abc, qwerty');
   });
 
-  it('should handle a single groupby', () => {
+  test('should handle a single groupby', () => {
     expect(
       extractGroupbyLabel({ datum: { xyz: 'qqq' }, groupby: ['xyz'] }),
     ).toEqual('qqq');
   });
 
-  it('should handle mixed types', () => {
+  test('should handle mixed types', () => {
     expect(
       extractGroupbyLabel({
         datum: { strcol: 'abc', intcol: 123, floatcol: 0.123, boolcol: true },
@@ -589,7 +691,7 @@ describe('extractGroupbyLabel', () => {
     ).toEqual('abc, 123, 0.123, true');
   });
 
-  it('should handle null and undefined groupby', () => {
+  test('should handle null and undefined groupby', () => {
     expect(
       extractGroupbyLabel({
         datum: { strcol: 'abc', intcol: 123, floatcol: 0.123, boolcol: true },
@@ -601,7 +703,7 @@ describe('extractGroupbyLabel', () => {
 });
 
 describe('extractShowValueIndexes', () => {
-  it('should return the latest index for stack', () => {
+  test('should return the latest index for stack', () => {
     expect(
       extractShowValueIndexes(
         [
@@ -659,7 +761,7 @@ describe('extractShowValueIndexes', () => {
     ).toEqual([undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1]);
   });
 
-  it('should handle the negative numbers for total only', () => {
+  test('should handle the negative numbers for total only', () => {
     expect(
       extractShowValueIndexes(
         [
@@ -721,40 +823,40 @@ describe('extractShowValueIndexes', () => {
 describe('formatSeriesName', () => {
   const numberFormatter = getNumberFormatter();
   const timeFormatter = getTimeFormatter();
-  it('should handle missing values properly', () => {
+  test('should handle missing values properly', () => {
     expect(formatSeriesName(undefined)).toEqual('<NULL>');
     expect(formatSeriesName(null)).toEqual('<NULL>');
   });
 
-  it('should handle string values properly', () => {
+  test('should handle string values properly', () => {
     expect(formatSeriesName('abc XYZ!')).toEqual('abc XYZ!');
   });
 
-  it('should handle boolean values properly', () => {
+  test('should handle boolean values properly', () => {
     expect(formatSeriesName(true)).toEqual('true');
   });
 
-  it('should use default formatting for numeric values without formatter', () => {
+  test('should use default formatting for numeric values without formatter', () => {
     expect(formatSeriesName(12345678.9)).toEqual('12345678.9');
   });
 
-  it('should use numberFormatter for numeric values when formatter is provided', () => {
+  test('should use numberFormatter for numeric values when formatter is provided', () => {
     expect(formatSeriesName(12345678.9, { numberFormatter })).toEqual('12.3M');
   });
 
-  it('should use default formatting for date values without formatter', () => {
+  test('should use default formatting for date values without formatter', () => {
     expect(formatSeriesName(new Date('2020-09-11'))).toEqual(
       '2020-09-11T00:00:00.000Z',
     );
   });
 
-  it('should use timeFormatter for date values when formatter is provided', () => {
+  test('should use timeFormatter for date values when formatter is provided', () => {
     expect(formatSeriesName(new Date('2020-09-11'), { timeFormatter })).toEqual(
       '2020-09-11 00:00:00',
     );
   });
 
-  it('should normalize non-UTC string based timestamp', () => {
+  test('should normalize non-UTC string based timestamp', () => {
     const annualTimeFormatter = getTimeFormatter('%Y');
     expect(
       formatSeriesName('1995-01-01 00:00:00.000000', {
@@ -766,7 +868,7 @@ describe('formatSeriesName', () => {
 });
 
 describe('getLegendProps', () => {
-  it('should return the correct props for scroll type with top orientation without zoom', () => {
+  test('should return the correct props for scroll type with top orientation without zoom', () => {
     expect(
       getLegendProps(
         LegendType.Scroll,
@@ -785,7 +887,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for scroll type with top orientation with zoom', () => {
+  test('should return the correct props for scroll type with top orientation with zoom', () => {
     expect(
       getLegendProps(
         LegendType.Scroll,
@@ -804,7 +906,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with left orientation', () => {
+  test('should return the correct props for plain type with left orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Left, true, theme),
     ).toEqual({
@@ -816,7 +918,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with right orientation without zoom', () => {
+  test('should return the correct props for plain type with right orientation without zoom', () => {
     expect(
       getLegendProps(
         LegendType.Plain,
@@ -835,7 +937,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with right orientation with zoom', () => {
+  test('should return the correct props for plain type with right orientation with zoom', () => {
     expect(
       getLegendProps(
         LegendType.Plain,
@@ -854,12 +956,26 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with bottom orientation', () => {
+  test('should return the correct props for plain type with bottom orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
     ).toEqual({
       show: false,
       bottom: 0,
+      right: 0,
+      orient: 'horizontal',
+      type: 'plain',
+      ...expectedThemeProps,
+    });
+  });
+
+  test('should return the correct props for plain type with top orientation', () => {
+    expect(
+      getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
+    ).toEqual({
+      show: false,
+      top: 0,
+      right: 0,
       orient: 'horizontal',
       type: 'plain',
       ...expectedThemeProps,
@@ -867,8 +983,244 @@ describe('getLegendProps', () => {
   });
 });
 
+test('getLegendLayoutResult keeps plain horizontal legends when they fit within two rows', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveMargin: defaultLegendPadding[LegendOrientation.Top],
+    effectiveType: LegendType.Plain,
+  });
+});
+
+test('getLegendLayoutResult adds extra margin for wrapped plain horizontal legends', () => {
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth: 640,
+    legendItems: [
+      'This is a long legend label',
+      'Another long legend label',
+      'Third long legend label',
+    ],
+    legendMargin: null,
+    orientation: LegendOrientation.Top,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout).toMatchObject({
+    effectiveType: LegendType.Plain,
+  });
+  expect(layout.effectiveMargin).toBeGreaterThan(
+    defaultLegendPadding[LegendOrientation.Top],
+  );
+});
+
+test('getLegendLayoutResult falls back to scroll when horizontal plain legends exceed two rows', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 240,
+      legendItems: [
+        'This is a long legend label',
+        'Another long legend label',
+        'Third long legend label',
+      ],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveType: LegendType.Scroll,
+  });
+});
+
+test('getLegendLayoutResult falls back to scroll when a single horizontal plain legend item exceeds available width', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 260,
+      legendItems: [
+        'This is a ridiculously long legend label that should not fit on one line',
+      ],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveType: LegendType.Scroll,
+  });
+});
+
+test('getLegendLayoutResult falls back to scroll when reserved horizontal width reduces plain legend capacity', () => {
+  const availableWidth = getHorizontalLegendAvailableWidth({
+    chartWidth: 265,
+    orientation: LegendOrientation.Top,
+    padding: { left: 20 },
+    zoomable: true,
+  });
+
+  expect(
+    getLegendLayoutResult({
+      availableWidth,
+      chartHeight: 400,
+      chartWidth: 265,
+      legendItems: ['Alpha', 'Beta', 'Gamma'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveType: LegendType.Scroll,
+  });
+});
+
+test('getLegendLayoutResult falls back to scroll when horizontal legend selectors alone exceed available width', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 95,
+      legendItems: ['A'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveType: LegendType.Scroll,
+  });
+});
+
+test('getLegendLayoutResult keeps plain vertical legends when they fit within a single column', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta', 'Gamma'],
+      legendMargin: null,
+      orientation: LegendOrientation.Left,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveMargin: defaultLegendPadding[LegendOrientation.Left],
+    effectiveType: LegendType.Plain,
+  });
+});
+
+test('getLegendLayoutResult adds extra margin for wide vertical plain legends', () => {
+  const layout = getLegendLayoutResult({
+    chartHeight: 400,
+    chartWidth: 800,
+    legendItems: ['This is a very long legend label'],
+    legendMargin: null,
+    orientation: LegendOrientation.Left,
+    show: true,
+    theme,
+    type: LegendType.Plain,
+  });
+
+  expect(layout).toMatchObject({
+    effectiveType: LegendType.Plain,
+  });
+  expect(layout.effectiveMargin).toBeGreaterThan(
+    defaultLegendPadding[LegendOrientation.Left],
+  );
+});
+
+test('getLegendLayoutResult falls back to scroll when vertical plain legends exceed one column', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 160,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'],
+      legendMargin: null,
+      orientation: LegendOrientation.Left,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveType: LegendType.Scroll,
+  });
+});
+
+test('getLegendLayoutResult falls back to scroll when vertical plain legend selectors exceed available width', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 300,
+      legendItems: ['A', 'B', 'C'],
+      legendMargin: null,
+      orientation: LegendOrientation.Left,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveType: LegendType.Scroll,
+  });
+});
+
+test('getLegendLayoutResult counts empty-string legend labels when estimating layout', () => {
+  expect(
+    getLegendLayoutResult({
+      chartHeight: 400,
+      chartWidth: 116,
+      legendItems: ['', 'A', 'B', 'C', 'D'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      showSelectors: false,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveType: LegendType.Scroll,
+  });
+});
+
+test('resolveLegendLayout returns both raw and effective legend layout values', () => {
+  expect(
+    resolveLegendLayout({
+      chartHeight: 400,
+      chartWidth: 800,
+      legendItems: ['Alpha', 'Beta'],
+      legendMargin: null,
+      orientation: LegendOrientation.Top,
+      show: true,
+      theme,
+      type: LegendType.Plain,
+    }),
+  ).toEqual({
+    effectiveLegendMargin: defaultLegendPadding[LegendOrientation.Top],
+    effectiveLegendType: LegendType.Plain,
+    legendLayout: {
+      effectiveMargin: defaultLegendPadding[LegendOrientation.Top],
+      effectiveType: LegendType.Plain,
+    },
+  });
+});
+
 describe('getChartPadding', () => {
-  it('should handle top default', () => {
+  test('should handle top default', () => {
     expect(getChartPadding(true, LegendOrientation.Top)).toEqual({
       bottom: 0,
       left: 0,
@@ -877,7 +1229,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should handle left default', () => {
+  test('should handle left default', () => {
     expect(getChartPadding(true, LegendOrientation.Left)).toEqual({
       bottom: 0,
       left: defaultLegendPadding[LegendOrientation.Left],
@@ -886,7 +1238,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the default padding when show is false', () => {
+  test('should return the default padding when show is false', () => {
     expect(
       getChartPadding(false, LegendOrientation.Left, 100, {
         top: 10,
@@ -902,7 +1254,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for left orientation', () => {
+  test('should return the correct padding for left orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Left, 100)).toEqual({
       bottom: 0,
       left: 100,
@@ -919,7 +1271,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for right orientation', () => {
+  test('should return the correct padding for right orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Right, 50)).toEqual({
       bottom: 0,
       left: 0,
@@ -936,7 +1288,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for top orientation', () => {
+  test('should return the correct padding for top orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Top, 20)).toEqual({
       bottom: 0,
       left: 0,
@@ -953,7 +1305,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for bottom orientation', () => {
+  test('should return the correct padding for bottom orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Bottom, 10)).toEqual({
       bottom: 10,
       left: 0,
@@ -972,7 +1324,7 @@ describe('getChartPadding', () => {
 });
 
 describe('dedupSeries', () => {
-  it('should deduplicate ids in series', () => {
+  test('should deduplicate ids in series', () => {
     expect(
       dedupSeries([
         {
@@ -998,17 +1350,17 @@ describe('dedupSeries', () => {
 });
 
 describe('sanitizeHtml', () => {
-  it('should remove html tags from series name', () => {
+  test('should remove html tags from series name', () => {
     expect(sanitizeHtml(NULL_STRING)).toEqual('&lt;NULL&gt;');
   });
 });
 
 describe('getOverMaxHiddenFormatter', () => {
-  it('should hide value if greater than max', () => {
+  test('should hide value if greater than max', () => {
     const formatter = getOverMaxHiddenFormatter({ max: 81000 });
     expect(formatter.format(84500)).toEqual('');
   });
-  it('should show value if less or equal than max', () => {
+  test('should show value if less or equal than max', () => {
     const formatter = getOverMaxHiddenFormatter({ max: 81000 });
     expect(formatter.format(81000)).toEqual('81000');
     expect(formatter.format(50000)).toEqual('50000');
@@ -1157,12 +1509,12 @@ test('getMinAndMaxFromBounds returns automatic lower bound when truncating', () 
 });
 
 describe('getTimeCompareStackId', () => {
-  it('returns the defaultId when timeCompare is empty', () => {
+  test('returns the defaultId when timeCompare is empty', () => {
     const result = getTimeCompareStackId('default', []);
     expect(result).toEqual('default');
   });
 
-  it('returns the defaultId when no value in timeCompare is included in name', () => {
+  test('returns the defaultId when no value in timeCompare is included in name', () => {
     const result = getTimeCompareStackId(
       'default',
       ['compare1', 'compare2'],
@@ -1171,7 +1523,7 @@ describe('getTimeCompareStackId', () => {
     expect(result).toEqual('default');
   });
 
-  it('returns the first value in timeCompare that is included in name', () => {
+  test('returns the first value in timeCompare that is included in name', () => {
     const result = getTimeCompareStackId(
       'default',
       ['compare1', 'compare2'],
@@ -1180,7 +1532,7 @@ describe('getTimeCompareStackId', () => {
     expect(result).toEqual('compare1');
   });
 
-  it('handles name being a number', () => {
+  test('handles name being a number', () => {
     const result = getTimeCompareStackId('default', ['123', '456'], 123);
     expect(result).toEqual('123');
   });

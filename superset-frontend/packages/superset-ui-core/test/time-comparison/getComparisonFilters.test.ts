@@ -70,13 +70,13 @@ const mockExtraFormData = {
 };
 
 describe('getComparisonFilters', () => {
-  it('Keeps the original adhoc_filters since no extra data was passed', () => {
+  test('Keeps the original adhoc_filters since no extra data was passed', () => {
     const result = getComparisonFilters(form_data, {});
 
     expect(result).toEqual(form_data.adhoc_filters);
   });
 
-  it('Updates the time_range if the filter if extra form data is passed', () => {
+  test('Updates the time_range if the filter if extra form data is passed', () => {
     const result = getComparisonFilters(form_data, mockExtraFormData);
 
     const expectedFilters = [
@@ -98,7 +98,7 @@ describe('getComparisonFilters', () => {
     expect(result[0]).toEqual(expectedFilters[0]);
   });
 
-  it('handles no time range filters', () => {
+  test('handles no time range filters', () => {
     const result = getComparisonFilters(
       {
         ...form_data,
@@ -130,7 +130,7 @@ describe('getComparisonFilters', () => {
     expect(result[0]).toEqual(expectedFilters[0]);
   });
 
-  it('If adhoc_filter is undefrined the code wont break', () => {
+  test('If adhoc_filter is undefrined the code wont break', () => {
     const result = getComparisonFilters(
       {
         ...form_data,

@@ -262,3 +262,7 @@ class CacheRegion(StrEnum):
     DEFAULT = "default"
     DATA = "data"
     THUMBNAIL = "thumbnail"
+
+
+# Cache timeout constants
+CACHE_DISABLED_TIMEOUT = -1  # Special value indicating no caching should occur

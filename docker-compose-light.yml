@@ -71,7 +71,7 @@ x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
   cache_from:
-    - apache/superset-cache:3.10-slim-bookworm
+    - apache/superset-cache:3.10-slim-trixie
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
@@ -85,15 +85,13 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:16
+    image: postgres:17
     restart: unless-stopped
     volumes:
       - db_home_light:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     environment:
-      # Override database name to avoid conflicts
       POSTGRES_DB: superset_light
-    # Increase max connections for test runs
     command: postgres -c max_connections=200
 
   superset-light:
@@ -106,7 +104,6 @@ services:
       <<: *common-build
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
-    # No host port mapping - accessed via webpack dev server proxy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
@@ -115,7 +112,6 @@ services:
         condition: service_completed_successfully
     volumes: *superset-volumes
     environment:
-      # Override DB connection for light service
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
@@ -123,8 +119,9 @@ services:
       EXAMPLES_DB: superset_light
       EXAMPLES_USER: superset
       EXAMPLES_PASSWORD: superset
-      # Use light-specific config that disables Redis
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
+      GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
+      GITHUB_SHA: ${GITHUB_SHA:-}
 
   superset-init-light:
     build:
@@ -135,13 +132,12 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
+    user: *superset-user
     depends_on:
       db-light:
         condition: service_started
-    user: *superset-user
     volumes: *superset-volumes
     environment:
-      # Override DB connection for light service
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
@@ -149,7 +145,6 @@ services:
       EXAMPLES_DB: superset_light
       EXAMPLES_USER: superset
       EXAMPLES_PASSWORD: superset
-      # Use light-specific config that disables Redis
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
     healthcheck:
       disable: true
@@ -170,10 +165,14 @@ services:
       BUILD_SUPERSET_FRONTEND_IN_DOCKER: true
       NPM_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
+      DISABLE_TS_CHECKER: "${DISABLE_TS_CHECKER:-true}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset-light:8088"
+      # Webpack dev server must bind to 0.0.0.0 to be accessible from outside the container
+      WEBPACK_DEVSERVER_HOST: "${WEBPACK_DEVSERVER_HOST:-0.0.0.0}"
+      WEBPACK_DEVSERVER_PORT: "${WEBPACK_DEVSERVER_PORT:-9000}"
     ports:
-      - "127.0.0.1:${NODE_PORT:-9001}:9000"  # Parameterized port
+      - "${NODE_PORT:-9001}:9000"  # Parameterized port, accessible on all interfaces
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
       - path: docker/.env # default
@@ -199,15 +198,11 @@ services:
     user: *superset-user
     volumes: *superset-volumes
     environment:
-      # Test-specific database configuration
       DATABASE_HOST: db-light
       DATABASE_DB: test
       POSTGRES_DB: test
-      # Point to test database
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@db-light:5432/test
-      # Use the light test config that doesn't require Redis
       SUPERSET_CONFIG: superset_test_config_light
-      # Python path includes test directory
       PYTHONPATH: /app/pythonpath:/app/docker/pythonpath_dev:/app
 
 volumes:

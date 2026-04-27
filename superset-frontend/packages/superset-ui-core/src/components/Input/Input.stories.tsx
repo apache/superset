@@ -16,16 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { Meta, StoryObj } from '@storybook/react';
+import type { StoryObj } from '@storybook/react';
 import { Input, InputNumber } from '.';
 import type { InputProps, InputNumberProps, TextAreaProps } from './types';
 
-const meta: Meta<typeof Input> = {
+export default {
   title: 'Components/Input',
   component: Input,
 };
-
-export default meta;
 
 type Story = StoryObj<typeof Input>;
 type InputNumberStory = StoryObj<typeof InputNumber>;
@@ -41,6 +39,16 @@ export const InteractiveInput: Story = {
     variant: 'outlined',
   },
   argTypes: {
+    type: {
+      control: { type: 'select' },
+      options: ['text', 'password', 'email', 'number', 'tel', 'url', 'search'],
+      description: 'HTML input type',
+      table: {
+        category: 'Input',
+        type: { summary: 'string' },
+        defaultValue: { summary: 'text' },
+      },
+    },
     defaultValue: {
       control: { type: 'text' },
       description: 'Default input value',

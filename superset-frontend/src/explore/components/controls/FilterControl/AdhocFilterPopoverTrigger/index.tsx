@@ -93,7 +93,7 @@ class AdhocFilterPopoverTrigger extends PureComponent<
           datasource={this.props.datasource}
           partitionColumn={this.props.partitionColumn}
           onResize={this.onPopoverResize}
-          onClose={closePopover}
+          onClose={closePopover ?? (() => {})}
           sections={this.props.sections}
           operators={this.props.operators}
           onChange={this.props.onFilterEdit}
@@ -109,7 +109,7 @@ class AdhocFilterPopoverTrigger extends PureComponent<
         defaultOpen={visible}
         open={visible}
         onOpenChange={togglePopover}
-        destroyTooltipOnHide
+        destroyOnHidden
       >
         {this.props.children}
       </ControlPopover>

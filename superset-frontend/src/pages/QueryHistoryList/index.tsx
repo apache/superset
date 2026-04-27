@@ -12,20 +12,15 @@
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
 import { useMemo, useState, useCallback, ReactElement, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
-import {
-  css,
-  QueryState,
-  styled,
-  SupersetClient,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { QueryState, SupersetClient } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -98,7 +93,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const TimerLabel = styled(Label)`
@@ -190,30 +185,33 @@ function QueryList({ addDangerToast }: QueryListProps) {
           ) {
             statusConfig.name = (
               <Icons.CloseOutlined
-                iconSize="xs"
+                iconSize="m"
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colorError
-                    : theme.colors.grayscale.base
+                    : theme.colorIcon
                 }
               />
             );
             statusConfig.label = t('Failed');
           } else if (status === QueryState.Running) {
             statusConfig.name = (
-              <Icons.Running iconColor={theme.colorPrimary} />
+              <Icons.LoadingOutlined
+                iconSize="m"
+                iconColor={theme.colorPrimary}
+              />
             );
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconSize="m" iconColor={theme.colorIcon} />
             );
             statusConfig.label = t('Offline');
           } else if (
             status === QueryState.Scheduled ||
             status === QueryState.Pending
           ) {
-            statusConfig.name = <Icons.Queued />;
+            statusConfig.name = <Icons.Queued iconSize="m" />;
             statusConfig.label = t('Scheduled');
           }
           return (

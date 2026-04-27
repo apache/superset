@@ -22,16 +22,21 @@ import { ReactElement, ReactNode, ReactText, ComponentType } from 'react';
 import type {
   AdhocColumn,
   Column,
+  CurrencyFormatter,
   Currency,
   DatasourceType,
+  DataRecordValue,
   JsonObject,
   JsonValue,
   Metric,
+  NumberFormatter,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   QueryResponse,
+  TimeFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
@@ -72,6 +77,7 @@ export interface Dataset {
   currency_formats?: Record<string, Currency>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
+  currency_code_column?: string;
   // eg. ['["ds", true]', 'ds [asc]']
   order_by_choices?: [string, string][] | null;
   time_grain_sqla?: [string, string][];
@@ -164,6 +170,7 @@ export type InternalControlType =
   | 'FixedOrMetricControl'
   | 'ColorBreakpointsControl'
   | 'HiddenControl'
+  | 'JSEditorControl'
   | 'SelectAsyncControl'
   | 'SelectControl'
   | 'SliderControl'
@@ -190,7 +197,7 @@ export type InternalControlType =
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ControlType = InternalControlType | ComponentType<any>;
 
-export type TabOverride = 'data' | 'customize' | boolean;
+export type TabOverride = 'data' | 'customize' | 'matrixify' | boolean;
 
 /**
  * Control config specifying how chart controls appear in the control panel, all
@@ -317,7 +324,7 @@ export interface SelectControlConfig<
   optionRenderer?: (option: O) => ReactNode;
   valueRenderer?: (option: O) => ReactNode;
   filterOption?:
-    | ((option: FilterOption<O>, rawInput: string) => Boolean)
+    | ((option: FilterOption<O>, rawInput: string) => boolean)
     | null;
 }
 
@@ -458,6 +465,14 @@ export enum Comparator {
   BetweenOrEqual = '≤ x ≤',
   BetweenOrLeftEqual = '≤ x <',
   BetweenOrRightEqual = '< x ≤',
+  BeginsWith = 'begins with',
+  EndsWith = 'ends with',
+  Containing = 'containing',
+  NotContaining = 'not containing',
+  IsTrue = 'is true',
+  IsFalse = 'is false',
+  IsNull = 'is null',
+  IsNotNull = 'is not null',
 }
 
 export const MultipleValueComparators = [
@@ -469,17 +484,33 @@ export const MultipleValueComparators = [
 
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
-  targetValue?: number;
+  targetValue?: number | string;
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
   colorScheme?: string;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
+  useGradient?: boolean;
+  columnFormatting?: string;
+  objectFormatting?: ObjectFormattingEnum;
 };
 
 export type ColorFormatters = {
   column: string;
-  getColorFromValue: (value: number) => string | undefined;
+  toAllRow?: boolean;
+  toTextColor?: boolean;
+  columnFormatting?: string;
+  objectFormatting?: ObjectFormattingEnum;
+  getColorFromValue: (
+    value: number | string | boolean | null,
+  ) => string | undefined;
 }[];
+
+export type ResolvedColorFormatterResult = {
+  backgroundColor?: string;
+  color?: string;
+};
 
 export default {};
 
@@ -557,6 +588,7 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
       creatable?: boolean;
       minWidth?: number | string;
       validators?: ControlFormValueValidator<string>[];
+      tokenSeparators?: string[];
     }
   : T extends 'RadioButtonControl'
     ? {
@@ -592,3 +624,85 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
                 defaultValue?: Currency;
               }
             : {});
+
+export enum ObjectFormattingEnum {
+  BACKGROUND_COLOR = 'BACKGROUND_COLOR',
+  TEXT_COLOR = 'TEXT_COLOR',
+  CELL_BAR = 'CELL_BAR',
+  ENTIRE_ROW = 'ENTIRE_ROW',
+}
+
+export enum ColorSchemeEnum {
+  Green = 'Green',
+  Red = 'Red',
+}
+
+/** ----------------------------------------------
+ * Shared Table Chart Types
+ * Used by plugin-chart-table and plugin-chart-ag-grid-table
+ * --------------------------------------------- */
+
+export type CustomFormatter = (value: DataRecordValue) => string;
+
+export type BasicColorFormatterType = {
+  backgroundColor: string;
+  arrowColor: string;
+  mainArrow: string;
+};
+
+export type SortByItem = {
+  id: string;
+  key: string;
+  desc?: boolean;
+};
+
+export type SearchOption = {
+  value: string;
+  label: string;
+};
+
+export interface ServerPaginationData {
+  pageSize?: number;
+  currentPage?: number;
+  sortBy?: SortByItem[];
+  searchText?: string;
+  searchColumn?: string;
+}
+
+export type TableColumnConfig = {
+  d3NumberFormat?: string;
+  d3SmallNumberFormat?: string;
+  d3TimeFormat?: string;
+  columnWidth?: number;
+  horizontalAlign?: 'left' | 'right' | 'center';
+  showCellBars?: boolean;
+  alignPositiveNegative?: boolean;
+  colorPositiveNegative?: boolean;
+  truncateLongCells?: boolean;
+  currencyFormat?: Currency;
+  visible?: boolean;
+  customColumnName?: string;
+  displayTypeIcon?: boolean;
+};
+
+export interface DataColumnMeta {
+  // `key` is what is called `label` in the input props
+  key: string;
+  // `label` is verbose column name used for rendering
+  label: string;
+  // `originalLabel` preserves the original label when time comparison transforms the labels
+  originalLabel?: string;
+  dataType: GenericDataType;
+  formatter?:
+    | TimeFormatter
+    | NumberFormatter
+    | CustomFormatter
+    | CurrencyFormatter;
+  isMetric?: boolean;
+  isPercentMetric?: boolean;
+  isNumeric?: boolean;
+  config?: TableColumnConfig;
+  isChildColumn?: boolean;
+  description?: string;
+  currencyCodeColumn?: string;
+}

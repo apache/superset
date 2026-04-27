@@ -20,11 +20,11 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from unittest import mock
 
-import prison
 import pytest
+import rison
 from flask import current_app
 
-from superset import db
+from superset import db, security_manager as sm
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import (  # noqa: F401
@@ -174,7 +174,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_physical_table(self):
         self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": tbl.database.database_name,
@@ -200,7 +200,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
         with create_and_cleanup_table() as tbl:
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": tbl.database.database_name,
@@ -221,7 +221,7 @@ class TestDatasource(SupersetTestCase):
                 lambda sql, **kwargs: "SELECT 456 as intcol, 'def' as mutated_strcol"
             )
 
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": tbl.database.database_name,
@@ -240,7 +240,7 @@ class TestDatasource(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         example_database = get_example_database()
         with create_test_table_context(example_database):
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": example_database.database_name,
@@ -256,7 +256,7 @@ class TestDatasource(SupersetTestCase):
             assert col_names == {"first", "second"}
 
         # No databases found
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": "foo",
@@ -274,7 +274,7 @@ class TestDatasource(SupersetTestCase):
         )
 
         # No table found
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": example_database.database_name,
@@ -292,7 +292,7 @@ class TestDatasource(SupersetTestCase):
         )
 
         # invalid query params
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
             }
@@ -531,17 +531,26 @@ class TestDatasource(SupersetTestCase):
         self, mock_has_guest_access, mock_is_guest_user, mock_rls
     ):
         """
-        Embedded user can access the /samples view.
+        Embedded guest user can access /samples (for D2D) via the dashboard context
+        passed as form_data to QueryContextFactory.
         """
-        self.login(ADMIN_USERNAME)
+        # Gamma role doesn't have dataset access (mimic embedded role),
+        # but needs access to the /samples endpoint
+        gamma_role = sm.find_role("Gamma")
+        perm_view = sm.find_permission_view_menu("can_samples", "Datasource")
+        sm.add_permission_role(gamma_role, perm_view)
+        self.login(GAMMA_USERNAME)
         mock_is_guest_user.return_value = True
         mock_has_guest_access.return_value = True
         mock_rls.return_value = []
         tbl = self.get_table(name="birth_names")
         dash = self.get_dash_by_slug("births")
-        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
-        resp = self.client.post(uri, json={})
-        assert resp.status_code == 200
+        try:
+            uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
+            resp = self.client.post(uri, json={})
+            assert resp.status_code == 200
+        finally:
+            sm.del_permission_role(gamma_role, perm_view)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
@@ -718,7 +727,14 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
         },
     )
     assert rv.status_code == 200
-    assert rv.json["result"]["colnames"] == []
+    assert rv.json["result"]["colnames"] == [
+        "col1",
+        "col2",
+        "col3",
+        "col4",
+        "col5",
+        "col6",
+    ]
     assert rv.json["result"]["rowcount"] == 0
 
 
@@ -791,7 +807,7 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     assert rv.json["result"]["total_count"] == 10
 
     # 2. incorrect per_page
-    per_pages = (current_app.config["SAMPLES_ROW_LIMIT"] + 1, 0, "xx")
+    per_pages = (10001, 0, "xx")
     for per_page in per_pages:
         uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page={per_page}"  # noqa: E501
         rv = test_client.post(uri, json={})

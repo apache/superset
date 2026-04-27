@@ -25,11 +25,12 @@ from superset.exceptions import QueryClauseValidationException, SupersetParseErr
 from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     CTASMethod,
-    extract_tables_from_jinja_sql,
     extract_tables_from_statement,
+    JinjaSQLResult,
     KQLTokenType,
     KustoKQLStatement,
     LimitMethod,
+    process_jinja_sql,
     remove_quotes,
     RLSMethod,
     sanitize_clause,
@@ -59,6 +60,81 @@ def test_table() -> None:
         str(Table("table.name", "schema/name", "catalog\nname"))
         == "catalog%0Aname.schema%2Fname.table%2Ename"
     )
+
+
+def test_table_qualify() -> None:
+    """
+    Test the `Table.qualify` method.
+
+    The qualify method should add schema and/or catalog if not already set,
+    but should not override existing values.
+    """
+    # Table with no schema or catalog
+    table = Table("tbname")
+
+    # Add schema only
+    qualified = table.qualify(schema="schemaname")
+    assert qualified.table == "tbname"
+    assert qualified.schema == "schemaname"
+    assert qualified.catalog is None
+    assert str(qualified) == "schemaname.tbname"
+
+    # Add catalog only
+    qualified = table.qualify(catalog="catalogname")
+    assert qualified.table == "tbname"
+    assert qualified.schema is None
+    assert qualified.catalog == "catalogname"
+    assert str(qualified) == "catalogname.tbname"
+
+    # Add both schema and catalog
+    qualified = table.qualify(schema="schemaname", catalog="catalogname")
+    assert qualified.table == "tbname"
+    assert qualified.schema == "schemaname"
+    assert qualified.catalog == "catalogname"
+    assert str(qualified) == "catalogname.schemaname.tbname"
+
+    # Table with existing schema - should not override
+    table_with_schema = Table("tbname", "existingschema")
+    qualified = table_with_schema.qualify(schema="newschema")
+    assert qualified.schema == "existingschema"
+    assert str(qualified) == "existingschema.tbname"
+
+    # Table with existing catalog - should not override
+    table_with_catalog = Table("tbname", catalog="existingcatalog")
+    qualified = table_with_catalog.qualify(catalog="newcatalog")
+    assert qualified.catalog == "existingcatalog"
+    assert str(qualified) == "existingcatalog.tbname"
+
+    # Table with existing schema and catalog - should not override
+    fully_qualified = Table("tbname", "existingschema", "existingcatalog")
+    qualified = fully_qualified.qualify(schema="newschema", catalog="newcatalog")
+    assert qualified.schema == "existingschema"
+    assert qualified.catalog == "existingcatalog"
+    assert str(qualified) == "existingcatalog.existingschema.tbname"
+
+    # Table with schema but no catalog - should add catalog only
+    table_with_schema_only = Table("tbname", "existingschema")
+    qualified = table_with_schema_only.qualify(
+        schema="newschema", catalog="catalogname"
+    )
+    assert qualified.schema == "existingschema"
+    assert qualified.catalog == "catalogname"
+    assert str(qualified) == "catalogname.existingschema.tbname"
+
+    # Table with catalog but no schema - should add schema only
+    table_with_catalog_only = Table("tbname", catalog="existingcatalog")
+    qualified = table_with_catalog_only.qualify(
+        schema="schemaname", catalog="newcatalog"
+    )
+    assert qualified.schema == "schemaname"
+    assert qualified.catalog == "existingcatalog"
+    assert str(qualified) == "existingcatalog.schemaname.tbname"
+
+    # Calling qualify with no arguments should return equivalent table
+    qualified = table.qualify()
+    assert qualified.table == table.table
+    assert qualified.schema == table.schema
+    assert qualified.catalog == table.catalog
 
 
 def extract_tables_from_sql(sql: str, engine: str = "postgresql") -> set[Table]:
@@ -658,7 +734,6 @@ FROM (
     UNION ALL SELECT lets_go_deeper
     FROM f
     WHERE 1=1
-    WHERE 2=2
     GROUP BY last_col
     LIMIT 50000
 )
@@ -1792,6 +1867,23 @@ def test_as_cte(sql: str, engine: str, expected: str) -> None:
     assert SQLStatement(sql, engine).as_cte().format() == expected
 
 
+def test_as_cte_called_twice() -> None:
+    """
+    Test that calling as_cte() multiple times on the same instance works.
+
+    Regression test for a bug where as_cte() sets self._parsed.args["with_"] = None
+    after extracting CTEs, but has_cte() only checked if the key existed, not if
+    the value was truthy. This caused an AttributeError on subsequent as_cte() calls.
+    """
+    sql = "WITH cte AS (SELECT 1) SELECT * FROM cte"
+    stmt = SQLStatement(sql, "postgresql")
+
+    assert stmt.has_cte() is True
+    stmt.as_cte()
+    assert stmt.has_cte() is False
+    stmt.as_cte()
+
+
 @pytest.mark.parametrize(
     "sql, rules, expected",
     [
@@ -2088,7 +2180,7 @@ FROM (
   FROM public.flights
   WHERE
     "AIRLINE" LIKE 'A%'
-) AS "public.flights"
+) AS "flights"
 LIMIT 100
         """.strip(),
         ),
@@ -2593,9 +2685,27 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
     [
         ("col = 1", "col = 1", "base"),
         ("1=\t\n1", "1 = 1", "base"),
-        ("(col = 1)", "(\n  col = 1\n)", "base"),
-        ("(col1 = 1) AND (col2 = 2)", "(\n  col1 = 1\n) AND (\n  col2 = 2\n)", "base"),
-        ("col = 'abc' -- comment", "col = 'abc' /* comment */", "base"),
+        ("(col = 1)", "(col = 1)", "base"),  # Compact format without newlines
+        (
+            "(col1 = 1) AND (col2 = 2)",
+            "(col1 = 1) AND (col2 = 2)",
+            "base",
+        ),  # Compact format
+        (
+            "col = 'abc' -- comment",
+            "col = 'abc' /* comment */",
+            "base",
+        ),  # Line comments converted to block comments
+        (
+            "TRUE /* precise_count_distinct=true */",
+            "TRUE /* precise_count_distinct=true */",
+            "base",
+        ),  # Block comments preserved
+        (
+            "col > 1 /* hint=value */",
+            "col > 1 /* hint=value */",
+            "base",
+        ),  # Block comments preserved
         ("col = 'col1 = 1) AND (col2 = 2'", "col = 'col1 = 1) AND (col2 = 2'", "base"),
         ("col = 'select 1; select 2'", "col = 'select 1; select 2'", "base"),
         ("col = 'abc -- comment'", "col = 'abc -- comment'", "base"),
@@ -2661,10 +2771,10 @@ def test_extract_tables_from_jinja_sql(
     expected: set[Table],
 ) -> None:
     assert (
-        extract_tables_from_jinja_sql(
+        process_jinja_sql(
             sql=f"'{{{{ {engine}.{macro} }}}}'",
             database=mocker.MagicMock(backend=engine),
-        )
+        ).tables
         == expected
     )
 
@@ -2677,10 +2787,10 @@ def test_extract_tables_from_jinja_sql_disabled(mocker: MockerFixture) -> None:
     database = mocker.MagicMock()
     database.db_engine_spec.engine = "mssql"
 
-    assert extract_tables_from_jinja_sql(
+    assert process_jinja_sql(
         sql="SELECT 1 FROM t",
         database=database,
-    ) == {Table("t")}
+    ).tables == {Table("t")}
 
 
 def test_extract_tables_from_jinja_sql_invalid_function(mocker: MockerFixture) -> None:
@@ -2696,10 +2806,66 @@ def test_extract_tables_from_jinja_sql_invalid_function(mocker: MockerFixture) -
         return_value=processor,
     )
 
-    assert extract_tables_from_jinja_sql(
+    assert process_jinja_sql(
         sql="SELECT * FROM {{ my_table() }}",
         database=database,
-    ) == {Table("t")}
+    ).tables == {Table("t")}
+
+
+def test_process_jinja_sql_result_object_structure(mocker: MockerFixture) -> None:
+    """
+    Test that process_jinja_sql returns a proper JinjaSQLResult object
+    with correct script and tables properties.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "postgresql"
+
+    result = process_jinja_sql(
+        sql="SELECT id FROM users WHERE active = true",
+        database=database,
+    )
+
+    # Test that result is the correct type
+    assert isinstance(result, JinjaSQLResult)
+
+    # Test that script property returns a SQLScript
+    assert hasattr(result, "script")
+    assert isinstance(result.script, SQLScript)
+
+    # Test that tables property returns a set of Tables
+    assert hasattr(result, "tables")
+    assert isinstance(result.tables, set)
+    assert result.tables == {Table("users")}
+
+    # Test that the script contains the expected SQL
+    formatted_sql = result.script.format()
+    assert "users" in formatted_sql
+    assert "active = TRUE" in formatted_sql
+
+
+def test_process_jinja_sql_template_params_parameter(mocker: MockerFixture) -> None:
+    """
+    Test that the template_params parameter is properly handled.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "postgresql"
+
+    processor = JinjaTemplateProcessor(database)
+    mocker.patch(
+        "superset.jinja_context.get_template_processor",
+        return_value=processor,
+    )
+
+    # Test that template_params parameter is accepted and passed through
+    result = process_jinja_sql(
+        sql="SELECT * FROM table_name",
+        database=database,
+        template_params={"param1": "value1"},
+    )
+
+    # Verify the function accepts the parameter without error
+    assert isinstance(result, JinjaSQLResult)
+    assert result.tables == {Table("table_name")}
 
 
 @pytest.mark.parametrize(
@@ -2739,6 +2905,33 @@ def test_kqlstatement_is_select(kql: str, expected: bool) -> None:
     assert KustoKQLStatement(kql, "kustokql").is_select() == expected
 
 
+def test_singlestore_engine_mapping():
+    """
+    Test the `singlestoredb` dialect is properly used.
+    """
+    sql = "SELECT COUNT(*) AS `COUNT(*)`"
+    statement = SQLStatement(sql, engine="singlestoredb")
+    assert statement.is_select()
+
+    # Should parse without errors
+    formatted = statement.format()
+    assert "COUNT(*)" in formatted
+
+
+def test_awsathena_engine_mapping():
+    """
+    Test the `awsathena` dialect is properly mapped to ATHENA instead of PRESTO.
+    """
+    sql = (
+        "USING EXTERNAL FUNCTION my_func(x INT) RETURNS INT LAMBDA 'lambda_name' "
+        "SELECT my_func(id) FROM my_table"
+    )
+    statement = SQLStatement(sql, engine="awsathena")
+
+    # Should parse without errors using Athena dialect
+    statement.format()
+
+
 def test_remove_quotes() -> None:
     """
     Test the `remove_quotes` helper function.
@@ -2774,6 +2967,39 @@ def test_check_functions_present(sql: str, engine: str, expected: bool) -> None:
     """
     functions = {"version", "query_to_xml"}
     assert SQLScript(sql, engine).check_functions_present(functions) == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM my_table", "postgresql", False),
+        ("SELECT * FROM pg_stat_activity", "postgresql", True),
+        ("SELECT * FROM PG_STAT_ACTIVITY", "postgresql", True),
+        ("SELECT * FROM pg_roles", "postgresql", True),
+        (
+            "WITH cte AS (SELECT 1) SELECT * FROM cte",
+            "postgresql",
+            False,
+        ),
+        (
+            "SELECT * FROM my_table; SELECT * FROM pg_settings",
+            "postgresql",
+            True,
+        ),
+        (
+            "SELECT * FROM schema.pg_stat_activity",
+            "postgresql",
+            True,
+        ),
+        ("Table | limit 10", "kustokql", False),
+    ],
+)
+def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
+    """
+    Check the `check_tables_present` method.
+    """
+    tables = {"pg_stat_activity", "pg_roles", "pg_settings"}
+    assert SQLScript(sql, engine).check_tables_present(tables) == expected
 
 
 @pytest.mark.parametrize(
@@ -2825,3 +3051,96 @@ def test_has_subquery(sql: str, engine: str, expected: bool) -> None:
     Test the `has_subquery` method.
     """
     assert SQLStatement(sql, engine).has_subquery() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected_tables",
+    [
+        # Issue #31853: Backtick-quoted table names with "Other" database type
+        (
+            "SELECT * FROM database.`6`",
+            "base",
+            {Table(table="6", schema="database")},
+        ),
+        (
+            "SELECT * FROM database.`6` LIMIT 100",
+            "base",
+            {Table(table="6", schema="database")},
+        ),
+        # Backtick-quoted table name without schema
+        (
+            "SELECT * FROM `my_table`",
+            "base",
+            {Table(table="my_table")},
+        ),
+        # Backtick-quoted schema and table
+        (
+            "SELECT * FROM `my_schema`.`my_table`",
+            "base",
+            {Table(table="my_table", schema="my_schema")},
+        ),
+        # Complex query with multiple backtick-quoted identifiers
+        (
+            "SELECT `col1`, `col2` FROM `schema`.`table` WHERE `id` = 1",
+            "base",
+            {Table(table="table", schema="schema")},
+        ),
+        # Unknown engine should also fall back
+        (
+            "SELECT * FROM `table_name`",
+            "unknown-engine",
+            {Table(table="table_name")},
+        ),
+        # Multiple tables with backticks
+        (
+            "SELECT * FROM `t1` JOIN `t2` ON `t1`.id = `t2`.id",
+            "base",
+            {Table(table="t1"), Table(table="t2")},
+        ),
+        # Backticks in subquery
+        (
+            "SELECT * FROM (SELECT * FROM `inner_table`) AS sub",
+            "base",
+            {Table(table="inner_table")},
+        ),
+    ],
+)
+def test_backtick_quoted_identifiers_base_dialect(
+    sql: str, engine: str, expected_tables: set[Table]
+) -> None:
+    """
+    Test that backtick-quoted identifiers work with base dialect.
+
+    This is a regression test for issue #31853 where SQL parsing fails
+    with "Other" database type when using backtick-quoted table names.
+    The fix adds a fallback to MySQL dialect when parsing fails with
+    base dialect and backticks are present in the SQL.
+    """
+    script = SQLScript(sql, engine)
+    assert len(script.statements) == 1
+    assert script.statements[0].tables == expected_tables
+
+
+def test_backtick_normal_sql_still_works() -> None:
+    """
+    Test that normal SQL without backticks still works with base dialect.
+
+    This ensures the backtick fallback doesn't break normal parsing.
+    """
+    sql = "SELECT col1, col2 FROM my_schema.my_table WHERE id = 1"
+    script = SQLScript(sql, "base")
+    assert len(script.statements) == 1
+    assert script.statements[0].tables == {Table(table="my_table", schema="my_schema")}
+
+
+def test_backtick_invalid_sql_still_fails() -> None:
+    """
+    Test that invalid SQL with backticks still raises an error.
+
+    The fallback should only succeed when the MySQL dialect can parse
+    the SQL successfully.
+    """
+    # Invalid SQL that should fail even with MySQL dialect
+    sql = "SELECT * FROM `table` WHERE"
+    with pytest.raises(SupersetParseError):
+        SQLScript(sql, "base")

@@ -18,12 +18,11 @@
 """Unit tests for Superset"""
 
 from datetime import datetime, timedelta
-from unittest import mock
 import random
 import string
 
 import pytest
-import prison
+import rison
 from sqlalchemy.sql import func
 
 import tests.integration_tests.test_app  # noqa: F401
@@ -299,7 +298,7 @@ class TestQueryApi(SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         arguments = {"filters": [{"col": "sql", "opr": "ct", "value": "table2"}]}
-        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/query/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -315,7 +314,7 @@ class TestQueryApi(SupersetTestCase):
         arguments = {
             "filters": [{"col": "database", "opr": "rel_o_m", "value": database_id}]
         }
-        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/query/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -329,7 +328,7 @@ class TestQueryApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         alpha_id = self.get_user("alpha").id
         arguments = {"filters": [{"col": "user", "opr": "rel_o_m", "value": alpha_id}]}
-        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/query/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -347,7 +346,7 @@ class TestQueryApi(SupersetTestCase):
                 {"col": "changed_on", "opr": "gt", "value": "2019-12-30T00:00:00Z"},
             ]
         }
-        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/query/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -371,7 +370,7 @@ class TestQueryApi(SupersetTestCase):
 
         for order_column in order_columns:
             arguments = {"order_column": order_column, "order_direction": "asc"}
-            uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/query/?q={rison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -390,7 +389,7 @@ class TestQueryApi(SupersetTestCase):
 
         self.login(GAMMA_SQLLAB_USERNAME)
         arguments = {"filters": [{"col": "sql", "opr": "sw", "value": "SELECT col1"}]}
-        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/query/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -431,7 +430,7 @@ class TestQueryApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         timestamp = datetime.timestamp(now - timedelta(days=2)) * 1000
-        uri = f"api/v1/query/updated_since?q={prison.dumps({'last_updated_ms': timestamp})}"  # noqa: E501
+        uri = f"api/v1/query/updated_since?q={rison.dumps({'last_updated_ms': timestamp})}"  # noqa: E501
         rv = self.client.get(uri)
         assert rv.status_code == 200
 
@@ -453,21 +452,13 @@ class TestQueryApi(SupersetTestCase):
         db.session.delete(updated_query)
         db.session.commit()
 
-    @mock.patch("superset.sql_lab.cancel_query")
-    @mock.patch("superset.views.core.db.session")
-    def test_stop_query_not_found(
-        self, mock_superset_db_session, mock_sql_lab_cancel_query
-    ):
+    def test_stop_query_not_found(self):
         """
         Handles stop query when the DB engine spec does not
         have a cancel query method (with invalid client_id).
         """
         form_data = {"client_id": "foo2"}
-        query_mock = mock.Mock()
-        query_mock.return_value = None
         self.login(ADMIN_USERNAME)
-        mock_superset_db_session.query().filter_by().one_or_none = query_mock
-        mock_sql_lab_cancel_query.return_value = True
         rv = self.client.post(
             "/api/v1/query/stop",
             data=json.dumps(form_data),
@@ -478,22 +469,25 @@ class TestQueryApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["message"] == "Query with client_id foo2 not found"
 
-    @mock.patch("superset.sql_lab.cancel_query")
-    @mock.patch("superset.views.core.db.session")
-    def test_stop_query(self, mock_superset_db_session, mock_sql_lab_cancel_query):
+    # @mock.patch("superset.sql_lab.cancel_query")
+    def test_stop_query(self):
         """
         Handles stop query when the DB engine spec does not
         have a cancel query method.
         """
         form_data = {"client_id": "foo"}
-        query_mock = mock.Mock()
-        query_mock.client_id = "foo"
-        query_mock.status = QueryStatus.RUNNING
-        self.login(ADMIN_USERNAME)
-        mock_superset_db_session.query().filter_by().one_or_none().return_value = (
-            query_mock
+        admin = self.get_user("admin")
+        example_db = get_example_database()
+        query1 = self.insert_query(
+            example_db.id,
+            admin.id,
+            form_data["client_id"],
+            sql="SELECT col1, col2 from table1",
+            select_sql="SELECT col1, col2 from table1",
+            executed_sql="SELECT col1, col2 from table1 LIMIT 100",
+            changed_on=datetime.utcnow() - timedelta(days=1),
         )
-        mock_sql_lab_cancel_query.return_value = True
+        self.login(ADMIN_USERNAME)
         rv = self.client.post(
             "/api/v1/query/stop",
             data=json.dumps(form_data),
@@ -503,3 +497,5 @@ class TestQueryApi(SupersetTestCase):
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"] == "OK"
+        db.session.delete(query1)
+        db.session.commit()

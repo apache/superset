@@ -33,6 +33,7 @@ cover
 .env
 .envrc
 .idea
+.roo
 .mypy_cache
 .python-version
 .tox
@@ -43,7 +44,7 @@ _modules
 _static
 build
 app.db
-apache_superset.egg-info/
+*.egg-info/
 changelog.sh
 dist
 dump.rdb
@@ -60,21 +61,19 @@ tmp
 rat-results.txt
 superset/app/
 superset-websocket/config.json
+.direnv
+*.log
 
 # Node.js, webpack artifacts, storybook
 *.entry.js
 *.js.map
 node_modules
 npm-debug.log*
+superset/static/*
 superset/static/assets/*
 !superset/static/assets/.gitkeep
 superset/static/uploads/*
 !superset/static/uploads/.gitkeep
-superset/static/version_info.json
-superset-frontend/**/esm/*
-superset-frontend/**/lib/*
-superset-frontend/**/storybook-static/*
-superset-frontend/migration-storybook.log
 yarn-error.log
 *.map
 *.min.js
@@ -121,6 +120,8 @@ docker/requirements-local.txt
 
 cache/
 docker/*local*
+docker/superset-websocket/config.json
+docker-compose.override.yml
 
 .temp_cache
 
@@ -130,7 +131,11 @@ superset/static/stats/statistics.html
 
 # LLM-related
 CLAUDE.local.md
+PROJECT.md
 .aider*
 .claude_rc*
+.claude/settings.local.json
 .env.local
-PROJECT.md
+oxc-custom-build/
+*.code-workspace
+*.duckdb

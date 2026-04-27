@@ -17,8 +17,8 @@
 import logging
 from typing import Any
 
-from flask import request, Response
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask import current_app, request, Response
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
@@ -109,7 +109,6 @@ class TagRestApi(BaseSupersetModelRestApi):
         "created_on_delta_humanized",
         "created_by.first_name",
         "created_by.last_name",
-        "created_by",
     ]
 
     base_related_field_filters = {
@@ -146,8 +145,8 @@ class TagRestApi(BaseSupersetModelRestApi):
         """Deterministic string representation of the API instance for etag_cache."""
         return (
             "Superset.tags.api.TagRestApi@v"
-            f"{self.appbuilder.app.config['VERSION_STRING']}"
-            f"{self.appbuilder.app.config['VERSION_SHA']}"
+            f"{current_app.config['VERSION_STRING']}"
+            f"{current_app.config['VERSION_SHA']}"
         )
 
     @expose("/", methods=("POST",))
@@ -479,7 +478,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(delete_tags_schema)
+    @parse_rison(delete_tags_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
@@ -599,7 +598,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison({"type": "array", "items": {"type": "integer"}})
+    @parse_rison({"type": "array", "items": {"type": "integer"}})
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".favorite_status",

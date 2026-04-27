@@ -24,7 +24,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 
 import pytest
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-import prison
+import rison
 
 import tests.integration_tests.test_app  # noqa: F401
 from superset import db, security_manager
@@ -55,10 +55,10 @@ class Model1Api(BaseSupersetModelRestApi):
     }
 
 
-appbuilder.add_api(Model1Api)
-
-
 class TestOpenApiSpec(SupersetTestCase):
+    def setUp(self) -> None:
+        appbuilder.add_api(Model1Api)
+
     def test_open_api_spec(self):
         """
         API: Test validate OpenAPI spec
@@ -248,7 +248,7 @@ class ApiOwnersTestCaseMixin:
         self.login(ADMIN_USERNAME)
         page_size = 1
         argument = {"page_size": page_size}
-        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/owners?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -271,7 +271,7 @@ class ApiOwnersTestCaseMixin:
         """
         self.login(ADMIN_USERNAME)
         argument = {"page": 1, "page_size": 1, "include_ids": [2]}
-        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/owners?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 422
 
@@ -281,7 +281,7 @@ class ApiOwnersTestCaseMixin:
         """
         self.login(ADMIN_USERNAME)
         argument = {"filter": "gamma"}
-        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/owners?q={rison.dumps(argument)}"
 
         rv = self.client.get(uri)
         assert rv.status_code == 200
@@ -368,7 +368,7 @@ class ApiOwnersTestCaseMixin:
         """
         self.login(ADMIN_USERNAME)
         argument = {"filter": "gamma_sqllab", "include_ids": [2]}
-        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/owners?q={rison.dumps(argument)}"
 
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))
@@ -395,7 +395,7 @@ class ApiOwnersTestCaseMixin:
         """
         self.login(ADMIN_USERNAME)
         argument = {"filter": "gamma_sqllab", "include_ids": [2, 4]}
-        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/owners?q={rison.dumps(argument)}"
 
         rv = self.client.get(uri)
         response = json.loads(rv.data.decode("utf-8"))

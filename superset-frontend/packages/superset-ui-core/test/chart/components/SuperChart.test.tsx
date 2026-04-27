@@ -32,6 +32,23 @@ import {
   BuggyChartPlugin,
 } from './MockChartPlugins';
 
+import { isMatrixifyEnabled } from '../../../src/chart/types/matrixify';
+import MatrixifyGridRenderer from '../../../src/chart/components/Matrixify/MatrixifyGridRenderer';
+
+// Mock Matrixify imports
+jest.mock('../../../src/chart/types/matrixify', () => ({
+  isMatrixifyEnabled: jest.fn(() => false),
+  getMatrixifyConfig: jest.fn(() => null),
+}));
+
+jest.mock(
+  '../../../src/chart/components/Matrixify/MatrixifyGridRenderer',
+  () => ({
+    __esModule: true,
+    default: jest.fn(() => null),
+  }),
+);
+
 const DEFAULT_QUERY_DATA = { data: ['foo', 'bar'] };
 const DEFAULT_QUERIES_DATA = [
   { data: ['foo', 'bar'] },
@@ -88,12 +105,12 @@ describe('SuperChart', () => {
       window.removeEventListener('error', onError);
     });
 
-    it('should have correct number of errors', () => {
+    test('should have correct number of errors', () => {
       expect(actualErrors).toBe(expectedErrors);
       expectedErrors = 0;
     });
 
-    it('renders default FallbackComponent', async () => {
+    test('renders default FallbackComponent', async () => {
       expectedErrors = 1;
       render(
         <SuperChart
@@ -109,7 +126,7 @@ describe('SuperChart', () => {
       ).toBeInTheDocument();
     });
 
-    it('renders custom FallbackComponent', async () => {
+    test('renders custom FallbackComponent', async () => {
       expectedErrors = 1;
       const CustomFallbackComponent = jest.fn(() => (
         <div>Custom Fallback!</div>
@@ -128,7 +145,7 @@ describe('SuperChart', () => {
       expect(await screen.findByText('Custom Fallback!')).toBeInTheDocument();
       expect(CustomFallbackComponent).toHaveBeenCalledTimes(1);
     });
-    it('call onErrorBoundary', async () => {
+    test('call onErrorBoundary', async () => {
       expectedErrors = 1;
       const handleError = jest.fn();
       render(
@@ -146,7 +163,7 @@ describe('SuperChart', () => {
     });
 
     // Update the test cases
-    it('does not include ErrorBoundary if told so', async () => {
+    test('does not include ErrorBoundary if told so', async () => {
       expectedErrors = 1;
       const inactiveErrorHandler = jest.fn();
       const activeErrorHandler = jest.fn();
@@ -181,7 +198,7 @@ describe('SuperChart', () => {
   jest.setTimeout(10000);
 
   // Update the props test to wait for component to render
-  it('passes the props to renderer correctly', async () => {
+  test('passes the props to renderer correctly', async () => {
     const { container } = render(
       <SuperChart
         chartType={ChartKeys.DILIGENT}
@@ -259,7 +276,8 @@ describe('SuperChart', () => {
   };
 
   // Update the resize observer trigger to ensure it's called after component mount
-  it.skip('works when width and height are percent', async () => {
+  /* oxlint-disable-next-line jest/no-disabled-tests, jest/expect-expect -- skipped test */
+  test.skip('works when width and height are percent', async () => {
     const { container } = render(
       <SuperChart
         chartType={ChartKeys.DILIGENT}
@@ -307,7 +325,7 @@ describe('SuperChart', () => {
     await waitForDimensions(container, 300, 300);
   });
 
-  it('passes the props with multiple queries to renderer correctly', async () => {
+  test('passes the props with multiple queries to renderer correctly', async () => {
     const { container } = render(
       <SuperChart
         chartType={ChartKeys.DILIGENT}
@@ -327,7 +345,7 @@ describe('SuperChart', () => {
   });
 
   describe('supports NoResultsComponent', () => {
-    it('renders NoResultsComponent when queriesData is missing', () => {
+    test('renders NoResultsComponent when queriesData is missing', () => {
       render(
         <SuperChart chartType={ChartKeys.DILIGENT} width="200" height="200" />,
       );
@@ -335,7 +353,7 @@ describe('SuperChart', () => {
       expect(screen.getByText('No Results')).toBeInTheDocument();
     });
 
-    it('renders NoResultsComponent when queriesData data is null', () => {
+    test('renders NoResultsComponent when queriesData data is null', () => {
       render(
         <SuperChart
           chartType={ChartKeys.DILIGENT}
@@ -362,7 +380,7 @@ describe('SuperChart', () => {
       );
     }
 
-    it('works with width and height that are numbers', async () => {
+    test('works with width and height that are numbers', async () => {
       const { container } = render(
         <SuperChart
           chartType={ChartKeys.DILIGENT}
@@ -380,7 +398,8 @@ describe('SuperChart', () => {
       });
     });
 
-    it.skip('works when width and height are percent', async () => {
+    /* oxlint-disable-next-line jest/no-disabled-tests */
+    test.skip('works when width and height are percent', async () => {
       const wrapper = createSizedWrapper();
       document.body.appendChild(wrapper);
 
@@ -438,5 +457,112 @@ describe('SuperChart', () => {
 
       document.body.removeChild(wrapper);
     }, 30000);
+  });
+
+  test('should render MatrixifyGridRenderer when matrixify is enabled with empty data', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
+
+    mockIsMatrixifyEnabled.mockReturnValue(true);
+
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: [] }]}
+        enableNoResults
+      />,
+    );
+
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(screen.queryByText('No Results')).not.toBeInTheDocument();
+  });
+
+  test('should render MatrixifyGridRenderer when matrixify is enabled with null data', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
+
+    mockIsMatrixifyEnabled.mockReturnValue(true);
+
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: null }]}
+        enableNoResults
+      />,
+    );
+
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(screen.queryByText('No Results')).not.toBeInTheDocument();
+  });
+
+  test('should ignore custom noResults component when matrixify is enabled', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
+
+    mockIsMatrixifyEnabled.mockReturnValue(true);
+
+    const CustomNoResults = () => <div>Custom No Data Message</div>;
+
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: [] }]}
+        enableNoResults
+        noResults={<CustomNoResults />}
+      />,
+    );
+
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(
+      screen.queryByText('Custom No Data Message'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('should apply error boundary to matrixify grid renderer', () => {
+    const mockIsMatrixifyEnabled = isMatrixifyEnabled as jest.MockedFunction<
+      typeof isMatrixifyEnabled
+    >;
+    const mockMatrixifyGridRenderer =
+      MatrixifyGridRenderer as jest.MockedFunction<
+        typeof MatrixifyGridRenderer
+      >;
+
+    mockIsMatrixifyEnabled.mockReturnValue(true);
+    const onErrorBoundary = jest.fn();
+
+    render(
+      <SuperChart
+        chartType={ChartKeys.DILIGENT}
+        width="200"
+        height="200"
+        queriesData={[{ data: [] }]}
+        enableNoResults
+        onErrorBoundary={onErrorBoundary}
+      />,
+    );
+
+    expect(mockMatrixifyGridRenderer).toHaveBeenCalled();
+    expect(onErrorBoundary).not.toHaveBeenCalled();
   });
 });

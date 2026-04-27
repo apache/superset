@@ -27,11 +27,9 @@ import {
   Ref,
   useState,
 } from 'react';
-import { merge } from 'lodash';
-
 import { useSelector } from 'react-redux';
 
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -67,12 +65,16 @@ import {
 import { LabelLayout } from 'echarts/features';
 import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
 import { DEFAULT_LOCALE } from '../constants';
+import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
 interface ExplorePageState {
-  common: {
-    locale: string;
+  common?: {
+    locale?: string;
+  };
+  dashboardState?: {
+    isRefreshing?: boolean;
   };
 }
 
@@ -81,6 +83,7 @@ const Styles = styled.div<EchartsStylesProps>`
   width: ${({ width }) => width};
 `;
 
+// eslint-disable-next-line react-hooks/rules-of-hooks -- This is ECharts' use function, not a React hook
 use([
   CanvasRenderer,
   BarChart,
@@ -116,8 +119,8 @@ const loadLocale = async (locale: string) => {
   let lang;
   try {
     lang = await import(`echarts/lib/i18n/lang${locale}`);
-  } catch (e) {
-    console.error(`Locale ${locale} not supported in ECharts`, e);
+  } catch {
+    // Locale not supported in ECharts
   }
   return lang?.default;
 };
@@ -131,6 +134,7 @@ function Echart(
     zrEventHandlers,
     selectedValues = {},
     refs,
+    vizType,
   }: EchartsProps,
   ref: Ref<EchartsHandler>,
 ) {
@@ -155,6 +159,9 @@ function Echart(
   const locale = useSelector(
     (state: ExplorePageState) => state?.common?.locale ?? DEFAULT_LOCALE,
   ).toUpperCase();
+  const isDashboardRefreshing = useSelector((state: ExplorePageState) =>
+    Boolean(state?.dashboardState?.isRefreshing),
+  );
 
   const handleSizeChange = useCallback(
     ({ width, height }: { width: number; height: number }) => {
@@ -172,13 +179,19 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        chartRef.current = init(divRef.current, null, { locale });
+        // Pass width and height to init to avoid "Can't get DOM width or height" warning
+        // since the DOM element may not have its dimensions yet when init is called
+        chartRef.current = init(divRef.current, null, {
+          locale,
+          width,
+          height,
+        });
       }
       // did mount
       handleSizeChange({ width, height });
       setDidMount(true);
     });
-  }, [locale]);
+  }, [locale, width, height, handleSizeChange]);
 
   useEffect(() => {
     if (didMount) {
@@ -204,6 +217,12 @@ function Echart(
           },
           legend: {
             textStyle: { color: antdTheme.colorTextSecondary },
+            pageTextStyle: {
+              color: antdTheme.colorTextSecondary,
+            },
+            pageIconColor: antdTheme.colorTextSecondary,
+            pageIconInactiveColor: antdTheme.colorTextDisabled,
+            inactiveColor: antdTheme.colorTextDisabled,
           },
           tooltip: {
             backgroundColor: antdTheme.colorBgContainer,
@@ -219,6 +238,9 @@ function Echart(
             axisLine: { lineStyle: { color: antdTheme.colorSplit } },
             axisLabel: { color: antdTheme.colorTextSecondary },
             splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            minorSplitLine: {
+              lineStyle: { color: antdTheme.colorBorderSecondary },
+            },
           };
         }
         if (options?.yAxis) {
@@ -226,19 +248,58 @@ function Echart(
             axisLine: { lineStyle: { color: antdTheme.colorSplit } },
             axisLabel: { color: antdTheme.colorTextSecondary },
             splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            minorSplitLine: {
+              lineStyle: { color: antdTheme.colorBorderSecondary },
+            },
           };
         }
         return echartsTheme;
       };
 
-      const themedEchartOptions = merge(
-        {},
-        getEchartsTheme(echartOptions),
+      const baseTheme = getEchartsTheme(echartOptions);
+      const globalOverrides = theme.echartsOptionsOverrides || {};
+      const chartOverrides = vizType
+        ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
+        : {};
+
+      // Disable animations during auto-refresh to reduce visual noise
+      const animationOverride = isDashboardRefreshing
+        ? {
+            animation: false,
+            animationDuration: 0,
+          }
+        : {};
+
+      const themedEchartOptions = mergeEchartsThemeOverrides(
+        baseTheme,
         echartOptions,
+        globalOverrides,
+        chartOverrides,
+        animationOverride,
       );
-      chartRef.current?.setOption(themedEchartOptions, true);
+
+      const notMerge = !isDashboardRefreshing;
+      chartRef.current?.dispatchAction({ type: 'hideTip' });
+      chartRef.current?.setOption(themedEchartOptions, {
+        notMerge,
+        replaceMerge: notMerge ? undefined : ['series'],
+        // lazyUpdate defers render, causing tooltip crashes on stale shapes (#39247)
+        lazyUpdate: false,
+      });
     }
-  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isDashboardRefreshing intentionally excluded to prevent extra setOption calls
+  }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
+
+  // Clear tooltip on refresh start to avoid stale content (#39247)
+  useEffect(() => {
+    if (didMount && isDashboardRefreshing && chartRef.current) {
+      chartRef.current.dispatchAction({ type: 'hideTip' });
+      chartRef.current.dispatchAction({
+        type: 'updateAxisPointer',
+        currTrigger: 'leave',
+      });
+    }
+  }, [didMount, isDashboardRefreshing]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);
 
@@ -258,7 +319,7 @@ function Echart(
       });
     }
     previousSelection.current = currentSelection;
-  }, [currentSelection, chartRef.current]);
+  }, [currentSelection]);
 
   useLayoutEffect(() => {
     handleSizeChange({ width, height });

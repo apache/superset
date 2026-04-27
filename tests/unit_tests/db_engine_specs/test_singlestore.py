@@ -95,18 +95,22 @@ def test_get_schema_from_engine_params() -> None:
 
 
 def test_adjust_engine_params() -> None:
+    from flask import current_app as app
+
     adjusted = SingleStoreSpec.adjust_engine_params(
         make_url("singlestoredb://user:password@host:5432/dev"),
         {},
         schema="pro d",
     )
+
+    expected_version = app.config.get("VERSION_STRING", "dev")
     assert adjusted == (
         make_url("singlestoredb://user:password@host:5432/pro%20d"),
         {
             "conn_attrs": {
                 "_connector_name": "SingleStore Superset Database Engine",
-                "_connector_version": "0.0.0-dev",
-                "_product_version": "0.0.0-dev",
+                "_connector_version": expected_version,
+                "_product_version": expected_version,
             }
         },
     )

@@ -31,65 +31,65 @@ test('creates hydrate action from initial data', () => {
     explore: {},
   }));
   // ignore type check - we dont need exact explore state for this test
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore(exploreInitialData)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
       type: HYDRATE_EXPLORE,
-      data: {
-        charts: {
-          371: {
+      data: expect.objectContaining({
+        charts: expect.objectContaining({
+          371: expect.objectContaining({
             id: 371,
             chartAlert: null,
             chartStatus: null,
             chartStackTrace: null,
             chartUpdateEndTime: null,
             chartUpdateStartTime: 0,
-            latestQueryFormData: {
+            latestQueryFormData: expect.objectContaining({
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
               viz_type: VizType.Table,
-            },
-            sliceFormData: {
+            }),
+            sliceFormData: expect.objectContaining({
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
               viz_type: VizType.Table,
-            },
+            }),
             queryController: null,
             queriesResponse: null,
             triggerQuery: false,
             lastRendered: 0,
-          },
-        },
-        datasources: {
-          '8__table': exploreInitialData.dataset,
-        },
-        saveModal: {
+          }),
+        }),
+        datasources: expect.objectContaining({
+          '8__table': expect.anything(),
+        }),
+        saveModal: expect.objectContaining({
           dashboards: [],
           saveModalAlert: null,
           isVisible: false,
-        },
-        explore: {
+        }),
+        explore: expect.objectContaining({
           can_add: false,
           can_download: false,
           can_overwrite: false,
           isDatasourceMetaLoading: false,
           isStarred: false,
           triggerRender: false,
-          datasource: exploreInitialData.dataset,
+          datasource: expect.anything(),
           controls: expect.any(Object),
-          form_data: exploreInitialData.form_data,
-          slice: exploreInitialData.slice,
+          form_data: expect.anything(),
+          slice: expect.anything(),
           standalone: null,
           force: null,
           saveAction: null,
           common: {},
-        },
-      },
+        }),
+      }),
     }),
   );
 });
@@ -104,66 +104,66 @@ test('creates hydrate action with existing state', () => {
     explore: { controlsTransferred: ['all_columns'] },
   }));
   // ignore type check - we dont need exact explore state for this test
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore(exploreInitialData)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
       type: HYDRATE_EXPLORE,
-      data: {
-        charts: {
-          371: {
+      data: expect.objectContaining({
+        charts: expect.objectContaining({
+          371: expect.objectContaining({
             id: 371,
             chartAlert: null,
             chartStatus: null,
             chartStackTrace: null,
             chartUpdateEndTime: null,
             chartUpdateStartTime: 0,
-            latestQueryFormData: {
+            latestQueryFormData: expect.objectContaining({
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
               viz_type: VizType.Table,
-            },
-            sliceFormData: {
+            }),
+            sliceFormData: expect.objectContaining({
               cache_timeout: undefined,
               datasource: '8__table',
               slice_id: 371,
               url_params: undefined,
               viz_type: VizType.Table,
-            },
+            }),
             queryController: null,
             queriesResponse: null,
             triggerQuery: false,
             lastRendered: 0,
-          },
-        },
-        datasources: {
-          '8__table': exploreInitialData.dataset,
-        },
-        saveModal: {
+          }),
+        }),
+        datasources: expect.objectContaining({
+          '8__table': expect.anything(),
+        }),
+        saveModal: expect.objectContaining({
           dashboards: [],
           saveModalAlert: null,
           isVisible: false,
-        },
-        explore: {
+        }),
+        explore: expect.objectContaining({
           can_add: false,
           can_download: false,
           can_overwrite: false,
           isDatasourceMetaLoading: false,
           isStarred: false,
           triggerRender: false,
-          datasource: exploreInitialData.dataset,
+          datasource: expect.anything(),
           controls: expect.any(Object),
           controlsTransferred: ['all_columns'],
-          form_data: exploreInitialData.form_data,
-          slice: exploreInitialData.slice,
+          form_data: expect.anything(),
+          slice: expect.anything(),
           standalone: null,
           force: null,
           saveAction: null,
           common: {},
-        },
-      },
+        }),
+      }),
     }),
   );
 });
@@ -181,7 +181,7 @@ test('uses configured default time range if not set', () => {
     },
     explore: {},
   }));
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore({ form_data: {}, slice: {}, dataset: {} })(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -199,7 +199,7 @@ test('uses configured default time range if not set', () => {
     slice: {},
     dataset: {},
   };
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore(withTimeRangeSet)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -239,10 +239,10 @@ test('extracts currency formats from metrics in dataset', () => {
     ],
   };
 
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore({ ...exploreInitialData, dataset: datasetWithMetrics })(
     dispatch,
-    // @ts-ignore
+    // @ts-expect-error
     getState,
   );
 

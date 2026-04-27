@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { useTheme, t, GenericDataType } from '@superset-ui/core';
-
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
@@ -81,6 +82,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
     });
   }
   const theme = useTheme();
+
   const columnConfigs = useMemo(() => {
     const configs: Record<string, ColumnConfigInfo> = {};
     colnames?.forEach((col, idx) => {
@@ -99,6 +101,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   const [showAllColumns, setShowAllColumns] = useState(false);
 
   const getColumnInfo = (col: string) => columnConfigs[col] || {};
+
   const setColumnConfig = (col: string, config: T) => {
     if (onChange) {
       // Only keep configs for known columns
@@ -173,7 +176,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
               fontSize: theme.fontSizeXS,
               color: theme.colorTextLabel,
               ':hover': {
-                backgroundColor: theme.colors.grayscale.light4,
+                backgroundColor: theme.colorFillContentHover,
               },
             }}
             onClick={() => setShowAllColumns(!showAllColumns)}

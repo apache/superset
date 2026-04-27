@@ -20,7 +20,7 @@ from typing import Any, TYPE_CHECKING
 
 from flask import request
 from flask_appbuilder import expose
-from flask_appbuilder.api import rison
+from flask_appbuilder.api import rison as parse_rison
 from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import lazy_gettext as _
 
@@ -98,7 +98,7 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @rison(get_time_range_schema)
+    @parse_rison(get_time_range_schema)
     @expose("/v1/time_range/", methods=("GET",))
     def time_range(self, **kwargs: Any) -> FlaskResponse:
         """Get actually time range from human-readable string or datetime expression."""

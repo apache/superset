@@ -26,11 +26,11 @@ import {
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   LegendState,
-  SupersetTheme,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
   ValueFormatter,
 } from '@superset-ui/core';
+import { SupersetTheme, isThemeDark } from '@apache-superset/core/theme';
 import type {
   CallbackDataParams,
   DefaultStatesMixin,
@@ -76,7 +76,10 @@ export const getBaselineSeriesForStream = (
   seriesType: EchartsTimeseriesSeriesType,
 ) => {
   const seriesLength = series[0].length;
-  const baselineSeriesDelta = new Array(seriesLength).fill([0, 0]);
+  const baselineSeriesDelta: [string | number, number][] = Array.from(
+    { length: seriesLength },
+    () => [0, 0],
+  );
   const getVal = (value: number | null) => value ?? 0;
   for (let i = 0; i < seriesLength; i += 1) {
     let seriesSum = 0;
@@ -98,7 +101,9 @@ export const getBaselineSeriesForStream = (
     }
     baselineSeriesDelta[i] = [series[0][i][0], -weightedSeriesSum / seriesSum];
   }
-  const baselineSeries = baselineSeriesDelta.reduce((acc, curr, i) => {
+  const baselineSeries = baselineSeriesDelta.reduce<
+    [string | number, number][]
+  >((acc, curr, i) => {
     if (i === 0) {
       acc.push(curr);
     } else {
@@ -137,6 +142,58 @@ export const getBaselineSeriesForStream = (
   };
 };
 
+export function transformNegativeLabelsPosition(
+  series: SeriesOption,
+  isHorizontal: boolean,
+): TimeseriesDataRecord[] {
+  /*
+   * Adjusts label position for negative values in bar series
+   * @param series - Array of series options
+   * @param isHorizontal - Whether chart is horizontal
+   * @returns data with adjusted label positions for negative values
+   */
+  const transformValue = (value: any) => {
+    const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
+    const axisValue = isHorizontal ? xValue : yValue;
+
+    return axisValue < 0
+      ? {
+          value,
+          label: {
+            position: 'outside',
+          },
+        }
+      : value;
+  };
+
+  return (series.data as TimeseriesDataRecord[]).map(transformValue);
+}
+
+export function applyColorByPrimaryAxis(
+  series: SeriesOption,
+  colorScale: CategoricalColorScale,
+  sliceId: number | undefined,
+  opacity: number,
+  isHorizontal = false,
+): {
+  value: [string | number, number];
+  itemStyle: { color: string; opacity: number; borderWidth: number };
+}[] {
+  return (series.data as [string | number, number][]).map(value => {
+    // For horizontal charts the primary axis is index 1 (category), not index 0 (numeric)
+    const colorKey = String(isHorizontal ? value[1] : value[0]);
+
+    return {
+      value,
+      itemStyle: {
+        color: colorScale(colorKey, sliceId),
+        opacity,
+        borderWidth: 0,
+      },
+    };
+  });
+}
+
 export function transformSeries(
   series: SeriesOption,
   colorScale: CategoricalColorScale,
@@ -164,10 +221,14 @@ export function transformSeries(
     seriesKey?: OptionName;
     sliceId?: number;
     isHorizontal?: boolean;
+    lineSymbol?: string;
     lineStyle?: LineStyleOption;
     queryIndex?: number;
     timeCompare?: string[];
     timeShiftColor?: boolean;
+    theme?: SupersetTheme;
+    hasDimensions?: boolean;
+    colorByPrimaryAxis?: boolean;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -197,6 +258,8 @@ export function transformSeries(
     queryIndex = 0,
     timeCompare = [],
     timeShiftColor,
+    theme,
+    colorByPrimaryAxis = false,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -208,8 +271,12 @@ export function transformSeries(
   const isConfidenceBand =
     forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
     forecastSeries.type === ForecastSeriesEnum.ForecastUpper;
+  // When cross-filtering by X-axis (no dimensions), selectedValues contains
+  // X-axis values rather than series names, so skip series-level dimming.
   const isFiltered =
-    filterState?.selectedValues && !filterState?.selectedValues.includes(name);
+    opts.hasDimensions !== false &&
+    filterState?.selectedValues &&
+    !filterState?.selectedValues.includes(name);
   const opacity = isFiltered
     ? OpacityEnum.SemiTransparent
     : opts.lineStyle?.opacity || OpacityEnum.NonTransparent;
@@ -244,6 +311,9 @@ export function transformSeries(
   } else {
     plotType = seriesType === 'bar' ? 'bar' : 'line';
   }
+
+  const isDarkMode = theme ? isThemeDark(theme) : false;
+
   /**
    * if timeShiftColor is enabled the colorScaleKey forces the color to be the
    * same as the original series, otherwise uses separate colors
@@ -287,21 +357,41 @@ export function transformSeries(
     isConfidenceBand || (stack === StackControlsValue.Stream && area)
       ? { ...opts.lineStyle, opacity: OpacityEnum.Transparent }
       : { ...opts.lineStyle, opacity };
+
+  // Use filled circles in dark mode to avoid the white fill issue with hollow circles
+  // Use emptyCircle explicitly in light mode
+  let symbol;
+  if (plotType === 'line') {
+    symbol = opts.lineSymbol || (isDarkMode ? 'circle' : 'emptyCircle');
+  }
+
   return {
     ...series,
-    ...(Array.isArray(data) && seriesType === 'bar' && !stack
-      ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
+    ...(Array.isArray(data)
+      ? colorByPrimaryAxis
+        ? {
+            data: applyColorByPrimaryAxis(
+              series,
+              colorScale,
+              sliceId,
+              opacity,
+              isHorizontal,
+            ),
+          }
+        : seriesType === 'bar' && !stack
+          ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
+          : null
       : null),
     connectNulls,
     queryIndex,
     yAxisIndex,
     name: forecastSeries.name,
-    itemStyle,
+    ...(colorByPrimaryAxis ? {} : { itemStyle }),
     // @ts-ignore
     type: plotType,
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
-    // @ts-ignore
+    // @ts-expect-error
     step: ['start', 'middle', 'end'].includes(seriesType as string)
       ? seriesType
       : undefined,
@@ -319,10 +409,13 @@ export function transformSeries(
         : undefined,
     emphasis,
     showSymbol,
+    symbol,
     symbolSize: markerSize,
     label: {
       show: !!showValue,
       position: isHorizontal ? 'right' : 'top',
+      color: theme?.colorText,
+      textBorderWidth: 0,
       formatter: (params: any) => {
         // don't show confidence band value labels, as they're already visible on the tooltip
         if (
@@ -404,67 +497,85 @@ export function transformIntervalAnnotation(
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
+  if (annotations.length === 0) {
+    return series;
+  }
+
+  const { name, color, opacity, showLabel } = layer;
+  const isHorizontal = orientation === OrientationType.Horizontal;
+
+  const intervalsByStartTime = new Map<string, string[]>();
   annotations.forEach(annotation => {
-    const { name, color, opacity, showLabel } = layer;
-    const { descriptions, intervalEnd, time, title } = annotation;
+    const { descriptions, time = '', title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
-    const isHorizontal = orientation === OrientationType.Horizontal;
-    const intervalData: (
-      | MarkArea1DDataItemOption
-      | MarkArea2DDataItemOption
-    )[] = [
-      [
-        {
-          name: label,
-          ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
-        },
-        isHorizontal ? { yAxis: intervalEnd } : { xAxis: intervalEnd },
-      ],
+    const existing = intervalsByStartTime.get(time);
+    if (existing) {
+      existing.push(label);
+    } else {
+      intervalsByStartTime.set(time, [label]);
+    }
+  });
+
+  const allIntervalData: (
+    | MarkArea1DDataItemOption
+    | MarkArea2DDataItemOption
+  )[] = annotations.map(annotation => {
+    const { intervalEnd, time = '' } = annotation;
+    const combinedLabel = (intervalsByStartTime.get(time) || []).join('\n');
+    return [
+      {
+        name: combinedLabel,
+        ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
+      },
+      isHorizontal ? { yAxis: intervalEnd } : { xAxis: intervalEnd },
     ];
-    const intervalLabel: SeriesLabelOption = showLabel
-      ? {
-          show: true,
-          color: theme.colors.grayscale.dark2,
+  });
+
+  const intervalLabel: SeriesLabelOption = showLabel
+    ? {
+        show: true,
+        color: theme.colorTextLabel,
+        position: 'insideTop',
+        verticalAlign: 'top',
+        fontWeight: 'bold',
+        // @ts-expect-error
+        emphasis: {
           position: 'insideTop',
           verticalAlign: 'top',
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      }
+    : {
+        show: false,
+        color: theme.colorTextLabel,
+        emphasis: {
           fontWeight: 'bold',
-          // @ts-ignore
-          emphasis: {
-            position: 'insideTop',
-            verticalAlign: 'top',
-            backgroundColor: theme.colors.grayscale.light5,
-          },
-        }
-      : {
-          show: false,
-          color: theme.colors.grayscale.dark2,
-          // @ts-ignore
-          emphasis: {
-            fontWeight: 'bold',
-            show: true,
-            position: 'insideTop',
-            verticalAlign: 'top',
-            backgroundColor: theme.colors.grayscale.light5,
-          },
-        };
-    series.push({
-      id: `Interval - ${label}`,
-      type: 'line',
-      animation: false,
-      markArea: {
-        silent: false,
-        itemStyle: {
-          color: color || colorScale(name, sliceId),
-          opacity: parseAnnotationOpacity(opacity || AnnotationOpacity.Medium),
-          emphasis: {
-            opacity: 0.8,
-          },
-        } as ItemStyleOption,
-        label: intervalLabel,
-        data: intervalData,
-      },
-    });
+          show: true,
+          position: 'insideTop',
+          verticalAlign: 'top',
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      };
+
+  // Push a single series with all intervals in the markArea data
+  series.push({
+    id: `Interval - ${name}`,
+    type: 'line',
+    animation: false,
+    markArea: {
+      silent: false,
+      itemStyle: {
+        color: color || colorScale(name, sliceId),
+        opacity: parseAnnotationOpacity(opacity || AnnotationOpacity.Medium),
+        emphasis: {
+          opacity: 0.8,
+        },
+      } as ItemStyleOption,
+      label: intervalLabel,
+      data: allIntervalData,
+    },
   });
+
   return series;
 }
 
@@ -479,67 +590,82 @@ export function transformEventAnnotation(
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
+  if (annotations.length === 0) {
+    return series;
+  }
+
+  const { name, color, opacity, style, width, showLabel } = layer;
+  const isHorizontal = orientation === OrientationType.Horizontal;
+
+  const eventsByTime = new Map<string, { time: string; labels: string[] }>();
   annotations.forEach(annotation => {
-    const { name, color, opacity, style, width, showLabel } = layer;
-    const { descriptions, time, title } = annotation;
+    const { descriptions, time = '', title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
-    const isHorizontal = orientation === OrientationType.Horizontal;
-    const eventData: MarkLine1DDataItemOption[] = [
-      {
-        name: label,
-        ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
-      },
-    ];
+    const existing = eventsByTime.get(time);
 
-    const lineStyle: LineStyleOption & DefaultStatesMixin['emphasis'] = {
-      width,
-      type: style as ZRLineType,
-      color: color || colorScale(name, sliceId),
-      opacity: parseAnnotationOpacity(opacity),
-      emphasis: {
-        width: width ? width + 1 : width,
-        opacity: 1,
-      },
-    };
-
-    const eventLabel: SeriesLineLabelOption = showLabel
-      ? {
-          show: true,
-          color: theme.colors.grayscale.dark2,
-          position: 'insideEndTop',
-          fontWeight: 'bold',
-          formatter: (params: CallbackDataParams) => params.name,
-          // @ts-ignore
-          emphasis: {
-            backgroundColor: theme.colors.grayscale.light5,
-          },
-        }
-      : {
-          show: false,
-          color: theme.colors.grayscale.dark2,
-          position: 'insideEndTop',
-          // @ts-ignore
-          emphasis: {
-            formatter: (params: CallbackDataParams) => params.name,
-            fontWeight: 'bold',
-            show: true,
-            backgroundColor: theme.colors.grayscale.light5,
-          },
-        };
-
-    series.push({
-      id: `Event - ${label}`,
-      type: 'line',
-      animation: false,
-      markLine: {
-        silent: false,
-        symbol: 'none',
-        lineStyle,
-        label: eventLabel,
-        data: eventData,
-      },
-    });
+    if (existing) {
+      existing.labels.push(label);
+    } else {
+      eventsByTime.set(time, { time, labels: [label] });
+    }
   });
+
+  const allEventData: MarkLine1DDataItemOption[] = Array.from(
+    eventsByTime.values(),
+  ).map(({ time, labels }) => ({
+    name: labels.join('\n'),
+    ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
+  }));
+
+  const lineStyle: LineStyleOption & DefaultStatesMixin['emphasis'] = {
+    width,
+    type: style as ZRLineType,
+    color: color || colorScale(name, sliceId),
+    opacity: parseAnnotationOpacity(opacity),
+    emphasis: {
+      width: width ? width + 1 : width,
+      opacity: 1,
+    },
+  };
+
+  const eventLabel: SeriesLineLabelOption = showLabel
+    ? {
+        show: true,
+        color: theme.colorTextLabel,
+        position: 'insideEndTop',
+        fontWeight: 'bold',
+        formatter: (params: CallbackDataParams) => params.name,
+        // @ts-expect-error
+        emphasis: {
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      }
+    : {
+        show: false,
+        color: theme.colorTextLabel,
+        position: 'insideEndTop',
+        emphasis: {
+          formatter: (params: CallbackDataParams) => params.name,
+          fontWeight: 'bold',
+          show: true,
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      };
+
+  // Push a single series with all events in the markLine data
+  series.push({
+    id: `Event - ${name}`,
+    type: 'line',
+    animation: false,
+    markLine: {
+      silent: false,
+      symbol: 'none',
+      lineStyle,
+      label: eventLabel,
+      data: allEventData,
+    },
+  });
+
   return series;
 }
 
@@ -615,7 +741,9 @@ export function getPadding(
       top:
         yAxisTitlePosition && yAxisTitlePosition === 'Top'
           ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
-          : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
+          : yAxisTitlePosition === 'Left'
+            ? TIMESERIES_CONSTANTS.gridOffsetTop
+            : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
       bottom:
         zoomable && !isHorizontal
           ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
@@ -632,31 +760,4 @@ export function getPadding(
     },
     isHorizontal,
   );
-}
-
-export function transformNegativeLabelsPosition(
-  series: SeriesOption,
-  isHorizontal: boolean,
-): TimeseriesDataRecord[] {
-  /*
-   * Adjusts label position for negative values in bar series
-   * @param series - Array of series options
-   * @param isHorizontal - Whether chart is horizontal
-   * @returns data with adjusted label positions for negative values
-   */
-  const transformValue = (value: any) => {
-    const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
-    const axisValue = isHorizontal ? xValue : yValue;
-
-    return axisValue < 0
-      ? {
-          value,
-          label: {
-            position: 'outside',
-          },
-        }
-      : value;
-  };
-
-  return (series.data as TimeseriesDataRecord[]).map(transformValue);
 }

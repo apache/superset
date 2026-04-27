@@ -19,12 +19,12 @@
  */
 import {
   Column,
-  logging,
   Metric,
   ensureIsArray,
   getExtensionsRegistry,
   QueryFormData,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { useEffect, useState } from 'react';
 import { Dataset } from 'src/components/Chart/types';
 import {
@@ -63,6 +63,7 @@ export const useDatasetDrillInfo = (
   datasetId: string | number,
   dashboardId: number,
   formData?: QueryFormData,
+  skip: boolean = false,
 ): Resource<Dataset> => {
   const [resource, setResource] = useState<Resource<Dataset>>({
     status: ResourceStatus.Loading,
@@ -71,6 +72,15 @@ export const useDatasetDrillInfo = (
   });
 
   useEffect(() => {
+    if (skip) {
+      // short circuit if `skip` is `true`
+      setResource({
+        status: ResourceStatus.Complete,
+        result: {} as Dataset,
+        error: null,
+      });
+      return;
+    }
     const fetchDataset = async () => {
       try {
         const numericDatasetId = getDatasetId(datasetId);
@@ -115,7 +125,7 @@ export const useDatasetDrillInfo = (
     };
 
     fetchDataset();
-  }, [datasetId, dashboardId, formData]);
+  }, [datasetId, dashboardId, formData, skip]);
 
   return resource;
 };

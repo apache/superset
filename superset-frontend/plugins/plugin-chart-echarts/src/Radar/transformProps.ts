@@ -45,6 +45,7 @@ import {
   getColtypesMapping,
   getLegendProps,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
 import { getDefaultTooltip } from '../utils/tooltip';
@@ -116,6 +117,7 @@ export default function transformProps(
     dateFormat,
     showLabels,
     showLegend,
+    legendSort,
     isCircle,
     columnConfig,
     sliceId,
@@ -312,11 +314,27 @@ export default function transformProps(
       min,
     };
   });
+  const legendData = Array.from(columnsLabelMap.keys()).sort(
+    (a: string, b: string) => {
+      if (!legendSort) return 0;
+      return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+    },
+  );
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
 
   const series: RadarSeriesOption[] = [
     {
       type: 'radar',
-      ...getChartPadding(showLegend, legendOrientation, legendMargin),
+      ...getChartPadding(showLegend, legendOrientation, effectiveLegendMargin),
       animation: false,
       emphasis: {
         label: {
@@ -353,8 +371,13 @@ export default function transformProps(
       formatter: NormalizedTooltipFormater,
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: Array.from(columnsLabelMap.keys()),
+      ...getLegendProps(
+        effectiveLegendType,
+        legendOrientation,
+        showLegend,
+        theme,
+      ),
+      data: legendData,
     },
     series,
     radar: {

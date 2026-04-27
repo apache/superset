@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   lazy,
@@ -127,11 +128,19 @@ const Tags = lazy(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
 );
 
+const Extensions = lazy(
+  () => import(/* webpackChunkName: "Tags" */ 'src/extensions/ExtensionsList'),
+);
+
 const RowLevelSecurityList = lazy(
   () =>
     import(
       /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
     ),
+);
+
+const TaskList = lazy(
+  () => import(/* webpackChunkName: "TaskList" */ 'src/pages/TaskList'),
 );
 
 const RolesList = lazy(
@@ -167,6 +176,17 @@ const UserRegistrations = lazy(
     ),
 );
 
+const FileHandler = lazy(
+  () => import(/* webpackChunkName: "FileHandler" */ 'src/pages/FileHandler'),
+);
+
+const RedirectWarning = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "RedirectWarning" */ 'src/pages/RedirectWarning'
+    ),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -175,6 +195,10 @@ type Routes = {
 }[];
 
 export const routes: Routes = [
+  {
+    path: '/redirect/',
+    Component: RedirectWarning,
+  },
   {
     path: '/login/',
     Component: Login,
@@ -194,6 +218,10 @@ export const routes: Routes = [
   {
     path: '/superset/welcome/',
     Component: Home,
+  },
+  {
+    path: '/superset/file-handler',
+    Component: FileHandler,
   },
   {
     path: '/dashboard/list/',
@@ -286,6 +314,10 @@ export const routes: Routes = [
     Component: RowLevelSecurityList,
   },
   {
+    path: '/tasks/list/',
+    Component: TaskList,
+  },
+  {
     path: '/sqllab/',
     Component: SqlLab,
   },
@@ -331,6 +363,13 @@ if (isAdmin) {
       Component: GroupsList,
     },
   );
+
+  if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+    routes.push({
+      path: '/extensions/list/',
+      Component: Extensions,
+    });
+  }
 }
 
 if (authRegistrationEnabled) {

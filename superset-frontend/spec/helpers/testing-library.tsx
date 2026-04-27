@@ -28,10 +28,9 @@ import {
 } from '@testing-library/react';
 import {
   ThemeProvider,
-  // eslint-disable-next-line no-restricted-imports
-  supersetTheme,
   themeObject,
-} from '@superset-ui/core';
+  supersetTheme,
+} from '@apache-superset/core/theme';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import { BrowserRouter } from 'react-router-dom';
@@ -40,6 +39,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { configureStore, Store } from '@reduxjs/toolkit';
 import { api } from 'src/hooks/apiResources/queryApi';
 import userEvent from '@testing-library/user-event';
@@ -107,7 +107,11 @@ export function createWrapper(options?: Options) {
     }
 
     if (useQueryParams) {
-      result = <QueryParamProvider>{result}</QueryParamProvider>;
+      result = (
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          {result}
+        </QueryParamProvider>
+      );
     }
 
     if (useRouter) {
@@ -133,7 +137,8 @@ export { customRender as render };
 export { default as userEvent } from '@testing-library/user-event';
 
 export async function selectOption(option: string, selectName?: string) {
-  const select = screen.getByRole(
+  // Use findByRole (async) to wait for element to be ready, preventing race conditions on slow CI
+  const select = await screen.findByRole(
     'combobox',
     selectName ? { name: selectName } : {},
   );

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
-import { css, styled, SupersetTheme } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import {
   SafeMarkdown,
   Tooltip,
@@ -59,7 +59,7 @@ export function ColumnOption({
   const type = hasExpression ? 'expression' : type_generic;
   const [tooltipText, setTooltipText] = useState<ReactNode>(column.column_name);
   const [columnTypeTooltipText, setcolumnTypeTooltipText] = useState<ReactNode>(
-    column.type,
+    getColumnTypeTooltipNode(column),
   );
 
   useLayoutEffect(() => {

@@ -17,11 +17,22 @@
  * under the License.
  */
 
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
+jest.mock('src/utils/cachedSupersetGet');
+
+const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
+  typeof cachedSupersetGet
+>;
 const SLICE_ID = 371;
 
 const createProps = (viz_type = VizType.Sunburst) =>
@@ -116,6 +127,30 @@ const openMenu = () => {
   userEvent.click(screen.getByRole('button', { name: 'More Options' }));
 };
 
+const mockFullscreenElement = (getElement: () => Element | null) => {
+  Object.defineProperty(document, 'fullscreenElement', {
+    configurable: true,
+    get: getElement,
+  });
+};
+
+beforeEach(() => {
+  mockCachedSupersetGet.mockClear();
+  mockCachedSupersetGet.mockResolvedValue({
+    response: {} as Response,
+    json: {
+      result: {
+        columns: [],
+        metrics: [],
+      },
+    },
+  });
+});
+
+afterEach(() => {
+  Reflect.deleteProperty(document, 'fullscreenElement');
+});
+
 test('Should render', () => {
   renderWrapper();
   openMenu();
@@ -125,23 +160,18 @@ test('Should render', () => {
 test('Should render default props', () => {
   const props = createProps();
 
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.forceRefresh;
-  // @ts-ignore
   delete props.toggleExpandSlice;
-  // @ts-ignore
-  delete props.exploreChart;
-  // @ts-ignore
+  delete props.logExploreChart;
   delete props.exportCSV;
-  // @ts-ignore
   delete props.exportXLSX;
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.cachedDttm;
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.updatedDttm;
-  // @ts-ignore
+  // @ts-expect-error - testing with missing required props
   delete props.isCached;
-  // @ts-ignore
   delete props.isExpanded;
 
   renderWrapper(props);
@@ -264,7 +294,7 @@ test('Should export to pivoted Excel if report is pivot table', async () => {
   userEvent.click(await screen.findByText('Export to Pivoted Excel'));
   expect(props.exportPivotExcel).toHaveBeenCalledTimes(1);
   expect(props.exportPivotExcel).toHaveBeenCalledWith(
-    '.pvtTable',
+    '#chart-id-371 .pvtTable',
     props.slice.slice_name,
   );
 });
@@ -290,14 +320,61 @@ test('Should "Force refresh"', () => {
   expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
 });
 
-test('Should "Enter fullscreen"', () => {
-  const props = createProps();
+test('Should sync local state after entering fullscreen', async () => {
+  const mockDiv = document.createElement('div');
+  let fullscreenElement: Element | null = null;
+  mockFullscreenElement(() => fullscreenElement);
+  mockDiv.requestFullscreen = jest.fn().mockImplementation(async () => {
+    fullscreenElement = mockDiv;
+  });
+  const originalExitFullscreen = document.exitFullscreen;
+  (document as any).exitFullscreen = jest.fn().mockResolvedValue(undefined);
+  const props = {
+    ...createProps(),
+    chartHolderRef: { current: mockDiv },
+  };
   renderWrapper(props);
   openMenu();
-
   expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByText('Enter fullscreen'));
-  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
+  const fullscreenItem = screen.getByRole('menuitem', {
+    name: /enter fullscreen/i,
+  });
+  await userEvent.click(fullscreenItem);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
+  expect(mockDiv.requestFullscreen).toHaveBeenCalled();
+  document.dispatchEvent(new Event('fullscreenchange'));
+  await waitFor(() => {
+    expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
+  });
+  (document as any).exitFullscreen = originalExitFullscreen;
+});
+
+test('Should sync local state after exiting fullscreen', async () => {
+  const mockDiv = document.createElement('div');
+  let fullscreenElement: Element | null = mockDiv;
+  mockFullscreenElement(() => fullscreenElement);
+  const originalExitFullscreen = document.exitFullscreen;
+  (document as any).exitFullscreen = jest.fn().mockImplementation(async () => {
+    fullscreenElement = null;
+  });
+  const props = {
+    ...createProps(),
+    isFullSize: true,
+    chartHolderRef: { current: mockDiv },
+  };
+  renderWrapper(props);
+  openMenu();
+  const fullscreenItem = screen.getByRole('menuitem', {
+    name: /exit fullscreen/i,
+  });
+  await userEvent.click(fullscreenItem);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
+  expect(document.exitFullscreen).toHaveBeenCalledTimes(1);
+  document.dispatchEvent(new Event('fullscreenchange'));
+  await waitFor(() => {
+    expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
+  });
+  (document as any).exitFullscreen = originalExitFullscreen;
 });
 
 test('Drill to detail modal is under featureflag', () => {
@@ -525,4 +602,75 @@ test('Should not show the "Edit chart" button', () => {
   });
   openMenu();
   expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
+});
+
+test('Dataset drill info API call is made when user has drill permissions', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  renderWrapper(undefined, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_explore', 'Superset'],
+      ['can_get_drill_info', 'Dataset'],
+    ],
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockCachedSupersetGet).toHaveBeenCalledWith({
+    endpoint: expect.stringContaining(
+      '/api/v1/dataset/58/drill_info/?q=(dashboard_id:26)',
+    ),
+  });
+});
+
+test('Dataset drill info API call is not made when user lacks drill permissions', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  renderWrapper(undefined, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockCachedSupersetGet).not.toHaveBeenCalled();
+});
+
+test('Should show "Embed code" in Share menu when feature flag is enabled and chart has data', async () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Share'));
+  expect(await screen.findByText('Embed code')).toBeInTheDocument();
+});
+
+test('Should NOT show "Embed code" in Share menu when feature flag is disabled', async () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: false,
+  };
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Share'));
+  expect(
+    await screen.findByText('Copy permalink to clipboard'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Embed code')).not.toBeInTheDocument();
+});
+
+test('Should pass formData to Share menu for embed code feature', () => {
+  window.featureFlags = {
+    EMBEDDABLE_CHARTS: true,
+  };
+  const props = createProps();
+  const { container } = renderWrapper(props);
+
+  expect(container).toBeInTheDocument();
+  openMenu();
+  expect(screen.getByText('Share')).toBeInTheDocument();
 });

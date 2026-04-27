@@ -24,7 +24,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any, Callable, cast, Literal, TYPE_CHECKING
+from typing import Any, Callable, cast, Literal
 
 from flask import g, has_request_context, request
 from flask_appbuilder.const import API_URI_RIS_KEY
@@ -33,9 +33,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.extensions import stats_logger_manager
 from superset.utils import json
 from superset.utils.core import get_user_id, LoggerLevel, to_int
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -310,11 +307,13 @@ class AbstractEventLogger(ABC):
         """Decorator that uses the function name as the action"""
         return self._wrapper(f)
 
-    def log_this_with_context(self, **kwargs: Any) -> Callable[..., Any]:
+    def log_this_with_context(
+        self, allow_extra_payload: bool = False, **kwargs: Any
+    ) -> Callable[..., Any]:
         """Decorator that can override kwargs of log_context"""
 
         def func(f: Callable[..., Any]) -> Callable[..., Any]:
-            return self._wrapper(f, **kwargs)
+            return self._wrapper(f, allow_extra_payload=allow_extra_payload, **kwargs)
 
         return func
 
@@ -343,7 +342,7 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
             textwrap.dedent(
                 """
                 In superset private config, EVENT_LOGGER has been assigned a class
-                object. In order to accomodate pre-configured instances without a
+                object. In order to accommodate pre-configured instances without a
                 default constructor, assignment of a class is deprecated and may no
                 longer work at some point in the future. Please assign an object
                 instance of a type that implements
@@ -385,6 +384,13 @@ class DBEventLogger(AbstractEventLogger):
         from superset.models.core import Log
 
         records = kwargs.get("records", [])
+        curated_payload = kwargs.get("curated_payload")
+
+        # If no records but curated_payload exists, use it as a single record
+        # This enables MCP middleware logging which passes curated_payload
+        if not records and curated_payload:
+            records = [curated_payload]
+
         logs = []
         for record in records:
             json_string: str | None
@@ -406,8 +412,19 @@ class DBEventLogger(AbstractEventLogger):
             db.session.bulk_save_objects(logs)
             db.session.commit()  # pylint: disable=consider-using-transaction
         except SQLAlchemyError as ex:
+            # Log errors but don't raise - logging failures should not break the
+            # application. Common in tests where the session may be in prepared state or
+            # db is locked
             logging.error("DBEventLogger failed to log event(s)")
             logging.exception(ex)
+            # Rollback to clean up the session state
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except Exception:  # pylint: disable=broad-except
+                # If rollback also fails, just continue - don't let issues crash the app
+                logging.error(
+                    "DBEventLogger failed to rollback the session after failure"
+                )
 
 
 class StdOutEventLogger(AbstractEventLogger):

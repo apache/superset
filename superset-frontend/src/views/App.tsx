@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Suspense, useEffect } from 'react';
-import { hot } from 'react-hot-loader/root';
 import {
   BrowserRouter as Router,
   Switch,
@@ -25,7 +24,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
-import { css } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
 import { Layout, Loading } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
@@ -36,18 +35,27 @@ import setupApp from 'src/setup/setupApp';
 import setupPlugins from 'src/setup/setupPlugins';
 import { routes, isFrontendRoute } from 'src/views/routes';
 import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
-import setupExtensions from 'src/setup/setupExtensions';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
+import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
 setupApp();
 setupPlugins();
-setupExtensions();
+setupCodeOverrides();
 setupAGGridModules();
 
 const bootstrapData = getBootstrapData();
+
+// WCAG 3.1.2: Set the HTML lang attribute based on the current locale
+// so screen readers announce the correct language for the page content.
+// Normalize to BCP-47 format by replacing underscores with hyphens
+// so region subtags like "pt_BR" become valid "pt-BR" rather than being dropped.
+const locale =
+  bootstrapData.common?.locale || window.navigator.language || 'en';
+document.documentElement.lang = String(locale).replace(/_/g, '-');
 
 let lastLocationPathname: string;
 
@@ -79,33 +87,35 @@ const App = () => (
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}
       />
-      <Switch>
-        {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-          <Route path={path} key={path}>
-            <Suspense fallback={<Fallback />}>
-              <Layout>
-                <Layout.Content
-                  css={css`
-                    display: flex;
-                    flex-direction: column;
-                  `}
-                >
-                  <ErrorBoundary
+      <ExtensionsStartup>
+        <Switch>
+          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+            <Route path={path} key={path}>
+              <Suspense fallback={<Fallback />}>
+                <Layout>
+                  <Layout.Content
                     css={css`
-                      margin: 16px;
+                      display: flex;
+                      flex-direction: column;
                     `}
                   >
-                    <Component user={bootstrapData.user} {...props} />
-                  </ErrorBoundary>
-                </Layout.Content>
-              </Layout>
-            </Suspense>
-          </Route>
-        ))}
-      </Switch>
+                    <ErrorBoundary
+                      css={css`
+                        margin: 16px;
+                      `}
+                    >
+                      <Component user={bootstrapData.user} {...props} />
+                    </ErrorBoundary>
+                  </Layout.Content>
+                </Layout>
+              </Suspense>
+            </Route>
+          ))}
+        </Switch>
+      </ExtensionsStartup>
       <ToastContainer />
     </RootContextProviders>
   </Router>
 );
 
-export default hot(App);
+export default App;
