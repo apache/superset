@@ -11340,9 +11340,8 @@ msgstr "Exécuter la sélection"
 msgid "Running"
 msgstr "En cours d’exécution"
 
-#, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Exécution de l’instruction %(block_num)s sur %(block_count)s"
+msgstr "Exécution du bloc %(block_num)s sur %(block_count)s"
 
 msgid "SAT"
 msgstr "SAT"
