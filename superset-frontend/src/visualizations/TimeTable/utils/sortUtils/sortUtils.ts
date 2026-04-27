@@ -36,7 +36,12 @@ function compareValues(
   const isAValid = numA !== null && numA !== undefined && !Number.isNaN(numA);
   const isBValid = numB !== null && numB !== undefined && !Number.isNaN(numB);
 
-  if (!isAValid && !isBValid) return 0;
+  if (!isAValid && !isBValid) {
+    if (typeof a === 'string' && typeof b === 'string') {
+      return a < b ? -1 : a > b ? 1 : 0;
+    }
+    return 0;
+  }
   if (!isAValid) return nanTreatment === 'asSmallest' ? -1 : 1;
   if (!isBValid) return nanTreatment === 'asSmallest' ? 1 : -1;
 
@@ -49,7 +54,6 @@ function compareValues(
  * @param rowA - First row to compare
  * @param rowB - Second row to compare
  * @param columnId - Column identifier for sorting
- * @param descending - Whether to sort in descending order
  * @returns Numeric comparison result for react-table
  * react-table handles the asc/desc direction flip internally after calling
  * this function, so we only return the raw comparison result.
@@ -59,8 +63,8 @@ export function sortNumberWithMixedTypes(
   rowB: any,
   columnId: string,
 ) {
-  const cellA = rowA.values?.[columnId];
-  const cellB = rowB.values?.[columnId];
+  const cellA = rowA.original?.[columnId] ?? rowA.values?.[columnId];
+  const cellB = rowB.original?.[columnId] ?? rowB.values?.[columnId];
 
   // Both ValueCell and Sparkline cells pass React elements here.
   // ValueCell uses { valueField, column, reversedEntries }
@@ -105,3 +109,5 @@ export function sortNumberWithMixedTypes(
 
   return compareValues(valueA, valueB, 'asSmallest');
 }
+
+
