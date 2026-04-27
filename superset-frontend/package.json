@@ -341,7 +341,7 @@
     "jest-html-reporter": "^4.4.0",
     "jest-websocket-mock": "^2.5.0",
     "js-yaml-loader": "^1.2.2",
-    "jsdom": "^29.0.2",
+    "jsdom": "^29.1.0",
     "lerna": "^9.0.4",
     "lightningcss": "^1.32.0",
     "mini-css-extract-plugin": "^2.10.2",
