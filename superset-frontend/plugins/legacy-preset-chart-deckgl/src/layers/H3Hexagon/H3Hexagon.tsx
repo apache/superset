@@ -45,10 +45,19 @@ export function getPoints(data: JsonObject[]) {
   const points: [number, number][] = [];
 
   data.forEach((d: JsonObject) => {
-    const boundary = cellToBoundary(d.hexagon);
-    if (boundary && boundary.length > 0) {
-      const point: [number, number] = [boundary[0][1], boundary[0][0]];
-      points.push(point);
+    const hexagon = d.hexagon;
+    if (!hexagon) {
+      return;
+    }
+
+    try {
+      const boundary = cellToBoundary(hexagon);
+      if (boundary && boundary.length > 0) {
+        const point: [number, number] = [boundary[0][1], boundary[0][0]];
+        points.push(point);
+      }
+    } catch {
+      // Skip entries with invalid H3 indices that cause cellToBoundary to throw
     }
   });
 
