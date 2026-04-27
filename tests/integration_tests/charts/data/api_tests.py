@@ -1677,6 +1677,99 @@ def test_data_cache_default_timeout(
     assert rv.json["result"][0]["cache_timeout"] == 3456
 
 
+def _native_filter_cache_config(
+    filter_state_timeout: int | None = 7890,
+) -> dict[str, Any]:
+    """Build a patched config for native filter cache timeout tests."""
+    config = {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 100000,
+        "NATIVE_FILTER_QUERIES_USE_FILTER_STATE_TIMEOUT": True,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 3456,
+        },
+    }
+    if filter_state_timeout is not None:
+        config["FILTER_STATE_CACHE_CONFIG"] = {
+            **app.config["FILTER_STATE_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": filter_state_timeout,
+        }
+    else:
+        config["FILTER_STATE_CACHE_CONFIG"] = {
+            k: v
+            for k, v in app.config["FILTER_STATE_CACHE_CONFIG"].items()
+            if k != "CACHE_DEFAULT_TIMEOUT"
+        }
+    return config
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_cache_config(filter_state_timeout=7890),
+)
+def test_native_filter_uses_filter_state_cache_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    physical_query_context["form_data"] = {
+        "native_filter_id": "NATIVE_FILTER-TEST",
+        "viz_type": "filter_select",
+    }
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 7890
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_cache_config(filter_state_timeout=7890),
+)
+def test_non_filter_viz_type_with_native_filter_id_uses_data_cache_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    # Flag is on, but viz_type is "table" (not filter_*) → detect as non-native-filter
+    # → must fall through to DATA_CACHE_CONFIG regardless of FILTER_STATE_CACHE_CONFIG
+    physical_query_context["form_data"] = {
+        "native_filter_id": "NATIVE_FILTER-TEST",
+        "viz_type": "table",
+    }
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
+@mock.patch(
+    "superset.common.query_context_processor.current_app.config",
+    _native_filter_cache_config(filter_state_timeout=None),
+)
+def test_native_filter_without_filter_state_timeout_falls_back_to_data_cache(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    # Flag is on but FILTER_STATE_CACHE_CONFIG has no timeout — fall back to DATA_CACHE
+    physical_query_context["form_data"] = {
+        "native_filter_id": "NATIVE_FILTER-TEST",
+        "viz_type": "filter_select",
+    }
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
+def test_explicit_zero_cache_timeout_is_honored(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    # Ensures 0 (disable-cache sentinel) is not treated as falsy and skipped.
+    # The is not None guard in get_cache_timeout() must return 0, not fall through.
+    physical_query_context["custom_cache_timeout"] = 0
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 0
+
+
 def test_chart_cache_timeout(
     load_energy_table_with_slice: list[Slice],  # noqa: F811
     test_client,
