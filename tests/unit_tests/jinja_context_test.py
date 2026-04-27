@@ -438,6 +438,71 @@ def test_url_param_unescaped_default_form_data() -> None:
         assert cache.url_param("bar", "O'Malley", escape_result=False) == "O'Malley"
 
 
+def test_url_param_escaped_query() -> None:
+    """
+    Test the ``url_param`` with query_string returning an escaped value with a quote.
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo") == "O''Brien"
+
+
+def test_url_param_unescaped_query() -> None:
+    """
+    Test the ``url_param`` with query_string returning an un-escaped value with a quote.
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo", escape_result=False) == "O'Brien"
+
+
+def test_url_param_falsy_query() -> None:
+    """
+    Test the ``url_param`` with a falsy query string value.
+    """
+    with current_app.test_request_context(query_string={"foo": "0"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo") == "0"
+
+
+def test_url_param_query_overrides_form_data_with_escaping() -> None:
+    """
+    Ensure query string takes precedence over form_data
+    AND escaping is applied consistently.
+    """
+    with current_app.test_request_context(
+        query_string={
+            "foo": "O'Brien",
+            "form_data": json.dumps({"url_params": {"foo": "ignored"}}),
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo") == "O''Brien"
+
+
+def test_url_param_empty_query_value() -> None:
+    """
+    Ensure empty query param is handled correctly.
+    """
+    with current_app.test_request_context(query_string={"foo": ""}):
+        cache = ExtraCache()
+        assert cache.url_param("foo") == ""
+
+
+def test_url_param_query_override_unescaped() -> None:
+    """
+    Ensure query string override still respects escape_result=False.
+    """
+    with current_app.test_request_context(
+        query_string={
+            "foo": "O'Brien",
+            "form_data": json.dumps({"url_params": {"foo": "ignored"}}),
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo", escape_result=False) == "O'Brien"
+
+
 def test_safe_proxy_primitive() -> None:
     """
     Test the ``safe_proxy`` helper with a function returning a ``str``.
