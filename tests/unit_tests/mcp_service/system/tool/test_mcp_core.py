@@ -178,8 +178,8 @@ def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared(
     tool.run_tool(order_column="name")
 
 
-def test_model_list_tool_injects_current_user_id_for_created_by_fk_filter():
-    """Any value passed for created_by_fk is replaced with the current user's ID."""
+def test_model_list_tool_injects_current_user_id_for_created_by_me():
+    """created_by_me=True adds a created_by_fk filter with the current user's ID."""
     current_user = Mock()
     current_user.is_authenticated = True
     current_user.id = 42
@@ -207,14 +207,14 @@ def test_model_list_tool_injects_current_user_id_for_created_by_fk_filter():
         "superset.mcp_service.utils.permissions_utils.get_current_user",
         return_value=current_user,
     ):
-        # Value 0 is a placeholder; system replaces it with current_user.id
-        tool.run_tool(filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}])
+        tool.run_tool(created_by_me=True)
 
+    assert captured["filters"][0]["col"] == "created_by_fk"
     assert captured["filters"][0]["value"] == 42
 
 
-def test_model_list_tool_created_by_fk_requires_authenticated_user():
-    """created_by_fk filter raises when no authenticated user is present."""
+def test_model_list_tool_created_by_me_requires_authenticated_user():
+    """created_by_me=True raises when no authenticated user is present."""
     current_user = Mock()
     current_user.is_authenticated = False
 
@@ -234,7 +234,7 @@ def test_model_list_tool_created_by_fk_requires_authenticated_user():
         return_value=current_user,
     ):
         with pytest.raises(ValueError, match="authenticated user"):
-            tool.run_tool(filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}])
+            tool.run_tool(created_by_me=True)
 
 
 def test_user_directory_fields_include_last_saved_relationships():

@@ -59,12 +59,11 @@ class DatabaseFilter(ColumnOperator):
         "database_name",
         "expose_in_sqllab",
         "allow_file_upload",
-        "created_by_fk",
+        "changed_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='database') for "
-        "available filter columns. For created_by_fk, any value is accepted — "
-        "the system automatically substitutes the authenticated user's ID.",
+        "available filter columns.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -236,6 +235,13 @@ class ListDatabasesRequest(MetadataCacheControl):
             description=f"Number of items per page (max {MAX_PAGE_SIZE})",
         ),
     ]
+    created_by_me: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="When true, return only databases created by the current user.",
+        ),
+    ]
 
     @field_validator("filters", mode="before")
     @classmethod
@@ -258,6 +264,11 @@ class ListDatabasesRequest(MetadataCacheControl):
                 "Cannot use both 'search' and 'filters' parameters simultaneously. "
                 "Use either 'search' for text-based searching across multiple fields, "
                 "or 'filters' for precise column-based filtering, but not both."
+            )
+        if self.search and self.created_by_me:
+            raise ValueError(
+                "Cannot use both 'search' and 'created_by_me' simultaneously. "
+                "Use 'filters' with 'created_by_me' instead."
             )
         return self
 

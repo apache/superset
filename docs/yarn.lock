@@ -173,7 +173,7 @@
   dependencies:
     "@algolia/client-common" "5.40.0"
 
-"@ant-design/colors@^8.0.0", "@ant-design/colors@^8.0.1":
+"@ant-design/colors@^8.0.1":
   version "8.0.1"
   resolved "https://registry.npmjs.org/@ant-design/colors/-/colors-8.0.1.tgz"
   integrity sha512-foPVl0+SWIslGUtD/xBr1p9U4AKzPhNYEseXYRRo5QSzGACYZrQbe11AYJbYfAWnWSpGBx6JjBmSeugUsD9vqQ==
@@ -207,19 +207,19 @@
   resolved "https://registry.npmjs.org/@ant-design/fast-color/-/fast-color-3.0.1.tgz"
   integrity sha512-esKJegpW4nckh0o6kV3Tkb7NPIZYbPnnFxmQDUmL08ukXZAvV85TZBr70eGuke/CIArLaP6aw8lt9KILjnWuOw==
 
-"@ant-design/icons-svg@^4.4.0":
+"@ant-design/icons-svg@^4.4.2":
   version "4.4.2"
   resolved "https://registry.npmjs.org/@ant-design/icons-svg/-/icons-svg-4.4.2.tgz"
   integrity sha512-vHbT+zJEVzllwP+CM+ul7reTEfBR0vgxFe7+lREAsAA7YGsYpboiq2sQNeQeRvh09GfQgs/GyFEvZpJ9cLXpXA==
 
-"@ant-design/icons@^6.1.1":
-  version "6.1.1"
-  resolved "https://registry.yarnpkg.com/@ant-design/icons/-/icons-6.1.1.tgz#068963d3de44ff7034dce32c9cec3ff7d343fe6b"
-  integrity sha512-AMT4N2y++TZETNHiM77fs4a0uPVCJGuL5MTonk13Pvv7UN7sID1cNEZOc1qNqx6zLKAOilTEFAdAoAFKa0U//Q==
+"@ant-design/icons@^6.1.1", "@ant-design/icons@^6.2.0":
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/@ant-design/icons/-/icons-6.2.0.tgz#d5a1a364c3e795e06ef166ddf8171cfee9837150"
+  integrity sha512-TQuzMZM+F/lpn3V1Z7NBxuc2VDo3z8VZduYvMZR5dUJP28gDlOZ6ar6B7vM9W13SxUT/FbNYBw2JoighULKgQA==
   dependencies:
-    "@ant-design/colors" "^8.0.0"
-    "@ant-design/icons-svg" "^4.4.0"
-    "@rc-component/util" "^1.3.0"
+    "@ant-design/colors" "^8.0.1"
+    "@ant-design/icons-svg" "^4.4.2"
+    "@rc-component/util" "^1.10.1"
     clsx "^2.1.1"
 
 "@ant-design/react-slick@~2.0.0":
@@ -2986,10 +2986,10 @@
     "@rc-component/util" "^1.2.1"
     clsx "^2.1.1"
 
-"@rc-component/form@~1.8.0":
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/@rc-component/form/-/form-1.8.0.tgz#ed565337a69ebb6cfa20d1ad0dd58e443a71313a"
-  integrity sha512-eUD5KKYnIZWmJwRA0vnyO/ovYUfHGU1svydY1OrqU5fw8Oz9Tdqvxvrlh0wl6xI/EW69dT7II49xpgOWzK3T5A==
+"@rc-component/form@~1.8.1":
+  version "1.8.1"
+  resolved "https://registry.yarnpkg.com/@rc-component/form/-/form-1.8.1.tgz#d811fb52df41bf72297938ebfe5cf4a4774588d4"
+  integrity sha512-8O7TB55Fi2mWIGvSnwZjk8jFqVNYyKDAswglwGShcbndxqzKz4cHwNtNaLjZlAeRge9wcB0LL8IWsC/Bl18raQ==
   dependencies:
     "@rc-component/async-validator" "^5.1.0"
     "@rc-component/util" "^1.6.2"
@@ -5482,10 +5482,10 @@ ansis@^3.2.0:
   resolved "https://registry.yarnpkg.com/ansis/-/ansis-3.17.0.tgz#fa8d9c2a93fe7d1177e0c17f9eeb562a58a832d7"
   integrity sha512-0qWUglt9JEqLFr3w1I1pbrChn1grhaiAR2ocX1PP/flRmxgtwTzPFFFnfIlD6aMOLQZgSuCRlidD70lvx8yhzg==
 
-antd@^6.3.6:
-  version "6.3.6"
-  resolved "https://registry.yarnpkg.com/antd/-/antd-6.3.6.tgz#e892b851cf45d62201d889fe9cac36f4d2412e5f"
-  integrity sha512-zdCYjusrTUn4gNxEg4PH8MWlfuXYbKfuGOkjgZ0Rg6DpWbIVmG/MwvsZ5yvG6z3Y6UI/gzYpaQ82iTt4KdbeaA==
+antd@^6.3.7:
+  version "6.3.7"
+  resolved "https://registry.yarnpkg.com/antd/-/antd-6.3.7.tgz#620354ec04135356cbc5ce0a666871ddc73e4117"
+  integrity sha512-WTHi4bHVNKpYXLHESzU0Tts7rRNQeL84Bph9dfI3Qw7mHbTulExDcYKNHny5CTXcrBBOpraXbU9miBAwUR5vaw==
   dependencies:
     "@ant-design/colors" "^8.0.1"
     "@ant-design/cssinjs" "^2.1.2"
@@ -5501,7 +5501,7 @@ antd@^6.3.6:
     "@rc-component/dialog" "~1.8.4"
     "@rc-component/drawer" "~1.4.2"
     "@rc-component/dropdown" "~1.0.2"
-    "@rc-component/form" "~1.8.0"
+    "@rc-component/form" "~1.8.1"
     "@rc-component/image" "~1.9.0"
     "@rc-component/input" "~1.1.2"
     "@rc-component/input-number" "~1.6.2"
@@ -5794,10 +5794,10 @@ base64-js@^1.3.1, base64-js@^1.5.1:
   resolved "https://registry.npmjs.org/base64-js/-/base64-js-1.5.1.tgz"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
-baseline-browser-mapping@^2.10.21, baseline-browser-mapping@^2.9.0, baseline-browser-mapping@^2.9.19:
-  version "2.10.21"
-  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.10.21.tgz#136f9f181ee0d7ca6e3edbf42d9559763d2c1141"
-  integrity sha512-Q+rUQ7Uz8AHM7DEaNdwvfFCTq7a43lNTzuS94eiWqwyxfV/wJv+oUivef51T91mmRY4d4A1u9rcSvkeufCVXlA==
+baseline-browser-mapping@^2.10.23, baseline-browser-mapping@^2.9.0, baseline-browser-mapping@^2.9.19:
+  version "2.10.23"
+  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.10.23.tgz#3a1a55d1a691a8c8d74688af7f1fd17eac23c184"
+  integrity sha512-xwVXGqevyKPsiuQdLj+dZMVjidjJV508TBqexND5HrF89cGdCYCJFB3qhcxRHSeMctdCfbR1jrxBajhDy7o29g==
 
 batch@0.6.1:
   version "0.6.1"
@@ -6035,10 +6035,10 @@ caniuse-api@^3.0.0:
     lodash.memoize "^4.1.2"
     lodash.uniq "^4.5.0"
 
-caniuse-lite@^1.0.0, caniuse-lite@^1.0.30001702, caniuse-lite@^1.0.30001759, caniuse-lite@^1.0.30001790:
-  version "1.0.30001790"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001790.tgz#04660c7de15f445d86dd10ac88a8936ac0698e45"
-  integrity sha512-bOoxfJPyYo+ds6W0YfptaCWbFnJYjh2Y1Eow5lRv+vI2u8ganPZqNm1JwNh0t2ELQCqIWg4B3dWEusgAmsoyOw==
+caniuse-lite@^1.0.0, caniuse-lite@^1.0.30001702, caniuse-lite@^1.0.30001759, caniuse-lite@^1.0.30001791:
+  version "1.0.30001791"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001791.tgz#dfb93d85c40ad380c57123e72e10f3c575786b51"
+  integrity sha512-yk0l/YSrOnFZk3UROpDLQD9+kC1l4meK/wed583AXrzoarMGJcbRi2Q4RaUYbKxYAsZ8sWmaSa/DsLmdBeI1vQ==
 
 ccount@^2.0.0:
   version "2.0.1"
@@ -12428,9 +12428,9 @@ postcss-zindex@^6.0.2:
   integrity sha512-5BxW9l1evPB/4ZIc+2GobEBoKC+h8gPGCMi+jxsYvd2x0mjq7wazk6DrP71pStqxE9Foxh5TVnonbWpFZzXaYg==
 
 postcss@^8.4.21, postcss@^8.4.24, postcss@^8.4.33, postcss@^8.5.4:
-  version "8.5.6"
-  resolved "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz"
-  integrity sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==
+  version "8.5.10"
+  resolved "https://registry.yarnpkg.com/postcss/-/postcss-8.5.10.tgz#8992d8c30acf3f12169e7c09514a12fed7e48356"
+  integrity sha512-pMMHxBOZKFU6HgAZ4eyGnwXF/EvPGGqUr0MnZ5+99485wwW41kW91A4LOGxSHhgugZmSChL5AlElNdwlNgcnLQ==
   dependencies:
     nanoid "^3.3.11"
     picocolors "^1.1.1"

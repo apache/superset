@@ -111,6 +111,8 @@ def user_can_view_data_model_metadata() -> bool:
     Dataset drill/write permissions indicate active data-model introspection access.
     Dashboard-only viewers may have Dataset read access for chart rendering, but that
     should not expose dataset/database metadata through MCP tools.
+    These resource-type permissions intentionally gate metadata globally rather
+    than per dashboard chart.
     """
     try:
         from superset import security_manager

@@ -52,7 +52,7 @@ attrs==25.3.0
     #   referencing
     #   requests-cache
     #   trio
-authlib==1.6.7
+authlib==1.6.9
     # via fastmcp
 babel==2.17.0
     # via
@@ -654,7 +654,7 @@ pgsanity==0.2.9
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-pillow==12.1.1
+pillow==12.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

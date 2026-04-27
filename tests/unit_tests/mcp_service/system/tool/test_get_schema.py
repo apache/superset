@@ -342,11 +342,11 @@ class TestGetSchemaToolViaClient:
         info = data["schema_info"]
         select_column_names = {column["name"] for column in info["select_columns"]}
 
-        # User-directory fields are hidden from select and sort surfaces entirely
         for field in (
             "owners",
             "roles",
             "created_by",
+            "created_by_fk",
             "changed_by",
             "changed_by_fk",
             "owner",
@@ -354,11 +354,6 @@ class TestGetSchemaToolViaClient:
             assert field not in select_column_names
             assert field not in info["filter_columns"]
             assert field not in info["sortable_columns"]
-
-        # created_by_fk is valid as a filter (server injects current user's ID)
-        # but must not appear in select_columns or sortable_columns
-        assert "created_by_fk" not in select_column_names
-        assert "created_by_fk" not in info["sortable_columns"]
 
 
 class TestGetSchemaEdgeCases:
