@@ -428,34 +428,33 @@ class TestQueryApi(SupersetTestCase):
         db.session.commit()
 
         self.login(ADMIN_USERNAME)
-        try:
-            arguments = {
-                "order_column": "duration",
-                "order_direction": "asc",
-                "filters": [
-                    {"col": "sql_editor_id", "opr": "eq", "value": test_editor_id}
-                ],
-            }
-            uri = f"api/v1/query/?q={prison.dumps(arguments)}"
-            rv = self.client.get(uri)
-            assert rv.status_code == 200
-            data = rv.get_json()
-            ids = [r["id"] for r in data["result"]]
-            assert ids == [q_null.id, q_medium.id, q_long.id]
+        arguments = {
+            "order_column": "duration",
+            "order_direction": "asc",
+            "filters": [
+                {"col": "sql_editor_id", "opr": "eq", "value": test_editor_id}
+            ],
+        }
+        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = rv.get_json()
+        ids = [r["id"] for r in data["result"]]
+        assert ids == [q_null.id, q_medium.id, q_long.id]
 
-            # descending should be the reverse
-            arguments["order_direction"] = "desc"
-            uri = f"api/v1/query/?q={prison.dumps(arguments)}"
-            rv = self.client.get(uri)
-            assert rv.status_code == 200
-            data = rv.get_json()
-            ids = [r["id"] for r in data["result"]]
-            assert ids == [q_long.id, q_medium.id, q_null.id]
-        finally:
-            db.session.delete(q_long)
-            db.session.delete(q_medium)
-            db.session.delete(q_null)
-            db.session.commit()
+        # descending should be the reverse
+        arguments["order_direction"] = "desc"
+        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = rv.get_json()
+        ids = [r["id"] for r in data["result"]]
+        assert ids == [q_long.id, q_medium.id, q_null.id]
+
+        db.session.delete(q_long)
+        db.session.delete(q_medium)
+        db.session.delete(q_null)
+        db.session.commit()
 
     def test_get_list_query_no_data_access(self):
         """
