@@ -2986,10 +2986,10 @@
     "@rc-component/util" "^1.2.1"
     clsx "^2.1.1"
 
-"@rc-component/form@~1.8.0":
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/@rc-component/form/-/form-1.8.0.tgz#ed565337a69ebb6cfa20d1ad0dd58e443a71313a"
-  integrity sha512-eUD5KKYnIZWmJwRA0vnyO/ovYUfHGU1svydY1OrqU5fw8Oz9Tdqvxvrlh0wl6xI/EW69dT7II49xpgOWzK3T5A==
+"@rc-component/form@~1.8.1":
+  version "1.8.1"
+  resolved "https://registry.yarnpkg.com/@rc-component/form/-/form-1.8.1.tgz#d811fb52df41bf72297938ebfe5cf4a4774588d4"
+  integrity sha512-8O7TB55Fi2mWIGvSnwZjk8jFqVNYyKDAswglwGShcbndxqzKz4cHwNtNaLjZlAeRge9wcB0LL8IWsC/Bl18raQ==
   dependencies:
     "@rc-component/async-validator" "^5.1.0"
     "@rc-component/util" "^1.6.2"
@@ -5482,10 +5482,10 @@ ansis@^3.2.0:
   resolved "https://registry.yarnpkg.com/ansis/-/ansis-3.17.0.tgz#fa8d9c2a93fe7d1177e0c17f9eeb562a58a832d7"
   integrity sha512-0qWUglt9JEqLFr3w1I1pbrChn1grhaiAR2ocX1PP/flRmxgtwTzPFFFnfIlD6aMOLQZgSuCRlidD70lvx8yhzg==
 
-antd@^6.3.6:
-  version "6.3.6"
-  resolved "https://registry.yarnpkg.com/antd/-/antd-6.3.6.tgz#e892b851cf45d62201d889fe9cac36f4d2412e5f"
-  integrity sha512-zdCYjusrTUn4gNxEg4PH8MWlfuXYbKfuGOkjgZ0Rg6DpWbIVmG/MwvsZ5yvG6z3Y6UI/gzYpaQ82iTt4KdbeaA==
+antd@^6.3.7:
+  version "6.3.7"
+  resolved "https://registry.yarnpkg.com/antd/-/antd-6.3.7.tgz#620354ec04135356cbc5ce0a666871ddc73e4117"
+  integrity sha512-WTHi4bHVNKpYXLHESzU0Tts7rRNQeL84Bph9dfI3Qw7mHbTulExDcYKNHny5CTXcrBBOpraXbU9miBAwUR5vaw==
   dependencies:
     "@ant-design/colors" "^8.0.1"
     "@ant-design/cssinjs" "^2.1.2"
@@ -5501,7 +5501,7 @@ antd@^6.3.6:
     "@rc-component/dialog" "~1.8.4"
     "@rc-component/drawer" "~1.4.2"
     "@rc-component/dropdown" "~1.0.2"
-    "@rc-component/form" "~1.8.0"
+    "@rc-component/form" "~1.8.1"
     "@rc-component/image" "~1.9.0"
     "@rc-component/input" "~1.1.2"
     "@rc-component/input-number" "~1.6.2"
