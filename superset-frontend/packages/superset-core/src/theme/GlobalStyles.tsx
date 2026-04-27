@@ -29,13 +29,24 @@ import '@fontsource/ibm-plex-mono/600.css';
 /* eslint-enable import/extensions */
 
 import { css, useTheme, Global } from '@emotion/react';
+import type { SupersetTheme } from './types';
+import { isThemeDark } from './utils/themeUtils';
 
 export const GlobalStyles = () => {
-  const theme = useTheme();
+  const theme = useTheme() as SupersetTheme;
+  const isDark = isThemeDark(theme);
   return (
     <Global
       key={`global-${theme.colorLink}`}
       styles={css`
+        /* Explicitly declare color-scheme so the browser uses matching native
+           styling (scrollbars, form controls, etc.) rather than inheriting the
+           OS dark-mode preference. Without this, an embedded iframe renders
+           dark borders/scrollbars even when Superset's theme is light. */
+        html {
+          color-scheme: ${isDark ? 'dark' : 'light'};
+        }
+
         // SPA
         html,
         body,
