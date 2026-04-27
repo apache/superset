@@ -435,7 +435,7 @@ class TestQueryApi(SupersetTestCase):
                 {"col": "sql_editor_id", "opr": "eq", "value": test_editor_id}
             ],
         }
-        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/query/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = rv.get_json()
@@ -444,7 +444,7 @@ class TestQueryApi(SupersetTestCase):
 
         # descending should be the reverse
         arguments["order_direction"] = "desc"
-        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/query/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = rv.get_json()
