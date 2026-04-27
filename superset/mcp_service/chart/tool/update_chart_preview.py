@@ -90,13 +90,15 @@ def update_chart_preview(
     """Update cached chart preview without saving.
 
     IMPORTANT:
+    - Modifies cached form_data from generate_chart (save_chart=False)
     - Original form_data_key (when provided) is invalidated, new one returned
     - LLM clients MUST display explore_url to users
 
     Use when:
     - Creating a fresh preview from config + dataset_id (omit form_data_key)
-    - Modifying an existing preview before deciding to save
+    - Modifying preview before deciding to save
     - Iterating on chart design without creating permanent charts
+    - Testing different configurations
 
     Returns new form_data_key, preview images, and explore URL.
     """
