@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, TYPE_CHECKING
 
 from flask import current_app as app
 
@@ -27,6 +29,10 @@ from superset.constants import CacheRegion
 from superset.daos.datasource import DatasourceDAO
 from superset.utils.core import QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
+
+if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
+    from superset.daos.datasource import Datasource
 
 logger = logging.getLogger(__name__)
 
@@ -169,11 +175,36 @@ def get_samples(  # pylint: disable=too-many-arguments
         if count_star_data.get("status") == QueryStatus.FAILED:
             raise DatasetSamplesFailedError(count_star_data.get("error"))
 
-        sample_data = samples_instance.get_payload()["queries"][0]
+        engine_spec = datasource.database.db_engine_spec
+        row_offset = limit_clause["row_offset"]
+        row_limit = limit_clause["row_limit"]
 
-        if sample_data.get("status") == QueryStatus.FAILED:
-            QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
-            raise DatasetSamplesFailedError(sample_data.get("error"))
+        if not engine_spec.supports_offset and row_offset > 0:
+            try:
+                sample_data = _fetch_samples_via_cursor(
+                    datasource=datasource,
+                    samples_instance=samples_instance,
+                    count_star_data=count_star_data,
+                    page_index=row_offset // row_limit,
+                    page_size=row_limit,
+                )
+            except DatasetSamplesFailedError:
+                raise
+            except Exception as exc:
+                QueryCacheManager.delete(
+                    count_star_data.get("cache_key"), CacheRegion.DATA
+                )
+                logger.exception("Cursor-based samples pagination failed")
+                raise DatasetSamplesFailedError(
+                    "Failed to fetch samples via cursor pagination"
+                ) from exc
+        else:
+            sample_data = samples_instance.get_payload()["queries"][0]
+            if sample_data.get("status") == QueryStatus.FAILED:
+                QueryCacheManager.delete(
+                    count_star_data.get("cache_key"), CacheRegion.DATA
+                )
+                raise DatasetSamplesFailedError(sample_data.get("error") or "")
 
         sample_data["page"] = page
         sample_data["per_page"] = per_page
@@ -181,3 +212,68 @@ def get_samples(  # pylint: disable=too-many-arguments
         return sample_data
     except (IndexError, KeyError) as exc:
         raise DatasetSamplesFailedError from exc
+
+
+def _fetch_samples_via_cursor(
+    datasource: Datasource,
+    samples_instance: QueryContext,
+    count_star_data: dict[str, Any],
+    page_index: int,
+    page_size: int,
+) -> dict[str, Any]:
+    """
+    Fetch a single page of samples via engine-spec cursor pagination.
+
+    Used when ``datasource.database.db_engine_spec.supports_offset`` is
+    False and a non-first page is requested. Reuses the SQL that Superset
+    already compiled for the normal samples payload, delegates cursor
+    iteration to the engine spec, and assembles a response dict compatible
+    with the normal samples path.
+
+    The samples payload is also executed (its SQL is OFFSET-stripped by the
+    models/helpers.py guard) to obtain the authoritative ``colnames`` and
+    ``coltypes`` that the frontend grid needs for type-based cell renderers
+    — ensuring page 2+ renders identically to page 1. The engine spec is
+    responsible for stripping any trailing ``LIMIT`` from the SQL so the
+    cursor is not capped to a single page.
+
+    Cost: this path issues one extra "page-1-shaped" samples query on every
+    request for page ≥ 2, on top of the ``page_index + 1`` cursor round
+    trips. The extra query is what provides authoritative ``coltypes``
+    (derived from the DB-API cursor description) — the ES cursor response
+    only carries ES SQL type names, which would need a separate translator
+    to Superset's coltype enum. TODO: extract SQL via
+    ``datasource.get_query_str(query_obj.to_dict())`` and derive coltypes
+    from cursor metadata to eliminate the extra execution.
+    """
+    # Execute the normal samples payload to source authoritative colnames
+    # and coltypes. See the cost note in the docstring — this is deliberate.
+    # The helpers.py OFFSET guard keeps it to a single page-1-shaped query,
+    # not a full-table scan, for engines on the cursor path.
+    sample_payload = samples_instance.get_payload()["queries"][0]
+    if sample_payload.get("status") == QueryStatus.FAILED:
+        QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
+        raise DatasetSamplesFailedError(sample_payload.get("error") or "")
+
+    sql = sample_payload.get("query")
+    if not sql:
+        QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
+        raise DatasetSamplesFailedError("Empty samples query")
+
+    engine_spec = datasource.database.db_engine_spec
+    rows, cursor_colnames = engine_spec.fetch_data_with_cursor(
+        database=datasource.database,
+        sql=sql,
+        page_index=page_index,
+        page_size=page_size,
+    )
+
+    colnames = sample_payload.get("colnames") or cursor_colnames
+    coltypes = sample_payload.get("coltypes") or []
+
+    return {
+        "data": [dict(zip(colnames, row, strict=False)) for row in rows],
+        "colnames": colnames,
+        "coltypes": coltypes,
+        "status": QueryStatus.SUCCESS,
+    }

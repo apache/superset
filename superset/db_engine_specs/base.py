@@ -498,6 +498,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_sql_comments = True
     allows_escaped_colons = True
 
+    # Whether the engine supports OFFSET in SQL queries. Defaults to True;
+    # engines like Elasticsearch SQL that do not support OFFSET set this to
+    # False and are expected to implement `fetch_data_with_cursor` for
+    # pagination via another mechanism (e.g. Elasticsearch's cursor API).
+    supports_offset = True
+
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
     allows_alias_to_source_column = True
@@ -1238,6 +1244,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return data
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def fetch_data_with_cursor(
+        cls,
+        database: Database,
+        sql: str,
+        page_index: int,
+        page_size: int,
+    ) -> tuple[list[list[Any]], list[str]]:
+        """
+        Fetch a single page of results via engine-native cursor pagination.
+
+        Only called when ``cls.supports_offset`` is False and a non-first
+        page is requested (see ``superset/views/datasource/utils.py``).
+        Engines that set ``supports_offset = False`` must override this.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__} sets supports_offset=False but does not "
+            "implement fetch_data_with_cursor()"
+        )
 
     @classmethod
     def expand_data(
@@ -2521,6 +2547,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
+            "supports_offset": cls.supports_offset,
         }
 
     @classmethod
