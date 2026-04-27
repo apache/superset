@@ -50,7 +50,7 @@ from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
-from flask_babel import get_locale, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from markupsafe import escape, Markup
 from pandas import DateOffset
@@ -630,30 +630,15 @@ class AuditMixinNullable(AuditMixin):
         # Convert naive datetime to UTC
         return self.changed_on.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
-    def _format_time_humanized(self, timestamp: datetime) -> str:
-        locale = str(get_locale())
-        time_diff = datetime.now() - timestamp
-        # Skip activation for 'en' locale as it's humanize's default locale
-        if locale == "en":
-            return humanize.naturaltime(time_diff)
-        try:
-            humanize.i18n.activate(locale)
-            result = humanize.naturaltime(time_diff)
-            humanize.i18n.deactivate()
-            return result
-        except Exception as e:
-            logger.warning("Locale '%s' is not supported in humanize: %s", locale, e)
-            return humanize.naturaltime(time_diff)
-
     @property
     def changed_on_humanized(self) -> str:
         activate_humanize_locale()
-        return self._format_time_humanized(self.changed_on)
+        return humanize.naturaltime(datetime.now() - self.changed_on)
 
     @property
     def created_on_humanized(self) -> str:
         activate_humanize_locale()
-        return self._format_time_humanized(self.created_on)
+        return humanize.naturaltime(datetime.now() - self.created_on)
 
     @renders("changed_on")
     def modified(self) -> Markup:

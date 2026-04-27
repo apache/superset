@@ -2154,6 +2154,24 @@ def get_user_agent(database: Database, source: QuerySource | None) -> str:
 
 
 def activate_humanize_locale() -> None:
-    if (locale := get_locale() or "en") != "en":
-        language = LOCALES_LANGUAGE_MAP.get(locale, "en_US")
+    """Activate the humanize locale based on the current Flask-Babel locale.
+
+    Maps the Babel locale (e.g. ``fr``, ``pt_BR``) to a humanize-compatible
+    locale string (e.g. ``fr_FR``, ``pt_BR``) via ``LOCALES_LANGUAGE_MAP``.
+    Falls back to ``en_US`` (humanize's default) for unmapped or English
+    locales.
+    """
+    locale = str(get_locale() or "en")
+    if locale == "en":
+        humanize.i18n.deactivate()
+        return
+    language = LOCALES_LANGUAGE_MAP.get(locale, "en_US")
+    try:
         humanize.i18n.activate(language)
+    except FileNotFoundError:
+        logger.warning(
+            "Locale '%s' (mapped to '%s') is not supported by humanize",
+            locale,
+            language,
+        )
+        humanize.i18n.deactivate()
