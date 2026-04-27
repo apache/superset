@@ -43,10 +43,10 @@ get_database_info_module = importlib.import_module(
 class TestDatabaseFilterSchema:
     """Tests for DatabaseFilter schema — filterable columns."""
 
-    def test_created_by_fk_is_valid_filter_column(self):
-        """created_by_fk must be accepted as a filter column."""
-        f = DatabaseFilter(col="created_by_fk", opr="eq", value=1)
-        assert f.col == "created_by_fk"
+    def test_created_by_fk_is_rejected_as_filter_column(self):
+        """created_by_fk is not a public filter column; use created_by_me instead."""
+        with pytest.raises(ValidationError):
+            DatabaseFilter(col="created_by_fk", opr="eq", value=1)
 
     def test_changed_by_fk_is_valid_filter_column(self):
         """changed_by_fk must be accepted as a filter column."""

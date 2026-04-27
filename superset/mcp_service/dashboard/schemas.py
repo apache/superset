@@ -85,7 +85,10 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.common.cache_schemas import MetadataCacheControl
+from superset.mcp_service.common.cache_schemas import (
+    CreatedByMeMixin,
+    MetadataCacheControl,
+)
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
@@ -159,7 +162,6 @@ class DashboardFilter(ColumnOperator):
         "dashboard_title",
         "published",
         "favorite",
-        "created_by_fk",
     ] = Field(
         ...,
         description=(
@@ -177,7 +179,7 @@ class DashboardFilter(ColumnOperator):
     )
 
 
-class ListDashboardsRequest(MetadataCacheControl):
+class ListDashboardsRequest(CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_dashboards with clear, unambiguous types."""
 
     filters: Annotated[
@@ -254,29 +256,15 @@ class ListDashboardsRequest(MetadataCacheControl):
             description=f"Number of items per page (max {MAX_PAGE_SIZE})",
         ),
     ]
-    created_by_me: Annotated[
-        bool,
-        Field(
-            default=False,
-            description="When true, return only dashboards created by the current "
-            "user.",
-        ),
-    ]
 
     @model_validator(mode="after")
     def validate_search_and_filters(self) -> "ListDashboardsRequest":
-        """Prevent using both search and filters simultaneously to avoid query
-        conflicts."""
+        """Prevent using both search and filters simultaneously."""
         if self.search and self.filters:
             raise ValueError(
                 "Cannot use both 'search' and 'filters' parameters simultaneously. "
                 "Use either 'search' for text-based searching across multiple fields, "
                 "or 'filters' for precise column-based filtering, but not both."
-            )
-        if self.search and self.created_by_me:
-            raise ValueError(
-                "Cannot use both 'search' and 'created_by_me' simultaneously. "
-                "Use 'filters' with 'created_by_me' instead."
             )
         return self
 

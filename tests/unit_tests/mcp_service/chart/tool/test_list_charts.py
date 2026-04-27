@@ -318,3 +318,36 @@ class TestChartDataModelMetadataPrivacy:
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+class TestListChartsCreatedByMe:
+    """Tests for the created_by_me flag on ListChartsRequest."""
+
+    def test_created_by_me_default_is_false(self):
+        request = ListChartsRequest()
+        assert request.created_by_me is False
+
+    def test_created_by_me_true_accepted(self):
+        request = ListChartsRequest(created_by_me=True)
+        assert request.created_by_me is True
+
+    def test_created_by_me_combined_with_filters(self):
+        request = ListChartsRequest(
+            created_by_me=True,
+            filters=[ChartFilter(col="slice_name", opr="sw", value="My")],
+        )
+        assert request.created_by_me is True
+        assert len(request.filters) == 1
+
+    def test_created_by_me_with_search_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="created_by_me"):
+            ListChartsRequest(created_by_me=True, search="My charts")
+
+    def test_chart_filter_rejects_created_by_fk(self):
+        """created_by_fk is not a public filter column; use created_by_me instead."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            ChartFilter(col="created_by_fk", opr="eq", value=1)

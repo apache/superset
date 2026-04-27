@@ -23,7 +23,9 @@ existing cache infrastructure including query result cache, metadata cache,
 form data cache, and dashboard cache.
 """
 
-from pydantic import BaseModel, Field
+from typing import Annotated, Any
+
+from pydantic import BaseModel, Field, model_validator
 
 
 class CacheControlMixin(BaseModel):
@@ -81,6 +83,35 @@ class FormDataCacheControl(CacheControlMixin):
     cache_form_data: bool = Field(
         default=True, description="Cache form data for future use"
     )
+
+
+class CreatedByMeMixin(BaseModel):
+    """Mixin that adds a created_by_me filter flag to list request schemas.
+
+    Provides a clean caller-facing alternative to exposing foreign key IDs.
+    The server translates the flag into the appropriate FK filter and injects
+    the current user's ID automatically.
+    """
+
+    created_by_me: Annotated[
+        bool,
+        Field(
+            default=False,
+            description=(
+                "When true, return only items created by the current user. "
+                "Can be combined with 'filters' but not with 'search'."
+            ),
+        ),
+    ]
+
+    @model_validator(mode="after")
+    def _validate_created_by_me_with_search(self) -> Any:
+        if getattr(self, "search", None) and self.created_by_me:
+            raise ValueError(
+                "'created_by_me' cannot be combined with 'search'. "
+                "Use 'created_by_me' alone or with 'filters'."
+            )
+        return self
 
 
 class CacheStatus(BaseModel):
