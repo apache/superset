@@ -32,28 +32,41 @@ export const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({
   datasetType,
 }) => {
   const theme = useTheme();
-  const label: string =
-    datasetType === 'physical' ? t('Physical') : t('Virtual');
-  const icon =
-    datasetType === 'physical' ? (
-      <Icons.InsertRowAboveOutlined
-        iconSize={SIZE}
-        iconColor={theme.colorPrimary}
-      />
-    ) : (
-      <Icons.ConsoleSqlOutlined iconSize={SIZE} />
-    );
-  const labelType = datasetType === 'physical' ? 'primary' : 'default';
+  const isPhysical = datasetType === 'physical';
+  const label: string = isPhysical ? t('Physical') : t('Virtual');
+  const labelType = isPhysical ? 'primary' : 'default';
+
+  const color = isPhysical
+    ? (theme.labelDatasetPhysicalColor ?? theme.colorPrimaryText)
+    : (theme.labelDatasetVirtualColor ?? theme.colorPrimary);
+  const bg = isPhysical
+    ? theme.labelDatasetPhysicalBg
+    : theme.labelDatasetVirtualBg;
+  const borderColor = isPhysical
+    ? theme.labelDatasetPhysicalBorderColor
+    : theme.labelDatasetVirtualBorderColor;
+  const iconColor = isPhysical
+    ? (theme.labelDatasetPhysicalIconColor ?? theme.colorPrimary)
+    : theme.labelDatasetVirtualIconColor;
+
+  const icon = isPhysical ? (
+    <Icons.InsertRowAboveOutlined iconSize={SIZE} iconColor={iconColor} />
+  ) : (
+    <Icons.ConsoleSqlOutlined
+      iconSize={SIZE}
+      {...(iconColor && { iconColor })}
+    />
+  );
 
   return (
     <Label
       icon={icon}
       type={labelType}
+      data-test="dataset-type-label"
       style={{
-        color:
-          datasetType === 'physical'
-            ? theme.colorPrimaryText
-            : theme.colorPrimary,
+        color,
+        ...(bg && { backgroundColor: bg }),
+        ...(borderColor && { borderColor }),
       }}
     >
       {label}

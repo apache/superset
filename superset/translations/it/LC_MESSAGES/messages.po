@@ -5212,36 +5212,35 @@ msgid "Edit CSS template properties"
 msgstr "Template CSS"
 
 msgid "Edit Dashboard"
-msgstr ""
+msgstr "Modifica Dashboard"
 
 msgid "Edit Dataset "
-msgstr "Mostra database"
+msgstr "Modifica Dataset"
 
-#, fuzzy
+
 msgid "Edit Group"
-msgstr "Ricerca Query"
+msgstr "Modifica Gruppo"
 
 msgid "Edit Log"
-msgstr "Modifica"
+msgstr "Modifica Log"
 
 msgid "Edit Plugin"
-msgstr "Edita colonna"
+msgstr "Modifica Plugin"
 
-#, fuzzy
+
 msgid "Edit Role"
-msgstr "Ricerca Query"
+msgstr "Modifica Ruolo"
 
-#, fuzzy
+
 msgid "Edit Rule"
-msgstr "Ricerca Query"
+msgstr "Modifica Regola"
 
-#, fuzzy
+
 msgid "Edit Tag"
-msgstr "Modifica"
+msgstr "Modifica Tag"
 
-#, fuzzy
 msgid "Edit User"
-msgstr "Query vuota?"
+msgstr "Modifica Utente"
 
 #, fuzzy
 msgid "Edit alert"

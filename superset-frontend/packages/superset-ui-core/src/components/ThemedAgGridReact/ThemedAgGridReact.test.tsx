@@ -158,17 +158,60 @@ test('passes all props through to AgGridReact', () => {
     />,
   );
 
+  // onGridReady and onFirstDataRendered are intercepted by the component to expose
+  // the grid API on the container element; the wrapped function is passed instead.
   expect(AgGridReact).toHaveBeenCalledWith(
     expect.objectContaining({
       rowData: mockRowData,
       columnDefs: mockColumnDefs,
-      onGridReady,
+      onGridReady: expect.any(Function),
       onCellClicked,
       pagination: true,
       paginationPageSize: 10,
     }),
     expect.any(Object),
   );
+});
+
+test('onGridReady wrapper calls user callback and exposes api on container', () => {
+  const onGridReady = jest.fn();
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      onGridReady={onGridReady}
+    />,
+  );
+
+  // Retrieve the wrapped handler that was passed to AgGridReact
+  const lastCall = (AgGridReact as jest.Mock).mock.calls.at(-1)[0];
+  const wrappedOnGridReady = lastCall.onGridReady as Function;
+
+  const mockApi = { setGridOption: jest.fn() };
+  wrappedOnGridReady({ api: mockApi });
+
+  // The user-provided callback must be forwarded
+  expect(onGridReady).toHaveBeenCalledWith({ api: mockApi });
+});
+
+test('onFirstDataRendered wrapper calls user callback', () => {
+  const onFirstDataRendered = jest.fn();
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      onFirstDataRendered={onFirstDataRendered}
+    />,
+  );
+
+  const lastCall = (AgGridReact as jest.Mock).mock.calls.at(-1)[0];
+  const wrappedOnFirstDataRendered = lastCall.onFirstDataRendered as Function;
+
+  wrappedOnFirstDataRendered({ firstRow: 0 });
+
+  expect(onFirstDataRendered).toHaveBeenCalledWith({ firstRow: 0 });
 });
 
 test('applies custom theme colors from Superset theme', () => {

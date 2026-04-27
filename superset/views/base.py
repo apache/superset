@@ -24,7 +24,6 @@ import traceback
 from datetime import datetime
 from typing import Any, Callable, cast
 
-from babel import Locale
 from flask import (
     abort,
     current_app as app,
@@ -36,7 +35,7 @@ from flask import (
 )
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
-from flask_appbuilder.const import AUTH_OAUTH
+from flask_appbuilder.const import AUTH_OAUTH, AUTH_SAML
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
@@ -101,6 +100,7 @@ FRONTEND_CONF_KEYS = (
     "COLUMNAR_EXTENSIONS",
     "ALLOWED_EXTENSIONS",
     "SAMPLES_ROW_LIMIT",
+    "ROW_LIMIT",
     "DEFAULT_TIME_FILTER",
     "HTML_SANITIZATION",
     "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
@@ -438,7 +438,7 @@ def get_default_spinner_svg() -> str | None:
 
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
-    user_id: int | None, locale: Locale | None
+    user_id: int | None, locale: str | None
 ) -> dict[str, Any]:
     """Common data always sent to the client
 
@@ -476,16 +476,24 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         and bool(available_specs[GSheetsEngineSpec])
     )
 
-    if isinstance(locale, Locale):
-        language = locale.language
-    elif isinstance(locale, str):
-        language = locale
+    if isinstance(locale, str):
+        normalized = locale.replace("-", "_")
+        languages = app.config.get("LANGUAGES") or {}
+        # Preserve region-specific locales (e.g. zh_TW, pt_BR) when they are
+        # configured as distinct language packs; otherwise fall back to the
+        # base language code.
+        if normalized in languages:
+            language = normalized
+        else:
+            language = normalized.split("_")[0]
     else:
         language = app.config.get("BABEL_DEFAULT_LOCALE", "en")
     auth_type = app.config["AUTH_TYPE"]
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration
-    should_show_recaptcha = auth_user_registration and (auth_type != AUTH_OAUTH)
+    should_show_recaptcha = auth_user_registration and (
+        auth_type not in (AUTH_OAUTH, AUTH_SAML)
+    )
 
     if auth_user_registration:
         frontend_config["AUTH_USER_REGISTRATION_ROLE"] = app.config[
@@ -505,6 +513,16 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
                 }
             )
         frontend_config["AUTH_PROVIDERS"] = oauth_providers
+    elif auth_type == AUTH_SAML:
+        saml_providers = []
+        for provider in appbuilder.sm.saml_providers:
+            saml_providers.append(
+                {
+                    "name": provider["name"],
+                    "icon": provider.get("icon", "fa-sign-in"),
+                }
+            )
+        frontend_config["AUTH_PROVIDERS"] = saml_providers
 
     bootstrap_data = {
         "application_root": app.config["APPLICATION_ROOT"],
@@ -531,7 +549,10 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
 
 def common_bootstrap_payload() -> dict[str, Any]:
-    return cached_common_bootstrap_data(utils.get_user_id(), get_locale())
+    locale = get_locale()
+    # Convert locale to string for proper cache key hashing
+    locale_str = str(locale) if locale else None
+    return cached_common_bootstrap_data(utils.get_user_id(), locale_str)
 
 
 def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
