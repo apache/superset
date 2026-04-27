@@ -17,6 +17,7 @@
 
 """Tests for find_users MCP tool and its filter contract."""
 
+import importlib
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -27,6 +28,15 @@ from pydantic import ValidationError
 from superset.mcp_service.app import mcp
 from superset.mcp_service.system.schemas import FindUsersRequest, FindUsersResponse
 from superset.utils import json
+
+# Import the submodule directly so ``patch.object`` targets the module (not the
+# ``find_users`` function that ``tool/__init__.py`` re-exports onto the
+# package). The package attribute is the function, so dotted-string patches
+# like ``superset.mcp_service.system.tool.find_users.db`` can resolve to the
+# function in some import orderings and fail with AttributeError.
+find_users_module = importlib.import_module(
+    "superset.mcp_service.system.tool.find_users"
+)
 
 
 @pytest.fixture
@@ -107,11 +117,9 @@ async def test_find_users_returns_matches(mcp_server):
     session, _ = _patch_user_query(rows)
 
     with (
-        patch("superset.mcp_service.system.tool.find_users.db") as mock_db,
-        patch(
-            "superset.mcp_service.system.tool.find_users.security_manager"
-        ) as mock_sm,
-        patch("superset.mcp_service.system.tool.find_users.or_") as mock_or,
+        patch.object(find_users_module, "db") as mock_db,
+        patch.object(find_users_module, "security_manager") as mock_sm,
+        patch.object(find_users_module, "or_") as mock_or,
     ):
         mock_db.session = session
         mock_sm.user_model = MagicMock()
@@ -143,11 +151,9 @@ async def test_find_users_truncates_when_more_rows_than_page_size(mcp_server):
     session, chain = _patch_user_query(rows)
 
     with (
-        patch("superset.mcp_service.system.tool.find_users.db") as mock_db,
-        patch(
-            "superset.mcp_service.system.tool.find_users.security_manager"
-        ) as mock_sm,
-        patch("superset.mcp_service.system.tool.find_users.or_") as mock_or,
+        patch.object(find_users_module, "db") as mock_db,
+        patch.object(find_users_module, "security_manager") as mock_sm,
+        patch.object(find_users_module, "or_") as mock_or,
     ):
         mock_db.session = session
         mock_sm.user_model = MagicMock()
