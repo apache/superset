@@ -1322,6 +1322,9 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
 
+_DEFAULT_GET_CHART_PREVIEW_REQUEST = GetChartPreviewRequest()
+
+
 @tool(
     tags=["data"],
     class_permission_name="Chart",
@@ -1332,7 +1335,8 @@ async def _get_chart_preview_internal(  # noqa: C901
     ),
 )
 async def get_chart_preview(
-    request: GetChartPreviewRequest, ctx: Context
+    request: GetChartPreviewRequest = _DEFAULT_GET_CHART_PREVIEW_REQUEST,
+    ctx: Context = None,
 ) -> ChartPreview | ChartError:
     """Get chart preview by ID or UUID.
 

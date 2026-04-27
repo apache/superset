@@ -65,6 +65,8 @@ SORTABLE_DASHBOARD_COLUMNS = [
     "created_on",
 ]
 
+_DEFAULT_LIST_DASHBOARDS_REQUEST = ListDashboardsRequest()
+
 
 @tool(
     tags=["core"],
@@ -76,7 +78,8 @@ SORTABLE_DASHBOARD_COLUMNS = [
     ),
 )
 async def list_dashboards(
-    request: ListDashboardsRequest, ctx: Context
+    request: ListDashboardsRequest = _DEFAULT_LIST_DASHBOARDS_REQUEST,
+    ctx: Context = None,
 ) -> DashboardList:
     """List dashboards with filtering and search. Returns dashboard metadata
     including title, slug, URL, and last modified time. Use select_columns to

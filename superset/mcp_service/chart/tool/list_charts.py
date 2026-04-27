@@ -70,6 +70,8 @@ SORTABLE_CHART_COLUMNS = [
     "created_on",
 ]
 
+_DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
+
 
 @tool(
     tags=["core"],
@@ -81,7 +83,7 @@ SORTABLE_CHART_COLUMNS = [
     ),
 )
 async def list_charts(
-    request: ListChartsRequest, ctx: Context
+    request: ListChartsRequest = _DEFAULT_LIST_CHARTS_REQUEST, ctx: Context = None
 ) -> ChartList | ChartError:
     """List charts with filtering and search.
 

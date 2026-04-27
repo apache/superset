@@ -66,6 +66,9 @@ def _apply_extra_form_data(
     merge_extra_filters(form_data)
 
 
+_DEFAULT_GET_CHART_DATA_REQUEST = GetChartDataRequest()
+
+
 @tool(
     tags=["data"],
     class_permission_name="Chart",
@@ -76,7 +79,8 @@ def _apply_extra_form_data(
     ),
 )
 async def get_chart_data(  # noqa: C901
-    request: GetChartDataRequest, ctx: Context
+    request: GetChartDataRequest = _DEFAULT_GET_CHART_DATA_REQUEST,
+    ctx: Context = None,
 ) -> ChartData | ChartError:
     """Get chart data by ID or UUID.
 
