@@ -851,8 +851,8 @@ describe('plugin-chart-table', () => {
         const headers = screen.getAllByRole('columnheader');
 
         // Test 1: "name" column (regular string column)
-        const nameHeader = headers.find(
-          header => header.textContent?.includes('name'),
+        const nameHeader = headers.find(header =>
+          header.textContent?.includes('name'),
         );
         expect(nameHeader).toBeDefined();
         expect(nameHeader?.id).toBe('header-name'); // Falls back to column.key
@@ -864,8 +864,8 @@ describe('plugin-chart-table', () => {
         expect(nameCells.length).toBeGreaterThan(0);
 
         // Test 2: "sum__num" column (metric with verbose map "Sum of Num")
-        const sumHeader = headers.find(
-          header => header.textContent?.includes('Sum of Num'),
+        const sumHeader = headers.find(header =>
+          header.textContent?.includes('Sum of Num'),
         );
         expect(sumHeader).toBeDefined();
         expect(sumHeader?.id).toBe('header-sum_num'); // Falls back to column.key, consecutive underscores collapsed
@@ -877,8 +877,8 @@ describe('plugin-chart-table', () => {
         expect(sumCells.length).toBeGreaterThan(0);
 
         // Test 3: Verify NO headers have "undefined" in their ID
-        const undefinedHeaders = headers.filter(
-          header => header.id?.includes('undefined'),
+        const undefinedHeaders = headers.filter(header =>
+          header.id?.includes('undefined'),
         );
         expect(undefinedHeaders).toHaveLength(0);
 
