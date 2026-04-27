@@ -29,6 +29,7 @@ from superset.mcp_service.constants import ModelType
 from superset.mcp_service.privacy import (
     filter_user_directory_columns,
     inject_current_user_for_created_by_fk,
+    SELF_REFERENCING_FILTER_COLUMNS,
     USER_DIRECTORY_FIELDS,
 )
 from superset.mcp_service.utils import _is_uuid
@@ -200,8 +201,11 @@ class ModelListCore(BaseCore, Generic[L]):
 
         # Translate created_by_me=True into the created_by_fk filter so callers
         # never need to know about foreign key IDs or dummy placeholder values.
+        # Use ColumnOperator (not a plain dict) so all DAOs process it correctly.
         if created_by_me:
-            fk_filter = {"col": "created_by_fk", "opr": "eq", "value": 0}
+            from superset.daos.base import ColumnOperator
+
+            fk_filter = ColumnOperator(col="created_by_fk", opr="eq", value=0)
             filters = [fk_filter] + (filters if isinstance(filters, list) else [])
 
         from superset.mcp_service.utils.permissions_utils import get_current_user
@@ -278,7 +282,12 @@ class ModelListCore(BaseCore, Generic[L]):
             "columns_loaded": columns_to_load,
             "columns_available": self.all_columns,
             "sortable_columns": self.sortable_columns,
-            "filters_applied": filters if isinstance(filters, list) else [],
+            "filters_applied": [
+                f
+                for f in (filters if isinstance(filters, list) else [])
+                if (f.get("col") if isinstance(f, dict) else getattr(f, "col", None))
+                not in SELF_REFERENCING_FILTER_COLUMNS
+            ],
             "pagination": pagination_info,
             "timestamp": datetime.now(timezone.utc),
         }

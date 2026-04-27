@@ -209,8 +209,8 @@ def test_model_list_tool_injects_current_user_id_for_created_by_me():
     ):
         tool.run_tool(created_by_me=True)
 
-    assert captured["filters"][0]["col"] == "created_by_fk"
-    assert captured["filters"][0]["value"] == 42
+    assert captured["filters"][0].col == "created_by_fk"
+    assert captured["filters"][0].value == 42
 
 
 def test_model_list_tool_created_by_me_requires_authenticated_user():
