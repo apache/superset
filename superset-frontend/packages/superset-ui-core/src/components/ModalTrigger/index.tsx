@@ -79,7 +79,7 @@ export const ModalTrigger = forwardRef(
     };
 
     const open = (e: MouseEvent) => {
-      e.preventDefault();
+      e.stopPropagation();
       beforeOpen?.();
       setShowModal(true);
     };
