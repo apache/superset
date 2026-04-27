@@ -219,7 +219,7 @@ def parse_json_or_model(
     try:
         return model_class.model_validate(parsed_value)
     except ValidationError:
-        logger.warning(
+        logger.debug(
             "Failed to validate %s against %s", param_name, model_class.__name__
         )
         raise
@@ -270,7 +270,7 @@ def parse_json_or_model_list(
             else:
                 validated_items.append(model_class.model_validate(item))
         except ValidationError:
-            logger.warning(
+            logger.debug(
                 "Failed to validate %s[%s] against %s",
                 param_name,
                 i,

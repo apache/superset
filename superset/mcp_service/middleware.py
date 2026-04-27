@@ -123,8 +123,6 @@ _USER_ERROR_TYPES = (
     ToolError,
     ValidationError,
     PermissionError,
-    FileNotFoundError,
-    ValueError,
     CommandInvalidError,
     ObjectNotFoundError,
     ForbiddenError,
@@ -147,7 +145,7 @@ def _is_user_error(error: Exception) -> bool:
     # SupersetException and CommandException have a .status attribute.
     # 4xx = user error, 5xx = system error.
     if isinstance(error, SupersetException):
-        return getattr(error, "status", 500) < 500
+        return error.status < 500
     return False
 
 
@@ -431,8 +429,8 @@ class GlobalErrorHandlerMiddleware(Middleware):
         is_user = _is_user_error(error)
         log_fn = logger.warning if is_user else logger.error
         log_fn(
-            "MCP tool %s: tool=%s, user_id=%s, duration_ms=%s, error_type=%s, error=%s",
-            "warning" if is_user else "error",
+            "MCP tool call failed: tool=%s, user_id=%s, "
+            "duration_ms=%s, error_type=%s, error=%s",
             tool_name,
             user_id,
             duration_ms,
@@ -486,16 +484,6 @@ class GlobalErrorHandlerMiddleware(Middleware):
                 f"Permission denied for {tool_name}: "
                 f"You don't have access to this resource."
             ) from error
-        elif isinstance(error, FileNotFoundError):
-            # File/resource not found errors
-            raise ToolError(
-                f"Resource not found in {tool_name}: {str(error)}"
-            ) from error
-        elif isinstance(error, ValueError):
-            # Value/parameter errors
-            raise ToolError(
-                f"Invalid parameter in {tool_name}: {str(error)}"
-            ) from error
         elif isinstance(error, (ObjectNotFoundError, CommandInvalidError)):
             # Superset command: not found (404) or validation (422)
             raise ToolError(f"Invalid request for {tool_name}: {str(error)}") from error
@@ -507,19 +495,12 @@ class GlobalErrorHandlerMiddleware(Middleware):
         elif isinstance(error, SupersetException):
             # Other Superset errors — .status determines severity (already
             # classified by _is_user_error above for log level)
-            status = getattr(error, "status", 500)
-            msg = "Invalid request" if status < 500 else "Internal error"
+            msg = "Invalid request" if error.status < 500 else "Internal error"
             raise ToolError(f"{msg} in {tool_name}: {str(error)}") from error
-        elif isinstance(
-            error,
-            (
-                ConnectionError,
-                ConnectionRefusedError,
-                ConnectionResetError,
-                BrokenPipeError,
-            ),
-        ):
+        elif isinstance(error, ConnectionError):
             # Network errors — transient, expected during pod restarts
+            # (ConnectionRefusedError, ConnectionResetError, BrokenPipeError
+            # are all subclasses of ConnectionError)
             raise ToolError(
                 f"Connection error in {tool_name}: Service temporarily unavailable. "
                 f"Please try again in a few moments."

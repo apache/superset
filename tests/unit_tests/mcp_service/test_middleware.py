@@ -751,12 +751,12 @@ class TestIsUserError:
             # User errors (WARNING) — expected in normal MCP operation
             (ToolError("bad request"), True),
             (PermissionError("access denied"), True),
-            (FileNotFoundError("not found"), True),
-            (ValueError("invalid param"), True),
             (ObjectNotFoundError("Chart", "123"), True),
             (ForbiddenError(), True),
             (_make_security_exception(), True),
             # System errors (ERROR) — unexpected failures
+            (ValueError("invalid param"), False),
+            (FileNotFoundError("not found"), False),
             (RuntimeError("unexpected"), False),
             (ConnectionError("connection refused"), False),
             (TypeError("type mismatch"), False),
@@ -766,11 +766,11 @@ class TestIsUserError:
         ids=[
             "ToolError",
             "PermissionError",
-            "FileNotFoundError",
-            "ValueError",
             "ObjectNotFoundError",
             "ForbiddenError",
             "SupersetSecurityException",
+            "ValueError",
+            "FileNotFoundError",
             "RuntimeError",
             "ConnectionError",
             "TypeError",
