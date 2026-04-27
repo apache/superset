@@ -1988,17 +1988,19 @@ describe('plugin-chart-table', () => {
           server_pagination: false,
         };
 
-        const renderChart = () => (
-          <ProviderWrapper>
-            <TableChart
-              {...transformProps({
-                ...testData.basic,
-                formData: formDataWithSearch,
-              })}
-              sticky={false}
-            />
-          </ProviderWrapper>
-        );
+        const renderChart = () => {
+          const props = transformProps({
+            ...testData.basic,
+            formData: formDataWithSearch,
+          });
+          props.includeSearch = true;
+
+          return (
+            <ProviderWrapper>
+              <TableChart {...props} sticky={false} />
+            </ProviderWrapper>
+          );
+        };
 
         const { rerender } = render(renderChart());
 
@@ -2015,6 +2017,53 @@ describe('plugin-chart-table', () => {
         await waitFor(() => {
           expect(screen.getByRole('textbox')).toHaveValue('Michael');
           expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text when rerendered with empty data', async () => {
+        const formDataWithSearch = {
+          ...testData.basic.formData,
+          include_search: true,
+          server_pagination: false,
+        };
+
+        const renderChart = (data = testData.basic.queriesData[0].data) => {
+          const props = transformProps({
+            ...testData.basic,
+            formData: formDataWithSearch,
+            queriesData: [
+              {
+                ...testData.basic.queriesData[0],
+                data,
+              },
+            ],
+          });
+          props.includeSearch = true;
+
+          return (
+            <ProviderWrapper>
+              <TableChart {...props} sticky={false} />
+            </ProviderWrapper>
+          );
+        };
+
+        const { rerender } = render(renderChart());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderChart([]));
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByLabelText('Search 0 records')).toHaveValue(
+            'Michael',
+          );
         });
       });
     });

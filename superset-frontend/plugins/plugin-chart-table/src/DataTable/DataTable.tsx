@@ -147,7 +147,20 @@ export default typedMemo(function DataTable<D extends object>({
     hooks || [],
   ].flat();
 
-  const columnNames = Object.keys(data?.[0] || {});
+  const columnNames = columns.map((column, index) => {
+    const normalizedColumn = column as typeof column & {
+      accessor?: string;
+      columnKey?: string;
+      id?: string;
+    };
+
+    return (
+      normalizedColumn.columnKey ??
+      normalizedColumn.accessor ??
+      normalizedColumn.id ??
+      String(index)
+    );
+  });
   const previousColumnNames = usePrevious(columnNames);
   const resultsSize = serverPagination ? rowCount : data.length;
   const sortByRef = useRef([]); // cache initial `sortby` so sorting doesn't trigger page reset
