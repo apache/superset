@@ -20,6 +20,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+import time
 from flask import current_app
 from flask_caching import Cache
 from pandas import DataFrame
@@ -124,23 +125,23 @@ class QueryCacheManager:
                 self.is_loaded = True
 
             value = {
-                "df": self.df,
-                "query": self.query,
-                "applied_template_filters": self.applied_template_filters,
-                "applied_filter_columns": self.applied_filter_columns,
-                "rejected_filter_columns": self.rejected_filter_columns,
-                "annotation_data": self.annotation_data,
-                "sql_rowcount": self.sql_rowcount,
-                "queried_dttm": self.queried_dttm,
-                "dttm": self.queried_dttm,  # Backwards compatibility
+            "df": self.df,
+            "query": self.query,
+            "applied_template_filters": self.applied_template_filters,
+            "applied_filter_columns": self.applied_filter_columns,
+            "rejected_filter_columns": self.rejected_filter_columns,
+            "annotation_data": self.annotation_data,
+            "sql_rowcount": self.sql_rowcount,
+            "queried_dttm": self.queried_dttm,
+            "dttm": self.queried_dttm,  # Backwards compatibility
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
                 self.set(
-                    key=key,
-                    value=value,
-                    timeout=timeout,
-                    datasource_uid=datasource_uid,
-                    region=region,
+                key=key,
+                value=value,
+                timeout=timeout,
+                datasource_uid=datasource_uid,
+                region=region,
                 )
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
