@@ -173,7 +173,7 @@
   dependencies:
     "@algolia/client-common" "5.40.0"
 
-"@ant-design/colors@^8.0.0", "@ant-design/colors@^8.0.1":
+"@ant-design/colors@^8.0.1":
   version "8.0.1"
   resolved "https://registry.npmjs.org/@ant-design/colors/-/colors-8.0.1.tgz"
   integrity sha512-foPVl0+SWIslGUtD/xBr1p9U4AKzPhNYEseXYRRo5QSzGACYZrQbe11AYJbYfAWnWSpGBx6JjBmSeugUsD9vqQ==
@@ -207,19 +207,19 @@
   resolved "https://registry.npmjs.org/@ant-design/fast-color/-/fast-color-3.0.1.tgz"
   integrity sha512-esKJegpW4nckh0o6kV3Tkb7NPIZYbPnnFxmQDUmL08ukXZAvV85TZBr70eGuke/CIArLaP6aw8lt9KILjnWuOw==
 
-"@ant-design/icons-svg@^4.4.0":
+"@ant-design/icons-svg@^4.4.2":
   version "4.4.2"
   resolved "https://registry.npmjs.org/@ant-design/icons-svg/-/icons-svg-4.4.2.tgz"
   integrity sha512-vHbT+zJEVzllwP+CM+ul7reTEfBR0vgxFe7+lREAsAA7YGsYpboiq2sQNeQeRvh09GfQgs/GyFEvZpJ9cLXpXA==
 
-"@ant-design/icons@^6.1.1":
-  version "6.1.1"
-  resolved "https://registry.yarnpkg.com/@ant-design/icons/-/icons-6.1.1.tgz#068963d3de44ff7034dce32c9cec3ff7d343fe6b"
-  integrity sha512-AMT4N2y++TZETNHiM77fs4a0uPVCJGuL5MTonk13Pvv7UN7sID1cNEZOc1qNqx6zLKAOilTEFAdAoAFKa0U//Q==
+"@ant-design/icons@^6.1.1", "@ant-design/icons@^6.2.0":
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/@ant-design/icons/-/icons-6.2.0.tgz#d5a1a364c3e795e06ef166ddf8171cfee9837150"
+  integrity sha512-TQuzMZM+F/lpn3V1Z7NBxuc2VDo3z8VZduYvMZR5dUJP28gDlOZ6ar6B7vM9W13SxUT/FbNYBw2JoighULKgQA==
   dependencies:
-    "@ant-design/colors" "^8.0.0"
-    "@ant-design/icons-svg" "^4.4.0"
-    "@rc-component/util" "^1.3.0"
+    "@ant-design/colors" "^8.0.1"
+    "@ant-design/icons-svg" "^4.4.2"
+    "@rc-component/util" "^1.10.1"
     clsx "^2.1.1"
 
 "@ant-design/react-slick@~2.0.0":
