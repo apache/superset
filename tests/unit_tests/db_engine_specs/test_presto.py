@@ -342,3 +342,47 @@ SELECT * \nFROM my_catalog.my_schema.my_table
  LIMIT :param_1
     """.strip()
     )
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that Presto uses equality operators for boolean filters instead of IS,
+    since `col IS TRUE` can fail on computed boolean expressions like
+    `(expiration = 1) AS expiration`.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = PrestoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    result_false = PrestoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+    # Regression: the original bug was on computed boolean columns like
+    # `(expiration = 1) AS expiration`. Verify the equality operator also
+    # compiles correctly when the "column" is a computed expression.
+    from sqlalchemy import literal_column
+
+    computed_col = literal_column("(expiration = 1)")
+    result_computed = PrestoEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_computed.compile(compile_kwargs={"literal_binds": True}))
+        == "(expiration = 1) = true"
+    )
