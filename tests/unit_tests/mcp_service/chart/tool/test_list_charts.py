@@ -19,20 +19,45 @@
 Tests for the list_charts request schema
 """
 
-from unittest.mock import Mock
+import importlib
+from unittest.mock import Mock, patch
 
 import pytest
+from fastmcp import Client
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
     ChartFilter,
     ListChartsRequest,
 )
+from superset.mcp_service.constants import MAX_PAGE_SIZE
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    remove_chart_data_model_columns,
+    request_uses_chart_data_model_filter,
+    user_can_view_data_model_metadata,
+)
+from superset.utils import json
+
+list_charts_module = importlib.import_module(
+    "superset.mcp_service.chart.tool.list_charts"
+)
 
 
 @pytest.fixture
 def mcp_server():
     return mcp
+
+
+@pytest.fixture(autouse=True)
+def mock_auth():
+    """Mock authentication for client-based tool tests."""
+    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_get_user.return_value = mock_user
+        yield mock_get_user
 
 
 @pytest.fixture
@@ -45,6 +70,8 @@ def mock_chart():
     chart.datasource_name = "test_dataset"
     chart.datasource_type = "table"
     chart.description = "Test chart"
+    chart.certified_by = None
+    chart.certification_details = None
     chart.url = "/chart/1"
     chart.changed_by_name = "admin"
     chart.changed_on = None
@@ -133,6 +160,19 @@ class TestListChartsRequestSchema:
         with pytest.raises(ValueError, match="Input should be greater than 0"):
             ListChartsRequest(page_size=0)
 
+    def test_page_size_exceeds_max(self):
+        """Test that page_size over MAX_PAGE_SIZE raises validation error."""
+        with pytest.raises(
+            ValueError,
+            match=f"Input should be less than or equal to {MAX_PAGE_SIZE}",
+        ):
+            ListChartsRequest(page_size=MAX_PAGE_SIZE + 1)
+
+    def test_page_size_at_max(self):
+        """Test that page_size at MAX_PAGE_SIZE is accepted."""
+        request = ListChartsRequest(page_size=MAX_PAGE_SIZE)
+        assert request.page_size == MAX_PAGE_SIZE
+
     def test_filter_validation(self):
         """Test that filter validation works correctly."""
         # Valid filter
@@ -183,20 +223,21 @@ class TestChartDefaultColumnFiltering:
         """Test that minimal default columns are properly defined."""
         from superset.mcp_service.common.schema_discovery import CHART_DEFAULT_COLUMNS
 
-        # Required minimal columns must be present
-        required_columns = {
+        assert set(CHART_DEFAULT_COLUMNS) == {
             "id",
             "slice_name",
             "viz_type",
+            "description",
+            "certified_by",
+            "certification_details",
             "url",
+            "changed_on",
             "changed_on_humanized",
         }
-        assert required_columns.issubset(set(CHART_DEFAULT_COLUMNS))
 
         # Heavy columns should NOT be in defaults
         assert "form_data" not in CHART_DEFAULT_COLUMNS
         assert "query_context" not in CHART_DEFAULT_COLUMNS
-        assert "description" not in CHART_DEFAULT_COLUMNS
         assert "datasource_name" not in CHART_DEFAULT_COLUMNS
         assert "uuid" not in CHART_DEFAULT_COLUMNS
 
@@ -218,3 +259,62 @@ class TestChartDefaultColumnFiltering:
             "description",
             "cache_timeout",
         }
+
+
+class TestChartDataModelMetadataPrivacy:
+    """Test data-model field privacy helpers for chart listing."""
+
+    def test_remove_data_model_columns(self):
+        assert remove_chart_data_model_columns(
+            ["id", "slice_name", "datasource_name", "form_data", "url"]
+        ) == ["id", "slice_name", "url"]
+
+    def test_uses_data_model_filter(self):
+        request = ListChartsRequest(
+            filters=[
+                ChartFilter(
+                    col="datasource_name",
+                    opr="like",
+                    value="Vehicle Sales",
+                )
+            ]
+        )
+
+        assert request_uses_chart_data_model_filter(request.filters) is True
+
+    def test_user_can_view_data_model_metadata_uses_dataset_permission(self):
+        with patch("superset.security_manager", new_callable=Mock) as security_manager:
+            security_manager.can_access.side_effect = [False, True, False]
+
+            assert user_can_view_data_model_metadata() is True
+
+        security_manager.can_access.assert_any_call("can_get_drill_info", "Dataset")
+        security_manager.can_access.assert_any_call(
+            "can_get_or_create_dataset", "Dataset"
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_charts_returns_structured_privacy_error(self, mcp_server):
+        request = ListChartsRequest(
+            filters=[
+                ChartFilter(
+                    col="datasource_name",
+                    opr="like",
+                    value="Vehicle Sales",
+                )
+            ]
+        )
+
+        with patch.object(
+            list_charts_module,
+            "user_can_view_data_model_metadata",
+            return_value=False,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "list_charts",
+                    {"request": request.model_dump()},
+                )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE

@@ -103,15 +103,14 @@ class TestPieChartConfigSchema:
         assert config.filters is not None
         assert len(config.filters) == 1
 
-    def test_pie_config_ignores_extra_fields(self) -> None:
-        config = PieChartConfig(
-            chart_type="pie",
-            dimension=ColumnRef(name="product"),
-            metric=ColumnRef(name="revenue", aggregate="SUM"),
-            unknown_field="bad",
-        )
-        assert config.dimension.name == "product"
-        assert not hasattr(config, "unknown_field")
+    def test_pie_config_rejects_extra_fields(self) -> None:
+        with pytest.raises(ValidationError, match="Unknown field"):
+            PieChartConfig(
+                chart_type="pie",
+                dimension=ColumnRef(name="product"),
+                metric=ColumnRef(name="revenue", aggregate="SUM"),
+                unknown_field="bad",
+            )
 
     def test_pie_config_missing_dimension(self) -> None:
         with pytest.raises(ValidationError):
@@ -324,15 +323,14 @@ class TestPivotTableChartConfigSchema:
                 metrics=[ColumnRef(name="revenue", aggregate="SUM")],
             )
 
-    def test_pivot_table_ignores_extra_fields(self) -> None:
-        config = PivotTableChartConfig(
-            chart_type="pivot_table",
-            rows=[ColumnRef(name="product")],
-            metrics=[ColumnRef(name="revenue", aggregate="SUM")],
-            unknown_field="bad",
-        )
-        assert config.rows[0].name == "product"
-        assert not hasattr(config, "unknown_field")
+    def test_pivot_table_rejects_extra_fields(self) -> None:
+        with pytest.raises(ValidationError, match="Unknown field"):
+            PivotTableChartConfig(
+                chart_type="pivot_table",
+                rows=[ColumnRef(name="product")],
+                metrics=[ColumnRef(name="revenue", aggregate="SUM")],
+                unknown_field="bad",
+            )
 
     def test_pivot_table_valid_aggregate_functions(self) -> None:
         for agg in ["Sum", "Average", "Median", "Count", "Minimum", "Maximum"]:
@@ -504,16 +502,15 @@ class TestMixedTimeseriesChartConfigSchema:
                 y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
             )
 
-    def test_mixed_timeseries_ignores_extra_fields(self) -> None:
-        config = MixedTimeseriesChartConfig(
-            chart_type="mixed_timeseries",
-            x=ColumnRef(name="date"),
-            y=[ColumnRef(name="revenue", aggregate="SUM")],
-            y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
-            unknown_field="bad",
-        )
-        assert config.x.name == "date"
-        assert not hasattr(config, "unknown_field")
+    def test_mixed_timeseries_rejects_extra_fields(self) -> None:
+        with pytest.raises(ValidationError, match="Unknown field"):
+            MixedTimeseriesChartConfig(
+                chart_type="mixed_timeseries",
+                x=ColumnRef(name="date"),
+                y=[ColumnRef(name="revenue", aggregate="SUM")],
+                y_secondary=[ColumnRef(name="orders", aggregate="COUNT")],
+                unknown_field="bad",
+            )
 
     def test_mixed_timeseries_default_row_limit(self) -> None:
         config = MixedTimeseriesChartConfig(
