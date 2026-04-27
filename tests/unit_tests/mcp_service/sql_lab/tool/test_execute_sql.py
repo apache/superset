@@ -1223,164 +1223,119 @@ class TestColumnInfoIsNullable:
 class TestDestructiveDDLBlocking:
     """Tests for destructive DDL blocking in execute_sql."""
 
-    @patch("superset.security_manager")
-    @patch("superset.db")
+    @pytest.fixture
+    def ddl_mocks(self):
+        """Common mock wiring for DDL blocking tests."""
+        with (
+            patch("superset.db") as mock_db,
+            patch("superset.security_manager") as mock_sm,
+        ):
+            mock_database = _mock_database()
+            mock_database.db_engine_spec.engine = "postgresql"
+            query_chain = mock_db.session.query.return_value
+            query_chain.filter_by.return_value.first.return_value = mock_database
+            mock_sm.can_access_database.return_value = True
+            yield mock_database
+
     @pytest.mark.asyncio
-    async def test_drop_table_blocked(self, mock_db, mock_security_manager, mcp_server):
+    async def test_drop_table_blocked(self, ddl_mocks, mcp_server):
         """DROP TABLE is blocked before reaching the executor."""
-        mock_database = _mock_database()
-        mock_database.db_engine_spec.engine = "postgresql"
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_database
-        )
-        mock_security_manager.can_access_database.return_value = True
-
-        request = {"database_id": 1, "sql": "DROP TABLE birth_names"}
-
         async with Client(mcp_server) as client:
-            result = await client.call_tool("execute_sql", {"request": request})
+            result = await client.call_tool(
+                "execute_sql",
+                {"request": {"database_id": 1, "sql": "DROP TABLE birth_names"}},
+            )
             data = result.structured_content
             assert data["success"] is False
             assert "Destructive DDL" in data["error"]
             assert "DROP" in data["error"]
-            mock_database.execute.assert_not_called()
+            ddl_mocks.execute.assert_not_called()
 
-    @patch("superset.security_manager")
-    @patch("superset.db")
     @pytest.mark.asyncio
-    async def test_truncate_blocked(self, mock_db, mock_security_manager, mcp_server):
+    async def test_truncate_blocked(self, ddl_mocks, mcp_server):
         """TRUNCATE TABLE is blocked before reaching the executor."""
-        mock_database = _mock_database()
-        mock_database.db_engine_spec.engine = "postgresql"
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_database
-        )
-        mock_security_manager.can_access_database.return_value = True
-
-        request = {"database_id": 1, "sql": "TRUNCATE TABLE birth_names"}
-
         async with Client(mcp_server) as client:
-            result = await client.call_tool("execute_sql", {"request": request})
+            result = await client.call_tool(
+                "execute_sql",
+                {"request": {"database_id": 1, "sql": "TRUNCATE TABLE birth_names"}},
+            )
             data = result.structured_content
             assert data["success"] is False
             assert "Destructive DDL" in data["error"]
-            mock_database.execute.assert_not_called()
+            ddl_mocks.execute.assert_not_called()
 
-    @patch("superset.security_manager")
-    @patch("superset.db")
     @pytest.mark.asyncio
-    async def test_alter_table_blocked(
-        self, mock_db, mock_security_manager, mcp_server
-    ):
+    async def test_alter_table_blocked(self, ddl_mocks, mcp_server):
         """ALTER TABLE is blocked before reaching the executor."""
-        mock_database = _mock_database()
-        mock_database.db_engine_spec.engine = "postgresql"
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_database
-        )
-        mock_security_manager.can_access_database.return_value = True
-
-        request = {
-            "database_id": 1,
-            "sql": "ALTER TABLE birth_names ADD COLUMN x INT",
-        }
-
         async with Client(mcp_server) as client:
-            result = await client.call_tool("execute_sql", {"request": request})
+            result = await client.call_tool(
+                "execute_sql",
+                {
+                    "request": {
+                        "database_id": 1,
+                        "sql": "ALTER TABLE birth_names ADD COLUMN x INT",
+                    }
+                },
+            )
             data = result.structured_content
             assert data["success"] is False
             assert "Destructive DDL" in data["error"]
-            mock_database.execute.assert_not_called()
+            ddl_mocks.execute.assert_not_called()
 
-    @patch("superset.security_manager")
-    @patch("superset.db")
     @pytest.mark.asyncio
-    async def test_drop_in_multi_statement_blocked(
-        self, mock_db, mock_security_manager, mcp_server
-    ):
+    async def test_drop_in_multi_statement_blocked(self, ddl_mocks, mcp_server):
         """DROP TABLE hidden in a multi-statement query is blocked."""
-        mock_database = _mock_database()
-        mock_database.db_engine_spec.engine = "postgresql"
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_database
-        )
-        mock_security_manager.can_access_database.return_value = True
-
-        request = {
-            "database_id": 1,
-            "sql": "DROP TABLE birth_names; SELECT 1",
-        }
-
         async with Client(mcp_server) as client:
-            result = await client.call_tool("execute_sql", {"request": request})
+            result = await client.call_tool(
+                "execute_sql",
+                {
+                    "request": {
+                        "database_id": 1,
+                        "sql": "DROP TABLE birth_names; SELECT 1",
+                    }
+                },
+            )
             data = result.structured_content
             assert data["success"] is False
             assert "Destructive DDL" in data["error"]
-            mock_database.execute.assert_not_called()
+            ddl_mocks.execute.assert_not_called()
 
-    @patch("superset.security_manager")
-    @patch("superset.db")
     @pytest.mark.asyncio
-    async def test_select_allowed(self, mock_db, mock_security_manager, mcp_server):
+    async def test_select_allowed(self, ddl_mocks, mcp_server):
         """SELECT queries pass through the DDL check."""
-        mock_database = _mock_database()
-        mock_database.db_engine_spec.engine = "postgresql"
-        mock_database.execute.return_value = _create_select_result(
+        ddl_mocks.execute.return_value = _create_select_result(
             rows=[{"x": 1}], columns=["x"], original_sql="SELECT 1"
         )
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_database
-        )
-        mock_security_manager.can_access_database.return_value = True
-
-        request = {"database_id": 1, "sql": "SELECT 1"}
 
         async with Client(mcp_server) as client:
-            result = await client.call_tool("execute_sql", {"request": request})
+            result = await client.call_tool(
+                "execute_sql",
+                {"request": {"database_id": 1, "sql": "SELECT 1"}},
+            )
             data = result.structured_content
             assert data["success"] is True
-            mock_database.execute.assert_called_once()
+            ddl_mocks.execute.assert_called_once()
 
-    @patch("superset.security_manager")
-    @patch("superset.db")
     @pytest.mark.asyncio
-    async def test_insert_allowed(self, mock_db, mock_security_manager, mcp_server):
+    async def test_insert_allowed(self, ddl_mocks, mcp_server):
         """INSERT queries pass through the DDL check (DML is allowed)."""
-        mock_database = _mock_database()
-        mock_database.db_engine_spec.engine = "postgresql"
-        mock_database.execute.return_value = _create_dml_result(
+        ddl_mocks.execute.return_value = _create_dml_result(
             affected_rows=1,
             original_sql="INSERT INTO t VALUES (1)",
         )
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_database
-        )
-        mock_security_manager.can_access_database.return_value = True
-
-        request = {"database_id": 1, "sql": "INSERT INTO t VALUES (1)"}
 
         async with Client(mcp_server) as client:
-            result = await client.call_tool("execute_sql", {"request": request})
+            result = await client.call_tool(
+                "execute_sql",
+                {"request": {"database_id": 1, "sql": "INSERT INTO t VALUES (1)"}},
+            )
             data = result.structured_content
             assert data["success"] is True
-            mock_database.execute.assert_called_once()
+            ddl_mocks.execute.assert_called_once()
 
-    @patch("superset.security_manager")
-    @patch("superset.db")
     @pytest.mark.asyncio
-    async def test_parse_failure_blocks_query(
-        self, mock_db, mock_security_manager, mcp_server
-    ):
+    async def test_parse_failure_blocks_query(self, ddl_mocks, mcp_server):
         """When SQL parsing fails, the query is blocked (fail-closed)."""
-        mock_database = _mock_database()
-        mock_database.db_engine_spec.engine = "postgresql"
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_database
-        )
-        mock_security_manager.can_access_database.return_value = True
-
-        request = {"database_id": 1, "sql": "DROP TABLE birth_names"}
-
         import sys
 
         execute_sql_mod = sys.modules["superset.mcp_service.sql_lab.tool.execute_sql"]
@@ -1390,31 +1345,26 @@ class TestDestructiveDDLBlocking:
             side_effect=Exception("parse error"),
         ):
             async with Client(mcp_server) as client:
-                result = await client.call_tool("execute_sql", {"request": request})
+                result = await client.call_tool(
+                    "execute_sql",
+                    {"request": {"database_id": 1, "sql": "DROP TABLE birth_names"}},
+                )
                 data = result.structured_content
                 assert data["success"] is False
                 assert "could not be parsed" in data["error"]
-                mock_database.execute.assert_not_called()
+                ddl_mocks.execute.assert_not_called()
 
-    @patch("superset.security_manager")
-    @patch("superset.db")
     @pytest.mark.asyncio
-    async def test_drop_table_blocked_mysql(
-        self, mock_db, mock_security_manager, mcp_server
-    ):
+    async def test_drop_table_blocked_mysql(self, ddl_mocks, mcp_server):
         """DROP TABLE is blocked for non-PostgreSQL dialects too."""
-        mock_database = _mock_database()
-        mock_database.db_engine_spec.engine = "mysql"
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_database
-        )
-        mock_security_manager.can_access_database.return_value = True
-
-        request = {"database_id": 1, "sql": "DROP TABLE users"}
+        ddl_mocks.db_engine_spec.engine = "mysql"
 
         async with Client(mcp_server) as client:
-            result = await client.call_tool("execute_sql", {"request": request})
+            result = await client.call_tool(
+                "execute_sql",
+                {"request": {"database_id": 1, "sql": "DROP TABLE users"}},
+            )
             data = result.structured_content
             assert data["success"] is False
             assert "Destructive DDL" in data["error"]
-            mock_database.execute.assert_not_called()
+            ddl_mocks.execute.assert_not_called()
