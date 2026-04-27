@@ -256,13 +256,13 @@ describe('ChartPage', () => {
       window.history.pushState(
         {},
         '',
-        `/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
+        `/explore/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
       );
       const { getByTestId } = render(
         <>
           <Link
             to={{
-              pathname: '/',
+              pathname: '/explore/',
               search: `?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
               state: { saveAction: 'overwrite' },
             }}
@@ -319,7 +319,7 @@ describe('ChartPage', () => {
       });
       render(
         <>
-          <Link to="/?slice_id=99">Navigate away</Link>
+          <Link to="/explore/?slice_id=99">Navigate away</Link>
           <ChartPage />
         </>,
         {
@@ -357,6 +357,44 @@ describe('ChartPage', () => {
       expect(screen.getByTestId('mock-explore-chart-panel')).toHaveTextContent(
         JSON.stringify({ show_cell_bars: true }).slice(1, -1),
       );
+    });
+
+    test('does not re-fetch explore data when navigating off the /explore route (e.g. "Save & go to dashboard")', async () => {
+      // Regression test for sc-104553: "Save & go to dashboard" calls
+      // history.push('/superset/dashboard/:id/'). The history.listen in
+      // ChartPage previously fired loadExploreData for that PUSH, starting a
+      // bogus /api/v1/explore/ request with the dashboard URL's params while
+      // the page was in the middle of unmounting.
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const exploreFormData = getExploreFormData({
+        viz_type: VizType.Table,
+        show_cell_bars: true,
+      });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: exploreFormData },
+      });
+      render(
+        <>
+          <Link to="/superset/dashboard/5/">Go to dashboard</Link>
+          <ChartPage />
+        </>,
+        {
+          useRouter: true,
+          useRedux: true,
+          useDnd: true,
+        },
+      );
+      // Initial mount fetches once.
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+
+      fireEvent.click(screen.getByText('Go to dashboard'));
+
+      // A PUSH to a non-/explore path must not trigger another explore fetch.
+      // Give any stray async work a chance to run before asserting.
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1);
     });
   });
 
@@ -409,7 +447,7 @@ describe('ChartPage', () => {
 
     render(
       <>
-        <Link to="/?slice_id=99">Navigate</Link>
+        <Link to="/explore/?slice_id=99">Navigate</Link>
         <ChartPage />
       </>,
       {
