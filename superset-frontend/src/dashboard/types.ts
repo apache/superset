@@ -212,6 +212,7 @@ export type DashboardInfo = {
   } | null;
   css?: string;
   slug?: string;
+  description?: string;
   last_modified_time: number;
   certified_by?: string;
   certification_details?: string;

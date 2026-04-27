@@ -186,6 +186,7 @@ BASE_LIST_COLUMNS = [
     "published",
     "status",
     "slug",
+    "description",
     "url",
     "thumbnail_url",
     "certified_by",
@@ -352,6 +353,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "certification_details",
         "dashboard_title",
         "slug",
+        "description",
         "owners",
         "roles",
         "position_json",
@@ -372,6 +374,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "published",
         "roles",
         "slug",
+        "description",
         "tags",
         "uuid",
     )
