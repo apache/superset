@@ -53,6 +53,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { parse as parseModule } from '@babel/parser';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -186,8 +187,24 @@ const SKIP_STORIES = [
 
 
 /**
+ * Resolve a relative TS module specifier to an on-disk file path, trying the
+ * usual TS extension and `/index` permutations.
+ */
+function resolveRelativeModule(fromFile, specifier) {
+  if (!specifier.startsWith('.')) return null;
+  const baseDir = path.dirname(fromFile);
+  const candidates = [
+    path.resolve(baseDir, `${specifier}.ts`),
+    path.resolve(baseDir, `${specifier}.tsx`),
+    path.resolve(baseDir, specifier, 'index.ts'),
+    path.resolve(baseDir, specifier, 'index.tsx'),
+  ];
+  return candidates.find(p => fs.existsSync(p)) || null;
+}
+
+/**
  * Collect the set of value names exported from a barrel file, following
- * `export * from './X'` re-exports one level deep. Used to verify that a
+ * `export * from './X'` re-exports recursively. Used to verify that a
  * component the docs claim is importable is actually re-exported from the
  * public package entry point.
  */
@@ -196,42 +213,52 @@ function collectBarrelExports(barrelPath, visited = new Set()) {
   if (!fs.existsSync(barrelPath) || visited.has(barrelPath)) return exports;
   visited.add(barrelPath);
 
-  const content = fs.readFileSync(barrelPath, 'utf8');
+  const source = fs.readFileSync(barrelPath, 'utf8');
+  let ast;
+  try {
+    ast = parseModule(source, {
+      sourceType: 'module',
+      plugins: ['typescript', 'jsx'],
+    });
+  } catch (err) {
+    console.warn(`  ! Failed to parse ${barrelPath}: ${err.message}`);
+    return exports;
+  }
 
-  for (const m of content.matchAll(/export\s+\{([\s\S]*?)\}(?:\s+from\s+['"][^'"]+['"])?/g)) {
-    for (const part of m[1].split(',')) {
-      const cleaned = part.trim().replace(/^type\s+/, '');
-      if (!cleaned) continue;
-      const asMatch = cleaned.match(/(?:^|\s)as\s+([A-Za-z_]\w*)\s*$/);
-      if (asMatch) {
-        exports.add(asMatch[1]);
-      } else {
-        const plain = cleaned.match(/^([A-Za-z_]\w*)\s*$/);
-        if (plain) exports.add(plain[1]);
+  for (const node of ast.program.body) {
+    if (node.type === 'ExportNamedDeclaration') {
+      // Skip type-only re-exports: `export type { Foo } from '...'`
+      if (node.exportKind === 'type') continue;
+
+      if (node.declaration) {
+        // `export const Foo = ...`, `export function Foo() {}`, `export class Foo {}`
+        const decl = node.declaration;
+        if (decl.type === 'VariableDeclaration') {
+          for (const d of decl.declarations) {
+            if (d.id?.type === 'Identifier') exports.add(d.id.name);
+          }
+        } else if (decl.id?.type === 'Identifier') {
+          exports.add(decl.id.name);
+        }
       }
-    }
-  }
 
-  for (const m of content.matchAll(
-    /export\s+(?:const|let|var|function|class)\s+([A-Za-z_]\w*)/g
-  )) {
-    exports.add(m[1]);
-  }
-
-  for (const m of content.matchAll(/export\s+\*\s+from\s+['"]([^'"]+)['"]/g)) {
-    const target = m[1];
-    if (!target.startsWith('.')) continue;
-    const baseDir = path.dirname(barrelPath);
-    const candidates = [
-      path.resolve(baseDir, `${target}.ts`),
-      path.resolve(baseDir, `${target}.tsx`),
-      path.resolve(baseDir, target, 'index.ts'),
-      path.resolve(baseDir, target, 'index.tsx'),
-    ];
-    const resolved = candidates.find(p => fs.existsSync(p));
-    if (resolved) {
-      for (const name of collectBarrelExports(resolved, visited)) {
-        exports.add(name);
+      for (const spec of node.specifiers || []) {
+        // Skip individual type specifiers: `export { type Foo }`
+        if (spec.exportKind === 'type') continue;
+        const exported = spec.exported;
+        if (exported?.type === 'Identifier') {
+          exports.add(exported.name);
+        } else if (exported?.type === 'StringLiteral') {
+          exports.add(exported.value);
+        }
+      }
+    } else if (node.type === 'ExportAllDeclaration') {
+      if (node.exportKind === 'type') continue;
+      const resolved = resolveRelativeModule(barrelPath, node.source.value);
+      if (resolved) {
+        for (const name of collectBarrelExports(resolved, visited)) {
+          exports.add(name);
+        }
       }
     }
   }
