@@ -61,6 +61,22 @@ export function expectStatusOneOf<T extends ResponseLike>(
   return response;
 }
 
+/**
+ * Extract the resource ID from a JSON response body.
+ * Handles both `{ result: { id } }` and `{ id }` shapes.
+ * @param response - Playwright Response or APIResponse object
+ * @returns The extracted numeric ID
+ */
+export async function extractIdFromResponse(
+  response: ResponseLike,
+): Promise<number> {
+  const body = await response.json();
+  const id: number = body.result?.id ?? body.id;
+  expect(typeof id, 'Response body must contain a numeric id').toBe('number');
+  expect(Number.isNaN(id), 'Response id must not be NaN').toBe(false);
+  return id;
+}
+
 interface ExportZipOptions {
   /** Directory name containing resource yaml files (e.g. 'charts', 'datasets') */
   resourceDir: string;

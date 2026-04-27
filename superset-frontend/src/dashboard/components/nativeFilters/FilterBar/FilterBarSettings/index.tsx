@@ -84,7 +84,7 @@ const FilterBarSettings = () => {
 
   const { openFilterConfigModal, FilterConfigModalComponent } =
     useFilterConfigModal({
-      createNewOnOpen: filterValues.length === 0,
+      createNewOnOpen: false,
       dashboardId,
     });
 

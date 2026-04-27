@@ -30,6 +30,10 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_helpers import (
+    extract_form_data_key_from_url,
+    find_chart_by_identifier,
+)
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -53,65 +57,151 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def _find_chart(identifier: int | str) -> Any | None:
-    """Find a chart by numeric ID or UUID string."""
-    from superset.daos.chart import ChartDAO
+def _validation_error_response(message: str, details: str) -> GenerateChartResponse:
+    return GenerateChartResponse.model_validate(
+        {
+            "chart": None,
+            "error": {
+                "error_type": "ValidationError",
+                "message": message,
+                "details": details,
+            },
+            "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
+        }
+    )
 
-    if isinstance(identifier, int) or (
-        isinstance(identifier, str) and identifier.isdigit()
-    ):
-        chart_id = int(identifier) if isinstance(identifier, str) else identifier
-        return ChartDAO.find_by_id(chart_id)
-    return ChartDAO.find_by_id(identifier, id_column="uuid")
+
+def _missing_config_or_name_error() -> GenerateChartResponse:
+    return _validation_error_response(
+        message="Either 'config' or 'chart_name' must be provided.",
+        details=(
+            "Either 'config' or 'chart_name' must be provided. "
+            "Use config for visualization changes, chart_name for renaming."
+        ),
+    )
 
 
 def _build_update_payload(
     request: UpdateChartRequest,
     chart: Any,
+    parsed_config: Any = None,
 ) -> dict[str, Any] | GenerateChartResponse:
     """Build the update payload for a chart update.
 
     Returns a dict payload on success, or a GenerateChartResponse error
     when neither config nor chart_name is provided.
+    ``parsed_config`` is the pre-parsed chart config from the caller.
     """
-    if request.config is not None:
-        config = parse_chart_config(request.config)
+    if parsed_config is not None:
         dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(config, dataset_id=dataset_id)
+        new_form_data = map_config_to_form_data(parsed_config, dataset_id=dataset_id)
         new_form_data.pop("_mcp_warnings", None)
 
         chart_name = (
             request.chart_name
             if request.chart_name
-            else chart.slice_name or generate_chart_name(config)
+            else chart.slice_name or generate_chart_name(parsed_config)
         )
 
         return {
             "slice_name": chart_name,
             "viz_type": new_form_data["viz_type"],
             "params": json.dumps(new_form_data),
+            # Clear stale query_context so get_chart_data uses the updated params.
+            "query_context": None,
         }
 
     # Name-only update: keep existing visualization, just rename
     if not request.chart_name:
-        return GenerateChartResponse.model_validate(
-            {
-                "chart": None,
-                "error": {
-                    "error_type": "ValidationError",
-                    "message": ("Either 'config' or 'chart_name' must be provided."),
-                    "details": (
-                        "Either 'config' or 'chart_name' must be provided. "
-                        "Use config for visualization changes, chart_name "
-                        "for renaming."
-                    ),
-                },
-                "success": False,
-                "schema_version": "2.0",
-                "api_version": "v1",
-            }
-        )
+        return _missing_config_or_name_error()
     return {"slice_name": request.chart_name}
+
+
+def _build_preview_form_data(
+    request: UpdateChartRequest,
+    chart: Any,
+    parsed_config: Any = None,
+) -> dict[str, Any] | GenerateChartResponse:
+    """Merge the existing chart's form_data with the requested changes.
+
+    Used by the preview-first flow so the user can review edits in Explore
+    before clicking Save. Returns the merged form_data dict on success, or a
+    GenerateChartResponse error when neither config nor chart_name is given.
+    ``parsed_config`` is the pre-parsed chart config from the caller.
+    """
+    existing_form_data: dict[str, Any] = {}
+    if getattr(chart, "params", None):
+        try:
+            existing_form_data = json.loads(chart.params) or {}
+        except (ValueError, TypeError):
+            logger.warning(
+                "Failed to parse existing chart.params for chart %s", chart.id
+            )
+            existing_form_data = {}
+
+    if parsed_config is not None:
+        dataset_id = chart.datasource_id if chart.datasource_id else None
+        new_form_data = map_config_to_form_data(parsed_config, dataset_id=dataset_id)
+        new_form_data.pop("_mcp_warnings", None)
+        merged = {**existing_form_data, **new_form_data}
+    else:
+        if not request.chart_name:
+            return _missing_config_or_name_error()
+        merged = dict(existing_form_data)
+
+    if request.chart_name:
+        merged["slice_name"] = request.chart_name
+    elif chart.slice_name:
+        merged["slice_name"] = chart.slice_name
+
+    merged["slice_id"] = chart.id
+    if chart.datasource_id:
+        merged["datasource"] = f"{chart.datasource_id}__table"
+
+    return merged
+
+
+def _create_preview_url(
+    chart: Any, form_data: dict[str, Any]
+) -> tuple[str, str | None, list[str]]:
+    """Cache form_data and return (explore_url, form_data_key, warnings).
+
+    The URL includes both ``slice_id`` and ``form_data_key`` so that when the
+    user clicks Save in Explore, the edits overwrite the original chart.
+    """
+    from superset.commands.explore.form_data.parameters import CommandParameters
+    from superset.mcp_service.commands.create_form_data import MCPCreateFormDataCommand
+    from superset.utils.core import DatasourceType
+
+    base_url = get_superset_base_url()
+
+    if not chart.datasource_id:
+        warning = (
+            "Chart has no datasource; the preview URL shows the saved chart "
+            "state, not the pending changes. Open the URL and apply the "
+            "changes manually."
+        )
+        logger.warning(
+            "Chart %s has no datasource_id; preview URL cannot embed "
+            "form_data — user will see saved state.",
+            chart.id,
+        )
+        return f"{base_url}/explore/?slice_id={chart.id}", None, [warning]
+
+    cmd_params = CommandParameters(
+        datasource_type=DatasourceType.TABLE,
+        datasource_id=chart.datasource_id,
+        chart_id=chart.id,
+        tab_id=None,
+        form_data=json.dumps(form_data),
+    )
+    form_data_key = MCPCreateFormDataCommand(cmd_params).run()
+    explore_url = (
+        f"{base_url}/explore/?form_data_key={form_data_key}&slice_id={chart.id}"
+    )
+    return explore_url, form_data_key, []
 
 
 @tool(
@@ -128,13 +218,16 @@ async def update_chart(  # noqa: C901
 ) -> GenerateChartResponse:
     """Update existing chart with new configuration.
 
-    IMPORTANT:
-    - Chart must already be saved (from generate_chart with save_chart=True)
-    - LLM clients MUST display updated chart URL to users
-    - Use numeric ID or UUID string to identify the chart (NOT chart name)
-    - MUST include chart_type in config (either 'xy' or 'table')
+    IMPORTANT BEHAVIOR:
+    - By default (generate_preview=True), a preview explore URL is returned
+      so the user can review changes and click Save to overwrite the original
+      chart (if they have permission).
+    - Set generate_preview=False to persist the update immediately.
+    - LLM clients MUST display the returned explore URL to users.
+    - Use numeric ID or UUID string to identify the chart (NOT chart name).
+    - config is optional — omit it to rename a chart without changing its visualization
 
-    Example usage:
+    Example usage (preview, default):
     ```json
     {
         "identifier": 123,
@@ -147,17 +240,20 @@ async def update_chart(  # noqa: C901
     }
     ```
 
-    Or with UUID:
+    Rename only (no config required):
     ```json
     {
-        "identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
-        "config": {
-            "chart_type": "table",
-            "columns": [
-                {"name": "product_name"},
-                {"name": "revenue", "aggregate": "SUM"}
-            ]
-        }
+        "identifier": 123,
+        "chart_name": "Q1 Revenue"
+    }
+    ```
+
+    Example usage (persist immediately):
+    ```json
+    {
+        "identifier": 123,
+        "generate_preview": false,
+        "config": {"chart_type": "table", "columns": [{"name": "region"}]}
     }
     ```
 
@@ -167,14 +263,14 @@ async def update_chart(  # noqa: C901
     - Changing chart type or data columns
 
     Returns:
-    - Updated chart info and metadata
+    - Updated chart info, form_data (reflects what was saved), and metadata
     - Preview URL and explore URL for further editing
     """
     start_time = time.time()
 
     try:
         with event_logger.log_context(action="mcp.update_chart.chart_lookup"):
-            chart = _find_chart(request.identifier)
+            chart = find_chart_by_identifier(request.identifier)
 
         if not chart:
             return GenerateChartResponse.model_validate(
@@ -218,25 +314,76 @@ async def update_chart(  # noqa: C901
                 }
             )
 
-        # Build update payload (config update or name-only rename)
-        from superset.commands.chart.update import UpdateChartCommand
+        updated_chart: Any = None
+        explore_url: str
+        form_data_key: str | None = None
+        warnings: list[str] = []
+        saved = False
+        new_form_data: dict[str, Any] | None = None
 
-        payload_or_error = _build_update_payload(request, chart)
-        if isinstance(payload_or_error, GenerateChartResponse):
-            return payload_or_error
+        # Parse config once upfront so helpers and analysis can reuse it.
+        parsed_config = None
+        if request.config is not None:
+            try:
+                parsed_config = parse_chart_config(request.config)
+            except (ValueError, TypeError) as e:
+                from superset.mcp_service.utils.error_sanitization import (
+                    _sanitize_validation_error,
+                )
 
-        with event_logger.log_context(action="mcp.update_chart.db_write"):
-            command = UpdateChartCommand(chart.id, payload_or_error)
-            updated_chart = command.run()
+                sanitized = _sanitize_validation_error(e)
+                return GenerateChartResponse.model_validate(
+                    {
+                        "chart": None,
+                        "error": {
+                            "error_type": "validation_error",
+                            "message": f"Invalid chart configuration: {sanitized}",
+                            "details": sanitized,
+                            "error_code": "INVALID_CHART_CONFIG",
+                        },
+                        "performance": {
+                            "query_duration_ms": int((time.time() - start_time) * 1000),
+                            "cache_status": "error",
+                            "optimization_suggestions": [],
+                        },
+                        "success": False,
+                        "schema_version": "2.0",
+                        "api_version": "v1",
+                    }
+                )
 
-        # Parse config for analysis (may be None for name-only updates)
-        config = parse_chart_config(request.config) if request.config else None
+        if not request.generate_preview:
+            from superset.commands.chart.update import UpdateChartCommand
 
-        # Generate semantic analysis
-        capabilities = analyze_chart_capabilities(updated_chart, config)
-        semantics = analyze_chart_semantics(updated_chart, config)
+            payload_or_error = _build_update_payload(request, chart, parsed_config)
+            if isinstance(payload_or_error, GenerateChartResponse):
+                return payload_or_error
 
-        # Create performance metadata
+            # Extract form_data — present only for config updates, None for renames.
+            if "params" in payload_or_error:
+                new_form_data = json.loads(payload_or_error["params"])
+
+            with event_logger.log_context(action="mcp.update_chart.db_write"):
+                command = UpdateChartCommand(chart.id, payload_or_error)
+                updated_chart = command.run()
+            saved = True
+            explore_url = (
+                f"{get_superset_base_url()}/explore/?slice_id={updated_chart.id}"
+            )
+        else:
+            preview_or_error = _build_preview_form_data(request, chart, parsed_config)
+            if isinstance(preview_or_error, GenerateChartResponse):
+                return preview_or_error
+
+            with event_logger.log_context(action="mcp.update_chart.preview_link"):
+                explore_url, form_data_key, warnings = _create_preview_url(
+                    chart, preview_or_error
+                )
+
+        chart_for_analysis = updated_chart if saved else chart
+        capabilities = analyze_chart_capabilities(chart_for_analysis, parsed_config)
+        semantics = analyze_chart_semantics(chart_for_analysis, parsed_config)
+
         execution_time = int((time.time() - start_time) * 1000)
         performance = PerformanceMetadata(
             query_duration_ms=execution_time,
@@ -244,21 +391,33 @@ async def update_chart(  # noqa: C901
             optimization_suggestions=[],
         )
 
-        # Create accessibility metadata
         chart_name = (
             updated_chart.slice_name
-            if updated_chart and hasattr(updated_chart, "slice_name")
-            else (generate_chart_name(config) if config else "Updated chart")
+            if saved and updated_chart and hasattr(updated_chart, "slice_name")
+            else (
+                request.chart_name
+                or (chart.slice_name if hasattr(chart, "slice_name") else None)
+                or (
+                    generate_chart_name(parsed_config)
+                    if parsed_config
+                    else "Updated chart"
+                )
+            )
         )
         accessibility = AccessibilityMetadata(
-            color_blind_safe=True,  # Would need actual analysis
-            alt_text=f"Updated chart showing {chart_name}",
+            color_blind_safe=True,
+            alt_text=(
+                f"Updated chart showing {chart_name}"
+                if saved
+                else f"Updated chart preview showing {chart_name}"
+            ),
             high_contrast_available=False,
         )
 
-        # Generate previews if requested
-        previews = {}
-        if request.generate_preview:
+        # Generate previews for saved charts only. Unsaved previews rely on
+        # the explore URL for interactive viewing.
+        previews: dict[str, Any] = {}
+        if saved and updated_chart and request.preview_formats:
             try:
                 with event_logger.log_context(action="mcp.update_chart.preview"):
                     from superset.mcp_service.chart.tool.get_chart_preview import (
@@ -278,36 +437,53 @@ async def update_chart(  # noqa: C901
                         if hasattr(preview_result, "content"):
                             previews[format_type] = preview_result.content
 
-            except Exception as e:
-                # Log warning but don't fail the entire request
+            except (
+                OAuth2RedirectError,
+                OAuth2Error,
+                CommandException,
+                SQLAlchemyError,
+                KeyError,
+                ValueError,
+                TypeError,
+                AttributeError,
+            ) as e:
                 logger.warning("Preview generation failed: %s", e)
 
-        # Return enhanced data
+        # Fallback: extract form_data_key from explore_url if not set
+        if form_data_key is None:
+            form_data_key = extract_form_data_key_from_url(explore_url)
+
+        chart_id = updated_chart.id if saved and updated_chart else chart.id
+        chart_uuid = (
+            str(updated_chart.uuid)
+            if saved and updated_chart and updated_chart.uuid
+            else (str(chart.uuid) if chart.uuid else None)
+        )
+        viz_type = updated_chart.viz_type if saved and updated_chart else chart.viz_type
+
         result = {
             "chart": {
-                "id": updated_chart.id,
-                "slice_name": updated_chart.slice_name,
-                "viz_type": updated_chart.viz_type,
-                "url": (
-                    f"{get_superset_base_url()}/explore/?slice_id={updated_chart.id}"
-                ),
-                "uuid": str(updated_chart.uuid) if updated_chart.uuid else None,
-                "updated": True,
+                "id": chart_id,
+                "slice_name": chart_name,
+                "viz_type": viz_type,
+                "url": explore_url,
+                "uuid": chart_uuid,
+                "form_data_key": form_data_key,
+                "is_unsaved_state": not saved,
             },
             "error": None,
-            # Enhanced fields for better LLM integration
+            "warnings": warnings,
+            # Include form_data so callers can verify what was saved.
+            "form_data": new_form_data if new_form_data is not None else {},
             "previews": previews,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
-            "explore_url": (
-                f"{get_superset_base_url()}/explore/?slice_id={updated_chart.id}"
-            ),
+            "explore_url": explore_url,
+            "form_data_key": form_data_key,
             "api_endpoints": {
-                "data": (
-                    f"{get_superset_base_url()}/api/v1/chart/{updated_chart.id}/data/"
-                ),
+                "data": f"{get_superset_base_url()}/api/v1/chart/{chart_id}/data/",
                 "export": (
-                    f"{get_superset_base_url()}/api/v1/chart/{updated_chart.id}/export/"
+                    f"{get_superset_base_url()}/api/v1/chart/{chart_id}/export/"
                 ),
             },
             "performance": performance.model_dump() if performance else None,
