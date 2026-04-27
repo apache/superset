@@ -80,7 +80,7 @@ def get_chart_configs_resource() -> str:
                 "y": [
                     {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
                 ],
-                "group_by": {"name": "region", "label": "Region"},
+                "group_by": [{"name": "region", "label": "Region"}],
                 "stacked": True,
                 "legend": {"show": True, "position": "right"},
             },
@@ -123,7 +123,7 @@ def get_chart_configs_resource() -> str:
                         "label": "Avg Conversion Rate",
                     }
                 ],
-                "group_by": {"name": "campaign_type", "label": "Campaign"},
+                "group_by": [{"name": "campaign_type", "label": "Campaign"}],
                 "x_axis": {"format": "$,.0f"},
                 "y_axis": {"format": ".2%"},
             },
@@ -159,7 +159,7 @@ def get_chart_configs_resource() -> str:
                 "kind": "area",
                 "x": {"name": "order_date", "label": "Date"},
                 "y": [{"name": "signups", "aggregate": "SUM", "label": "Signups"}],
-                "group_by": {"name": "channel", "label": "Channel"},
+                "group_by": [{"name": "channel", "label": "Channel"}],
                 "stacked": True,
                 "time_grain": "P1W",
             },
