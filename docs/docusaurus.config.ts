@@ -178,7 +178,7 @@ if (!versionsConfig.admin_docs.disabled) {
       },
       {
         label: 'Security',
-        to: '/admin-docs/security/security',
+        to: '/admin-docs/security/',
         activeBaseRegex: '^/admin-docs/security/',
       },
     ],

@@ -717,7 +717,7 @@ export default function Home(): JSX.Element {
               </span>
             </div>
             <img src="/img/community/line.png" alt="line" />
-            <StyledButton className="default-button-theme" href="/docs/intro">
+            <StyledButton className="default-button-theme" href="/user-docs/intro">
               Get Started
             </StyledButton>
           </div>
