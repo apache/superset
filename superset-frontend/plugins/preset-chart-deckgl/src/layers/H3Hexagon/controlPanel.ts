@@ -32,7 +32,13 @@ import {
   autozoom,
   tooltipContents,
   tooltipTemplate,
+  deckGLCategoricalColorSchemeTypeSelect,
+  deckGLLinearColorSchemeSelect,
+  deckGLColorBreakpointsSelect,
+  breakpointsDefaultColor,
+  fillColorPicker,
 } from '../../utilities/Shared_DeckGL';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -119,14 +125,21 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'fill_color_picker',
+            ...deckGLCategoricalColorSchemeTypeSelect,
             config: {
-              type: 'ColorPickerControl',
-              label: t('Fill Color'),
-              default: { r: 255, g: 140, b: 0, a: 0.8 },
-              description: t('Base color for hexagons'),
+              ...deckGLCategoricalColorSchemeTypeSelect.config,
+              choices: [
+                [COLOR_SCHEME_TYPES.fixed_color, t('Fixed color')],
+                [COLOR_SCHEME_TYPES.linear_palette, t('Linear palette')],
+                [COLOR_SCHEME_TYPES.color_breakpoints, t('Color breakpoints')],
+              ],
+              default: COLOR_SCHEME_TYPES.linear_palette,
             },
           },
+          fillColorPicker,
+          deckGLLinearColorSchemeSelect,
+          breakpointsDefaultColor,
+          deckGLColorBreakpointsSelect,
         ],
       ],
     },

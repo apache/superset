@@ -19,11 +19,19 @@
 import { H3HexagonLayer } from '@deck.gl/geo-layers';
 import { cellToBoundary } from 'h3-js';
 import { JsonObject, QueryFormData, t } from '@superset-ui/core';
-import { commonLayerProps } from '../common';
+import { Color } from '@deck.gl/core';
+import { commonLayerProps, getColorForBreakpoints } from '../common';
 import { createDeckGLComponent, GetLayerType } from '../../factory';
 import TooltipRow from '../../TooltipRow';
 import { createTooltipContent } from '../../utilities/tooltipUtils';
 import sandboxedEval from '../../utils/sandbox';
+import {
+  BucketsWithColorScale,
+  getBreakPointColorScaler,
+  TRANSPARENT_COLOR_ARRAY,
+} from '../../utils';
+import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
+import { DEFAULT_DECKGL_COLOR } from '../../utilities/Shared_DeckGL';
 import { H3Feature } from './transformProps';
 
 function defaultTooltipContent(_formData: QueryFormData) {
@@ -88,6 +96,86 @@ export const getLayer: GetLayerType<H3HexagonLayer> = function ({
     data = jsFnMutator(data);
   }
 
+  const fc = fd.fill_color_picker as
+    | { r: number; g: number; b: number; a: number }
+    | undefined;
+  const defaultBreakpointColor = fd.default_breakpoint_color as
+    | { r: number; g: number; b: number; a: number }
+    | undefined;
+  const fixedColor: Color = fc
+    ? [fc.r, fc.g, fc.b, 255 * fc.a]
+    : [
+        DEFAULT_DECKGL_COLOR.r,
+        DEFAULT_DECKGL_COLOR.g,
+        DEFAULT_DECKGL_COLOR.b,
+        DEFAULT_DECKGL_COLOR.a * 255,
+      ];
+
+  const colorSchemeType = fd.color_scheme_type;
+  const accessor = (d: JsonObject) =>
+    typeof d?.elevation === 'number' ? d.elevation : undefined;
+
+  let getFillColor: (d: JsonObject) => Color;
+  switch (colorSchemeType) {
+    case COLOR_SCHEME_TYPES.fixed_color: {
+      getFillColor = () => fixedColor;
+      break;
+    }
+    case COLOR_SCHEME_TYPES.linear_palette: {
+      // Without a metric there is nothing to scale by, fall back to the fixed color
+      getFillColor = fd.metric
+        ? getBreakPointColorScaler(
+            { ...fd, opacity: fd.opacity ?? 100 } as unknown as BucketsWithColorScale,
+            data,
+            accessor,
+          )
+        : () => fixedColor;
+      break;
+    }
+    case COLOR_SCHEME_TYPES.color_breakpoints: {
+      const colorBreakpoints = fd.color_breakpoints || [];
+      getFillColor = (d: JsonObject) => {
+        const breakpointIndex = getColorForBreakpoints(
+          accessor,
+          d as unknown as number[],
+          colorBreakpoints,
+        );
+        const breakpointColor =
+          breakpointIndex !== undefined &&
+          colorBreakpoints[breakpointIndex - 1]?.color;
+        if (breakpointColor) {
+          return [
+            breakpointColor.r,
+            breakpointColor.g,
+            breakpointColor.b,
+            255,
+          ];
+        }
+        if (defaultBreakpointColor) {
+          return [
+            defaultBreakpointColor.r,
+            defaultBreakpointColor.g,
+            defaultBreakpointColor.b,
+            defaultBreakpointColor.a * 255,
+          ];
+        }
+        return [
+          DEFAULT_DECKGL_COLOR.r,
+          DEFAULT_DECKGL_COLOR.g,
+          DEFAULT_DECKGL_COLOR.b,
+          DEFAULT_DECKGL_COLOR.a * 255,
+        ];
+      };
+      break;
+    }
+    default: {
+      getFillColor = () => fixedColor;
+    }
+  }
+
+  const safeGetFillColor = (d: JsonObject): Color =>
+    getFillColor(d) || TRANSPARENT_COLOR_ARRAY;
+
   const tooltipContentGenerator = createTooltipContent(
     fd,
     defaultTooltipContent(fd),
@@ -101,11 +189,7 @@ export const getLayer: GetLayerType<H3HexagonLayer> = function ({
     elevationScale: elevationScale,
 
     getHexagon: (d: JsonObject) => d.hexagon,
-    getFillColor: (d: JsonObject) => [
-      255,
-      (1 - (d.elevation || 0) / 500) * 255,
-      0,
-    ],
+    getFillColor: safeGetFillColor,
     getElevation: (d: JsonObject) => d.elevation || 0,
 
     ...commonLayerProps({
