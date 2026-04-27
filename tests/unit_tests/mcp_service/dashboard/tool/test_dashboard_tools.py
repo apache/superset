@@ -1044,8 +1044,8 @@ class TestListDashboardsOwnedByMe:
         with pytest.raises(ValidationError, match="owned_by_me"):
             ListDashboardsRequest(owned_by_me=True, search="My dashboards")
 
-    def test_owned_by_me_with_created_by_me_raises(self):
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError, match="owned_by_me"):
-            ListDashboardsRequest(owned_by_me=True, created_by_me=True)
+    def test_owned_by_me_and_created_by_me_allowed(self):
+        """Both flags together are valid (OR logic — creator or owner)."""
+        request = ListDashboardsRequest(owned_by_me=True, created_by_me=True)
+        assert request.owned_by_me is True
+        assert request.created_by_me is True

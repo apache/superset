@@ -47,7 +47,9 @@ USER_DIRECTORY_FIELDS = frozenset(
 # User-directory columns that are valid as filter inputs even though they are
 # hidden from response payloads and select-column surfaces.  The system injects
 # the correct value server-side, so callers never need to supply user IDs.
-SELF_REFERENCING_FILTER_COLUMNS = frozenset({"created_by_fk", "owner"})
+SELF_REFERENCING_FILTER_COLUMNS = frozenset(
+    {"created_by_fk", "owner", "created_by_fk_or_owner"}
+)
 
 DATA_MODEL_METADATA_ACCESS_ATTR = "_requires_data_model_metadata_access"
 DATA_MODEL_METADATA_ERROR_TYPE = "DataModelMetadataRestricted"

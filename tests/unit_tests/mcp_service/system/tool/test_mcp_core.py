@@ -272,6 +272,42 @@ def test_model_list_tool_injects_current_user_id_for_owned_by_me():
     assert captured["filters"][0].value == 99
 
 
+def test_model_list_tool_both_flags_uses_combined_or_filter():
+    """created_by_me=True + owned_by_me=True generates a single OR filter."""
+    current_user = Mock()
+    current_user.is_authenticated = True
+    current_user.id = 55
+
+    captured = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, column_operators=None, **kwargs):
+            captured["filters"] = column_operators
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch(
+        "superset.mcp_service.utils.permissions_utils.get_current_user",
+        return_value=current_user,
+    ):
+        tool.run_tool(created_by_me=True, owned_by_me=True)
+
+    assert len(captured["filters"]) == 1
+    assert captured["filters"][0].col == "created_by_fk_or_owner"
+    assert captured["filters"][0].value == 55
+
+
 def test_model_list_tool_owned_by_me_requires_authenticated_user():
     """owned_by_me=True raises when no authenticated user is present."""
     current_user = Mock()

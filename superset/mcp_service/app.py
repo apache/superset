@@ -153,9 +153,14 @@ To find items where you are listed as an owner (edit access):
 - list_dashboards(request={{"owned_by_me": true}})
 - list_datasets(request={{"owned_by_me": true}})
 
-Use created_by_me to find items you authored; use owned_by_me to find items
-you have edit access to as an owner. You cannot combine the two flags.
-Both flags can be combined with 'filters' but not with 'search'.
+To find all items you have any connection to (created OR own):
+- list_charts(request={{"created_by_me": true, "owned_by_me": true}})
+- list_dashboards(request={{"created_by_me": true, "owned_by_me": true}})
+- list_datasets(request={{"created_by_me": true, "owned_by_me": true}})
+
+Use created_by_me for authorship, owned_by_me for edit ownership, or both
+together for the union. All flags can be combined with 'filters' but not
+with 'search'.
 
 To explore data with SQL:
 1. list_datasets(request={{}}) -> find a dataset and note its database_id

@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Dict, List
 
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Query
 
 from superset.charts.filters import ChartFilter
@@ -68,6 +68,18 @@ class ChartDAO(BaseDAO[Slice]):
                 )
                 query = query.filter(
                     Slice.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
+            elif c.col == "created_by_fk_or_owner":
+                from superset.models.slice import slice_user
+
+                owner_subq = select(slice_user.c.slice_id).where(
+                    slice_user.c.user_id == c.value
+                )
+                query = query.filter(
+                    or_(
+                        Slice.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
+                        Slice.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                    )
                 )
             else:
                 remaining_operators.append(c)

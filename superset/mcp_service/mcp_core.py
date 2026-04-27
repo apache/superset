@@ -176,6 +176,31 @@ class ModelListCore(BaseCore, Generic[L]):
                 f"Allowed columns: {', '.join(self._sortable_columns)}"
             )
 
+    @staticmethod
+    def _prepend_self_lookup_filters(
+        filters: Any,
+        created_by_me: bool,
+        owned_by_me: bool,
+    ) -> Any:
+        """Translate created_by_me/owned_by_me flags into ColumnOperator filters.
+
+        When both flags are set, a single combined OR filter is used so results
+        include items where the user is either the creator or an owner.
+        """
+        from superset.daos.base import ColumnOperator
+
+        extra: ColumnOperator | None = None
+        if created_by_me and owned_by_me:
+            extra = ColumnOperator(col="created_by_fk_or_owner", opr="eq", value=0)
+        elif created_by_me:
+            extra = ColumnOperator(col="created_by_fk", opr="eq", value=0)
+        elif owned_by_me:
+            extra = ColumnOperator(col="owner", opr="eq", value=0)
+
+        if extra is None:
+            return filters
+        return [extra] + (filters if isinstance(filters, list) else [])
+
     def run_tool(
         self,
         filters: Any | None = None,
@@ -200,21 +225,9 @@ class ModelListCore(BaseCore, Generic[L]):
 
         filters = parse_json_or_passthrough(filters, param_name="filters")
 
-        # Translate created_by_me/owned_by_me flags into FK/owner filters so callers
-        # never need to know about foreign key IDs or dummy placeholder values.
-        # Use ColumnOperator (not a plain dict) so all DAOs process it correctly.
-        from superset.daos.base import ColumnOperator
-
-        if created_by_me:
-            fk_filter = ColumnOperator(col="created_by_fk", opr="eq", value=0)
-            filters = [fk_filter] + (filters if isinstance(filters, list) else [])
-
-        if owned_by_me:
-            owner_filter = ColumnOperator(col="owner", opr="eq", value=0)
-            filters = [owner_filter] + (filters if isinstance(filters, list) else [])
-
         from superset.mcp_service.utils.permissions_utils import get_current_user
 
+        filters = self._prepend_self_lookup_filters(filters, created_by_me, owned_by_me)
         filters = inject_current_user_for_created_by_fk(filters, get_current_user())
 
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)

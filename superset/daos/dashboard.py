@@ -23,7 +23,7 @@ from typing import Any, Dict, List
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Query
 
 from superset import is_feature_enabled, security_manager
@@ -87,6 +87,18 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 )
                 query = query.filter(
                     Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
+            elif c.col == "created_by_fk_or_owner":
+                from superset.models.dashboard import dashboard_user
+
+                owner_subq = select(dashboard_user.c.dashboard_id).where(
+                    dashboard_user.c.user_id == c.value
+                )
+                query = query.filter(
+                    or_(
+                        Dashboard.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
+                        Dashboard.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                    )
                 )
             elif c.col == "favorite":
                 user_id = get_user_id()

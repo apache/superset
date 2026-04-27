@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 import dateutil.parser
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query
 
@@ -87,6 +87,18 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 )
                 query = query.filter(
                     SqlaTable.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
+            elif c.col == "created_by_fk_or_owner":
+                from superset.connectors.sqla.models import sqlatable_user
+
+                owner_subq = select(sqlatable_user.c.table_id).where(
+                    sqlatable_user.c.user_id == c.value
+                )
+                query = query.filter(
+                    or_(
+                        SqlaTable.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
+                        SqlaTable.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                    )
                 )
             else:
                 remaining_operators.append(c)
