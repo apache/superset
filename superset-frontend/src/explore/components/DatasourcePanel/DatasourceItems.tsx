@@ -105,6 +105,26 @@ export const DatasourceItems = ({
     ),
   );
 
+  // Sync collapsed state when folders change to prevent orphaned folder IDs
+  useEffect(() => {
+    const currentFolderIds = new Set(folders.map(folder => folder.id));
+    setCollapsedFolderIds(prevIds => {
+      const validIds = new Set<string>();
+      prevIds.forEach(id => {
+        if (currentFolderIds.has(id)) {
+          validIds.add(id);
+        }
+      });
+      // Add any new folders that should be collapsed by default
+      folders.forEach(folder => {
+        if (folder.isCollapsed && !validIds.has(folder.id)) {
+          validIds.add(folder.id);
+        }
+      });
+      return validIds;
+    });
+  }, [folders]);
+
   const { flattenedItems, folderMap } = useMemo(
     () => flattenFolderStructure(folders, collapsedFolderIds),
     [folders, collapsedFolderIds],
