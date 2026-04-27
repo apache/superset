@@ -299,6 +299,7 @@ class BaseDatasource(
                 "last_name": o.last_name,
                 "username": o.username,
                 "id": o.id,
+                "email": o.email,
             }
             for o in self.owners
         ]
@@ -740,15 +741,19 @@ class BaseDatasource(
     def get_sqla_row_level_filters(
         self,
         template_processor: Optional[BaseTemplateProcessor] = None,
+        include_global_guest_rls: bool = True,
     ) -> list[TextClause]:
         """
         Return the appropriate row level security filters for this table and the
-        current user. A custom username can be passed when the user is not present in the
-        Flask global namespace.
+        current user.
 
         :param template_processor: The template processor to apply to the filters.
+        :param include_global_guest_rls: Whether to include global (unscoped) guest
+            RLS filters. Set to False for underlying tables in virtual datasets to
+            prevent double application of global guest rules. Dataset-scoped guest
+            rules are always included regardless of this parameter.
         :returns: A list of SQL clauses to be ANDed together.
-        """  # noqa: E501
+        """
         template_processor = template_processor or self.get_template_processor()
 
         all_filters: list[TextClause] = []
@@ -765,6 +770,8 @@ class BaseDatasource(
 
             if is_feature_enabled("EMBEDDED_SUPERSET"):
                 for rule in security_manager.get_guest_rls_filters(self):
+                    if not include_global_guest_rls and not rule.get("dataset"):
+                        continue
                     clause = self.text(
                         f"({template_processor.process_template(rule['clause'])})"
                     )
@@ -859,7 +866,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     datetime_format = Column(String(100))
     extra = Column(Text)
 
-    table: Mapped[SqlaTable] = relationship(
+    table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="columns",
     )
@@ -1100,7 +1107,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     expression = Column(utils.MediumText(), nullable=False)
     extra = Column(Text)
 
-    table: Mapped[SqlaTable] = relationship(
+    table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="metrics",
     )
@@ -1586,12 +1593,34 @@ class SqlaTable(
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
+    def _render_adhoc_expression_for_metadata_lookup(
+        self,
+        sql_expression: str,
+        template_processor: BaseTemplateProcessor | None,
+    ) -> str:
+        """Render Jinja in *sql_expression* so the result can be matched against
+        column metadata.  Without this, a templated expression such as
+        ``{{ filter_values('x')[0] }}`` is passed raw to ``get_column``, never
+        matches, and falls back to ``literal_column`` — which breaks for virtual
+        datasets because the rendered name isn't present in the FROM subquery."""
+        if not template_processor:
+            return sql_expression
+        try:
+            return template_processor.process_template(sql_expression)
+        except SupersetSyntaxErrorException as ex:
+            raise QueryObjectValidationError(
+                _(
+                    "Error in jinja expression in adhoc column: %(msg)s",
+                    msg=str(ex),
+                )
+            ) from ex
+
     def adhoc_column_to_sqla(  # pylint: disable=too-many-locals
         self,
         col: AdhocColumn,
         force_type_check: bool = False,
         template_processor: BaseTemplateProcessor | None = None,
-    ) -> ColumnElement:
+    ) -> tuple[ColumnElement, utils.GenericDataType | None]:
         """
         Turn an adhoc column into a sqlalchemy column.
 
@@ -1600,8 +1629,13 @@ class SqlaTable(
                This is needed to validate if a filter with an adhoc column
                is applicable.
         :param template_processor: template_processor instance
-        :returns: The metric defined as a sqlalchemy column
-        :rtype: sqlalchemy.sql.column
+        :returns: A tuple of (SQLAlchemy column, generic column type). The
+            generic type is populated when the column type is resolved
+            (either because the adhoc column matches a physical column, or
+            because ``force_type_check`` triggered a DB probe); otherwise
+            ``None``. Callers use it to coerce filter values to the correct
+            Python type (e.g. numeric casts for numeric adhoc expressions).
+        :rtype: tuple[sqlalchemy.sql.ColumnElement, Optional[GenericDataType]]
         """
         label = utils.get_column_name(col)
         sql_expression = col["sqlExpression"]
@@ -1610,15 +1644,21 @@ class SqlaTable(
         is_dttm = False
         pdf = None
         is_column_reference = col.get("isColumnReference", False)
+        generic_type: utils.GenericDataType | None = None
+
+        metadata_lookup_key = self._render_adhoc_expression_for_metadata_lookup(
+            sql_expression, template_processor
+        )
 
         # First, check if this is a column reference that exists in metadata
-        if col_in_metadata := self.get_column(sql_expression):
+        if col_in_metadata := self.get_column(metadata_lookup_key.strip()):
             # Column exists in metadata - use it directly
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor
             )
             is_dttm = col_in_metadata.is_temporal
             pdf = col_in_metadata.python_date_format
+            generic_type = col_in_metadata.type_generic
         else:
             # Column doesn't exist in metadata or is not a reference - treat as ad-hoc
             # expression Note: If isColumnReference=true but column not found, we still
@@ -1646,8 +1686,20 @@ class SqlaTable(
             if has_timegrain or force_type_check:
                 try:
                     # probe adhoc column type
-                    tbl, _ = self.get_from_clause(template_processor)
-                    qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                    # Most databases populate cursor.description from query-plan
+                    # metadata, so WHERE FALSE (zero rows, no table scan) is
+                    # preferred — it avoids hitting row-read limits enforced by
+                    # engines like ClickHouse (max_rows_to_read).
+                    # A small number of drivers (Druid, Pinot) instead build
+                    # cursor.description by inspecting the first returned row;
+                    # for those we fall back to LIMIT 1.
+                    tbl, _unused_cte = self.get_from_clause(template_processor)
+                    if self.db_engine_spec.type_probe_needs_row:
+                        qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                    else:
+                        qry = (
+                            sa.select([sqla_column]).where(sa.false()).select_from(tbl)
+                        )
                     sql = self.database.compile_sqla_query(
                         qry,
                         catalog=self.catalog,
@@ -1662,6 +1714,12 @@ class SqlaTable(
                     if not col_desc:
                         raise SupersetGenericDBErrorException("Column not found")
                     is_dttm = col_desc[0]["is_dttm"]  # type: ignore
+                    # ResultSet already resolves the generic type from the
+                    # driver's cursor.description; reuse it so callers can
+                    # coerce filter values correctly (e.g. numeric IN-lists
+                    # stay unquoted for numeric adhoc expressions like
+                    # CAST(... AS BIGINT)).
+                    generic_type = col_desc[0].get("type_generic")
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex
 
@@ -1671,7 +1729,7 @@ class SqlaTable(
                 pdf=pdf,
                 time_grain=time_grain,
             )
-        return self.make_sqla_column_compatible(sqla_column, label)
+        return self.make_sqla_column_compatible(sqla_column, label), generic_type
 
     def _get_series_orderby(
         self,

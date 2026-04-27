@@ -89,7 +89,7 @@ const QueryLimitSelect = ({
     >
       <Button
         size="small"
-        color="primary"
+        color="default"
         variant="text"
         showMarginRight={false}
       >

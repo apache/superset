@@ -139,9 +139,11 @@ const LabelStyle = styled.div`
   }
 `;
 
-const SelectButton = styled(Button)<{ empty: boolean }>`
-  color: ${({ theme, empty }) =>
-    empty ? theme.colorTextPlaceholder : theme.colorTextBase};
+const SelectButton = styled(Button, {
+  shouldForwardProp: prop => prop !== '$empty',
+})<{ $empty: boolean }>`
+  color: ${({ theme, $empty }) =>
+    $empty ? theme.colorTextPlaceholder : theme.colorTextBase};
 `;
 
 export const SelectLabel = ({
@@ -410,7 +412,7 @@ export function DatabaseSelector({
             buttonStyle="tertiary"
             disabled={sqlLabModeConfig.disabled}
             loading={sqlLabModeConfig.loading}
-            empty={!sqlLabModeConfig.displayValue}
+            $empty={!sqlLabModeConfig.displayValue}
           >
             {displayValue}
           </SelectButton>
@@ -515,17 +517,12 @@ export function DatabaseSelector({
 
   function renderSchemaSelect() {
     if (sqlLabMode) {
-      return renderSelectRow(
-        t('Select schema or type to search schemas'),
-        null,
-        null,
-        {
-          displayValue: currentSchema?.label,
-          disabled: !currentDb || readOnly,
-          loading: loadingSchemas,
-          icon: <Icons.RightOutlined />,
-        },
-      );
+      return renderSelectRow(t('Select schema'), null, null, {
+        displayValue: currentSchema?.label,
+        disabled: !currentDb || readOnly,
+        loading: loadingSchemas,
+        icon: <Icons.RightOutlined />,
+      });
     }
     const refreshIcon = !readOnly && (
       <RefreshLabel
@@ -539,13 +536,13 @@ export function DatabaseSelector({
         {renderSelectRow(
           t('Schema'),
           <Select
-            ariaLabel={t('Select schema or type to search schemas')}
+            ariaLabel={t('Select schema')}
             disabled={!currentDb || readOnly}
             labelInValue
             loading={loadingSchemas}
             name="select-schema"
             notFoundContent={t('No compatible schema found')}
-            placeholder={t('Select schema or type to search schemas')}
+            placeholder={t('Select schema')}
             onChange={item => changeSchema(item as SchemaOption)}
             options={schemaOptions}
             showSearch
