@@ -227,7 +227,28 @@ if (!versionsConfig.developer_docs.disabled && !versionsConfig.developer_docs.hi
   });
 }
 
+
 const config: Config = {
+  future: {
+    v4: {
+      removeLegacyPostBuildHeadAttribute: true,
+      // Disabled: CSS cascade layers change specificity and cause antd
+      // styles (from Storybook component pages) to override theme styles
+      useCssCascadeLayers: false,
+    },
+    faster: {
+      swcJsLoader: false,
+      swcJsMinimizer: true,
+      swcHtmlMinimizer: true,
+      lightningCssMinimizer: true,
+      rspackBundler: true,
+      mdxCrossCompilerCache: true,
+      rspackPersistentCache: true,
+      // SSG worker threads spawn parallel Node processes, each consuming
+      // significant memory. Disabled to keep total usage reasonable.
+      ssgWorkerThreads: false,
+    },
+  },
   title: 'Superset',
   tagline:
     'Apache Superset is a modern data exploration and visualization platform',

@@ -21,7 +21,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
@@ -36,6 +36,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
+import { usePermissions } from 'src/hooks/usePermissions';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -72,6 +73,7 @@ export const useHeaderActionsMenu = ({
   Dispatch<SetStateAction<boolean>>,
 ] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const { canExportImage } = usePermissions();
   const history = useHistory();
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
@@ -169,6 +171,7 @@ export const useHeaderActionsMenu = ({
     disabled: isLoading,
     logEvent,
     userCanExport,
+    canExportImage,
   });
 
   const reportMenuItem = useHeaderReportMenuItems({

@@ -17,8 +17,8 @@
  * under the License.
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
-import { t } from '@apache-superset/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -268,6 +268,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
           onChange={onCssChange}
           value={currentCssTemplate?.css ?? ''}
           language="css"
+          height="250px"
           width="100%"
         />
       </TemplateContainer>

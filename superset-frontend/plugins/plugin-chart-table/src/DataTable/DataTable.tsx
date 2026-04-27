@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme } from '@apache-superset/core';
-import { css } from '@apache-superset/core/ui';
 /* eslint-disable import/no-extraneous-dependencies */
 import {
   useCallback,
@@ -31,7 +29,8 @@ import {
   useMemo,
 } from 'react';
 import { typedMemo, usePrevious } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import {
   useTable,
   usePagination,

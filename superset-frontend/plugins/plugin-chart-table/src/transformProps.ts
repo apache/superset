@@ -17,7 +17,7 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ComparisonType,
   CurrencyFormatter,
@@ -29,6 +29,7 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   getTimeFormatterForGranularity,
+  isAdhocColumn,
   normalizeCurrency,
   NumberFormats,
   QueryMode,
@@ -36,7 +37,7 @@ import {
   TimeFormats,
   TimeFormatter,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ColorFormatters,
   ConditionalFormattingConfig,
@@ -532,6 +533,20 @@ const transformProps = (
     comparison_type,
     slice_id,
   } = formData;
+  // Build a mapping from column labels to original column names.
+  // When a user creates an adhoc column with a custom label (e.g. sqlExpression: "state",
+  // label: "State_Renamed"), the query result uses the label as the column name.
+  // Cross-filtering needs the original column name to work on the receiving chart.
+  const columnLabelToNameMap: Record<string, string> = {};
+  const formColumns = ensureIsArray(
+    queryMode === QueryMode.Raw ? formData.all_columns : formData.groupby,
+  );
+  formColumns.forEach(col => {
+    if (isAdhocColumn(col) && col.label && col.label !== col.sqlExpression) {
+      columnLabelToNameMap[col.label] = col.sqlExpression;
+    }
+  });
+
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
     queryMode === QueryMode.Aggregate &&
@@ -791,6 +806,7 @@ const transformProps = (
     hasServerPageLengthChanged,
     serverPageLength,
     slice_id,
+    columnLabelToNameMap,
   };
 };
 

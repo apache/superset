@@ -36,7 +36,7 @@ import type {
   QueryResponse,
   TimeFormatter,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
@@ -170,6 +170,7 @@ export type InternalControlType =
   | 'FixedOrMetricControl'
   | 'ColorBreakpointsControl'
   | 'HiddenControl'
+  | 'JSEditorControl'
   | 'SelectAsyncControl'
   | 'SelectControl'
   | 'SliderControl'
@@ -506,6 +507,11 @@ export type ColorFormatters = {
   ) => string | undefined;
 }[];
 
+export type ResolvedColorFormatterResult = {
+  backgroundColor?: string;
+  color?: string;
+};
+
 export default {};
 
 export function isColumnMeta(column: AnyDict): column is ColumnMeta {
@@ -582,6 +588,7 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
       creatable?: boolean;
       minWidth?: number | string;
       validators?: ControlFormValueValidator<string>[];
+      tokenSeparators?: string[];
     }
   : T extends 'RadioButtonControl'
     ? {

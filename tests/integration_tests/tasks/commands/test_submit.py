@@ -17,7 +17,7 @@
 
 
 import pytest
-from superset_core.api.tasks import TaskStatus
+from superset_core.tasks.types import TaskStatus
 
 from superset import db
 from superset.commands.tasks import SubmitTaskCommand

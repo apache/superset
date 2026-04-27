@@ -22,12 +22,13 @@ import {
   KeyboardEvent,
   useState,
   useRef,
+  useEffect,
   RefObject,
 } from 'react';
 
 import { RouteComponentProps, useHistory } from 'react-router-dom';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
   isFeatureEnabled,
@@ -37,7 +38,7 @@ import {
   BinaryQueryObjectFilterClause,
   QueryFormData,
 } from '@superset-ui/core';
-import { css, useTheme, styled } from '@apache-superset/core/ui';
+import { css, useTheme, styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import {
@@ -61,6 +62,8 @@ import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
+import { Global } from '@emotion/react';
+import { fullscreenStyles } from './Styles';
 
 const RefreshTooltip = styled.div`
   ${({ theme }) => css`
@@ -96,6 +99,7 @@ const VerticalDotsTrigger = () => {
 };
 
 export interface SliceHeaderControlsProps {
+  chartHolderRef?: RefObject<HTMLDivElement>;
   slice: {
     description: string;
     viz_type: string;
@@ -144,11 +148,17 @@ type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
 
 const dropdownIconsStyles = css`
-  &&.anticon > .anticon:first-child {
+  &&.anticon > .anticon:first-of-type {
     margin-right: 0;
     vertical-align: 0;
   }
 `;
+
+const queueChartResize = () => {
+  window.setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, 300);
+};
 
 const SliceHeaderControls = (
   props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
@@ -197,6 +207,41 @@ const SliceHeaderControls = (
     }
   };
 
+  const requestChartFullscreen = () => {
+    const chartHolder = props.chartHolderRef?.current;
+
+    if (!chartHolder?.requestFullscreen) {
+      props.addDangerToast(t('Fullscreen is not supported in this browser.'));
+      return;
+    }
+
+    chartHolder.requestFullscreen().catch(error => {
+      props.addDangerToast(
+        t(
+          'Error enabling fullscreen: %s',
+          error instanceof Error ? error.message : t('Unknown error'),
+        ),
+      );
+    });
+  };
+
+  const exitChartFullscreen = () => {
+    if (!document.exitFullscreen) {
+      props.handleToggleFullSize();
+      queueChartResize();
+      return;
+    }
+
+    document.exitFullscreen().catch(error => {
+      props.addDangerToast(
+        t(
+          'Error disabling fullscreen: %s',
+          error instanceof Error ? error.message : t('Unknown error'),
+        ),
+      );
+    });
+  };
+
   const handleMenuClick = ({
     key,
     domEvent,
@@ -231,9 +276,19 @@ const SliceHeaderControls = (
         // eslint-disable-next-line no-unused-expressions
         props.exportPivotCSV?.(props.slice.slice_id);
         break;
-      case MenuKeys.Fullscreen:
-        props.handleToggleFullSize();
+      case MenuKeys.Fullscreen: {
+        if (props.isFullSize) {
+          if (document.fullscreenElement) {
+            exitChartFullscreen();
+          } else {
+            props.handleToggleFullSize();
+            queueChartResize();
+          }
+        } else {
+          requestChartFullscreen();
+        }
         break;
+      }
       case MenuKeys.ExportFullCsv:
         // eslint-disable-next-line no-unused-expressions
         props.exportFullCSV?.(props.slice.slice_id);
@@ -351,9 +406,9 @@ const SliceHeaderControls = (
     ? t('Exit fullscreen')
     : t('Enter fullscreen');
 
-  // @z-index-below-dashboard-header (100) - 1 = 99 for !isFullSize and 101 for isFullSize
+  // Use theme.zIndexPopupBase to keep dropdown above fullscreen (+1) or below dashboard header (-1)
   const dropdownOverlayStyle = {
-    zIndex: isFullSize ? 101 : 99,
+    zIndex: isFullSize ? theme.zIndexPopupBase + 1 : theme.zIndexPopupBase - 1,
     animationDuration: '0s',
   };
 
@@ -554,13 +609,35 @@ const SliceHeaderControls = (
     });
   }
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isChartFullscreen =
+        document.fullscreenElement === props.chartHolderRef?.current;
+
+      if (isChartFullscreen !== Boolean(isFullSize)) {
+        props.handleToggleFullSize();
+        queueChartResize();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, [isFullSize, props.chartHolderRef, props.handleToggleFullSize]);
+
   return (
     <>
       {isFullSize && (
         <Icons.FullscreenExitOutlined
           style={{ fontSize: 22 }}
           onClick={() => {
-            props.handleToggleFullSize();
+            if (document.fullscreenElement) {
+              exitChartFullscreen();
+            } else {
+              props.handleToggleFullSize();
+              queueChartResize();
+            }
           }}
         />
       )}
@@ -603,8 +680,8 @@ const SliceHeaderControls = (
         showModal={drillModalIsOpen}
         dataset={datasetWithVerboseMap}
       />
-
       {canEditCrossFilters && scopingModal}
+      {isFullSize && <Global styles={fullscreenStyles(theme)} />}
     </>
   );
 };

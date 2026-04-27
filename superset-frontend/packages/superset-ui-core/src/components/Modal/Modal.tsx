@@ -18,8 +18,8 @@
  */
 import { isValidElement, cloneElement, useMemo, useRef, useState } from 'react';
 import { isNil } from 'lodash';
-import { t } from '@apache-superset/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd';
 import { Resizable } from 're-resizable';
 import Draggable, {
@@ -227,8 +227,15 @@ const CustomModal = ({
   draggableConfig,
   destroyOnHidden,
   openerRef,
+  bodyStyle,
+  styles: stylesProp,
   ...rest
 }: ModalProps) => {
+  // Convert deprecated bodyStyle to styles.body
+  const styles = useMemo(
+    () => (bodyStyle ? { ...stylesProp, body: bodyStyle } : stylesProp),
+    [bodyStyle, stylesProp],
+  );
   const draggableRef = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState<DraggableBounds>();
   const [dragDisabled, setDragDisabled] = useState<boolean>(true);
@@ -361,6 +368,7 @@ const CustomModal = ({
       draggable={draggable}
       resizable={resizable}
       destroyOnHidden={destroyOnHidden}
+      styles={styles}
       {...rest}
     >
       {children}

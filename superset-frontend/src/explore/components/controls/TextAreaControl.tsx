@@ -25,8 +25,8 @@ import {
   TextAreaEditor,
   ModalTrigger,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
-import { withTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { withTheme } from '@apache-superset/core/theme';
 
 import 'ace-builds/src-min-noconflict/mode-handlebars';
 
@@ -82,7 +82,6 @@ interface TextAreaControlProps {
 
 const defaultProps = {
   onChange: () => {},
-  initialValue: '',
   height: 250,
   minLines: 3,
   maxLines: 10,
@@ -136,7 +135,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
 
   componentWillUnmount() {
     if (this.debouncedOnChange) {
-      this.debouncedOnChange.cancel();
+      this.debouncedOnChange.flush();
     }
   }
 
@@ -160,6 +159,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
       readOnly,
       name,
       onChange,
+      value,
       minLines: minLinesProp,
       maxLines: maxLinesProp,
       ...editorProps
@@ -176,6 +176,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
       };
       if (resize) {
         style.resize = resize;
+        style.overflow = 'auto';
       }
       if (readOnly) {
         style.backgroundColor = theme?.colorBgMask;
@@ -206,7 +207,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
             maxLines={inModal ? 1000 : maxLinesProp}
             editorProps={{ $blockScrolling: true }}
             onLoad={onEditorLoad}
-            defaultValue={initialValue}
+            defaultValue={initialValue ?? value}
             readOnly={readOnly}
             key={name}
             {...editorProps}

@@ -20,7 +20,8 @@ import { PureComponent, Fragment } from 'react';
 import { withTheme } from '@emotion/react';
 import classNames from 'classnames';
 import { addAlpha } from '@superset-ui/core';
-import { css, styled, t, type SupersetTheme } from '@apache-superset/core/ui';
+import { css, styled, type SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { EmptyState } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
@@ -101,7 +102,7 @@ const GridContent = styled.div<{ editMode?: boolean }>`
       }
     }
 
-    & > .empty-droptarget:first-child {
+    & > .empty-droptarget:first-of-type {
       height: ${theme.sizeUnit * 4}px;
       margin-top: ${theme.sizeUnit * -4}px;
     }

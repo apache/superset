@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from flask import current_app
-from superset_core.api.tasks import TaskScope, TaskStatus
+from superset_core.tasks.types import TaskScope, TaskStatus
 
 from superset.commands.base import BaseCommand
 from superset.commands.tasks.exceptions import (

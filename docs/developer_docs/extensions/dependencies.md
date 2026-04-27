@@ -70,8 +70,8 @@ import { someInternalFunction } from 'src/explore/components/SomeComponent';
 
 ```python
 # ✅ Public API - stable
-from superset_core.api.models import Database
-from superset_core.api.daos import DatabaseDAO
+from superset_core.common.models import Database
+from superset_core.common.daos import DatabaseDAO
 
 # ❌ Internal code - may break without notice
 from superset.views.core import SomeInternalClass
@@ -117,7 +117,7 @@ Extension developers should depend on and use core libraries directly:
 
 **Frontend (examples):**
 - [React](https://react.dev/) - UI framework
-- [Ant Design](https://ant.design/) - UI component library (prefer Superset components from `@apache-superset/core/ui` when available to preserve visual consistency)
+- [Ant Design](https://ant.design/) - UI component library (prefer Superset components from `@apache-superset/core/components` when available to preserve visual consistency)
 - [Emotion](https://emotion.sh/) - CSS-in-JS styling
 - ...
 

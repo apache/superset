@@ -37,7 +37,7 @@
     "@superset-ui/core": "*",
     "ace-builds": "^1.4.14",
     "handlebars": "^4.7.8",
-    "lodash": "^4.17.11",
+    "lodash": "^4.18.1",
     "dayjs": "^1.11.19",
     "react": "^17.0.2",
     "react-ace": "^10.1.0",
@@ -46,6 +46,6 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.24",
-    "jest": "^30.2.0"
+    "jest": "^30.3.0"
   }
 }

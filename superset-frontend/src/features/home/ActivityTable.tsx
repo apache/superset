@@ -18,8 +18,8 @@
  */
 import { useEffect, useState } from 'react';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
 import { ListViewCard } from '@superset-ui/core/components';
@@ -126,19 +126,28 @@ export default function ActivityTable({
   const [editedCards, setEditedCards] = useState<ActivityData[]>();
   const [isFetchingEditedCards, setIsFetchingEditedCards] = useState(false);
 
-  const getEditedCards = () => {
-    setIsFetchingEditedCards(true);
-    getEditedObjects(user.userId).then(r => {
-      setEditedCards([...r.editedChart, ...r.editedDash]);
-      setIsFetchingEditedCards(false);
-    });
-  };
-
   useEffect(() => {
+    let isMounted = true;
+
     if (activeChild === TableTab.Edited) {
-      getEditedCards();
+      setIsFetchingEditedCards(true);
+      getEditedObjects(user.userId).then(r => {
+        if (!isMounted) return;
+        // `getEditedObjects` swallows errors via `.catch(err => err)` and
+        // returns the raw error object, which has no `editedChart` /
+        // `editedDash` arrays. Guard against that so spreading can't throw.
+        const editedChart = Array.isArray(r?.editedChart) ? r.editedChart : [];
+        const editedDash = Array.isArray(r?.editedDash) ? r.editedDash : [];
+        setEditedCards([...editedChart, ...editedDash]);
+        setIsFetchingEditedCards(false);
+      });
     }
-  }, [activeChild]);
+
+    return () => {
+      isMounted = false;
+      setIsFetchingEditedCards(false);
+    };
+  }, [activeChild, user.userId]);
 
   const tabs = [
     {
