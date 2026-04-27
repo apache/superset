@@ -79,6 +79,9 @@ categories:
     - name: Clark.de
       url: https://clark.de/
 
+    - name: Cover Genius
+      url: https://covergenius.com/
+
     - name: EnquiryLabs
       url: https://www.enquirylabs.co.uk
 
@@ -87,6 +90,10 @@ categories:
 
     - name: KarrotPay
       url: https://www.daangnpay.com/
+
+    - name: NICE Actimize
+      url: https://www.niceactimize.com/
+      contributors: ["@stevensuting"]
 
     - name: Remita
       url: https://remita.net
@@ -107,9 +114,6 @@ categories:
     - name: Xendit
       url: https://xendit.co/
       contributors: ["@LieAlbertTriAdrian"]
-
-    - name: Cover Genius
-      url: https://covergenius.com/
 
   Gaming:
     - name: Popoko VM Games Studio
@@ -292,7 +296,6 @@ categories:
       logo: hifadih.png
       contributors: ["@saintLaurent00"]
 
-    # Logo approved by @anmol-hpe on behalf of HPE
     - name: HPE
       url: https://www.hpe.com/in/en/home.html
       logo: hpe.png
@@ -421,6 +424,10 @@ categories:
       logo: userguiding.svg
       contributors: ["@tzercin"]
 
+    - name: Value Ad
+      url: https://bestpair.info/
+      contributors: ["@stevensuting"]
+
     - name: Virtuoso QA
       url: https://www.virtuosoqa.com
 
@@ -505,10 +512,6 @@ categories:
       url: https://www.sunbird.org/
       contributors: ["@eksteporg"]
 
-    - name: The GRAPH Network
-      url: https://thegraphnetwork.org/
-      contributors: ["@fccoelho"]
-
     - name: Udemy
       url: https://www.udemy.com/
       contributors: ["@sungjuly"]
@@ -517,7 +520,24 @@ categories:
       url: https://www.vipkid.com.cn/
       contributors: ["@illpanda"]
 
-    - name: WikiMedia Foundation
+  Social Organization:
+    - name: Living Goods
+      url: https://www.livinggoods.org
+      contributors: ["@chelule"]
+
+    - name: One Acre Fund
+      url: https://oneacrefund.org/
+      contributors: ["@stevensuting"]
+
+    - name: Quest Alliance
+      url: https://www.questalliance.net/
+      contributors: ["@stevensuting"]
+
+    - name: The GRAPH Network
+      url: https://thegraphnetwork.org/
+      contributors: ["@fccoelho"]
+
+    - name: Wikimedia Foundation
       url: https://wikimediafoundation.org
       contributors: ["@vg"]
 
@@ -529,6 +549,10 @@ categories:
     - name: DouroECI
       url: https://www.douroeci.com/
       contributors: ["@nunohelibeires"]
+
+    - name: Rogow
+      url: https://rogow.com.br/
+      contributors: ["@nilmonto"]
 
     - name: Safaricom
       url: https://www.safaricom.co.ke/
@@ -542,11 +566,10 @@ categories:
       url: https://wattbewerb.de/
       contributors: ["@wattbewerb"]
 
-    - name: Rogow
-      url: https://rogow.com.br/
-      contributors: ["@nilmonto"]
-
   Healthcare:
+    - name: 2070Health
+      url: https://2070health.com/
+
     - name: Amino
       url: https://amino.com
       contributors: ["@shkr"]
@@ -558,10 +581,6 @@ categories:
     - name: Care
       url: https://www.getcare.io/
       contributors: ["@alandao2021"]
-
-    - name: Living Goods
-      url: https://www.livinggoods.org
-      contributors: ["@chelule"]
 
     - name: Maieutical Labs
       url: https://maieuticallabs.it
@@ -581,10 +600,10 @@ categories:
     - name: WeSure
       url: https://www.wesure.cn/
 
-    - name: 2070Health
-      url: https://2070health.com/
-
   HR / Staffing:
+    - name: bluquist
+      url: https://bluquist.com/
+
     - name: Swile
       url: https://www.swile.co/
       contributors: ["@PaoloTerzi"]
@@ -592,20 +611,17 @@ categories:
     - name: Symmetrics
       url: https://www.symmetrics.fyi
 
-    - name: bluquist
-      url: https://bluquist.com/
-
   Government:
     - name: City of Ann Arbor, MI
       url: https://www.a2gov.org/
       contributors: ["@sfirke"]
 
+    - name: NRLM - Sarathi, India
+      url: https://pib.gov.in/PressReleasePage.aspx?PRID=1999586
+
     - name: RIS3 Strategy of CZ, MIT CR
       url: https://www.ris3.cz/
       contributors: ["@RIS3CZ"]
-
-    - name: NRLM - Sarathi, India
-      url: https://pib.gov.in/PressReleasePage.aspx?PRID=1999586
 
   Mobile Software:
     - name: VLMedia
