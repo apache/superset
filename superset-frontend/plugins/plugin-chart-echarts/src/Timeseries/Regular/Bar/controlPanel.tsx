@@ -92,7 +92,7 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           clearable: true,
           label: t('Axis title margin'),
           renderTrigger: true,
-          default: sections.TITLE_MARGIN_OPTIONS[0],
+          default: sections.TITLE_MARGIN_OPTIONS[3],
           choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
@@ -125,7 +125,7 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           clearable: true,
           label: t('Axis title margin'),
           renderTrigger: true,
-          default: sections.TITLE_MARGIN_OPTIONS[1],
+          default: sections.TITLE_MARGIN_OPTIONS[4],
           choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
