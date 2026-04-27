@@ -237,6 +237,7 @@ export default typedMemo(function DataTable<D extends object>({
       getTableSize: defaultGetTableSize,
       globalFilter: defaultGlobalFilter,
       sortTypes,
+      autoResetGlobalFilter: !isEqual(columnNames, previousColumnNames),
       autoResetSortBy: !isEqual(columnNames, previousColumnNames),
       manualSortBy: !!serverPagination,
       ...moreUseTableOptions,
