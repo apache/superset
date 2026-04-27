@@ -24,6 +24,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartSql,
@@ -37,11 +38,18 @@ from superset.mcp_service.chart.tool.get_chart_sql import (
     _resolve_groupby,
     _resolve_metrics,
     _resolve_metrics_and_groupby,
+    get_chart_sql,
 )
 
 _get_chart_sql_mod = importlib.import_module(
     "superset.mcp_service.chart.tool.get_chart_sql"
 )
+
+
+def test_get_chart_sql_requires_sql_lab_execute_permission():
+    """Rendered SQL should not be exposed through basic chart read permission."""
+    assert getattr(get_chart_sql, CLASS_PERMISSION_ATTR) == "SQLLab"
+    assert getattr(get_chart_sql, METHOD_PERMISSION_ATTR) == "execute_sql_query"
 
 
 class TestGetChartSqlRequestSchema:
