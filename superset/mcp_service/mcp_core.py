@@ -185,6 +185,7 @@ class ModelListCore(BaseCore, Generic[L]):
         order_direction: Literal["asc", "desc"] | None = "asc",
         page: int = 0,
         page_size: int = 10,
+        created_by_me: bool = False,
     ) -> L:
         from superset.mcp_service.constants import MAX_PAGE_SIZE
 
@@ -197,6 +198,13 @@ class ModelListCore(BaseCore, Generic[L]):
         )
 
         filters = parse_json_or_passthrough(filters, param_name="filters")
+
+        # Translate created_by_me=True into the created_by_fk filter so callers
+        # never need to know about foreign key IDs or dummy placeholder values.
+        if created_by_me:
+            fk_filter = {"col": "created_by_fk", "opr": "eq", "value": 0}
+            filters = [fk_filter] + (filters if isinstance(filters, list) else [])
+
         from superset.mcp_service.utils.permissions_utils import get_current_user
 
         filters = inject_current_user_for_created_by_fk(filters, get_current_user())

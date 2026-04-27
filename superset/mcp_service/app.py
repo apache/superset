@@ -142,11 +142,11 @@ To create a chart:
      "config": {{...}}, "save_chart": true
    }}) -> save permanently
 
-To find your own charts/dashboards/databases:
-- list_charts(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
-- list_dashboards(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
-- list_databases(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
-Note: the value is ignored — the system automatically filters by the current user.
+To find your own charts/dashboards/datasets/databases:
+- list_charts(request={{"created_by_me": true}})
+- list_dashboards(request={{"created_by_me": true}})
+- list_datasets(request={{"created_by_me": true}})
+- list_databases(request={{"created_by_me": true}})
 
 To explore data with SQL:
 1. list_datasets(request={{}}) -> find a dataset and note its database_id
@@ -208,9 +208,9 @@ Query Examples:
   list_charts(request={{"filters": [{{"col": "viz_type",
     "opr": "sw", "value": "echarts_timeseries"}}]}})
 - Search by name: list_charts(request={{"search": "sales"}})
-- My charts: list_charts(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
-- My dashboards: list_dashboards(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
-- My databases: list_databases(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": 0}}]}})
+- My charts: list_charts(request={{"created_by_me": true}})
+- My dashboards: list_dashboards(request={{"created_by_me": true}})
+- My databases: list_databases(request={{"created_by_me": true}})
 To modify an existing chart (add filters, change metrics, etc.):
 1. get_chart_info(request={{"identifier": <chart_id>}})
    -> examine current configuration

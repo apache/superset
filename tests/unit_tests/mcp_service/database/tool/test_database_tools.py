@@ -281,12 +281,18 @@ def test_database_filter_rejects_user_directory_fields() -> None:
         )
 
 
-def test_database_filter_accepts_created_by_fk() -> None:
-    """created_by_fk is a valid filter column (value is replaced server-side)."""
-    request = ListDatabasesRequest(
-        filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}],
-    )
-    assert request.filters[0].col == "created_by_fk"
+def test_database_filter_rejects_created_by_fk() -> None:
+    """created_by_fk is no longer a valid filter column; use created_by_me instead."""
+    with pytest.raises(ValidationError, match="created_by_fk"):
+        ListDatabasesRequest(
+            filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}],
+        )
+
+
+def test_database_request_accepts_created_by_me() -> None:
+    """created_by_me=True is the correct way to filter by current user."""
+    request = ListDatabasesRequest(created_by_me=True)
+    assert request.created_by_me is True
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
