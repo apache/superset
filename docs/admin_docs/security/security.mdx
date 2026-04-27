@@ -239,26 +239,143 @@ based on the roles and permissions that were attributed.
 ### Row Level Security
 
 Using Row Level Security filters (under the **Security** menu) you can create filters
-that are assigned to a particular table, as well as a set of roles.
+that are assigned to a particular dataset, as well as a set of roles.
 If you want members of the Finance team to only have access to
 rows where `department = "finance"`, you could:
 
 - Create a Row Level Security filter with that clause (`department = "finance"`)
-- Then assign the clause to the **Finance** role and the table it applies to
+- Then assign the clause to the **Finance** role and the dataset it applies to
 
 The **clause** field, which can contain arbitrary text, is then added to the generated
-SQL statement’s WHERE clause. So you could even do something like create a filter
+SQL statement's WHERE clause. So you could even do something like create a filter
 for the last 30 days and apply it to a specific role, with a clause
 like `date_field > DATE_SUB(NOW(), INTERVAL 30 DAY)`. It can also support
 multiple conditions: `client_id = 6` AND `advertiser="foo"`, etc.
 
-All relevant Row level security filters will be combined together (under the hood,
-the different SQL clauses are combined using AND statements). This means it's
-possible to create a situation where two roles conflict in such a way as to limit a table subset to empty.
+RLS clauses also support **Jinja templating** when `ENABLE_TEMPLATE_PROCESSING` is enabled, so you can write dynamic filters such as
+`user_id = '{{ current_username() }}'` to restrict rows based on the logged-in user.
 
-For example, the filters `client_id=4` and `client_id=5`, applied to a role,
-will result in users of that role having `client_id=4` AND `client_id=5`
-added to their query, which can never be true.
+#### Filter Types
+
+There are two types of RLS filters:
+
+- **Regular** — The filter clause is applied when the querying user belongs to one of the
+  roles assigned to the filter. Use this to restrict what specific roles can see.
+- **Base** — The filter clause is applied to **all** users _except_ those in the assigned
+  roles. Use this to define a default restriction that privileged roles (e.g. Admin) are
+  exempt from. For example, a Base filter with clause `1 = 0` and the Admin role would
+  hide all rows from everyone except Admin — useful as a deny-by-default baseline.
+
+#### Group Keys and Filter Combination
+
+All applicable RLS filters are combined before being added to the query. The combination
+rules are:
+
+- Filters that share the **same group key** are combined with **OR** (any match within
+  the group is sufficient).
+- Different filter groups (different group keys, or no group key) are combined with
+  **AND** (all groups must match).
+- Filters with **no group key** are each treated as their own group and are always AND'd.
+
+For example, if a dataset has three filters:
+
+| Filter | Clause | Group Key |
+|--------|--------|-----------|
+| F1 | `department = 'Finance'` | `department` |
+| F2 | `department = 'Marketing'` | `department` |
+| F3 | `region = 'Europe'` | `region` |
+
+The resulting WHERE clause would be:
+
+```sql
+(department = 'Finance' OR department = 'Marketing') AND (region = 'Europe')
+```
+
+:::caution Conflicting filters
+It is possible to create filters that conflict and produce an empty result set. For
+example, the filters `client_id = 4` and `client_id = 5` **without a shared group key**
+will be AND'd together, producing `client_id = 4 AND client_id = 5`, which can never
+be true.
+
+If you intend for these to be alternatives, assign them the **same group key** so they
+are OR'd instead.
+:::
+
+#### RLS and Virtual (SQL-Based) Datasets
+
+RLS filters are assigned to **datasets**, not to underlying database tables directly. This
+has important implications when working with virtual (SQL-based) datasets:
+
+- **Physical datasets** (backed directly by a table or view) — RLS filters assigned to
+  the dataset are added as WHERE clauses to the query.
+- **Virtual datasets** (defined by a custom SQL query) — RLS filters assigned directly to
+  the virtual dataset are applied to the _outer_ query that wraps the dataset's SQL.
+  Additionally, RLS filters on the **underlying physical datasets** referenced by the
+  virtual dataset's SQL are injected into the inner subquery for each referenced table.
+
+For example, if you have:
+
+1. A physical dataset `orders` with RLS filter `region = 'US'`
+2. A virtual dataset defined as `SELECT * FROM orders WHERE status = 'active'`
+
+A user affected by the RLS filter will effectively see:
+
+```sql
+SELECT * FROM (
+  SELECT * FROM orders WHERE (region = 'US') AND status = 'active'
+) ...
+```
+
+**Key considerations for virtual datasets:**
+
+- You generally do **not** need to duplicate RLS filters on both the physical and virtual
+  dataset — filters on the physical dataset are applied automatically at query time.
+- If you assign an RLS filter directly to a virtual dataset, the clause must reference
+  columns available in the virtual dataset's _output_, not necessarily the underlying
+  table's columns.
+- In **SQL Lab**, RLS is enforced only when the `RLS_IN_SQLLAB` feature flag is enabled:
+  queries run against tables that have associated datasets with RLS filters will then have
+  the appropriate predicates injected automatically.
+
+#### Checking RLS Filters via the API
+
+You can use the RLS REST API to audit which filters are configured and which datasets
+they affect. This requires the `can_read` permission on the `Row Level Security` resource.
+
+**List all RLS rules:**
+
+```
+GET /api/v1/rowlevelsecurity/
+```
+
+**Filter RLS rules for a specific dataset** (using [Rison](https://github.com/Nanonid/rison) query syntax):
+
+```
+GET /api/v1/rowlevelsecurity/?q=(filters:!((col:tables,opr:rel_m_m,value:<dataset_id>)))
+```
+
+**Filter RLS rules by role:**
+
+```
+GET /api/v1/rowlevelsecurity/?q=(filters:!((col:roles,opr:rel_m_m,value:<role_id>)))
+```
+
+**View details of a specific rule** (including clause, assigned datasets, and roles):
+
+```
+GET /api/v1/rowlevelsecurity/<id>
+```
+
+The response includes the filter's `name`, `filter_type` (Regular or Base), `clause`,
+`group_key`, assigned `tables` (with id, schema, and table\_name), and assigned `roles`
+(with id and name).
+
+:::tip Auditing RLS for virtual datasets
+To find all RLS rules that could affect a particular virtual dataset, query the list
+endpoint filtered by that dataset's ID for any directly-assigned rules. Then also check
+the physical datasets referenced in the virtual dataset's SQL, since their RLS filters
+are applied at query time too.
+:::
 
 ### User Sessions
 
