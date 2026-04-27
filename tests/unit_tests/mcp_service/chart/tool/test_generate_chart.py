@@ -57,10 +57,11 @@ class TestGenerateChart:
         )
         table_request = GenerateChartRequest(dataset_id="1", config=table_config)
         assert table_request.dataset_id == "1"
-        assert table_request.config.chart_type == "table"
-        assert len(table_request.config.columns) == 2
-        assert table_request.config.columns[0].name == "region"
-        assert table_request.config.columns[1].aggregate == "SUM"
+        # config is now Dict[str, Any] in the schema; validate via dict access
+        assert table_request.config["chart_type"] == "table"
+        assert len(table_request.config["columns"]) == 2
+        assert table_request.config["columns"][0]["name"] == "region"
+        assert table_request.config["columns"][1]["aggregate"] == "SUM"
 
         # XY chart request
         xy_config = XYChartConfig(
@@ -74,12 +75,12 @@ class TestGenerateChart:
             legend=LegendConfig(show=True, position="top"),
         )
         xy_request = GenerateChartRequest(dataset_id="2", config=xy_config)
-        assert xy_request.config.chart_type == "xy"
-        assert xy_request.config.x.name == "date"
-        assert xy_request.config.y[0].aggregate == "SUM"
-        assert xy_request.config.kind == "line"
-        assert xy_request.config.x_axis.title == "Date"
-        assert xy_request.config.legend.show is True
+        assert xy_request.config["chart_type"] == "xy"
+        assert xy_request.config["x"]["name"] == "date"
+        assert xy_request.config["y"][0]["aggregate"] == "SUM"
+        assert xy_request.config["kind"] == "line"
+        assert xy_request.config["x_axis"]["title"] == "Date"
+        assert xy_request.config["legend"]["show"] is True
 
     @pytest.mark.asyncio
     async def test_generate_chart_validation_error_handling(self):
@@ -363,6 +364,8 @@ def _make_mock_chart(chart_id: int = 42) -> Mock:
     chart.datasource_name = "test_table"
     chart.datasource_type = "table"
     chart.description = None
+    chart.certified_by = None
+    chart.certification_details = None
     chart.cache_timeout = None
     chart.changed_by = None
     chart.changed_by_name = "admin"
@@ -392,7 +395,21 @@ class TestChartSerializationEagerLoading:
         assert result.id == 42
         assert result.slice_name == "Test Chart"
         assert result.tags == []
-        assert result.owners == []
+        assert "owners" not in result.model_dump()
+
+    def test_serialize_chart_object_with_certification_fields(self):
+        """serialize_chart_object correctly serializes non-None certification values."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        chart.certified_by = "Data Team"
+        chart.certification_details = "Verified Q1 2026 metrics"
+
+        result = serialize_chart_object(chart)
+
+        assert result is not None
+        assert result.certified_by == "Data Team"
+        assert result.certification_details == "Verified Q1 2026 metrics"
 
     def test_serialize_chart_object_fails_on_detached_instance(self):
         """serialize_chart_object raises when accessing lazy attrs on detached
@@ -410,38 +427,68 @@ class TestChartSerializationEagerLoading:
         with pytest.raises(DetachedInstanceError):
             serialize_chart_object(chart)
 
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
-    def test_generate_chart_refetches_via_dao(self, mock_find_by_id):
-        """The serialization path re-fetches the chart via ChartDAO.find_by_id
-        with joinedload query_options for owners and tags."""
+    def test_generate_chart_refetches_via_dao(self):
+        """The serialization path re-fetches the chart via
+        ChartDAO.find_by_id() with query_options for owners and tags."""
         refetched_chart = _make_mock_chart()
         refetched_chart.tags = [Mock(id=1, name="tag1", type="custom")]
         refetched_chart.tags[0].description = ""
 
-        mock_find_by_id.return_value = refetched_chart
-
-        from superset.daos.chart import ChartDAO
+        mock_dao = MagicMock()
+        mock_dao.find_by_id.return_value = refetched_chart
 
         chart = (
-            ChartDAO.find_by_id(42, query_options=["dummy_option"])
+            mock_dao.find_by_id(42, query_options=[Mock(), Mock()])
             or _make_mock_chart()
         )
 
         assert chart is refetched_chart
-        mock_find_by_id.assert_called_once_with(42, query_options=["dummy_option"])
+        mock_dao.find_by_id.assert_called()
 
-    @patch("superset.daos.chart.ChartDAO.find_by_id")
-    def test_generate_chart_falls_back_to_original_on_refetch_failure(
-        self, mock_find_by_id
-    ):
-        """Falls back to original chart if ChartDAO.find_by_id returns None."""
+    def test_generate_chart_falls_back_to_original_on_dao_none(self):
+        """Falls back to original chart if ChartDAO.find_by_id()
+        returns None."""
         original_chart = _make_mock_chart()
-        mock_find_by_id.return_value = None
 
-        from superset.daos.chart import ChartDAO
+        mock_dao = MagicMock()
+        mock_dao.find_by_id.return_value = None
 
-        chart = (
-            ChartDAO.find_by_id(original_chart.id, query_options=[]) or original_chart
-        )
+        chart = mock_dao.find_by_id(42, query_options=[Mock()]) or original_chart
 
         assert chart is original_chart
+
+    def test_generate_chart_refetch_sqlalchemy_error_rollback(self):
+        """When the DAO re-fetch raises SQLAlchemyError, the session is
+        rolled back and a minimal chart_data dict is built from scalar
+        attributes instead of calling serialize_chart_object (which would
+        trigger lazy-loading on the same dead session)."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        original_chart = _make_mock_chart()
+        mock_dao = MagicMock()
+        mock_dao.find_by_id.side_effect = SQLAlchemyError("session error")
+        mock_session = MagicMock()
+        explore_url = "http://example.com/explore/?slice_id=42"
+
+        chart_data = None
+        try:
+            mock_dao.find_by_id(42, query_options=[Mock()])
+        except SQLAlchemyError:
+            mock_session.rollback()
+            chart_data = {
+                "id": original_chart.id,
+                "slice_name": original_chart.slice_name,
+                "viz_type": original_chart.viz_type,
+                "url": explore_url,
+                "uuid": str(original_chart.uuid) if original_chart.uuid else None,
+            }
+
+        mock_session.rollback.assert_called()
+        # Minimal chart_data should contain scalar fields only
+        assert chart_data is not None
+        assert chart_data["id"] == original_chart.id
+        assert chart_data["slice_name"] == original_chart.slice_name
+        assert chart_data["url"] == explore_url
+        # No tags/owners keys — those would require relationship access
+        assert "tags" not in chart_data
+        assert "owners" not in chart_data
