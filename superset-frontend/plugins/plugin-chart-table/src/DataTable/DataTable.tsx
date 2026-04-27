@@ -82,6 +82,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   onColumnOrderChange?: () => void;
   renderGroupingHeaders?: () => JSX.Element;
   renderTimeComparisonDropdown?: () => JSX.Element;
+  renderColumnSelectDropdown?: () => JSX.Element | null;
   handleSortByChange: (sortBy: SortByItem[]) => void;
   sortByFromParent: SortByItem[];
   manualSearch?: boolean;
@@ -126,6 +127,7 @@ export default typedMemo(function DataTable<D extends object>({
   onColumnOrderChange,
   renderGroupingHeaders,
   renderTimeComparisonDropdown,
+  renderColumnSelectDropdown,
   handleSortByChange,
   sortByFromParent = [],
   manualSearch = false,
@@ -154,7 +156,10 @@ export default typedMemo(function DataTable<D extends object>({
   const pageSizeRef = useRef([initialPageSize, resultsSize]);
   const hasPagination = initialPageSize > 0 && resultsSize > 0; // pageSize == 0 means no pagination
   const hasGlobalControl =
-    hasPagination || !!searchInput || renderTimeComparisonDropdown;
+    hasPagination ||
+    !!searchInput ||
+    renderTimeComparisonDropdown ||
+    renderColumnSelectDropdown;
   const initialState = {
     ...initialState_,
     // zero length means all pages, the `usePagination` plugin does not
@@ -589,6 +594,7 @@ export default typedMemo(function DataTable<D extends object>({
               {renderTimeComparisonDropdown
                 ? renderTimeComparisonDropdown()
                 : null}
+              {renderColumnSelectDropdown ? renderColumnSelectDropdown() : null}
             </Flex>
           </Flex>
         </div>
