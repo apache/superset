@@ -22,7 +22,7 @@ import re
 import urllib
 from datetime import datetime
 from re import Pattern
-from typing import Any, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, TYPE_CHECKING, TypedDict
 
 import pandas as pd
 from apispec import APISpec
@@ -80,6 +80,56 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger()
+
+
+def _process_string_literal(value: str) -> str:
+    """
+    Escape a string value for use as a BigQuery SQL literal.
+
+    BigQuery uses standard SQL quoting: single quotes delimit string literals,
+    and embedded single quotes are escaped by doubling them.  The upstream
+    sqlalchemy-bigquery dialect relies on Python's ``repr()`` to quote values,
+    which switches to double-quote delimiters when the string contains an
+    apostrophe (e.g. ``repr("O'Brien")`` -> ``"O'Brien"``).  In BigQuery SQL,
+    double-quoted tokens are *identifiers*, not string literals, so the query
+    fails with a syntax error.
+
+    This helper always produces a single-quoted literal with properly doubled
+    internal quotes.
+    """
+    escaped = value.replace("'", "''").replace("%", "%%")
+    return f"'{escaped}'"
+
+
+def _monkeypatch_bigquery_string_literal() -> None:
+    """
+    Patch the sqlalchemy-bigquery dialect so that string literals containing
+    apostrophes are rendered correctly when ``literal_binds=True``.
+
+    Without this patch, a filter value like ``O'Brien`` is compiled as the
+    double-quoted identifier ``"O'Brien"`` instead of the single-quoted literal
+    ``'O''Brien'``, causing BigQuery to return a syntax error.
+    """
+    try:
+        from sqlalchemy_bigquery import BigQueryDialect
+
+        class BigQuerySafeString(types.TypeDecorator):
+            impl = types.String
+            cache_ok = True
+
+            def literal_processor(self, dialect: Any) -> Callable[[str], str]:
+                if dialect.name == "bigquery":
+                    return _process_string_literal
+                return super().literal_processor(dialect)
+
+        BigQueryDialect.colspecs[types.String] = BigQuerySafeString
+
+    except ImportError:
+        pass
+
+
+_monkeypatch_bigquery_string_literal()
+
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     "Access Denied: Project (?P<project_name>.+?): User does not have "
