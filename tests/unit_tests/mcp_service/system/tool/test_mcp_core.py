@@ -237,6 +237,65 @@ def test_model_list_tool_created_by_me_requires_authenticated_user():
             tool.run_tool(created_by_me=True)
 
 
+def test_model_list_tool_injects_current_user_id_for_owned_by_me():
+    """owned_by_me=True adds an owner filter with the current user's ID."""
+    current_user = Mock()
+    current_user.is_authenticated = True
+    current_user.id = 99
+
+    captured = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, column_operators=None, **kwargs):
+            captured["filters"] = column_operators
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch(
+        "superset.mcp_service.utils.permissions_utils.get_current_user",
+        return_value=current_user,
+    ):
+        tool.run_tool(owned_by_me=True)
+
+    assert captured["filters"][0].col == "owner"
+    assert captured["filters"][0].value == 99
+
+
+def test_model_list_tool_owned_by_me_requires_authenticated_user():
+    """owned_by_me=True raises when no authenticated user is present."""
+    current_user = Mock()
+    current_user.is_authenticated = False
+
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch(
+        "superset.mcp_service.utils.permissions_utils.get_current_user",
+        return_value=current_user,
+    ):
+        with pytest.raises(ValueError, match="authenticated user"):
+            tool.run_tool(owned_by_me=True)
+
+
 def test_user_directory_fields_include_last_saved_relationships():
     assert "last_saved_by" in USER_DIRECTORY_FIELDS
     assert "last_saved_by_name" in USER_DIRECTORY_FIELDS

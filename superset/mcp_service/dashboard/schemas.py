@@ -88,6 +88,7 @@ from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
     MetadataCacheControl,
+    OwnedByMeMixin,
 )
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import (
@@ -179,7 +180,7 @@ class DashboardFilter(ColumnOperator):
     )
 
 
-class ListDashboardsRequest(CreatedByMeMixin, MetadataCacheControl):
+class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_dashboards with clear, unambiguous types."""
 
     filters: Annotated[

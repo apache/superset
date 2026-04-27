@@ -48,6 +48,7 @@ from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
     FormDataCacheControl,
     MetadataCacheControl,
+    OwnedByMeMixin,
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError
@@ -1320,7 +1321,7 @@ def _coerce_config_to_dict(v: Any) -> Dict[str, Any]:
     raise TypeError(f"config must be a dict or JSON string, got {type(v).__name__}")
 
 
-class ListChartsRequest(CreatedByMeMixin, MetadataCacheControl):
+class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_charts with clear, unambiguous types."""
 
     filters: Annotated[

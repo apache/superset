@@ -1017,3 +1017,35 @@ class TestListDashboardsCreatedByMe:
 
         with pytest.raises(ValidationError):
             DashboardFilter(col="created_by_fk", opr="eq", value=1)
+
+
+class TestListDashboardsOwnedByMe:
+    """Tests for the owned_by_me flag on ListDashboardsRequest."""
+
+    def test_owned_by_me_default_is_false(self):
+        request = ListDashboardsRequest()
+        assert request.owned_by_me is False
+
+    def test_owned_by_me_true_accepted(self):
+        request = ListDashboardsRequest(owned_by_me=True)
+        assert request.owned_by_me is True
+
+    def test_owned_by_me_combined_with_filters(self):
+        request = ListDashboardsRequest(
+            owned_by_me=True,
+            filters=[DashboardFilter(col="published", opr="eq", value=True)],
+        )
+        assert request.owned_by_me is True
+        assert len(request.filters) == 1
+
+    def test_owned_by_me_with_search_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="owned_by_me"):
+            ListDashboardsRequest(owned_by_me=True, search="My dashboards")
+
+    def test_owned_by_me_with_created_by_me_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="owned_by_me"):
+            ListDashboardsRequest(owned_by_me=True, created_by_me=True)

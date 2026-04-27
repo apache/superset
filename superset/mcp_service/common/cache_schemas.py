@@ -114,6 +114,38 @@ class CreatedByMeMixin(BaseModel):
         return self
 
 
+class OwnedByMeMixin(BaseModel):
+    """Mixin that adds an owned_by_me filter flag to list request schemas.
+
+    Provides a clean caller-facing alternative to exposing M2M owner IDs.
+    The server translates the flag into the appropriate owner filter and injects
+    the current user's ID automatically.
+    """
+
+    owned_by_me: Annotated[
+        bool,
+        Field(
+            default=False,
+            description=(
+                "When true, return only items where the current user is listed as "
+                "an owner. Can be combined with 'filters' but not with 'search' "
+                "or 'created_by_me'."
+            ),
+        ),
+    ]
+
+    @model_validator(mode="after")
+    def _validate_owned_by_me(self) -> Any:
+        if getattr(self, "search", None) and self.owned_by_me:
+            raise ValueError(
+                "'owned_by_me' cannot be combined with 'search'. "
+                "Use 'owned_by_me' alone or with 'filters'."
+            )
+        if getattr(self, "created_by_me", False) and self.owned_by_me:
+            raise ValueError("'owned_by_me' cannot be combined with 'created_by_me'.")
+        return self
+
+
 class CacheStatus(BaseModel):
     """
     Information about cache usage in tool responses.

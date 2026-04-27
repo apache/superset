@@ -21,10 +21,12 @@ from datetime import datetime
 from typing import Dict, List
 
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from sqlalchemy import select
+from sqlalchemy.orm import Query
 
 from superset.charts.filters import ChartFilter
 from superset.commands.chart.exceptions import ChartNotFoundError
-from superset.daos.base import BaseDAO
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import id_or_uuid_filter, Slice
@@ -36,11 +38,43 @@ logger = logging.getLogger(__name__)
 CHART_CUSTOM_FIELDS = {
     "viz_type": ["eq", "in", "like"],
     "datasource_name": ["eq", "in", "like"],
+    "owner": ["eq", "in"],
 }
 
 
 class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
+
+    @classmethod
+    def apply_column_operators(
+        cls,
+        query: Query,
+        column_operators: list[ColumnOperator] | None = None,
+    ) -> Query:
+        """Override to handle owner filter via the slice_user M2M table."""
+        if not column_operators:
+            return query
+
+        remaining_operators: list[ColumnOperator] = []
+        for c in column_operators:
+            if not isinstance(c, ColumnOperator):
+                c = ColumnOperator.model_validate(c)
+            if c.col == "owner":
+                from superset.models.slice import slice_user
+
+                operator_enum = ColumnOperatorEnum(c.opr)
+                subq = select(slice_user.c.slice_id).where(
+                    operator_enum.apply(slice_user.c.user_id, c.value)
+                )
+                query = query.filter(
+                    Slice.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
+            else:
+                remaining_operators.append(c)
+
+        if remaining_operators:
+            query = super().apply_column_operators(query, remaining_operators)
+        return query
 
     @classmethod
     def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:

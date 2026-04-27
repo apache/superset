@@ -351,3 +351,35 @@ class TestListChartsCreatedByMe:
 
         with pytest.raises(ValidationError):
             ChartFilter(col="created_by_fk", opr="eq", value=1)
+
+
+class TestListChartsOwnedByMe:
+    """Tests for the owned_by_me flag on ListChartsRequest."""
+
+    def test_owned_by_me_default_is_false(self):
+        request = ListChartsRequest()
+        assert request.owned_by_me is False
+
+    def test_owned_by_me_true_accepted(self):
+        request = ListChartsRequest(owned_by_me=True)
+        assert request.owned_by_me is True
+
+    def test_owned_by_me_combined_with_filters(self):
+        request = ListChartsRequest(
+            owned_by_me=True,
+            filters=[ChartFilter(col="slice_name", opr="sw", value="My")],
+        )
+        assert request.owned_by_me is True
+        assert len(request.filters) == 1
+
+    def test_owned_by_me_with_search_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="owned_by_me"):
+            ListChartsRequest(owned_by_me=True, search="My charts")
+
+    def test_owned_by_me_with_created_by_me_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="owned_by_me"):
+            ListChartsRequest(owned_by_me=True, created_by_me=True)

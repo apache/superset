@@ -143,10 +143,19 @@ To create a chart:
    }}) -> save permanently
 
 To find your own charts/dashboards/datasets/databases:
-- list_charts(request={{"created_by_me": true}})
-- list_dashboards(request={{"created_by_me": true}})
-- list_datasets(request={{"created_by_me": true}})
-- list_databases(request={{"created_by_me": true}})
+- list_charts(request={{"created_by_me": true}})      — items you created
+- list_dashboards(request={{"created_by_me": true}})  — items you created
+- list_datasets(request={{"created_by_me": true}})    — items you created
+- list_databases(request={{"created_by_me": true}})   — items you created
+
+To find items where you are listed as an owner (edit access):
+- list_charts(request={{"owned_by_me": true}})
+- list_dashboards(request={{"owned_by_me": true}})
+- list_datasets(request={{"owned_by_me": true}})
+
+Use created_by_me to find items you authored; use owned_by_me to find items
+you have edit access to as an owner. You cannot combine the two flags.
+Both flags can be combined with 'filters' but not with 'search'.
 
 To explore data with SQL:
 1. list_datasets(request={{}}) -> find a dataset and note its database_id

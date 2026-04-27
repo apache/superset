@@ -180,6 +180,7 @@ async def list_datasets(
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,
                 created_by_me=request.created_by_me,
+                owned_by_me=request.owned_by_me,
             )
 
         await ctx.info(

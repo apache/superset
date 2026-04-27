@@ -186,6 +186,7 @@ class ModelListCore(BaseCore, Generic[L]):
         page: int = 0,
         page_size: int = 10,
         created_by_me: bool = False,
+        owned_by_me: bool = False,
     ) -> L:
         from superset.mcp_service.constants import MAX_PAGE_SIZE
 
@@ -199,14 +200,18 @@ class ModelListCore(BaseCore, Generic[L]):
 
         filters = parse_json_or_passthrough(filters, param_name="filters")
 
-        # Translate created_by_me=True into the created_by_fk filter so callers
+        # Translate created_by_me/owned_by_me flags into FK/owner filters so callers
         # never need to know about foreign key IDs or dummy placeholder values.
         # Use ColumnOperator (not a plain dict) so all DAOs process it correctly.
-        if created_by_me:
-            from superset.daos.base import ColumnOperator
+        from superset.daos.base import ColumnOperator
 
+        if created_by_me:
             fk_filter = ColumnOperator(col="created_by_fk", opr="eq", value=0)
             filters = [fk_filter] + (filters if isinstance(filters, list) else [])
+
+        if owned_by_me:
+            owner_filter = ColumnOperator(col="owner", opr="eq", value=0)
+            filters = [owner_filter] + (filters if isinstance(filters, list) else [])
 
         from superset.mcp_service.utils.permissions_utils import get_current_user
 

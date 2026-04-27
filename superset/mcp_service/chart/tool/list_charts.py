@@ -170,6 +170,7 @@ async def list_charts(
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,
                 created_by_me=request.created_by_me,
+                owned_by_me=request.owned_by_me,
             )
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)

@@ -47,7 +47,7 @@ USER_DIRECTORY_FIELDS = frozenset(
 # User-directory columns that are valid as filter inputs even though they are
 # hidden from response payloads and select-column surfaces.  The system injects
 # the correct value server-side, so callers never need to supply user IDs.
-SELF_REFERENCING_FILTER_COLUMNS = frozenset({"created_by_fk"})
+SELF_REFERENCING_FILTER_COLUMNS = frozenset({"created_by_fk", "owner"})
 
 DATA_MODEL_METADATA_ACCESS_ATTR = "_requires_data_model_metadata_access"
 DATA_MODEL_METADATA_ERROR_TYPE = "DataModelMetadataRestricted"
@@ -143,9 +143,7 @@ def inject_current_user_for_created_by_fk(filters: Any, user: Any) -> Any:
         col = f.get("col") if isinstance(f, dict) else getattr(f, "col", None)
         if col in SELF_REFERENCING_FILTER_COLUMNS:
             if not user or not getattr(user, "is_authenticated", False):
-                raise ValueError(
-                    "'created_by_me' filter requires an authenticated user"
-                )
+                raise ValueError("This operation requires an authenticated user")
             f = (
                 {**f, "value": user.id}
                 if isinstance(f, dict)
