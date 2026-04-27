@@ -23,6 +23,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useRef,
   useState,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
@@ -30,6 +31,7 @@ import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import { useResizeDetector } from 'react-resize-detector';
 import { Tooltip } from '../Tooltip';
 import { Input } from '../Input';
+import type { InputRef } from '../Input';
 import type { DynamicEditableTitleProps } from './types';
 
 const titleStyles = (theme: SupersetTheme) => css`
@@ -75,8 +77,10 @@ export const DynamicEditableTitle = memo(
     const [isEditing, setIsEditing] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
     const [currentTitle, setCurrentTitle] = useState(title || '');
+    const [inputWidth, setInputWidth] = useState<number>(0);
 
-    const { width: inputWidth, ref: sizerRef } = useResizeDetector();
+    const sizerRef = useRef<HTMLSpanElement>(null);
+    const inputRef = useRef<InputRef>(null);
     const { width: containerWidth, ref: containerRef } = useResizeDetector({
       refreshMode: 'debounce',
     });
@@ -85,27 +89,33 @@ export const DynamicEditableTitle = memo(
       setCurrentTitle(title);
     }, [title]);
     useEffect(() => {
-      if (isEditing && sizerRef?.current) {
+      if (isEditing) {
         // move cursor and scroll to the end
-        if (sizerRef.current.setSelectionRange) {
-          const { length } = sizerRef.current.value;
-          sizerRef.current.setSelectionRange(length, length);
-          sizerRef.current.scrollLeft = sizerRef.current.scrollWidth;
+        const inputElement = inputRef.current?.input;
+        if (inputElement) {
+          const { length } = inputElement.value;
+          inputElement.setSelectionRange(length, length);
+          inputElement.scrollLeft = inputElement.scrollWidth;
         }
       }
     }, [isEditing]);
 
     // a trick to make the input grow when user types text
-    // we make additional span component, place it somewhere out of view and copy input
-    // then we can measure the width of that span to resize the input element
+    // we make an additional span component, place it somewhere out of view and
+    // mirror the input value, then measure the span synchronously (pre-paint)
+    // to resize the input element. Reading offsetWidth in a useLayoutEffect
+    // forces a sync layout, so the input width updates in the same commit as
+    // the value change — preventing a flicker frame where the input is shown
+    // with new value but stale width.
     useLayoutEffect(() => {
-      if (sizerRef?.current) {
+      if (sizerRef.current) {
         sizerRef.current.textContent = currentTitle || placeholder;
+        setInputWidth(sizerRef.current.offsetWidth);
       }
-    }, [currentTitle, placeholder, sizerRef]);
+    }, [currentTitle, placeholder]);
 
     useEffect(() => {
-      const inputElement = sizerRef.current?.input;
+      const inputElement = inputRef.current?.input;
 
       if (inputElement) {
         if (inputElement.scrollWidth > inputElement.clientWidth) {
@@ -168,6 +178,7 @@ export const DynamicEditableTitle = memo(
           }
         >
           <Input
+            ref={inputRef}
             data-test="editable-title-input"
             variant="borderless"
             aria-label={label ?? t('Title')}
