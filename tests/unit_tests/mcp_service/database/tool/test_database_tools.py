@@ -27,6 +27,7 @@ from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.database.schemas import DatabaseFilter, ListDatabasesRequest
+from superset.mcp_service.privacy import DATA_MODEL_METADATA_ERROR_TYPE
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -133,6 +134,26 @@ def allow_data_model_metadata():
         ),
     ):
         yield
+
+
+@pytest.mark.asyncio
+async def test_list_databases_returns_structured_privacy_error_when_restricted(
+    mcp_server,
+) -> None:
+    """Restricted users get a structured privacy error from list_databases."""
+    with patch.object(
+        list_databases_module,
+        "user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            request = ListDatabasesRequest(page=1, page_size=10)
+            result = await client.call_tool(
+                "list_databases", {"request": request.model_dump()}
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
