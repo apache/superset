@@ -29,7 +29,7 @@ import {
   parseMetricValue,
 } from '../transformUtils';
 
-interface H3Feature {
+export interface H3Feature {
   hexagon: string;
   fillColor?: number[];
   elevation?: number;
