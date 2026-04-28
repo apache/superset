@@ -36,6 +36,7 @@ from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.sql.parse import Table
@@ -223,6 +224,25 @@ class Datasource(BaseSupersetView):
                 dashboard,
             ):
                 return json_error_response(_("Forbidden"), status=403)
+        else:
+            # Pre-fetch and access-check only for table-type datasources.
+            # Non-table types (query, saved_query) use a different access model;
+            # passing them to raise_for_access(datasource=...) would check the
+            # wrong attributes. Let get_samples() handle the lookup for those types.
+            if params["datasource_type"] == DatasourceType.TABLE:
+                try:
+                    dataset = DatasourceDAO.get_datasource(
+                        params["datasource_type"],
+                        params["datasource_id"],
+                    )
+                except (DatasourceNotFound, DatasourceTypeNotSupportedError):
+                    return self.response_404()
+                try:
+                    security_manager.raise_for_access(datasource=dataset)
+                except SupersetSecurityException:
+                    return json_error_response(_("Forbidden"), status=403)
+            else:
+                dataset = None
 
         rv = get_samples(
             datasource_type=params["datasource_type"],
@@ -231,6 +251,7 @@ class Datasource(BaseSupersetView):
             page=params["page"],
             per_page=params["per_page"],
             payload=payload,
+            datasource=dataset,
             dashboard_id=dashboard_id,
         )
         return self.json_response({"result": rv})

@@ -73,7 +73,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         return ChartDAO.update(self._model, self._properties)
 
     def _validate_new_dashboard_access(
-        self, requested_dashboards: list[Dashboard], exceptions: list[Exception]
+        self, requested_dashboards: list[Dashboard], exceptions: list[ValidationError]
     ) -> None:
         """
         Validate user has access to any NEW dashboard relationships.
@@ -102,6 +102,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
         # Validate if datasource_id is provided datasource_type is required
         datasource_id = self._properties.get("datasource_id")
+        datasource_type = ""
         if datasource_id is not None:
             datasource_type = self._properties.get("datasource_type", "")
             if not datasource_type:
@@ -138,6 +139,9 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             try:
                 datasource = get_datasource_by_id(datasource_id, datasource_type)
                 self._properties["datasource_name"] = datasource.name
+                security_manager.raise_for_access(datasource=datasource)
+            except SupersetSecurityException as ex:
+                raise ChartForbiddenError() from ex
             except ValidationError as ex:
                 exceptions.append(ex)
 

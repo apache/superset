@@ -22,6 +22,7 @@ from flask import current_app as app
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
     ChartNotFoundValidationError,
@@ -29,11 +30,13 @@ from superset.commands.report.exceptions import (
     DashboardNotFoundValidationError,
     DashboardNotSavedValidationError,
     ReportScheduleEitherChartOrDashboardError,
+    ReportScheduleForbiddenError,
     ReportScheduleFrequencyNotAllowed,
     ReportScheduleOnlyChartOrDashboardError,
 )
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
+from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportCreationMethod, ReportScheduleType
 from superset.reports.types import ReportScheduleExtra
 from superset.utils import json
@@ -49,6 +52,34 @@ class BaseReportScheduleCommand(BaseCommand):
 
     def validate(self) -> None:
         pass
+
+    def _check_chart_access(
+        self, chart_id: int, exceptions: list[ValidationError]
+    ) -> None:
+        """Validate chart exists and the current user can access it."""
+        chart = ChartDAO.find_by_id(chart_id)
+        if not chart:
+            exceptions.append(ChartNotFoundValidationError())
+        else:
+            try:
+                security_manager.raise_for_access(viz=chart)
+            except SupersetSecurityException as ex:
+                raise ReportScheduleForbiddenError() from ex
+        self._properties["chart"] = chart
+
+    def _check_dashboard_access(
+        self, dashboard_id: int, exceptions: list[ValidationError]
+    ) -> None:
+        """Validate dashboard exists and the current user can access it."""
+        dashboard = DashboardDAO.find_by_id(dashboard_id)
+        if not dashboard:
+            exceptions.append(DashboardNotFoundValidationError())
+        else:
+            try:
+                security_manager.raise_for_access(dashboard=dashboard)
+            except SupersetSecurityException as ex:
+                raise ReportScheduleForbiddenError() from ex
+        self._properties["dashboard"] = dashboard
 
     def validate_chart_dashboard(
         self, exceptions: list[ValidationError], update: bool = False
@@ -71,15 +102,9 @@ class BaseReportScheduleCommand(BaseCommand):
             exceptions.append(ReportScheduleOnlyChartOrDashboardError())
 
         if chart_id:
-            chart = ChartDAO.find_by_id(chart_id)
-            if not chart:
-                exceptions.append(ChartNotFoundValidationError())
-            self._properties["chart"] = chart
+            self._check_chart_access(chart_id, exceptions)
         elif dashboard_id:
-            dashboard = DashboardDAO.find_by_id(dashboard_id)
-            if not dashboard:
-                exceptions.append(DashboardNotFoundValidationError())
-            self._properties["dashboard"] = dashboard
+            self._check_dashboard_access(dashboard_id, exceptions)
         elif not update:
             exceptions.append(ReportScheduleEitherChartOrDashboardError())
 
