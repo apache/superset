@@ -17,6 +17,7 @@
 # pylint: disable=invalid-name
 from __future__ import annotations
 
+import copy
 import logging
 from datetime import datetime
 from pprint import pformat
@@ -422,9 +423,47 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         the use-provided inputs to bounds, which may be time-relative (as in
         "5 days ago" or "now").
         """
-        # Cast to dict[str, Any] for mutation operations
-        cache_dict: dict[str, Any] = dict(self.to_dict())
+        # Use deepcopy to prevent mutation of original objects (nested metrics/columns)
+        cache_dict: dict[str, Any] = copy.deepcopy(self.to_dict())  # type: ignore[arg-type]
         cache_dict.update(extra)
+
+        def _normalize_sql(value: Any) -> Any:
+            if isinstance(value, str):
+                return value.replace("\r\n", "\n").strip()
+            return value
+
+        # Normalize SQL expressions to ensure deterministic cache keys
+        for metric in cache_dict.get("metrics") or []:
+            if isinstance(metric, dict) and metric.get("expressionType") == "SQL":
+                metric["sqlExpression"] = _normalize_sql(metric.get("sqlExpression"))
+
+        for column in cache_dict.get("columns") or []:
+            if isinstance(column, dict) and column.get("expressionType") == "SQL":
+                column["sqlExpression"] = _normalize_sql(column.get("sqlExpression"))
+
+        for order in cache_dict.get("orderby") or []:
+            if (
+                isinstance(order, (list, tuple))
+                and len(order) > 0
+                and isinstance(order[0], dict)
+                and order[0].get("expressionType") == "SQL"
+            ):
+                order[0]["sqlExpression"] = _normalize_sql(
+                    order[0].get("sqlExpression")
+                )
+
+        series_limit_metric = cache_dict.get("series_limit_metric")
+        if (
+            isinstance(series_limit_metric, dict)
+            and series_limit_metric.get("expressionType") == "SQL"
+        ):
+            series_limit_metric["sqlExpression"] = _normalize_sql(
+                series_limit_metric.get("sqlExpression")
+            )
+
+        # NOTE: Only normalize ad-hoc SQL expressions here.
+        # where and having clauses are already sanitized in validate() during
+        # the query execution lifecycle.
 
         # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
         #  predetermined point in time when orgs are aware that the previously
