@@ -433,9 +433,6 @@ def _extract_sql_from_result(
     )
 
 
-_DEFAULT_GET_CHART_SQL_REQUEST = GetChartSqlRequest()
-
-
 @tool(
     tags=["data"],
     class_permission_name="SQLLab",
@@ -447,8 +444,7 @@ _DEFAULT_GET_CHART_SQL_REQUEST = GetChartSqlRequest()
     ),
 )
 async def get_chart_sql(
-    request: GetChartSqlRequest = _DEFAULT_GET_CHART_SQL_REQUEST,
-    ctx: Context = None,
+    request: GetChartSqlRequest, ctx: Context
 ) -> ChartSql | ChartError:
     """Get the rendered SQL query for a chart without executing it.
 

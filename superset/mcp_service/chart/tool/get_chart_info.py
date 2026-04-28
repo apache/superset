@@ -107,9 +107,6 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
         )
 
 
-_DEFAULT_GET_CHART_INFO_REQUEST = GetChartInfoRequest()
-
-
 @tool(
     tags=["discovery"],
     class_permission_name="Chart",
@@ -120,8 +117,7 @@ _DEFAULT_GET_CHART_INFO_REQUEST = GetChartInfoRequest()
     ),
 )
 async def get_chart_info(
-    request: GetChartInfoRequest = _DEFAULT_GET_CHART_INFO_REQUEST,
-    ctx: Context = None,
+    request: GetChartInfoRequest, ctx: Context
 ) -> ChartInfo | ChartError:
     """Get chart metadata by ID or UUID.
 
