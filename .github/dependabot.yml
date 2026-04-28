@@ -4,6 +4,10 @@ updates:
 
   - package-ecosystem: "github-actions"
     directory: "/"
+    ignore:
+      # Ignore temporarily as release schedule is too mentally taxing for dep-handling maintainers
+      # Additionally, very few PRs are reviewed by this action.
+      - dependency-name: anthropics/claude-code-action
     schedule:
       interval: "daily"
 
@@ -32,6 +36,10 @@ updates:
       - dependency-name: "@swc/plugin-transform-imports"
       # `just-handlerbars-helpers` library in plugin-chart-handlebars requires `currencyformatter`` to be < 2
       - dependency-name: "currencyformatter.js"
+        update-types: ["version-update:semver-major"]
+      # TODO: remove below clause once https://github.com/pmmmwh/react-refresh-webpack-plugin/pull/940 lands onto a future release
+      # and confirm the issue https://github.com/apache/superset/issues/39600 is fixed
+      - dependency-name: "react-checkbox-tree"
         update-types: ["version-update:semver-major"]
     groups:
       storybook:

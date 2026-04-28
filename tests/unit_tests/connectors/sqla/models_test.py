@@ -946,3 +946,34 @@ def test_data_for_slices_handles_missing_datasource(mocker: MockerFixture) -> No
     assert "columns" in result
     assert "metrics" in result
     assert "verbose_map" in result
+
+
+def test_owners_data_includes_email(mocker: MockerFixture) -> None:
+    """Test that the owners_data property includes the email field."""
+    database = mocker.MagicMock()
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[],
+        metrics=[],
+    )
+
+    mock_owner = mocker.MagicMock()
+    mock_owner.first_name = "John"
+    mock_owner.last_name = "Doe"
+    mock_owner.username = "johndoe"
+    mock_owner.id = 1
+    mock_owner.email = "john@example.com"
+
+    table.owners = [mock_owner]
+
+    owners_data = table.owners_data
+    assert len(owners_data) == 1
+    assert owners_data[0] == {
+        "first_name": "John",
+        "last_name": "Doe",
+        "username": "johndoe",
+        "id": 1,
+        "email": "john@example.com",
+    }

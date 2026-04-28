@@ -26,10 +26,11 @@ import re
 from typing import Any, Dict
 
 from fastmcp import Context
+from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
-from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -39,8 +40,9 @@ from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardRequest,
     AddChartToDashboardResponse,
     DashboardInfo,
+    serialize_chart_summary,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -290,8 +292,17 @@ def _ensure_layout_structure(
     if "ROOT_ID" in layout:
         if "children" not in layout["ROOT_ID"]:
             layout["ROOT_ID"]["children"] = []
-        if "GRID_ID" not in layout["ROOT_ID"]["children"]:
-            layout["ROOT_ID"]["children"].append("GRID_ID")
+        # Only add GRID_ID to ROOT_ID when TABS are not already a direct
+        # child of ROOT_ID.  Real Superset dashboards with tabs place a
+        # TABS container directly under ROOT_ID (ROOT_ID → TABS → TABs).
+        # Adding GRID_ID as a sibling of TABS confuses the frontend layout
+        # engine and makes charts invisible.
+        root_children = layout["ROOT_ID"]["children"]
+        has_tabs_under_root = any(
+            layout.get(c, {}).get("type") == "TABS" for c in root_children
+        )
+        if not has_tabs_under_root and "GRID_ID" not in root_children:
+            root_children.append("GRID_ID")
     else:
         # Create ROOT_ID if it doesn't exist
         layout["ROOT_ID"] = {
@@ -305,6 +316,47 @@ def _ensure_layout_structure(
         layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
+def _find_and_authorize_dashboard(
+    dashboard_id: int,
+) -> tuple[Any, AddChartToDashboardResponse | None]:
+    """Return (dashboard, None) on success or (None, error_response) on failure.
+
+    Handles both the not-found case and the ownership check so the main tool
+    function doesn't need two separate branches for these pre-conditions.
+    """
+    from superset import security_manager
+    from superset.daos.dashboard import DashboardDAO
+    from superset.exceptions import SupersetSecurityException
+
+    dashboard = DashboardDAO.find_by_id(dashboard_id)
+    if not dashboard:
+        return None, AddChartToDashboardResponse(
+            dashboard=None,
+            dashboard_url=None,
+            position=None,
+            error=f"Dashboard with ID {dashboard_id} not found",
+        )
+
+    try:
+        security_manager.raise_for_ownership(dashboard)
+    except SupersetSecurityException:
+        return None, AddChartToDashboardResponse(
+            dashboard=None,
+            dashboard_url=None,
+            position=None,
+            permission_denied=True,
+            error=(
+                f"You don't have permission to edit dashboard "
+                f"'{dashboard.dashboard_title}' (ID: {dashboard_id}). "
+                "Ask the user if they would like a new dashboard "
+                "created with this chart instead, and only proceed "
+                "if they confirm."
+            ),
+        )
+
+    return dashboard, None
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -314,7 +366,6 @@ def _ensure_layout_structure(
         destructiveHint=False,
     ),
 )
-@parse_request(AddChartToDashboardRequest)
 def add_chart_to_existing_dashboard(
     request: AddChartToDashboardRequest, ctx: Context
 ) -> AddChartToDashboardResponse:
@@ -324,18 +375,12 @@ def add_chart_to_existing_dashboard(
     """
     try:
         from superset.commands.dashboard.update import UpdateDashboardCommand
-        from superset.daos.dashboard import DashboardDAO
 
-        # Validate dashboard and chart exist
+        # Validate dashboard exists and user has edit permission
         with event_logger.log_context(action="mcp.add_chart_to_dashboard.validation"):
-            dashboard = DashboardDAO.find_by_id(request.dashboard_id)
-            if not dashboard:
-                return AddChartToDashboardResponse(
-                    dashboard=None,
-                    dashboard_url=None,
-                    position=None,
-                    error=(f"Dashboard with ID {request.dashboard_id} not found"),
-                )
+            dashboard, auth_error = _find_and_authorize_dashboard(request.dashboard_id)
+            if auth_error is not None:
+                return auth_error
 
             # Get chart object for SQLAlchemy relationships and validation
             from superset import db
@@ -348,6 +393,24 @@ def add_chart_to_existing_dashboard(
                     dashboard_url=None,
                     position=None,
                     error=f"Chart with ID {request.chart_id} not found",
+                )
+
+            # Validate dataset access for the chart.
+            # check_chart_data_access is the centralized data-level
+            # permission check that complements the class-level RBAC
+            # enforced by mcp_auth_hook.
+            from superset.mcp_service.auth import check_chart_data_access
+
+            validation = check_chart_data_access(new_chart)
+            if not validation.is_valid:
+                return AddChartToDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    position=None,
+                    error=(
+                        f"Chart {request.chart_id} is not accessible: "
+                        f"{validation.error}"
+                    ),
                 )
 
             # Check if chart is already in dashboard
@@ -408,32 +471,68 @@ def add_chart_to_existing_dashboard(
 
         # Re-fetch the dashboard with eager-loaded relationships to avoid
         # "Instance is not bound to a Session" errors when serializing
-        # chart .tags and .owners.
+        # chart tags.  The preceding command.run() commit may
+        # invalidate the session in multi-tenant environments; on failure,
+        # return a minimal response using only scalar attributes that are
+        # already loaded — relationship fields (tags, slices) would
+        # trigger lazy-loading on the same dead session.
         from sqlalchemy.orm import subqueryload
 
         from superset.daos.dashboard import DashboardDAO
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
-        updated_dashboard = (
-            DashboardDAO.find_by_id(
-                updated_dashboard.id,
-                query_options=[
-                    subqueryload(Dashboard.slices).subqueryload(Slice.owners),
-                    subqueryload(Dashboard.slices).subqueryload(Slice.tags),
-                    subqueryload(Dashboard.owners),
-                    subqueryload(Dashboard.tags),
-                ],
+        try:
+            updated_dashboard = (
+                DashboardDAO.find_by_id(
+                    updated_dashboard.id,
+                    query_options=[
+                        subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+                        subqueryload(Dashboard.tags),
+                    ],
+                )
+                or updated_dashboard
             )
-            or updated_dashboard
-        )
+        except SQLAlchemyError:
+            logger.warning(
+                "Re-fetch of dashboard %s failed; returning minimal response",
+                updated_dashboard.id,
+                exc_info=True,
+            )
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except SQLAlchemyError:
+                logger.warning(
+                    "Database rollback failed during dashboard re-fetch error handling",
+                    exc_info=True,
+                )
+            dashboard_url = (
+                f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/"
+            )
+            position_info = {
+                "row": row_key,
+                "chart_key": chart_key,
+                "row_key": row_key,
+            }
+            return AddChartToDashboardResponse(
+                dashboard=DashboardInfo(
+                    id=updated_dashboard.id,
+                    dashboard_title=updated_dashboard.dashboard_title,
+                    published=updated_dashboard.published,
+                    chart_count=len(all_chart_objects),
+                    url=dashboard_url,
+                ),
+                dashboard_url=dashboard_url,
+                position=position_info,
+                error=None,
+            )
 
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (
             serialize_tag_object,
-            serialize_user_object,
         )
 
+        include_data_model_metadata = user_can_view_data_model_metadata()
         dashboard_info = DashboardInfo(
             id=updated_dashboard.id,
             dashboard_title=updated_dashboard.dashboard_title,
@@ -442,29 +541,24 @@ def add_chart_to_existing_dashboard(
             published=updated_dashboard.published,
             created_on=updated_dashboard.created_on,
             changed_on=updated_dashboard.changed_on,
-            created_by=updated_dashboard.created_by.username
-            if updated_dashboard.created_by
-            else None,
-            changed_by=updated_dashboard.changed_by.username
-            if updated_dashboard.changed_by
-            else None,
             uuid=str(updated_dashboard.uuid) if updated_dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/",
             chart_count=len(updated_dashboard.slices),
-            owners=[
-                serialize_user_object(owner)
-                for owner in getattr(updated_dashboard, "owners", [])
-                if serialize_user_object(owner) is not None
-            ],
             tags=[
                 serialize_tag_object(tag)
                 for tag in getattr(updated_dashboard, "tags", [])
                 if serialize_tag_object(tag) is not None
             ],
-            roles=[],
             charts=[
-                serialize_chart_object(chart)
+                obj
                 for chart in getattr(updated_dashboard, "slices", [])
+                if (
+                    obj := serialize_chart_summary(
+                        chart,
+                        include_data_model_metadata=include_data_model_metadata,
+                    )
+                )
+                is not None
             ],
         )
 
@@ -486,7 +580,15 @@ def add_chart_to_existing_dashboard(
             error=None,
         )
 
-    except Exception as e:
+    except (CommandException, SQLAlchemyError, KeyError, ValueError) as e:
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         logger.error("Error adding chart to dashboard: %s", e)
         return AddChartToDashboardResponse(
             dashboard=None,
