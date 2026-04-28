@@ -44,6 +44,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.engine.url import URL
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
 from superset_core.queries.models import (
@@ -158,6 +159,20 @@ class Query(
     changed_on = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
     )
+
+    @hybrid_property
+    def duration(self) -> Optional[float]:
+        start = self.start_running_time or self.start_time
+        if self.end_time is not None and start is not None:
+            return float(self.end_time - start)
+        return None
+
+    @duration.expression  # type: ignore[no-redef]
+    def duration(cls) -> ColumnElement:  # noqa: N805
+        return sqla.func.coalesce(
+            cls.end_time - sqla.func.coalesce(cls.start_running_time, cls.start_time),
+            0,
+        )
 
     database = relationship(
         "Database",

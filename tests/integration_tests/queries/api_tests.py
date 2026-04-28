@@ -54,6 +54,9 @@ class TestQueryApi(SupersetTestCase):
         tab_name: str = "",
         status: str = "success",
         changed_on: datetime = datetime(2020, 1, 1),
+        start_time: float | None = None,
+        start_running_time: float | None = None,
+        end_time: float | None = None,
     ) -> Query:
         database = db.session.query(Database).get(database_id)
         user = db.session.query(security_manager.user_model).get(user_id)
@@ -70,6 +73,9 @@ class TestQueryApi(SupersetTestCase):
             tab_name=tab_name,
             status=status,
             changed_on=changed_on,
+            start_time=start_time,
+            start_running_time=start_running_time,
+            end_time=end_time,
         )
         db.session.add(query)
         db.session.commit()
@@ -275,6 +281,7 @@ class TestQueryApi(SupersetTestCase):
             "schema",
             "sql",
             "sql_tables",
+            "start_running_time",
             "start_time",
             "status",
             "tab_name",
@@ -361,6 +368,7 @@ class TestQueryApi(SupersetTestCase):
         order_columns = [
             "changed_on",
             "database.database_name",
+            "duration",
             "rows",
             "schema",
             "sql",
@@ -373,6 +381,78 @@ class TestQueryApi(SupersetTestCase):
             uri = f"api/v1/query/?q={prison.dumps(arguments)}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
+
+    def test_get_list_query_order_duration(self):
+        """
+        Query API: Test that sorting by duration orders by end_time - start_time,
+        falling back to start_time when start_running_time is absent, and treating
+        NULL durations (no end_time) as zero.
+        """
+        admin = self.get_user("admin")
+        example_db = get_example_database()
+        base_time = 1_000_000.0
+
+        # duration = 0.031 (uses start_running_time as start)
+        q_long = self.insert_query(
+            example_db.id,
+            admin.id,
+            self.get_random_string(),
+            start_time=base_time,
+            start_running_time=base_time + 0.005,
+            end_time=base_time + 0.036,
+        )
+        # duration = 0.021
+        q_medium = self.insert_query(
+            example_db.id,
+            admin.id,
+            self.get_random_string(),
+            start_time=base_time,
+            start_running_time=None,
+            end_time=base_time + 0.021,
+        )
+        # duration = 0 (no end_time, NULL treated as 0)
+        q_null = self.insert_query(
+            example_db.id,
+            admin.id,
+            self.get_random_string(),
+            start_time=base_time,
+            start_running_time=None,
+            end_time=None,
+        )
+
+        # Use a unique sql_editor_id to isolate these test queries
+        test_editor_id = self.get_random_string()
+        q_long.sql_editor_id = test_editor_id
+        q_medium.sql_editor_id = test_editor_id
+        q_null.sql_editor_id = test_editor_id
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        arguments = {
+            "order_column": "duration",
+            "order_direction": "asc",
+            "filters": [{"col": "sql_editor_id", "opr": "eq", "value": test_editor_id}],
+        }
+        uri = f"api/v1/query/?q={rison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = rv.get_json()
+        ids = [r["id"] for r in data["result"]]
+        assert ids == [q_null.id, q_medium.id, q_long.id]
+
+        # descending should be the reverse
+        arguments["order_direction"] = "desc"
+        uri = f"api/v1/query/?q={rison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = rv.get_json()
+        ids = [r["id"] for r in data["result"]]
+        assert ids == [q_long.id, q_medium.id, q_null.id]
+
+        db.session.delete(q_long)
+        db.session.delete(q_medium)
+        db.session.delete(q_null)
+        db.session.commit()
 
     def test_get_list_query_no_data_access(self):
         """
