@@ -395,7 +395,7 @@ class TestChartSerializationEagerLoading:
         assert result.id == 42
         assert result.slice_name == "Test Chart"
         assert result.tags == []
-        assert result.owners == []
+        assert "owners" not in result.model_dump()
 
     def test_serialize_chart_object_with_certification_fields(self):
         """serialize_chart_object correctly serializes non-None certification values."""
