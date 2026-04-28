@@ -23,6 +23,7 @@ from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
+    DatabaseInvalidError,
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
     DatabaseTestConnectionUnexpectedError,
@@ -143,6 +144,12 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 try:
                     alive = ping(engine)
                 except SupersetTimeoutException as ex:
+                    try:
+                        safe_uri = make_url_safe(
+                            str(database.sqlalchemy_uri)
+                        ).render_as_string(hide_password=True)
+                    except DatabaseInvalidError:
+                        safe_uri = "<invalid database URI>"
                     raise SupersetTimeoutException(
                         error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
                         message=(
@@ -151,7 +158,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                             "then try connecting again."
                         ),
                         level=ErrorLevel.ERROR,
-                        extra={"sqlalchemy_uri": database.sqlalchemy_uri},
+                        extra={"sqlalchemy_uri": safe_uri},
                     ) from ex
                 except Exception as ex:  # pylint: disable=broad-except
                     # If the connection failed because OAuth2 is needed, start the flow.
