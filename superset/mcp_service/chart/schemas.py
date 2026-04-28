@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 import humanize
+from fastmcp.exceptions import ToolError
 from pydantic import (
     AliasChoices,
     AliasPath,
@@ -39,7 +40,6 @@ from pydantic import (
     TypeAdapter,
     ValidationError,
 )
-from fastmcp.exceptions import ToolError
 from typing_extensions import Self
 
 from superset.constants import TimeGrain
