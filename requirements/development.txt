@@ -825,7 +825,7 @@ python-dateutil==2.9.0.post0
     #   pyhive
     #   shillelagh
     #   trino
-python-dotenv==1.1.0
+python-dotenv==1.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
