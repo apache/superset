@@ -28,7 +28,6 @@ from superset.daos.base import BaseDAO
 from superset.mcp_service.constants import ModelType
 from superset.mcp_service.privacy import (
     filter_user_directory_columns,
-    inject_current_user_for_self_referencing_filters,
     SELF_REFERENCING_FILTER_COLUMNS,
     USER_DIRECTORY_FIELDS,
 )
@@ -181,24 +180,35 @@ class ModelListCore(BaseCore, Generic[L]):
         filters: Any,
         created_by_me: bool,
         owned_by_me: bool,
+        user: Any,
     ) -> Any:
         """Translate created_by_me/owned_by_me flags into ColumnOperator filters.
+
+        Validates authentication and injects the current user's ID in one step,
+        so no placeholder value ever reaches the DAO layer.
 
         When both flags are set, a single combined OR filter is used so results
         include items where the user is either the creator or an owner.
         """
+        if not (created_by_me or owned_by_me):
+            return filters
+
+        if not user or not getattr(user, "is_authenticated", False):
+            raise ValueError("This operation requires an authenticated user")
+
         from superset.daos.base import ColumnOperator
 
-        extra: ColumnOperator | None = None
+        user_id: int = user.id
+        extra: ColumnOperator
         if created_by_me and owned_by_me:
-            extra = ColumnOperator(col="created_by_fk_or_owner", opr="eq", value=0)
+            extra = ColumnOperator(
+                col="created_by_fk_or_owner", opr="eq", value=user_id
+            )
         elif created_by_me:
-            extra = ColumnOperator(col="created_by_fk", opr="eq", value=0)
-        elif owned_by_me:
-            extra = ColumnOperator(col="owner", opr="eq", value=0)
+            extra = ColumnOperator(col="created_by_fk", opr="eq", value=user_id)
+        else:
+            extra = ColumnOperator(col="owner", opr="eq", value=user_id)
 
-        if extra is None:
-            return filters
         if filters is None:
             return [extra]
         if isinstance(filters, list):
@@ -231,9 +241,8 @@ class ModelListCore(BaseCore, Generic[L]):
 
         from superset.mcp_service.utils.permissions_utils import get_current_user
 
-        filters = self._prepend_self_lookup_filters(filters, created_by_me, owned_by_me)
-        filters = inject_current_user_for_self_referencing_filters(
-            filters, get_current_user()
+        filters = self._prepend_self_lookup_filters(
+            filters, created_by_me, owned_by_me, get_current_user()
         )
 
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)
