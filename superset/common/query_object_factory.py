@@ -28,6 +28,7 @@ from superset.utils.core import (
     DatasourceDict,
     DatasourceType,
     FilterOperator,
+    get_query_object_filter_column_name,
     get_x_axis_label,
     QueryObjectFilterClause,
 )
@@ -35,15 +36,6 @@ from superset.utils.core import (
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
     from superset.daos.datasource import DatasourceDAO
-
-
-def _temporal_filter_col_name(col: Any) -> str | None:
-    """Normalize filter ``col`` (str or adhoc dict) for comparison with ``get_x_axis_label``."""
-    if col is None:
-        return None
-    if isinstance(col, dict):
-        return col.get("sqlExpression") or col.get("label")
-    return str(col)
 
 
 class QueryObjectFactory:  # pylint: disable=too-few-public-methods
@@ -154,14 +146,14 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
                 match_flt = [
                     flt
                     for flt in temporal_flt
-                    if _temporal_filter_col_name(flt.get("col")) == x_axis_label
+                    if get_query_object_filter_column_name(flt.get("col"))
+                    == x_axis_label
                 ]
                 if match_flt:
                     time_range = cast(str, match_flt[0].get("val"))
                 elif x_axis_label is None:
                     # No BASE_AXIS on the query: preserve legacy behavior.
                     time_range = cast(str, temporal_flt[0].get("val"))
-                # If x_axis_label is set but match_flt is empty, keep NO_TIME_RANGE (set above).
         return time_range
 
     # light version of the view.utils.core

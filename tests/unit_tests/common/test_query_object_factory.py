@@ -147,6 +147,8 @@ class TestQueryObjectFactory:
         """
         BASE_AXIS is known but TEMPORAL_RANGE exists only on another column: do not use
         that column's bounds as the main time_range.
+
+        Expect ``NO_TIME_RANGE`` (no silent fallback to the other column's range).
         """
         columns: list[Any] = [
             {

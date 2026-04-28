@@ -29,16 +29,12 @@ from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
 from superset.models.slice import Slice
 from superset.superset_typing import Column
-from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
-
-
-def _filter_clause_col_name(col: Any) -> str | None:
-    """Physical / SQL column id for comparing filter clauses (str or adhoc dict)."""
-    if col is None:
-        return None
-    if isinstance(col, dict):
-        return col.get("sqlExpression") or col.get("label")
-    return str(col)
+from superset.utils.core import (
+    DatasourceDict,
+    DatasourceType,
+    get_query_object_filter_column_name,
+    is_adhoc_column,
+)
 
 
 def create_query_object_factory() -> QueryObjectFactory:
@@ -291,7 +287,8 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             query_object.filter = [
                 flt
                 for flt in query_object.filter
-                if _filter_clause_col_name(flt.get("col")) != filter_to_remove
+                if get_query_object_filter_column_name(flt.get("col"))
+                != filter_to_remove
             ]
 
     def _apply_filters(self, query_object: QueryObject) -> None:
@@ -299,7 +296,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             for filter_object in query_object.filter:
                 if (
                     filter_object["op"] == "TEMPORAL_RANGE"
-                    and _filter_clause_col_name(filter_object.get("col"))
+                    and get_query_object_filter_column_name(
+                        filter_object.get("col")
+                    )
                     == query_object.granularity
                 ):
                     filter_object["val"] = query_object.time_range
