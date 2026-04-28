@@ -36,6 +36,8 @@ import {
   SMART_DATE_ID,
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
+import { CellProps, Column, HeaderProps } from 'react-table';
+import DataTable from '../src/DataTable/DataTable';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
@@ -1978,6 +1980,222 @@ describe('plugin-chart-table', () => {
             String(totalAfterFilter),
           );
           expect(totalCellAfter).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text across temporal table rerenders', async () => {
+        const formDataWithSearch = {
+          ...testData.basic.formData,
+          include_search: true,
+          server_pagination: false,
+        };
+
+        const renderChart = () => {
+          const props = transformProps({
+            ...testData.basic,
+            formData: formDataWithSearch,
+          });
+          props.includeSearch = true;
+
+          return (
+            <ProviderWrapper>
+              <TableChart {...props} sticky={false} />
+            </ProviderWrapper>
+          );
+        };
+
+        const { rerender } = render(renderChart());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderChart());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text when rerendered with empty data', async () => {
+        const formDataWithSearch = {
+          ...testData.basic.formData,
+          include_search: true,
+          server_pagination: false,
+        };
+
+        const renderChart = (data = testData.basic.queriesData[0].data) => {
+          const props = transformProps({
+            ...testData.basic,
+            formData: formDataWithSearch,
+            queriesData: [
+              {
+                ...testData.basic.queriesData[0],
+                data,
+              },
+            ],
+          });
+          props.includeSearch = true;
+
+          return (
+            <ProviderWrapper>
+              <TableChart {...props} sticky={false} />
+            </ProviderWrapper>
+          );
+        };
+
+        const { rerender } = render(renderChart());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderChart([]));
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByLabelText('Search 0 records')).toHaveValue(
+            'Michael',
+          );
+        });
+      });
+
+      test('preserves client-side search text for function accessor columns', async () => {
+        type DataRow = {
+          city: string;
+          firstName: string;
+        };
+
+        const makeColumns = (): Column<DataRow>[] => [
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>First name</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            id: 'firstName',
+            accessor: ((row: DataRow) => row.firstName) as never,
+          },
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>City</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            id: 'city',
+            accessor: ((row: DataRow) => row.city) as never,
+          },
+        ];
+
+        const data: DataRow[] = [
+          { firstName: 'Michael', city: 'Paris' },
+          { firstName: 'Jordan', city: 'London' },
+        ];
+
+        const renderDataTable = () => (
+          <ProviderWrapper>
+            <DataTable<DataRow>
+              columns={makeColumns()}
+              data={data}
+              rowCount={data.length}
+              serverPagination={false}
+              serverPaginationData={{}}
+              onServerPaginationChange={jest.fn()}
+              handleSortByChange={jest.fn()}
+              sortByFromParent={[]}
+              onSearchColChange={jest.fn()}
+              searchOptions={[]}
+              sticky={false}
+            />
+          </ProviderWrapper>
+        );
+
+        const { rerender } = render(renderDataTable());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderDataTable());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text for string accessor columns without ids', async () => {
+        type DataRow = {
+          city: string;
+          firstName: string;
+        };
+
+        const makeColumns = (): Column<DataRow>[] => [
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>First name</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            accessor: 'firstName',
+          },
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>City</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            accessor: 'city',
+          },
+        ];
+
+        const data: DataRow[] = [
+          { firstName: 'Michael', city: 'Paris' },
+          { firstName: 'Jordan', city: 'London' },
+        ];
+
+        const renderDataTable = () => (
+          <ProviderWrapper>
+            <DataTable<DataRow>
+              columns={makeColumns()}
+              data={data}
+              rowCount={data.length}
+              serverPagination={false}
+              serverPaginationData={{}}
+              onServerPaginationChange={jest.fn()}
+              handleSortByChange={jest.fn()}
+              sortByFromParent={[]}
+              onSearchColChange={jest.fn()}
+              searchOptions={[]}
+              sticky={false}
+            />
+          </ProviderWrapper>
+        );
+
+        const { rerender } = render(renderDataTable());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderDataTable());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
         });
       });
     });
