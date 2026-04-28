@@ -25,6 +25,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastmcp.exceptions import ToolError
 
+from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
 from superset.mcp_service.middleware import (
     create_response_size_guard_middleware,
     ResponseSizeGuardMiddleware,
@@ -311,6 +312,10 @@ class TestResponseSizeGuardMiddleware:
 
 class TestCreateResponseSizeGuardMiddleware:
     """Test create_response_size_guard_middleware factory function."""
+
+    def test_default_config_checks_chart_preview(self) -> None:
+        """Should size-check chart preview responses by default."""
+        assert "get_chart_preview" not in MCP_RESPONSE_SIZE_CONFIG["excluded_tools"]
 
     def test_creates_middleware_when_enabled(self) -> None:
         """Should create middleware when enabled in config."""
