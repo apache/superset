@@ -347,7 +347,7 @@ python-dateutil==2.9.0.post0
     #   holidays
     #   pandas
     #   shillelagh
-python-dotenv==1.1.0
+python-dotenv==1.2.2
     # via apache-superset (pyproject.toml)
 python-multipart==0.0.27
     # via -r requirements/base.in
