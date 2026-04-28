@@ -50,7 +50,6 @@ import Table, {
 import { RootState } from 'src/dashboard/types';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
@@ -248,7 +247,7 @@ export default function DrillDetailPane({
       if (dashboardId) {
         payload.form_data = { dashboardId };
       }
-      SupersetClient.postForm(ensureAppRoot('/api/v1/chart/data'), {
+      SupersetClient.postForm('/api/v1/chart/data', {
         form_data: safeStringify(payload),
       }).catch(error => {
         addDangerToast(
