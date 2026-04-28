@@ -314,6 +314,7 @@ const StyledDashboardContent = styled.div<{
       background-color: ${theme.colorBgContainer};
       position: relative;
       padding: ${theme.sizeUnit * 4}px;
+      box-sizing: border-box;
       overflow-y: visible;
 
       // transitionable traits to show filter relevance
@@ -331,7 +332,7 @@ const StyledDashboardContent = styled.div<{
 
       &.fade-out {
         border-radius: ${theme.borderRadius}px;
-        box-shadow: none;
+        box-shadow: 0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)};
       }
 
       & .missing-chart-container {
