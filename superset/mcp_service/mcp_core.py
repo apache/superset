@@ -28,7 +28,7 @@ from superset.daos.base import BaseDAO
 from superset.mcp_service.constants import ModelType
 from superset.mcp_service.privacy import (
     filter_user_directory_columns,
-    inject_current_user_for_created_by_fk,
+    inject_current_user_for_self_referencing_filters,
     SELF_REFERENCING_FILTER_COLUMNS,
     USER_DIRECTORY_FIELDS,
 )
@@ -199,7 +199,11 @@ class ModelListCore(BaseCore, Generic[L]):
 
         if extra is None:
             return filters
-        return [extra] + (filters if isinstance(filters, list) else [])
+        if filters is None:
+            return [extra]
+        if isinstance(filters, list):
+            return [extra] + filters
+        return [extra, filters]
 
     def run_tool(
         self,
@@ -228,7 +232,9 @@ class ModelListCore(BaseCore, Generic[L]):
         from superset.mcp_service.utils.permissions_utils import get_current_user
 
         filters = self._prepend_self_lookup_filters(filters, created_by_me, owned_by_me)
-        filters = inject_current_user_for_created_by_fk(filters, get_current_user())
+        filters = inject_current_user_for_self_referencing_filters(
+            filters, get_current_user()
+        )
 
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)
         columns_requested, columns_to_load = self._get_columns_to_load(select_columns)

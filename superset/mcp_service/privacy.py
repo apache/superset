@@ -131,8 +131,8 @@ def user_can_view_data_model_metadata() -> bool:
         return False
 
 
-def inject_current_user_for_created_by_fk(filters: Any, user: Any) -> Any:
-    """Replace the value of any created_by_fk filter with the current user's ID.
+def inject_current_user_for_self_referencing_filters(filters: Any, user: Any) -> Any:
+    """Replace the value of any self-referencing filter with the current user's ID.
 
     Callers specify the column and operator; the system fills in the value.
     This prevents enumeration of other users' content.

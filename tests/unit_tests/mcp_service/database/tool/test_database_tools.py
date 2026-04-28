@@ -48,10 +48,11 @@ class TestDatabaseFilterSchema:
         with pytest.raises(ValidationError):
             DatabaseFilter(col="created_by_fk", opr="eq", value=1)
 
-    def test_changed_by_fk_is_valid_filter_column(self):
-        """changed_by_fk must be accepted as a filter column."""
-        f = DatabaseFilter(col="changed_by_fk", opr="eq", value=1)
-        assert f.col == "changed_by_fk"
+    def test_changed_by_fk_is_rejected_as_filter_column(self):
+        """changed_by_fk is not a public filter column; it exposes a user enumeration
+        vector (caller can probe which databases a given user ID has touched)."""
+        with pytest.raises(ValidationError):
+            DatabaseFilter(col="changed_by_fk", opr="eq", value=1)
 
     def test_invalid_filter_column_rejected(self):
         """Columns not in the Literal set must be rejected."""
@@ -269,11 +270,10 @@ async def test_list_databases_does_not_expose_user_directory_fields(
 
 
 def test_database_filter_rejects_user_directory_fields() -> None:
-    """Test user directory string fields cannot be used for database filters.
+    """Test user directory fields cannot be used for database filters.
 
-    created_by_fk / changed_by_fk are integer FK IDs and ARE valid filter
-    columns.  The user-directory *string* fields (created_by, created_by_name,
-    etc.) must still be rejected.
+    All FK columns (created_by_fk, changed_by_fk) and user-directory string
+    fields (created_by, created_by_name, etc.) must be rejected.
     """
     with pytest.raises(ValidationError, match="created_by_name"):
         ListDatabasesRequest(

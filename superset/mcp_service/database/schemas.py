@@ -62,7 +62,6 @@ class DatabaseFilter(ColumnOperator):
         "database_name",
         "expose_in_sqllab",
         "allow_file_upload",
-        "changed_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='database') for "
