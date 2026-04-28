@@ -53,6 +53,23 @@ from superset.utils import json as utils_json
 logger = logging.getLogger(__name__)
 
 
+def _find_dataset(dataset_id: int | str) -> Any | None:
+    """Look up a dataset by numeric ID or UUID and check access."""
+    from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.auth import has_dataset_access
+
+    if isinstance(dataset_id, int) or (
+        isinstance(dataset_id, str) and dataset_id.isdigit()
+    ):
+        dataset = DatasetDAO.find_by_id(int(dataset_id))
+    else:
+        dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+
+    if dataset and not has_dataset_access(dataset):
+        return None
+    return dataset
+
+
 def _get_old_adhoc_filters(form_data_key: str) -> list[Dict[str, Any]] | None:
     """Retrieve adhoc_filters from the previously cached form_data."""
     from superset.commands.exceptions import CommandException
@@ -131,6 +148,33 @@ def update_chart_preview(
                 "schema_version": "2.0",
                 "api_version": "v1",
             }
+
+        # Validate dataset exists and user has access
+        with event_logger.log_context(action="mcp.update_chart_preview.dataset_lookup"):
+            dataset = _find_dataset(request.dataset_id)
+
+            if not dataset:
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "dataset_not_found",
+                        "message": (f"Dataset not found: {request.dataset_id}"),
+                        "details": (
+                            f"No dataset found with identifier "
+                            f"'{request.dataset_id}'. This could "
+                            f"be an invalid ID/UUID or a "
+                            f"permissions issue."
+                        ),
+                        "suggestions": [
+                            "Verify the dataset ID or UUID",
+                            "Check dataset access permissions",
+                            "Use list_datasets to find available datasets",
+                        ],
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
             # Map the new config to form_data format
