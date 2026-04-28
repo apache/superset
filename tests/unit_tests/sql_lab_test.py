@@ -285,8 +285,18 @@ def test_apply_rls(mocker: MockerFixture) -> None:
 
     get_predicates_for_table.assert_has_calls(
         [
-            mocker.call(Table("t1", "public", "examples"), database, "examples"),
-            mocker.call(Table("t2", "public", "examples"), database, "examples"),
+            mocker.call(
+                Table("t1", "public", "examples"),
+                database,
+                "examples",
+                exclude_dataset_id=None,
+            ),
+            mocker.call(
+                Table("t2", "public", "examples"),
+                database,
+                "examples",
+                exclude_dataset_id=None,
+            ),
         ]
     )
 
@@ -329,3 +339,27 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
     dataset.get_sqla_row_level_filters.assert_called_once_with(
         include_global_guest_rls=False
     )
+
+
+def test_get_predicates_for_table_excludes_self(mocker: MockerFixture) -> None:
+    """
+    When ``exclude_dataset_id`` is supplied, the lookup query must add an
+    ``id != exclude_dataset_id`` filter so a virtual dataset whose
+    ``table_name`` matches a table referenced inside its own SQL doesn't get
+    its own RLS injected into the inner SQL (would double-apply on top of the
+    outer WHERE). Regression test for the physical→virtual conversion bug.
+    """
+    database = mocker.MagicMock()
+    db = mocker.patch("superset.utils.rls.db")
+    db.session.query().filter().one_or_none.return_value = None
+
+    table = Table("orders", "public", "examples")
+    assert (
+        get_predicates_for_table(table, database, "examples", exclude_dataset_id=42)
+        == []
+    )
+    # The filter call should have received four base filters plus the exclusion
+    # filter, i.e. five total positional args inside and_().
+    filter_call = db.session.query().filter.call_args
+    and_clause = filter_call.args[0]
+    assert len(and_clause.clauses) == 5
