@@ -833,7 +833,7 @@ python-dotenv==1.1.0
     #   pydantic-settings
 python-ldap==3.4.4
     # via apache-superset
-python-multipart==0.0.20
+python-multipart==0.0.26
     # via mcp
 pytz==2025.2
     # via
