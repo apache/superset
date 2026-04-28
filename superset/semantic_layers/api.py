@@ -254,7 +254,14 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-        return self.response(200, result={"dimensions": dimensions, "metrics": metrics})
+        return self.response(
+            200,
+            result={
+                "name": view.name,
+                "dimensions": dimensions,
+                "metrics": metrics,
+            },
+        )
 
     @expose("/", methods=("POST",))
     @protect()

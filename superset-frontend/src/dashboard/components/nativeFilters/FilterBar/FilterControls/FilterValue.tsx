@@ -177,8 +177,13 @@ const FilterValue: FC<FilterValueProps> = ({
   const [target] = targets || [];
   const {
     datasetId,
+    datasourceType,
     column = {},
-  }: Partial<{ datasetId: number; column: { name?: string } }> = target || {};
+  }: Partial<{
+    datasetId: number;
+    datasourceType: string;
+    column: { name?: string };
+  }> = target || {};
   const groupby = column?.name;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
@@ -212,6 +217,7 @@ const FilterValue: FC<FilterValueProps> = ({
     const newFormData = getFormData({
       ...filter,
       datasetId,
+      datasourceType,
       dependencies,
       groupby,
       adhoc_filters: adhocFilters,
