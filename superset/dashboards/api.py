@@ -187,7 +187,6 @@ BASE_LIST_COLUMNS = [
     "status",
     "slug",
     "url",
-    "thumbnail_url",
     "certified_by",
     "certification_details",
     "changed_by.first_name",

@@ -22,6 +22,7 @@ import {
   getMatrixifyConfig,
   getMatrixifyValidationErrors,
   MatrixifyFormData,
+  MatrixifyFilterConstants,
 } from './matrixify';
 import { AdhocMetric } from '../../query/types/Metric';
 
@@ -40,10 +41,10 @@ test('isMatrixifyEnabled should return false when no matrixify configuration exi
 test('isMatrixifyEnabled should return false when layout controls are disabled', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_mode_rows: 'disabled',
-    matrixify_mode_columns: 'disabled',
+    matrixify_mode_rows: 'disabled' as const,
+    matrixify_mode_columns: 'disabled' as const,
     matrixify_rows: [createMetric('Revenue')],
-  } as MatrixifyFormData;
+  } as unknown as MatrixifyFormData;
 
   expect(isMatrixifyEnabled(formData)).toBe(false);
 });
@@ -242,9 +243,9 @@ test('getMatrixifyConfig should preserve ascending topn order when explicitly di
 test('getMatrixifyValidationErrors should return empty array when matrixify is not enabled', () => {
   const formData = {
     viz_type: 'table',
-    matrixify_mode_rows: 'disabled',
-    matrixify_mode_columns: 'disabled',
-  } as MatrixifyFormData;
+    matrixify_mode_rows: 'disabled' as const,
+    matrixify_mode_columns: 'disabled' as const,
+  } as unknown as MatrixifyFormData;
 
   expect(getMatrixifyValidationErrors(formData)).toEqual([]);
 });
@@ -431,4 +432,64 @@ test('should handle partial configuration with one axis only', () => {
   } as MatrixifyFormData;
 
   expect(isMatrixifyEnabled(formData)).toBe(true);
+});
+
+test('MatrixifyFilterConstants has expected values', () => {
+  expect(MatrixifyFilterConstants.ExpressionType.SIMPLE).toBe('SIMPLE');
+  expect(MatrixifyFilterConstants.ExpressionType.SQL).toBe('SQL');
+  expect(MatrixifyFilterConstants.Clause.WHERE).toBe('WHERE');
+  expect(MatrixifyFilterConstants.Clause.HAVING).toBe('HAVING');
+  expect(MatrixifyFilterConstants.Operator.EQUALS).toBe('==');
+  expect(MatrixifyFilterConstants.Operator.NOT_EQUALS).toBe('!=');
+  expect(MatrixifyFilterConstants.Operator.IN).toBe('IN');
+  expect(MatrixifyFilterConstants.Operator.NOT_IN).toBe('NOT IN');
+});
+
+test('isMatrixifyEnabled should return true for all dimension selection mode on rows', () => {
+  const formData = {
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_dimension_selection_mode_rows: 'all',
+    matrixify_dimension_rows: { dimension: 'country', values: [] },
+  } as unknown as MatrixifyFormData;
+
+  expect(isMatrixifyEnabled(formData)).toBe(true);
+});
+
+test('isMatrixifyEnabled should return true for all dimension selection mode on columns', () => {
+  const formData = {
+    matrixify_enable: true,
+    matrixify_mode_columns: 'dimensions',
+    matrixify_dimension_selection_mode_columns: 'all',
+    matrixify_dimension_columns: { dimension: 'product', values: [] },
+  } as unknown as MatrixifyFormData;
+
+  expect(isMatrixifyEnabled(formData)).toBe(true);
+});
+
+test('isMatrixifyEnabled should return true for all selection mode on both axes', () => {
+  const formData = {
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_dimension_selection_mode_rows: 'all',
+    matrixify_dimension_rows: { dimension: 'country', values: [] },
+    matrixify_mode_columns: 'dimensions',
+    matrixify_dimension_selection_mode_columns: 'all',
+    matrixify_dimension_columns: { dimension: 'product', values: [] },
+  } as unknown as MatrixifyFormData;
+
+  expect(isMatrixifyEnabled(formData)).toBe(true);
+});
+
+test('getMatrixifyValidationErrors should return no errors for all selection mode with dimension set', () => {
+  const formData = {
+    matrixify_mode_rows: 'dimensions',
+    matrixify_dimension_selection_mode_rows: 'all',
+    matrixify_dimension_rows: { dimension: 'country', values: [] },
+    matrixify_mode_columns: 'dimensions',
+    matrixify_dimension_selection_mode_columns: 'all',
+    matrixify_dimension_columns: { dimension: 'product', values: [] },
+  } as unknown as MatrixifyFormData;
+
+  expect(getMatrixifyValidationErrors(formData)).toEqual([]);
 });

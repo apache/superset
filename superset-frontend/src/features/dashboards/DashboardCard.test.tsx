@@ -18,13 +18,9 @@
  */
 
 import { MemoryRouter } from 'react-router-dom';
-import {
-  JsonResponse,
-  SupersetClient,
-  isFeatureEnabled,
-} from '@superset-ui/core';
+import { isFeatureEnabled } from '@superset-ui/core';
 
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 
 import DashboardCard from './DashboardCard';
 
@@ -104,57 +100,46 @@ test('Renders the modified date', () => {
   expect(modifiedDateElement).toBeInTheDocument();
 });
 
-test('should fetch thumbnail when dashboard has no thumbnail URL and feature flag is enabled', async () => {
-  const mockGet = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
-    json: { result: { thumbnail_url: '/new-thumbnail.png' } },
-  } as unknown as JsonResponse);
-
-  const { rerender } = render(
-    <DashboardCard
-      dashboard={{
-        id: 1,
-        thumbnail_url: '',
-        changed_by_name: '',
-        changed_by: '',
-        dashboard_title: '',
-        published: false,
-        url: '',
-        owners: [],
-      }}
-      hasPerm={() => true}
-      bulkSelectEnabled={false}
-      loading={false}
-      saveFavoriteStatus={() => {}}
-      favoriteStatus={false}
-      handleBulkDashboardExport={() => {}}
-      onDelete={() => {}}
-    />,
-  );
-  await waitFor(() => {
-    expect(mockGet).toHaveBeenCalledWith({
-      endpoint: '/api/v1/dashboard/1',
-    });
+test('constructs thumbnail URL from dashboard id and changed_on_utc when thumbnail_url is empty', () => {
+  const originalFetch = global.fetch;
+  const mockFetch = jest.fn().mockResolvedValue({
+    blob: () => Promise.resolve(new Blob([''], { type: 'image/png' })),
   });
-  rerender(
-    <DashboardCard
-      dashboard={{
-        id: 1,
-        thumbnail_url: '/new-thumbnail.png',
-        changed_by_name: '',
-        changed_by: '',
-        dashboard_title: '',
-        published: false,
-        url: '',
-        owners: [],
-      }}
-      hasPerm={() => true}
-      bulkSelectEnabled={false}
-      loading={false}
-      saveFavoriteStatus={() => {}}
-      favoriteStatus={false}
-      handleBulkDashboardExport={() => {}}
-      onDelete={() => {}}
-    />,
+  global.fetch = mockFetch;
+
+  render(
+    <MemoryRouter>
+      <DashboardCard
+        dashboard={{
+          id: 2,
+          thumbnail_url: '',
+          changed_by_name: '',
+          changed_by: '',
+          dashboard_title: 'No Thumb Dashboard',
+          published: false,
+          url: '/dashboard/2',
+          owners: [],
+          changed_on_utc: '2024-01-01T00:00:00',
+        }}
+        hasPerm={() => true}
+        bulkSelectEnabled={false}
+        loading={false}
+        showThumbnails
+        saveFavoriteStatus={() => {}}
+        favoriteStatus={false}
+        handleBulkDashboardExport={() => {}}
+        onDelete={() => {}}
+      />
+    </MemoryRouter>,
   );
-  mockGet.mockRestore();
+
+  expect(screen.getByText('No Thumb Dashboard')).toBeInTheDocument();
+  // When thumbnail_url is empty, the component constructs the URL directly
+  // from dashboard.id and dashboard.changed_on_utc instead of fetching
+  // via SupersetClient.get.
+  expect(mockFetch).toHaveBeenCalledWith(
+    '/api/v1/dashboard/2/thumbnail/2024-01-01T00%3A00%3A00/',
+  );
+
+  global.fetch = originalFetch;
 });
