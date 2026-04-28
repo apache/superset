@@ -133,7 +133,7 @@ async def generate_explore_link(
                 dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
 
             if not dataset:
-                await ctx.error(
+                await ctx.warning(
                     "Dataset not found: dataset_id=%s" % (request.dataset_id,)
                 )
                 return {

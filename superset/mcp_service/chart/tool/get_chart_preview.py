@@ -1120,7 +1120,7 @@ async def _get_chart_preview_internal(  # noqa: C901
                         )
 
         if not chart:
-            await ctx.error("Chart not found: identifier=%s" % (request.identifier,))
+            await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
             return ChartError(
                 error=f"No chart found with identifier: {request.identifier}",
                 error_type="NotFound",
@@ -1380,7 +1380,7 @@ async def get_chart_preview(
 
         return result
     except OAuth2RedirectError as ex:
-        await ctx.error(
+        await ctx.warning(
             "Chart preview requires OAuth authentication: identifier=%s"
             % request.identifier
         )
