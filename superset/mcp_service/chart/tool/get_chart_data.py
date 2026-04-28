@@ -163,7 +163,7 @@ async def get_chart_data(  # noqa: C901
             chart = find_chart_by_identifier(request.identifier)
 
         if not chart:
-            await ctx.error("Chart not found: identifier=%s" % (request.identifier,))
+            await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
             return ChartError(
                 error=f"No chart found with identifier: {request.identifier}",
                 error_type="NotFound",
@@ -474,7 +474,7 @@ async def get_chart_data(  # noqa: C901
                 # columns, return a clear error instead of the cryptic
                 # "Empty query?" that comes from deeper in the stack.
                 if not metrics and not query_columns:
-                    await ctx.error(
+                    await ctx.warning(
                         "Cannot construct fallback query for chart %s "
                         "(viz_type=%s): no metrics, columns, or groupby "
                         "could be extracted from form_data. "
@@ -778,7 +778,7 @@ async def get_chart_data(  # noqa: C901
             )
 
     except OAuth2RedirectError as ex:
-        await ctx.error(
+        await ctx.warning(
             "Chart data requires OAuth authentication: identifier=%s"
             % request.identifier
         )

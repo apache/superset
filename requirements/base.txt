@@ -249,7 +249,6 @@ numpy==1.26.4
     #   bottleneck
     #   numexpr
     #   pandas
-    #   pyarrow
 odfpy==1.4.1
     # via pandas
 openapi-schema-validator==0.6.3
@@ -281,7 +280,7 @@ parsedatetime==2.6
     # via apache-superset (pyproject.toml)
 pgsanity==0.2.9
     # via apache-superset (pyproject.toml)
-pillow==12.1.1
+pillow==12.2.0
     # via apache-superset (pyproject.toml)
 platformdirs==4.3.8
     # via requests-cache
@@ -340,7 +339,7 @@ python-dateutil==2.9.0.post0
     #   holidays
     #   pandas
     #   shillelagh
-python-dotenv==1.1.0
+python-dotenv==1.2.2
     # via apache-superset (pyproject.toml)
 pytz==2025.2
     # via
@@ -370,6 +369,8 @@ rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rich==13.9.4
     # via flask-limiter
+rison==2.0.0
+    # via apache-superset (pyproject.toml)
 rpds-py==0.25.0
     # via
     #   jsonschema

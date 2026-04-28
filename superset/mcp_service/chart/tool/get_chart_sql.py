@@ -127,6 +127,27 @@ def _resolve_metrics_and_groupby(
     return _resolve_metrics(form_data, viz_type), _resolve_groupby(form_data)
 
 
+def _resolve_engine(
+    datasource_id: Any,
+    datasource_type: str,
+) -> str:
+    """Return the DB engine name for *datasource_id*, or ``"base"`` on any error."""
+    if not isinstance(datasource_id, (int, str)):
+        return "base"
+    try:
+        from superset.daos.datasource import DatasourceDAO
+        from superset.utils.core import DatasourceType
+
+        ds = DatasourceDAO.get_datasource(
+            datasource_type=DatasourceType(datasource_type),
+            database_id_or_uuid=datasource_id,
+        )
+        return ds.database.db_engine_spec.engine
+    except Exception:  # noqa: BLE001
+        logger.debug("Could not resolve engine for datasource %s", datasource_id)
+        return "base"
+
+
 def _build_query_context_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None" = None,
@@ -159,13 +180,34 @@ def _build_query_context_from_form_data(
 
     metrics, groupby = _resolve_metrics_and_groupby(form_data, chart)
 
-    # Build a minimal query object; let QueryContextFactory handle temporal
-    # fields (time_range, granularity_sqla), adhoc_filters, WHERE/HAVING
-    # clauses, etc. from form_data — same approach as get_chart_data.
+    # Preprocess adhoc_filters into where/having/filters on form_data so
+    # that the QueryObject receives concrete filter clauses.  This mirrors
+    # the view-layer call in viz.py:process_query_filters.
+    from superset.utils.core import (
+        merge_extra_filters,
+        split_adhoc_filters_into_base_filters,
+    )
+
+    resolved_type_str: str = (
+        datasource_type if isinstance(datasource_type, str) else "table"
+    )
+    engine = _resolve_engine(datasource_id, resolved_type_str)
+    merge_extra_filters(form_data)
+    split_adhoc_filters_into_base_filters(form_data, engine)
+
+    # Build query dict with temporal and filter fields.
+    # QueryObjectFactory.create() accepts time_range as a top-level kwarg
+    # and converts it to from_dttm/to_dttm for the QueryObject.
     query_dict: dict[str, Any] = {
         "columns": groupby,
         "metrics": metrics,
     }
+
+    if time_range := form_data.get("time_range"):
+        query_dict["time_range"] = time_range
+
+    if filters := form_data.get("filters"):
+        query_dict["filters"] = filters
 
     if (row_limit := form_data.get("row_limit")) is not None:
         query_dict["row_limit"] = row_limit
@@ -179,12 +221,9 @@ def _build_query_context_from_form_data(
             "'datasource_id' or 'datasource'."
         )
     resolved_id: int | str = datasource_id
-    resolved_type: str = (
-        datasource_type if isinstance(datasource_type, str) else "table"
-    )
 
     return factory.create(
-        datasource={"id": resolved_id, "type": resolved_type},
+        datasource={"id": resolved_id, "type": resolved_type_str},
         queries=[query_dict],
         form_data=form_data,
         result_type=ChartDataResultType.QUERY,
@@ -270,6 +309,54 @@ def _sql_from_saved_query_context(
         return None
 
 
+def _resolve_datasource_name(
+    form_data: dict[str, Any],
+    chart: "Slice | None",
+) -> str | None:
+    """Resolve datasource name from form_data or chart.
+
+    For unsaved charts (chart=None), looks up the datasource by ID
+    from form_data so that the response includes a meaningful name.
+    """
+    if chart:
+        return getattr(chart, "datasource_name", None)
+
+    # Unsaved chart — resolve from form_data
+    datasource_id = form_data.get("datasource_id")
+    datasource_type = form_data.get("datasource_type", "table")
+
+    if not datasource_id and (combined := form_data.get("datasource")):
+        if isinstance(combined, str) and "__" in combined:
+            parts = combined.split("__", 1)
+            datasource_id = int(parts[0]) if parts[0].isdigit() else parts[0]
+            datasource_type = parts[1] if len(parts) > 1 else "table"
+
+    if not datasource_id:
+        return None
+
+    try:
+        from superset.daos.datasource import DatasourceDAO
+        from superset.daos.exceptions import (
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
+        )
+        from superset.utils.core import DatasourceType
+
+        datasource = DatasourceDAO.get_datasource(
+            datasource_type=DatasourceType(datasource_type),
+            database_id_or_uuid=datasource_id,
+        )
+        return getattr(datasource, "name", None)
+    except (
+        ValueError,
+        DatasourceNotFound,
+        DatasourceTypeNotSupportedError,
+        DatasourceValueIsIncorrect,
+    ):
+        return None
+
+
 def _sql_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None",
@@ -286,7 +373,7 @@ def _sql_from_form_data(
         result,
         chart_id=getattr(chart, "id", None),
         chart_name=getattr(chart, "slice_name", None),
-        datasource_name=getattr(chart, "datasource_name", None),
+        datasource_name=_resolve_datasource_name(form_data, chart),
     )
 
 
@@ -348,7 +435,8 @@ def _extract_sql_from_result(
 
 @tool(
     tags=["data"],
-    class_permission_name="Chart",
+    class_permission_name="SQLLab",
+    method_permission_name="execute_sql_query",
     annotations=ToolAnnotations(
         title="Get chart SQL",
         readOnlyHint=True,

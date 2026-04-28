@@ -442,7 +442,7 @@ LANGUAGES = {
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
     "nl": {"flag": "nl", "name": "Dutch"},
-    "uk": {"flag": "uk", "name": "Ukranian"},
+    "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
 }
 # Turning off i18n by default as translation in most languages are
