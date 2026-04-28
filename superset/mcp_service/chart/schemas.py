@@ -1747,21 +1747,21 @@ class GetChartPreviewRequest(QueryCacheControl):
         return self
 
     format: Literal["url", "ascii", "table", "vega_lite"] = Field(
-        default="url",
+        default="ascii",
         description=(
-            "Preview format: 'url' for explore link (default), "
-            "'ascii' for text art, "
+            "Preview format: 'ascii' for text art (default), "
+            "'url' for explore link, "
             "'table' for data table, "
             "'vega_lite' for interactive JSON specification"
         ),
     )
     width: int | None = Field(
         default=800,
-        description="Preview image width in pixels (for url/base64 formats)",
+        description="Preview width in pixels (for url and vega_lite formats)",
     )
     height: int | None = Field(
         default=600,
-        description="Preview image height in pixels (for url/base64 formats)",
+        description="Preview height in pixels (for url and vega_lite formats)",
     )
     ascii_width: int | None = Field(
         default=80, description="ASCII chart width in characters (for ascii format)"
@@ -1773,10 +1773,10 @@ class GetChartPreviewRequest(QueryCacheControl):
 
 # Discriminated union preview formats for type safety
 class URLPreview(BaseModel):
-    """URL-based image preview format."""
+    """URL-based preview format."""
 
     type: Literal["url"] = "url"
-    preview_url: str = Field(..., description="Direct image URL")
+    preview_url: str = Field(..., description="Explore URL for opening the chart")
     width: int = Field(..., description="Image width in pixels")
     height: int = Field(..., description="Image height in pixels")
     supports_interaction: bool = Field(
