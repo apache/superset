@@ -26,7 +26,6 @@ from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 import humanize
-from fastmcp.exceptions import ToolError
 from pydantic import (
     AliasChoices,
     AliasPath,
@@ -1295,7 +1294,7 @@ def parse_chart_config(
     try:
         return _CHART_CONFIG_ADAPTER.validate_python(config)
     except Exception as e:
-        raise ToolError(
+        raise ValueError(
             f"{e}\n\n"
             f"Hint: read the chart://configs resource for valid configuration "
             f"examples and field reference."

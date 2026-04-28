@@ -26,8 +26,6 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict
 
-from fastmcp.exceptions import ToolError
-
 from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
@@ -336,13 +334,13 @@ def map_config_to_form_data(
     elif isinstance(config, BigNumberChartConfig):
         if config.show_trendline and config.temporal_column:
             if not is_column_truly_temporal(config.temporal_column, dataset_id):
-                raise ToolError(
+                raise ValueError(
                     f"Big Number trendline requires a temporal SQL column; "
                     f"'{config.temporal_column}' is not temporal."
                 )
         return map_big_number_config(config)
     else:
-        raise ToolError(f"Unsupported config type: {type(config)}")
+        raise ValueError(f"Unsupported config type: {type(config)}")
 
 
 def _add_adhoc_filters(
@@ -388,7 +386,7 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     """Map table chart config to form_data with defensive validation."""
     # Early validation to prevent empty charts
     if not config.columns:
-        raise ToolError("Table chart must have at least one column")
+        raise ValueError("Table chart must have at least one column")
 
     # Use the viz_type from config (defaults to "table", can be "ag-grid-table")
     form_data: Dict[str, Any] = {
@@ -424,7 +422,7 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
 
         # Final validation - ensure we have some data to display
         if not raw_columns and not aggregated_metrics:
-            raise ToolError(
+            raise ValueError(
                 "Table chart configuration resulted in no displayable columns"
             )
 
@@ -621,7 +619,7 @@ def _resolve_default_x_axis(
         return config
 
     if not dataset_id:
-        raise ToolError("x-axis column is required when dataset_id is not provided")
+        raise ValueError("x-axis column is required when dataset_id is not provided")
     from superset.daos.dataset import DatasetDAO
 
     if isinstance(dataset_id, int) or (
@@ -632,7 +630,7 @@ def _resolve_default_x_axis(
         dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
 
     if not dataset or not dataset.main_dttm_col:
-        raise ToolError(
+        raise ValueError(
             "x-axis column is required: dataset has no primary datetime "
             "column (main_dttm_col). Please specify the x-axis column "
             "explicitly."
@@ -648,7 +646,7 @@ def map_xy_config(
     """Map XY chart config to form_data with defensive validation."""
     # Early validation to prevent empty charts
     if not config.y:
-        raise ToolError("XY chart must have at least one Y-axis metric")
+        raise ValueError("XY chart must have at least one Y-axis metric")
 
     # Resolve x-axis default: use dataset's main_dttm_col when x is omitted
     config = _resolve_default_x_axis(config, dataset_id)
@@ -678,12 +676,12 @@ def map_xy_config(
     metrics = []
     for col in config.y:
         if not col.name.strip():  # Validate column name is not empty
-            raise ToolError("Y-axis column name cannot be empty")
+            raise ValueError("Y-axis column name cannot be empty")
         metrics.append(create_metric_object(col))
 
     # Final validation - ensure we have metrics to display
     if not metrics:
-        raise ToolError("XY chart configuration resulted in no displayable metrics")
+        raise ValueError("XY chart configuration resulted in no displayable metrics")
 
     form_data: Dict[str, Any] = {
         "viz_type": viz_type_map.get(config.kind, "echarts_timeseries_line"),
@@ -829,9 +827,9 @@ def map_handlebars_config(config: HandlebarsChartConfig) -> Dict[str, Any]:
 def map_pivot_table_config(config: PivotTableChartConfig) -> Dict[str, Any]:
     """Map pivot table config to Superset form_data."""
     if not config.rows:
-        raise ToolError("Pivot table must have at least one row grouping column")
+        raise ValueError("Pivot table must have at least one row grouping column")
     if not config.metrics:
-        raise ToolError("Pivot table must have at least one metric")
+        raise ValueError("Pivot table must have at least one metric")
 
     metrics = [create_metric_object(col) for col in config.metrics]
 
@@ -911,9 +909,9 @@ def map_mixed_timeseries_config(
 ) -> Dict[str, Any]:
     """Map mixed timeseries chart config to Superset form_data."""
     if not config.y:
-        raise ToolError("Mixed timeseries must have at least one primary metric")
+        raise ValueError("Mixed timeseries must have at least one primary metric")
     if not config.y_secondary:
-        raise ToolError("Mixed timeseries must have at least one secondary metric")
+        raise ValueError("Mixed timeseries must have at least one secondary metric")
 
     # Check if x-axis column is truly temporal
     x_is_temporal = is_column_truly_temporal(config.x.name, dataset_id)
