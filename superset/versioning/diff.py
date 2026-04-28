@@ -111,11 +111,20 @@ _CHART_PARAMS_KIND_BY_KEY: dict[str, str] = {
     "columns": "dimension",
 }
 
+# Chart ``params`` sub-keys that are machine-stamped on save and don't
+# carry user-authored signal — same category as ``last_saved_at`` on
+# the scalar side. ``slice_id`` is a self-reference to the chart's
+# own primary id; Superset's save paths add or refresh it on every
+# save, producing a spurious "field" record on the first save after
+# a chart's params were stored without it.
+_CHART_PARAMS_AUDIT_KEYS: frozenset[str] = frozenset({"slice_id"})
+
 
 def scalar_fields_for(
     model_cls: Any,
     *,
     special: frozenset[str] = frozenset(),
+    audit: frozenset[str] = frozenset(),
 ) -> frozenset[str]:
     """Scalar columns on ``model_cls`` that should produce change records.
 
@@ -131,8 +140,15 @@ def scalar_fields_for(
        stay consistent with Continuum's shadow tables. If Continuum
        isn't tracking a column, the change log shouldn't either.
     2. :data:`_AUDIT_FIELDS` — ``id``, ``uuid``, and the audit
-       timestamps / user-id columns.
-    3. The caller's ``special`` set — columns handled by a dedicated
+       timestamps / user-id columns shared across the three entity types.
+    3. The caller's ``audit`` set — model-specific save-side-effect
+       columns that aren't user-authored content. ``Slice.last_saved_at``
+       / ``last_saved_by_fk`` are stamped on every chart save by
+       ``UpdateChartCommand``, similar to how ``changed_on`` is stamped
+       by the ORM event listener; emitting "field" records for them
+       would noise up the change log with one entry per save that
+       carries no user-meaningful signal.
+    4. The caller's ``special`` set — columns handled by a dedicated
        differ elsewhere. ``Slice.params``, for example, is walked by
        :func:`diff_slice_params` to produce first-class ``filter`` /
        ``time_range`` / ``metric`` / ``dimension`` records; emitting
@@ -146,7 +162,7 @@ def scalar_fields_for(
     continuum_exclude = frozenset(
         getattr(model_cls, "__versioned__", {}).get("exclude", []) or []
     )
-    return columns - continuum_exclude - _AUDIT_FIELDS - special
+    return columns - continuum_exclude - _AUDIT_FIELDS - audit - special
 
 
 @dataclass(frozen=True)
@@ -167,13 +183,30 @@ class ChangeRecord:
 Key = str | int
 
 
+def _values_equivalent(from_value: Any, to_value: Any) -> bool:
+    """True if a transition from ``from_value`` to ``to_value`` should
+    NOT produce a record.
+
+    Beyond plain ``==`` equality, treats ``None`` and ``""`` as equivalent:
+    Superset's save paths normalize nullable strings to ``""`` on first
+    write (e.g. ``Dashboard.css``, ``certified_by``,
+    ``certification_details``), so a first-save transition between
+    null and empty string carries no user-authored signal.
+    """
+    if from_value == to_value:
+        return True
+    if from_value in (None, "") and to_value in (None, ""):
+        return True
+    return False
+
+
 def _diff_scalar(
     field_name: str,
     from_value: Any,
     to_value: Any,
 ) -> ChangeRecord | None:
     """Emit a generic ``kind="field"`` record when a scalar differs."""
-    if from_value == to_value:
+    if _values_equivalent(from_value, to_value):
         return None
     return ChangeRecord(
         kind="field",
@@ -313,11 +346,11 @@ def diff_slice_params(
     from_p = _coerce_params(from_params)
     to_p = _coerce_params(to_params)
     records: list[ChangeRecord] = []
-    all_keys = set(from_p) | set(to_p)
+    all_keys = (set(from_p) | set(to_p)) - _CHART_PARAMS_AUDIT_KEYS
     for key in sorted(all_keys):
         from_v = from_p.get(key)
         to_v = to_p.get(key)
-        if from_v == to_v:
+        if _values_equivalent(from_v, to_v):
             continue
         kind = _CHART_PARAMS_KIND_BY_KEY.get(key)
         if kind == "filter" and isinstance(from_v, list) and isinstance(to_v, list):
@@ -414,20 +447,71 @@ def diff_slice(
     return records
 
 
+def diff_json_field(
+    field_name: str,
+    from_value: Any,
+    to_value: Any,
+) -> list[ChangeRecord]:
+    """Diff a TEXT column that stores a JSON dict, emitting one record
+    per top-level key whose value changed.
+
+    Used for ``Dashboard.json_metadata`` and ``Dashboard.position_json``:
+    saving these blobs verbatim into ``from_value`` / ``to_value`` would
+    swamp the change log with multi-KB strings on every save. Walking
+    the parsed dict at the top level reduces noise to "what actually
+    changed" — ``map_label_colors`` was injected, ``chartsInScope``
+    was reshaped, etc. — without needing the full Phase 2 structural
+    diff that would understand ``position_json``'s nested layout.
+
+    Path is ``[field_name, key]``, mirroring ``diff_slice_params``'s
+    ``["params", key]`` shape so renderers can use a single addressing
+    scheme across the chart and dashboard sides.
+    """
+    from_p = _coerce_params(from_value)
+    to_p = _coerce_params(to_value)
+    records: list[ChangeRecord] = []
+    for key in sorted(set(from_p) | set(to_p)):
+        from_v = from_p.get(key)
+        to_v = to_p.get(key)
+        if _values_equivalent(from_v, to_v):
+            continue
+        records.append(
+            ChangeRecord(
+                kind="field",
+                path=[field_name, key],
+                from_value=from_v,
+                to_value=to_v,
+            )
+        )
+    return records
+
+
+# Dashboard text columns that hold JSON dicts. Diffed structurally by
+# :func:`diff_json_field` rather than as opaque scalars to keep change
+# records readable. Listener wiring excludes these from the scalar set
+# via ``scalar_fields_for(Dashboard, special=...)``.
+_DASHBOARD_JSON_FIELDS: tuple[str, ...] = ("json_metadata", "position_json")
+
+
 def diff_dashboard(
     pre: dict[str, Any],
     post: dict[str, Any],
     *,
     fields: Iterable[str],
 ) -> list[ChangeRecord]:
-    """Dashboard scalar-field diff. All paths emit ``kind="field"``.
+    """Dashboard diff: scalar fields plus structural diff of
+    ``json_metadata`` and ``position_json``.
 
     Promoting ``position_json`` to ``kind="layout"`` or
     ``json_metadata.native_filter_configuration`` to ``kind="filter"``
     is deferred to Phase 2 alongside the UI that would render them
-    (spec Clarifications §Session 2026-04-24).
+    (spec Clarifications §Session 2026-04-24); until then, both fields
+    fall through to ``kind="field"`` records keyed by sub-key.
     """
-    return diff_scalar_fields(pre, post, fields=fields)
+    records = diff_scalar_fields(pre, post, fields=fields)
+    for field in _DASHBOARD_JSON_FIELDS:
+        records.extend(diff_json_field(field, pre.get(field), post.get(field)))
+    return records
 
 
 def diff_dataset(

@@ -39,6 +39,7 @@ Deferred:
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
@@ -135,6 +136,46 @@ class TestChartChangeRecords(SupersetTestCase):
         )
         assert path == ["slice_name"]
         assert rows[0]["sequence"] == 0
+
+    def test_last_saved_at_is_excluded_as_audit_noise(self) -> None:
+        """``last_saved_at`` / ``last_saved_by_fk`` are save-side-effect
+        fields stamped by ``UpdateChartCommand`` and must not produce
+        change records — same category as ``changed_on``.
+
+        Saving a chart with ONLY a ``last_saved_at`` bump must produce
+        zero ``version_changes`` rows for that transaction. (Continuum
+        still records the shadow row; we just don't want to noise up
+        the per-edit diff log.)
+        """
+        _persist_fixture_state()
+
+        chart = db.session.query(Slice).first()
+        assert chart is not None
+        chart.last_saved_at = datetime.now() + timedelta(seconds=1)
+        db.session.commit()
+
+        ver_cls = version_class(Slice)
+        latest_tx = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == chart.id)
+            .filter(ver_cls.operation_type == 1)
+            .order_by(ver_cls.transaction_id.desc())
+            .first()
+        )
+        # If the save produced no version row at all (no actual model
+        # change beyond the audit field), nothing to assert. If it did,
+        # there must be no ``last_saved_at`` row in version_changes.
+        if latest_tx is None:
+            return
+        rows = _change_rows_for(
+            latest_tx.transaction_id, entity_kind="chart", entity_id=chart.id
+        )
+        paths = [
+            _json.loads(r["path"]) if isinstance(r["path"], str) else r["path"]
+            for r in rows
+        ]
+        assert ["last_saved_at"] not in paths
+        assert ["last_saved_by_fk"] not in paths
 
     def test_three_scalar_edits_produce_three_records_in_sequence(self) -> None:
         """(a) — three fields changed, three rows, ``sequence`` 0..2."""

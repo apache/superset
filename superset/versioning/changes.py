@@ -58,7 +58,9 @@ produce zero change records per spec §Clarifications 2026-04-24.
 from __future__ import annotations
 
 import logging
+from datetime import date, datetime
 from typing import Any
+from uuid import UUID
 
 import sqlalchemy as sa
 from flask_appbuilder import Model
@@ -162,11 +164,45 @@ def _cached_scalar_fields(model_cls: type) -> frozenset[str]:
         # ``Slice.params`` is walked by ``diff_slice_params`` for kind
         # promotion; emitting it as one opaque ``field`` change would
         # defeat that and flood the log with meaningless records.
+        # ``last_saved_at`` / ``last_saved_by_fk`` are stamped by
+        # ``UpdateChartCommand`` on every chart save; they're audit
+        # noise (same shape as ``changed_on`` / ``changed_by_fk``) and
+        # don't carry user-authored signal.
+        # ``Dashboard.json_metadata`` and ``position_json`` are JSON
+        # blobs walked structurally by ``diff_json_field`` (one record
+        # per changed top-level key); the raw scalar diff would emit
+        # one giant multi-KB record per save and swamp the response.
         special: frozenset[str] = frozenset()
+        audit: frozenset[str] = frozenset()
         if model_cls.__name__ == "Slice":
             special = frozenset({"params"})
-        _SCALAR_FIELDS_CACHE[model_cls] = scalar_fields_for(model_cls, special=special)
+            audit = frozenset({"last_saved_at", "last_saved_by_fk"})
+        elif model_cls.__name__ == "Dashboard":
+            special = frozenset({"json_metadata", "position_json"})
+        _SCALAR_FIELDS_CACHE[model_cls] = scalar_fields_for(
+            model_cls, special=special, audit=audit
+        )
     return _SCALAR_FIELDS_CACHE[model_cls]
+
+
+def _jsonable(value: Any) -> Any:
+    """Convert a column value into a JSON-serialisable form.
+
+    Mirrors the helper in :mod:`superset.versioning.dataset_snapshots`:
+    Slice has ``last_saved_at`` (datetime), datasets have datetime
+    columns, and any of these fields can land in ``from_value`` /
+    ``to_value`` of a ``version_changes`` row, which is a JSON column.
+    Python's default JSON encoder rejects ``datetime`` / ``UUID`` /
+    ``bytes``, so the whole bulk insert fails if a single record
+    carries one. Convert to ISO / hex / str at record-construction time.
+    """
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, UUID):
+        return str(value)
+    if isinstance(value, bytes):
+        return value.hex()
+    return value
 
 
 def _orm_to_post_state(obj: Any) -> dict[str, Any]:
@@ -174,10 +210,13 @@ def _orm_to_post_state(obj: Any) -> dict[str, Any]:
 
     We only read declared column attributes — not relationships or
     hybrid properties — because the diff engine operates on scalar
-    values per its documented API.
+    values per its documented API. Values are passed through
+    :func:`_jsonable` so the dict is JSON-safe end-to-end.
     """
     state = sa.inspect(obj)
-    return {col.key: getattr(obj, col.key) for col in state.mapper.column_attrs}
+    return {
+        col.key: _jsonable(getattr(obj, col.key)) for col in state.mapper.column_attrs
+    }
 
 
 def _read_pre_state(
@@ -201,7 +240,13 @@ def _read_pre_state(
             .mappings()
             .one_or_none()
         )
-    return dict(result) if result is not None else None
+    if result is None:
+        return None
+    # Convert non-JSON-safe types (datetime, UUID, bytes) to strings so
+    # both sides of the diff compare on the same form and any value
+    # that ends up in ``from_value`` / ``to_value`` is acceptable to
+    # the JSON column on insert.
+    return {key: _jsonable(value) for key, value in dict(result).items()}
 
 
 def _compute_records_for_entity(session: Session, obj: Any) -> list[ChangeRecord]:

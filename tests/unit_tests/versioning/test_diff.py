@@ -39,6 +39,7 @@ from superset.versioning.diff import (
     diff_dataset,
     diff_dataset_columns,
     diff_dataset_metrics,
+    diff_json_field,
     diff_scalar_fields,
     diff_slice,
     diff_slice_params,
@@ -284,6 +285,35 @@ def test_diff_scalar_fields_ignores_fields_outside_universe() -> None:
     assert records[0].path == ["a"]
 
 
+def test_null_to_empty_string_is_not_a_change() -> None:
+    """Superset's save path normalises nullable strings (``css``,
+    ``certified_by``, ``certification_details``) to ``""`` on first
+    write. The transition ``null → ""`` carries no user-authored
+    signal and must not produce a record. Same for the reverse.
+    """
+    # Both directions silently pass.
+    pre = {"css": None, "certified_by": "", "title": "Old"}
+    post = {"css": "", "certified_by": None, "title": "New"}
+    records = diff_scalar_fields(
+        pre, post, fields={"css", "certified_by", "title"}
+    )
+    paths = [r.path for r in records]
+    assert ["css"] not in paths
+    assert ["certified_by"] not in paths
+    # Real change still emits.
+    assert ["title"] in paths
+
+
+def test_real_string_change_still_emits() -> None:
+    """Sanity: the null/"" filter must not swallow genuine edits."""
+    pre = {"description": ""}
+    post = {"description": "non-empty"}
+    records = diff_scalar_fields(pre, post, fields={"description"})
+    assert len(records) == 1
+    assert records[0].from_value == ""
+    assert records[0].to_value == "non-empty"
+
+
 # ---------------------------------------------------------------------------
 # (b) Chart params — filters
 # ---------------------------------------------------------------------------
@@ -426,6 +456,39 @@ def test_unknown_params_sub_key_falls_through_to_field() -> None:
             path=["params", "something_custom"],
             from_value="x",
             to_value="y",
+        )
+    ]
+
+
+def test_params_audit_keys_are_excluded() -> None:
+    """``params.slice_id`` is a machine-stamped self-reference and must
+    not produce a record. Superset's save paths add or refresh it on
+    every save (see ``superset/views/core.py``), so without this filter
+    every chart save would emit a spurious ``["params", "slice_id"]``
+    record on the first save after the key was missing.
+    """
+    # slice_id added (null → 104): no record.
+    assert (
+        diff_slice_params(_params_json(), _params_json(slice_id=104)) == []
+    )
+    # slice_id changed (101 → 104): no record.
+    assert (
+        diff_slice_params(
+            _params_json(slice_id=101), _params_json(slice_id=104)
+        )
+        == []
+    )
+    # slice_id alongside a real edit: only the real edit is emitted.
+    records = diff_slice_params(
+        _params_json(slice_id=104, time_range="Last week"),
+        _params_json(slice_id=104, time_range="Last month"),
+    )
+    assert records == [
+        ChangeRecord(
+            kind="time_range",
+            path=["params", "time_range"],
+            from_value="Last week",
+            to_value="Last month",
         )
     ]
 
@@ -694,6 +757,86 @@ def test_dashboard_chart_swap_emits_add_plus_remove() -> None:
     assert kinds == {"chart"}
     assert tos == {"u-2", None}
     assert froms == {"u-1", None}
+
+
+# ---------------------------------------------------------------------------
+# (e2) Dashboard JSON-blob fields (json_metadata, position_json)
+# ---------------------------------------------------------------------------
+
+
+def test_diff_json_field_emits_per_changed_top_level_key() -> None:
+    """Each changed top-level key produces a separate record.
+
+    Mirrors the behaviour of ``diff_slice_params`` for chart params:
+    walking the parsed JSON dict means a save that only adds
+    ``map_label_colors`` doesn't also re-emit the entire blob — only
+    one record for that key.
+    """
+    pre = _json.dumps(
+        {"color_scheme": "", "label_colors": {}, "refresh_frequency": 0}
+    )
+    post = _json.dumps(
+        {
+            "color_scheme": "",  # unchanged
+            "label_colors": {},  # unchanged
+            "refresh_frequency": 30,  # changed
+            "map_label_colors": {"x": "#fff"},  # added
+        }
+    )
+    records = diff_json_field("json_metadata", pre, post)
+    paths = {tuple(r.path) for r in records}
+    assert paths == {
+        ("json_metadata", "refresh_frequency"),
+        ("json_metadata", "map_label_colors"),
+    }
+    assert {r.kind for r in records} == {"field"}
+
+
+def test_diff_json_field_treats_null_and_empty_string_as_equivalent() -> None:
+    """A key that flips from missing/null/"" to "" produces no record."""
+    pre = _json.dumps({"color_scheme": None, "label_colors": {}})
+    post = _json.dumps({"color_scheme": "", "label_colors": {}})
+    assert diff_json_field("json_metadata", pre, post) == []
+
+
+def test_diff_json_field_handles_invalid_or_null_input() -> None:
+    """Malformed JSON / None / non-string values must not crash —
+    both sides degrade to the empty dict, so no records are emitted.
+    """
+    assert diff_json_field("json_metadata", None, None) == []
+    assert diff_json_field("json_metadata", "not-json", "{}") == []
+    assert diff_json_field("position_json", "{}", None) == []
+
+
+def test_diff_dashboard_walks_json_blobs_structurally() -> None:
+    """Full dashboard diff: scalar edit + json_metadata edit produce
+    one record each, keyed by sub-path. The json_metadata blob is
+    NOT emitted as a single opaque ``["json_metadata"]`` record.
+    """
+    pre = {
+        "dashboard_title": "Old",
+        "json_metadata": _json.dumps({"refresh_frequency": 0}),
+        "position_json": _json.dumps({"GRID_ID": {"type": "GRID"}}),
+    }
+    post = {
+        "dashboard_title": "New",
+        "json_metadata": _json.dumps({"refresh_frequency": 30}),
+        "position_json": _json.dumps({"GRID_ID": {"type": "GRID"}}),
+    }
+    records = diff_dashboard(
+        pre, post, fields={"dashboard_title"}
+    )
+    paths = {tuple(r.path) for r in records}
+    assert paths == {
+        ("dashboard_title",),
+        ("json_metadata", "refresh_frequency"),
+    }
+    # Confirm the full json_metadata string is NOT in any record's
+    # from/to_value — the structural walk replaced opaque-blob storage.
+    for r in records:
+        assert "refresh_frequency" not in str(r.from_value or "") or (
+            r.path == ["json_metadata", "refresh_frequency"]
+        )
 
 
 # ---------------------------------------------------------------------------
