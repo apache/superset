@@ -32,6 +32,7 @@ from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
+from superset.utils.network import is_safe_host
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -209,6 +210,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
         """
         try:
             impala_host = query.database.url_object.host
+            if not impala_host or not is_safe_host(impala_host):
+                return False
             url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
             response = requests.post(url, timeout=3)
         except Exception:  # pylint: disable=broad-except

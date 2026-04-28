@@ -19,6 +19,8 @@ import logging
 import re
 from typing import Any
 from urllib import request
+from urllib.parse import urlparse
+from urllib.request import HTTPRedirectHandler
 
 import pandas as pd
 from flask import current_app as app
@@ -34,8 +36,30 @@ from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
+from superset.utils.network import is_safe_host
 
 logger = logging.getLogger(__name__)
+
+
+class _ValidatingRedirectHandler(HTTPRedirectHandler):
+    """Re-validates the redirect target URL before following any HTTP redirect.
+
+    Prevents bypasses where an initial URL passes validation but a subsequent
+    redirect points to a disallowed destination.
+    """
+
+    def redirect_request(
+        self,
+        req: request.Request,
+        fp: Any,
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> request.Request | None:
+        validate_data_uri(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
 
 CHUNKSIZE = 512
 VARCHAR = re.compile(r"VARCHAR\((\d+)\)", re.IGNORECASE)
@@ -82,12 +106,29 @@ def get_dtype(df: pd.DataFrame, dataset: SqlaTable) -> dict[str, VisitableType]:
 
 def validate_data_uri(data_uri: str) -> None:
     """
-    Validate that the data URI is configured on DATASET_IMPORT_ALLOWED_URLS
-    has a valid URL.
+    Validate that the data URI is permitted for dataset import.
 
-    :param data_uri:
-    :return:
+    Local ``file://`` URIs are allowed only when the path is confined to the
+    bundled examples folder.  All other URIs must match a pattern in
+    ``DATASET_IMPORT_ALLOWED_DATA_URLS`` *and* resolve to a publicly-routable host.
+
+    :param data_uri: the URI to validate
+    :raises DatasetForbiddenDataURI: if the URI is not permitted
     """
+    if data_uri.startswith("file://"):
+        import os
+
+        from superset.examples.helpers import get_examples_folder
+
+        # Strip the "file://" prefix to get the filesystem path.
+        file_path = data_uri[len("file://") :]
+        # Resolve symlinks and relative components before comparing.
+        real_path = os.path.realpath(file_path)
+        examples_folder = os.path.realpath(get_examples_folder())
+        if not real_path.startswith(examples_folder + os.sep):
+            raise DatasetForbiddenDataURI()
+        return
+
     allowed_urls = app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"]
     for allowed_url in allowed_urls:
         try:
@@ -98,6 +139,13 @@ def validate_data_uri(data_uri: str) -> None:
             )
             raise
         if match:
+            allow_internal = app.config.get(
+                "DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS", False
+            )
+            if not allow_internal:
+                hostname = urlparse(data_uri).hostname
+                if hostname and not is_safe_host(hostname):
+                    raise DatasetForbiddenDataURI()
             return
     raise DatasetForbiddenDataURI()
 
@@ -206,7 +254,8 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
 
     validate_data_uri(data_uri)
     logger.info("Downloading data from %s", data_uri)
-    data = request.urlopen(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
+    opener = request.build_opener(_ValidatingRedirectHandler)
+    data = opener.open(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
     df = pd.read_csv(data, encoding="utf-8")

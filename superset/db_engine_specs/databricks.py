@@ -40,7 +40,7 @@ from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils import json
 from superset.utils.core import get_user_agent, QuerySource
-from superset.utils.network import is_hostname_valid, is_port_open
+from superset.utils.network import is_port_open, is_safe_host
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -393,7 +393,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         if not host:
             return errors
 
-        if not is_hostname_valid(host):  # type: ignore
+        if not is_safe_host(host):  # type: ignore
             errors.append(
                 SupersetError(
                     message="The hostname provided can't be resolved.",
