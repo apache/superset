@@ -108,7 +108,7 @@ async def create_virtual_dataset(
 
     except DatasetInvalidError as exc:
         messages = exc.normalized_messages()
-        await ctx.error("Virtual dataset validation failed: %s" % (messages,))
+        await ctx.warning("Virtual dataset validation failed: %s" % (messages,))
         return CreateVirtualDatasetResponse(
             id=None,
             dataset_name=request.dataset_name,

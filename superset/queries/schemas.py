@@ -60,6 +60,7 @@ class QuerySchema(Schema):
     schema = fields.String()
     sql = fields.String()
     sql_tables = fields.Method("get_sql_tables")
+    start_running_time = fields.Float(attribute="start_running_time")
     start_time = fields.Float(attribute="start_time")
     status = fields.String()
     tab_name = fields.String()

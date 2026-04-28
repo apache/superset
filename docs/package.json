@@ -69,7 +69,7 @@
     "@superset-ui/core": "^0.20.4",
     "@swc/core": "^1.15.30",
     "antd": "^6.3.7",
-    "baseline-browser-mapping": "^2.10.21",
+    "baseline-browser-mapping": "^2.10.23",
     "caniuse-lite": "^1.0.30001791",
     "docusaurus-plugin-openapi-docs": "^5.0.1",
     "docusaurus-theme-openapi-docs": "^5.0.1",

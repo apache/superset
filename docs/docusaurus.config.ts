@@ -178,7 +178,7 @@ if (!versionsConfig.admin_docs.disabled) {
       },
       {
         label: 'Security',
-        to: '/admin-docs/security/security',
+        to: '/admin-docs/security/',
         activeBaseRegex: '^/admin-docs/security/',
       },
     ],
@@ -885,10 +885,8 @@ const config: Config = {
           ],
         },
         {
-          href: '/user-docs/',
+          type: 'custom-getStartedSplit',
           position: 'right',
-          className: 'default-button-theme get-started-button',
-          label: 'Get Started',
         },
         {
           href: 'https://github.com/apache/superset',
