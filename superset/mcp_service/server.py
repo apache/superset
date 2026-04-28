@@ -87,33 +87,19 @@ class _FastMCPValidationFilter(logging.Filter):
     and are expected in normal MCP operation — they should not pollute
     ERROR-level logs in Datadog.
 
-    Patterns downgraded:
-    - "Error validating tool '...'" — Pydantic ValidationError (bad params)
-    - "Error calling tool '...'" when exc_info is a ToolError/FastMCPError
-      (our middleware converted the user error to ToolError before FastMCP
-      catches and re-logs it)
+    Only "Error validating tool" messages are downgraded — these are
+    always Pydantic ValidationErrors (bad params from LLM). "Error calling
+    tool" messages are NOT downgraded because our middleware wraps both
+    user errors and system errors in ToolError, making it impossible to
+    distinguish them by exception type alone.
     """
 
     def filter(self, record: logging.LogRecord) -> bool:
         if record.levelno != logging.ERROR:
             return True
-        msg = record.getMessage()
-        if "Error validating tool" in msg:
+        if "Error validating tool" in record.getMessage():
             record.levelno = logging.WARNING
             record.levelname = "WARNING"
-        elif "Error calling tool" in msg and record.exc_info:
-            # Only downgrade if the exception is ToolError/FastMCPError
-            # (user errors), not generic Exception (system errors)
-            exc_type = record.exc_info[0] if record.exc_info else None
-            if exc_type is not None:
-                try:
-                    from fastmcp.exceptions import FastMCPError
-
-                    if issubclass(exc_type, FastMCPError):
-                        record.levelno = logging.WARNING
-                        record.levelname = "WARNING"
-                except ImportError:
-                    pass
         return True
 
 
