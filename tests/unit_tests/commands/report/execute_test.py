@@ -268,15 +268,15 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["mock_tab_anchor_1", "mock_tab_anchor_2"],
             ["url1", "url2"],
             [
-                "superset/dashboard/p/url1/",
-                "superset/dashboard/p/url2/",
+                "superset/dashboard/p/url1/?force=false",
+                "superset/dashboard/p/url2/?force=false",
             ],
         ),
         # Test user select one tab to export in a dashboard report
         (
             "mock_tab_anchor_1",
             ["url1"],
-            ["superset/dashboard/p/url1/"],
+            ["superset/dashboard/p/url1/?force=false"],
         ),
         # Test JSON scalar string anchor falls back to single tab
         (
@@ -299,6 +299,7 @@ def test_get_dashboard_urls_with_multiple_tabs(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.force_screenshot = False
     mock_report_schedule.owners = [1, 2]
     mock_report_schedule.recipients = []
     mock_report_schedule.extra = {
@@ -346,6 +347,7 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
     mock_report_schedule.dashboard_id = 123
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.force_screenshot = False
     mock_report_schedule.owners = [1, 2]
     mock_report_schedule.recipients = []
     mock_report_schedule.extra = {
@@ -372,7 +374,9 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
     import urllib.parse
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
-    expected_url = urllib.parse.urljoin(base_url, "superset/dashboard/p/url1/")
+    expected_url = urllib.parse.urljoin(
+        base_url, "superset/dashboard/p/url1/?force=false"
+    )
     assert expected_url == result[0]
 
 
@@ -607,6 +611,7 @@ def test_get_tab_urls(
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -619,8 +624,8 @@ def test_get_tab_urls(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri1/"),
-        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri2/"),
+        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri1/?force=false"),
+        urllib.parse.urljoin(base_url, "superset/dashboard/p/uri2/?force=false"),
     ]
 
 
@@ -634,6 +639,7 @@ def test_get_tab_url(
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -650,7 +656,41 @@ def test_get_tab_url(
     import urllib.parse
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
-    assert result == urllib.parse.urljoin(base_url, "superset/dashboard/p/uri/")
+    assert result == urllib.parse.urljoin(
+        base_url, "superset/dashboard/p/uri/?force=false"
+    )
+
+
+@patch(
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+)
+def test_get_tab_url_with_force_screenshot(
+    mock_run,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = True
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_run.return_value = "uri"
+    dashboard_state = DashboardPermalinkState(
+        anchor="1",
+        dataMask=None,
+        activeTabs=None,
+        urlParams=None,
+    )
+    result: str = class_instance._get_tab_url(dashboard_state)
+    import urllib.parse
+
+    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
+    assert result == urllib.parse.urljoin(
+        base_url, "superset/dashboard/p/uri/?force=true"
+    )
 
 
 @patch(

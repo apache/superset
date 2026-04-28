@@ -16,6 +16,7 @@
 # under the License.
 from datetime import datetime
 from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
 import pytest
@@ -66,7 +67,11 @@ def test_report_for_dashboard_with_tabs(
             str(dashboard.uuid), dashboard_state
         ).run()
 
-        expected_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
+        expected_url = get_url_path(
+            "Superset.dashboard_permalink",
+            key=permalink_key,
+            force="false",
+        )
 
         assert dashboard_screenshot_mock.call_count == 1
         called_url = dashboard_screenshot_mock.call_args.args[0]
@@ -112,7 +117,9 @@ def test_report_with_header_data(
         assert dashboard_screenshot_mock.call_count == 1
         url = dashboard_screenshot_mock.call_args.args[0]
 
-        assert url.endswith(f"/superset/dashboard/p/{permalink_key}/")
+        parsed_url = urlparse(url)
+        assert parsed_url.path.endswith(f"/superset/dashboard/p/{permalink_key}/")
+        assert parse_qs(parsed_url.query).get("force") == ["false"]
         assert send_email_smtp_mock.call_count == 1
         header_data = send_email_smtp_mock.call_args.kwargs["header_data"]
         assert header_data.get("dashboard_id") == dashboard.id
