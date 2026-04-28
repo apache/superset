@@ -77,7 +77,7 @@ SQLGLOT_DIALECTS = {
     # "dynamodb": ???
     # "elasticsearch": ???
     # "exa": ???
-    # "firebird": ???
+    # "firebird": not supported by sqlglot — uses FirebirdStatement instead
     "firebolt": Firebolt,
     "gsheets": Dialects.SQLITE,
     "hana": Dialects.POSTGRES,
@@ -1268,6 +1268,237 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         return predicate
 
 
+# Regex to split SQL on semicolons that are NOT inside single-quoted strings.
+_FIREBIRD_SEMI_SPLIT_RE = re.compile(r";(?=(?:[^']*'[^']*')*[^']*$)")
+
+# Match Firebird's FIRST <n> clause: SELECT FIRST 100 ...
+_FIREBIRD_FIRST_RE = re.compile(r"\bFIRST\s+(\d+)\b", re.IGNORECASE)
+
+# DML/DDL keywords that indicate a mutating statement.
+_FIREBIRD_MUTATING_KEYWORDS = frozenset(
+    {"INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "EXECUTE", "MERGE"}
+)
+
+
+class FirebirdStatement(BaseSQLStatement[str]):
+    """
+    A SQL statement for the Firebird database engine.
+
+    Firebird uses non-standard syntax that is not supported by sqlglot:
+
+    - ``SELECT FIRST <n>`` instead of ``LIMIT <n>``
+    - ``DATEADD(-30 DAY TO CURRENT_DATE)``
+    - ``EXTRACT(YEAR FROM col)`` (supported by some dialects but not all)
+
+    Because there is no sqlglot dialect for Firebird, this class stores the
+    SQL as a plain string and uses simple regular expressions for the few
+    operations Superset needs (limit injection, mutation detection, etc.).
+
+    This follows the same pattern as :class:`KustoKQLStatement`.
+    """
+
+    def __init__(
+        self,
+        statement: str | None = None,
+        engine: str = "firebird",
+        ast: str | None = None,
+    ) -> None:
+        super().__init__(statement, engine, ast)
+
+    @classmethod
+    def split_script(
+        cls,
+        script: str,
+        engine: str,
+    ) -> list[FirebirdStatement]:
+        """
+        Split a script into individual statements on semicolons.
+
+        Semicolons inside single-quoted string literals are preserved.
+        """
+        parts = []
+        for part in _FIREBIRD_SEMI_SPLIT_RE.split(script):
+            stripped = part.strip()
+            if stripped:
+                parts.append(cls(stripped, engine, stripped))
+        if parts:
+            return parts
+        if not script.strip():
+            return []
+        stripped = script.strip()
+        return [cls(stripped, engine, stripped)]
+
+    @classmethod
+    def _parse_statement(
+        cls,
+        statement: str,
+        engine: str,
+    ) -> str:
+        if engine != "firebird":
+            raise SupersetParseError(
+                statement,
+                engine,
+                message=f"Invalid engine: {engine}",
+            )
+
+        statements = _FIREBIRD_SEMI_SPLIT_RE.split(statement)
+        statements = [s.strip() for s in statements if s.strip()]
+        if len(statements) != 1:
+            raise SupersetParseError(
+                statement,
+                engine,
+                message="FirebirdStatement should have exactly one statement",
+            )
+        return statements[0]
+
+    @classmethod
+    def _extract_tables_from_statement(
+        cls,
+        parsed: str,
+        engine: str,
+    ) -> set[Table]:
+        """
+        Extract table references from a Firebird SQL statement.
+
+        Since we cannot reliably parse Firebird SQL without a proper parser,
+        we return an empty set and log a warning.  This means that data-access
+        roles will not be enforced by Superset for Firebird databases.
+        """
+        logger.warning(
+            "Firebird SQL is not supported by sqlglot — table extraction "
+            "disabled; data-access roles will not be enforced by Superset."
+        )
+        return set()
+
+    def format(self, comments: bool = True) -> str:
+        """Return the SQL statement as-is (no AST reformatting)."""
+        return self._parsed.strip()
+
+    def get_settings(self) -> dict[str, str | bool]:
+        """Return statement-level settings.  Firebird has none."""
+        return {}
+
+    def is_select(self) -> bool:
+        """Check whether the statement is a SELECT-style query."""
+        sql = self._parsed.lstrip().upper()
+        if not sql:
+            return False
+        first_word = sql.split()[0]
+        if first_word == "WITH":
+            # WITH ... SELECT is a select; WITH ... INSERT/DELETE/etc. is not.
+            return not bool(
+                re.search(
+                    r"\b(" + "|".join(_FIREBIRD_MUTATING_KEYWORDS) + r")\b",
+                    sql,
+                )
+            )
+        return first_word == "SELECT"
+
+    def is_mutating(self) -> bool:
+        """Check whether the statement performs a mutating operation."""
+        sql = self._parsed.lstrip().upper()
+        if not sql:
+            return False
+        first_word = sql.split()[0]
+        if first_word == "WITH":
+            # WITH ... INSERT/DELETE/UPDATE is mutating.
+            return bool(
+                re.search(
+                    r"\b(" + "|".join(_FIREBIRD_MUTATING_KEYWORDS) + r")\b",
+                    sql,
+                )
+            )
+        return first_word in _FIREBIRD_MUTATING_KEYWORDS
+
+    def optimize(self) -> FirebirdStatement:
+        """Return self — no AST-level optimisation is possible."""
+        return FirebirdStatement(ast=self._parsed, engine=self.engine)
+
+    def check_functions_present(self, functions: set[str]) -> bool:
+        """Check whether any of the given function names appear in the SQL."""
+        upper = self._parsed.upper()
+        return any(f.upper() in upper for f in functions)
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """Check if any of the given tables are present in the statement."""
+        logger.warning(
+            "Firebird SQL is not supported by sqlglot — table checking "
+            "disabled; data-access roles will not be enforced by Superset."
+        )
+        return False
+
+    def get_limit_value(self) -> int | None:
+        """
+        Extract the ``FIRST <n>`` limit from the statement.
+
+            >>> FirebirdStatement("SELECT FIRST 10 * FROM t").get_limit_value()
+            10
+            >>> FirebirdStatement("SELECT * FROM t").get_limit_value() is None
+            True
+        """
+        match = _FIREBIRD_FIRST_RE.search(self._parsed)
+        return int(match.group(1)) if match else None
+
+    def set_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """
+        Set (or replace) the ``FIRST <n>`` clause.
+
+            >>> stmt = FirebirdStatement("SELECT FIRST 1000 * FROM t")
+            >>> stmt.set_limit_value(10)
+            >>> stmt.format()
+            'SELECT FIRST 10 * FROM t'
+
+            >>> stmt = FirebirdStatement("SELECT * FROM t")
+            >>> stmt.set_limit_value(10)
+            >>> stmt.format()
+            'SELECT FIRST 10 * FROM t'
+        """
+        if method == LimitMethod.FETCH_MANY:
+            return
+        if method not in (LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL):
+            raise SupersetParseError(
+                self._parsed,
+                self.engine,
+                message=f"Unsupported limit method for Firebird: {method}",
+            )
+
+        match = _FIREBIRD_FIRST_RE.search(self._parsed)
+        if match:
+            self._parsed = (
+                self._parsed[: match.start()]
+                + f"FIRST {limit}"
+                + self._parsed[match.end() :]
+            )
+        else:
+            self._parsed = re.sub(
+                r"(?i)^(\s*SELECT)\b",
+                rf"\1 FIRST {limit}",
+                self._parsed,
+                count=1,
+            )
+
+    def parse_predicate(self, predicate: str) -> str:
+        """Return the predicate unchanged (no AST rewriting for Firebird)."""
+        return predicate
+
+    def apply_rls(
+        self,
+        catalog: str | None,
+        schema: str | None,
+        predicates: dict[Table, list[str]],
+        method: RLSMethod,
+    ) -> None:
+        """Apply RLS rules.  Not supported for Firebird (no AST)."""
+        logger.warning(
+            "Firebird SQL is not supported by sqlglot — RLS rewriting "
+            "disabled; row-level security will not be enforced by Superset."
+        )
+
+
 class SQLScript:
     """
     A SQL script, with 0+ statements.
@@ -1277,6 +1508,7 @@ class SQLScript:
     # adds a lot of complexity to Superset, so we should avoid adding new engines to
     # this data structure.
     special_engines = {
+        "firebird": FirebirdStatement,
         "kustokql": KustoKQLStatement,
     }
 
