@@ -19,19 +19,26 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
 
 from pydantic import BaseModel
 
-from superset.daos.base import BaseDAO
-from superset.mcp_service.constants import ModelType
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.constants import MAX_PAGE_SIZE, ModelType
 from superset.mcp_service.privacy import (
     filter_user_directory_columns,
     SELF_REFERENCING_FILTER_COLUMNS,
     USER_DIRECTORY_FIELDS,
 )
+from superset.mcp_service.system.schemas import PaginationInfo
 from superset.mcp_service.utils import _is_uuid
+from superset.mcp_service.utils.permissions_utils import get_current_user
+from superset.mcp_service.utils.schema_utils import (
+    parse_json_or_list,
+    parse_json_or_passthrough,
+)
+from superset.utils import json
 
 # Type variables for generic model tools
 T = TypeVar("T")  # For model objects
@@ -149,8 +156,6 @@ class ModelListCore(BaseCore, Generic[L]):
         if not select_columns:
             return self.default_columns, list(self.default_columns)
 
-        from superset.mcp_service.utils.schema_utils import parse_json_or_list
-
         parsed_columns = parse_json_or_list(select_columns, param_name="select_columns")
         columns_to_load = filter_user_directory_columns(parsed_columns)
         if not columns_to_load:
@@ -196,8 +201,6 @@ class ModelListCore(BaseCore, Generic[L]):
         if not user or not getattr(user, "is_authenticated", False):
             raise ValueError("This operation requires an authenticated user")
 
-        from superset.daos.base import ColumnOperator
-
         user_id: int = user.id
         extra: ColumnOperator
         if created_by_me and owned_by_me:
@@ -227,19 +230,11 @@ class ModelListCore(BaseCore, Generic[L]):
         created_by_me: bool = False,
         owned_by_me: bool = False,
     ) -> L:
-        from superset.mcp_service.constants import MAX_PAGE_SIZE
-
         # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
         page_size = min(page_size, MAX_PAGE_SIZE)
 
         # Parse filters using generic utility (accepts JSON string or object)
-        from superset.mcp_service.utils.schema_utils import (
-            parse_json_or_passthrough,
-        )
-
         filters = parse_json_or_passthrough(filters, param_name="filters")
-
-        from superset.mcp_service.utils.permissions_utils import get_current_user
 
         filters = self._prepend_self_lookup_filters(
             filters, created_by_me, owned_by_me, get_current_user()
@@ -280,7 +275,6 @@ class ModelListCore(BaseCore, Generic[L]):
             if obj is not None:
                 item_objs.append(obj)
         total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
-        from superset.mcp_service.system.schemas import PaginationInfo
 
         # Report 1-based page in response to match the 1-based input convention
         # used by all list tool wrappers (list_charts, list_datasets, etc.)
@@ -482,10 +476,6 @@ class InstanceInfoCore(BaseCore):
         self, base_counts: Dict[str, int]
     ) -> Dict[str, Dict[str, int]]:
         """Calculate time-based metrics for recent activity."""
-        from datetime import datetime, timedelta, timezone
-
-        from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-
         now = datetime.now(timezone.utc)
         time_metrics = {}
 
@@ -570,8 +560,6 @@ class InstanceInfoCore(BaseCore):
 
     def get_resource(self) -> str:
         """Resource interface for generating instance metadata as JSON."""
-        from superset.utils import json
-
         instance_info = self._generate_instance_info()
         return json.dumps(instance_info.model_dump(), indent=2)
 
@@ -584,8 +572,6 @@ class InstanceInfoCore(BaseCore):
             custom_metrics = self._calculate_custom_metrics(base_counts, time_metrics)
 
             # Combine all data with fallbacks for required fields
-            from datetime import datetime, timezone
-
             response_data = {
                 **base_counts,
                 **time_metrics,

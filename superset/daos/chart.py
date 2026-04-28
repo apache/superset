@@ -29,7 +29,7 @@ from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.slice import id_or_uuid_filter, Slice
+from superset.models.slice import id_or_uuid_filter, Slice, slice_user
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -60,8 +60,6 @@ class ChartDAO(BaseDAO[Slice]):
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
             if c.col == "owner":
-                from superset.models.slice import slice_user
-
                 operator_enum = ColumnOperatorEnum(c.opr)
                 subq = select(slice_user.c.slice_id).where(
                     operator_enum.apply(slice_user.c.user_id, c.value)
@@ -74,8 +72,6 @@ class ChartDAO(BaseDAO[Slice]):
                     raise ValueError(
                         f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
                     )
-                from superset.models.slice import slice_user
-
                 owner_subq = select(slice_user.c.slice_id).where(
                     slice_user.c.user_id == c.value
                 )

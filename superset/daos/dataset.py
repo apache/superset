@@ -25,7 +25,12 @@ from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query
 
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import (
+    SqlaTable,
+    sqlatable_user,
+    SqlMetric,
+    TableColumn,
+)
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import Database
@@ -79,8 +84,6 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 )
                 query = query.filter(SqlaTable.database_id.in_(subq))
             elif c.col == "owner":
-                from superset.connectors.sqla.models import sqlatable_user
-
                 operator_enum = ColumnOperatorEnum(c.opr)
                 subq = select(sqlatable_user.c.table_id).where(
                     operator_enum.apply(sqlatable_user.c.user_id, c.value)
@@ -93,8 +96,6 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                     raise ValueError(
                         f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
                     )
-                from superset.connectors.sqla.models import sqlatable_user
-
                 owner_subq = select(sqlatable_user.c.table_id).where(
                     sqlatable_user.c.user_id == c.value
                 )

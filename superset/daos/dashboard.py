@@ -38,7 +38,7 @@ from superset.dashboards.filters import DashboardAccessFilter, is_uuid
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, id_or_slug_filter
+from superset.models.dashboard import Dashboard, dashboard_user, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.utils import json
@@ -79,8 +79,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
             if c.col == "owner":
-                from superset.models.dashboard import dashboard_user
-
                 operator_enum = ColumnOperatorEnum(c.opr)
                 subq = select(dashboard_user.c.dashboard_id).where(
                     operator_enum.apply(dashboard_user.c.user_id, c.value)
@@ -93,8 +91,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     raise ValueError(
                         f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
                     )
-                from superset.models.dashboard import dashboard_user
-
                 owner_subq = select(dashboard_user.c.dashboard_id).where(
                     dashboard_user.c.user_id == c.value
                 )
