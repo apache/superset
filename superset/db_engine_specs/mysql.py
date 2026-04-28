@@ -402,7 +402,10 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         if not cls.type_code_map:
             # only import and store if needed at least once
             # pylint: disable=import-outside-toplevel
-            import MySQLdb
+            try:
+                import MySQLdb
+            except ImportError:
+                import pymysql as MySQLdb
 
             ft = MySQLdb.constants.FIELD_TYPE
             cls.type_code_map = {
