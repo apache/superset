@@ -292,9 +292,7 @@ def sanitize_filter_value(
     ]
     for pattern in sql_patterns:
         if re.search(pattern, value, re.IGNORECASE):
-            raise ToolError(
-                "Filter value contains potentially malicious SQL patterns."
-            )
+            raise ToolError("Filter value contains potentially malicious SQL patterns.")
 
     # Check for shell metacharacters that could indicate injection attempts
     # Note: We allow '&' alone as it's common in text ("A & B") and is only
