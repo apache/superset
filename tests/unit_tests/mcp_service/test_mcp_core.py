@@ -24,6 +24,7 @@ slug column is empty but whose title matches.
 """
 
 from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -78,9 +79,12 @@ def _build_core(
     """
     dao_class = MagicMock()
     # getattr(model_class, "dashboard_title") needs to return a truthy column
-    # so the fallback proceeds past its guard.
-    dao_class.model_cls = MagicMock(dashboard_title=MagicMock())
+    # so the fallback proceeds past its guard. Same for the id column the
+    # core uses for deterministic ordering.
+    dao_class.model_cls = MagicMock(dashboard_title=MagicMock(), id=MagicMock())
     dao_class.find_by_id.return_value = None
+    # `getattr(model_class, dao_class.id_column_name)` requires this be a str.
+    dao_class.id_column_name = "id"
     # MagicMock auto-vivifies attrs, so explicitly control title_column.
     if dao_title_column is _Unset:
         del dao_class.title_column
@@ -106,13 +110,16 @@ def _install_base_filtered_query(
     *,
     slug_result: MagicMock | None,
     title_rows: list[MagicMock],
-) -> MagicMock:
+) -> tuple[MagicMock, MagicMock]:
     """Replace _base_filtered_query with a two-call mock.
 
     Both branches narrow with `.filter(...)` first: the slug branch then
     calls `.one_or_none()`, the title branch calls `.all()`. Each call
     to _base_filtered_query() returns a fresh query so the two paths
     don't share state.
+
+    Returns (outer_mock, title_query) so callers can assert on call order
+    or chain methods invoked on the title-branch query.
     """
     slug_query = MagicMock()
     slug_query.filter.return_value = slug_query
@@ -120,11 +127,12 @@ def _install_base_filtered_query(
 
     title_query = MagicMock()
     title_query.filter.return_value = title_query
+    title_query.order_by.return_value = title_query
     title_query.all.return_value = title_rows
 
     mock = MagicMock(side_effect=[slug_query, title_query])
     core._base_filtered_query = mock  # type: ignore[method-assign]
-    return mock
+    return mock, title_query
 
 
 def test_slugify_matches_agent_guesses() -> None:
@@ -150,18 +158,27 @@ def test_title_fallback_resolves_dashboard_with_empty_slug() -> None:
 def test_title_fallback_ambiguous_picks_first_and_warns(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Two dashboards slugify to the same identifier — pick the first, warn."""
+    """Two dashboards slugify to the same identifier — pick the lowest-id, warn.
+
+    Determinism comes from ORDER BY id on the candidate query; we encode that
+    by passing rows in id order and asserting `order_by` was invoked.
+    """
     core, _ = _build_core()
-    dash_a = _make_dashboard(id_=2, title="World Bank's Data")
-    dash_b = _make_dashboard(id_=7, title="World Banks Data")
-    _install_base_filtered_query(core, slug_result=None, title_rows=[dash_a, dash_b])
+    dash_low = _make_dashboard(id_=2, title="World Bank's Data")
+    dash_high = _make_dashboard(id_=7, title="World Banks Data")
+    _, title_query = _install_base_filtered_query(
+        core, slug_result=None, title_rows=[dash_low, dash_high]
+    )
 
     with caplog.at_level("WARNING"):
         result = core.run_tool("world-banks-data")
 
     assert isinstance(result, _FakeOutput)
-    assert result.id == 2  # first match wins
+    assert result.id == 2  # lowest id wins
     assert any("matched 2 rows" in rec.message for rec in caplog.records)
+    # The title-branch query must be ordered, otherwise "first match" is
+    # whatever the DB returns first — non-deterministic across runs.
+    title_query.order_by.assert_called_once()
 
 
 def test_not_found_error_when_no_title_match() -> None:
@@ -180,9 +197,9 @@ def test_title_fallback_ilike_pattern_preserves_word_order() -> None:
     core, _ = _build_core()
     dashboard = _make_dashboard(id_=2, title="World Bank's Data", slug="")
 
-    # Capture the filter() argument so we can assert on the ILIKE pattern.
     title_query = MagicMock()
     title_query.filter.return_value = title_query
+    title_query.order_by.return_value = title_query
     title_query.all.return_value = [dashboard]
 
     slug_query = MagicMock()
@@ -193,15 +210,29 @@ def test_title_fallback_ilike_pattern_preserves_word_order() -> None:
         side_effect=[slug_query, title_query]
     )
 
-    # Replace the column's `ilike` so we can capture its argument.
+    # ILIKE is called on the apostrophe-stripped expression (func.replace(...))
+    # rather than the raw title column, so capture the argument by stubbing
+    # func.replace to return an object whose `.ilike` we can spy on.
     ilike_capture = MagicMock(return_value=MagicMock())
-    title_col = core.dao_class.model_cls.dashboard_title  # type: ignore[union-attr]
-    title_col.ilike = ilike_capture
+    normalized_title = MagicMock(ilike=ilike_capture)
 
-    result = core.run_tool("world-banks-data")
+    def fake_replace(arg: Any, _old: str, _new: str) -> Any:
+        # Outer replace receives the inner replace's return; just keep
+        # threading the same sentinel so its `.ilike` is the captured spy.
+        return normalized_title
+
+    with patch(
+        "superset.mcp_service.mcp_core.func.replace", side_effect=fake_replace
+    ) as replace_spy:
+        result = core.run_tool("world-banks-data")
 
     assert isinstance(result, _FakeOutput)
     ilike_capture.assert_called_once_with("%world%banks%data%")
+    # Both apostrophe variants are stripped before ILIKE so titles like
+    # "World Bank's Data" still match patterns derived from "banks".
+    replace_args = [call.args[1:] for call in replace_spy.call_args_list]
+    assert ("'", "") in replace_args
+    assert ("’", "") in replace_args
 
 
 def test_title_fallback_respects_base_filter_rbac() -> None:
@@ -228,6 +259,7 @@ def test_title_fallback_respects_base_filter_rbac() -> None:
     raw_query.filter.return_value = raw_query
     raw_query.one_or_none.return_value = None
     filtered_query.filter.return_value = filtered_query
+    filtered_query.order_by.return_value = filtered_query
     filtered_query.one_or_none.return_value = None
     filtered_query.options.return_value = filtered_query
 

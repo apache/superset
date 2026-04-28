@@ -25,6 +25,7 @@ from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
 
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel
+from sqlalchemy import func
 
 from superset.daos.base import BaseDAO
 from superset.extensions import db
@@ -358,15 +359,17 @@ class ModelGetInfoCore(BaseCore):
 
         First narrows candidates with an ILIKE on the title column so the
         DB does the heavy filtering — a slug like "world-banks-data" maps
-        to the pattern "%world%banks%data%". Then confirms each candidate
-        with `_slugify` to weed out coincidental ILIKE matches (e.g.
-        "Worldwide Bank Sandbox Data"). Without the ILIKE prefilter this
-        loaded every base_filter-allowed row and slugified them in Python
-        on each lookup.
+        to the pattern "%world%banks%data%". The ILIKE side strips
+        apostrophes from the title (via SQL REPLACE) so it matches the
+        same way `_slugify` does in Python — without that, "World Bank's
+        Data" wouldn't match "%banks%" because the raw title has "bank's".
+        Then confirms each candidate with `_slugify` to weed out
+        coincidental ILIKE matches (e.g. "Worldwide Bank Sandbox Data").
 
-        If multiple rows match, logs a warning and returns the first —
-        collisions on real dashboards are rare and the caller can always
-        disambiguate by id or UUID.
+        Orders by primary key so the returned row is deterministic when
+        multiple titles slugify to the same value. The caller can always
+        disambiguate by id or UUID; in the rare collision case we log a
+        warning and return the lowest-id match.
         """
         if not self.title_column_name:
             return None
@@ -385,7 +388,16 @@ class ModelGetInfoCore(BaseCore):
         # we don't return rows whose titles only happen to share the same
         # tokens shuffled.
         pattern = "%" + "%".join(parts) + "%"
-        candidates = self._base_filtered_query().filter(title_col.ilike(pattern)).all()
+        # Strip both straight and curly apostrophes from the title before
+        # comparing — matches `_slugify`'s Python-side handling.
+        normalized_title = func.replace(func.replace(title_col, "'", ""), "’", "")
+        id_col = getattr(model_class, self.dao_class.id_column_name)
+        candidates = (
+            self._base_filtered_query()
+            .filter(normalized_title.ilike(pattern))
+            .order_by(id_col)
+            .all()
+        )
 
         matches = [
             obj
