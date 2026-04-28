@@ -2044,6 +2044,7 @@ def test_get_semantic_view_structure(
     mock_metric.description = "Order count"
 
     mock_view = MagicMock()
+    mock_view.name = "orders_semantic_view"
     mock_view.implementation.get_dimensions.return_value = {mock_dim}
     mock_view.implementation.get_metrics.return_value = {mock_metric}
 
@@ -2137,6 +2138,7 @@ def test_get_semantic_view_structure_no_grain(
     mock_dim.grain = None
 
     mock_view = MagicMock()
+    mock_view.name = "customers_semantic_view"
     mock_view.implementation.get_dimensions.return_value = {mock_dim}
     mock_view.implementation.get_metrics.return_value = set()
 
