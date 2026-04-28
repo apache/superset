@@ -1117,6 +1117,18 @@ class DatasourceEditor extends PureComponent<
     this.debouncedValidateAndChange.flush();
   };
 
+  // React's onBlur bubbles, so blur fires on DatasourceContainer for every
+  // intra-form focus change (tabbing between fields). Only flush when focus
+  // actually leaves the container — otherwise the debounce is defeated for
+  // the common edit-multiple-fields-in-a-row case.
+  handleContainerBlur = (
+    e: React.FocusEvent<HTMLDivElement>,
+  ) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+      this.flushValidation();
+    }
+  };
+
   async onQueryRun() {
     const databaseId = this.state.datasource.database?.id;
     const { sql } = this.state.datasource;
@@ -2450,7 +2462,7 @@ class DatasourceEditor extends PureComponent<
     return (
       <DatasourceContainer
         data-test="datasource-editor"
-        onBlur={this.flushValidation}
+        onBlur={this.handleContainerBlur}
       >
         {this.renderErrors()}
         <Alert
@@ -2471,7 +2483,6 @@ class DatasourceEditor extends PureComponent<
           data-test="edit-dataset-tabs"
           onChange={this.handleTabSelect}
           defaultActiveKey={activeTabKey}
-          destroyInactiveTabPane
           items={[
             {
               key: TABS_KEYS.SOURCE,

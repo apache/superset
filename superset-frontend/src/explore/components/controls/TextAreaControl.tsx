@@ -106,6 +106,13 @@ class TextAreaControl extends Component<TextAreaControlProps> {
   // committed composition (on compositionend) propagates to the parent.
   private isComposing = false;
 
+  // Firefox and Edge fire a synthetic onChange after compositionend with
+  // the committed value, where isComposing has already been cleared. The
+  // one-shot justComposed flag swallows that single trailing event so we
+  // don't propagate the committed value twice. Cleared on the next
+  // non-composing change.
+  private justComposed = false;
+
   constructor(props: TextAreaControlProps) {
     super(props);
     if (props.debounceDelay && props.onChange) {
@@ -121,6 +128,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
     e: React.CompositionEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
     this.isComposing = false;
+    this.justComposed = true;
     const target = e.target as HTMLTextAreaElement | HTMLInputElement;
     if (target?.value != null) {
       if (this.debouncedOnChange) {
@@ -151,6 +159,13 @@ class TextAreaControl extends Component<TextAreaControlProps> {
     // Skip intermediate IME candidate events. The final committed value is
     // propagated once from handleCompositionEnd.
     if (this.isComposing) return;
+    // Firefox / Edge: swallow the trailing synthetic onChange that fires
+    // immediately after compositionend, since we already propagated the
+    // committed value in handleCompositionEnd.
+    if (this.justComposed) {
+      this.justComposed = false;
+      return;
+    }
     const finalValue = typeof value === 'object' ? value.target.value : value;
     if (this.debouncedOnChange) {
       this.debouncedOnChange(finalValue);
