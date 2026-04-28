@@ -79,7 +79,7 @@ def _suppress_third_party_warnings() -> None:
     )
 
 
-class _FastMCPValidationFilter(logging.Filter):
+class FastMCPValidationFilter(logging.Filter):
     """Downgrade FastMCP's user-error logs from ERROR to WARNING.
 
     FastMCP's server.py logs ValidationError and ToolError at ERROR level
@@ -140,7 +140,7 @@ def configure_logging(debug: bool = False) -> None:
     # (bad params from LLM) and should not pollute ERROR logs.
     # Downgrade these specific messages from ERROR to WARNING.
     fastmcp_server_logger = logging.getLogger("fastmcp.server.server")
-    fastmcp_server_logger.addFilter(_FastMCPValidationFilter())
+    fastmcp_server_logger.addFilter(FastMCPValidationFilter())
 
 
 def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
