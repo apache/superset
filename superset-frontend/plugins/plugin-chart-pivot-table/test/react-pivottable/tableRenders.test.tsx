@@ -26,6 +26,7 @@ import {
   TableRenderer,
 } from '../../src/react-pivottable/TableRenderers';
 import type { PivotData } from '../../src/react-pivottable/utilities';
+import { groupingValueSort } from '../../src/react-pivottable/utilities';
 
 let tableRenderer: TableRenderer;
 let mockGetAggregatedData: jest.Mock;
@@ -693,6 +694,197 @@ test('values ​​from the 3rd level of the hierarchy with a subtotal at the to
       currentVal: 110,
     },
   });
+});
+
+type TestData = {
+  [key: string]: number | string | null;
+};
+
+const createMockAggregator =
+  (data: TestData) =>
+  (key: string[], _context: never[]): unknown => {
+    const keyStr = key.join('|');
+    return data[keyStr] ?? null;
+  };
+
+test('should sort flat keys in ascending order', () => {
+  const keys: string[][] = [['A'], ['C'], ['B']];
+  const data = {
+    A: 30,
+    B: 10,
+    C: 20,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+
+  expect(keys).toEqual([['B'], ['C'], ['A']]);
+});
+
+test('should sort flat keys in descending order', () => {
+  const keys: string[][] = [['A'], ['C'], ['B']];
+  const data = {
+    A: 30,
+    B: 10,
+    C: 20,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, false);
+
+  expect(keys).toEqual([['A'], ['C'], ['B']]);
+});
+
+test('should place subtotal at top when top=true and ascending', () => {
+  const keys: string[][] = [
+    ['Region', 'City1'],
+    ['Region'],
+    ['Region', 'City2'],
+  ];
+  const data = {
+    Region: 150,
+    'Region|City1': 100,
+    'Region|City2': 50,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), true, true);
+
+  expect(keys[0]).toEqual(['Region']);
+  expect(keys[1]).toEqual(['Region', 'City2']);
+  expect(keys[2]).toEqual(['Region', 'City1']);
+});
+
+test('should place subtotal at bottom when top=false and descending', () => {
+  const keys: string[][] = [
+    ['Region', 'City1'],
+    ['Region'],
+    ['Region', 'City2'],
+  ];
+  const data = {
+    'Region|City1': 100,
+    'Region|City2': 50,
+    Region: 150,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, false);
+
+  expect(keys[0]).toEqual(['Region', 'City1']);
+  expect(keys[1]).toEqual(['Region', 'City2']);
+  expect(keys[2]).toEqual(['Region']);
+});
+
+test('should use alphabetical order for terminals with equal values', () => {
+  const keys: string[][] = [
+    ['Group', 'Apple'],
+    ['Group', 'Banana'],
+    ['Group', 'Cherry'],
+  ];
+  const data = {
+    'Group|Apple': 50,
+    'Group|Banana': 50,
+    'Group|Cherry': 50,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+
+  expect(keys).toEqual([
+    ['Group', 'Apple'],
+    ['Group', 'Banana'],
+    ['Group', 'Cherry'],
+  ]);
+});
+
+test('should handle null values gracefully', () => {
+  const keys: string[][] = [['A'], ['B'], ['C']];
+  const data = {
+    A: 100,
+    B: null,
+    C: 50,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+  expect(keys).toEqual([['B'], ['C'], ['A']]);
+});
+
+test('should handle string numbers', () => {
+  const keys: string[][] = [['A'], ['B'], ['C']];
+  const data = {
+    A: '100',
+    B: '50',
+    C: '200',
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, false);
+  expect(keys).toEqual([['C'], ['A'], ['B']]);
+});
+
+test('should handle NaN values', () => {
+  const keys: string[][] = [['A'], ['B'], ['C']];
+  const data = {
+    A: 100,
+    B: NaN,
+    C: 50,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+  expect(keys).toEqual([['B'], ['C'], ['A']]);
+});
+
+test('should handle single key', () => {
+  const keys: string[][] = [['OnlyKey']];
+  const data = { OnlyKey: 42 };
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+  expect(keys).toEqual([['OnlyKey']]);
+});
+
+test('should handle empty keys array', () => {
+  const keys: string[][] = [];
+  const data = {};
+
+  groupingValueSort(keys, createMockAggregator(data), false, true);
+  expect(keys).toEqual([]);
+});
+
+test('should handle product categories with subcategories', () => {
+  const keys: string[][] = [
+    ['Electronics'],
+    ['Electronics', 'Phones'],
+    ['Electronics', 'Phones', 'iPhone'],
+    ['Electronics', 'Phones', 'Samsung'],
+    ['Electronics', 'Laptops'],
+    ['Electronics', 'Laptops', 'MacBook'],
+    ['Clothing'],
+    ['Clothing', 'Shirts'],
+    ['Clothing', 'Shirts', 'T-Shirt'],
+    ['Clothing', 'Pants'],
+    ['Clothing', 'Pants', 'Jeans'],
+  ];
+  const data = {
+    Electronics: 2100,
+    'Electronics|Phones': 900,
+    'Electronics|Phones|iPhone': 500,
+    'Electronics|Phones|Samsung': 400,
+    'Electronics|Laptops': 1200,
+    'Electronics|Laptops|MacBook': 1200,
+    Clothing: 2550,
+    'Clothing|Shirts': 1400,
+    'Clothing|Shirts|T-Shirt': 1400,
+    'Clothing|Pants': 1150,
+    'Clothing|Pants|Jeans': 1150,
+  };
+
+  groupingValueSort(keys, createMockAggregator(data), true, true);
+
+  expect(keys[0]).toEqual(['Electronics']);
+  expect(keys[1]).toEqual(['Electronics', 'Phones']);
+  expect(keys[2]).toEqual(['Electronics', 'Phones', 'Samsung']);
+  expect(keys[3]).toEqual(['Electronics', 'Phones', 'iPhone']);
+  expect(keys[4]).toEqual(['Electronics', 'Laptops']);
+  expect(keys[5]).toEqual(['Electronics', 'Laptops', 'MacBook']);
+  expect(keys[6]).toEqual(['Clothing']);
+  expect(keys[7]).toEqual(['Clothing', 'Pants']);
+  expect(keys[8]).toEqual(['Clothing', 'Pants', 'Jeans']);
+  expect(keys[9]).toEqual(['Clothing', 'Shirts']);
+  expect(keys[10]).toEqual(['Clothing', 'Shirts', 'T-Shirt']);
 });
 
 test('getCellColor derives readable text from the winning background', () => {
