@@ -46,6 +46,7 @@ const getDefaultRowLimit = (): number => {
 
 export const getFormData = ({
   datasetId,
+  datasourceType,
   dependencies = {},
   groupby,
   defaultDataMask,
@@ -62,6 +63,7 @@ export const getFormData = ({
 }: (Partial<Filter> | Partial<ChartCustomization>) & {
   dashboardId: number;
   datasetId?: number;
+  datasourceType?: string;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
@@ -76,7 +78,8 @@ export const getFormData = ({
     sortMetric?: string;
   } = {};
   if (datasetId) {
-    otherProps.datasource = `${datasetId}__table`;
+    const dsType = datasourceType || 'table';
+    otherProps.datasource = `${datasetId}__${dsType}`;
   }
   if (groupby) {
     otherProps.groupby = [groupby];

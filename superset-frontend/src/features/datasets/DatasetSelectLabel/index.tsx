@@ -28,6 +28,7 @@ export type Dataset = {
   id: number;
   table_name: string;
   datasource_type?: string;
+  kind?: string;
   schema: string;
   database: Database;
 };

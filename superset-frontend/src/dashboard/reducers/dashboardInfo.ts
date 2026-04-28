@@ -304,6 +304,7 @@ export default function dashboardInfoReducer(
               ...customization,
               targets: customization.targets?.map(target => ({
                 datasetId: target.datasetId,
+                datasourceType: target.datasourceType,
               })),
             }),
           ),

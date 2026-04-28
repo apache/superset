@@ -529,11 +529,11 @@ def _convert_query_object_filter(
     dimension = all_dimensions[col]
 
     val_str = filter_["val"]
-    value: FilterValues | frozenset[FilterValues]
+    value: FilterValues | tuple[FilterValues, ...]
     if val_str is None:
         value = None
     elif isinstance(val_str, (list, tuple)):
-        value = frozenset(val_str)
+        value = tuple(val_str)
     else:
         value = val_str
 
@@ -567,6 +567,8 @@ def _convert_query_object_filter(
         FilterOperator.LESS_THAN_OR_EQUALS.value: Operator.LESS_THAN_OR_EQUAL,
         FilterOperator.IN.value: Operator.IN,
         FilterOperator.NOT_IN.value: Operator.NOT_IN,
+        FilterOperator.ILIKE.value: Operator.LIKE,
+        FilterOperator.NOT_ILIKE.value: Operator.NOT_LIKE,
         FilterOperator.LIKE.value: Operator.LIKE,
         FilterOperator.NOT_LIKE.value: Operator.NOT_LIKE,
         FilterOperator.IS_NULL.value: Operator.IS_NULL,

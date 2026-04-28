@@ -365,7 +365,32 @@ def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
             type=PredicateType.WHERE,
             column=all_dimensions["category"],
             operator=Operator.IN,
-            value=frozenset({"Electronics", "Books"}),
+            value=("Electronics", "Books"),
+        )
+    }
+
+
+def test_convert_query_object_filter_ilike(mock_datasource: MagicMock) -> None:
+    """
+    Test conversion of ILIKE filter.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.ILIKE.value,
+        "col": "category",
+        "val": "%book%",
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["category"],
+            operator=Operator.LIKE,
+            value="%book%",
         )
     }
 
