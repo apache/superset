@@ -345,6 +345,7 @@ const processColumns = memoizeOne(function processColumns(
       column_config: columnConfig = {},
       query_mode: queryMode,
     },
+    rawDatasource,
     queriesData,
   } = props;
   const granularity = extractTimegrain(props.rawFormData);
@@ -383,6 +384,17 @@ const processColumns = memoizeOne(function processColumns(
       const currency = config.currencyFormat?.symbol
         ? config.currencyFormat
         : savedCurrency;
+
+      const metricLookupKey = key.startsWith('%') ? key.slice(1) : key;
+      const description =
+        rawDatasource.columns?.find(
+          (item: { column_name?: string; description?: string | null }) =>
+            item.column_name === key,
+        )?.description ??
+        rawDatasource.metrics?.find(
+          (item: { metric_name?: string; description?: string | null }) =>
+            item.metric_name === metricLookupKey,
+        )?.description;
 
       let formatter;
 
@@ -430,6 +442,7 @@ const processColumns = memoizeOne(function processColumns(
         isPercentMetric,
         formatter,
         config,
+        description,
       };
     })
     .sort((a, b) => {
