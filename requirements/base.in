@@ -35,10 +35,6 @@ pyarrow>=20.0.0,<21.0.0
 pyopenssl>=26.0.0,<27.0.0
 # Security: CVE-2026-25645 (MEDIUM) - Insecure Temporary File
 requests>=2.33.0,<3.0.0
-# Security: authlib improper crypto signature verification, failing open, timing attack
-authlib>=1.6.9
-# Security: python-multipart excessive iteration
-python-multipart>=0.0.26
 # Security: CVE-2026-40192 (HIGH) - Allocation of Resources Without Limits or Throttling
 pillow>=12.2.0,<13.0.0
 

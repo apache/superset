@@ -24,8 +24,6 @@ attrs==25.3.0
     #   referencing
     #   requests-cache
     #   trio
-authlib==1.7.0
-    # via -r requirements/base.in
 babel==2.17.0
     # via flask-babel
 backoff==2.2.1
@@ -92,8 +90,6 @@ cryptography==46.0.7
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
-    #   authlib
-    #   joserfc
     #   paramiko
     #   pyopenssl
 defusedxml==0.7.1
@@ -196,8 +192,6 @@ jinja2==3.1.6
     # via
     #   flask
     #   flask-babel
-joserfc==1.6.4
-    # via authlib
 jsonpath-ng==1.7.0
     # via apache-superset (pyproject.toml)
 jsonschema==4.23.0
@@ -349,8 +343,6 @@ python-dateutil==2.9.0.post0
     #   shillelagh
 python-dotenv==1.2.2
     # via apache-superset (pyproject.toml)
-python-multipart==0.0.27
-    # via -r requirements/base.in
 pytz==2025.2
     # via
     #   croniter
