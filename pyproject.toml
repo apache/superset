@@ -99,7 +99,7 @@ dependencies = [
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=3.15.0",
     "slack_sdk>=3.19.0, <4",
-    "sqlalchemy>=1.4, <2",
+    "sqlalchemy>=2, <3",
     "sqlalchemy-utils>=0.38.0, <0.43", # expanding lowerbound to work with pydoris
     "sqlglot>=28.10.0, <29",
     # newer pandas needs 0.9+
