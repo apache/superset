@@ -344,7 +344,12 @@ async def query_dataset(  # noqa: C901
                 warnings=warnings,
             )
 
-        # Build column metadata
+        # Build column metadata in a single pass per column.
+        # Cap stats computation at STATS_SAMPLE rows to avoid O(rows*cols)
+        # overhead on large result sets (row_limit allows up to 50k).
+        stats_sample_size = 5000
+        stats_rows = data[:stats_sample_size]
+
         columns_meta: list[DataColumn] = []
         for col_name in raw_columns:
             sample_values = [
@@ -357,14 +362,24 @@ async def query_dataset(  # noqa: C901
                 elif all(isinstance(v, (int, float)) for v in sample_values):
                     data_type = "numeric"
 
+            # Compute null_count and unique non-null values in one pass
+            null_count = 0
+            unique_vals: set[str] = set()
+            for row in stats_rows:
+                val = row.get(col_name)
+                if val is None:
+                    null_count += 1
+                else:
+                    unique_vals.add(str(val))
+
             columns_meta.append(
                 DataColumn(
                     name=col_name,
                     display_name=col_name.replace("_", " ").title(),
                     data_type=data_type,
                     sample_values=sample_values[:3],
-                    null_count=sum(1 for row in data if row.get(col_name) is None),
-                    unique_count=len({str(row.get(col_name)) for row in data}),
+                    null_count=null_count,
+                    unique_count=len(unique_vals),
                 )
             )
 
@@ -430,5 +445,13 @@ async def query_dataset(  # noqa: C901
         )
 
     except Exception as exc:
+        logger.exception(
+            "Unexpected error while querying dataset: %s: %s",
+            type(exc).__name__,
+            str(exc),
+        )
         await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
-        raise
+        return DatasetError.create(
+            error="An unexpected error occurred while querying the dataset.",
+            error_type="UnexpectedError",
+        )

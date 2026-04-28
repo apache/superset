@@ -460,7 +460,7 @@ class QueryDatasetRequest(QueryCacheControl):
     filters: List[QueryDatasetFilter] = Field(
         default_factory=list,
         description=(
-            'Filter conditions (e.g. [{"col": "status", "op": "=", "val": "active"}]).'
+            'Filter conditions (e.g. [{"col": "status", "op": "==", "val": "active"}]).'
         ),
     )
     time_range: str | None = Field(
