@@ -21,12 +21,13 @@ from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
+import pytest
 from numpy.core.multiarray import array
 from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.result_set import stringify_values, SupersetResultSet
-from superset.superset_typing import DbapiResult
+from superset.superset_typing import DbapiDescription, DbapiResult
 
 
 def test_column_names_as_bytes() -> None:
@@ -144,6 +145,49 @@ def test_stringify_with_null_timestamps():
     )
 
     assert np.array_equal(result_set, expected)
+
+
+@pytest.mark.parametrize(
+    ("nested_value", "expected"),
+    [
+        pytest.param(
+            ["ASCII", "plain text"],
+            '["ASCII", "plain text"]',
+            id="ascii",
+        ),
+        pytest.param(
+            ["日本語", "ひらがな"],
+            '["日本語", "ひらがな"]',
+            id="japanese",
+        ),
+        pytest.param(
+            ["móre", "áccent"],
+            '["móre", "áccent"]',
+            id="accented-latin",
+        ),
+        pytest.param(
+            ["emoji", "😁"],
+            '["emoji", "😁"]',
+            id="emoji",
+        ),
+    ],
+)
+def test_stringify_nested_values_preserves_unicode(
+    nested_value: list[str], expected: str
+) -> None:
+    """
+    Nested values should be stringified without escaping Unicode characters.
+    """
+
+    data = [(nested_value,)]
+    description: DbapiDescription = [
+        ("tags", "ARRAY<STRING>", None, None, None, None, False)
+    ]
+
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)
+    df = result_set.to_pandas_df()
+
+    assert df["tags"].iloc[0] == expected
 
 
 def test_timezone_series(mocker: MockerFixture) -> None:
