@@ -17,7 +17,10 @@
 
 """Tests for the query_dataset MCP tool."""
 
+from __future__ import annotations
+
 import importlib
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -72,8 +75,8 @@ def _make_metric(name: str, expression: str = "COUNT(*)") -> MagicMock:
 def _make_dataset(
     dataset_id: int = 1,
     table_name: str = "orders",
-    columns: list | None = None,
-    metrics: list | None = None,
+    columns: list[Any] | None = None,
+    metrics: list[Any] | None = None,
     main_dttm_col: str | None = None,
 ) -> MagicMock:
     ds = MagicMock()
@@ -96,9 +99,9 @@ def _make_dataset(
 
 
 def _mock_command_result(
-    data: list | None = None,
-    colnames: list | None = None,
-) -> dict:
+    data: list[dict[str, Any]] | None = None,
+    colnames: list[str] | None = None,
+) -> dict[str, Any]:
     """Build the result dict that ChartDataCommand.run() returns."""
     data = data or [
         {"category": "Electronics", "count": 42},
@@ -267,7 +270,7 @@ async def test_query_dataset_with_time_range(mcp_server) -> None:
     """time_range is converted to TEMPORAL_RANGE filter + granularity."""
     dataset = _make_dataset(main_dttm_col="order_date")
     result_data = _mock_command_result()
-    captured_queries: list[dict] = []
+    captured_queries: list[dict[str, Any]] = []
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
@@ -346,7 +349,7 @@ async def test_query_dataset_with_filters(mcp_server) -> None:
     """User-provided filters are passed through to the query."""
     dataset = _make_dataset()
     result_data = _mock_command_result()
-    captured_queries: list[dict] = []
+    captured_queries: list[dict[str, Any]] = []
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
@@ -491,7 +494,7 @@ async def test_query_dataset_by_uuid(mcp_server) -> None:
 @pytest.mark.asyncio
 async def test_query_dataset_permission_denied(mcp_server) -> None:
     """Permission denied from ChartDataCommand.validate() returns error."""
-    from superset.errors import SupersetError, SupersetErrorType
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
     from superset.exceptions import SupersetSecurityException
 
     dataset = _make_dataset()
@@ -512,7 +515,7 @@ async def test_query_dataset_permission_denied(mcp_server) -> None:
                 SupersetError(
                     message="Access denied",
                     error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                    level="warning",
+                    level=ErrorLevel.WARNING,
                 )
             ),
         ),
@@ -537,7 +540,7 @@ async def test_query_dataset_order_by_valid(mcp_server) -> None:
     """order_by with valid column/metric names passes through."""
     dataset = _make_dataset()
     result_data = _mock_command_result()
-    captured_queries: list[dict] = []
+    captured_queries: list[dict[str, Any]] = []
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
@@ -615,7 +618,7 @@ async def test_query_dataset_time_column_override(mcp_server) -> None:
     """Explicit time_column overrides dataset main_dttm_col."""
     dataset = _make_dataset(main_dttm_col="order_date")
     result_data = _mock_command_result()
-    captured_queries: list[dict] = []
+    captured_queries: list[dict[str, Any]] = []
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
