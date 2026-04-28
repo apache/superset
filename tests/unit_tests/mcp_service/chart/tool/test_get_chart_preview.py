@@ -184,16 +184,15 @@ class TestGetChartPreview:
     async def test_url_preview_structure(self):
         """Test URLPreview response structure."""
         preview = URLPreview(
-            preview_url="http://localhost:5008/screenshot/chart/123.png",
+            preview_url="http://localhost:8088/explore/?slice_id=123",
             width=800,
             height=600,
-            supports_interaction=False,
         )
         assert preview.type == "url"
-        assert preview.preview_url == "http://localhost:5008/screenshot/chart/123.png"
+        assert preview.preview_url == "http://localhost:8088/explore/?slice_id=123"
         assert preview.width == 800
         assert preview.height == 600
-        assert preview.supports_interaction is False
+        assert preview.supports_interaction is True
 
     @pytest.mark.asyncio
     async def test_ascii_preview_structure(self):
@@ -283,10 +282,9 @@ class TestGetChartPreview:
         for width, height in standard_sizes:
             # URL preview with dimensions
             url_preview = URLPreview(
-                preview_url="http://example.com/chart.png",
+                preview_url="http://example.com/explore/?slice_id=123",
                 width=width,
                 height=height,
-                supports_interaction=False,
             )
             assert url_preview.width == width
             assert url_preview.height == height
