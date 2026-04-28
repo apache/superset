@@ -168,7 +168,7 @@ describe('sparklineHelpers', () => {
 
       expect(result).toEqual([
         { x: 0, y: 10 },
-        { x: 1, y: 0 },
+        { x: 1, y: null },
         { x: 2, y: 30 },
       ]);
     });
@@ -185,10 +185,10 @@ describe('sparklineHelpers', () => {
       const result = transformChartData(data);
 
       expect(result).toEqual([
-        { x: 0, y: 0 },
+        { x: 0, y: null },
         { x: 1, y: 10 },
-        { x: 2, y: 0 },
-        { x: 3, y: 0 },
+        { x: 2, y: null },
+        { x: 3, y: null },
         { x: 4, y: 20 },
       ]);
     });
