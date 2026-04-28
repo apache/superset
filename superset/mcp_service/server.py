@@ -96,6 +96,9 @@ class _FastMCPValidationFilter(logging.Filter):
     """
 
     def filter(self, record: logging.LogRecord) -> bool:
+        # NOTE: This matches the literal log message from FastMCP's server.py
+        # (fastmcp/server/server.py line ~1245). If FastMCP changes this
+        # message format, this filter will stop working silently.
         if record.levelno != logging.ERROR:
             return True
         if "Error validating tool" in record.getMessage():

@@ -147,6 +147,10 @@ def _is_user_error(error: Exception) -> bool:
     # 4xx = user error, 5xx = system error.
     if isinstance(error, SupersetException):
         return error.status < 500
+    # HTTPException: Starlette uses status_code, werkzeug uses code.
+    if isinstance(error, HTTPException):
+        status = getattr(error, "status_code", getattr(error, "code", 500))
+        return status < 500
     return False
 
 
@@ -437,6 +441,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
             duration_ms,
             type(error).__name__,
             sanitized_error,
+            exc_info=not is_user,
         )
 
         # Log to Superset's event system
@@ -485,26 +490,35 @@ class GlobalErrorHandlerMiddleware(Middleware):
                 f"Permission denied for {tool_name}: "
                 f"You don't have access to this resource."
             ) from error
+        elif isinstance(error, ValueError):
+            # Value/parameter errors from tool code
+            raise ToolError(
+                f"Invalid parameter in {tool_name}: {str(error)}"
+            ) from error
         elif isinstance(error, (ObjectNotFoundError, CommandInvalidError)):
             # Superset command: not found (404) or validation (422)
-            raise ToolError(f"Invalid request for {tool_name}: {str(error)}") from error
+            raise ToolError(
+                f"Invalid request for {tool_name}: {_sanitize_error_for_logging(error)}"
+            ) from error
         elif isinstance(error, (ForbiddenError, SupersetSecurityException)):
             # Superset access denied — agent tried a tool it can't use
             raise ToolError(
-                f"Permission denied for {tool_name}: {str(error)}"
+                f"Permission denied for {tool_name}: "
+                f"{_sanitize_error_for_logging(error)}"
             ) from error
         elif isinstance(error, SupersetException):
             # Other Superset errors — .status determines severity (already
             # classified by _is_user_error above for log level)
             msg = "Invalid request" if error.status < 500 else "Internal error"
-            raise ToolError(f"{msg} in {tool_name}: {str(error)}") from error
+            raise ToolError(
+                f"{msg} in {tool_name}: {_sanitize_error_for_logging(error)}"
+            ) from error
         elif isinstance(error, ConnectionError):
             # Network errors — transient, expected during pod restarts
             # (ConnectionRefusedError, ConnectionResetError, BrokenPipeError
             # are all subclasses of ConnectionError)
             raise ToolError(
-                f"Connection error in {tool_name}: Service temporarily unavailable. "
-                f"Please try again in a few moments."
+                f"Connection error in {tool_name}: {_sanitize_error_for_logging(error)}"
             ) from error
         else:
             # Generic internal errors — truly unexpected
