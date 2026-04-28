@@ -240,7 +240,7 @@ def _generate_ascii_line_chart(data: list[Any], width: int, height: int) -> str:
     lines.append("═" * min(width, 60))
 
     # Extract values and labels for plotting
-    values, labels = _extract_time_series_data(data)
+    values, labels, is_temporal = _extract_time_series_data(data)
 
     if not values:
         return "No numeric data found for line chart"
@@ -254,7 +254,7 @@ def _generate_ascii_line_chart(data: list[Any], width: int, height: int) -> str:
         lines.extend(sparkline_data)
 
     # Add trend analysis
-    trend_analysis = _analyze_trend(values)
+    trend_analysis = _analyze_trend(values, is_temporal=is_temporal)
     lines.append("")
     lines.append("📊 Trend Analysis:")
     lines.extend(trend_analysis)
@@ -262,10 +262,17 @@ def _generate_ascii_line_chart(data: list[Any], width: int, height: int) -> str:
     return "\n".join(lines)
 
 
-def _extract_time_series_data(data: list[Any]) -> tuple[list[float], list[str]]:
-    """Extract time series data with labels."""
+def _extract_time_series_data(
+    data: list[Any],
+) -> tuple[list[float], list[str], bool]:
+    """Extract time series data with labels.
+
+    Returns a tuple of (values, labels, is_temporal) where is_temporal indicates
+    whether the label column appears to represent temporal data based on its name.
+    """
     values = []
     labels = []
+    is_temporal = False
 
     for row in data[:20]:  # Limit points for readability
         if isinstance(row, dict):
@@ -283,6 +290,7 @@ def _extract_time_series_data(data: list[Any]) -> tuple[list[float], list[str]]:
                         for date_word in ["date", "time", "month", "day", "year"]
                     ):
                         label_val = str(val)[:10]  # Truncate long dates
+                        is_temporal = True
                     else:
                         label_val = str(val)[:8]  # Truncate long strings
 
@@ -290,7 +298,7 @@ def _extract_time_series_data(data: list[Any]) -> tuple[list[float], list[str]]:
                 values.append(numeric_val)
                 labels.append(label_val or f"P{len(values)}")
 
-    return values, labels
+    return values, labels, is_temporal
 
 
 def _create_enhanced_line_chart(
@@ -391,8 +399,15 @@ def _draw_line_segment(
                     grid[y][x] = "│"
 
 
-def _analyze_trend(values: list[float]) -> list[str]:
-    """Analyze trend in the data."""
+def _analyze_trend(values: list[float], *, is_temporal: bool = True) -> list[str]:
+    """Analyze trend in the data.
+
+    Args:
+        values: Numeric data points to analyze.
+        is_temporal: Whether the data represents a time series. When False,
+            directional trend analysis is skipped because the ordering of
+            categorical data is arbitrary.
+    """
     if len(values) < 2:
         return ["• Insufficient data for trend analysis"]
 
@@ -405,24 +420,28 @@ def _analyze_trend(values: list[float]) -> list[str]:
     max_val = max(values)
     avg_val = sum(values) / len(values)
 
-    # Overall trend
-    if last_val > first_val * 1.1:
-        trend_icon = "📈"
-        trend_desc = "Strong upward trend"
-    elif last_val > first_val * 1.05:
-        trend_icon = "📊"
-        trend_desc = "Moderate upward trend"
-    elif last_val < first_val * 0.9:
-        trend_icon = "📉"
-        trend_desc = "Strong downward trend"
-    elif last_val < first_val * 0.95:
-        trend_icon = "📊"
-        trend_desc = "Moderate downward trend"
-    else:
-        trend_icon = "➡️"
-        trend_desc = "Relatively stable"
+    if is_temporal:
+        # Overall trend (only meaningful for temporally ordered data)
+        if last_val > first_val * 1.1:
+            trend_icon = "📈"
+            trend_desc = "Strong upward trend"
+        elif last_val > first_val * 1.05:
+            trend_icon = "📊"
+            trend_desc = "Moderate upward trend"
+        elif last_val < first_val * 0.9:
+            trend_icon = "📉"
+            trend_desc = "Strong downward trend"
+        elif last_val < first_val * 0.95:
+            trend_icon = "📊"
+            trend_desc = "Moderate downward trend"
+        else:
+            trend_icon = "➡️"
+            trend_desc = "Relatively stable"
 
-    analysis.append(f"• {trend_icon} {trend_desc}")
+        analysis.append(f"• {trend_icon} {trend_desc}")
+    else:
+        analysis.append("• ⚠️ Data is categorical — directional trend not meaningful")
+
     analysis.append(f"• Range: {min_val:.1f} to {max_val:.1f} (avg: {avg_val:.1f})")
 
     # Volatility
