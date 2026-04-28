@@ -55,6 +55,7 @@ attrs==25.3.0
 authlib==1.7.0
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   fastmcp
 babel==2.17.0
     # via
@@ -843,6 +844,7 @@ python-ldap==3.4.4
 python-multipart==0.0.27
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   mcp
 pytz==2025.2
     # via
