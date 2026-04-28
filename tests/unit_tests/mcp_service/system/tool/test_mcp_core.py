@@ -152,7 +152,7 @@ def test_model_list_tool_keeps_single_filter_when_created_by_me_is_used():
     )
 
     with patch(
-        "superset.mcp_service.utils.permissions_utils.get_current_user",
+        "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
         tool.run_tool(
@@ -243,7 +243,7 @@ def test_model_list_tool_injects_current_user_id_for_created_by_me():
     )
 
     with patch(
-        "superset.mcp_service.utils.permissions_utils.get_current_user",
+        "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
         tool.run_tool(created_by_me=True)
@@ -269,7 +269,7 @@ def test_model_list_tool_created_by_me_requires_authenticated_user():
     )
 
     with patch(
-        "superset.mcp_service.utils.permissions_utils.get_current_user",
+        "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
         with pytest.raises(ValueError, match="authenticated user"):
@@ -302,7 +302,7 @@ def test_model_list_tool_injects_current_user_id_for_owned_by_me():
     )
 
     with patch(
-        "superset.mcp_service.utils.permissions_utils.get_current_user",
+        "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
         tool.run_tool(owned_by_me=True)
@@ -337,7 +337,7 @@ def test_model_list_tool_both_flags_uses_combined_or_filter():
     )
 
     with patch(
-        "superset.mcp_service.utils.permissions_utils.get_current_user",
+        "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
         tool.run_tool(created_by_me=True, owned_by_me=True)
@@ -364,7 +364,7 @@ def test_model_list_tool_owned_by_me_requires_authenticated_user():
     )
 
     with patch(
-        "superset.mcp_service.utils.permissions_utils.get_current_user",
+        "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
         with pytest.raises(ValueError, match="authenticated user"):
