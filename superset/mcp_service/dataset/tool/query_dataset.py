@@ -241,8 +241,21 @@ async def query_dataset(  # noqa: C901
                     ),
                     error_type="ValidationError",
                 )
+            # Warn if the chosen temporal column isn't marked as datetime
+            dttm_cols = {c.column_name for c in dataset.columns if c.is_dttm}
+            if temporal_col not in dttm_cols:
+                warnings.append(
+                    f"Column '{temporal_col}' is not marked as a datetime "
+                    f"column on this dataset. Time filtering may not work "
+                    f"as expected."
+                )
+
             query_filters.append(
-                {"col": temporal_col, "op": "TEMPORAL_RANGE", "val": request.time_range}
+                {
+                    "col": temporal_col,
+                    "op": "TEMPORAL_RANGE",
+                    "val": request.time_range,
+                }
             )
             granularity = temporal_col
             await ctx.debug(
