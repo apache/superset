@@ -138,58 +138,6 @@ export async function createTestVirtualDataset(
 }
 
 /**
- * Creates a virtual dataset with N columns for typing-perf tests.
- * Uses a SELECT projection of N integer aliases (`col_0` … `col_{N-1}`) so
- * the resulting dataset has the requested column count without depending on
- * a specific physical table. Defaults to 50 columns to match SC-001's "50-
- * column dataset" benchmark in spec.md.
- *
- * @param page - Playwright page instance
- * @param name - Name for the virtual dataset
- * @param columnCount - Number of columns to project (default 50)
- * @param databaseId - ID of the database to use (looks up 'examples' DB if not provided)
- * @returns The created dataset ID, or null on failure
- */
-export async function createWideTestDataset(
-  page: Page,
-  name: string,
-  columnCount = 50,
-  databaseId?: number,
-): Promise<number | null> {
-  let dbId = databaseId;
-  if (dbId === undefined) {
-    const examplesDb = await getDatabaseByName(page, 'examples');
-    if (!examplesDb?.id) {
-      console.warn('Failed to find examples database');
-      return null;
-    }
-    dbId = examplesDb.id;
-  }
-
-  const projections = Array.from(
-    { length: columnCount },
-    (_, i) => `${i} as col_${i}`,
-  ).join(', ');
-  const sql = `SELECT ${projections}`;
-
-  const response = await apiPostVirtualDataset(page, {
-    database: dbId,
-    schema: '',
-    table_name: name,
-    sql,
-    owners: [],
-  });
-
-  if (!response.ok()) {
-    console.warn(`Failed to create wide virtual dataset: ${response.status()}`);
-    return null;
-  }
-
-  const body = await response.json();
-  return body.result?.id ?? body.id ?? null;
-}
-
-/**
  * Get a dataset by its table name
  * @param page - Playwright page instance (provides authentication context)
  * @param tableName - The table_name to search for
