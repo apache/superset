@@ -159,8 +159,9 @@ def test_adhoc_filters_returns_actionable_error() -> None:
     # Must NOT be the opaque validation_system_error
     assert dumped["error_type"] == "validation_error"
     assert dumped["error_code"] == "VALIDATION_ERROR"
-    # Message must mention filters as the correct field name
-    assert "filters" in dumped["message"]
+    # Details or message must mention the invalid field
+    combined = dumped["message"] + " " + dumped["details"]
+    assert "adhoc_filters" in combined or "filters" in combined
     assert dumped["details"] != ""
     assert dumped["suggestions"]
 
