@@ -58,7 +58,9 @@ dependencies = [
     "flask-wtf>=1.1.0, <2.0",
     "geopy",
     "greenlet>=3.0.3, <=3.1.1",
-    "gunicorn>=22.0.0; sys_platform != 'win32'",
+    # Unpin `gunicorn` when https://github.com/benoitc/gunicorn/discussions/3510 and https://github.com/benoitc/gunicorn/discussions/3509 are fixed
+    # and release in gunicorn v25.1.0+
+    "gunicorn==25.0.3; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # holidays>=0.45 required for security fix
     "holidays>=0.45, <1",
