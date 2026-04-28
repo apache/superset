@@ -1318,12 +1318,12 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
         ("ALTER TABLE t DROP COLUMN x", True),
     ],
 )
-def test_is_destructive_ddl(sql: str, expected: bool) -> None:
+def test_is_destructive(sql: str, expected: bool) -> None:
     """
-    Test that ``is_destructive_ddl`` detects DROP, TRUNCATE, and ALTER
+    Test that ``is_destructive`` detects DROP, TRUNCATE, and ALTER
     but not SELECT, INSERT, UPDATE, DELETE, MERGE, or CREATE.
     """
-    assert SQLStatement(sql, "postgresql").is_destructive_ddl() == expected
+    assert SQLStatement(sql, "postgresql").is_destructive() == expected
 
 
 @pytest.mark.parametrize(
@@ -1335,12 +1335,12 @@ def test_is_destructive_ddl(sql: str, expected: bool) -> None:
         ("CREATE TABLE t (id INT); ALTER TABLE t ADD COLUMN x INT", True),
     ],
 )
-def test_has_destructive_ddl(sql: str, expected: bool) -> None:
+def test_has_destructive(sql: str, expected: bool) -> None:
     """
-    Test that ``has_destructive_ddl`` on SQLScript detects destructive DDL
+    Test that ``has_destructive`` on SQLScript detects destructive DDL
     across multiple statements.
     """
-    assert SQLScript(sql, "postgresql").has_destructive_ddl() == expected
+    assert SQLScript(sql, "postgresql").has_destructive() == expected
 
 
 @pytest.mark.parametrize(
@@ -1352,13 +1352,13 @@ def test_has_destructive_ddl(sql: str, expected: bool) -> None:
         ("T | count", False),
     ],
 )
-def test_kusto_is_destructive_ddl(kql: str, expected: bool) -> None:
+def test_kusto_is_destructive(kql: str, expected: bool) -> None:
     """
-    Test ``is_destructive_ddl`` on KustoKQLStatement.
+    Test ``is_destructive`` on KustoKQLStatement.
     """
     from superset.sql.parse import KustoKQLStatement
 
-    assert KustoKQLStatement(kql, "kustokql").is_destructive_ddl() == expected
+    assert KustoKQLStatement(kql, "kustokql").is_destructive() == expected
 
 
 def test_optimize() -> None:

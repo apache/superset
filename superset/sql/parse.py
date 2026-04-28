@@ -439,7 +439,7 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
-    def is_destructive_ddl(self) -> bool:
+    def is_destructive(self) -> bool:
         """
         Check if the statement is destructive DDL (DROP, TRUNCATE, ALTER).
 
@@ -727,7 +727,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return False
 
-    def is_destructive_ddl(self) -> bool:
+    def is_destructive(self) -> bool:
         """
         Check if the statement is destructive DDL (DROP, TRUNCATE, ALTER).
 
@@ -1208,7 +1208,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return self._parsed.startswith(".") and not self._parsed.startswith(".show")
 
-    def is_destructive_ddl(self) -> bool:
+    def is_destructive(self) -> bool:
         """
         Check if the statement is destructive DDL.
 
@@ -1366,13 +1366,13 @@ class SQLScript:
         """
         return any(statement.is_mutating() for statement in self.statements)
 
-    def has_destructive_ddl(self) -> bool:
+    def has_destructive(self) -> bool:
         """
         Check if the script contains destructive DDL (DROP, TRUNCATE, ALTER).
 
         :return: True if any statement is destructive DDL.
         """
-        return any(statement.is_destructive_ddl() for statement in self.statements)
+        return any(statement.is_destructive() for statement in self.statements)
 
     def optimize(self) -> SQLScript:
         """

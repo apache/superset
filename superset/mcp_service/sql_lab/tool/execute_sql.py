@@ -131,7 +131,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                     )
 
                 script = SQLScript(sql_to_check, database.db_engine_spec.engine)
-                if script.has_destructive_ddl():
+                if script.has_destructive():
                     await ctx.error(
                         "Destructive DDL blocked: sql_preview=%r" % sql_preview
                     )
