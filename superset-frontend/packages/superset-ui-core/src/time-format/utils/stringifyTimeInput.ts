@@ -26,8 +26,9 @@ export default function stringifyTimeInput(
   }
 
   if (typeof value === 'string') {
-    const num = Number(value);
-    return fn(new Date(Number.isFinite(num) ? num : value));
+    const trimmed = value.trim();
+    const isIntegerString = /^-?\d+$/.test(trimmed);
+    return fn(new Date(isIntegerString ? Number(trimmed) : value));
   }
 
   return fn(value instanceof Date ? value : new Date(value));

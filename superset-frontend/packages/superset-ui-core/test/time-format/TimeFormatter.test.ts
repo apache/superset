@@ -73,6 +73,9 @@ describe('TimeFormatter', () => {
       const timestamp = PREVIEW_TIME.getTime().toString();
       expect(formatter.format(timestamp)).toEqual('2017');
     });
+    test('handles ISO-8601 string without misinterpreting it as a number', () => {
+      expect(formatter.format('2017-02-14T11:22:33.000Z')).toEqual('2017');
+    });
     test('otherwise returns formatted value', () => {
       expect(formatter.format(PREVIEW_TIME)).toEqual('2017');
     });
