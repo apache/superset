@@ -17,6 +17,7 @@
  * under the License.
  */
 import GetStartedSplitButton from '../../components/GetStartedSplitButton';
+import '../../styles/main.css';
 
 export default function GetStartedSplitNavbarItem() {
   return (
