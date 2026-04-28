@@ -336,9 +336,29 @@ class ChartDataRestApi(ChartRestApi):
             json_body = request.json
         elif request.form.get("form_data"):
             # CSV export submits regular form data
-            with contextlib.suppress(TypeError, json.JSONDecodeError):
+            try:
                 json_body = json.loads(request.form["form_data"])
+            except (TypeError, json.JSONDecodeError):
+                logger.error(
+                    "Failed to parse form_data JSON: "
+                    "content_type=%s, content_length=%s, form_data_length=%s, "
+                    "referrer=%s",
+                    request.content_type,
+                    request.content_length,
+                    len(request.form.get("form_data", "")),
+                    request.referrer,
+                )
         if json_body is None:
+            logger.error(
+                "Chart data request rejected: json_body is None. "
+                "is_json=%s, content_type=%s, content_length=%s, "
+                "has_form_data=%s, referrer=%s",
+                request.is_json,
+                request.content_type,
+                request.content_length,
+                bool(request.form.get("form_data")),
+                request.referrer,
+            )
             return self.response_400(message=_("Request is not JSON"))
 
         try:
@@ -346,10 +366,37 @@ class ChartDataRestApi(ChartRestApi):
             command = ChartDataCommand(query_context)
             command.validate()
         except DatasourceNotFound:
+            logger.error(
+                "Chart data request: DatasourceNotFound. "
+                "datasource=%s, result_format=%s, "
+                "slice_id=%s, referrer=%s",
+                json_body.get("datasource"),
+                json_body.get("result_format"),
+                json_body.get("form_data", {}).get("slice_id"),
+                request.referrer,
+            )
             return self.response_404()
         except QueryObjectValidationError as error:
+            logger.error(
+                "Chart data request: QueryObjectValidationError: %s. "
+                "result_format=%s, slice_id=%s, referrer=%s",
+                error.message,
+                json_body.get("result_format"),
+                json_body.get("form_data", {}).get("slice_id"),
+                request.referrer,
+            )
             return self.response_400(message=error.message)
         except ValidationError as error:
+            logger.error(
+                "Chart data request: ValidationError: %s. "
+                "result_format=%s, datasource=%s, "
+                "slice_id=%s, referrer=%s",
+                error.normalized_messages(),
+                json_body.get("result_format"),
+                json_body.get("datasource"),
+                json_body.get("form_data", {}).get("slice_id"),
+                request.referrer,
+            )
             return self.response_400(
                 message=_(
                     "Request is incorrect: %(error)s", error=error.normalized_messages()
@@ -500,9 +547,21 @@ class ChartDataRestApi(ChartRestApi):
             else:
                 has_export_perm = security_manager.can_access("can_csv", "Superset")
             if not has_export_perm:
+                logger.error(
+                    "Chart data request: export permission denied. "
+                    "result_format=%s, referrer=%s",
+                    result_format,
+                    request.referrer,
+                )
                 return self.response_403()
 
             if not result["queries"]:
+                logger.error(
+                    "Chart data request: empty query result. "
+                    "result_format=%s, referrer=%s",
+                    result_format,
+                    request.referrer,
+                )
                 return self.response_400(_("Empty query result"))
 
             is_csv_format = result_format == ChartDataResultFormat.CSV
@@ -597,6 +656,14 @@ class ChartDataRestApi(ChartRestApi):
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=exc.message)
         except ChartDataQueryFailedError as exc:
+            logger.error(
+                "Chart data query failed: %s. "
+                "result_format=%s, force_cached=%s, referrer=%s",
+                exc.message,
+                form_data.get("result_format") if form_data else None,
+                force_cached,
+                request.referrer,
+            )
             return self.response_400(message=exc.message)
 
             # Log is_cached if extra payload callback is provided
