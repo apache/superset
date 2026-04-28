@@ -220,10 +220,10 @@ async def generate_chart(  # noqa: C901
         )
     )
     await ctx.debug(
-        "Chart configuration details: chart_type=%s, keys=%s"
+        "Chart configuration details: chart_type=%s, fields=%s"
         % (
             request.config.chart_type,
-            sorted(request.config.keys()),
+            sorted(request.config.model_fields_set),
         )
     )
 
