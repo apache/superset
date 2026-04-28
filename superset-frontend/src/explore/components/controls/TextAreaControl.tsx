@@ -101,43 +101,12 @@ class TextAreaControl extends Component<TextAreaControlProps> {
     | ReturnType<typeof debounce<(value: string) => void>>
     | undefined;
 
-  // East-Asian IMEs fire onChange per candidate character during composition.
-  // Suppressing them reduces the per-IME-word cost from N to 1; only the
-  // committed composition (on compositionend) propagates to the parent.
-  private isComposing = false;
-
-  // Firefox and Edge fire a synthetic onChange after compositionend with
-  // the committed value, where isComposing has already been cleared. The
-  // one-shot justComposed flag swallows that single trailing event so we
-  // don't propagate the committed value twice. Cleared on the next
-  // non-composing change.
-  private justComposed = false;
-
   constructor(props: TextAreaControlProps) {
     super(props);
     if (props.debounceDelay && props.onChange) {
       this.debouncedOnChange = debounce(props.onChange, props.debounceDelay);
     }
   }
-
-  handleCompositionStart = () => {
-    this.isComposing = true;
-  };
-
-  handleCompositionEnd = (
-    e: React.CompositionEvent<HTMLTextAreaElement | HTMLInputElement>,
-  ) => {
-    this.isComposing = false;
-    this.justComposed = true;
-    const target = e.target as HTMLTextAreaElement | HTMLInputElement;
-    if (target?.value != null) {
-      if (this.debouncedOnChange) {
-        this.debouncedOnChange(target.value);
-      } else {
-        this.props.onChange?.(target.value);
-      }
-    }
-  };
 
   componentDidUpdate(prevProps: TextAreaControlProps) {
     if (
@@ -155,24 +124,14 @@ class TextAreaControl extends Component<TextAreaControlProps> {
     }
   }
 
-  handleChange = (value: string | { target: { value: string } }) => {
-    // Skip intermediate IME candidate events. The final committed value is
-    // propagated once from handleCompositionEnd.
-    if (this.isComposing) return;
-    // Firefox / Edge: swallow the trailing synthetic onChange that fires
-    // immediately after compositionend, since we already propagated the
-    // committed value in handleCompositionEnd.
-    if (this.justComposed) {
-      this.justComposed = false;
-      return;
-    }
+  handleChange(value: string | { target: { value: string } }) {
     const finalValue = typeof value === 'object' ? value.target.value : value;
     if (this.debouncedOnChange) {
       this.debouncedOnChange(finalValue);
     } else {
       this.props.onChange?.(finalValue);
     }
-  };
+  }
 
   componentWillUnmount() {
     if (this.debouncedOnChange) {
@@ -252,7 +211,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
             readOnly={readOnly}
             key={name}
             {...editorProps}
-            onChange={this.handleChange}
+            onChange={this.handleChange.bind(this)}
           />
         </div>
       );
@@ -267,9 +226,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
       <div>
         <Input.TextArea
           placeholder={t('textarea')}
-          onChange={this.handleChange}
-          onCompositionStart={this.handleCompositionStart}
-          onCompositionEnd={this.handleCompositionEnd}
+          onChange={this.handleChange.bind(this)}
           defaultValue={this.props.initialValue}
           disabled={this.props.readOnly}
           style={{ height: this.props.height }}
