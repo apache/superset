@@ -35,7 +35,6 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
-    parse_chart_config,
 )
 
 
@@ -98,22 +97,8 @@ async def generate_explore_link(
     )
 
     try:
-        # Parse the raw config dict into a typed ChartConfig
-        try:
-            config = parse_chart_config(request.config)
-        except (ValueError, TypeError) as e:
-            from superset.mcp_service.utils.error_sanitization import (
-                _sanitize_validation_error,
-            )
-
-            sanitized = _sanitize_validation_error(e)
-            await ctx.error(f"Invalid chart configuration: {sanitized}")
-            return {
-                "url": "",
-                "form_data": {},
-                "form_data_key": None,
-                "error": f"Invalid chart configuration: {sanitized}",
-            }
+        # config is already a typed ChartConfig (validated by Pydantic)
+        config = request.config
 
         await ctx.report_progress(1, 4, "Validating dataset exists")
         with event_logger.log_context(action="mcp.generate_explore_link.dataset_check"):
