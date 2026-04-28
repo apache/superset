@@ -822,13 +822,6 @@ export function useDatabaseValidation() {
 
   const getValidation = useCallback(
     async (database: Partial<DatabaseObject> | null, onCreate = false) => {
-      if (database?.parameters?.ssh) {
-        setValidationErrors(null);
-        setIsValidating(false);
-        setHasValidated(true);
-        return Promise.resolve([]);
-      }
-
       setIsValidating(true);
 
       try {
@@ -862,6 +855,19 @@ export function useDatabaseValidation() {
                     ...acc[idx],
                     ...(extra.catalog.name ? { name: message } : {}),
                     ...(extra.catalog.url ? { url: message } : {}),
+                  };
+                  return acc;
+                }
+
+                if (extra?.ssh_tunnel) {
+                  acc.ssh_tunnel = {
+                    ...acc.ssh_tunnel,
+                    ...Object.fromEntries(
+                      (extra.missing ?? []).map((field: string) => [
+                        field,
+                        'This is a required field',
+                      ]),
+                    ),
                   };
                   return acc;
                 }
