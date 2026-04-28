@@ -262,12 +262,8 @@ test('searches for a chart', () => {
     useRedux: true,
   });
   userEvent.type(screen.getByPlaceholderText('Search...'), CHART_C);
-  expect(
-    screen.queryByRole('link', { name: CHART_A }),
-  ).not.toBeInTheDocument();
-  expect(
-    screen.queryByRole('link', { name: CHART_B }),
-  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: CHART_A })).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: CHART_B })).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: CHART_C })).toBeInTheDocument();
 });
 

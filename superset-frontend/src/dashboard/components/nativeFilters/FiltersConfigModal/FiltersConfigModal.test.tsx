@@ -532,6 +532,10 @@ const SORTABLE_ITEM_HEIGHT = 40;
 const SORTABLE_ITEM_WIDTH = 200;
 
 test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
+  // A previous test file may leak fake timers in the same worker.
+  // This test relies on real setTimeout for keyboard DnD updates.
+  jest.useRealTimers();
+
   const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),

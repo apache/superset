@@ -1477,6 +1477,69 @@ def test_connections_source_type_semantic_layer_only(
     mock_db_session.query.assert_called_once()
 
 
+@SEMANTIC_LAYERS_APP
+def test_connections_semantic_layer_filters_by_perms(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /connections/ applies datasource_access perms to semantic layers."""
+    from datetime import datetime
+
+    mock_layer = MagicMock()
+    mock_layer.uuid = uuid_lib.uuid4()
+    mock_layer.name = "Restricted Layer"
+    mock_layer.type = "snowflake"
+    mock_layer.description = None
+    mock_layer.cache_timeout = None
+    mock_layer.changed_on = datetime(2026, 1, 1)
+    mock_layer.changed_on_delta_humanized.return_value = "1 day ago"
+    mock_layer.changed_by = None
+
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    sl_query = MagicMock()
+    sl_query.options.return_value = sl_query
+    sl_query.filter.return_value = sl_query
+    sl_query.all.return_value = [mock_layer]
+    mock_db_session.query.return_value = sl_query
+
+    mock_cls = MagicMock()
+    mock_cls.name = "Snowflake"
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    mocker.patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access_all_datasources",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.semantic_layers.api.security_manager.user_view_menu_names",
+        return_value=["[Restricted Layer]"],
+    )
+
+    import prison as rison_lib
+
+    q = rison_lib.dumps(
+        {
+            "filters": [
+                {"col": "source_type", "opr": "eq", "value": "semantic_layer"},
+            ]
+        }
+    )
+    response = client.get(f"/api/v1/semantic_layer/connections/?q={q}")
+
+    assert response.status_code == 200
+    assert response.json["count"] == 1
+    sl_query.filter.assert_called()
+
+
 # =============================================================================
 # SemanticViewRestApi.post (bulk create) tests
 # =============================================================================

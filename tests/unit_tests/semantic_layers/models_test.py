@@ -1085,6 +1085,34 @@ def test_semantic_view_before_update_updates_perm(app: Any) -> None:
         db.session.rollback()
 
 
+def test_semantic_layer_after_delete_calls_security_manager() -> None:
+    """Test SemanticLayer.after_delete delegates to security manager."""
+    from superset import security_manager
+
+    mapper = MagicMock()
+    connection = MagicMock()
+    target = MagicMock(spec=SemanticLayer)
+
+    with patch.object(security_manager, "semantic_layer_after_delete") as mock_hook:
+        SemanticLayer.after_delete(mapper, connection, target)
+
+    mock_hook.assert_called_once_with(mapper, connection, target)
+
+
+def test_semantic_view_after_delete_calls_security_manager() -> None:
+    """Test SemanticView.after_delete delegates to security manager."""
+    from superset import security_manager
+
+    mapper = MagicMock()
+    connection = MagicMock()
+    target = MagicMock(spec=SemanticView)
+
+    with patch.object(security_manager, "semantic_view_after_delete") as mock_hook:
+        SemanticView.after_delete(mapper, connection, target)
+
+    mock_hook.assert_called_once_with(mapper, connection, target)
+
+
 def test_semantic_layer_rename_cascades_to_view_perms(app: Any) -> None:
     """Test that renaming a layer cascades the perm update to its views."""
     from superset.extensions import db
