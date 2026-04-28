@@ -2134,6 +2134,70 @@ describe('plugin-chart-table', () => {
           expect(screen.getByText('Michael')).toBeInTheDocument();
         });
       });
+
+      test('preserves client-side search text for string accessor columns without ids', async () => {
+        type DataRow = {
+          city: string;
+          firstName: string;
+        };
+
+        const makeColumns = (): Column<DataRow>[] => [
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>First name</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            accessor: 'firstName',
+          },
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>City</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            accessor: 'city',
+          },
+        ];
+
+        const data: DataRow[] = [
+          { firstName: 'Michael', city: 'Paris' },
+          { firstName: 'Jordan', city: 'London' },
+        ];
+
+        const renderDataTable = () => (
+          <ProviderWrapper>
+            <DataTable<DataRow>
+              columns={makeColumns()}
+              data={data}
+              rowCount={data.length}
+              serverPagination={false}
+              serverPaginationData={{}}
+              onServerPaginationChange={jest.fn()}
+              handleSortByChange={jest.fn()}
+              sortByFromParent={[]}
+              onSearchColChange={jest.fn()}
+              searchOptions={[]}
+              sticky={false}
+            />
+          </ProviderWrapper>
+        );
+
+        const { rerender } = render(renderDataTable());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderDataTable());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+      });
     });
 
     test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
