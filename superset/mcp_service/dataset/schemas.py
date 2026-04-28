@@ -396,20 +396,42 @@ class CreateVirtualDatasetResponse(BaseModel):
     )
 
 
+VALID_FILTER_OPS = Literal[
+    "==",
+    "!=",
+    ">",
+    "<",
+    ">=",
+    "<=",
+    "LIKE",
+    "NOT LIKE",
+    "ILIKE",
+    "NOT ILIKE",
+    "IN",
+    "NOT IN",
+    "IS NULL",
+    "IS NOT NULL",
+    "IS TRUE",
+    "IS FALSE",
+    "TEMPORAL_RANGE",
+]
+
+
 class QueryDatasetFilter(BaseModel):
     """A single filter condition for dataset queries."""
 
     col: str = Field(..., description="Column name to filter on")
-    op: str = Field(
+    op: VALID_FILTER_OPS = Field(
         ...,
         description=(
-            "Filter operator. Supported: =, !=, >, <, >=, <=, "
-            "IN, NOT_IN, LIKE, IS_NULL, IS_NOT_NULL, TEMPORAL_RANGE"
+            'Filter operator. Use "==" for equals, "!=" for not equals, '
+            '"IN" / "NOT IN" for membership, "IS NULL" / "IS NOT NULL", '
+            '"LIKE" for pattern matching, "TEMPORAL_RANGE" for time filters.'
         ),
     )
     val: Any = Field(
         default=None,
-        description="Filter value (omit for IS_NULL/IS_NOT_NULL)",
+        description="Filter value (omit for IS NULL/IS NOT NULL)",
     )
 
 

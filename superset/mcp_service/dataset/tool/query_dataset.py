@@ -189,6 +189,17 @@ async def query_dataset(  # noqa: C901
         validation_errors.extend(
             _validate_names(request.metrics, valid_metrics, "metric")
         )
+        # Validate filter column names against dataset columns
+        filter_cols = [f.col for f in request.filters]
+        validation_errors.extend(
+            _validate_names(filter_cols, valid_columns, "filter column")
+        )
+        # Validate order_by names against columns + metrics
+        if request.order_by:
+            valid_orderby = valid_columns | valid_metrics
+            validation_errors.extend(
+                _validate_names(request.order_by, valid_orderby, "order_by")
+            )
 
         if validation_errors:
             error_msg = "; ".join(validation_errors)
@@ -218,6 +229,15 @@ async def query_dataset(  # noqa: C901
                         "time_range was provided but no temporal column is available. "
                         "Either set time_column explicitly or ensure the dataset has "
                         "a main datetime column configured."
+                    ),
+                    error_type="ValidationError",
+                )
+            # Validate that the temporal column actually exists on the dataset
+            if temporal_col not in valid_columns:
+                await ctx.error("time_column '%s' not found on dataset" % temporal_col)
+                return DatasetError.create(
+                    error=(
+                        f"time_column '{temporal_col}' does not exist on this dataset."
                     ),
                     error_type="ValidationError",
                 )
@@ -258,11 +278,16 @@ async def query_dataset(  # noqa: C901
 
         with event_logger.log_context(action="mcp.query_dataset.execute"):
             factory = QueryContextFactory()
+            # datasource_type is "table" because this tool queries SqlaTable
+            # datasets (Superset's built-in semantic layer). External semantic
+            # layers (dbt, Snowflake Cortex, etc.) use "semantic_view" and have
+            # a different query path — see SemanticView + mapper.py.
             query_context = factory.create(
                 datasource={"id": dataset.id, "type": "table"},
                 queries=[query_dict],
                 form_data={},
                 force=request.force_refresh,
+                custom_cache_timeout=request.cache_timeout,
             )
 
             command = ChartDataCommand(query_context)
