@@ -25,9 +25,11 @@ system-level info.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Annotated, Any, Dict, List
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 
 
 class HealthCheckResponse(BaseModel):
@@ -167,6 +169,84 @@ def serialize_user_object(user: Any) -> UserInfo | None:
         email=getattr(user, "email", None),
         active=getattr(user, "active", None),
         roles=user_roles,
+    )
+
+
+class FindUsersRequest(BaseModel):
+    """Request schema for find_users tool.
+
+    Resolves a person's name (or partial name, username, or email) to user IDs
+    so they can be passed to listing tools as filter values for created_by_fk
+    or changed_by_fk. This is the only sanctioned path for "show me what
+    <person> is working on" queries.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: Annotated[
+        str,
+        Field(
+            min_length=1,
+            max_length=200,
+            description=(
+                "Substring to match (case-insensitive) against username, "
+                "first_name, last_name, and email. Required and non-empty: "
+                "this tool does not enumerate the full user directory."
+            ),
+        ),
+    ]
+    page_size: Annotated[
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Maximum number of matches to return (max {MAX_PAGE_SIZE}).",
+        ),
+    ]
+
+    @field_validator("query")
+    @classmethod
+    def _reject_blank_query(cls, value: str) -> str:
+        # min_length=1 alone admits whitespace-only strings, which strip to "" and
+        # produce a "%%" LIKE pattern that matches every user. Strip and require
+        # at least one non-space character.
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("query must contain at least one non-whitespace character")
+        return stripped
+
+
+class UserMatch(BaseModel):
+    """Minimal user projection returned by find_users.
+
+    Intentionally narrower than UserInfo: only the fields needed to disambiguate
+    matches and pass an id to created_by_fk / changed_by_fk filters. Email,
+    active flag, and roles are deliberately excluded to limit identity
+    exposure through this directory-resolution path.
+    """
+
+    id: int | None = None
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+
+
+class FindUsersResponse(BaseModel):
+    """Response schema for find_users tool."""
+
+    users: List[UserMatch] = Field(
+        default_factory=list,
+        description=(
+            "Matching users. Pass user.id as the value for created_by_fk or "
+            "changed_by_fk filters on list_dashboards, list_charts, and "
+            "list_datasets."
+        ),
+    )
+    count: int = Field(..., description="Number of users returned in this response.")
+    truncated: bool = Field(
+        default=False,
+        description="True when the query matched more rows than page_size allows.",
     )
 
 

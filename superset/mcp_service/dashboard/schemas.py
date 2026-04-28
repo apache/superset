@@ -67,7 +67,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, TYPE_CHECKING
+from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
 import humanize
 from pydantic import (
@@ -155,16 +155,20 @@ class DashboardFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
+    col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "dashboard_title",
         "published",
         "favorite",
+        "created_by_fk",
+        "changed_by_fk",
     ] = Field(
         ...,
         description=(
             "Column to filter on. Use "
             "get_schema(model_type='dashboard') for available "
-            "filter columns."
+            "filter columns. To filter by a person, first call find_users to "
+            "resolve a name to a user ID, then filter by created_by_fk or "
+            "changed_by_fk with that integer ID."
         ),
     )
     opr: ColumnOperatorEnum = Field(
@@ -209,7 +213,10 @@ class ListDashboardsRequest(MetadataCacheControl):
         """
         from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
 
-        return parse_json_or_model_list(v, DashboardFilter, "filters")
+        return cast(
+            List[DashboardFilter],
+            parse_json_or_model_list(v, DashboardFilter, "filters"),
+        )
 
     @field_validator("select_columns", mode="before")
     @classmethod
@@ -379,14 +386,14 @@ class DashboardInfo(BaseModel):
 
     # Fields for permalink/filter state support
     permalink_key: str | None = Field(
-        None,
+        default=None,
         description=(
             "Permalink key used to retrieve filter state. When present, indicates "
             "the filter_state came from a permalink rather than the default dashboard."
         ),
     )
     filter_state: Dict[str, Any] | None = Field(
-        None,
+        default=None,
         description=(
             "Filter state from permalink. Contains dataMask (native filter values), "
             "activeTabs, anchor, and urlParams. When present, represents the actual "

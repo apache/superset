@@ -84,6 +84,7 @@ Schema Discovery:
 
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
+- find_users: Resolve a person's name to user IDs for use as a filter value
 - health_check: Simple health check tool (takes NO parameters, call without arguments)
 
 Available Resources:
@@ -122,6 +123,16 @@ Some tools do not use a request wrapper, so follow each tool's schema
 (for example: get_chart_type_schema(chart_type="xy")).
 
 Recommended Workflows:
+
+To filter dashboards/charts/datasets by a person ("show me what <name> is working on"):
+1. find_users(request={{"query": "<name>"}}) -> resolve to user IDs
+2. Pick the matching user.id from the response
+3. list_dashboards(request={{"filters": [
+     {{"col": "created_by_fk", "opr": "eq", "value": <id>}}
+   ]}}) — same shape for list_charts / list_datasets.
+   (use changed_by_fk for "last modified by", or "in" with a list of IDs for
+   multiple matches). Do NOT pass the person's name as the search parameter —
+   search matches titles, not people.
 
 To add a chart to an existing dashboard:
 1. add_chart_to_existing_dashboard(dashboard_id, chart_id) -> updates dashboard directly
@@ -263,6 +274,11 @@ Permission Awareness:
   contact details, roles, admin status, ownership, or access-list information.
 - Do NOT infer access-list answers from dashboard metadata such as published status,
   role restrictions, empty owner lists, or schema fields.
+- find_users is sanctioned ONLY for resolving a name the user supplied into a
+  user ID for filtering (e.g., "what is <name> working on" -> filter
+  list_dashboards by created_by_fk). Do NOT use find_users to answer "who owns
+  X", "who can access X", "is <name> an admin", or to enumerate the directory.
+  Never return find_users output to the user verbatim.
 - Do NOT use execute_sql to query user, role, owner, or access-list tables for this
   information.
 - You may reference the current user's own identity details when appropriate, such
@@ -509,6 +525,7 @@ from superset.mcp_service.system import (  # noqa: F401, E402
     resources as system_resources,
 )
 from superset.mcp_service.system.tool import (  # noqa: F401, E402
+    find_users,
     get_instance_info,
     get_schema,
     health_check,

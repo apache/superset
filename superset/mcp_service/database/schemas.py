@@ -22,7 +22,7 @@ Pydantic schemas for database-related responses
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal
+from typing import Annotated, Any, cast, Dict, List, Literal
 
 import humanize
 from pydantic import (
@@ -55,7 +55,7 @@ class DatabaseFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
+    col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "database_name",
         "expose_in_sqllab",
         "allow_file_upload",
@@ -243,7 +243,10 @@ class ListDatabasesRequest(MetadataCacheControl):
     @classmethod
     def parse_filters(cls, v: Any) -> List[DatabaseFilter]:
         """Accept both JSON string and list of objects."""
-        return parse_json_or_model_list(v, DatabaseFilter, "filters")
+        return cast(
+            List[DatabaseFilter],
+            parse_json_or_model_list(v, DatabaseFilter, "filters"),
+        )
 
     @field_validator("select_columns", mode="before")
     @classmethod

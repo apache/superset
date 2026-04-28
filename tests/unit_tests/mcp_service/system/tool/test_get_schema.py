@@ -326,11 +326,19 @@ class TestGetSchemaToolViaClient:
     async def test_get_schema_omits_user_directory_columns(
         self, mock_filters, mcp_server
     ):
-        """Test that schema discovery does not advertise user/access fields."""
+        """Test that schema discovery does not advertise user/access fields.
+
+        created_by_fk and changed_by_fk are intentionally allowed in
+        filter_columns so callers can filter by user ID resolved via find_users,
+        but they remain hidden from select_columns and sortable_columns so the
+        directory itself is never exposed.
+        """
         mock_filters.return_value = {
             "dashboard_title": ["eq", "ilike"],
             "owner": ["rel_m_m"],
             "published": ["eq"],
+            "created_by_fk": ["eq", "in"],
+            "changed_by_fk": ["eq", "in"],
         }
 
         async with Client(mcp_server) as client:
@@ -352,8 +360,15 @@ class TestGetSchemaToolViaClient:
             "owner",
         ):
             assert field not in select_column_names
-            assert field not in info["filter_columns"]
             assert field not in info["sortable_columns"]
+
+        # User-name and relationship fields stay out of filter_columns
+        for field in ("owners", "roles", "created_by", "changed_by", "owner"):
+            assert field not in info["filter_columns"]
+
+        # ID-only filter columns are advertised so callers can filter via find_users
+        assert "created_by_fk" in info["filter_columns"]
+        assert "changed_by_fk" in info["filter_columns"]
 
 
 class TestGetSchemaEdgeCases:

@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import difflib
 from datetime import datetime, timezone
-from typing import Annotated, Any, Dict, List, Literal, Protocol
+from typing import Annotated, Any, cast, Dict, List, Literal, Protocol
 
 import humanize
 from pydantic import (
@@ -141,7 +141,7 @@ class ChartInfo(BaseModel):
         ),
     )
     form_data_key: str | None = Field(
-        None,
+        default=None,
         description=(
             "Cache key used to retrieve unsaved form_data. When present, indicates "
             "the form_data came from cache (unsaved edits) rather than the saved chart."
@@ -435,14 +435,18 @@ class ChartFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
+    col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "slice_name",
         "viz_type",
         "datasource_name",
+        "created_by_fk",
+        "changed_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='chart') for "
-        "available filter columns.",
+        "available filter columns. To filter by a person, first call find_users "
+        "to resolve a name to a user ID, then filter by created_by_fk or "
+        "changed_by_fk with that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -1351,7 +1355,10 @@ class ListChartsRequest(MetadataCacheControl):
         """
         from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
 
-        return parse_json_or_model_list(v, ChartFilter, "filters")
+        return cast(
+            List[ChartFilter],
+            parse_json_or_model_list(v, ChartFilter, "filters"),
+        )
 
     @field_validator("select_columns", mode="before")
     @classmethod

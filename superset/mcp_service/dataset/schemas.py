@@ -54,14 +54,18 @@ class DatasetFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
+    col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "table_name",
         "schema",
         "database_name",
+        "created_by_fk",
+        "changed_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='dataset') for "
-        "available filter columns.",
+        "available filter columns. To filter by a person, first call find_users "
+        "to resolve a name to a user ID, then filter by created_by_fk or "
+        "changed_by_fk with that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -415,7 +419,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
             params = None
     columns = [
         TableColumnInfo(
-            column_name=getattr(col, "column_name", None),
+            column_name=getattr(col, "column_name", None) or "",
             verbose_name=getattr(col, "verbose_name", None),
             type=getattr(col, "type", None),
             is_dttm=getattr(col, "is_dttm", None),
@@ -427,7 +431,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     ]
     metrics = [
         SqlMetricInfo(
-            metric_name=getattr(metric, "metric_name", None),
+            metric_name=getattr(metric, "metric_name", None) or "",
             verbose_name=getattr(metric, "verbose_name", None),
             expression=getattr(metric, "expression", None),
             description=getattr(metric, "description", None),
@@ -438,7 +442,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     return DatasetInfo(
         id=getattr(dataset, "id", None),
         table_name=getattr(dataset, "table_name", None),
-        schema_name=getattr(dataset, "schema", None),
+        schema=getattr(dataset, "schema", None),
         database_name=getattr(dataset.database, "database_name", None)
         if getattr(dataset, "database", None)
         else None,

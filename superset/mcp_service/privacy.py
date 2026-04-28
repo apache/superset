@@ -44,6 +44,12 @@ USER_DIRECTORY_FIELDS = frozenset(
     }
 )
 
+# User-directory columns that may be used as filter values (an integer user ID).
+# These remain stripped from select_columns, sort, search, and tool responses
+# (so the directory itself is never exposed), but list tools may filter rows by
+# them when the caller already has an ID — typically resolved via find_users.
+USER_FILTER_FIELDS = frozenset({"created_by_fk", "changed_by_fk"})
+
 DATA_MODEL_METADATA_ACCESS_ATTR = "_requires_data_model_metadata_access"
 DATA_MODEL_METADATA_ERROR_TYPE = "DataModelMetadataRestricted"
 DATA_MODEL_METADATA_PRIVACY_SCOPE = "data_model"
