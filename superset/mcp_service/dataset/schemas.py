@@ -36,10 +36,13 @@ from pydantic import (
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.common.cache_schemas import (
+    CacheStatus,
     CreatedByMeMixin,
     MetadataCacheControl,
     OwnedByMeMixin,
+    QueryCacheControl,
 )
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import filter_user_directory_fields
@@ -390,6 +393,124 @@ class CreateVirtualDatasetResponse(BaseModel):
     error: str | None = Field(
         None,
         description="Error message if creation failed, otherwise null.",
+    )
+
+
+class QueryDatasetFilter(BaseModel):
+    """A single filter condition for dataset queries."""
+
+    col: str = Field(..., description="Column name to filter on")
+    op: str = Field(
+        ...,
+        description=(
+            "Filter operator. Supported: =, !=, >, <, >=, <=, "
+            "IN, NOT_IN, LIKE, IS_NULL, IS_NOT_NULL, TEMPORAL_RANGE"
+        ),
+    )
+    val: Any = Field(
+        default=None,
+        description="Filter value (omit for IS_NULL/IS_NOT_NULL)",
+    )
+
+
+class QueryDatasetRequest(QueryCacheControl):
+    """Request schema for query_dataset tool."""
+
+    dataset_id: int | str = Field(
+        ...,
+        description="Dataset identifier — numeric ID or UUID string.",
+    )
+    metrics: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Saved metric names to compute (e.g. ['count', 'avg_revenue']). "
+            "Use get_dataset_info to discover available metrics."
+        ),
+    )
+    columns: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Column/dimension names for GROUP BY or SELECT "
+            "(e.g. ['category', 'region']). "
+            "Use get_dataset_info to discover available columns."
+        ),
+    )
+    filters: List[QueryDatasetFilter] = Field(
+        default_factory=list,
+        description=(
+            'Filter conditions (e.g. [{"col": "status", "op": "=", "val": "active"}]).'
+        ),
+    )
+    time_range: str | None = Field(
+        default=None,
+        description=(
+            "Time range filter (e.g. 'Last 7 days', 'Last month', "
+            "'2024-01-01 : 2024-12-31'). Requires a temporal column "
+            "on the dataset."
+        ),
+    )
+    time_column: str | None = Field(
+        default=None,
+        description=(
+            "Temporal column to apply time_range to. "
+            "Defaults to the dataset's main datetime column."
+        ),
+    )
+    order_by: List[str] | None = Field(
+        default=None,
+        description="Column or metric names to sort results by.",
+    )
+    order_desc: bool = Field(
+        default=True,
+        description="Sort descending (True) or ascending (False).",
+    )
+    row_limit: int = Field(
+        default=1000,
+        ge=1,
+        le=50000,
+        description="Maximum number of rows to return (default 1000, max 50000).",
+    )
+
+    @model_validator(mode="after")
+    def validate_metrics_or_columns(self) -> "QueryDatasetRequest":
+        """At least one of metrics or columns must be provided."""
+        if not self.metrics and not self.columns:
+            raise ValueError(
+                "At least one of 'metrics' or 'columns' must be provided. "
+                "Use get_dataset_info to discover available metrics and columns."
+            )
+        return self
+
+
+class QueryDatasetResponse(BaseModel):
+    """Response schema for query_dataset tool."""
+
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+    dataset_id: int = Field(..., description="Dataset ID")
+    dataset_name: str = Field(..., description="Dataset name")
+    columns: List[DataColumn] = Field(
+        default_factory=list, description="Column metadata for returned data"
+    )
+    data: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Query result rows"
+    )
+    row_count: int = Field(0, description="Number of rows returned")
+    total_rows: int | None = Field(
+        None, description="Total row count from the query engine"
+    )
+    summary: str = Field("", description="Human-readable summary of the results")
+    performance: PerformanceMetadata | None = Field(
+        None, description="Query performance metadata"
+    )
+    cache_status: CacheStatus | None = Field(
+        None, description="Cache hit/miss information"
+    )
+    applied_filters: List[QueryDatasetFilter] = Field(
+        default_factory=list, description="Filters that were applied to the query"
+    )
+    warnings: List[str] = Field(
+        default_factory=list, description="Any warnings encountered during execution"
     )
 
 

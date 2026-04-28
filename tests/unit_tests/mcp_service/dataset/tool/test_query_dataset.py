@@ -1,0 +1,488 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""Tests for the query_dataset MCP tool."""
+
+import importlib
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+from fastmcp import Client
+
+from superset.mcp_service.app import mcp
+from superset.utils import json
+
+query_dataset_module = importlib.import_module(
+    "superset.mcp_service.dataset.tool.query_dataset"
+)
+
+
+@pytest.fixture
+def mcp_server():
+    return mcp
+
+
+@pytest.fixture(autouse=True)
+def mock_auth():
+    """Mock authentication for all tests."""
+    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_get_user.return_value = mock_user
+        yield mock_get_user
+
+
+def _make_column(name: str, is_dttm: bool = False) -> MagicMock:
+    col = MagicMock()
+    col.column_name = name
+    col.is_dttm = is_dttm
+    col.verbose_name = None
+    col.type = "VARCHAR"
+    col.groupby = True
+    col.filterable = True
+    col.description = None
+    return col
+
+
+def _make_metric(name: str, expression: str = "COUNT(*)") -> MagicMock:
+    metric = MagicMock()
+    metric.metric_name = name
+    metric.verbose_name = None
+    metric.expression = expression
+    metric.description = None
+    metric.d3format = None
+    return metric
+
+
+def _make_dataset(
+    dataset_id: int = 1,
+    table_name: str = "orders",
+    columns: list | None = None,
+    metrics: list | None = None,
+    main_dttm_col: str | None = None,
+) -> MagicMock:
+    ds = MagicMock()
+    ds.id = dataset_id
+    ds.table_name = table_name
+    ds.uuid = f"test-uuid-{dataset_id}"
+    ds.main_dttm_col = main_dttm_col
+    ds.database = MagicMock()
+    ds.database.database_name = "examples"
+    ds.columns = columns or [
+        _make_column("category"),
+        _make_column("region"),
+        _make_column("order_date", is_dttm=True),
+    ]
+    ds.metrics = metrics or [
+        _make_metric("count", "COUNT(*)"),
+        _make_metric("total_revenue", "SUM(revenue)"),
+    ]
+    return ds
+
+
+def _mock_command_result(
+    data: list | None = None,
+    colnames: list | None = None,
+) -> dict:
+    """Build the result dict that ChartDataCommand.run() returns."""
+    data = data or [
+        {"category": "Electronics", "count": 42},
+        {"category": "Clothing", "count": 17},
+    ]
+    colnames = colnames or ["category", "count"]
+    return {
+        "queries": [
+            {
+                "data": data,
+                "colnames": colnames,
+                "rowcount": len(data),
+                "cache_key": "abc123",
+                "is_cached": False,
+                "cached_dttm": None,
+                "cache_timeout": 300,
+            }
+        ]
+    }
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_success(mcp_server) -> None:
+    """Happy path: metrics + columns returns data."""
+    dataset = _make_dataset()
+    result_data = _mock_command_result()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "_resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["dataset_id"] == 1
+    assert data["dataset_name"] == "orders"
+    assert data["row_count"] == 2
+    assert len(data["data"]) == 2
+    assert data["data"][0]["category"] == "Electronics"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_not_found(mcp_server) -> None:
+    """Dataset ID that doesn't exist returns error."""
+    with patch.object(
+        query_dataset_module,
+        "_resolve_dataset",
+        return_value=None,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 999,
+                        "metrics": ["count"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "NotFound"
+    assert "999" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_invalid_metric(mcp_server) -> None:
+    """Unknown metric name returns validation error with suggestions."""
+    dataset = _make_dataset()
+
+    with patch.object(
+        query_dataset_module,
+        "_resolve_dataset",
+        return_value=dataset,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["countt"],  # typo
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert "countt" in data["error"]
+    # Should suggest "count" as a close match
+    assert "count" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_invalid_column(mcp_server) -> None:
+    """Unknown column name returns validation error."""
+    dataset = _make_dataset()
+
+    with patch.object(
+        query_dataset_module,
+        "_resolve_dataset",
+        return_value=dataset,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "columns": ["nonexistent_col"],
+                        "metrics": ["count"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert "nonexistent_col" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_no_metrics_no_columns(mcp_server) -> None:
+    """Providing neither metrics nor columns raises validation error."""
+    from fastmcp.exceptions import ToolError
+
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError, match="metrics.*columns"):
+            await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": [],
+                        "columns": [],
+                    }
+                },
+            )
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_with_time_range(mcp_server) -> None:
+    """time_range is converted to TEMPORAL_RANGE filter + granularity."""
+    dataset = _make_dataset(main_dttm_col="order_date")
+    result_data = _mock_command_result()
+    captured_queries: list[dict] = []
+
+    def capture_create(**kwargs):
+        captured_queries.extend(kwargs.get("queries", []))
+        return MagicMock()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "_resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=capture_create,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "time_range": "Last 7 days",
+                    }
+                },
+            )
+
+    assert len(captured_queries) == 1
+    query_dict = captured_queries[0]
+    # Should have TEMPORAL_RANGE filter
+    temporal_filters = [f for f in query_dict["filters"] if f["op"] == "TEMPORAL_RANGE"]
+    assert len(temporal_filters) == 1
+    assert temporal_filters[0]["col"] == "order_date"
+    assert temporal_filters[0]["val"] == "Last 7 days"
+    # Should set granularity
+    assert query_dict["granularity"] == "order_date"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_time_range_no_temporal_column(mcp_server) -> None:
+    """time_range without a temporal column returns error."""
+    dataset = _make_dataset(main_dttm_col=None)
+
+    with patch.object(
+        query_dataset_module,
+        "_resolve_dataset",
+        return_value=dataset,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "time_range": "Last 7 days",
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert "temporal column" in data["error"].lower()
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_with_filters(mcp_server) -> None:
+    """User-provided filters are passed through to the query."""
+    dataset = _make_dataset()
+    result_data = _mock_command_result()
+    captured_queries: list[dict] = []
+
+    def capture_create(**kwargs):
+        captured_queries.extend(kwargs.get("queries", []))
+        return MagicMock()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "_resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=capture_create,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "filters": [
+                            {"col": "category", "op": "=", "val": "Electronics"}
+                        ],
+                    }
+                },
+            )
+
+    assert len(captured_queries) == 1
+    filters = captured_queries[0]["filters"]
+    assert len(filters) == 1
+    assert filters[0]["col"] == "category"
+    assert filters[0]["op"] == "="
+    assert filters[0]["val"] == "Electronics"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_empty_results(mcp_server) -> None:
+    """Query that returns no data gives a response with row_count=0."""
+    dataset = _make_dataset()
+    empty_result = {
+        "queries": [
+            {
+                "data": [],
+                "colnames": [],
+                "rowcount": 0,
+                "is_cached": False,
+                "cached_dttm": None,
+                "cache_timeout": 300,
+            }
+        ]
+    }
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "_resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=empty_result,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["row_count"] == 0
+    assert data["data"] == []
+    assert "no data" in data["summary"].lower()
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_by_uuid(mcp_server) -> None:
+    """UUID-based lookup works."""
+    dataset = _make_dataset()
+    result_data = _mock_command_result()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "_resolve_dataset",
+            return_value=dataset,
+        ) as mock_resolve,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+                        "metrics": ["count"],
+                    }
+                },
+            )
+
+    # Verify the resolve function was called with the UUID
+    mock_resolve.assert_called_once()
+    call_args = mock_resolve.call_args
+    assert call_args[0][0] == "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+
+    data = json.loads(result.content[0].text)
+    assert data["dataset_id"] == 1
