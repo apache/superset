@@ -124,6 +124,7 @@ _USER_ERROR_TYPES = (
     ValidationError,
     PermissionError,
     ValueError,
+    FileNotFoundError,
     CommandInvalidError,
     ObjectNotFoundError,
     ForbiddenError,

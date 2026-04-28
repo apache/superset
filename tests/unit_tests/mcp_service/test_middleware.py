@@ -755,8 +755,8 @@ class TestIsUserError:
             (ForbiddenError(), True),
             (_make_security_exception(), True),
             (ValueError("invalid param"), True),
+            (FileNotFoundError("not found"), True),
             # System errors (ERROR) — unexpected failures
-            (FileNotFoundError("not found"), False),
             (RuntimeError("unexpected"), False),
             (ConnectionError("connection refused"), False),
             (TypeError("type mismatch"), False),
