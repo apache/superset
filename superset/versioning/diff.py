@@ -202,7 +202,7 @@ def _diff_list_by_natural_key(
     to_list = to_list or []
 
     def _effective_key(raw: Key | None, idx: int) -> Key:
-        return raw if raw not in (None, "") else f"#{idx}"  # type: ignore[return-value]
+        return raw if raw not in (None, "") else idx
 
     from_by_key: dict[Key, Any] = {}
     for idx, item in enumerate(from_list):

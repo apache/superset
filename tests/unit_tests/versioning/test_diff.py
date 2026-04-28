@@ -932,7 +932,7 @@ def test_none_params_on_both_sides() -> None:
 
 
 def test_filter_without_subject_falls_back_to_position() -> None:
-    # Keyless filters should not crash; they get a synthetic ``#0`` key.
+    # Keyless filters should not crash; they fall back to the list index.
     filter_no_subject = {"operator": "==", "comparator": "x"}
     records = diff_slice_params(
         _params_json(adhoc_filters=[]),

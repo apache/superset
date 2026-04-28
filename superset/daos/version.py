@@ -262,9 +262,12 @@ class VersionDAO:
                                     ),
                                 )
                             )
-                        except Exception:  # pylint: disable=broad-except
+                        except sa.exc.OperationalError:
                             # version_changes table missing (pre-migration) —
-                            # don't block the shadow-row prune.
+                            # don't block the shadow-row prune. Narrow catch
+                            # mirrors the listener's policy: real DB errors
+                            # surface; only the SQLite "no such table"
+                            # bootstrap race is silenced.
                             logger.debug(
                                 "prune_versions: change-record cleanup skipped"
                                 " for %s id=%s",

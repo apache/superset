@@ -220,9 +220,6 @@ def _compute_records_for_entity(session: Session, obj: Any) -> list[ChangeRecord
 
     try:
         pre_state = _read_pre_state(session, model_cls, entity_id)
-    except OperationalError:
-        # Main entity table missing (pre-migration state, bootstrap).
-        return []
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "version_changes: pre-state read failed for %s id=%s",
@@ -429,18 +426,16 @@ def _dashboard_child_records_for_tx(
     return result
 
 
-# Module-level references to the two event handlers so we can guard
-# against double-registration. Each call to
-# ``register_change_record_listener`` creates a fresh closure inside
-# ``@event.listens_for``, which ``event.contains`` can't dedup because
-# the function objects differ. In test fixtures that instantiate
-# multiple Superset apps, register_* fires per-app and each call
-# attaches another listener — every flush then fires N times and our
-# buffer-append logic duplicates records N-fold. Caching the handlers
-# here and checking ``event.contains`` before re-attaching keeps the
-# count at exactly one per session target.
-_compute_change_records_handler: Any = None
-_flush_change_records_handler: Any = None
+# Sentinel attribute set on the session target after first successful
+# registration. Subsequent calls become no-ops. Storing the flag on the
+# target itself (rather than module-level state) keeps the guard
+# naturally scoped — a fresh session proxy gets a fresh registration —
+# and avoids the TOCTOU race between ``event.contains`` and
+# ``event.listen`` that a module-level ref would have under concurrent
+# init. In test fixtures that instantiate multiple Superset apps per
+# process, the shared ``db.session`` carries the sentinel and re-entry
+# is correctly deduped.
+_REGISTERED_SENTINEL = "_versioning_change_listener_registered"
 
 
 def _process_dirty_entity_into_buffer(
@@ -503,12 +498,13 @@ def register_change_record_listener() -> None:
     and has installed its own before_flush hook.
     """
     # pylint: disable=import-outside-toplevel
-    global _compute_change_records_handler, _flush_change_records_handler
-
     from superset.connectors.sqla.models import SqlaTable
     from superset.extensions import db
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
+
+    if getattr(db.session, _REGISTERED_SENTINEL, False):
+        return
 
     versioned_classes: tuple[type, ...] = (Dashboard, Slice, SqlaTable)
 
@@ -575,17 +571,16 @@ def register_change_record_listener() -> None:
             session.info[_BUFFER_KEY] = {}
             processed.add(tx_id)
 
-    # Attach only if we haven't already — guards against the test-
-    # fixture pattern where multiple Superset apps are instantiated
-    # per process and each call to register_change_record_listener
-    # would otherwise stack another listener on the shared db.session.
-    if _compute_change_records_handler is None or not event.contains(
-        db.session, "before_flush", _compute_change_records_handler
-    ):
-        event.listen(db.session, "before_flush", compute_change_records)
-        _compute_change_records_handler = compute_change_records
-    if _flush_change_records_handler is None or not event.contains(
-        db.session, "after_flush", _flush_change_records_handler
-    ):
-        event.listen(db.session, "after_flush", flush_change_records)
-        _flush_change_records_handler = flush_change_records
+    def reset_processed_after_commit(session: Session) -> None:
+        # ``_PROCESSED_TXS_KEY`` accumulates Continuum tx ids whose change
+        # records have already been written, to dedup against multiple
+        # ``after_flush`` firings within one transaction. After commit
+        # the tx is closed and its id will never recur on this session
+        # — drop the set so a long-lived session (Celery worker, CLI)
+        # doesn't grow it without bound.
+        session.info.pop(_PROCESSED_TXS_KEY, None)
+
+    event.listen(db.session, "before_flush", compute_change_records)
+    event.listen(db.session, "after_flush", flush_change_records)
+    event.listen(db.session, "after_commit", reset_processed_after_commit)
+    setattr(db.session, _REGISTERED_SENTINEL, True)
