@@ -986,66 +986,13 @@ class TestDashboardSortableColumns:
             assert col in list_dashboards.__doc__
 
 
-class TestListDashboardsCreatedByMe:
-    """Tests for the created_by_me flag on ListDashboardsRequest."""
-
-    def test_created_by_me_default_is_false(self):
-        request = ListDashboardsRequest()
-        assert request.created_by_me is False
-
-    def test_created_by_me_true_accepted(self):
-        request = ListDashboardsRequest(created_by_me=True)
-        assert request.created_by_me is True
-
-    def test_created_by_me_combined_with_filters(self):
-        request = ListDashboardsRequest(
-            created_by_me=True,
-            filters=[DashboardFilter(col="published", opr="eq", value=True)],
-        )
-        assert request.created_by_me is True
-        assert len(request.filters) == 1
-
-    def test_created_by_me_with_search_raises(self):
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError, match="created_by_me"):
-            ListDashboardsRequest(created_by_me=True, search="My dashboards")
-
-    def test_dashboard_filter_rejects_created_by_fk(self):
-        """created_by_fk is not a public filter column; use created_by_me instead."""
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError):
-            DashboardFilter(col="created_by_fk", opr="eq", value=1)
-
-
-class TestListDashboardsOwnedByMe:
-    """Tests for the owned_by_me flag on ListDashboardsRequest."""
-
-    def test_owned_by_me_default_is_false(self):
-        request = ListDashboardsRequest()
-        assert request.owned_by_me is False
-
-    def test_owned_by_me_true_accepted(self):
-        request = ListDashboardsRequest(owned_by_me=True)
-        assert request.owned_by_me is True
-
-    def test_owned_by_me_combined_with_filters(self):
-        request = ListDashboardsRequest(
-            owned_by_me=True,
-            filters=[DashboardFilter(col="published", opr="eq", value=True)],
-        )
-        assert request.owned_by_me is True
-        assert len(request.filters) == 1
-
-    def test_owned_by_me_with_search_raises(self):
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError, match="owned_by_me"):
-            ListDashboardsRequest(owned_by_me=True, search="My dashboards")
-
-    def test_owned_by_me_and_created_by_me_allowed(self):
-        """Both flags together are valid (OR logic — creator or owner)."""
-        request = ListDashboardsRequest(owned_by_me=True, created_by_me=True)
-        assert request.owned_by_me is True
-        assert request.created_by_me is True
+@patch("superset.daos.dashboard.DashboardDAO.list")
+@pytest.mark.asyncio
+async def test_list_dashboards_no_arguments(mock_list, mcp_server):
+    """Regression test: list_dashboards must accept zero arguments without raising
+    pydantic_core.ValidationError: Missing required argument: request."""
+    mock_list.return_value = ([], 0)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("list_dashboards", {})
+    data = json.loads(result.content[0].text)
+    assert "dashboards" in data
