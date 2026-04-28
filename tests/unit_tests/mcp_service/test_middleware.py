@@ -746,7 +746,7 @@ class TestIsUserError:
     """Test _is_user_error classification helper."""
 
     @pytest.mark.parametrize(
-        "error,expected",
+        ("error", "expected"),
         [
             # User errors (WARNING) — expected in normal MCP operation
             (ToolError("bad request"), True),
