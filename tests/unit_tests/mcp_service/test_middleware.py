@@ -315,7 +315,18 @@ class TestCreateResponseSizeGuardMiddleware:
 
     def test_default_config_checks_chart_preview(self) -> None:
         """Should size-check chart preview responses by default."""
-        assert "get_chart_preview" not in MCP_RESPONSE_SIZE_CONFIG["excluded_tools"]
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = MCP_RESPONSE_SIZE_CONFIG
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is not None
+        assert "get_chart_preview" not in middleware.excluded_tools
+        assert "health_check" in middleware.excluded_tools
 
     def test_creates_middleware_when_enabled(self) -> None:
         """Should create middleware when enabled in config."""
