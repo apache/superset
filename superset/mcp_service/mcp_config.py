@@ -218,7 +218,6 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
     "excluded_tools": [  # Tools to skip size checking
         "health_check",  # Always small
-        "get_chart_preview",  # Returns URLs, not data
         "generate_explore_link",  # Returns URLs
         "open_sql_lab_with_context",  # Returns URLs
         "search_tools",  # Returns tool schemas for discovery (intentionally large)
