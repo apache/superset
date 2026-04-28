@@ -1695,11 +1695,9 @@ class SqlaTable(
                     # for those we fall back to LIMIT 1.
                     tbl, _unused_cte = self.get_from_clause(template_processor)
                     if self.db_engine_spec.type_probe_needs_row:
-                        qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+                        qry = sa.select(sqla_column).limit(1).select_from(tbl)
                     else:
-                        qry = (
-                            sa.select([sqla_column]).where(sa.false()).select_from(tbl)
-                        )
+                        qry = sa.select(sqla_column).where(sa.false()).select_from(tbl)
                     sql = self.database.compile_sqla_query(
                         qry,
                         catalog=self.catalog,
