@@ -149,15 +149,20 @@ export default typedMemo(function DataTable<D extends object>({
 
   const columnNames = columns.map((column, index) => {
     const normalizedColumn = column as typeof column & {
-      accessor?: string;
+      accessor?: string | ((row: D) => unknown);
       columnKey?: string;
       id?: string;
     };
 
+    const accessorName =
+      typeof normalizedColumn.accessor === 'string'
+        ? normalizedColumn.accessor
+        : undefined;
+
     return (
       normalizedColumn.columnKey ??
-      normalizedColumn.accessor ??
       normalizedColumn.id ??
+      accessorName ??
       String(index)
     );
   });
