@@ -113,14 +113,26 @@ class TestCacheWarmUp(SupersetTestCase):
         # tag dashboard 'births' with `tag1`
         tag1 = get_tag("tag1", db.session, TagType.custom)
         dash = self.get_dash_by_slug("births")
-        tag1_payloads = [{"chart_id": chart.id} for chart in dash.slices]
+        # dashboard-tagged charts must include the dashboard context so the
+        # cache is warmed for the chart as it appears within that dashboard
+        tag1_payloads = [
+            {"chart_id": chart.id, "dashboard_id": dash.id} for chart in dash.slices
+        ]
         tagged_object = TaggedObject(
             tag_id=tag1.id, object_id=dash.id, object_type=ObjectType.dashboard
         )
         db.session.add(tagged_object)
         db.session.commit()
 
-        assert len(strategy.get_tasks()) == len(tag1_payloads)
+        tasks = strategy.get_tasks()
+        assert len(tasks) == len(tag1_payloads)
+        assert sorted(
+            (task["payload"] for task in tasks),
+            key=lambda p: (p["chart_id"], p["dashboard_id"]),
+        ) == sorted(
+            tag1_payloads,
+            key=lambda p: (p["chart_id"], p["dashboard_id"]),
+        )
 
         strategy = DashboardTagsStrategy(["tag2"])
         tag2 = get_tag("tag2", db.session, TagType.custom)
@@ -139,7 +151,9 @@ class TestCacheWarmUp(SupersetTestCase):
         db.session.add(tagged_object)
         db.session.commit()
 
-        assert len(strategy.get_tasks()) == len(tag2_payloads)
+        tasks = strategy.get_tasks()
+        assert len(tasks) == len(tag2_payloads)
+        assert [task["payload"] for task in tasks] == tag2_payloads
 
         strategy = DashboardTagsStrategy(["tag1", "tag2"])
 
