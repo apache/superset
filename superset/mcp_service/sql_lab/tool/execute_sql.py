@@ -103,7 +103,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         return result
 
     except OAuth2RedirectError as ex:
-        await ctx.error(
+        await ctx.warning(
             "Database requires OAuth authentication: database_id=%s"
             % request.database_id
         )
