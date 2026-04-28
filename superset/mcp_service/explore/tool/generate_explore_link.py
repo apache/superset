@@ -89,7 +89,7 @@ async def generate_explore_link(
     """
     await ctx.info(
         "Generating explore link for dataset_id=%s, chart_type=%s"
-        % (request.dataset_id, request.config.get("chart_type", "unknown"))
+        % (request.dataset_id, request.config.chart_type)
     )
     await ctx.debug(
         "Configuration details: use_cache=%s, force_refresh=%s, cache_form_data=%s"
@@ -196,7 +196,7 @@ async def generate_explore_link(
             "Explore link generation failed for dataset_id=%s, chart_type=%s: %s: %s"
             % (
                 request.dataset_id,
-                request.config.get("chart_type", "unknown"),
+                request.config.chart_type,
                 type(e).__name__,
                 str(e),
             )

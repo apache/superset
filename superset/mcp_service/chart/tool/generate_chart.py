@@ -214,7 +214,7 @@ async def generate_chart(  # noqa: C901
         "save_chart=%s, preview_formats=%s"
         % (
             request.dataset_id,
-            request.config.get("chart_type", "unknown"),
+            request.config.chart_type,
             request.save_chart,
             request.preview_formats,
         )
@@ -222,7 +222,7 @@ async def generate_chart(  # noqa: C901
     await ctx.debug(
         "Chart configuration details: chart_type=%s, keys=%s"
         % (
-            request.config.get("chart_type", "unknown"),
+            request.config.chart_type,
             sorted(request.config.keys()),
         )
     )
@@ -884,7 +884,7 @@ async def generate_chart(  # noqa: C901
         chart_type = "unknown"
         try:
             if hasattr(request, "config") and isinstance(request.config, dict):
-                chart_type = request.config.get("chart_type", "unknown")
+                chart_type = request.config.chart_type
         except (AttributeError, TypeError) as extract_error:
             # Ignore errors when extracting chart type for error context
             logger.debug("Could not extract chart type: %s", extract_error)
