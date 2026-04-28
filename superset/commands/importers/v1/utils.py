@@ -361,7 +361,7 @@ def safe_insert_dashboard_chart_relationships(
     # Get existing relationships only for dashboards being updated
     dashboard_ids = {dashboard_id for dashboard_id, _ in dashboard_chart_ids}
     existing_relationships = db.session.execute(
-        select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id]).where(
+        select(dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id).where(
             dashboard_slices.c.dashboard_id.in_(dashboard_ids)
         )
     ).fetchall()
