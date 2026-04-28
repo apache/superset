@@ -63,6 +63,12 @@ by clicking the **Connect** button in the bottom right corner of the modal windo
 
 Congratulations, you've just added a new data source in Superset!
 
+### Sharing a Database Connection
+
+When adding a new database, you can share the connection with other Superset users. Shared connections appear in other users' database lists, making it easier to collaborate on the same data without requiring each user to configure the same connection separately.
+
+To share a connection, enable the **Share connection with other users** option in the **Advanced** tab of the database connection modal before saving. You can change sharing settings later by editing the database connection.
+
 ### Registering a new table
 
 Now that you’ve configured a data source, you can select specific tables (called **Datasets** in Superset)
@@ -79,6 +85,22 @@ we register the **cleaned_sales_data** table from the **examples** database.
 <img src={useBaseUrl("/img/tutorial/tutorial_09_add_new_table.png" )} />
 
 To finish, click the **Add** button in the bottom right corner. You should now see your dataset in the list of datasets.
+
+### Organizing Datasets into Folders
+
+The Datasets list view supports **folders** for organizing datasets into groups. To create and manage folders:
+
+1. In the **Datasets** list, click the **Folders** panel on the left sidebar.
+2. Click **+ New Folder** to create a top-level folder, or drag an existing folder to nest it.
+3. Drag dataset rows onto a folder to move them in, or right-click a dataset and select **Move to folder**.
+
+Folders are per-user organizational aids — they do not affect dataset access permissions or how other users see the datasets.
+
+### Uploading Files via the OS File Manager (PWA)
+
+When Superset is installed as a **Progressive Web App (PWA)** from your browser, your operating system will offer Superset as an option when opening CSV, Excel (`.xls`/`.xlsx`), and Parquet files. Double-clicking or right-clicking a supported file and selecting "Open with Superset" navigates directly to the upload workflow for that file.
+
+To install Superset as a PWA, look for the install icon in your browser's address bar (Chrome, Edge) when visiting your Superset instance over HTTPS. PWA installation requires HTTPS and a valid manifest — your admin needs to confirm the app manifest is served correctly.
 
 ### Customizing column properties
 
@@ -193,7 +215,7 @@ Access to dashboards is managed via owners and permissions. Non-owner access can
 through dataset permissions or dashboard-level roles (using the `DASHBOARD_RBAC` feature flag).
 
 For detailed information on configuring dashboard access, see the
-[Dashboard Access Control](/admin-docs/security/security#dashboard-access-control) section in the
+[Dashboard Access Control](/admin-docs/security/#dashboard-access-control) section in the
 Security documentation.
 
 <img src={useBaseUrl("/img/tutorial/tutorial_dashboard_access.png" )} />
@@ -233,6 +255,64 @@ The following URL parameters can be used to modify how the dashboard is rendered
 For example, when running the local development build, the following will disable the
 Top Nav and remove the Filter Bar:
 `http://localhost:8088/superset/dashboard/my-dashboard/?standalone=1&show_filters=0`
+
+### AG Grid Interactive Table
+
+The **AG Grid Interactive Table** chart type is Superset's fully-featured data grid, suitable for large paginated datasets where the standard Table chart is not enough.
+
+#### Server-Side Column Filters
+
+AG Grid supports server-side column filters that query the full dataset — not just the loaded page. Filters are applied before data is sent to the browser, so results are correct even across millions of rows.
+
+**Available filter types:**
+
+| Column type | Filter options |
+|---|---|
+| Text | Contains, equals, starts with, ends with |
+| Number | Equals, not equal, less than, greater than, between |
+| Date | Before, after, between, blank |
+| Set | Select from a list of distinct values |
+
+**AND / OR logic:** Each column supports combining multiple conditions with AND or OR. Filters from different columns are always combined with AND.
+
+**Interaction with pagination:** Server-side filters run as WHERE clauses in the underlying SQL query, so pagination always operates over the already-filtered result set.
+
+#### Time Shift (Time Comparison)
+
+AG Grid Interactive Table supports **Time Shift** (time comparison), matching the behavior of the standard Table chart. In the **Advanced Analytics** → **Time Comparison** section of the chart configuration, enter a shift expression (e.g., `1 year ago`, `minus 7 days`) to add comparison columns showing values from the offset period. Dashboard-level time range overrides apply to both the base and comparison periods.
+
+### Dynamic Currency Formatting
+
+Chart metric values can display currencies dynamically rather than using a fixed currency code. To enable:
+
+1. Open the dataset editor for your dataset (**Datasets → Edit**).
+2. In the **Advanced** tab, set **Currency Code Column** to the name of a column in your dataset that contains ISO 4217 currency codes (e.g., `USD`, `EUR`, `GBP`).
+3. In the Explore chart configuration, open the metric's **Number format** section and select **Auto-detect** for currency.
+
+When Auto-detect is active, each row uses the currency code from the designated column, so a single chart can display values in multiple currencies — each formatted correctly for its currency.
+
+### ECharts Option Editor
+
+For ECharts-based chart types (line, bar, area, scatter, pie, and others), Explore includes an advanced **ECharts Option Editor** that accepts raw JSON overrides for the underlying ECharts configuration.
+
+Access it via the **Customize** tab → **ECharts Options** section at the bottom of the panel. The JSON you enter is deep-merged on top of Superset's generated ECharts config, so you can override specific options without rewriting the entire config.
+
+**Example:** override the legend position and add a custom title:
+
+```json
+{
+  "legend": { "orient": "vertical", "right": "5%", "top": "middle" },
+  "title": { "text": "My Custom Title", "left": "center" }
+}
+```
+
+:::caution
+ECharts option overrides bypass Superset's validation layer. Invalid option keys are silently ignored by ECharts. Overrides that conflict with Superset-generated options (e.g., `series`) may produce unexpected results.
+:::
+
+### Table Chart: Exporting Filtered Data
+
+When the **Search Box** is visible in a Table chart, the **Download** action exports only the rows currently visible after the search filter is applied — not the full underlying dataset. This matches the visual output and is intentional. To export the full dataset regardless of search state, use the **Download as CSV** option from the chart's three-dot menu in the dashboard or from the Explore chart toolbar before applying a search filter.
 
 :::resources
 - [Dashboard Customization](https://docs.preset.io/docs/dashboard-customization) - Advanced dashboard styling and layout options
