@@ -74,7 +74,6 @@ FEATURE_FLAGS = {
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
     "GLOBAL_TASK_FRAMEWORK": True,
-    "EMBEDDED_SUPERSET": True,
 }
 
 WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
