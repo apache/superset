@@ -759,12 +759,17 @@ const FiltersConfigForm = (
   const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
 
   useEffect(() => {
+    let isCurrentRequest = true;
+
     if (datasetId) {
       if (datasourceType === 'semantic_view') {
         cachedSupersetGet({
           endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
         })
           .then((response: JsonResponse) => {
+            if (!isCurrentRequest) {
+              return;
+            }
             const {
               name: svName,
               dimensions = [],
@@ -804,6 +809,9 @@ const FiltersConfigForm = (
             });
           })
           .catch((response: SupersetApiError) => {
+            if (!isCurrentRequest) {
+              return;
+            }
             addDangerToast(response.message);
           });
       } else {
@@ -834,6 +842,9 @@ const FiltersConfigForm = (
           })}`,
         })
           .then((response: JsonResponse) => {
+            if (!isCurrentRequest) {
+              return;
+            }
             setMetrics(response.json?.result?.metrics);
             const dataset = response.json?.result;
             // modify the response to fit structure expected by AdhocFilterControl
@@ -842,10 +853,17 @@ const FiltersConfigForm = (
             setDatasetDetails(dataset);
           })
           .catch((response: SupersetApiError) => {
+            if (!isCurrentRequest) {
+              return;
+            }
             addDangerToast(response.message);
           });
       }
     }
+
+    return () => {
+      isCurrentRequest = false;
+    };
   }, [datasetId, datasourceType]);
 
   useImperativeHandle(ref, () => ({
