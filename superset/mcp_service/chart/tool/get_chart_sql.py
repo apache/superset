@@ -23,6 +23,7 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
+from fastmcp.exceptions import ToolError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -215,7 +216,7 @@ def _build_query_context_from_form_data(
     # Ensure datasource fields satisfy DatasourceDict typing requirements.
     # datasource_id must be int | str; datasource_type must be str.
     if not isinstance(datasource_id, (int, str)):
-        raise ValueError(
+        raise ToolError(
             "Cannot determine datasource ID from form_data. "
             "Provide a chart identifier or ensure form_data contains "
             "'datasource_id' or 'datasource'."

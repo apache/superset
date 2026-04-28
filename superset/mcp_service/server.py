@@ -28,6 +28,7 @@ from collections.abc import Sequence
 from typing import Annotated, Any, Callable
 
 import uvicorn
+from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
@@ -592,7 +593,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
             Use this to execute tools discovered via search_tools.
             """
             if name in {transform._call_tool_name, transform._search_tool_name}:
-                raise ValueError(
+                raise ToolError(
                     f"'{name}' is a synthetic search tool and cannot be "
                     f"called via the call_tool proxy"
                 )

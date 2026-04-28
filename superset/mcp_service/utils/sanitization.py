@@ -33,6 +33,7 @@ import html
 import re
 
 import nh3
+from fastmcp.exceptions import ToolError
 
 
 def _strip_html_tags(value: str) -> str:
@@ -92,11 +93,11 @@ def _check_dangerous_patterns(value: str, field_name: str) -> None:
     """
     # Block dangerous URL schemes in plain text (word boundary check)
     if re.search(r"\b(javascript|vbscript|data):", value, re.IGNORECASE):
-        raise ValueError(f"{field_name} contains potentially malicious URL scheme")
+        raise ToolError(f"{field_name} contains potentially malicious URL scheme")
 
     # Block event handler patterns (onclick=, onerror=, etc.)
     if re.search(r"on\w+\s*=", value, re.IGNORECASE):
-        raise ValueError(f"{field_name} contains potentially malicious event handler")
+        raise ToolError(f"{field_name} contains potentially malicious event handler")
 
 
 def _check_sql_patterns(value: str, field_name: str) -> None:
@@ -116,15 +117,15 @@ def _check_sql_patterns(value: str, field_name: str) -> None:
         value,
         re.IGNORECASE,
     ):
-        raise ValueError(f"{field_name} contains potentially unsafe SQL keywords")
+        raise ToolError(f"{field_name} contains potentially unsafe SQL keywords")
 
     # Check for shell metacharacters and SQL comments
     if re.search(r"[;|&$`]|--", value):
-        raise ValueError(f"{field_name} contains potentially unsafe characters")
+        raise ToolError(f"{field_name} contains potentially unsafe characters")
 
     # Check for SQL comment start
     if "/*" in value:
-        raise ValueError(f"{field_name} contains potentially unsafe SQL comment syntax")
+        raise ToolError(f"{field_name} contains potentially unsafe SQL comment syntax")
 
 
 def _remove_dangerous_unicode(value: str) -> str:
@@ -205,18 +206,18 @@ def sanitize_user_input(
     if value is None:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise ToolError(f"{field_name} cannot be empty")
 
     value = value.strip()
 
     if not value:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise ToolError(f"{field_name} cannot be empty")
 
     # Length check first to prevent ReDoS attacks
     if len(value) > max_length:
-        raise ValueError(
+        raise ToolError(
             f"{field_name} too long ({len(value)} characters). "
             f"Maximum allowed length is {max_length} characters."
         )
@@ -264,7 +265,7 @@ def sanitize_filter_value(
 
     # Length check first
     if len(value) > max_length:
-        raise ValueError(
+        raise ToolError(
             f"Filter value too long ({len(value)} characters). "
             f"Maximum allowed length is {max_length} characters."
         )
@@ -278,7 +279,7 @@ def sanitize_filter_value(
     # Check for dangerous SQL procedures (filter-specific)
     v_lower = value.lower()
     if "xp_cmdshell" in v_lower or "sp_executesql" in v_lower:
-        raise ValueError("Filter value contains potentially malicious SQL procedures.")
+        raise ToolError("Filter value contains potentially malicious SQL procedures.")
 
     # SQL injection patterns specific to filter values
     sql_patterns = [
@@ -291,7 +292,7 @@ def sanitize_filter_value(
     ]
     for pattern in sql_patterns:
         if re.search(pattern, value, re.IGNORECASE):
-            raise ValueError(
+            raise ToolError(
                 "Filter value contains potentially malicious SQL patterns."
             )
 
@@ -299,11 +300,11 @@ def sanitize_filter_value(
     # Note: We allow '&' alone as it's common in text ("A & B") and is only
     # dangerous in shell contexts, not in database queries
     if re.search(r"[;|`$()]", value):
-        raise ValueError("Filter value contains potentially unsafe shell characters.")
+        raise ToolError("Filter value contains potentially unsafe shell characters.")
 
     # Check for hex encoding
     if re.search(r"\\x[0-9a-fA-F]{2}", value):
-        raise ValueError("Filter value contains hex encoding which is not allowed.")
+        raise ToolError("Filter value contains hex encoding which is not allowed.")
 
     # Remove dangerous Unicode characters
     value = _remove_dangerous_unicode(value)

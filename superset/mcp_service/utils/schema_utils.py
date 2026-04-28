@@ -219,9 +219,6 @@ def parse_json_or_model(
     try:
         return model_class.model_validate(parsed_value)
     except ValidationError:
-        logger.debug(
-            "Failed to validate %s against %s", param_name, model_class.__name__
-        )
         raise
 
 

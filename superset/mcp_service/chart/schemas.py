@@ -39,6 +39,7 @@ from pydantic import (
     TypeAdapter,
     ValidationError,
 )
+from fastmcp.exceptions import ToolError
 from typing_extensions import Self
 
 from superset.constants import TimeGrain
@@ -1294,7 +1295,7 @@ def parse_chart_config(
     try:
         return _CHART_CONFIG_ADAPTER.validate_python(config)
     except Exception as e:
-        raise ValueError(
+        raise ToolError(
             f"{e}\n\n"
             f"Hint: read the chart://configs resource for valid configuration "
             f"examples and field reference."
