@@ -151,6 +151,28 @@ def test_sanitize_text_redacts_jwt():
     assert "jwt" in redactions
 
 
+def test_sanitize_text_jwt_keyword_does_not_double_match():
+    """Regression: 'token <JWT>' must redact as JWT, not get re-matched as bearer.
+
+    The wider \\S+ value matcher in _BEARER_RE would otherwise re-consume the
+    already-redacted '[REDACTED_JWT]' placeholder, relabel it to TOKEN, and
+    pollute redactions_applied with a spurious 'token' entry alongside 'jwt'.
+    A negative lookahead in _BEARER_RE prevents that.
+    """
+    redactions: set[str] = set()
+    jwt = (
+        "eyJhbGciOiJIUzI1NiJ9."
+        "eyJzdWIiOiIxMjM0NSJ9."
+        "sflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+    )
+    out = _sanitize_text(f"got token {jwt} on retry", redactions)
+    assert jwt not in out
+    assert "[REDACTED_JWT]" in out
+    assert "[REDACTED_TOKEN]" not in out  # JWT already redacted, no relabel
+    assert "jwt" in redactions
+    assert "token" not in redactions  # exactly one rule should fire on this input
+
+
 def test_sanitize_text_redacts_long_hex_blob():
     redactions: set[str] = set()
     hex_blob = "a" * 40

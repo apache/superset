@@ -74,7 +74,13 @@ _IPV6_RE = re.compile(
 # narrower character class so base64-encoded tokens with =/+// characters
 # (e.g. "Bearer AAAA==") are fully consumed instead of leaking trailing
 # padding. The leading \b…\s+ prevents over-matching across whitespace.
-_BEARER_RE = re.compile(r"(?i)\b(bearer|token|api[_-]?key)\s+\S+")
+#
+# Negative lookahead (?!\[REDACTED_) prevents this rule from re-matching a
+# value already replaced by an earlier rule. Without it, "got token <JWT>"
+# becomes "got token [REDACTED_JWT]" after _JWT_RE, and then _BEARER_RE
+# re-matches "token [REDACTED_JWT]" — relabeling the marker to TOKEN and
+# polluting redactions_applied with a spurious "token" entry.
+_BEARER_RE = re.compile(r"(?i)\b(bearer|token|api[_-]?key)\s+(?!\[REDACTED_)\S+")
 _KEY_VALUE_SECRET_RE = re.compile(
     r"(?i)\b(password|passwd|pwd|secret|api[_-]?key|access[_-]?key|"
     r"auth[_-]?token|authorization|bearer|session[_-]?id)"
