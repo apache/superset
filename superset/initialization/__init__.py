@@ -184,6 +184,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             SecurityRestApi,
             UserRegistrationsRestAPI,
         )
+        from superset.deleted.api import DeletedRestApi
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
@@ -268,6 +269,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        appbuilder.add_api(DeletedRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
@@ -758,6 +760,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         with self.superset_app.app_context():
             self.init_app_in_ctx()
 
+        self.setup_soft_delete_listener()
         self.post_init()
 
     def set_db_default_isolation(self) -> None:
@@ -939,6 +942,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             pessimistic_connection_handling(db.engine)
 
         migrate.init_app(self.superset_app, db=db, directory=APP_DIR + "/migrations")
+
+    def setup_soft_delete_listener(self) -> None:
+        """Register the global soft-delete filter on the SQLAlchemy Session.
+
+        Must be called after ``setup_db()`` so the Session class is
+        available. Uses the ``do_orm_execute`` + ``with_loader_criteria``
+        pattern recommended by SQLAlchemy maintainer Mike Bayer for
+        soft deletion in SQLAlchemy 1.4+:
+        https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295
+        """
+        from sqlalchemy import event
+        from sqlalchemy.orm import Session
+
+        from superset.models.helpers import _add_soft_delete_filter
+
+        if not event.contains(Session, "do_orm_execute", _add_soft_delete_filter):
+            event.listen(Session, "do_orm_execute", _add_soft_delete_filter)
 
     def configure_wtf(self) -> None:
         if self.config["WTF_CSRF_ENABLED"]:

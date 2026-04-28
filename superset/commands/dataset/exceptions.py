@@ -170,6 +170,10 @@ class DatasetUpdateFailedError(UpdateFailedError):
     message = _("Dataset could not be updated.")
 
 
+class DatasetRestoreFailedError(CommandException):
+    message = _("Dataset could not be restored.")
+
+
 class DatasetDeleteFailedError(DeleteFailedError):
     message = _("Datasets could not be deleted.")
 

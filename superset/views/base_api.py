@@ -18,9 +18,11 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Callable, cast
+from contextlib import contextmanager
+from datetime import datetime
+from typing import Any, Callable, cast, Iterator
 
-from flask import request, Response
+from flask import g, request, Response
 from flask_appbuilder import Model, ModelRestApi
 from flask_appbuilder.api import (
     BaseApi,
@@ -42,11 +44,12 @@ from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager, stats_logger_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
+from superset.models.helpers import SKIP_VISIBILITY_FILTER
 from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
-from superset.utils.core import get_user_id, time_function
+from superset.utils.core import get_user_id, parse_boolean_string, time_function
 from superset.views.error_handling import handle_api_exception
 
 logger = logging.getLogger(__name__)
@@ -340,6 +343,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     """
 
     allowed_distinct_fields: set[str] = set()
+    allow_include_deleted_list = False
 
     add_columns: list[str]
     edit_columns: list[str]
@@ -359,6 +363,48 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
                 DistincResponseSchema,
             )
         )
+
+    def _should_include_deleted_in_list(self) -> bool:
+        return self.allow_include_deleted_list and parse_boolean_string(
+            request.args.get("include_deleted")
+        )
+
+    @contextmanager
+    def _maybe_include_deleted_in_list(self) -> Iterator[None]:
+        if not self._should_include_deleted_in_list():
+            yield
+            return
+
+        previous = getattr(g, SKIP_VISIBILITY_FILTER, False)
+        setattr(g, SKIP_VISIBILITY_FILTER, True)
+        try:
+            yield
+        finally:
+            setattr(g, SKIP_VISIBILITY_FILTER, previous)
+
+    @staticmethod
+    def _serialize_deleted_at(value: datetime | None) -> str | None:
+        return value.isoformat() if value else None
+
+    def _get_deleted_at_map(self, ids: list[int]) -> dict[int, str | None]:
+        if not ids:
+            return {}
+
+        # Uses a raw session query rather than the DAO because this method lives
+        # on the base API class, which has no DAO reference — the DAO is only
+        # defined on concrete subclasses (ChartRestApi, DashboardRestApi, etc.).
+        # This is a read-only projection of two columns on already-known IDs, not
+        # a general entity lookup, so bypassing the DAO is acceptable here.
+        rows = (
+            db.session.query(self.datamodel.obj.id, self.datamodel.obj.deleted_at)
+            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            .filter(self.datamodel.obj.id.in_(ids))
+            .all()
+        )
+        return {
+            row_id: self._serialize_deleted_at(deleted_at)
+            for row_id, deleted_at in rows
+        }
 
     def _init_properties(self) -> None:
         """
@@ -490,7 +536,8 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         """
         Add statsd metrics to builtin FAB GET list endpoint
         """
-        duration, response = time_function(super().get_list_headless, **kwargs)
+        with self._maybe_include_deleted_in_list():
+            duration, response = time_function(super().get_list_headless, **kwargs)
         self.send_stats_metrics(response, self.get_list.__name__, duration)
         return response
 
@@ -683,3 +730,12 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             if item[0] is not None
         ]
         return self.response(200, count=count, result=result)
+
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        if not self._should_include_deleted_in_list():
+            return
+
+        ids = cast(list[int], data.get("ids", []))
+        deleted_at_map = self._get_deleted_at_map(ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            row["deleted_at"] = deleted_at_map.get(row_id)

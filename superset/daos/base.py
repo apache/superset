@@ -48,6 +48,7 @@ from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
+from superset.models.helpers import SKIP_VISIBILITY_FILTER
 
 T = TypeVar("T", bound=CoreModel)
 
@@ -87,8 +88,8 @@ operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.in_: lambda col, val: col.in_(
         val if isinstance(val, (list, tuple)) else [val]
     ),
-    ColumnOperatorEnum.nin: lambda col, val: ~col.in_(
-        val if isinstance(val, (list, tuple)) else [val]
+    ColumnOperatorEnum.nin: lambda col, val: (
+        ~col.in_(val if isinstance(val, (list, tuple)) else [val])
     ),
     ColumnOperatorEnum.gt: lambda col, val: col > val,
     ColumnOperatorEnum.gte: lambda col, val: col >= val,
@@ -181,11 +182,14 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         cls,
         model_id_or_uuid: str,
         skip_base_filter: bool = False,
+        skip_visibility_filter: bool = False,
     ) -> T | None:
         """
         Find a model by id or uuid, if defined applies `base_filter`
         """
         query = db.session.query(cls.model_cls)
+        if skip_visibility_filter:
+            query = query.execution_options(**{SKIP_VISIBILITY_FILTER: True})
         if cls.base_filter and not skip_base_filter:
             data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
@@ -248,6 +252,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         column_name: str,
         value: str | int,
         skip_base_filter: bool = False,
+        skip_visibility_filter: bool = False,
         query_options: list[Any] | None = None,
     ) -> T | None:
         """
@@ -257,6 +262,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             column_name: Name of the column to search by
             value: Value to search for
             skip_base_filter: Whether to skip base filtering
+            skip_visibility_filter: Whether to skip the soft-delete visibility filter
             query_options: SQLAlchemy query options (e.g., joinedload,
                 subqueryload) to apply to the query for eager loading
 
@@ -264,6 +270,8 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             Model instance or None if not found
         """
         query = db.session.query(cls.model_cls)
+        if skip_visibility_filter:
+            query = query.execution_options(**{SKIP_VISIBILITY_FILTER: True})
         query = cls._apply_base_filter(query, skip_base_filter)
 
         if query_options:
@@ -288,6 +296,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         cls,
         model_id: str | int,
         skip_base_filter: bool = False,
+        skip_visibility_filter: bool = False,
         id_column: str | None = None,
         query_options: list[Any] | None = None,
     ) -> T | None:
@@ -297,6 +306,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         Args:
             model_id: ID value to search for
             skip_base_filter: Whether to skip base filtering
+            skip_visibility_filter: Whether to skip the soft-delete visibility filter
             id_column: Column name to use (defaults to cls.id_column_name)
             query_options: SQLAlchemy query options (e.g., joinedload,
                 subqueryload) to apply to the query for eager loading
@@ -305,7 +315,9 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             Model instance or None if not found
         """
         column = id_column or cls.id_column_name
-        return cls._find_by_column(column, model_id, skip_base_filter, query_options)
+        return cls._find_by_column(
+            column, model_id, skip_base_filter, skip_visibility_filter, query_options
+        )
 
     @classmethod
     def find_by_ids(
@@ -429,24 +441,52 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         return item  # type: ignore
 
     @classmethod
-    def delete(cls, items: list[T]) -> None:
+    def soft_delete(cls, items: list[T]) -> None:
+        """Mark items as soft-deleted by setting ``deleted_at``.
+
+        Only valid for models that include ``SoftDeleteMixin``.
+
+        :param items: The items to soft-delete
         """
-        Delete the specified items including their associated relationships.
+        for item in items:
+            item.soft_delete()
 
-        Note that bulk deletion via `delete` is not invoked in the base class as this
-        does not dispatch the ORM `after_delete` event which may be required to augment
-        additional records loosely defined via implicit relationships. Instead ORM
-        objects are deleted one-by-one via `Session.delete`.
+    @classmethod
+    def hard_delete(cls, items: list[T]) -> None:
+        """Permanently remove rows from the database.
 
-        Subclasses may invoke bulk deletion but are responsible for instrumenting any
-        post-deletion logic.
+        Note that bulk deletion via ``delete`` is not invoked in the base
+        class as this does not dispatch the ORM ``after_delete`` event which
+        may be required to augment additional records loosely defined via
+        implicit relationships. Instead ORM objects are deleted one-by-one
+        via ``Session.delete``.
+
+        Subclasses may invoke bulk deletion but are responsible for
+        instrumenting any post-deletion logic.
 
         :param items: The items to delete
         :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
         """
-
         for item in items:
             db.session.delete(item)
+
+    @classmethod
+    def delete(cls, items: list[T]) -> None:
+        """Route to soft or hard delete based on whether the model supports
+        soft delete.
+
+        For models that include ``SoftDeleteMixin``, this calls
+        ``soft_delete()``. For all other models, this calls ``hard_delete()``
+        (the original behaviour).
+
+        :param items: The items to delete
+        """
+        from superset.models.helpers import SoftDeleteMixin
+
+        if cls.model_cls is not None and issubclass(cls.model_cls, SoftDeleteMixin):
+            cls.soft_delete(items)
+        else:
+            cls.hard_delete(items)
 
     @classmethod
     def query(cls, query: Query) -> list[T]:
