@@ -279,7 +279,7 @@ MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
     "call_tool_name": "call_tool",  # Name of the call proxy tool
     "compact_schemas": True,  # Strip $defs/$ref (requires include_schemas=True)
     "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
-    "include_schemas": False,  # False=summary mode (name+hint), True=full inputSchema
+    "include_schemas": True,  # full inputSchema in search results
 }
 
 
