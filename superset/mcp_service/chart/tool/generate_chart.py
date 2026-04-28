@@ -519,7 +519,7 @@ async def generate_chart(  # noqa: C901
 
             except CommandException as e:
                 logger.error("Chart creation failed: %s", e)
-                await ctx.warning("Chart creation failed: error=%s" % (str(e),))
+                await ctx.error("Chart creation failed: error=%s" % (str(e),))
                 raise
             # Update explore URL to use saved chart
             explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart.id}"

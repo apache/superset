@@ -787,6 +787,8 @@ class TestIsUserError:
         from pydantic import BaseModel
 
         class TestModel(BaseModel):
+            """Test model for validation error testing."""
+
             name: str
 
         with pytest.raises(ValidationError) as exc_info:
