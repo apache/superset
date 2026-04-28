@@ -1134,9 +1134,7 @@ class DatasourceEditor extends PureComponent<
   // intra-form focus change (tabbing between fields). Only flush when focus
   // actually leaves the container — otherwise the debounce is defeated for
   // the common edit-multiple-fields-in-a-row case.
-  handleContainerBlur = (
-    e: React.FocusEvent<HTMLDivElement>,
-  ) => {
+  handleContainerBlur = (e: React.FocusEvent<HTMLDivElement>) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
       this.flushValidation();
     }
