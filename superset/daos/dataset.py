@@ -89,6 +89,10 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                     SqlaTable.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
                 )
             elif c.col == "created_by_fk_or_owner":
+                if c.opr != "eq":
+                    raise ValueError(
+                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                    )
                 from superset.connectors.sqla.models import sqlatable_user
 
                 owner_subq = select(sqlatable_user.c.table_id).where(

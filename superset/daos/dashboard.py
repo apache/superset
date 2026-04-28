@@ -89,6 +89,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
                 )
             elif c.col == "created_by_fk_or_owner":
+                if c.opr != "eq":
+                    raise ValueError(
+                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                    )
                 from superset.models.dashboard import dashboard_user
 
                 owner_subq = select(dashboard_user.c.dashboard_id).where(
