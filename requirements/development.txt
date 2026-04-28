@@ -52,8 +52,10 @@ attrs==25.3.0
     #   referencing
     #   requests-cache
     #   trio
-authlib==1.6.9
-    # via fastmcp
+authlib==1.7.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   fastmcp
 babel==2.17.0
     # via
     #   -c requirements/base-constraint.txt
@@ -183,6 +185,7 @@ cryptography==46.0.7
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   authlib
+    #   joserfc
     #   paramiko
     #   pyjwt
     #   pyopenssl
@@ -467,6 +470,10 @@ jmespath==1.1.0
     # via
     #   boto3
     #   botocore
+joserfc==1.6.4
+    # via
+    #   -c requirements/base-constraint.txt
+    #   authlib
 jsonpath-ng==1.7.0
     # via
     #   -c requirements/base-constraint.txt
@@ -833,8 +840,10 @@ python-dotenv==1.1.0
     #   pydantic-settings
 python-ldap==3.4.4
     # via apache-superset
-python-multipart==0.0.26
-    # via mcp
+python-multipart==0.0.27
+    # via
+    #   -c requirements/base-constraint.txt
+    #   mcp
 pytz==2025.2
     # via
     #   -c requirements/base-constraint.txt
