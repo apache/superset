@@ -62,6 +62,7 @@ from typing import (
 from urllib.parse import unquote_plus
 from zipfile import ZipFile
 
+import humanize.i18n
 import markdown as md
 import nh3
 import pandas as pd
@@ -70,7 +71,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
 from flask import current_app as app, g, request
 from flask_appbuilder.security.sqla.models import User
-from flask_babel import gettext as __
+from flask_babel import get_locale, gettext as __
 from flask_sqlalchemy import SQLAlchemy
 from markupsafe import Markup
 from pandas.api.types import infer_dtype
@@ -88,6 +89,7 @@ from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+    LOCALES_LANGUAGE_MAP,
     NO_TIME_RANGE,
 )
 from superset.errors import ErrorLevel, SupersetErrorType
@@ -2149,3 +2151,27 @@ def get_user_agent(database: Database, source: QuerySource | None) -> str:
         return user_agent_func(database, source)
 
     return DEFAULT_USER_AGENT
+
+
+def activate_humanize_locale() -> None:
+    """Activate the humanize locale based on the current Flask-Babel locale.
+
+    Maps the Babel locale (e.g. ``fr``, ``pt_BR``) to a humanize-compatible
+    locale string (e.g. ``fr_FR``, ``pt_BR``) via ``LOCALES_LANGUAGE_MAP``.
+    Falls back to ``en_US`` (humanize's default) for unmapped or English
+    locales.
+    """
+    locale = str(get_locale() or "en")
+    if locale == "en":
+        humanize.i18n.deactivate()
+        return
+    language = LOCALES_LANGUAGE_MAP.get(locale, "en_US")
+    try:
+        humanize.i18n.activate(language)
+    except FileNotFoundError:
+        logger.warning(
+            "Locale '%s' (mapped to '%s') is not supported by humanize",
+            locale,
+            language,
+        )
+        humanize.i18n.deactivate()
