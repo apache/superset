@@ -754,8 +754,8 @@ class TestIsUserError:
             (ObjectNotFoundError("Chart", "123"), True),
             (ForbiddenError(), True),
             (_make_security_exception(), True),
+            (ValueError("invalid param"), True),
             # System errors (ERROR) — unexpected failures
-            (ValueError("invalid param"), False),
             (FileNotFoundError("not found"), False),
             (RuntimeError("unexpected"), False),
             (ConnectionError("connection refused"), False),
@@ -769,7 +769,7 @@ class TestIsUserError:
             "ObjectNotFoundError",
             "ForbiddenError",
             "SupersetSecurityException",
-            "ValueError",
+            "ValueError",  # user error — bad param from LLM
             "FileNotFoundError",
             "RuntimeError",
             "ConnectionError",

@@ -123,6 +123,7 @@ _USER_ERROR_TYPES = (
     ToolError,
     ValidationError,
     PermissionError,
+    ValueError,
     CommandInvalidError,
     ObjectNotFoundError,
     ForbiddenError,
