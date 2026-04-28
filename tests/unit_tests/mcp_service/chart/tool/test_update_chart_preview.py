@@ -19,8 +19,13 @@
 Unit tests for update_chart_preview MCP tool
 """
 
-import pytest
+import importlib
+from unittest.mock import Mock, patch
 
+import pytest
+from fastmcp import Client
+
+from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
@@ -375,6 +380,24 @@ class TestUpdateChartPreview:
             assert request.form_data_key == key
 
     @pytest.mark.asyncio
+    async def test_update_chart_preview_form_data_key_optional(self):
+        """Test that form_data_key can be omitted for fresh previews."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="col1")],
+        )
+
+        # Omit form_data_key entirely
+        request = UpdateChartPreviewRequest(dataset_id=1, config=config)
+        assert request.form_data_key is None
+
+        # Explicitly pass None
+        request2 = UpdateChartPreviewRequest(
+            form_data_key=None, dataset_id=1, config=config
+        )
+        assert request2.form_data_key is None
+
+    @pytest.mark.asyncio
     async def test_update_chart_preview_cache_control(self):
         """Test cache control parameters in update preview request."""
         config = TableChartConfig(
@@ -472,3 +495,54 @@ class TestUpdateChartPreview:
         )
         assert request.config["sort_by"] == ["sales", "profit"]
         assert len(request.config["columns"]) == 3
+
+
+@pytest.fixture
+def mcp_server():
+    return mcp
+
+
+@pytest.fixture(autouse=True)
+def mock_auth():
+    """Mock authentication for all tool tests."""
+    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_get_user.return_value = mock_user
+        yield mock_get_user
+
+
+class TestUpdateChartPreviewTool:
+    """Tests for update_chart_preview tool execution."""
+
+    @patch.object(
+        importlib.import_module("superset.mcp_service.chart.tool.update_chart_preview"),
+        "_find_dataset",
+        return_value=None,
+    )
+    @pytest.mark.asyncio
+    async def test_update_chart_preview_dataset_not_found(
+        self, mock_find_dataset, mcp_server
+    ):
+        """Test that a non-existent dataset returns a clear error."""
+
+        request = {
+            "dataset_id": 99999,
+            "config": {
+                "chart_type": "table",
+                "columns": [{"name": "col1"}],
+            },
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_chart_preview", {"request": request}
+            )
+
+            data = result.structured_content
+            assert data["success"] is False
+            assert data["chart"] is None
+            error = data["error"]
+            assert error["error_type"] == "dataset_not_found"
+            assert "99999" in error["message"]
