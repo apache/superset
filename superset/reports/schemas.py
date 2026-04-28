@@ -305,6 +305,30 @@ class ReportSchedulePostSchema(Schema):
                 )
 
 
+class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
+    """Schema for creating a chart/dashboard subscription.
+
+    ``recipients`` and ``creation_method`` are excluded — both are set
+    server-side: recipients are locked to the authenticated user's email,
+    and creation_method is derived from the presence of ``chart`` or
+    ``dashboard`` in the payload.
+
+    ``type`` is restricted to ``Report`` — alert schedules cannot be
+    created through the subscribe endpoint.
+    """
+
+    type = fields.String(
+        metadata={"description": type_description},
+        allow_none=False,
+        required=True,
+        validate=validate.OneOf(choices=[ReportScheduleType.REPORT.value]),
+    )
+
+    class Meta:
+        exclude = ("recipients", "creation_method", "owners")
+        unknown = EXCLUDE
+
+
 class ReportSchedulePutSchema(Schema):
     type = fields.String(
         metadata={"description": type_description},

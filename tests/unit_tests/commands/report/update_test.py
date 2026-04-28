@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Unit tests for UpdateReportScheduleCommand.validate() database invariants."""
+"""Unit tests for UpdateReportScheduleCommand.validate()."""
 
 from __future__ import annotations
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from pytest_mock import MockerFixture
@@ -30,7 +30,11 @@ from superset.commands.report.exceptions import (
 from superset.commands.report.update import UpdateReportScheduleCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
-from superset.reports.models import ReportScheduleType, ReportState
+from superset.reports.models import (
+    ReportCreationMethod,
+    ReportScheduleType,
+    ReportState,
+)
 
 
 def _make_model(
@@ -38,10 +42,12 @@ def _make_model(
     *,
     model_type: ReportScheduleType | str,
     database_id: int | None,
+    creation_method: ReportCreationMethod = ReportCreationMethod.ALERTS_REPORTS,
 ) -> Mock:
     model = mocker.Mock()
     model.type = model_type
     model.database_id = database_id
+    model.creation_method = creation_method
     model.name = "test_schedule"
     model.crontab = "0 9 * * *"
     model.last_state = "noop"
@@ -255,6 +261,142 @@ def test_report_to_alert_with_db_accepted(mocker: MockerFixture) -> None:
         data={"type": ReportScheduleType.ALERT, "database": 5},
     )
     cmd.validate()  # should not raise
+
+
+# --- Recipient enforcement for chart/dashboard reports ---
+
+_PATCH_GET_USER_EMAIL = "superset.commands.report.update.get_user_email"
+
+
+def test_chart_report_update_recipient_overridden_with_owner_email(
+    mocker: MockerFixture,
+) -> None:
+    """Updating recipients on a chart report always locks them to the owner's email."""
+    model = _make_model(
+        mocker,
+        model_type=ReportScheduleType.REPORT,
+        database_id=None,
+        creation_method=ReportCreationMethod.CHARTS,
+    )
+    _setup_mocks(mocker, model)
+
+    data = {
+        "recipients": [
+            {
+                "type": "Email",
+                "recipient_config_json": {"target": "other@example.com"},
+            }
+        ]
+    }
+    cmd = UpdateReportScheduleCommand(model_id=1, data=data)
+    with patch(_PATCH_GET_USER_EMAIL, return_value="owner@example.com"):
+        cmd.validate()
+
+    recipients = cmd._properties["recipients"]
+    assert len(recipients) == 1
+    assert recipients[0]["recipient_config_json"]["target"] == "owner@example.com"
+
+
+def test_dashboard_report_update_recipient_overridden_with_owner_email(
+    mocker: MockerFixture,
+) -> None:
+    """Updating recipients on a dashboard report locks them to the owner's email."""
+    model = _make_model(
+        mocker,
+        model_type=ReportScheduleType.REPORT,
+        database_id=None,
+        creation_method=ReportCreationMethod.DASHBOARDS,
+    )
+    _setup_mocks(mocker, model)
+
+    data = {
+        "recipients": [
+            {
+                "type": "Email",
+                "recipient_config_json": {"target": "other@example.com"},
+            }
+        ]
+    }
+    cmd = UpdateReportScheduleCommand(model_id=1, data=data)
+    with patch(_PATCH_GET_USER_EMAIL, return_value="owner@example.com"):
+        cmd.validate()
+
+    recipients = cmd._properties["recipients"]
+    assert len(recipients) == 1
+    assert recipients[0]["recipient_config_json"]["target"] == "owner@example.com"
+
+
+def test_alerts_reports_update_recipient_not_overridden(
+    mocker: MockerFixture,
+) -> None:
+    """Recipients on admin-created alerts/reports are not modified on update."""
+    model = _make_model(
+        mocker,
+        model_type=ReportScheduleType.REPORT,
+        database_id=None,
+        creation_method=ReportCreationMethod.ALERTS_REPORTS,
+    )
+    _setup_mocks(mocker, model)
+
+    original_recipient = {
+        "type": "Email",
+        "recipient_config_json": {"target": "team@example.com"},
+    }
+    cmd = UpdateReportScheduleCommand(
+        model_id=1, data={"recipients": [original_recipient]}
+    )
+    with patch(_PATCH_GET_USER_EMAIL, return_value="owner@example.com"):
+        cmd.validate()
+
+    assert (
+        cmd._properties["recipients"][0]["recipient_config_json"]["target"]
+        == "team@example.com"
+    )
+
+
+def test_chart_report_update_no_recipients_in_payload_unchanged(
+    mocker: MockerFixture,
+) -> None:
+    """If recipients are not in the update payload, nothing is changed."""
+    model = _make_model(
+        mocker,
+        model_type=ReportScheduleType.REPORT,
+        database_id=None,
+        creation_method=ReportCreationMethod.CHARTS,
+    )
+    _setup_mocks(mocker, model)
+
+    cmd = UpdateReportScheduleCommand(model_id=1, data={"name": "new name"})
+    with patch(_PATCH_GET_USER_EMAIL, return_value="owner@example.com"):
+        cmd.validate()
+
+    assert "recipients" not in cmd._properties
+
+
+def test_chart_report_update_no_user_email_raises(mocker: MockerFixture) -> None:
+    """Update fails with a validation error when the user has no email address."""
+    model = _make_model(
+        mocker,
+        model_type=ReportScheduleType.REPORT,
+        database_id=None,
+        creation_method=ReportCreationMethod.CHARTS,
+    )
+    _setup_mocks(mocker, model)
+
+    cmd = UpdateReportScheduleCommand(
+        model_id=1,
+        data={
+            "recipients": [
+                {"type": "Email", "recipient_config_json": {"target": "x@y.com"}}
+            ]
+        },
+    )
+    with patch(_PATCH_GET_USER_EMAIL, return_value=None):
+        with pytest.raises(ReportScheduleInvalidError) as exc_info:
+            cmd.validate()
+
+    messages = _get_validation_messages(exc_info)
+    assert "recipients" in messages
 
 
 # --- Deactivation state reset ---

@@ -19,7 +19,12 @@ import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
-from superset.reports.schemas import ReportSchedulePostSchema, ReportSchedulePutSchema
+from superset.reports.schemas import (
+    ReportRecipientSchema,
+    ReportSchedulePostSchema,
+    ReportSchedulePutSchema,
+    ReportScheduleSubscribeSchema,
+)
 
 
 def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> None:
@@ -75,6 +80,157 @@ def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> No
     assert excinfo.value.messages == {
         "custom_width": ["Screenshot width must be between 100px and 200px"]
     }
+
+
+def test_report_recipient_schema_email_valid() -> None:
+    """Valid email target is accepted by the recipient schema."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Email",
+            "recipient_config_json": {"target": "user@example.com"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "user@example.com"
+
+
+def test_report_recipient_schema_email_invalid_target() -> None:
+    """Invalid email address in target field raises a validation error."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "Email",
+                "recipient_config_json": {"target": "not-an-email"},
+            }
+        )
+    assert "target" in excinfo.value.messages
+
+
+def test_report_recipient_schema_email_invalid_cc() -> None:
+    """Invalid address in ccTarget field raises a validation error."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "Email",
+                "recipient_config_json": {
+                    "target": "user@example.com",
+                    "ccTarget": "bad-email",
+                },
+            }
+        )
+    assert "ccTarget" in excinfo.value.messages
+
+
+def test_report_recipient_schema_email_invalid_bcc() -> None:
+    """Invalid address in bccTarget field raises a validation error."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "Email",
+                "recipient_config_json": {
+                    "target": "user@example.com",
+                    "bccTarget": "not-valid",
+                },
+            }
+        )
+    assert "bccTarget" in excinfo.value.messages
+
+
+def test_report_recipient_schema_email_empty_bcc_allowed() -> None:
+    """Empty string in bccTarget is accepted (optional field)."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Email",
+            "recipient_config_json": {
+                "target": "user@example.com",
+                "bccTarget": "",
+            },
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "user@example.com"
+
+
+def test_report_recipient_schema_email_empty_cc_allowed() -> None:
+    """Empty string in ccTarget is accepted (optional field)."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Email",
+            "recipient_config_json": {
+                "target": "user@example.com",
+                "ccTarget": "",
+            },
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "user@example.com"
+
+
+def test_report_recipient_schema_slack_skips_email_validation() -> None:
+    """Slack recipients are not validated as email addresses."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Slack",
+            "recipient_config_json": {"target": "#general"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "#general"
+
+
+def test_subscribe_schema_ignores_excluded_fields(mocker: MockerFixture) -> None:
+    """Excluded fields sent by the client are silently dropped, not rejected."""
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 100,
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 2000,
+        },
+    )
+    schema = ReportScheduleSubscribeSchema()
+    result = schema.load(
+        {
+            "type": "Report",
+            "name": "My subscription",
+            "crontab": "0 9 * * *",
+            "timezone": "UTC",
+            "chart": 1,
+            # These are excluded server-side — should be silently dropped
+            "recipients": [
+                {"type": "Email", "recipient_config_json": {"target": "x@y.com"}}
+            ],
+            "creation_method": "alerts_reports",
+        }
+    )
+    assert "recipients" not in result
+    assert "creation_method" not in result
+    assert "owners" not in result
+
+
+def test_subscribe_schema_rejects_alert_type(mocker: MockerFixture) -> None:
+    """Subscribe endpoint must not allow Alert type — prevents privilege escalation."""
+    mocker.patch(
+        "flask.current_app.config",
+        {
+            "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 100,
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 2000,
+        },
+    )
+    schema = ReportScheduleSubscribeSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "type": "Alert",
+                "name": "My alert",
+                "crontab": "0 9 * * *",
+                "timezone": "UTC",
+                "chart": 1,
+            }
+        )
+    assert "type" in exc_info.value.messages
 
 
 MINIMAL_POST_PAYLOAD = {
