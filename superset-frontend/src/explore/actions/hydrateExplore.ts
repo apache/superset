@@ -24,7 +24,7 @@ import {
   ExplorePageState,
 } from 'src/explore/types';
 import { getChartKey } from 'src/explore/exploreUtils';
-import { getControlsState } from 'src/explore/store';
+import { getControlsState, handleDeprecatedControls } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
   Currency,
@@ -115,6 +115,12 @@ export const hydrateExplore =
           metric.currency!,
         ]),
     );
+
+    // Normalize deprecated controls (e.g., migrate old per-axis matrixify
+    // flags to matrixify_enable) before form_data is stored in Redux state.
+    // getControlsState also calls this on its own copy, but state.form_data
+    // must reflect the same migration so the two stay consistent.
+    handleDeprecatedControls(initialFormData);
 
     const initialExploreState = {
       form_data: initialFormData,
