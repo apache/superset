@@ -898,6 +898,12 @@ class DatasourceEditor extends PureComponent<
 
   private debouncedValidateAndChange!: ReturnType<typeof debounce<() => void>>;
 
+  // True between a call to debouncedValidateAndChange() and its delayed
+  // invocation; lets componentWillUnmount drain pending state synchronously.
+  // (Manual flag because @types/lodash's DebouncedFunc doesn't expose
+  // lodash 4.17+'s .pending() method.)
+  private validationPending = false;
+
   private _sortedMetricsCache: {
     input: Metric[];
     output: Metric[];
@@ -1015,13 +1021,18 @@ class DatasourceEditor extends PureComponent<
     // feedback inside the typical between-word pause while letting React
     // commit each keystroke's state update without blocking on O(n)
     // duplicate/currency/folder checks.
-    this.debouncedValidateAndChange = debounce(
-      () => this.validate(this.onChange),
-      300,
-    );
+    this.debouncedValidateAndChange = debounce(() => {
+      this.validationPending = false;
+      this.validate(this.onChange);
+    }, 300);
   }
 
-  onChange() {
+  // The optional `errorsOverride` parameter lets callers (specifically the
+  // unmount-drain path in componentWillUnmount) propagate freshly-computed
+  // errors without first writing them via setState. setState is a no-op
+  // during unmount, so without this override the parent would never see
+  // the latest errors from a pending debounced validation.
+  onChange(errorsOverride?: string[]) {
     // Emptying SQL if "Physical" radio button is selected
     // Currently the logic to know whether the source is
     // physical or virtual is based on whether SQL is empty or not.
@@ -1051,7 +1062,7 @@ class DatasourceEditor extends PureComponent<
       folders,
     };
 
-    this.props.onChange?.(newDatasource, this.state.errors);
+    this.props.onChange?.(newDatasource, errorsOverride ?? this.state.errors);
   }
 
   onChangeEditMode() {
@@ -1110,11 +1121,13 @@ class DatasourceEditor extends PureComponent<
   }
 
   validateAndChange() {
+    this.validationPending = true;
     this.debouncedValidateAndChange();
   }
 
   flushValidation = () => {
     this.debouncedValidateAndChange.flush();
+    this.validationPending = false;
   };
 
   // React's onBlur bubbles, so blur fires on DatasourceContainer for every
@@ -1444,7 +1457,12 @@ class DatasourceEditor extends PureComponent<
     return dups;
   }
 
-  validate(callback: () => void) {
+  // Pure synchronous error computation. Read-only over this.state; no
+  // setState, no side effects. Lets callers (validate, the unmount-drain
+  // path in componentWillUnmount) get a fresh error array without having
+  // to wait for setState to commit — which is a no-op during unmount and
+  // would silently drop the pending propagation.
+  computeErrors(): string[] {
     let errors: string[] = [];
     let dups: string[];
     const { datasource } = this.state;
@@ -1495,6 +1513,11 @@ class DatasourceEditor extends PureComponent<
       errors = errors.concat(folderValidation.errors);
     }
 
+    return errors;
+  }
+
+  validate(callback: () => void) {
+    const errors = this.computeErrors();
     this.setState({ errors }, callback);
   }
 
@@ -2732,6 +2755,16 @@ class DatasourceEditor extends PureComponent<
   componentWillUnmount() {
     this.isComponentMounted = false;
 
+    // Drain any pending debounced validation by computing errors
+    // synchronously and propagating directly to the parent. We can't use
+    // .flush() because the underlying call writes errors via setState,
+    // which is a no-op during unmount — the props.onChange callback the
+    // parent depends on for its currentDatasource would never fire.
+    if (this.validationPending) {
+      const errors = this.computeErrors();
+      this.onChange(errors);
+      this.validationPending = false;
+    }
     this.debouncedValidateAndChange.cancel();
 
     // Abort all pending requests
