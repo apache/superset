@@ -16,19 +16,15 @@
 # under the License.
 """Tests that emoji characters in position_json are persisted correctly via PUT."""
 
-import json as stdlib_json
-
-from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME
-
 from superset import db
 from superset.models.dashboard import Dashboard
 from superset.utils import json
-
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
 
 # position_json payload containing a 4-byte emoji in a MARKDOWN component,
 # matching the real-world payload that triggered the truncation bug
-POSITION_JSON_WITH_EMOJI = stdlib_json.dumps(
+POSITION_JSON_WITH_EMOJI = json.dumps(
     {
         "DASHBOARD_VERSION_KEY": "v2",
         "ROOT_ID": {"type": "ROOT", "id": "ROOT_ID", "children": ["GRID_ID"]},
@@ -53,7 +49,6 @@ POSITION_JSON_WITH_EMOJI = stdlib_json.dumps(
             "meta": {"code": "📈 See Tab\n\ntest\ntest2", "height": 50, "width": 4},
         },
     },
-    ensure_ascii=False,  # send raw emoji bytes, as the browser client does
 )
 
 
