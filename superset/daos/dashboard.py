@@ -59,6 +59,10 @@ DASHBOARD_CUSTOM_FIELDS = {
 
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
+    # Column used by MCP tools for title-based identifier fallback, so a
+    # slug-like identifier can resolve to a dashboard even when its slug
+    # field is empty.
+    title_column = "dashboard_title"
 
     @classmethod
     def apply_column_operators(
