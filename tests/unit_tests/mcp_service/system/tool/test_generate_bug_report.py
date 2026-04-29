@@ -17,6 +17,7 @@
 
 """Tests for the generate_bug_report MCP tool."""
 
+import importlib
 from unittest.mock import Mock, patch
 
 import pytest
@@ -25,6 +26,14 @@ from fastmcp import Client
 from superset.mcp_service.app import mcp
 from superset.mcp_service.system.tool.generate_bug_report import _sanitize_text
 from superset.utils import json
+
+# Import the submodule via importlib so we can patch.object() on it. Going
+# through `from ...tool import generate_bug_report` would resolve to the
+# re-exported function in tool/__init__.py, not the submodule, and break
+# attribute patching — same pitfall called out in test_get_current_user.py.
+gbr_module = importlib.import_module(
+    "superset.mcp_service.system.tool.generate_bug_report"
+)
 
 
 @pytest.fixture
@@ -370,15 +379,12 @@ def test_request_rejects_oversized_tool_name():
 
 def test_collect_environment_falls_back_when_version_unavailable():
     """If get_version_metadata raises, the env block stays valid."""
-    from superset.mcp_service.system.tool.generate_bug_report import (
-        _collect_environment,
-    )
-
-    with patch(
-        "superset.mcp_service.system.tool.generate_bug_report.get_version_metadata",
+    with patch.object(
+        gbr_module,
+        "get_version_metadata",
         side_effect=RuntimeError("no version file"),
     ):
-        env = _collect_environment()
+        env = gbr_module._collect_environment()
 
     assert env["superset_version"] == "unknown"
     # Other fields still populated from platform / current_app.
@@ -387,19 +393,20 @@ def test_collect_environment_falls_back_when_version_unavailable():
 
 
 def test_collect_user_context_with_no_flask_g():
-    """If flask.g.user access raises, we get the empty default."""
-    from superset.mcp_service.system.tool.generate_bug_report import (
-        _collect_user_context,
-    )
+    """If flask.g.user access raises, we get the empty default.
 
-    with patch(
-        "superset.mcp_service.system.tool.generate_bug_report.flask"
-    ) as mock_flask:
-        # Accessing attribute on g raises — simulating outside-of-request.
-        type(mock_flask.g).user = property(
-            lambda self: (_ for _ in ()).throw(RuntimeError("no app context"))
-        )
-        ctx = _collect_user_context()
+    Replace flask.g with an object whose ``user`` property raises, so
+    the ``getattr(flask.g, "user", None)`` call inside
+    ``_collect_user_context`` hits the except branch.
+    """
+
+    class _Boom:
+        @property
+        def user(self):
+            raise RuntimeError("no app context")
+
+    with patch.object(gbr_module.flask, "g", _Boom()):
+        ctx = gbr_module._collect_user_context()
 
     assert ctx == {"user_id": None, "roles": []}
 
