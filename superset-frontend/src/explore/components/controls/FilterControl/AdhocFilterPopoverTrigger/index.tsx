@@ -109,7 +109,7 @@ class AdhocFilterPopoverTrigger extends PureComponent<
         defaultOpen={visible}
         open={visible}
         onOpenChange={togglePopover}
-        destroyTooltipOnHide
+        destroyOnHidden
       >
         {this.props.children}
       </ControlPopover>

@@ -42,6 +42,7 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     serialize_chart_summary,
 )
+from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -315,6 +316,47 @@ def _ensure_layout_structure(
         layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
+def _find_and_authorize_dashboard(
+    dashboard_id: int,
+) -> tuple[Any, AddChartToDashboardResponse | None]:
+    """Return (dashboard, None) on success or (None, error_response) on failure.
+
+    Handles both the not-found case and the ownership check so the main tool
+    function doesn't need two separate branches for these pre-conditions.
+    """
+    from superset import security_manager
+    from superset.daos.dashboard import DashboardDAO
+    from superset.exceptions import SupersetSecurityException
+
+    dashboard = DashboardDAO.find_by_id(dashboard_id)
+    if not dashboard:
+        return None, AddChartToDashboardResponse(
+            dashboard=None,
+            dashboard_url=None,
+            position=None,
+            error=f"Dashboard with ID {dashboard_id} not found",
+        )
+
+    try:
+        security_manager.raise_for_ownership(dashboard)
+    except SupersetSecurityException:
+        return None, AddChartToDashboardResponse(
+            dashboard=None,
+            dashboard_url=None,
+            position=None,
+            permission_denied=True,
+            error=(
+                f"You don't have permission to edit dashboard "
+                f"'{dashboard.dashboard_title}' (ID: {dashboard_id}). "
+                "Ask the user if they would like a new dashboard "
+                "created with this chart instead, and only proceed "
+                "if they confirm."
+            ),
+        )
+
+    return dashboard, None
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -333,18 +375,12 @@ def add_chart_to_existing_dashboard(
     """
     try:
         from superset.commands.dashboard.update import UpdateDashboardCommand
-        from superset.daos.dashboard import DashboardDAO
 
-        # Validate dashboard and chart exist
+        # Validate dashboard exists and user has edit permission
         with event_logger.log_context(action="mcp.add_chart_to_dashboard.validation"):
-            dashboard = DashboardDAO.find_by_id(request.dashboard_id)
-            if not dashboard:
-                return AddChartToDashboardResponse(
-                    dashboard=None,
-                    dashboard_url=None,
-                    position=None,
-                    error=(f"Dashboard with ID {request.dashboard_id} not found"),
-                )
+            dashboard, auth_error = _find_and_authorize_dashboard(request.dashboard_id)
+            if auth_error is not None:
+                return auth_error
 
             # Get chart object for SQLAlchemy relationships and validation
             from superset import db
@@ -435,13 +471,14 @@ def add_chart_to_existing_dashboard(
 
         # Re-fetch the dashboard with eager-loaded relationships to avoid
         # "Instance is not bound to a Session" errors when serializing
-        # chart .tags and .owners.  The preceding command.run() commit may
+        # chart tags.  The preceding command.run() commit may
         # invalidate the session in multi-tenant environments; on failure,
         # return a minimal response using only scalar attributes that are
-        # already loaded — relationship fields (owners, tags, slices) would
+        # already loaded — relationship fields (tags, slices) would
         # trigger lazy-loading on the same dead session.
         from sqlalchemy.orm import subqueryload
 
+        from superset.daos.dashboard import DashboardDAO
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
 
@@ -450,9 +487,7 @@ def add_chart_to_existing_dashboard(
                 DashboardDAO.find_by_id(
                     updated_dashboard.id,
                     query_options=[
-                        subqueryload(Dashboard.slices).subqueryload(Slice.owners),
                         subqueryload(Dashboard.slices).subqueryload(Slice.tags),
-                        subqueryload(Dashboard.owners),
                         subqueryload(Dashboard.tags),
                     ],
                 )
@@ -495,9 +530,9 @@ def add_chart_to_existing_dashboard(
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (
             serialize_tag_object,
-            serialize_user_object,
         )
 
+        include_data_model_metadata = user_can_view_data_model_metadata()
         dashboard_info = DashboardInfo(
             id=updated_dashboard.id,
             dashboard_title=updated_dashboard.dashboard_title,
@@ -506,26 +541,24 @@ def add_chart_to_existing_dashboard(
             published=updated_dashboard.published,
             created_on=updated_dashboard.created_on,
             changed_on=updated_dashboard.changed_on,
-            created_by=updated_dashboard.created_by_name or None,
-            changed_by=updated_dashboard.changed_by_name or None,
             uuid=str(updated_dashboard.uuid) if updated_dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{updated_dashboard.id}/",
             chart_count=len(updated_dashboard.slices),
-            owners=[
-                serialize_user_object(owner)
-                for owner in getattr(updated_dashboard, "owners", [])
-                if serialize_user_object(owner) is not None
-            ],
             tags=[
                 serialize_tag_object(tag)
                 for tag in getattr(updated_dashboard, "tags", [])
                 if serialize_tag_object(tag) is not None
             ],
-            roles=[],
             charts=[
                 obj
                 for chart in getattr(updated_dashboard, "slices", [])
-                if (obj := serialize_chart_summary(chart)) is not None
+                if (
+                    obj := serialize_chart_summary(
+                        chart,
+                        include_data_model_metadata=include_data_model_metadata,
+                    )
+                )
+                is not None
             ],
         )
 

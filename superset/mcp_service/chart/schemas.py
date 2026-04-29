@@ -36,7 +36,7 @@ from pydantic import (
     model_serializer,
     model_validator,
     PositiveInt,
-    TypeAdapter,
+    ValidationError,
 )
 from typing_extensions import Self
 
@@ -50,15 +50,15 @@ from superset.mcp_service.common.cache_schemas import (
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
-    serialize_user_object,
     TagInfo,
-    UserInfo,
 )
 from superset.mcp_service.utils.sanitization import (
     sanitize_filter_value,
     sanitize_user_input,
+    sanitize_user_input_with_changes,
 )
 
 
@@ -101,17 +101,12 @@ class ChartInfo(BaseModel):
     url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
     cache_timeout: int | None = Field(None, description="Cache timeout")
-    changed_by: str | None = Field(None, description="Last modifier (username)")
-    changed_by_name: str | None = Field(
-        None, description="Last modifier (display name)"
-    )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
     changed_on_humanized: str | None = Field(
         None, description="Humanized modification time"
     )
-    created_by: str | None = Field(None, description="Chart creator (username)")
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
@@ -124,7 +119,16 @@ class ChartInfo(BaseModel):
     )
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
-    owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
+
+    # Filters extracted from form_data for easy inspection
+    filters: ChartFiltersInfo | None = Field(
+        None,
+        description=(
+            "Structured representation of all filters applied to this chart, "
+            "extracted from form_data. Includes adhoc filters, time range, "
+            "extra filters, and custom WHERE/HAVING clauses."
+        ),
+    )
 
     # Fields for unsaved state support
     form_data: Dict[str, Any] | None = Field(
@@ -153,7 +157,7 @@ class ChartInfo(BaseModel):
 
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
-    @model_serializer(mode="wrap", when_used="json")
+    @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
         """Filter fields based on serialization context.
 
@@ -161,7 +165,7 @@ class ChartInfo(BaseModel):
         Otherwise, include all fields (default behavior).
         """
         # Get full serialization
-        data = serializer(self)
+        data = filter_user_directory_fields(serializer(self))
 
         # Check if we have a context with select_columns
         if info.context and isinstance(info.context, dict):
@@ -170,7 +174,6 @@ class ChartInfo(BaseModel):
                 # Filter to only requested fields
                 return {k: v for k, v in data.items() if k in select_columns}
 
-        # No filtering - return all fields
         return data
 
 
@@ -289,6 +292,87 @@ def _humanize_timestamp(dt: datetime | None) -> str | None:
     return humanize.naturaltime(datetime.now() - dt)
 
 
+def extract_filters_from_form_data(
+    form_data: Dict[str, Any] | None,
+) -> ChartFiltersInfo | None:
+    """Extract structured filter information from a chart's form_data.
+
+    Parses adhoc_filters, time_range, extra_filters, and custom
+    WHERE/HAVING clauses into a structured ChartFiltersInfo object.
+    Returns None if form_data is empty, not a dict, or has no filter-related fields.
+    """
+    if not form_data or not isinstance(form_data, dict):
+        return None
+
+    raw_adhoc = form_data.get("adhoc_filters", [])
+    adhoc_filters: List[AdhocFilter] = []
+    for f in raw_adhoc or []:
+        if not isinstance(f, dict):
+            continue
+        try:
+            adhoc_filters.append(
+                AdhocFilter(
+                    clause=f.get("clause"),
+                    expression_type=f.get("expressionType"),
+                    subject=f.get("subject"),
+                    operator=f.get("operator"),
+                    comparator=f.get("comparator"),
+                    sql_expression=f.get("sqlExpression"),
+                )
+            )
+        except (TypeError, ValueError, ValidationError):
+            # Skip malformed filter entries (e.g. non-string fields in
+            # corrupted cached state, legacy payloads, or Pydantic
+            # validation failures from unexpected field types)
+            continue
+
+    time_range = form_data.get("time_range")
+    granularity_sqla = form_data.get("granularity_sqla")
+    raw_extra = form_data.get("extra_filters", [])
+    extra_filters: List[Dict[str, Any]] = [
+        item
+        for item in (raw_extra if isinstance(raw_extra, list) else [])
+        if isinstance(item, dict)
+        and isinstance(item.get("col"), str)
+        and item.get("col")
+    ]
+    # Legacy top-level "filters" payload (older/simpler charts use this
+    # instead of adhoc_filters).
+    raw_filters = form_data.get("filters", [])
+    filters: List[Dict[str, Any]] = [
+        item
+        for item in (raw_filters if isinstance(raw_filters, list) else [])
+        if isinstance(item, dict)
+        and isinstance(item.get("col"), str)
+        and item.get("col")
+    ]
+    where = form_data.get("where")
+    having = form_data.get("having")
+
+    # Only return if there is at least one meaningful filter field
+    has_content = (
+        adhoc_filters
+        or time_range
+        or granularity_sqla
+        or extra_filters
+        or filters
+        or where
+        or having
+    )
+    if not has_content:
+        return None
+
+    return ChartFiltersInfo(
+        adhoc_filters=adhoc_filters,
+        time_range=time_range,
+        granularity_sqla=granularity_sqla,
+        extra_filters=extra_filters,
+        filters=filters,
+        where=where,
+        having=having,
+    )
+
+
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
@@ -312,6 +396,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     elif isinstance(chart_params, dict):
         chart_form_data = chart_params
 
+    # Extract structured filter information
+    filters_info = extract_filters_from_form_data(chart_form_data)
+
     return ChartInfo(
         id=chart_id,
         slice_name=getattr(chart, "slice_name", None),
@@ -324,13 +411,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         certification_details=getattr(chart, "certification_details", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
         form_data=chart_form_data,
-        changed_by=getattr(chart, "changed_by_name", None)
-        or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
-        changed_by_name=getattr(chart, "changed_by_name", None),
+        filters=filters_info,
         changed_on=getattr(chart, "changed_on", None),
         changed_on_humanized=_humanize_timestamp(getattr(chart, "changed_on", None)),
-        created_by=getattr(chart, "created_by_name", None)
-        or (str(chart.created_by) if getattr(chart, "created_by", None) else None),
         created_on=getattr(chart, "created_on", None),
         created_on_humanized=_humanize_timestamp(getattr(chart, "created_on", None)),
         uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
@@ -339,13 +422,6 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
             for tag in getattr(chart, "tags", [])
         ]
         if getattr(chart, "tags", None)
-        else [],
-        owners=[
-            info
-            for owner in getattr(chart, "owners", [])
-            if (info := serialize_user_object(owner)) is not None
-        ]
-        if getattr(chart, "owners", None)
         else [],
     )
 
@@ -362,12 +438,10 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
-        "created_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='chart') for "
-        "available filter columns. Use created_by_fk with the user ID from "
-        "get_instance_info's current_user to find charts created by a specific user.",
+        "available filter columns.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -996,6 +1070,17 @@ class TableChartConfig(UnknownFieldCheckMixin):
     viz_type: Literal["table", "ag-grid-table"] = Field(
         "table", description="'ag-grid-table' for interactive features"
     )
+    query_mode: Literal["aggregate", "raw"] | None = Field(
+        None,
+        description=(
+            "Query mode: 'raw' returns individual rows without aggregation, "
+            "'aggregate' groups data using metrics. "
+            "When set to 'raw', all columns are treated as plain columns regardless "
+            "of any aggregate settings. "
+            "Defaults to auto-detection: 'raw' if no column has an aggregate "
+            "function, 'aggregate' otherwise."
+        ),
+    )
     columns: List[ColumnRef] = Field(
         ...,
         min_length=1,
@@ -1043,13 +1128,25 @@ class TableChartConfig(UnknownFieldCheckMixin):
         return self
 
 
+def _metric_display_label(col: ColumnRef) -> str:
+    """Return the display label for a metric column reference."""
+    if col.saved_metric:
+        return col.label or col.name
+    if col.aggregate:
+        return col.label or f"{col.aggregate}({col.name})"
+    return col.label or col.name
+
+
 class XYChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["xy"] = "xy"
-    x: ColumnRef = Field(
-        ...,
-        description="X-axis column",
+    x: ColumnRef | None = Field(
+        None,
+        description=(
+            "X-axis column. If omitted, defaults to the dataset's "
+            "primary datetime column (main_dttm_col)."
+        ),
         validation_alias=AliasChoices("x", "x_axis", "x_column"),
     )
     y: List[ColumnRef] = Field(
@@ -1096,22 +1193,17 @@ class XYChartConfig(UnknownFieldCheckMixin):
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "XYChartConfig":
         """Ensure all column labels are unique across x, y, and group_by."""
-        labels_seen = {}  # label -> field_name for error reporting
-        duplicates = []
+        labels_seen: dict[str, str] = {}
+        duplicates: list[str] = []
 
-        # Check X-axis label
-        x_label = self.x.label or self.x.name
-        labels_seen[x_label] = "x"
+        # Add x-axis label if present (x may be None, resolved later)
+        if self.x is not None:
+            x_label = self.x.label or self.x.name
+            labels_seen[x_label] = "x"
 
         # Check Y-axis labels
         for i, col in enumerate(self.y):
-            if col.saved_metric:
-                label = col.label or col.name
-            elif col.aggregate:
-                label = col.label or f"{col.aggregate}({col.name})"
-            else:
-                label = col.label or col.name
-
+            label = _metric_display_label(col)
             if label in labels_seen:
                 duplicates.append(
                     f"y[{i}]: '{label}' (conflicts with {labels_seen[label]})"
@@ -1122,7 +1214,7 @@ class XYChartConfig(UnknownFieldCheckMixin):
         # Check group_by labels if present
         if self.group_by:
             for i, col in enumerate(self.group_by):
-                if col.name == self.x.name:
+                if self.x is not None and col.name == self.x.name:
                     # map_xy_config() strips group_by entries that match x
                     # to prevent Superset "duplicate label" errors, so
                     # we allow them through validation.
@@ -1165,65 +1257,9 @@ ChartConfig = Annotated[
     ),
 ]
 
-# Module-level TypeAdapter avoids repeated schema compilation in
-# parse_chart_config() — safe because ChartConfig is fully defined above.
-_CHART_CONFIG_ADAPTER: TypeAdapter[ChartConfig] = TypeAdapter(ChartConfig)
 
 # Compact description for JSON Schema — keeps tool inputSchema small while
 # giving LLMs enough context to construct valid configs.
-_CHART_CONFIG_DESCRIPTION = (
-    "Chart configuration object. MUST include 'chart_type' to select the "
-    "schema. Types: 'xy' (x, y, kind: line/bar/area/scatter), "
-    "'table' (columns), 'pie' (dimension, metric), "
-    "'pivot_table' (rows, metrics), 'mixed_timeseries' (x, y, y_secondary), "
-    "'handlebars' (columns, handlebars_template), "
-    "'big_number' (metric). "
-    "See chart://configs resource for full field reference and examples."
-)
-
-
-def parse_chart_config(
-    config: Dict[str, Any],
-) -> (
-    XYChartConfig
-    | TableChartConfig
-    | PieChartConfig
-    | PivotTableChartConfig
-    | MixedTimeseriesChartConfig
-    | HandlebarsChartConfig
-    | BigNumberChartConfig
-):
-    """Parse a raw dict into the appropriate typed ChartConfig subclass.
-
-    Validates the dict against the discriminated union using chart_type.
-    Call this in tool function bodies to get a typed config object.
-    """
-    try:
-        return _CHART_CONFIG_ADAPTER.validate_python(config)
-    except Exception as e:
-        raise ValueError(
-            f"{e}\n\n"
-            f"Hint: read the chart://configs resource for valid configuration "
-            f"examples and field reference."
-        ) from e
-
-
-def _coerce_config_to_dict(v: Any) -> Dict[str, Any]:
-    """Accept ChartConfig objects, dicts, or JSON strings for the config field."""
-    if isinstance(v, str):
-        from superset.utils import json as json_utils
-
-        try:
-            v = json_utils.loads(v)
-        except (ValueError, TypeError) as exc:
-            raise ValueError(
-                f"config must be a JSON object string, got: {v!r}"
-            ) from exc
-    if hasattr(v, "model_dump"):
-        return v.model_dump()
-    if isinstance(v, dict):
-        return v
-    raise TypeError(f"config must be a dict or JSON string, got {type(v).__name__}")
 
 
 class ListChartsRequest(MetadataCacheControl):
@@ -1319,21 +1355,74 @@ class ListChartsRequest(MetadataCacheControl):
 
 # The tool input models
 class GenerateChartRequest(QueryCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
+    config: ChartConfig = Field(..., description="Chart configuration")
     chart_name: str | None = Field(
-        None, description="Auto-generates if omitted", max_length=255
+        None,
+        description="Auto-generates if omitted",
+        max_length=255,
+        validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     save_chart: bool = Field(default=False, description="Save permanently in Superset")
     generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
+    sanitization_warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Internal: warnings emitted when user input was altered by "
+            "sanitization. Populated by the ``mode='before'`` validator "
+            "before chart_name is rewritten, so the tool can surface a "
+            "notice to the caller instead of silently dropping content."
+        ),
+    )
 
-    @field_validator("config", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def coerce_config(cls, v: Any) -> Dict[str, Any]:
-        return _coerce_config_to_dict(v)
+    def _detect_chart_name_sanitization(cls, data: Any) -> Any:
+        """Record a warning when chart_name sanitization alters user input.
+
+        Runs before the ``chart_name`` field validator strips HTML, so we
+        can compare the caller's raw input against the sanitizer output
+        and tell the tool whether to notify the caller. Empty-after-
+        sanitization is rejected with a ValueError so the caller gets a
+        clear error instead of a silently auto-generated name.
+
+        ``sanitization_warnings`` is a server-only field — any value the
+        caller supplied is discarded here so the tool cannot be tricked
+        into echoing attacker-controlled text back through the response.
+        """
+        if not isinstance(data, dict):
+            return data
+        data["sanitization_warnings"] = []
+        for key in ("chart_name", "name", "title", "slice_name"):
+            if key in data:
+                raw = data[key]
+                break
+        else:
+            raw = None
+        if not isinstance(raw, str) or not raw.strip():
+            return data
+        sanitized, was_modified = sanitize_user_input_with_changes(
+            raw, "Chart name", max_length=255, allow_empty=True
+        )
+        if was_modified and not sanitized:
+            raise ValueError(
+                "chart_name contained only disallowed content "
+                "(HTML/script/URL schemes) and was removed entirely by "
+                "sanitization. Provide a chart_name with plain text, or "
+                "omit it to auto-generate one."
+            )
+        if was_modified:
+            data["sanitization_warnings"].append(
+                "chart_name was modified during sanitization to remove "
+                "potentially unsafe content; the stored name differs "
+                "from the input."
+            )
+        return data
 
     @field_validator("chart_name")
     @classmethod
@@ -1367,24 +1456,22 @@ class GenerateChartRequest(QueryCacheControl):
 
 class GenerateExploreLinkRequest(FormDataCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
-
-    @field_validator("config", mode="before")
-    @classmethod
-    def coerce_config(cls, v: Any) -> Dict[str, Any]:
-        return _coerce_config_to_dict(v)
+    config: ChartConfig = Field(..., description="Chart configuration")
 
 
 class UpdateChartRequest(QueryCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str = Field(..., description="Chart ID or UUID")
-    config: Dict[str, Any] | None = Field(
+    config: ChartConfig | None = Field(
         None,
-        description=(
-            f"{_CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name."
-        ),
+        description="Chart configuration. Optional; omit to only update chart_name.",
     )
     chart_name: str | None = Field(
-        None, description="Auto-generates if omitted", max_length=255
+        None,
+        description="Auto-generates if omitted",
+        max_length=255,
+        validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     generate_preview: bool = Field(
         default=True,
@@ -1403,13 +1490,6 @@ class UpdateChartRequest(QueryCacheControl):
         ),
     )
 
-    @field_validator("config", mode="before")
-    @classmethod
-    def coerce_config(cls, v: Any) -> Dict[str, Any] | None:
-        if v is None:
-            return None
-        return _coerce_config_to_dict(v)
-
     @field_validator("chart_name")
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
@@ -1420,16 +1500,11 @@ class UpdateChartRequest(QueryCacheControl):
 class UpdateChartPreviewRequest(FormDataCacheControl):
     form_data_key: str = Field(..., description="Existing form_data_key to update")
     dataset_id: int | str = Field(..., description="Dataset ID or UUID")
-    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
+    config: ChartConfig = Field(..., description="Chart configuration")
     generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
-
-    @field_validator("config", mode="before")
-    @classmethod
-    def coerce_config(cls, v: Any) -> Dict[str, Any]:
-        return _coerce_config_to_dict(v)
 
 
 class GetChartDataRequest(QueryCacheControl):
@@ -1591,21 +1666,21 @@ class GetChartPreviewRequest(QueryCacheControl):
         return self
 
     format: Literal["url", "ascii", "table", "vega_lite"] = Field(
-        default="url",
+        default="ascii",
         description=(
-            "Preview format: 'url' for explore link (default), "
-            "'ascii' for text art, "
+            "Preview format: 'ascii' for text art (default), "
+            "'url' for explore link, "
             "'table' for data table, "
             "'vega_lite' for interactive JSON specification"
         ),
     )
     width: int | None = Field(
         default=800,
-        description="Preview image width in pixels (for url/base64 formats)",
+        description="Preview width in pixels (for url and vega_lite formats)",
     )
     height: int | None = Field(
         default=600,
-        description="Preview image height in pixels (for url/base64 formats)",
+        description="Preview height in pixels (for url and vega_lite formats)",
     )
     ascii_width: int | None = Field(
         default=80, description="ASCII chart width in characters (for ascii format)"
@@ -1617,10 +1692,10 @@ class GetChartPreviewRequest(QueryCacheControl):
 
 # Discriminated union preview formats for type safety
 class URLPreview(BaseModel):
-    """URL-based image preview format."""
+    """URL-based preview format."""
 
     type: Literal["url"] = "url"
-    preview_url: str = Field(..., description="Direct image URL")
+    preview_url: str = Field(..., description="Explore URL for opening the chart")
     width: int = Field(..., description="Image width in pixels")
     height: int = Field(..., description="Image height in pixels")
     supports_interaction: bool = Field(
@@ -1775,3 +1850,137 @@ class ChartPreview(BaseModel):
     # Inherit versioning
     schema_version: str = Field("2.0", description="Response schema version")
     api_version: str = Field("v1", description="MCP API version")
+
+
+class GetChartSqlRequest(BaseModel):
+    """Request schema for get_chart_sql.
+
+    Returns the rendered SQL query that a chart would execute, without actually
+    running it. Useful for understanding what SQL a chart generates.
+
+    Provide a chart identifier (ID or UUID). Optionally provide form_data_key
+    to get the SQL for the unsaved chart state from the Explore view.
+    """
+
+    identifier: int | str | None = Field(
+        default=None,
+        description=(
+            "Chart identifier - can be numeric ID or UUID string. "
+            "Optional when form_data_key is provided (for unsaved charts)."
+        ),
+    )
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool returns the SQL for the unsaved "
+            "configuration instead of the saved version. "
+            "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_identifier_or_form_data_key(self) -> "GetChartSqlRequest":
+        if not self.identifier and not self.form_data_key:
+            raise ValueError(
+                "At least one of 'identifier' or 'form_data_key' must be provided."
+            )
+        return self
+
+
+class ChartSql(BaseModel):
+    """Response containing the rendered SQL for a chart."""
+
+    chart_id: int | None = Field(None, description="Chart ID (null for unsaved charts)")
+    chart_name: str | None = Field(
+        None, description="Chart name (null for unsaved charts)"
+    )
+    sql: str = Field(..., description="The rendered SQL query for this chart")
+    language: str | None = Field(None, description="Query language (e.g. 'sql')")
+    datasource_name: str | None = Field(
+        None, description="Name of the datasource the chart queries"
+    )
+    error: str | None = Field(
+        None,
+        description=(
+            "Validation or parse error if the SQL could not be fully generated. "
+            "When present, 'sql' may still contain a partial query."
+        ),
+    )
+
+
+class AdhocFilter(BaseModel):
+    """A single adhoc filter configured on a chart."""
+
+    clause: str | None = Field(None, description="SQL clause: WHERE or HAVING")
+    expression_type: str | None = Field(
+        None,
+        description=(
+            "Filter expression type: SIMPLE for column-based filters, "
+            "SQL for free-form SQL expressions"
+        ),
+    )
+    subject: str | None = Field(
+        None, description="Column name the filter applies to (SIMPLE filters)"
+    )
+    operator: str | None = Field(
+        None,
+        description="Filter operator (e.g. '==', '!=', 'IN', 'NOT IN', 'LIKE', '>')",
+    )
+    comparator: Any | None = Field(
+        None, description="Filter value(s) to compare against"
+    )
+    sql_expression: str | None = Field(
+        None,
+        description="Free-form SQL expression (SQL expression type filters only)",
+    )
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class ChartFiltersInfo(BaseModel):
+    """Structured representation of all filters applied to a chart."""
+
+    adhoc_filters: List[AdhocFilter] = Field(
+        default_factory=list,
+        description=(
+            "Adhoc filters configured on the chart. These are the primary "
+            "filters visible in the chart's filter panel."
+        ),
+    )
+    time_range: str | None = Field(
+        None,
+        description=(
+            "Time range filter applied to the chart "
+            "(e.g. 'Last 7 days', 'No filter', '2024-01-01 : 2024-12-31')"
+        ),
+    )
+    granularity_sqla: str | None = Field(
+        None,
+        description="Temporal column used for time-based filtering",
+    )
+    extra_filters: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description=("Extra filters applied from dashboard context or URL parameters"),
+    )
+    filters: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "Legacy top-level filters payload (older/simpler charts). "
+            "These are plain column-operator-value dicts, distinct from "
+            "adhoc_filters which use the newer expressionType format."
+        ),
+    )
+    where: str | None = Field(
+        None,
+        description="Custom WHERE clause applied to the chart query",
+    )
+    having: str | None = Field(
+        None,
+        description="Custom HAVING clause applied to the chart query",
+    )
+
+
+# Rebuild ChartInfo so Pydantic can resolve the ChartFiltersInfo forward reference.
+ChartInfo.model_rebuild()
