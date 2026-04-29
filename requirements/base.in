@@ -35,6 +35,8 @@ pyarrow>=20.0.0,<21.0.0
 pyopenssl>=26.0.0,<27.0.0
 # Security: CVE-2026-25645 (MEDIUM) - Insecure Temporary File
 requests>=2.33.0,<3.0.0
+# Security: CVE-2026-40192 (HIGH) - Allocation of Resources Without Limits or Throttling
+pillow>=12.2.0,<13.0.0
 
 # 5.0.0 has a sensitive deprecation used in other libs
 # -> https://github.com/aio-libs/async-timeout/blob/master/CHANGES.rst#500-2024-10-31
