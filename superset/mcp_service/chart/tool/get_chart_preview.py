@@ -1048,18 +1048,16 @@ async def _get_chart_preview_internal(  # noqa: C901
     ctx: Context,
 ) -> ChartPreview | ChartError:
     """
-    Get a visual preview of a chart with URLs for LLM embedding.
+    Get a preview of a chart in the requested format.
 
-    This tool generates or retrieves URLs for chart images that can be
-    displayed directly in LLM clients. The URLs point to Superset's
-    screenshot endpoints for proper image serving.
+    This tool can return text previews for direct LLM responses, Explore URLs
+    for interactive inspection, tabular data, or Vega-Lite specifications.
 
     Supports lookup by:
     - Numeric ID (e.g., 123)
     - UUID string (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
 
-    Returns a ChartPreview with Superset URLs for the chart image or
-    ChartError on error.
+    Returns a ChartPreview in the requested format or ChartError on error.
     """
     try:
         await ctx.report_progress(1, 3, "Looking up chart")

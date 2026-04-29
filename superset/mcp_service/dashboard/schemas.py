@@ -85,7 +85,11 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.common.cache_schemas import MetadataCacheControl
+from superset.mcp_service.common.cache_schemas import (
+    CreatedByMeMixin,
+    MetadataCacheControl,
+    OwnedByMeMixin,
+)
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
@@ -173,8 +177,7 @@ class DashboardFilter(ColumnOperator):
         ...,
         description=(
             "Column to filter on. Use "
-            "get_schema(model_type='dashboard') for available "
-            "filter columns."
+            "get_schema(model_type='dashboard') for available filter columns."
         ),
     )
     opr: ColumnOperatorEnum = Field(
@@ -187,7 +190,7 @@ class DashboardFilter(ColumnOperator):
     )
 
 
-class ListDashboardsRequest(MetadataCacheControl):
+class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_dashboards with clear, unambiguous types."""
 
     filters: Annotated[
@@ -267,8 +270,7 @@ class ListDashboardsRequest(MetadataCacheControl):
 
     @model_validator(mode="after")
     def validate_search_and_filters(self) -> "ListDashboardsRequest":
-        """Prevent using both search and filters simultaneously to avoid query
-        conflicts."""
+        """Prevent using both search and filters simultaneously."""
         if self.search and self.filters:
             raise ValueError(
                 "Cannot use both 'search' and 'filters' parameters simultaneously. "

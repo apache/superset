@@ -30,6 +30,7 @@ from flask import g
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
+    DashboardFilter,
     ListDashboardsRequest,
 )
 from superset.mcp_service.dashboard.tool.get_dashboard_info import (
@@ -1352,3 +1353,68 @@ class TestDashboardSortableColumns:
         assert "Sortable columns for order_column:" in list_dashboards.__doc__
         for col in SORTABLE_DASHBOARD_COLUMNS:
             assert col in list_dashboards.__doc__
+
+
+class TestListDashboardsCreatedByMe:
+    """Tests for the created_by_me flag on ListDashboardsRequest."""
+
+    def test_created_by_me_default_is_false(self):
+        request = ListDashboardsRequest()
+        assert request.created_by_me is False
+
+    def test_created_by_me_true_accepted(self):
+        request = ListDashboardsRequest(created_by_me=True)
+        assert request.created_by_me is True
+
+    def test_created_by_me_combined_with_filters(self):
+        request = ListDashboardsRequest(
+            created_by_me=True,
+            filters=[DashboardFilter(col="published", opr="eq", value=True)],
+        )
+        assert request.created_by_me is True
+        assert len(request.filters) == 1
+
+    def test_created_by_me_with_search_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="created_by_me"):
+            ListDashboardsRequest(created_by_me=True, search="My dashboards")
+
+    def test_dashboard_filter_rejects_created_by_fk(self):
+        """created_by_fk is not a public filter column; use created_by_me instead."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            DashboardFilter(col="created_by_fk", opr="eq", value=1)
+
+
+class TestListDashboardsOwnedByMe:
+    """Tests for the owned_by_me flag on ListDashboardsRequest."""
+
+    def test_owned_by_me_default_is_false(self):
+        request = ListDashboardsRequest()
+        assert request.owned_by_me is False
+
+    def test_owned_by_me_true_accepted(self):
+        request = ListDashboardsRequest(owned_by_me=True)
+        assert request.owned_by_me is True
+
+    def test_owned_by_me_combined_with_filters(self):
+        request = ListDashboardsRequest(
+            owned_by_me=True,
+            filters=[DashboardFilter(col="published", opr="eq", value=True)],
+        )
+        assert request.owned_by_me is True
+        assert len(request.filters) == 1
+
+    def test_owned_by_me_with_search_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="owned_by_me"):
+            ListDashboardsRequest(owned_by_me=True, search="My dashboards")
+
+    def test_owned_by_me_and_created_by_me_allowed(self):
+        """Both flags together are valid (OR logic — creator or owner)."""
+        request = ListDashboardsRequest(owned_by_me=True, created_by_me=True)
+        assert request.owned_by_me is True
+        assert request.created_by_me is True

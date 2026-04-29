@@ -44,8 +44,10 @@ from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
+    CreatedByMeMixin,
     FormDataCacheControl,
     MetadataCacheControl,
+    OwnedByMeMixin,
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError
@@ -1357,7 +1359,7 @@ ChartConfig = Annotated[
 # giving LLMs enough context to construct valid configs.
 
 
-class ListChartsRequest(MetadataCacheControl):
+class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_charts with clear, unambiguous types."""
 
     filters: Annotated[
@@ -1437,8 +1439,7 @@ class ListChartsRequest(MetadataCacheControl):
 
     @model_validator(mode="after")
     def validate_search_and_filters(self) -> "ListChartsRequest":
-        """Prevent using both search and filters simultaneously to avoid query
-        conflicts."""
+        """Prevent using both search and filters simultaneously."""
         if self.search and self.filters:
             raise ValueError(
                 "Cannot use both 'search' and 'filters' parameters simultaneously. "
@@ -1791,10 +1792,10 @@ class URLPreview(BaseModel):
 
     type: Literal["url"] = "url"
     preview_url: str = Field(..., description="Explore URL for opening the chart")
-    width: int = Field(..., description="Image width in pixels")
-    height: int = Field(..., description="Image height in pixels")
+    width: int = Field(..., description="Requested Explore viewport width in pixels")
+    height: int = Field(..., description="Requested Explore viewport height in pixels")
     supports_interaction: bool = Field(
-        False, description="Static image, no interaction"
+        True, description="Explore URL supports chart interaction"
     )
 
 

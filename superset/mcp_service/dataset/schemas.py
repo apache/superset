@@ -36,7 +36,11 @@ from pydantic import (
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.common.cache_schemas import MetadataCacheControl
+from superset.mcp_service.common.cache_schemas import (
+    CreatedByMeMixin,
+    MetadataCacheControl,
+    OwnedByMeMixin,
+)
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
@@ -217,7 +221,7 @@ class DatasetList(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListDatasetsRequest(MetadataCacheControl):
+class ListDatasetsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_datasets with clear, unambiguous types."""
 
     filters: Annotated[
@@ -270,8 +274,7 @@ class ListDatasetsRequest(MetadataCacheControl):
 
     @model_validator(mode="after")
     def validate_search_and_filters(self) -> "ListDatasetsRequest":
-        """Prevent using both search and filters simultaneously to avoid query
-        conflicts."""
+        """Prevent using both search and filters simultaneously."""
         if self.search and self.filters:
             raise ValueError(
                 "Cannot use both 'search' and 'filters' parameters simultaneously. "
