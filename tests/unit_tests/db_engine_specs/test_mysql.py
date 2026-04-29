@@ -277,14 +277,14 @@ def test_get_datatype_pymysql_fallback():
     try:
         # Build a fake pymysql module with constants.FIELD_TYPE
         fake_field_type = ModuleType("pymysql.constants.FIELD_TYPE")
-        fake_field_type.TINY = 1  # type: ignore
-        fake_field_type.VARCHAR = 15  # type: ignore
+        fake_field_type.TINY = 1
+        fake_field_type.VARCHAR = 15
 
         fake_constants = ModuleType("pymysql.constants")
-        fake_constants.FIELD_TYPE = fake_field_type  # type: ignore
+        fake_constants.FIELD_TYPE = fake_field_type
 
         fake_pymysql = ModuleType("pymysql")
-        fake_pymysql.constants = fake_constants  # type: ignore
+        fake_pymysql.constants = fake_constants
 
         original_import = builtins.__import__
 
