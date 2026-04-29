@@ -253,25 +253,39 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       : [];
     const visibleColumnSet = new Set(visibleColumnKeys);
 
+    let underlyingColumnSet = visibleColumnSet;
+
     if (isDownloadQuery && visibleColumnSet.size > 0) {
+      if (isTimeComparison(formData, baseQueryObject)) {
+        underlyingColumnSet = new Set(
+          Array.from(visibleColumnSet).map(key => {
+            if (key.startsWith('Main ')) return key.substring(5);
+            if (key.startsWith('# ')) return key.substring(2);
+            if (key.startsWith('△ ')) return key.substring(2);
+            if (key.startsWith('% ')) return key.substring(2);
+            return key;
+          }),
+        );
+      }
+
       columns = columns.filter(column =>
-        visibleColumnSet.has(
+        underlyingColumnSet.has(
           getColumnSelectionKey(column as string | AdhocColumn),
         ),
       );
 
       if (Array.isArray(metrics) && metrics.length > 0) {
         metrics = metrics.filter(metric =>
-          visibleColumnSet.has(getMetricLabel(metric)),
+          underlyingColumnSet.has(getMetricLabel(metric)),
         );
       }
 
       if (Array.isArray(orderby) && orderby.length > 0) {
         orderby = orderby.filter(([orderValue]) => {
           if (typeof orderValue === 'string') {
-            return visibleColumnSet.has(orderValue);
+            return underlyingColumnSet.has(orderValue);
           }
-          return visibleColumnSet.has(getMetricLabel(orderValue));
+          return underlyingColumnSet.has(getMetricLabel(orderValue));
         });
       }
     }
