@@ -118,7 +118,7 @@ export const FiltersDetailsContainer = styled.div`
     overflow-x: hidden;
 
     color: ${theme.colorText};
-    
+
     &:focus:not(:focus-visible) {
       outline: none;
     }
