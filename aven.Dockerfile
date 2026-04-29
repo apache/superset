@@ -12,7 +12,7 @@ RUN apt-get install -y libsasl2-dev libldap2-dev libgconf-2-4 libnss3 wget unzip
 RUN pip install "apache-superset[postgres,clickhouse,snowflake,gsheets,gsheets-export]"\
     python-ldap==3.4.4
 
-RUN pip install playwright==1.39.0 && \
+RUN pip install playwright==1.59.1 && \
     playwright install-deps && \
     playwright install chromium
 
