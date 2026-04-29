@@ -88,7 +88,7 @@ _DEFAULT_LIST_DATASETS_REQUEST = ListDatasetsRequest()
 )
 @requires_data_model_metadata_access
 async def list_datasets(
-    request: ListDatasetsRequest | None = None,
+    request: ListDatasetsRequest = _DEFAULT_LIST_DATASETS_REQUEST,
     ctx: Context | None = None,
 ) -> DatasetList | DatasetError:
     """List datasets with filtering and search.
@@ -102,7 +102,7 @@ async def list_datasets(
     if ctx is None:
         raise RuntimeError("FastMCP context is required for list_datasets")
 
-    request = request or _DEFAULT_LIST_DATASETS_REQUEST.model_copy(deep=True)
+    request = request.model_copy(deep=True)
 
     await ctx.info(
         "Listing datasets: page=%s, page_size=%s, search=%s"
