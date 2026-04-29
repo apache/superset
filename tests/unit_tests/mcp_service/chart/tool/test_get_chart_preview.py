@@ -26,6 +26,7 @@ from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     ChartPreview,
     GetChartPreviewRequest,
+    InteractivePreview,
     PerformanceMetadata,
     TablePreview,
     URLPreview,
@@ -428,6 +429,73 @@ class TestChartPreviewSanitization:
             "category"
         ] == sanitize_for_llm_context("Retail")
         assert specification["data"]["values"][0]["value"] == 10
+
+    def test_sanitize_chart_preview_wraps_table_content(self):
+        preview = ChartPreview(
+            chart_id=5,
+            chart_name="Top Customers",
+            chart_type="table",
+            explore_url="/explore/?slice_id=5",
+            content=TablePreview(
+                table_data="Customer | Revenue\nAcme | 100",
+                row_count=1,
+                supports_sorting=True,
+            ),
+            chart_description="Preview of table: Top Customers",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Top customer revenue table",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=9, cache_status="miss"),
+            format="table",
+            table_data="Customer | Revenue\nAcme | 100",
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+
+        assert result.content.table_data == sanitize_for_llm_context(
+            "Customer | Revenue\nAcme | 100"
+        )
+        assert result.table_data == sanitize_for_llm_context(
+            "Customer | Revenue\nAcme | 100"
+        )
+        assert result.content.row_count == 1
+        assert result.content.supports_sorting is True
+
+    def test_sanitize_chart_preview_wraps_interactive_html_but_keeps_urls(self):
+        preview = ChartPreview(
+            chart_id=6,
+            chart_name="Interactive Trend",
+            chart_type="line",
+            explore_url="/explore/?slice_id=6",
+            content=InteractivePreview(
+                html_content="<div>Revenue by region</div>",
+                preview_url="/superset/explore/?slice_id=6&standalone=1",
+                width=800,
+                height=600,
+            ),
+            chart_description="Interactive preview",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Interactive revenue trend",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=13, cache_status="hit"),
+            format="interactive",
+            width=800,
+            height=600,
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+
+        assert result.content.html_content == sanitize_for_llm_context(
+            "<div>Revenue by region</div>"
+        )
+        assert (
+            result.content.preview_url == "/superset/explore/?slice_id=6&standalone=1"
+        )
+        assert result.explore_url == "/explore/?slice_id=6"
 
     @pytest.mark.asyncio
     async def test_chart_types_support(self):

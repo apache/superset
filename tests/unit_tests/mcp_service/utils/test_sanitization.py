@@ -601,3 +601,30 @@ def test_sanitize_for_llm_context_honors_custom_excluded_field_names():
         "User-written summary\n"
         f"{LLM_CONTEXT_CLOSE_DELIMITER}"
     )
+
+
+def test_sanitize_for_llm_context_honors_field_path_for_root_string():
+    result = sanitize_for_llm_context(
+        "analytics",
+        field_path=("database-name",),
+    )
+
+    assert result == "analytics"
+
+
+def test_sanitize_for_llm_context_preserves_nested_operational_fields_in_lists():
+    payload = {
+        "targets": [
+            {
+                "column": {"name": "region"},
+                "url": "/superset/explore/?slice_id=42",
+            }
+        ],
+    }
+
+    result = sanitize_for_llm_context(payload)
+
+    assert result["targets"][0]["url"] == "/superset/explore/?slice_id=42"
+    assert result["targets"][0]["column"]["name"] == (
+        f"{LLM_CONTEXT_OPEN_DELIMITER}\nregion\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    )

@@ -25,6 +25,7 @@ import pytest
 
 from superset.mcp_service.chart.schemas import (
     ChartData,
+    DataColumn,
     GetChartDataRequest,
     PerformanceMetadata,
 )
@@ -273,6 +274,45 @@ class TestChartDataSanitization:
         assert result.csv_data == sanitize_for_llm_context(
             "region,amount\nEMEA,120\nLATAM,95\n"
         )
+
+    def test_sanitize_chart_data_wraps_column_sample_values(self):
+        chart_data = ChartData(
+            chart_id=8,
+            chart_name="Customers by Country",
+            chart_type="table",
+            columns=[
+                DataColumn(
+                    name="country",
+                    display_name="Country",
+                    data_type="STRING",
+                    sample_values=["Brazil", "Japan", None],
+                    null_count=0,
+                    unique_count=2,
+                )
+            ],
+            data=[],
+            row_count=0,
+            total_rows=0,
+            summary="No rows returned",
+            insights=[],
+            data_quality={},
+            recommended_visualizations=["table"],
+            data_freshness=None,
+            performance=PerformanceMetadata(query_duration_ms=5, cache_status="hit"),
+            csv_data=None,
+            format="json",
+        )
+
+        result = _sanitize_chart_data_for_llm_context(chart_data)
+
+        assert result.columns[0].name == "country"
+        assert result.columns[0].display_name == "Country"
+        assert result.columns[0].sample_values == [
+            sanitize_for_llm_context("Brazil"),
+            sanitize_for_llm_context("Japan"),
+            None,
+        ]
+        assert result.recommended_visualizations == ["table"]
 
 
 class TestWorldMapChartFallback:

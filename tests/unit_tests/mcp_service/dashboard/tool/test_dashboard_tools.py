@@ -511,6 +511,95 @@ def test_refresh_request_user_for_permalink_access(
         assert g.user is refreshed_user
 
 
+def test_refresh_request_user_for_permalink_access_uses_email_when_username_missing(
+    app,
+):
+    refreshed_user = Mock()
+    refreshed_user.email = "admin@example.com"
+
+    current_user = Mock()
+    current_user.username = None
+    current_user.email = "admin@example.com"
+    current_user.is_anonymous = False
+
+    with (
+        patch.object(
+            get_dashboard_info_module,
+            "load_user_with_relationships",
+            return_value=refreshed_user,
+        ) as mock_load_user_with_relationships,
+        app.test_request_context("/mcp"),
+    ):
+        g.user = current_user
+        _refresh_request_user_for_permalink_access()
+
+        mock_load_user_with_relationships.assert_called_once_with(
+            email="admin@example.com"
+        )
+        assert g.user is refreshed_user
+
+
+def test_refresh_request_user_for_permalink_access_skips_anonymous_user(app):
+    current_user = Mock()
+    current_user.username = "anonymous"
+    current_user.email = "anonymous@example.com"
+    current_user.is_anonymous = True
+
+    with (
+        patch.object(
+            get_dashboard_info_module,
+            "load_user_with_relationships",
+        ) as mock_load_user_with_relationships,
+        app.test_request_context("/mcp"),
+    ):
+        g.user = current_user
+        _refresh_request_user_for_permalink_access()
+
+        mock_load_user_with_relationships.assert_not_called()
+        assert g.user is current_user
+
+
+def test_refresh_request_user_for_permalink_access_skips_missing_identifier(app):
+    current_user = Mock()
+    current_user.username = None
+    current_user.email = None
+    current_user.is_anonymous = False
+
+    with (
+        patch.object(
+            get_dashboard_info_module,
+            "load_user_with_relationships",
+        ) as mock_load_user_with_relationships,
+        app.test_request_context("/mcp"),
+    ):
+        g.user = current_user
+        _refresh_request_user_for_permalink_access()
+
+        mock_load_user_with_relationships.assert_not_called()
+        assert g.user is current_user
+
+
+def test_refresh_request_user_for_permalink_access_keeps_user_when_reload_fails(app):
+    current_user = Mock()
+    current_user.username = "admin"
+    current_user.email = None
+    current_user.is_anonymous = False
+
+    with (
+        patch.object(
+            get_dashboard_info_module,
+            "load_user_with_relationships",
+            return_value=None,
+        ) as mock_load_user_with_relationships,
+        app.test_request_context("/mcp"),
+    ):
+        g.user = current_user
+        _refresh_request_user_for_permalink_access()
+
+        mock_load_user_with_relationships.assert_called_once_with(username="admin")
+        assert g.user is current_user
+
+
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_get_dashboard_info_not_found(mock_info, mcp_server):

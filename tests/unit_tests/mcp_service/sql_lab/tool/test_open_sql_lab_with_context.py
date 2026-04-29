@@ -197,6 +197,67 @@ class TestOpenSqlLabWithContext:
         finally:
             _restore_modules(saved_modules)
 
+    def test_sanitizes_dataset_context_without_schema(self) -> None:
+        mod, saved_modules = _get_tool_module()
+        try:
+            request = OpenSqlLabRequest(
+                database_id=12,
+                dataset_in_context="orders",
+            )
+
+            with (
+                patch(
+                    "superset.daos.database.DatabaseDAO.find_by_id",
+                    return_value=Mock(database_name="examples"),
+                ),
+                patch.object(
+                    mod.event_logger, "log_context", return_value=nullcontext()
+                ),
+                patch.object(
+                    mod,
+                    "get_superset_base_url",
+                    return_value="https://superset.example.com",
+                ),
+            ):
+                response = mod.open_sql_lab_with_context(request, _make_mock_ctx())
+
+            params = parse_qs(urlsplit(response.url).query)
+            expected_sql = (
+                "-- Context: Working with dataset 'orders'\n"
+                "-- Database: examples\n"
+                "\nSELECT * FROM orders LIMIT 100;"
+            )
+
+            assert response.schema_name is None
+            assert "schema" not in params
+            assert params["sql"] == [
+                sanitize_for_llm_context(expected_sql, field_path=("sql",))
+            ]
+        finally:
+            _restore_modules(saved_modules)
+
+    def test_sanitizes_only_untrusted_sql_lab_url_parameters(self) -> None:
+        mod, saved_modules = _get_tool_module()
+        try:
+            url = (
+                "https://superset.example.com/sqllab?"
+                "dbid=7&schema=analytics&sql=SELECT+1&title=Inspect+query"
+            )
+
+            sanitized_url = mod._sanitize_sql_lab_url_for_llm_context(url)
+            params = parse_qs(urlsplit(sanitized_url).query)
+
+            assert params["dbid"] == ["7"]
+            assert params["schema"] == ["analytics"]
+            assert params["sql"] == [
+                sanitize_for_llm_context("SELECT 1", field_path=("sql",))
+            ]
+            assert params["title"] == [
+                sanitize_for_llm_context("Inspect query", field_path=("title",))
+            ]
+        finally:
+            _restore_modules(saved_modules)
+
     def test_sanitizes_error_and_keeps_empty_url_for_missing_database(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
