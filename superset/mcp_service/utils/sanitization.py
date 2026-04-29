@@ -70,13 +70,22 @@ def _escape_llm_context_delimiters(value: str) -> str:
     )
 
 
+def _escape_llm_context_dict_key(key: Any) -> Any:
+    """Escape delimiter tokens in string dict keys."""
+    if isinstance(key, str):
+        return _escape_llm_context_delimiters(key)
+    return key
+
+
 def escape_llm_context_delimiters(value: Any) -> Any:
     """Escape delimiter tokens in operational values that should not be wrapped."""
     if isinstance(value, str):
         return _escape_llm_context_delimiters(value)
     if isinstance(value, dict):
         return {
-            key: escape_llm_context_delimiters(nested_value)
+            _escape_llm_context_dict_key(key): escape_llm_context_delimiters(
+                nested_value
+            )
             for key, nested_value in value.items()
         }
     if isinstance(value, list):
@@ -138,7 +147,10 @@ def sanitize_for_llm_context(
 
         if isinstance(current_value, dict):
             return {
-                key: _sanitize(nested_value, (*current_path, str(key)))
+                _escape_llm_context_dict_key(key): _sanitize(
+                    nested_value,
+                    (*current_path, str(key)),
+                )
                 for key, nested_value in current_value.items()
             }
 
