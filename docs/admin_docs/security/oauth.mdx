@@ -1,0 +1,182 @@
+---
+title: Oauth examples
+sidebar_position: 4
+---
+
+# Keycloak with PKCE, clean logout and groups mapping
+
+Here a full example using Keycloak as an OIDC provider with PKCE flow, clean logout and groups mapping to Superset roles.
+
+You need to create a Secret that contains CLIENT_ID, CLIENT_SECRET and OIDC_ISSUER.
+
+Keycloak must be configured to support PKCE flow, so you need to set 'Proof Key for Code Exchange Code Challenge Method' to value S256 under:
+`Clients -> your-client-id -> Advanced -> Advanced settings`
+
+Logout is first handled by Superset to clear the session and then the user is redirected to Keycloak logout endpoint to complete the logout process on the OIDC provider side.
+It is important to clear the session in Superset first to avoid any issues with the OIDC provider.
+
+This code correctly handles the case where a user successfully authenticates with Keycloak but does not belong to any of the mapped groups.
+In that situation, the user is simply redirected back to the login page.
+
+## The Secret
+You can create the Secret with a manifest like this:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: superset-oauth-providers
+  namespace: my-beloved-superset-namespace
+stringData:
+  CLIENT_ID: my_superset_clientid
+  CLIENT_SECRET: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  OIDC_ISSUER: https://myoauthprovider.youpi.fr/auth/realms/MYREALM
+type: Opaque
+```
+
+and you will need to reference it in your Helm values like this:
+```yaml
+envFromSecrets:
+  - superset-oauth-providers
+```
+
+Or you can directly set the environment variables in the values file like this:
+```yaml
+extraSecretEnv:
+  CLIENT_ID: my_superset_clientid
+  CLIENT_SECRET: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  OIDC_ISSUER: https://myoauthprovider.youpi.fr/auth/realms/MYREALM
+```
+
+## The config overrides
+```yaml
+configOverrides:
+  enable_oauth: |
+    from flask import redirect, request, session
+    from flask_appbuilder import expose
+    from flask_appbuilder.security.manager import AUTH_OAUTH
+    from flask_appbuilder.security.views import AuthOAuthView
+    from flask_login import login_user
+    from superset.security import SupersetSecurityManager
+    import logging
+    import os
+
+    log = logging.getLogger(__name__)
+
+    AUTH_TYPE = AUTH_OAUTH
+    AUTH_USER_REGISTRATION = True
+    AUTH_ROLES_SYNC_AT_LOGIN = True
+    AUTH_USER_REGISTRATION_ROLE = None
+
+    PROVIDER_NAME = 'keycloak'
+    CLIENT_ID = os.getenv('CLIENT_ID')
+    CLIENT_SECRET = os.getenv('CLIENT_SECRET')
+    OIDC_ISSUER = os.getenv('OIDC_ISSUER')
+    OIDC_BASE_URL = f'{OIDC_ISSUER}/protocol/openid-connect'
+    OIDC_AUTH_URL = f'{OIDC_BASE_URL}/auth'
+    OIDC_METADATA_URL = f'{OIDC_ISSUER}/.well-known/openid-configuration'
+    OIDC_TOKEN_URL = f'{OIDC_BASE_URL}/token'
+    OIDC_USERINFO_URL = f'{OIDC_BASE_URL}/userinfo'
+    OAUTH_PROVIDERS = [
+        {
+            'name': PROVIDER_NAME,
+            'token_key': 'access_token',
+            'icon': 'fa-circle-o',
+            'remote_app': {
+                'api_base_url': OIDC_BASE_URL,
+                'access_token_url': OIDC_TOKEN_URL,
+                'authorize_url': OIDC_AUTH_URL,
+                'request_token_url': None,
+                'server_metadata_url': OIDC_METADATA_URL,
+                'client_id': CLIENT_ID,
+                'client_secret': CLIENT_SECRET,
+                'client_kwargs': {
+                    'scope': 'openid email profile',
+                    'code_challenge_method': 'S256',
+                    'response_type': 'code',
+                },
+            },
+        }
+    ]
+
+    # Make sure you create these groups on Keycloak
+    AUTH_ROLES_MAPPING = {
+        f'{CLIENT_ID}_admin': ['Admin'],
+        f'{CLIENT_ID}_alpha': ['Alpha'],
+        f'{CLIENT_ID}_gamma': ['Gamma'],
+        f'{CLIENT_ID}_public': ['Public'],
+    }
+
+
+    class CustomOAuthView(AuthOAuthView):
+        # Override the logout method to also log out from the OIDC provider
+        @expose('/logout/', methods=['GET', 'POST'])
+        def logout(self):
+            super().logout()
+            session.clear()
+            return redirect(
+                f'{OIDC_ISSUER}/protocol/openid-connect/logout?post_logout_redirect_uri={request.url_root.strip("/")}&client_id={CLIENT_ID}'
+            )
+
+        # Override the authorized method to handle the OIDC callback and map groups to roles
+        @expose('/oauth-authorized/<provider>')
+        def oauth_authorized(self, provider):
+            # Step 1: exchange the authorization code for an access token
+            try:
+                resp = self.appbuilder.sm.oauth_remotes[provider].authorize_access_token()
+            except Exception as e:
+                log.exception(f'Error fetching access token: {e}')
+                return redirect(self.appbuilder.get_url_for_index)
+
+            # Step 2: fetch user info from the OIDC provider
+            userinfo = self.appbuilder.sm.get_oauth_user_info(provider, resp)
+            role_keys = userinfo.get('role_keys', [])
+            known_groups = [g for g in role_keys if g in AUTH_ROLES_MAPPING]
+
+            # Step 3: if no valid groups, redirect to the home page without login
+            if not known_groups:
+                log.warning(
+                    f'No valid groups for user {userinfo.get("username")}, groups received: {role_keys}'
+                )
+                return redirect(self.appbuilder.get_url_for_index)
+
+            # Step 4: create or retrieve the user in the database with their roles
+            userinfo['role_keys'] = known_groups
+            user = self.appbuilder.sm.auth_user_oauth(userinfo)
+            if user is None:
+                log.warning(
+                    f'auth_user_oauth returned None for user {userinfo.get("username")}'
+                )
+                return redirect(self.appbuilder.get_url_for_index)
+
+            # Step 5: login and redirect to the app
+            login_user(user, remember=False)
+            return redirect(self.appbuilder.get_url_for_index)
+
+
+    class CustomSsoSecurityManager(SupersetSecurityManager):
+        # Override the default OAuth view with our custom one
+        authoauthview = CustomOAuthView
+
+        # Override the method to fetch groups from the token and map them to Superset roles
+        def get_oauth_user_info(self, provider, response):
+            if provider == 'keycloak':
+                me = self.appbuilder.sm.oauth_remotes[provider].get(OIDC_USERINFO_URL)
+                me.raise_for_status()
+                data = me.json()
+                log.info(f'Received userinfo from OIDC provider for user {data.get("preferred_username")}')
+
+                groups = data.get('groups', [])
+
+                return {
+                    'username': data.get('preferred_username'),
+                    'email': data.get('email'),
+                    'first_name': data.get('given_name'),
+                    'last_name': data.get('family_name'),
+                    'role_keys': groups,
+                }
+            return {}
+
+
+    # Set our custom security manager
+    CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
+```
