@@ -28,7 +28,7 @@
   "dependencies": {
     "@math.gl/web-mercator": "^4.1.0",
     "mapbox-gl": "^3.22.0",
-    "maplibre-gl": "^5.23.0",
+    "maplibre-gl": "^5.24.0",
     "react-map-gl": "^8.1.1",
     "supercluster": "^8.0.1"
   },

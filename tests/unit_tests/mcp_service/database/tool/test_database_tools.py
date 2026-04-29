@@ -23,9 +23,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
-from superset.mcp_service.database.schemas import ListDatabasesRequest
+from superset.mcp_service.database.schemas import DatabaseFilter, ListDatabasesRequest
 from superset.mcp_service.privacy import DATA_MODEL_METADATA_ERROR_TYPE
 from superset.utils import json
 
@@ -37,6 +38,25 @@ list_databases_module = importlib.import_module(
 get_database_info_module = importlib.import_module(
     "superset.mcp_service.database.tool.get_database_info"
 )
+
+
+class TestDatabaseFilterSchema:
+    """Tests for DatabaseFilter schema — filterable columns."""
+
+    def test_created_by_fk_is_valid_filter_column(self):
+        """created_by_fk must be accepted as a filter column."""
+        f = DatabaseFilter(col="created_by_fk", opr="eq", value=1)
+        assert f.col == "created_by_fk"
+
+    def test_changed_by_fk_is_valid_filter_column(self):
+        """changed_by_fk must be accepted as a filter column."""
+        f = DatabaseFilter(col="changed_by_fk", opr="eq", value=1)
+        assert f.col == "changed_by_fk"
+
+    def test_invalid_filter_column_rejected(self):
+        """Columns not in the Literal set must be rejected."""
+        with pytest.raises(ValidationError):
+            DatabaseFilter(col="not_a_real_column", opr="eq", value=1)
 
 
 def create_mock_database(
@@ -249,10 +269,15 @@ async def test_list_databases_does_not_expose_user_directory_fields(
 
 
 def test_database_filter_rejects_user_directory_fields() -> None:
-    """Test user directory fields cannot be used for database filters."""
-    with pytest.raises(ValueError, match="created_by_fk"):
+    """Test user directory string fields cannot be used for database filters.
+
+    created_by_fk / changed_by_fk are integer FK IDs and ARE valid filter
+    columns.  The user-directory *string* fields (created_by, created_by_name,
+    etc.) must still be rejected.
+    """
+    with pytest.raises(ValidationError, match="created_by_name"):
         ListDatabasesRequest(
-            filters=[{"col": "created_by_fk", "opr": "eq", "value": 1}],
+            filters=[{"col": "created_by_name", "opr": "eq", "value": "admin"}],
         )
 
 
