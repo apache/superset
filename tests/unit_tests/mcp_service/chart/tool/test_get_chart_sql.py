@@ -113,11 +113,11 @@ class TestExtractSqlFromResult:
         assert output.language == "sql"
         assert output.chart_id == 10
         assert output.chart_name == sanitize_for_llm_context("Sales Chart")
-        assert output.datasource_name == "my_table"
+        assert output.datasource_name == sanitize_for_llm_context("my_table")
         assert output.error is None
 
-    def test_successful_sql_extraction_preserves_operational_identifiers(self):
-        """Chart SQL wrapping should not alter datasource identifiers."""
+    def test_successful_sql_extraction_sanitizes_datasource_name(self):
+        """Chart SQL wrapping treats datasource names as LLM-facing content."""
         result = {
             "queries": [
                 {
@@ -136,7 +136,7 @@ class TestExtractSqlFromResult:
         )
 
         assert isinstance(output, ChartSql)
-        assert output.datasource_name == "analytics.orders"
+        assert output.datasource_name == sanitize_for_llm_context("analytics.orders")
         assert output.error == sanitize_for_llm_context(
             "Query 1: Missing optional predicate"
         )

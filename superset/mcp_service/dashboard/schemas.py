@@ -809,6 +809,21 @@ def _sanitize_dashboard_info_for_llm_context(
             excluded_field_names=frozenset(),
         )
 
+    payload["tags"] = [
+        {
+            **tag,
+            "name": sanitize_for_llm_context(
+                tag.get("name"),
+                field_path=("tags", str(index), "name"),
+            ),
+            "description": sanitize_for_llm_context(
+                tag.get("description"),
+                field_path=("tags", str(index), "description"),
+            ),
+        }
+        for index, tag in enumerate(payload.get("tags", []))
+    ]
+
     return DashboardInfo.model_validate(payload)
 
 

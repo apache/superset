@@ -350,6 +350,12 @@ class TestSerializeDashboardObject:
         dashboard.certified_by = "Analytics Team"
         dashboard.certification_details = "Certified by analytics"
         dashboard.uuid = "dashboard-uuid-7"
+        tag = MagicMock()
+        tag.id = 1
+        tag.name = "Dashboard tag"
+        tag.type = "custom"
+        tag.description = "Dashboard tag description"
+        dashboard.tags = [tag]
         dashboard.json_metadata = json_dumps(
             {
                 "native_filter_configuration": [
@@ -380,6 +386,8 @@ class TestSerializeDashboardObject:
         ]
         assert result.charts[0].slice_name == _wrapped("Revenue Chart")
         assert result.charts[0].description == _wrapped("Monthly revenue")
+        assert result.tags[0].name == _wrapped("Dashboard tag")
+        assert result.tags[0].description == _wrapped("Dashboard tag description")
 
 
 class TestExtractNativeFilters:

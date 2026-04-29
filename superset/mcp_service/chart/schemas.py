@@ -435,6 +435,21 @@ def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:
             ),
         )
 
+    payload["tags"] = [
+        {
+            **tag,
+            "name": sanitize_for_llm_context(
+                tag.get("name"),
+                field_path=("tags", str(index), "name"),
+            ),
+            "description": sanitize_for_llm_context(
+                tag.get("description"),
+                field_path=("tags", str(index), "description"),
+            ),
+        }
+        for index, tag in enumerate(payload.get("tags", []))
+    ]
+
     return ChartInfo.model_validate(payload)
 
 

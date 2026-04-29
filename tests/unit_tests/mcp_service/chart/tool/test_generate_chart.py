@@ -425,6 +425,12 @@ class TestChartSerializationEagerLoading:
         chart = _make_mock_chart()
         chart.description = "Show sales instructions"
         chart.certification_details = "Verified by analytics"
+        tag = Mock()
+        tag.id = 1
+        tag.name = "Tag instructions"
+        tag.type = "custom"
+        tag.description = "Tag description"
+        chart.tags = [tag]
         chart.params = utils_json.dumps(
             {
                 "datasource": "42__table",
@@ -462,6 +468,8 @@ class TestChartSerializationEagerLoading:
         assert result.filters.adhoc_filters[
             0
         ].sql_expression == sanitize_for_llm_context("region = 'EMEA'")
+        assert result.tags[0].name == sanitize_for_llm_context("Tag instructions")
+        assert result.tags[0].description == sanitize_for_llm_context("Tag description")
 
     def test_generate_chart_form_data_response_is_sanitized(self) -> None:
         """Generated chart form data wraps user-controlled response values."""

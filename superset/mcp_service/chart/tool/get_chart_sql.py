@@ -47,7 +47,7 @@ def _sanitize_chart_sql_for_llm_context(chart_sql: ChartSql) -> ChartSql:
     """Wrap chart SQL read-path descriptive fields before LLM exposure."""
     payload = chart_sql.model_dump(mode="python")
 
-    for field_name in ("chart_name", "sql", "error"):
+    for field_name in ("chart_name", "datasource_name", "sql", "error"):
         payload[field_name] = sanitize_for_llm_context(
             payload.get(field_name),
             field_path=(field_name,),

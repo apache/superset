@@ -82,7 +82,12 @@ def _wrap_llm_context_string(value: str) -> str:
     wrapped_prefix = f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
     wrapped_suffix = f"\n{LLM_CONTEXT_CLOSE_DELIMITER}"
     if value.startswith(wrapped_prefix) and value.endswith(wrapped_suffix):
-        return value
+        inner_value = value[len(wrapped_prefix) : -len(wrapped_suffix)]
+        return (
+            f"{wrapped_prefix}"
+            f"{_escape_llm_context_delimiters(inner_value)}"
+            f"{wrapped_suffix}"
+        )
 
     escaped_value = _escape_llm_context_delimiters(value)
     return (
