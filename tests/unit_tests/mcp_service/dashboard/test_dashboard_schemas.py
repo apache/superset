@@ -24,9 +24,15 @@ Tests that serialize_dashboard_object correctly handles slug and other fields.
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+from pydantic import ValidationError
+
 from superset.mcp_service.dashboard.schemas import (
     _extract_cross_filters_enabled,
     _extract_native_filters,
+    dashboard_serializer,
+    GenerateDashboardRequest,
+    serialize_chart_summary,
     serialize_dashboard_object,
 )
 from superset.utils.json import dumps as json_dumps
@@ -134,9 +140,15 @@ class TestSerializeDashboardObject:
         assert not hasattr(result, "json_metadata")
         assert not hasattr(result, "position_json")
 
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
     @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
-    def test_native_filters_extracted_from_json_metadata(self, mock_base_url):
+    def test_native_filters_extracted_from_json_metadata(
+        self,
+        mock_base_url,
+        mock_can_view_data_model_metadata,
+    ):
         """Native filters should be extracted from json_metadata."""
+        mock_can_view_data_model_metadata.return_value = True
         mock_base_url.return_value = "http://localhost:8088"
 
         metadata = {
@@ -174,9 +186,49 @@ class TestSerializeDashboardObject:
         assert result.native_filters[1].name == "Date Range"
         assert result.cross_filters_enabled is True
 
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
     @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
-    def test_chart_summaries_are_lightweight(self, mock_base_url):
+    def test_restricted_user_redacts_native_filter_targets(
+        self,
+        mock_base_url,
+        mock_can_view_data_model_metadata,
+    ):
+        mock_can_view_data_model_metadata.return_value = False
+        mock_base_url.return_value = "http://localhost:8088"
+
+        metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-abc123",
+                    "name": "Product Line",
+                    "filterType": "filter_select",
+                    "targets": [
+                        {"column": {"name": "product_line"}, "datasetId": 3},
+                    ],
+                },
+            ],
+            "cross_filters_enabled": True,
+        }
+        dashboard = _mock_dashboard(id=1)
+        dashboard.json_metadata = json_dumps(metadata)
+
+        result = serialize_dashboard_object(dashboard)
+
+        assert len(result.native_filters) == 1
+        assert result.native_filters[0].name == "Product Line"
+        assert result.native_filters[0].filter_type == "filter_select"
+        assert result.native_filters[0].targets == []
+        assert result.cross_filters_enabled is True
+
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
+    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    def test_chart_summaries_are_lightweight(
+        self,
+        mock_base_url,
+        mock_can_view_data_model_metadata,
+    ):
         """Charts in dashboard response should only have core fields."""
+        mock_can_view_data_model_metadata.return_value = True
         mock_base_url.return_value = "http://localhost:8088"
 
         chart = MagicMock()
@@ -199,6 +251,71 @@ class TestSerializeDashboardObject:
         assert not hasattr(result.charts[0], "form_data")
         assert not hasattr(result.charts[0], "tags")
         assert not hasattr(result.charts[0], "owners")
+
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
+    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    def test_restricted_user_redacts_chart_datasource_name(
+        self,
+        mock_base_url,
+        mock_can_view_data_model_metadata,
+    ):
+        mock_can_view_data_model_metadata.return_value = False
+        mock_base_url.return_value = "http://localhost:8088"
+
+        chart = MagicMock()
+        chart.id = 5
+        chart.slice_name = "Revenue Chart"
+        chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_name = "sales"
+        chart.description = "Monthly revenue"
+
+        dashboard = _mock_dashboard(id=1, slices=[chart])
+        result = serialize_dashboard_object(dashboard)
+
+        assert len(result.charts) == 1
+        assert result.charts[0].slice_name == "Revenue Chart"
+        assert result.charts[0].viz_type == "echarts_timeseries_bar"
+        assert result.charts[0].datasource_name is None
+        assert result.charts[0].url == "http://localhost:8088/explore/?slice_id=5"
+
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
+    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    def test_dashboard_serializer_restricted_user_redacts_data_model_metadata(
+        self,
+        mock_base_url,
+        mock_can_view_data_model_metadata,
+    ):
+        mock_can_view_data_model_metadata.return_value = False
+        mock_base_url.return_value = "http://localhost:8088"
+
+        chart = MagicMock()
+        chart.id = 5
+        chart.slice_name = "Revenue Chart"
+        chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_name = "sales"
+        chart.description = "Monthly revenue"
+
+        metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-abc123",
+                    "name": "Product Line",
+                    "filterType": "filter_select",
+                    "targets": [
+                        {"column": {"name": "product_line"}, "datasetId": 3},
+                    ],
+                },
+            ],
+            "cross_filters_enabled": True,
+        }
+        dashboard = _mock_dashboard(id=1, slices=[chart])
+        dashboard.url = "/superset/dashboard/1/"
+        dashboard.json_metadata = json_dumps(metadata)
+
+        result = dashboard_serializer(dashboard)
+
+        assert result.charts[0].datasource_name is None
+        assert result.native_filters[0].targets == []
 
 
 class TestExtractNativeFilters:
@@ -237,6 +354,26 @@ class TestExtractNativeFilters:
         assert result[0].id == "f1"
         assert result[0].name == "Filter 1"
         assert result[0].filter_type == "filter_select"
+        assert result[0].targets == []
+
+    def test_valid_filters_include_targets_when_metadata_allowed(self):
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "f1",
+                        "name": "Filter 1",
+                        "filterType": "filter_select",
+                        "targets": [{"column": {"name": "col1"}}],
+                    }
+                ]
+            }
+        )
+        result = _extract_native_filters(
+            metadata,
+            include_data_model_metadata=True,
+        )
+        assert result[0].targets == [{"column": {"name": "col1"}}]
 
     def test_skips_non_dict_entries(self):
         metadata = json_dumps(
@@ -279,6 +416,23 @@ class TestExtractCrossFiltersEnabled:
         assert _extract_cross_filters_enabled("[]") is None
         assert _extract_cross_filters_enabled("123") is None
         assert _extract_cross_filters_enabled('"just a string"') is None
+
+
+class TestSerializeChartSummary:
+    """Tests for serialize_chart_summary helper."""
+
+    def test_datasource_name_redacted_by_default(self):
+        chart = MagicMock()
+        chart.id = 5
+        chart.slice_name = "Revenue Chart"
+        chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_name = "sales"
+        chart.description = "Monthly revenue"
+
+        result = serialize_chart_summary(chart)
+
+        assert result is not None
+        assert result.datasource_name is None
 
 
 class TestOmittedFieldsBuilder:
@@ -339,3 +493,63 @@ class TestOmittedFieldsBuilder:
 
         assert "json_metadata" in result.omitted_fields
         assert "position_json" in result.omitted_fields
+
+
+class TestGenerateDashboardRequestTitleSanitization:
+    """XSS / sanitization behavior for dashboard_title."""
+
+    def test_plain_title_passes_without_warning(self) -> None:
+        req = GenerateDashboardRequest(
+            chart_ids=[1], dashboard_title="Analytics Dashboard"
+        )
+        assert req.dashboard_title == "Analytics Dashboard"
+        assert req.sanitization_warnings == []
+
+    def test_title_image_onerror_only_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            GenerateDashboardRequest(
+                chart_ids=[1],
+                dashboard_title='<img src=x onerror="alert(1)">',
+            )
+
+    def test_title_script_only_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            GenerateDashboardRequest(
+                chart_ids=[1],
+                dashboard_title="<script>alert(1)</script>",
+            )
+
+    def test_title_partial_strip_emits_warning(self) -> None:
+        req = GenerateDashboardRequest(
+            chart_ids=[1],
+            dashboard_title="Q1 <b>Review</b>",
+        )
+        assert req.dashboard_title == "Q1 Review"
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+
+    def test_title_omitted_does_not_warn(self) -> None:
+        req = GenerateDashboardRequest(chart_ids=[1])
+        assert req.dashboard_title is None
+        assert req.sanitization_warnings == []
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only; client input is dropped."""
+        req = GenerateDashboardRequest(
+            chart_ids=[1],
+            dashboard_title="Plain Title",
+            sanitization_warnings=["<script>fake notice</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+    def test_client_warnings_discarded_even_when_server_also_warns(self) -> None:
+        """Client-supplied warnings must not survive, even when the server
+        appends one of its own during the same request."""
+        req = GenerateDashboardRequest(
+            chart_ids=[1],
+            dashboard_title="Q1 <b>Review</b>",
+            sanitization_warnings=["injected attacker text"],
+        )
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+        assert "injected" not in req.sanitization_warnings[0]
