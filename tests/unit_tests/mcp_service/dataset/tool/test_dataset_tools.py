@@ -26,7 +26,7 @@ from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
-from superset.mcp_service.dataset.schemas import ListDatasetsRequest
+from superset.mcp_service.dataset.schemas import DatasetFilter, ListDatasetsRequest
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     tool_requires_data_model_metadata_access,
@@ -1547,3 +1547,68 @@ class TestDatasetSortableColumns:
             data = json.loads(result.content[0].text)
             assert data["count"] == 0
             assert data["datasets"] == []
+
+
+class TestListDatasetsCreatedByMe:
+    """Tests for the created_by_me flag on ListDatasetsRequest."""
+
+    def test_created_by_me_default_is_false(self):
+        request = ListDatasetsRequest()
+        assert request.created_by_me is False
+
+    def test_created_by_me_true_accepted(self):
+        request = ListDatasetsRequest(created_by_me=True)
+        assert request.created_by_me is True
+
+    def test_created_by_me_combined_with_filters(self):
+        request = ListDatasetsRequest(
+            created_by_me=True,
+            filters=[DatasetFilter(col="table_name", opr="sw", value="My")],
+        )
+        assert request.created_by_me is True
+        assert len(request.filters) == 1
+
+    def test_created_by_me_with_search_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="created_by_me"):
+            ListDatasetsRequest(created_by_me=True, search="My tables")
+
+    def test_dataset_filter_rejects_created_by_fk(self):
+        """created_by_fk is not a public filter column; use created_by_me instead."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            DatasetFilter(col="created_by_fk", opr="eq", value=1)
+
+
+class TestListDatasetsOwnedByMe:
+    """Tests for the owned_by_me flag on ListDatasetsRequest."""
+
+    def test_owned_by_me_default_is_false(self):
+        request = ListDatasetsRequest()
+        assert request.owned_by_me is False
+
+    def test_owned_by_me_true_accepted(self):
+        request = ListDatasetsRequest(owned_by_me=True)
+        assert request.owned_by_me is True
+
+    def test_owned_by_me_combined_with_filters(self):
+        request = ListDatasetsRequest(
+            owned_by_me=True,
+            filters=[DatasetFilter(col="table_name", opr="sw", value="My")],
+        )
+        assert request.owned_by_me is True
+        assert len(request.filters) == 1
+
+    def test_owned_by_me_with_search_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="owned_by_me"):
+            ListDatasetsRequest(owned_by_me=True, search="My datasets")
+
+    def test_owned_by_me_and_created_by_me_allowed(self):
+        """Both flags together are valid (OR logic — creator or owner)."""
+        request = ListDatasetsRequest(owned_by_me=True, created_by_me=True)
+        assert request.owned_by_me is True
+        assert request.created_by_me is True

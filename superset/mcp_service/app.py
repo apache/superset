@@ -100,6 +100,26 @@ To create a chart:
 3. generate_explore_link(dataset_id, config) -> preview interactively
 4. generate_chart(dataset_id, config, save_chart=True) -> save permanently
 
+To find your own charts/dashboards/datasets/databases:
+- list_charts(request={{"created_by_me": true}})      — items you created
+- list_dashboards(request={{"created_by_me": true}})  — items you created
+- list_datasets(request={{"created_by_me": true}})    — items you created
+- list_databases(request={{"created_by_me": true}})   — items you created
+
+To find items where you are listed as an owner (edit access):
+- list_charts(request={{"owned_by_me": true}})
+- list_dashboards(request={{"owned_by_me": true}})
+- list_datasets(request={{"owned_by_me": true}})
+
+To find all items you have any connection to (created OR own):
+- list_charts(request={{"created_by_me": true, "owned_by_me": true}})
+- list_dashboards(request={{"created_by_me": true, "owned_by_me": true}})
+- list_datasets(request={{"created_by_me": true, "owned_by_me": true}})
+
+Use created_by_me for authorship, owned_by_me for edit ownership, or both
+together for the union. All flags can be combined with 'filters' but not
+with 'search'.
+
 To explore data with SQL:
 1. get_instance_info -> find database_id
 2. execute_sql(database_id, sql) -> run query
@@ -167,6 +187,9 @@ Query Examples:
   list_charts(request={{"filters": [{{"col": "viz_type",
     "opr": "sw", "value": "echarts_timeseries"}}]}})
 - Search by name: list_charts(request={{"search": "sales"}})
+- My charts: list_charts(request={{"created_by_me": true}})
+- My dashboards: list_dashboards(request={{"created_by_me": true}})
+- My databases: list_databases(request={{"created_by_me": true}})
 To modify an existing chart (add filters, change metrics, etc.):
 1. get_chart_info(request={{"identifier": <chart_id>}})
    -> examine current configuration

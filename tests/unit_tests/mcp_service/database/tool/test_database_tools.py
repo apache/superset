@@ -23,6 +23,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.database.schemas import ListDatabasesRequest
@@ -236,6 +237,20 @@ def test_database_filter_rejects_user_directory_fields() -> None:
         ListDatabasesRequest(
             filters=[{"col": "created_by_fk", "opr": "eq", "value": 1}],
         )
+
+
+def test_database_filter_rejects_created_by_fk() -> None:
+    """created_by_fk is no longer a valid filter column; use created_by_me instead."""
+    with pytest.raises(ValidationError, match="created_by_fk"):
+        ListDatabasesRequest(
+            filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}],
+        )
+
+
+def test_database_request_accepts_created_by_me() -> None:
+    """created_by_me=True is the correct way to filter by current user."""
+    request = ListDatabasesRequest(created_by_me=True)
+    assert request.created_by_me is True
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
