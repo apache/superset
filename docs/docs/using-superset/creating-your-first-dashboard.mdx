@@ -256,6 +256,34 @@ For example, when running the local development build, the following will disabl
 Top Nav and remove the Filter Bar:
 `http://localhost:8088/superset/dashboard/my-dashboard/?standalone=1&show_filters=0`
 
+### Table Chart Features
+
+The **Table** chart type has several advanced capabilities worth knowing:
+
+#### Conditional Formatting
+
+Conditional formatting rules highlight cells based on their values. Rules can be applied to:
+- **Numeric columns** — color cells above/below a threshold, or use a gradient across a range
+- **String columns** — highlight cells matching specific text values or patterns
+- **Boolean columns** — color cells that are `true` or `false`, or `null`/`not null`
+
+Each rule has a **"Use gradient"** toggle: enabled applies a varying opacity (lighter = further from threshold), disabled applies a solid fill at full opacity regardless of value.
+
+#### HTML Rendering in Table Cells
+
+Table chart cells can render raw HTML, enabling rich formatting such as hyperlinks, colored badges, and icons directly in the data. Enable this per-column in the chart's **Column Configuration** panel by toggling **Render HTML**.
+
+:::caution
+Only enable HTML rendering for columns sourced from data you control. Rendering untrusted HTML can expose users to cross-site scripting (XSS) risks.
+:::
+
+#### Column Header Tooltips
+
+Column headers display a tooltip with the column's **Description** from the dataset editor when the user hovers over them. Keep dataset column descriptions up to date to improve chart discoverability.
+
+#### Display Controls
+
+In dashboard view mode (without entering Edit mode), charts with configurable display options expose a **Display Controls** panel accessible from the chart's context menu. This surfaces controls such as Time Grain, Time Column, and layer visibility for applicable chart types — making it easy to adjust a chart's view without going to Explore.
 ### AG Grid Interactive Table
 
 The **AG Grid Interactive Table** chart type is Superset's fully-featured data grid, suitable for large paginated datasets where the standard Table chart is not enough.

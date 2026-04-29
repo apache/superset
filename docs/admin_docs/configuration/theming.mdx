@@ -341,11 +341,25 @@ Available chart types for `echartsOptionsOverridesByChartType`:
 - `echarts_heatmap` - Heatmaps
 - `echarts_mixed_timeseries` - Mixed time series
 
+### Array Property Overrides
+
+Array properties (such as color palettes) are fully supported in overrides. Arrays are **replaced entirely** rather than merged, so specify the complete array:
+
+```python
+THEME_DEFAULT = {
+    "token": { ... },
+    "echartsOptionsOverrides": {
+        # Replace the default color palette for all ECharts visualizations
+        "color": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+    }
+}
+```
+
 ### Best Practices
 
 1. **Start with global overrides** for consistent styling across all charts
 2. **Use chart-specific overrides** for unique requirements per visualization type
-3. **Test thoroughly** as overrides use deep merge - nested objects are combined, but arrays are completely replaced
+3. **Test thoroughly** as overrides use deep merge for objects, but arrays are completely replaced — always specify the full array value
 4. **Document your overrides** to help team members understand custom styling
 5. **Consider performance** - complex overrides may impact chart rendering speed
 
