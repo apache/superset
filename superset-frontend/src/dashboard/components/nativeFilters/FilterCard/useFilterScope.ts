@@ -43,6 +43,11 @@ export const useFilterScope = (filter: FilterElement) => {
       topLevelTabs = layout[topElementId].children;
     }
 
+    // no scope defined (e.g. ChartCustomization without scope)
+    if (!filter.scope) {
+      return undefined;
+    }
+
     // no charts in scope
     if (filter.scope.rootPath.length === 0) {
       return undefined;
@@ -139,5 +144,5 @@ export const useFilterScope = (filter: FilterElement) => {
     }
 
     return undefined;
-  }, [chartIds, filter.scope.excluded, filter.scope.rootPath, layout]);
+  }, [chartIds, filter.scope?.excluded, filter.scope?.rootPath, layout]);
 };

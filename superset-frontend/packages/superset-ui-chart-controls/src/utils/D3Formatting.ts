@@ -37,6 +37,7 @@ export const D3_NUMBER_FORMAT_DESCRIPTION_PERCENTAGE_TEXT = t(
 
 const d3Formatted: [string, string][] = [
   ',d',
+  ',.0f',
   '.1s',
   '.3s',
   ',.1%',
