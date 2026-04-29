@@ -1065,6 +1065,11 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
 
+# Cache warmup user — must be set explicitly before enabling the cache-warmup
+# Celery task. Intentionally defaults to None so operators pick a dedicated
+# least-privilege user rather than inadvertently running warmup as "admin".
+SUPERSET_CACHE_WARMUP_USER: str | None = None
+
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
