@@ -501,6 +501,7 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_SERVICE_URL` | `None` | Public base URL for MCP-generated links (set this when behind a reverse proxy) |
 | `MCP_DEBUG` | `False` | Enable debug logging |
 | `MCP_DEV_USERNAME` | -- | Superset username for development mode (no auth) |
+| `MCP_RBAC_ENABLED` | `True` | Enforce Superset's role-based access control on MCP tool calls. When `True`, each tool checks that the authenticated user has the required FAB permission before executing. Disable only for testing or trusted-network deployments. |
 
 ### Authentication
 
@@ -516,6 +517,7 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_REQUIRED_SCOPES` | `[]` | Required JWT scopes |
 | `MCP_JWT_DEBUG_ERRORS` | `False` | Log detailed JWT errors server-side (never exposed in HTTP responses per RFC 6750) |
 | `MCP_AUTH_FACTORY` | `None` | Custom auth provider factory `(flask_app) -> auth_provider`. Takes precedence over built-in JWT |
+| `MCP_USER_RESOLVER` | `None` | Custom function `(app, access_token) -> username` to extract a Superset username from a validated JWT token. When `None`, the default resolver checks `preferred_username`, `username`, `email`, and `sub` claims in that order. |
 
 ### Response Size Guard
 
@@ -599,6 +601,43 @@ MCP_STORE_CONFIG = {
 | `event_store_max_events` | `100` | Maximum events retained per session |
 | `event_store_ttl` | `3600` | Event TTL in seconds |
 
+### Tool Search
+
+By default the MCP server exposes a lightweight tool-search interface instead of advertising every tool at once. This reduces the initial context sent to the LLM by ~70%, which lowers cost and latency. The AI client discovers tools on demand by calling `search_tools` and then invokes them via `call_tool`.
+
+```python
+MCP_TOOL_SEARCH_CONFIG = {
+    "enabled": True,
+    "strategy": "bm25",        # "bm25" (natural language) or "regex"
+    "max_results": 5,
+    "always_visible": [        # Tools always listed (pinned)
+        "health_check",
+        "get_instance_info",
+    ],
+    "search_tool_name": "search_tools",
+    "call_tool_name": "call_tool",
+    "include_schemas": False,  # False=summary mode (name + parameters_hint)
+    "compact_schemas": True,   # Strip $defs (only applies when include_schemas=True)
+    "max_description_length": 300,
+}
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `enabled` | `True` | Enable tool search. When `False`, all tools are listed upfront |
+| `strategy` | `"bm25"` | Search ranking algorithm. `"bm25"` supports natural language; `"regex"` supports pattern matching |
+| `max_results` | `5` | Maximum tools returned per search query |
+| `always_visible` | See above | Tools that always appear in `list_tools`, regardless of search |
+| `include_schemas` | `False` | When `False` (default, "summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Set to `True` to include the full `inputSchema` in search results. Full schemas are always used when a tool is actually invoked via `call_tool`. |
+| `compact_schemas` | `True` | Strip `$defs` / `$ref` and replace with `{"type": "object"}` in search results to reduce token cost. Only takes effect when `include_schemas=True` — ignored in summary mode. |
+| `max_description_length` | `300` | Truncate tool descriptions in search results (0 = no truncation). Applies in both summary and full-schema modes. |
+
+:::tip
+Set `enabled: False` to revert to the traditional "show all tools at once" behavior, which some clients or workflows may prefer.
+:::
+
+Tool search reduces the initial token cost from ~15–20K tokens (full catalog) down to ~4–5K tokens (pinned tools + search interface) — roughly 85% savings at the start of each conversation.
+
 ### Session & CSRF
 
 These values are flat-merged into the Flask app config used by the MCP server process:
@@ -617,6 +656,102 @@ MCP_CSRF_CONFIG = {
     "WTF_CSRF_TIME_LIMIT": None,
 }
 ```
+
+---
+
+## Access Control
+
+### RBAC Enforcement
+
+The MCP server respects Superset's full role-based access control (RBAC). Every authenticated user can only access the data and operations their Superset roles permit — the same rules that apply in the Superset UI apply through MCP.
+
+Each tool declares one or more required FAB permissions. The table below maps tool groups to their permission requirements:
+
+| Tool group | Required FAB permission |
+|------------|------------------------|
+| `list_charts`, `get_chart_info`, `get_chart_data`, `get_chart_preview`, `generate_chart`, `update_chart` | `can_read` on `Chart` (read), `can_write` on `Chart` (mutate) |
+| `list_dashboards`, `get_dashboard_info`, `generate_dashboard`, `add_chart_to_existing_dashboard` | `can_read` on `Dashboard` (read), `can_write` on `Dashboard` (mutate) |
+| `list_datasets`, `get_dataset_info`, `create_virtual_dataset` | `can_read` on `Dataset` (read), `can_write` on `Dataset` (mutate) |
+| `list_databases`, `get_database_info` | `can_read` on `Database` |
+| `execute_sql` | `can_execute_sql_query` on `SQLLab` |
+| `open_sql_lab_with_context` | `can_read` on `SQLLab` |
+| `save_sql_query` | `can_write` on `SavedQuery` |
+| `health_check` | None (public) |
+
+To disable RBAC checking globally (for trusted-network deployments or testing), set:
+
+```python
+# superset_config.py
+MCP_RBAC_ENABLED = False
+```
+
+:::warning
+Disabling RBAC removes all permission checks from MCP tool calls. Only do this on isolated, internal deployments where all MCP users are trusted admins.
+:::
+
+### Audit Log
+
+All MCP tool calls are recorded in Superset's action log. You can view them at **Settings → Action Log** (admin only). Each log entry records:
+
+- The tool name (e.g., `mcp.generate_chart.db_write`)
+- The authenticated user
+- A timestamp
+
+This makes MCP activity fully auditable alongside regular Superset activity. The action log uses the same event logger as the rest of Superset, so existing log ingestion pipelines (e.g., sending logs to Elasticsearch or a SIEM) capture MCP events automatically.
+
+### Middleware Pipeline
+
+Every MCP request passes through a middleware stack before reaching the tool function. The default stack (assembled in `build_middleware_list()` in `server.py`) is:
+
+| Middleware | Purpose | Default |
+|------------|---------|---------|
+| `StructuredContentStripperMiddleware` | Strips `structuredContent` from responses for Claude.ai bridge compatibility | Enabled |
+| `LoggingMiddleware` | Logs each tool call with user, parameters, and duration | Enabled |
+| `GlobalErrorHandlerMiddleware` | Catches unhandled exceptions and sanitizes sensitive data before it reaches the client | Enabled |
+| `ResponseSizeGuardMiddleware` | Estimates token count, warns at 80% of limit, blocks at limit | Enabled (configurable via `MCP_RESPONSE_SIZE_CONFIG`) |
+| `ResponseCachingMiddleware` | Caches read-heavy tool responses (in-memory or Redis) | Disabled (enable via `MCP_CACHE_CONFIG`) |
+
+Additional middleware classes (`RateLimitMiddleware`, `FieldPermissionsMiddleware`, `PrivateToolMiddleware`) are implemented in `superset/mcp_service/middleware.py` but are not added to the default pipeline. They are available for operators who want to layer them in via a custom startup path.
+
+### Error Sanitization
+
+The `GlobalErrorHandlerMiddleware` automatically redacts sensitive information from all error messages before they reach the LLM client. The following are replaced with generic messages:
+
+- **Database connection strings** — replaced with a generic connection error message
+- **API keys and tokens** — redacted from error traces
+- **File system paths** — stripped to prevent information disclosure
+- **IP addresses** — removed from error context
+
+This ensures that a misconfigured database connection or an unexpected exception never leaks credentials or internal topology to the LLM or its users. All regex patterns used for redaction are bounded to prevent ReDoS attacks.
+
+---
+
+## Performance
+
+### Connection Pooling
+
+Each MCP server process maintains its own SQLAlchemy connection pool to the database. For multi-worker deployments, total open connections = **workers × pool size**.
+
+```python
+# superset_config.py
+SQLALCHEMY_POOL_SIZE = 5
+SQLALCHEMY_MAX_OVERFLOW = 10
+SQLALCHEMY_POOL_TIMEOUT = 30
+SQLALCHEMY_POOL_RECYCLE = 3600  # Recycle connections after 1 hour
+```
+
+For a 3-pod Kubernetes deployment with the defaults above, expect up to 3 × (5 + 10) = 45 connections. Size your database's `max_connections` accordingly.
+
+### Response Caching
+
+Enable response caching for read-heavy workloads (dashboards/datasets that don't change frequently). With the in-memory backend (default when `MCP_STORE_CONFIG` is disabled), caching is per-process. Use Redis-backed caching for consistent cache hits across multiple pods:
+
+```python
+MCP_CACHE_CONFIG = {"enabled": True, "call_tool_ttl": 3600}
+MCP_STORE_CONFIG = {"enabled": True, "CACHE_REDIS_URL": "redis://redis:6379/0"}
+```
+
+Mutating tools (`generate_chart`, `update_chart`, `execute_sql`, `generate_dashboard`) are always excluded from caching regardless of this setting.
 
 ---
 
@@ -663,6 +798,32 @@ MCP_CSRF_CONFIG = {
 - To disable the guard entirely, set `MCP_RESPONSE_SIZE_CONFIG = {"enabled": False}`
 
 ---
+
+## Audit Events
+
+All MCP tool calls are logged to Superset's event logger, the same system used by the web UI (viewable at **Settings → Action Log**). Each event captures:
+
+- **Action**: `mcp.<tool_name>.<phase>` (e.g., `mcp.list_databases.query`)
+- **User**: the resolved Superset username from the JWT or dev config
+- **Timestamp**: when the operation ran
+
+This means MCP activity is auditable alongside normal user activity. No additional configuration is required — logging is on by default whenever the event logger is enabled in your Superset deployment.
+
+## Tool Pagination
+
+MCP list tools (`list_datasets`, `list_charts`, `list_dashboards`, `list_databases`) use **offset pagination** via `page` (1-based) and `page_size` parameters. Responses include `page`, `page_size`, `total_count`, `total_pages`, `has_previous`, and `has_next`. To iterate through all results:
+
+```python
+# Example: fetch all charts across pages
+all_charts = []
+page = 1
+while True:
+    result = mcp.list_charts(page=page, page_size=50)
+    all_charts.extend(result["charts"])
+    if not result.get("has_next"):
+        break
+    page += 1
+```
 
 ## Security Best Practices
 

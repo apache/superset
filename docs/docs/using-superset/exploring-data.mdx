@@ -337,6 +337,8 @@ tutorial dashboard to see the four charts side by side and compare the different
 
 **Resizable panels**: The dividers between the SQL editor, schema browser, and results pane are draggable. Adjust them to match your workflow and screen size.
 
+**Dialect-aware Format SQL**: The **Format SQL** button applies the SQL dialect of the currently selected database — Trino, Presto, MySQL, PostgreSQL, etc. — rather than a generic formatter. Switch to a different database in the toolbar and re-format to get dialect-specific output. Jinja template syntax (`{{ }}`, `{% %}`) is preserved during formatting and will not cause format errors.
+
 ### Time Range Natural Language Expressions
 
 The **Custom** time range picker accepts natural language expressions alongside specific dates:

@@ -611,6 +611,35 @@ def _ensure_temporal_adhoc_filter(form_data: Dict[str, Any], column: str) -> Non
     form_data["adhoc_filters"] = existing
 
 
+def _resolve_default_x_axis(
+    config: XYChartConfig, dataset_id: int | str | None
+) -> XYChartConfig:
+    """Resolve x-axis to the dataset's main_dttm_col when x is omitted."""
+    if config.x is not None:
+        return config
+
+    if not dataset_id:
+        raise ValueError("x-axis column is required when dataset_id is not provided")
+    from superset.daos.dataset import DatasetDAO
+
+    if isinstance(dataset_id, int) or (
+        isinstance(dataset_id, str) and dataset_id.isdigit()
+    ):
+        dataset = DatasetDAO.find_by_id(int(dataset_id))
+    else:
+        dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+
+    if not dataset or not dataset.main_dttm_col:
+        raise ValueError(
+            "x-axis column is required: dataset has no primary datetime "
+            "column (main_dttm_col). Please specify the x-axis column "
+            "explicitly."
+        )
+    from superset.mcp_service.chart.schemas import ColumnRef
+
+    return config.model_copy(update={"x": ColumnRef(name=dataset.main_dttm_col)})
+
+
 def map_xy_config(
     config: XYChartConfig, dataset_id: int | str | None = None
 ) -> Dict[str, Any]:
@@ -618,6 +647,10 @@ def map_xy_config(
     # Early validation to prevent empty charts
     if not config.y:
         raise ValueError("XY chart must have at least one Y-axis metric")
+
+    # Resolve x-axis default: use dataset's main_dttm_col when x is omitted
+    config = _resolve_default_x_axis(config, dataset_id)
+    assert config.x is not None  # _resolve_default_x_axis guarantees x is set
 
     # Check if x-axis column is truly temporal (based on actual SQL type)
     x_is_temporal = is_column_truly_temporal(config.x.name, dataset_id)
@@ -1001,7 +1034,7 @@ def _table_chart_what(config: TableChartConfig, dataset_name: str | None) -> str
 def _xy_chart_what(config: XYChartConfig) -> str:
     """Build the descriptive fragment for an XY chart."""
     primary_metric = _humanize_column(config.y[0]) if config.y else "Value"
-    dimension = _humanize_column(config.x)
+    dimension = _humanize_column(config.x) if config.x else "Dimension"
 
     if config.kind in ("line", "area") and not config.group_by:
         return f"{primary_metric} Over Time"

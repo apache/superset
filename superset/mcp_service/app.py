@@ -66,8 +66,9 @@ Dataset Management:
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
 - get_chart_info: Get detailed chart information by ID
-- get_chart_preview: Get a visual preview of a chart with image URL
+- get_chart_preview: Get a visual preview of a chart as formatted content or URL
 - get_chart_data: Get underlying chart data in text-friendly format
+- get_chart_sql: Get the rendered SQL query for a chart (without executing it)
 - generate_chart: Create and save a new chart permanently
 - generate_explore_link: Create an interactive explore URL (preferred for exploration)
 - update_chart: Update existing saved chart configuration
@@ -141,14 +142,25 @@ To create a chart:
      "config": {{...}}, "save_chart": true
    }}) -> save permanently
 
-To find your own charts/dashboards/databases:
-1. get_instance_info -> get current_user.id
-2. list_charts(request={{"filters": [{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}]}})
-3. Or: list_dashboards(request={{"filters": [{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}]}})
-4. Or: list_databases(request={{"filters": [{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}]}})
+To find your own charts/dashboards/datasets/databases:
+- list_charts(request={{"created_by_me": true}})      — items you created
+- list_dashboards(request={{"created_by_me": true}})  — items you created
+- list_datasets(request={{"created_by_me": true}})    — items you created
+- list_databases(request={{"created_by_me": true}})   — items you created
+
+To find items where you are listed as an owner (edit access):
+- list_charts(request={{"owned_by_me": true}})
+- list_dashboards(request={{"owned_by_me": true}})
+- list_datasets(request={{"owned_by_me": true}})
+
+To find all items you have any connection to (created OR own):
+- list_charts(request={{"created_by_me": true, "owned_by_me": true}})
+- list_dashboards(request={{"created_by_me": true, "owned_by_me": true}})
+- list_datasets(request={{"created_by_me": true, "owned_by_me": true}})
+
+Use created_by_me for authorship, owned_by_me for edit ownership, or both
+together for the union. All flags can be combined with 'filters' but not
+with 'search'.
 
 To explore data with SQL:
 1. list_datasets(request={{}}) -> find a dataset and note its database_id
@@ -210,13 +222,9 @@ Query Examples:
   list_charts(request={{"filters": [{{"col": "viz_type",
     "opr": "sw", "value": "echarts_timeseries"}}]}})
 - Search by name: list_charts(request={{"search": "sales"}})
-- My charts (use current_user.id from get_instance_info):
-  list_charts(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
-- My dashboards:
-  list_dashboards(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
-- My databases:
-  list_databases(request={{"filters": [{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]}})
-
+- My charts: list_charts(request={{"created_by_me": true}})
+- My dashboards: list_dashboards(request={{"created_by_me": true}})
+- My databases: list_databases(request={{"created_by_me": true}})
 To modify an existing chart (add filters, change metrics, etc.):
 1. get_chart_info(request={{"identifier": <chart_id>}})
    -> examine current configuration
@@ -259,12 +267,11 @@ General usage tips:
 - Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
-- Chart previews are served as PNG images via custom screenshot endpoints
+- Chart previews can return ASCII text, Explore URLs, table data, or Vega-Lite specs
 
 Input format:
 - Tool request parameters accept structured objects (dicts/JSON)
-- When MCP_PARSE_REQUEST_ENABLED is True (default), string-serialized JSON is also
-  accepted as input, which works around double-serialization bugs in some MCP clients
+- FastMCP 3.1+ handles Pydantic BaseModel parameters natively
 
 Feature Availability:
 - Call get_instance_info to discover accessible menus for the current user.
@@ -274,6 +281,18 @@ Permission Awareness:
 - get_instance_info returns current_user.roles (e.g., ["Admin"], ["Alpha"], ["Viewer"]).
 - ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, dashboards, or running SQL).
+- Do NOT disclose dashboard access lists, dashboard owners, chart owners, dataset
+  owners, workspace admins, or other users' names, usernames, email addresses,
+  contact details, roles, admin status, ownership, or access-list information.
+- Do NOT infer access-list answers from dashboard metadata such as published status,
+  role restrictions, empty owner lists, or schema fields.
+- Do NOT use execute_sql to query user, role, owner, or access-list tables for this
+  information.
+- You may reference the current user's own identity details when appropriate, such
+  as confirming their own username.
+- If a user asks who can view/edit/access content, who owns content, who is an
+  admin, who to contact for access, or what role another user has, say that you
+  cannot provide that information and direct them to their workspace admin.
 - Common roles and their typical capabilities:
   - Admin: Full access to all features
   - Alpha: Can create and modify charts, dashboards, datasets, and run SQL
@@ -479,6 +498,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_data,
     get_chart_info,
     get_chart_preview,
+    get_chart_sql,
     get_chart_type_schema,
     list_charts,
     update_chart,

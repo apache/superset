@@ -16,6 +16,7 @@
 # under the License.
 
 
+import importlib
 import logging
 from unittest.mock import MagicMock, patch
 
@@ -27,12 +28,23 @@ from fastmcp.exceptions import ToolError
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dataset.schemas import (
     CreateVirtualDatasetRequest,
+    DatasetFilter,
     ListDatasetsRequest,
+)
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    tool_requires_data_model_metadata_access,
 )
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+list_datasets_module = importlib.import_module(
+    "superset.mcp_service.dataset.tool.list_datasets"
+)
+get_dataset_info_module = importlib.import_module(
+    "superset.mcp_service.dataset.tool.get_dataset_info"
+)
 
 
 def create_mock_dataset(
@@ -78,6 +90,70 @@ def create_mock_dataset(
     return dataset
 
 
+def test_dataset_discovery_tools_require_drill_permission() -> None:
+    """Dataset discovery tools are marked as metadata-restricted."""
+    from superset.mcp_service.dataset.tool.get_dataset_info import get_dataset_info
+    from superset.mcp_service.dataset.tool.list_datasets import list_datasets
+
+    assert tool_requires_data_model_metadata_access(list_datasets) is True
+    assert tool_requires_data_model_metadata_access(get_dataset_info) is True
+
+
+@pytest.mark.asyncio
+async def test_list_datasets_returns_structured_privacy_error(mcp_server) -> None:
+    """Restricted users receive a structured denial for dataset listing."""
+    with patch.object(
+        list_datasets_module,
+        "user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_datasets",
+                {"request": ListDatasetsRequest().model_dump()},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+@pytest.mark.asyncio
+async def test_list_datasets_without_request_returns_structured_privacy_error(
+    mcp_server,
+) -> None:
+    """Restricted users are denied even when the request payload is omitted."""
+    with patch.object(
+        list_datasets_module,
+        "user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("list_datasets", {})
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+@pytest.mark.asyncio
+async def test_get_dataset_info_returns_structured_privacy_error(mcp_server) -> None:
+    """Restricted users receive a structured denial for dataset details."""
+    from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+    with patch.object(
+        get_dataset_info_module,
+        "user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dataset_info",
+                {"request": GetDatasetInfoRequest(identifier=1).model_dump()},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
 @pytest.fixture
 def mcp_server():
     return mcp
@@ -94,6 +170,24 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def allow_data_model_metadata():
+    """Keep dataset tests in the normal metadata-allowed path by default."""
+    with (
+        patch.object(
+            list_datasets_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch.object(
+            get_dataset_info_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+    ):
+        yield
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -1797,3 +1891,68 @@ async def test_create_virtual_dataset_optional_fields_forwarded(
     assert props["schema"] == "public"
     assert props["catalog"] == "main"
     assert props["description"] == "A test dataset"
+
+
+class TestListDatasetsCreatedByMe:
+    """Tests for the created_by_me flag on ListDatasetsRequest."""
+
+    def test_created_by_me_default_is_false(self):
+        request = ListDatasetsRequest()
+        assert request.created_by_me is False
+
+    def test_created_by_me_true_accepted(self):
+        request = ListDatasetsRequest(created_by_me=True)
+        assert request.created_by_me is True
+
+    def test_created_by_me_combined_with_filters(self):
+        request = ListDatasetsRequest(
+            created_by_me=True,
+            filters=[DatasetFilter(col="table_name", opr="sw", value="My")],
+        )
+        assert request.created_by_me is True
+        assert len(request.filters) == 1
+
+    def test_created_by_me_with_search_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="created_by_me"):
+            ListDatasetsRequest(created_by_me=True, search="My tables")
+
+    def test_dataset_filter_rejects_created_by_fk(self):
+        """created_by_fk is not a public filter column; use created_by_me instead."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            DatasetFilter(col="created_by_fk", opr="eq", value=1)
+
+
+class TestListDatasetsOwnedByMe:
+    """Tests for the owned_by_me flag on ListDatasetsRequest."""
+
+    def test_owned_by_me_default_is_false(self):
+        request = ListDatasetsRequest()
+        assert request.owned_by_me is False
+
+    def test_owned_by_me_true_accepted(self):
+        request = ListDatasetsRequest(owned_by_me=True)
+        assert request.owned_by_me is True
+
+    def test_owned_by_me_combined_with_filters(self):
+        request = ListDatasetsRequest(
+            owned_by_me=True,
+            filters=[DatasetFilter(col="table_name", opr="sw", value="My")],
+        )
+        assert request.owned_by_me is True
+        assert len(request.filters) == 1
+
+    def test_owned_by_me_with_search_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="owned_by_me"):
+            ListDatasetsRequest(owned_by_me=True, search="My datasets")
+
+    def test_owned_by_me_and_created_by_me_allowed(self):
+        """Both flags together are valid (OR logic — creator or owner)."""
+        request = ListDatasetsRequest(owned_by_me=True, created_by_me=True)
+        assert request.owned_by_me is True
+        assert request.created_by_me is True

@@ -16,19 +16,48 @@
 # under the License.
 
 
+import importlib
 import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
-from superset.mcp_service.database.schemas import ListDatabasesRequest
+from superset.mcp_service.database.schemas import DatabaseFilter, ListDatabasesRequest
+from superset.mcp_service.privacy import DATA_MODEL_METADATA_ERROR_TYPE
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+list_databases_module = importlib.import_module(
+    "superset.mcp_service.database.tool.list_databases"
+)
+get_database_info_module = importlib.import_module(
+    "superset.mcp_service.database.tool.get_database_info"
+)
+
+
+class TestDatabaseFilterSchema:
+    """Tests for DatabaseFilter schema — filterable columns."""
+
+    def test_created_by_fk_is_rejected_as_filter_column(self):
+        """created_by_fk is not a public filter column; use created_by_me instead."""
+        with pytest.raises(ValidationError):
+            DatabaseFilter(col="created_by_fk", opr="eq", value=1)
+
+    def test_changed_by_fk_is_rejected_as_filter_column(self):
+        """changed_by_fk is not a public filter column; it exposes a user enumeration
+        vector (caller can probe which databases a given user ID has touched)."""
+        with pytest.raises(ValidationError):
+            DatabaseFilter(col="changed_by_fk", opr="eq", value=1)
+
+    def test_invalid_filter_column_rejected(self):
+        """Columns not in the Literal set must be rejected."""
+        with pytest.raises(ValidationError):
+            DatabaseFilter(col="not_a_real_column", opr="eq", value=1)
 
 
 def create_mock_database(
@@ -88,6 +117,41 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def allow_data_model_metadata():
+    """Keep database tests in the normal metadata-allowed path by default."""
+    with (
+        patch.object(
+            list_databases_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch.object(
+            get_database_info_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+    ):
+        yield
+
+
+@pytest.mark.asyncio
+async def test_list_databases_without_request_returns_structured_privacy_error(
+    mcp_server,
+) -> None:
+    """Restricted users are denied even when the request payload is omitted."""
+    with patch.object(
+        list_databases_module,
+        "user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("list_databases", {})
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
 
 
 @patch("superset.daos.database.DatabaseDAO.list")
@@ -167,6 +231,72 @@ async def test_list_databases_with_filters(mock_list, mcp_server):
 
 @patch("superset.daos.database.DatabaseDAO.list")
 @pytest.mark.asyncio
+async def test_list_databases_does_not_expose_user_directory_fields(
+    mock_list, mcp_server
+) -> None:
+    """Test database listing does not expose creator/modifier fields."""
+    database = create_mock_database()
+    database._mapping = {
+        "id": database.id,
+        "database_name": database.database_name,
+        "created_by": database.created_by_name,
+        "created_by_fk": 1,
+        "changed_by": database.changed_by_name,
+        "changed_by_fk": 1,
+    }
+    mock_list.return_value = ([database], 1)
+
+    async with Client(mcp_server) as client:
+        request = ListDatabasesRequest(
+            page=1,
+            page_size=10,
+            select_columns=[
+                "id",
+                "database_name",
+                "created_by",
+                "created_by_fk",
+                "changed_by",
+                "changed_by_fk",
+            ],
+        )
+        result = await client.call_tool(
+            "list_databases", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    assert data["columns_requested"] == ["id", "database_name"]
+    assert data["columns_loaded"] == ["id", "database_name"]
+    assert data["databases"] == [{"id": 1, "database_name": "examples"}]
+
+
+def test_database_filter_rejects_user_directory_fields() -> None:
+    """Test user directory fields cannot be used for database filters.
+
+    All FK columns (created_by_fk, changed_by_fk) and user-directory string
+    fields (created_by, created_by_name, etc.) must be rejected.
+    """
+    with pytest.raises(ValidationError, match="created_by_name"):
+        ListDatabasesRequest(
+            filters=[{"col": "created_by_name", "opr": "eq", "value": "admin"}],
+        )
+
+
+def test_database_filter_rejects_created_by_fk() -> None:
+    """created_by_fk is no longer a valid filter column; use created_by_me instead."""
+    with pytest.raises(ValidationError, match="created_by_fk"):
+        ListDatabasesRequest(
+            filters=[{"col": "created_by_fk", "opr": "eq", "value": 0}],
+        )
+
+
+def test_database_request_accepts_created_by_me() -> None:
+    """created_by_me=True is the correct way to filter by current user."""
+    request = ListDatabasesRequest(created_by_me=True)
+    assert request.created_by_me is True
+
+
+@patch("superset.daos.database.DatabaseDAO.list")
+@pytest.mark.asyncio
 async def test_list_databases_api_error(mock_list, mcp_server):
     """Test error handling when DAO raises an exception."""
     mock_list.side_effect = ToolError("Database error")
@@ -192,6 +322,8 @@ async def test_get_database_info_basic(mock_find, mcp_server):
         assert data["id"] == 1
         assert data["database_name"] == "examples"
         assert data["backend"] == "postgresql"
+        assert "created_by" not in data
+        assert "changed_by" not in data
 
 
 @patch("superset.daos.database.DatabaseDAO.find_by_id")
