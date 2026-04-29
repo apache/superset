@@ -244,7 +244,7 @@ General usage tips:
 - Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
-- Chart previews are served as PNG images via custom screenshot endpoints
+- Chart previews can return ASCII text, Explore URLs, table data, or Vega-Lite specs
 
 Input format:
 - Tool request parameters accept structured objects (dicts/JSON)
