@@ -60,7 +60,7 @@ describe('useJsonValidation', () => {
     expect(result.current[0]).toMatchObject({
       type: 'error',
       row: 0,
-      column: 0,
+      column: 1,
       text: expect.stringContaining('Invalid JSON'),
     });
   });
