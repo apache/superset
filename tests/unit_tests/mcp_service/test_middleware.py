@@ -34,6 +34,7 @@ from superset.commands.exceptions import (
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
 from superset.mcp_service.middleware import (
     _is_user_error,
     create_response_size_guard_middleware,
@@ -322,6 +323,21 @@ class TestResponseSizeGuardMiddleware:
 
 class TestCreateResponseSizeGuardMiddleware:
     """Test create_response_size_guard_middleware factory function."""
+
+    def test_default_config_checks_chart_preview(self) -> None:
+        """Should size-check chart preview responses by default."""
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = MCP_RESPONSE_SIZE_CONFIG
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            middleware = create_response_size_guard_middleware()
+
+        assert middleware is not None
+        assert "get_chart_preview" not in middleware.excluded_tools
+        assert "health_check" in middleware.excluded_tools
 
     def test_creates_middleware_when_enabled(self) -> None:
         """Should create middleware when enabled in config."""

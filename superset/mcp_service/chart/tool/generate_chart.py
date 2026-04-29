@@ -44,7 +44,6 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     GenerateChartRequest,
     GenerateChartResponse,
-    parse_chart_config,
     PerformanceMetadata,
 )
 from superset.mcp_service.utils.oauth2_utils import (
@@ -215,16 +214,16 @@ async def generate_chart(  # noqa: C901
         "save_chart=%s, preview_formats=%s"
         % (
             request.dataset_id,
-            request.config.get("chart_type", "unknown"),
+            request.config.chart_type,
             request.save_chart,
             request.preview_formats,
         )
     )
     await ctx.debug(
-        "Chart configuration details: chart_type=%s, keys=%s"
+        "Chart configuration details: chart_type=%s, fields=%s"
         % (
-            request.config.get("chart_type", "unknown"),
-            sorted(request.config.keys()),
+            request.config.chart_type,
+            sorted(request.config.model_fields_set),
         )
     )
 
@@ -284,35 +283,8 @@ async def generate_chart(  # noqa: C901
                 }
             )
 
-        # Parse the raw config dict into a typed ChartConfig for downstream use
-        try:
-            config = parse_chart_config(request.config)
-        except (ValueError, TypeError) as e:
-            from superset.mcp_service.utils.error_sanitization import (
-                _sanitize_validation_error,
-            )
-
-            sanitized = _sanitize_validation_error(e)
-            execution_time = int((time.time() - start_time) * 1000)
-            return GenerateChartResponse.model_validate(
-                {
-                    "chart": None,
-                    "error": {
-                        "error_type": "validation_error",
-                        "message": f"Invalid chart configuration: {sanitized}",
-                        "details": sanitized,
-                        "error_code": "INVALID_CHART_CONFIG",
-                    },
-                    "performance": {
-                        "query_duration_ms": execution_time,
-                        "cache_status": "error",
-                        "optimization_suggestions": [],
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
-            )
+        # config is already a typed ChartConfig (validated by Pydantic)
+        config = request.config
 
         # Map the simplified config to Superset's form_data format
         # Pass dataset_id to enable column type checking for proper viz_type selection
@@ -912,7 +884,7 @@ async def generate_chart(  # noqa: C901
         chart_type = "unknown"
         try:
             if hasattr(request, "config") and isinstance(request.config, dict):
-                chart_type = request.config.get("chart_type", "unknown")
+                chart_type = request.config.chart_type
         except (AttributeError, TypeError) as extract_error:
             # Ignore errors when extracting chart type for error context
             logger.debug("Could not extract chart type: %s", extract_error)
