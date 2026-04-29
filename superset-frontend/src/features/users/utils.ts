@@ -19,7 +19,21 @@
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { SelectOption } from 'src/components/ListView';
+import type { UserObject } from 'src/pages/UsersList/types';
 import { FormValues } from './types';
+
+/** Fields required for PUT `/api/v1/security/users/:id` when changing password only. */
+export function buildSecurityUserUpdatePayload(user: UserObject): FormValues {
+  return {
+    first_name: user.first_name,
+    last_name: user.last_name,
+    username: user.username,
+    email: user.email,
+    active: user.active,
+    roles: (user.roles ?? []).map(r => r.id),
+    groups: (user.groups ?? []).map(g => g.id),
+  };
+}
 
 export const createUser = async (values: FormValues) => {
   const { confirmPassword, ...payload } = values;

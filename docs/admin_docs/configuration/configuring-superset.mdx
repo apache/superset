@@ -372,6 +372,22 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
   ]
   ```
 
+## Database authentication (`AUTH_DB`) password policy
+
+When `AUTH_TYPE` is `AUTH_DB` (the default database username and password backend), end users change their own password through the profile UI, which calls `PUT /api/v1/me/password` with the current password and a new password. Password quality rules and related security defaults are grouped under the `AUTH_DB_CONFIG` dictionary in `superset_config.py`. Any keys you omit are merged with the defaults from `superset/config.py`.
+
+Example override:
+
+```python
+AUTH_DB_CONFIG = {
+    "password_min_length": 16,
+    "password_require_special": True,
+    "password_common_list_check": True,
+}
+```
+
+Rate limiting and self-service reset settings in `AUTH_DB_CONFIG` are reserved for upcoming releases; password changes from the profile page use the policy keys today.
+
 ## LDAP Authentication
 
 FAB supports authenticating user credentials against an LDAP server.

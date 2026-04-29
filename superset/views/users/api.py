@@ -17,20 +17,28 @@
 from datetime import datetime
 from typing import Any, Dict
 
-from flask import current_app as app, g, redirect, request, Response
+from flask import current_app as app, g, redirect, request, Response, session
 from flask_appbuilder.api import expose, permission_name, safe
+from flask_appbuilder.const import AUTH_DB
 from flask_appbuilder.security.decorators import protect
 from flask_appbuilder.security.sqla.models import User
+from flask_login import login_user
 from marshmallow import ValidationError
 from sqlalchemy.orm.exc import NoResultFound
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from superset import is_feature_enabled
+from superset.daos.auth_audit_log import AuthAuditLogDAO
 from superset.daos.user import UserDAO
 from superset.extensions import db, event_logger
+from superset.utils.auth_db_password import validate_auth_db_password
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
-from superset.views.users.schemas import CurrentUserPutSchema, UserResponseSchema
+from superset.views.users.schemas import (
+    CurrentUserPasswordPutSchema,
+    CurrentUserPutSchema,
+    UserResponseSchema,
+)
 from superset.views.utils import bootstrap_user_data
 
 user_response_schema = UserResponseSchema()
@@ -42,19 +50,18 @@ class CurrentUserRestApi(BaseSupersetApi):
     resource_name = "me"
     openapi_spec_tag = "Current User"
     allow_browser_login = True
-    openapi_spec_component_schemas = (UserResponseSchema, CurrentUserPutSchema)
+    openapi_spec_component_schemas = (
+        UserResponseSchema,
+        CurrentUserPutSchema,
+        CurrentUserPasswordPutSchema,
+    )
 
     current_user_put_schema = CurrentUserPutSchema()
+    current_user_password_put_schema = CurrentUserPasswordPutSchema()
 
     def pre_update(self, item: User, data: Dict[str, Any]) -> None:
         item.changed_on = datetime.now()
         item.changed_by_fk = g.user.id
-        if "password" in data and data["password"]:
-            item.password = generate_password_hash(
-                password=data["password"],
-                method=app.config.get("FAB_PASSWORD_HASH_METHOD", "scrypt"),
-                salt_length=app.config.get("FAB_PASSWORD_HASH_SALT_LENGTH", 16),
-            )
 
     @expose("/", methods=("GET",))
     @protect()
@@ -127,7 +134,8 @@ class CurrentUserRestApi(BaseSupersetApi):
         put:
           summary: Update the current user
           description: >-
-            Updates the current user's first name, last name, or password.
+            Updates the current user's first name or last name. When ``AUTH_TYPE`` is
+            ``AUTH_DB``, password changes must use ``PUT /api/v1/me/password``.
           requestBody:
             required: true
             content:
@@ -150,6 +158,18 @@ class CurrentUserRestApi(BaseSupersetApi):
               $ref: '#/components/responses/401'
         """
         try:
+            if (
+                app.config.get("AUTH_TYPE") == AUTH_DB
+                and request.json
+                and "password" in request.json
+            ):
+                return self.response_400(
+                    message=(
+                        "Setting password via PUT /api/v1/me/ is not allowed when "
+                        "AUTH_TYPE is AUTH_DB. Use PUT /api/v1/me/password instead."
+                    ),
+                )
+
             item = self.current_user_put_schema.load(request.json)
             if not item:
                 return self.response_400(message="At least one field must be provided.")
@@ -162,6 +182,85 @@ class CurrentUserRestApi(BaseSupersetApi):
             return self.response(200, result=user_response_schema.dump(g.user))
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+    @expose("/password", methods=["PUT"])
+    @protect()
+    @permission_name("write")
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put_password",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def update_my_password(self) -> Response:
+        """Update the current user's password (AUTH_DB only)
+        ---
+        put:
+          summary: Update the current user's password
+          description: >-
+            Changes the authenticated user's password when ``AUTH_TYPE`` is ``AUTH_DB``.
+            Requires the current password and a new password that satisfies ``AUTH_DB_CONFIG``
+            policy.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/CurrentUserPasswordPutSchema'
+          responses:
+            200:
+              description: Password updated successfully
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/UserResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+        """
+        if app.config.get("AUTH_TYPE") != AUTH_DB:
+            return self.response_400(
+                message=(
+                    "Password change is only available when AUTH_TYPE is AUTH_DB."
+                ),
+            )
+        try:
+            body = self.current_user_password_put_schema.load(request.json or {})
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        try:
+            validate_auth_db_password(body["new_password"])
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        if not check_password_hash(g.user.password, body["current_password"]):
+            return self.response_400(message="Incorrect current password.")
+
+        g.user.password = generate_password_hash(
+            password=body["new_password"],
+            method=app.config.get("FAB_PASSWORD_HASH_METHOD", "scrypt"),
+            salt_length=app.config.get("FAB_PASSWORD_HASH_SALT_LENGTH", 16),
+        )
+        self.pre_update(g.user, {})
+        AuthAuditLogDAO.create(
+            event_type="password_change",
+            user_id=g.user.id,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get("User-Agent"),
+            metadata={"initiated_by": "self"},
+        )
+        # Mitigate session fixation: clear the cookie session and re-establish login.
+        for key in list(session.keys()):
+            session.pop(key)
+        login_user(g.user)
+        db.session.commit()  # pylint: disable=consider-using-transaction
+        return self.response(200, result=user_response_schema.dump(g.user))
 
 
 class UserRestApi(BaseSupersetApi):

@@ -200,6 +200,34 @@ class SupersetUserApi(UserApi):
     and to add audit logging for user CRUD operations.
     """
 
+    def pre_update(self, model: User, item: Any) -> None:  # noqa: ARG002
+        """Apply AUTH_DB password policy when an admin updates a user's password."""
+        from flask import current_app as app, request
+        from flask_appbuilder.const import AUTH_DB
+        from marshmallow import ValidationError
+        from werkzeug.exceptions import BadRequest
+
+        from superset.utils.auth_db_password import validate_auth_db_password
+
+        if app.config.get("AUTH_TYPE") == AUTH_DB:
+            body = item if isinstance(item, dict) else (request.get_json(silent=True) or {})
+            password = body.get("password")
+            if password:
+                try:
+                    validate_auth_db_password(str(password))
+                except ValidationError as err:
+                    parts: list[str] = []
+                    for value in err.messages.values():
+                        if isinstance(value, list):
+                            parts.extend(str(x) for x in value)
+                        else:
+                            parts.append(str(value))
+                    raise BadRequest(" ".join(parts) or "Invalid password") from err
+
+        super_pre_update = getattr(super(), "pre_update", None)
+        if callable(super_pre_update):
+            super_pre_update(model, item)
+
     base_filters = [["username", ExcludeUsersFilter, lambda: []]]
     search_columns = [
         "id",

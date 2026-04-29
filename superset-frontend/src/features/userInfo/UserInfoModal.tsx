@@ -17,8 +17,10 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
-import { FormModal, FormItem, Input } from '@superset-ui/core/components';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
+import { FormModal, FormItem, Input, type FormInstance } from '@superset-ui/core/components';
+import { GeneratePasswordInputSuffix } from 'src/components/GeneratePasswordInputSuffix';
+import { generateAuthDbPassword } from 'src/utils/generateAuthDbPassword';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { User } from 'src/types/bootstrapTypes';
 import { BaseUserListModalProps, FormValues } from '../users/types';
@@ -39,7 +41,7 @@ function UserInfoModal({
 
   const requiredFields = isEditMode
     ? ['first_name', 'last_name']
-    : ['password', 'confirm_password'];
+    : ['current_password', 'new_password', 'confirm_password'];
   const initialValues = isEditMode
     ? {
         first_name: user?.firstName,
@@ -48,19 +50,35 @@ function UserInfoModal({
     : {};
   const handleFormSubmit = async (values: FormValues) => {
     try {
-      const { confirm_password, ...payload } = values;
-      await SupersetClient.put({
-        endpoint: `/api/v1/me/`,
-        jsonPayload: { ...payload },
-      });
-      addSuccessToast(
-        isEditMode
-          ? t('The user was updated successfully')
-          : t('The password reset was successful'),
-      );
+      if (isEditMode) {
+        await SupersetClient.put({
+          endpoint: `/api/v1/me/`,
+          jsonPayload: values,
+        });
+        addSuccessToast(t('The user was updated successfully'));
+      } else {
+        const { confirm_password, ...passwordPayload } = values;
+        void confirm_password;
+        await SupersetClient.put({
+          endpoint: `/api/v1/me/password`,
+          jsonPayload: {
+            current_password: String(passwordPayload.current_password),
+            new_password: String(passwordPayload.new_password),
+          },
+        });
+        addSuccessToast(t('The password reset was successful'));
+      }
       onSave();
     } catch (error) {
-      addDangerToast(t('Something went wrong while saving the user info'));
+      const clientError = await getClientErrorObject(error);
+      const raw = clientError.message;
+      const text =
+        typeof raw === 'string'
+          ? raw
+          : raw && typeof raw === 'object'
+            ? (Object.values(raw).flat() as string[]).join(' ')
+            : t('Something went wrong while saving the user info');
+      addDangerToast(text);
     }
   };
 
@@ -86,22 +104,42 @@ function UserInfoModal({
     </>
   );
 
-  const ResetPasswordFields = () => (
+  const ResetPasswordFields = ({ form }: { form: FormInstance }) => (
     <>
       <FormItem
-        name="password"
-        label={t('Password')}
-        rules={[{ required: true, message: t('Password is required') }]}
+        name="current_password"
+        label={t('Current password')}
+        rules={[{ required: true, message: t('Current password is required') }]}
       >
         <Input.Password
-          name="password"
-          placeholder={t("Enter the user's password")}
+          name="current_password"
+          autoComplete="current-password"
+          placeholder={t('Enter your current password')}
+        />
+      </FormItem>
+      <FormItem
+        name="new_password"
+        label={t('New password')}
+        rules={[{ required: true, message: t('New password is required') }]}
+      >
+        <Input.Password
+          name="new_password"
+          autoComplete="new-password"
+          placeholder={t('Enter a new password')}
+          suffix={
+            <GeneratePasswordInputSuffix
+              onGenerate={() => {
+                const pwd = generateAuthDbPassword();
+                form.setFieldsValue({ new_password: pwd, confirm_password: pwd });
+              }}
+            />
+          }
         />
       </FormItem>
       <FormItem
         name="confirm_password"
-        label={t('Confirm Password')}
-        dependencies={['password']}
+        label={t('Confirm new password')}
+        dependencies={['new_password']}
         rules={[
           {
             required: true,
@@ -109,7 +147,7 @@ function UserInfoModal({
           },
           ({ getFieldValue }) => ({
             validator(_, value) {
-              if (!value || getFieldValue('password') === value) {
+              if (!value || getFieldValue('new_password') === value) {
                 return Promise.resolve();
               }
               return Promise.reject(new Error(t('Passwords do not match!')));
@@ -119,7 +157,8 @@ function UserInfoModal({
       >
         <Input.Password
           name="confirm_password"
-          placeholder={t("Confirm the user's password")}
+          autoComplete="new-password"
+          placeholder={t('Confirm the new password')}
         />
       </FormItem>
     </>
@@ -135,7 +174,9 @@ function UserInfoModal({
       requiredFields={requiredFields}
       initialValues={initialValues}
     >
-      {isEditMode ? <EditModeFields /> : <ResetPasswordFields />}
+      {(form: FormInstance) =>
+        isEditMode ? <EditModeFields /> : <ResetPasswordFields form={form} />
+      }
     </FormModal>
   );
 }

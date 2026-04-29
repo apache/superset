@@ -15,16 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_appbuilder.security.sqla.apis.user.schema import User
-from flask_appbuilder.security.sqla.apis.user.validator import (
-    PasswordComplexityValidator,
-)
 from marshmallow import fields, Schema
 from marshmallow.fields import Boolean, Integer, String
 from marshmallow.validate import Length
 
 first_name_description = "The current user's first name"
 last_name_description = "The current user's last name"
-password_description = "The current user's password for authentication"  # noqa: S105
+current_password_description = "The user's current password"  # noqa: S105
+new_password_description = "The desired new password"  # noqa: S105
 
 
 class UserResponseSchema(Schema):
@@ -51,8 +49,18 @@ class CurrentUserPutSchema(Schema):
         metadata={"description": last_name_description},
         validate=[Length(1, 64)],
     )
-    password = fields.String(
-        required=False,
-        validate=[PasswordComplexityValidator()],
-        metadata={"description": password_description},
+
+
+class CurrentUserPasswordPutSchema(Schema):
+    """Payload for ``PUT /api/v1/me/password`` (AUTH_DB only)."""
+
+    current_password = fields.String(
+        required=True,
+        metadata={"description": current_password_description},
+        validate=[Length(min=1, max=256)],
+    )
+    new_password = fields.String(
+        required=True,
+        metadata={"description": new_password_description},
+        validate=[Length(min=1, max=256)],
     )

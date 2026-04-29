@@ -24,6 +24,10 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Database authentication password API
+
+When `AUTH_TYPE` is `AUTH_DB`, changing the signed-in user's password must use `PUT /api/v1/me/password` with JSON `current_password` and `new_password`. Sending `password` on `PUT /api/v1/me/` is rejected with HTTP 400. Policy is controlled by the `AUTH_DB_CONFIG` dict (see `superset/config.py` defaults).
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
