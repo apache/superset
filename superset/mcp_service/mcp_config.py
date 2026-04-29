@@ -225,7 +225,6 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
     "excluded_tools": [  # Tools to skip size checking
         "health_check",  # Always small
-        "get_chart_preview",  # Returns URLs, not data
         "generate_explore_link",  # Returns URLs
         "open_sql_lab_with_context",  # Returns URLs
         "search_tools",  # Returns tool schemas for discovery (intentionally large)
@@ -287,7 +286,7 @@ MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
     "call_tool_name": "call_tool",  # Name of the call proxy tool
     "compact_schemas": True,  # Strip $defs/$ref (requires include_schemas=True)
     "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
-    "include_schemas": False,  # False=summary mode (name+hint), True=full inputSchema
+    "include_schemas": True,  # full inputSchema in search results
 }
 
 
