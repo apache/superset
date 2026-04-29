@@ -388,11 +388,10 @@ async def test_get_dashboard_info_success(
         ]
 
 
-@patch("superset.mcp_service.dashboard.tool.get_dashboard_info._get_permalink_state")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_get_dashboard_info_permalink_does_not_double_sanitize(
-    mock_info, mock_get_permalink_state, mcp_server
+    mock_info, mcp_server
 ):
     dashboard = Mock()
     dashboard.id = 1
@@ -432,7 +431,7 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
     dashboard.roles = []
     dashboard.charts = []
     mock_info.return_value = dashboard
-    mock_get_permalink_state.return_value = {
+    permalink_value = {
         "dashboardId": "1",
         "state": {
             "dataMask": {
@@ -457,6 +456,11 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
             "user_can_view_data_model_metadata",
             return_value=True,
         ),
+        patch.object(
+            get_dashboard_info_module,
+            "_get_permalink_state",
+            return_value=permalink_value,
+        ),
     ):
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -479,29 +483,32 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
     assert result.data["filter_state"]["activeTabs"][0] == _wrapped("TAB-1")
 
 
-@patch(
-    "superset.mcp_service.dashboard.tool.get_dashboard_info.load_user_with_relationships"
-)
 def test_refresh_request_user_for_permalink_access(
-    mock_load_user_with_relationships, app
+    app,
 ):
     refreshed_user = Mock()
     refreshed_user.username = "admin"
     refreshed_user.roles = []
     refreshed_user.groups = []
-    mock_load_user_with_relationships.return_value = refreshed_user
 
     current_user = Mock()
     current_user.username = "admin"
     current_user.email = None
     current_user.is_anonymous = False
 
-    with app.test_request_context("/mcp"):
+    with (
+        patch.object(
+            get_dashboard_info_module,
+            "load_user_with_relationships",
+            return_value=refreshed_user,
+        ) as mock_load_user_with_relationships,
+        app.test_request_context("/mcp"),
+    ):
         g.user = current_user
         _refresh_request_user_for_permalink_access()
 
-    mock_load_user_with_relationships.assert_called_once_with(username="admin")
-    assert g.user is refreshed_user
+        mock_load_user_with_relationships.assert_called_once_with(username="admin")
+        assert g.user is refreshed_user
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
