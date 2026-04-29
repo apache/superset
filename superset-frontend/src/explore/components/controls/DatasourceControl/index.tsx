@@ -43,6 +43,7 @@ import {
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
+import { RlsBadge, type RlsFilterSummary } from '@superset-ui/core/components';
 import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import {
@@ -68,6 +69,7 @@ interface ExtendedDatasource extends Datasource {
   }>;
   extra?: string;
   health_check_message?: string;
+  rls_filters?: RlsFilterSummary[];
   database?: {
     id: number;
     database_name: string;
@@ -517,6 +519,9 @@ class DatasourceControl extends PureComponent<
           )}
           {extra?.warning_markdown && (
             <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
+          )}
+          {datasource.rls_filters && datasource.rls_filters.length > 0 && (
+            <RlsBadge rlsFilters={datasource.rls_filters} />
           )}
           <Dropdown
             popupRender={() =>

@@ -307,6 +307,43 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     list_outer_default_load = True
     show_outer_default_load = True
 
+    def get_list_headless(self, **kwargs: Any) -> Response:
+        response = super().get_list_headless(**kwargs)
+        if response.status_code == 200:
+            try:
+                payload = response.json
+                if payload and API_RESULT_RES_KEY in payload:
+                    dataset_ids = [
+                        item["id"]
+                        for item in payload[API_RESULT_RES_KEY]
+                        if "id" in item
+                    ]
+                    rls_map = DatasetDAO.get_rls_filters_for_datasets(dataset_ids)
+                    can_read_rls = security_manager.can_access(
+                        "can_read", "RowLevelSecurity"
+                    )
+                    for item in payload[API_RESULT_RES_KEY]:
+                        filters = rls_map.get(item.get("id"), [])
+                        if can_read_rls:
+                            item["rls_filters"] = filters
+                        else:
+                            item["rls_filters"] = [
+                                {
+                                    "id": f["id"],
+                                    "name": f["name"],
+                                    "filter_type": f["filter_type"],
+                                    "group_key": f.get("group_key"),
+                                }
+                                for f in filters
+                            ]
+                    response = self.response(200, **payload)
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "Failed to annotate dataset list with RLS info",
+                    exc_info=True,
+                )
+        return response
+
     @expose("/", methods=("POST",))
     @protect()
     @safe
@@ -1257,6 +1294,20 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 )
             except SupersetTemplateException as ex:
                 return self.response(ex.status, message=str(ex))
+
+        detailed_rls = DatasetDAO.get_rls_filters_for_dataset(table.id)
+        if security_manager.can_access("can_read", "RowLevelSecurity"):
+            response[API_RESULT_RES_KEY]["rls_filters"] = detailed_rls
+        else:
+            response[API_RESULT_RES_KEY]["rls_filters"] = [
+                {
+                    "id": f["id"],
+                    "name": f["name"],
+                    "filter_type": f["filter_type"],
+                    "group_key": f.get("group_key"),
+                }
+                for f in detailed_rls
+            ]
 
         return self.response(200, **response)
 
