@@ -40,7 +40,7 @@
     "version:remove:components": "node scripts/manage-versions.mjs remove components"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.1.1",
+    "@ant-design/icons": "^6.2.0",
     "@docusaurus/core": "^3.10.0",
     "@docusaurus/faster": "^3.10.0",
     "@docusaurus/plugin-client-redirects": "^3.10.0",
@@ -67,10 +67,10 @@
     "@storybook/preview-api": "^8.6.18",
     "@storybook/theming": "^8.6.15",
     "@superset-ui/core": "^0.20.4",
-    "@swc/core": "^1.15.30",
-    "antd": "^6.3.6",
-    "baseline-browser-mapping": "^2.10.21",
-    "caniuse-lite": "^1.0.30001790",
+    "@swc/core": "^1.15.32",
+    "antd": "^6.3.7",
+    "baseline-browser-mapping": "^2.10.23",
+    "caniuse-lite": "^1.0.30001791",
     "docusaurus-plugin-openapi-docs": "^5.0.1",
     "docusaurus-theme-openapi-docs": "^5.0.1",
     "js-yaml": "^4.1.1",

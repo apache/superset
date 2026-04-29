@@ -106,8 +106,8 @@ export const handlebarsTemplateControlSetItem: ControlSetItem = {
     valueKey: null,
 
     validators: [validateNonEmpty],
-    mapStateToProps: ({ controls }) => ({
-      value: controls?.handlebars_template?.value,
+    mapStateToProps: ({ form_data }) => ({
+      value: form_data?.handlebarsTemplate ?? form_data?.handlebars_template,
     }),
   },
 };
