@@ -353,7 +353,7 @@ class TestGetChartPreview:
 class TestChartPreviewSanitization:
     """Tests for chart preview read-path sanitization."""
 
-    def test_sanitize_chart_preview_wraps_ascii_and_alt_text(self):
+    def test_sanitize_chart_preview_wraps_ascii_and_alt_text(self) -> None:
         """ASCII previews should be wrapped while operational URLs stay raw."""
         preview = ChartPreview(
             chart_id=3,
@@ -437,7 +437,10 @@ class TestChartPreviewSanitization:
         )
         assert specification["data"]["values"][0]["value"] == 10
 
-    def test_sanitize_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(self):
+    def test_sanitize_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
+        self,
+    ) -> None:
+        """Non-mapping Vega-Lite data should not be treated as inline values."""
         preview = ChartPreview(
             chart_id=4,
             chart_name="Category Share",

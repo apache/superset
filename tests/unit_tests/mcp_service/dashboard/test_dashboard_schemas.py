@@ -43,6 +43,7 @@ from superset.utils.json import dumps as json_dumps
 
 
 def _wrapped(value: str) -> str:
+    """Return the expected LLM-context wrapper for assertions."""
     return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
 
 
@@ -329,9 +330,9 @@ class TestSerializeDashboardObject:
     @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
     def test_descriptive_fields_are_sanitized(
         self,
-        mock_base_url,
-        mock_can_view_data_model_metadata,
-    ):
+        mock_base_url: MagicMock,
+        mock_can_view_data_model_metadata: MagicMock,
+    ) -> None:
         """Dashboard serializers wrap user-controlled descriptive fields."""
         mock_can_view_data_model_metadata.return_value = True
         mock_base_url.return_value = "http://localhost:8088"

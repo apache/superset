@@ -60,6 +60,7 @@ def _normalize_field_name(field_name: str) -> str:
 
 
 def _escape_llm_context_delimiters(value: str) -> str:
+    """Escape delimiter tokens without wrapping the value."""
     return value.replace(
         LLM_CONTEXT_OPEN_DELIMITER,
         LLM_CONTEXT_ESCAPED_OPEN_DELIMITER,

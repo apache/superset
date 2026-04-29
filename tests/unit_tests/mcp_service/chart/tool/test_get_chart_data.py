@@ -238,7 +238,7 @@ class TestBigNumberChartFallback:
 class TestChartDataSanitization:
     """Tests for chart read-path payload sanitization."""
 
-    def test_sanitize_chart_data_wraps_rows_summaries_and_csv(self):
+    def test_sanitize_chart_data_wraps_rows_summaries_and_csv(self) -> None:
         """ChartData helper should wrap user-controlled strings in read responses."""
         chart_data = ChartData(
             chart_id=7,
@@ -286,7 +286,8 @@ class TestChartDataSanitization:
             "region,amount\nEMEA,120\nLATAM,95\n"
         )
 
-    def test_sanitize_chart_data_wraps_column_sample_values(self):
+    def test_sanitize_chart_data_wraps_column_sample_values(self) -> None:
+        """Column sample values should be wrapped even when they look operational."""
         chart_data = ChartData(
             chart_id=8,
             chart_name="Customers by Country",

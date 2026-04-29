@@ -416,7 +416,9 @@ class TestChartSerializationEagerLoading:
             "Verified Q1 2026 metrics"
         )
 
-    def test_serialize_chart_object_sanitizes_chart_metadata_and_filters(self):
+    def test_serialize_chart_object_sanitizes_chart_metadata_and_filters(
+        self,
+    ) -> None:
         """serialize_chart_object sanitizes chart read-path content in place."""
         from superset.mcp_service.chart.schemas import serialize_chart_object
 
@@ -461,7 +463,8 @@ class TestChartSerializationEagerLoading:
             0
         ].sql_expression == sanitize_for_llm_context("region = 'EMEA'")
 
-    def test_generate_chart_form_data_response_is_sanitized(self):
+    def test_generate_chart_form_data_response_is_sanitized(self) -> None:
+        """Generated chart form data wraps user-controlled response values."""
         form_data = {
             "viz_type": "table",
             "datasource": "42__table",

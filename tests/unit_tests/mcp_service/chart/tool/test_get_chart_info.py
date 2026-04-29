@@ -46,6 +46,7 @@ get_chart_info_module = importlib.import_module(
 
 
 def _wrapped(value: str) -> str:
+    """Return the expected LLM-context wrapper for assertions."""
     return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
 
 

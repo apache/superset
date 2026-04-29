@@ -20,7 +20,9 @@
 import importlib
 import sys
 import types
+from collections.abc import Callable
 from contextlib import nullcontext
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, urlsplit
 
@@ -31,7 +33,10 @@ from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 def _force_passthrough_decorators() -> dict[str, types.ModuleType]:
     """Force the MCP tool decorator to be a passthrough for unit tests."""
 
-    def _passthrough_tool(func=None, **kwargs):
+    def _passthrough_tool(
+        func: Callable[..., Any] | None = None,
+        **kwargs: Any,
+    ) -> Callable[..., Any]:
         del kwargs
         if func is not None:
             return func
@@ -76,11 +81,11 @@ def _restore_modules(saved_modules: dict[str, types.ModuleType]) -> None:
     sys.modules.update(saved_modules)
 
 
-def _get_tool_module():
+def _get_tool_module() -> tuple[types.ModuleType, dict[str, types.ModuleType]]:
     """Import the tool module with passthrough decorators."""
     saved_modules = _force_passthrough_decorators()
     mod_name = "superset.mcp_service.sql_lab.tool.open_sql_lab_with_context"
-    saved_tool_modules: dict[str, object] = {}
+    saved_tool_modules: dict[str, types.ModuleType] = {}
     for key in list(sys.modules.keys()):
         if key.startswith("superset.mcp_service.sql_lab.tool"):
             saved_tool_modules[key] = sys.modules.pop(key)
