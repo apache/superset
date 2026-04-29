@@ -79,6 +79,7 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
   searchTerm: string;
   catalog: string | null | undefined;
   pinnedTableKeys: Set<string>;
+  pinnedSchemas: Set<string>;
   selectStarMap: Record<string, string>;
   handleRefreshTables: (params: {
     dbId: number;
@@ -91,6 +92,11 @@ export interface TreeNodeRendererProps extends NodeRendererProps<TreeNodeData> {
     catalogName: string | null,
   ) => void;
   handleUnpinTable: (tableName: string, schemaName: string) => void;
+  handlePinSchema: (schemaName: string) => void;
+  handleUnpinSchema: (schemaName: string) => void;
+  refreshTableSchema: (id: string) => void;
+  sortedTables: Record<string, boolean>;
+  toggleSortColumns: (tableId: string) => void;
 }
 
 const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
@@ -101,19 +107,23 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
   searchTerm,
   catalog,
   pinnedTableKeys,
+  pinnedSchemas,
   selectStarMap,
   handleRefreshTables,
   handlePinTable,
   handleUnpinTable,
+  handlePinSchema,
+  handleUnpinSchema,
+  refreshTableSchema,
+  sortedTables,
+  toggleSortColumns,
 }) => {
   const theme = useTheme();
   const { data } = node;
   const parts = data.id.split(':');
   const [identifier, _dbId, schema, tableName] = parts;
 
-  // Use manually tracked open state for icon display
-  // This prevents search auto-expansion from affecting the icon
-  const isManuallyOpen = manuallyOpenedNodes[data.id] ?? false;
+  const isManuallyOpen = node.isOpen && !node.data.disableCheckbox;
   const isLoading = loadingNodes[data.id] ?? false;
 
   const renderIcon = () => {
@@ -135,12 +145,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           ? Icons.FunctionOutlined
           : Icons.TableOutlined;
       if (isLoading) {
-        return (
-          <>
-            <Icons.LoadingOutlined iconSize="l" />
-            <TableTypeIcon iconSize="l" />
-          </>
-        );
+        return <Icons.LoadingOutlined iconSize="l" />;
       }
       return <TableTypeIcon iconSize="l" />;
     }
@@ -233,18 +238,64 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
         {highlightText(data.name, searchTerm)}
       </Typography.Text>
       {identifier === 'schema' && (
-        <div className="side-action-container" role="menu">
-          <RefreshLabel
-            onClick={e => {
-              e.stopPropagation();
-              handleRefreshTables({
-                dbId: Number(_dbId),
-                catalog,
-                schema,
-              });
-            }}
-            tooltipContent={t('Force refresh table list')}
-          />
+        <div
+          className="side-action-container"
+          role="menu"
+          onClick={e => e.stopPropagation()}
+        >
+          {pinnedSchemas.has(schema) && (
+            <div className="action-static">
+              <ActionButton
+                label={`pinned-schema-${schema}`}
+                icon={
+                  <Icons.PushpinFilled
+                    iconSize="m"
+                    css={css`
+                      color: ${theme.colorTextDescription};
+                    `}
+                  />
+                }
+                onClick={() => handleUnpinSchema(schema)}
+              />
+            </div>
+          )}
+          <div className="action-hover">
+            <RefreshLabel
+              onClick={e => {
+                e.stopPropagation();
+                handleRefreshTables({
+                  dbId: Number(_dbId),
+                  catalog,
+                  schema,
+                });
+              }}
+              tooltipContent={t('Force refresh table list')}
+            />
+            <ActionButton
+              label={
+                pinnedSchemas.has(schema)
+                  ? `unpin-schema-${schema}`
+                  : `pin-schema-${schema}`
+              }
+              tooltip={
+                pinnedSchemas.has(schema)
+                  ? t('Unpin from top')
+                  : t('Pin to top')
+              }
+              icon={
+                pinnedSchemas.has(schema) ? (
+                  <Icons.PushpinFilled iconSize="m" />
+                ) : (
+                  <Icons.PushpinOutlined iconSize="m" />
+                )
+              }
+              onClick={() =>
+                pinnedSchemas.has(schema)
+                  ? handleUnpinSchema(schema)
+                  : handlePinSchema(schema)
+              }
+            />
+          </div>
         </div>
       )}
       {identifier === 'table' &&
@@ -287,6 +338,31 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                   />
                 )}
                 <ActionButton
+                  label={`sort-cols-${schema}-${tableName}`}
+                  tooltip={
+                    sortedTables[data.id]
+                      ? t('Sort by original table order')
+                      : t('Sort columns alphabetically')
+                  }
+                  icon={
+                    <Icons.SortAscendingOutlined
+                      iconSize="m"
+                      css={css`
+                        color: ${sortedTables[data.id]
+                          ? theme.colorPrimary
+                          : 'inherit'};
+                      `}
+                    />
+                  }
+                  onClick={() => toggleSortColumns(data.id)}
+                />
+                <ActionButton
+                  label={`refresh-schema-${schema}-${tableName}`}
+                  tooltip={t('Refresh table schema')}
+                  icon={<Icons.SyncOutlined iconSize="m" />}
+                  onClick={() => refreshTableSchema(data.id)}
+                />
+                <ActionButton
                   label={
                     isPinned
                       ? `unpin-${schema}-${tableName}`
@@ -310,18 +386,19 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
                       : handlePinTable(tableName, schema, catalog ?? null)
                   }
                 />
+                <ActionButton
+                  label={`toggle-${schema}-${tableName}`}
+                  tooltip={isManuallyOpen ? t('Collapse') : t('Expand')}
+                  icon={
+                    isManuallyOpen ? (
+                      <Icons.UpOutlined iconSize="m" />
+                    ) : (
+                      <Icons.DownOutlined iconSize="m" />
+                    )
+                  }
+                  onClick={() => node.toggle()}
+                />
               </div>
-              <ActionButton
-                label={`toggle-${schema}-${tableName}`}
-                icon={
-                  isManuallyOpen ? (
-                    <Icons.UpOutlined iconSize="m" />
-                  ) : (
-                    <Icons.DownOutlined iconSize="m" />
-                  )
-                }
-                onClick={() => node.toggle()}
-              />
             </div>
           );
         })()}

@@ -23,19 +23,18 @@ chart configuration.
 """
 
 from typing import Any, Dict
-from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
     map_config_to_form_data,
 )
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
-    parse_chart_config,
 )
 
 
@@ -90,7 +89,7 @@ async def generate_explore_link(
     """
     await ctx.info(
         "Generating explore link for dataset_id=%s, chart_type=%s"
-        % (request.dataset_id, request.config.get("chart_type", "unknown"))
+        % (request.dataset_id, request.config.chart_type)
     )
     await ctx.debug(
         "Configuration details: use_cache=%s, force_refresh=%s, cache_form_data=%s"
@@ -98,8 +97,8 @@ async def generate_explore_link(
     )
 
     try:
-        # Parse the raw config dict into a typed ChartConfig
-        config = parse_chart_config(request.config)
+        # config is already a typed ChartConfig (validated by Pydantic)
+        config = request.config
 
         await ctx.report_progress(1, 4, "Validating dataset exists")
         with event_logger.log_context(action="mcp.generate_explore_link.dataset_check"):
@@ -119,7 +118,7 @@ async def generate_explore_link(
                 dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
 
             if not dataset:
-                await ctx.error(
+                await ctx.warning(
                     "Dataset not found: dataset_id=%s" % (request.dataset_id,)
                 )
                 return {
@@ -175,14 +174,8 @@ async def generate_explore_link(
                 dataset_id=request.dataset_id, form_data=form_data
             )
 
-        # Extract form_data_key from the explore URL using proper URL parsing
-        form_data_key = None
-        if explore_url:
-            parsed = urlparse(explore_url)
-            query_params = parse_qs(parsed.query)
-            form_data_key_list = query_params.get("form_data_key", [])
-            if form_data_key_list:
-                form_data_key = form_data_key_list[0]
+        # Extract form_data_key from the explore URL
+        form_data_key = extract_form_data_key_from_url(explore_url)
 
         await ctx.report_progress(4, 4, "URL generation complete")
         await ctx.info(
@@ -203,7 +196,7 @@ async def generate_explore_link(
             "Explore link generation failed for dataset_id=%s, chart_type=%s: %s: %s"
             % (
                 request.dataset_id,
-                request.config.get("chart_type", "unknown"),
+                request.config.chart_type,
                 type(e).__name__,
                 str(e),
             )
