@@ -71,7 +71,7 @@ Note that:
   [docker-compose.yml](https://github.com/apache/superset/blob/master/docker-compose.yml)
 - The local repository is mounted within the services, meaning updating
   the code on the host will be reflected in the docker images
-- Superset is served at localhost:9000/
+- Superset is served at localhost:8088/
 - You can login with admin/admin
 
 :::note
@@ -348,7 +348,7 @@ curl -f http://localhost:8088/health && echo "✅ Superset ready"
 ```bash
 # Frontend development
 cd superset-frontend
-npm run dev          # Development server on http://localhost:9000
+npm run dev          # Development server on http://localhost:8088
 npm run test         # Run all tests
 npm run test -- filename.test.tsx  # Run single test file
 npm run lint         # Linting and type checking
@@ -577,7 +577,7 @@ sudo sysctl -p
 
 #### Webpack dev server
 
-The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8088`.
+The dev server by default starts at `http://localhost:8088` and proxies the backend requests to `http://localhost:8088`.
 
 So a typical development workflow is the following:
 
@@ -588,18 +588,18 @@ So a typical development workflow is the following:
    superset run -p 8088 --with-threads --reload --debugger --debug
    ```
 
-2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
+2. in parallel, run the Webpack dev server locally on port `8088`,<br/>
 
    ```bash
    npm run dev-server
    ```
 
-3. access `http://localhost:9000` (the Webpack server, _not_ Flask) in your web browser. This will use the hot-reloading front-end assets from the Webpack development server while redirecting back-end queries to Flask/Superset: your changes on Superset codebase — either front or back-end — will then be reflected live in the browser.
+3. access `http://localhost:8088` (the Webpack server, _not_ Flask) in your web browser. This will use the hot-reloading front-end assets from the Webpack development server while redirecting back-end queries to Flask/Superset: your changes on Superset codebase — either front or back-end — will then be reflected live in the browser.
 
 It's possible to change the Webpack server settings:
 
 ```bash
-# Start the dev server at http://localhost:9000
+# Start the dev server at http://localhost:8088
 npm run dev-server
 
 # Run the dev server on a non-default port
