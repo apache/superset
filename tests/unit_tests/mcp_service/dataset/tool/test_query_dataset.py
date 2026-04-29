@@ -20,11 +20,12 @@
 from __future__ import annotations
 
 import importlib
+from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 
 from superset.mcp_service.app import mcp
 from superset.utils import json
@@ -35,12 +36,12 @@ query_dataset_module = importlib.import_module(
 
 
 @pytest.fixture
-def mcp_server():
+def mcp_server() -> FastMCP:
     return mcp
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth() -> Generator[MagicMock, None, None]:
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         mock_user = Mock()
@@ -51,6 +52,7 @@ def mock_auth():
 
 
 def _make_column(name: str, is_dttm: bool = False) -> MagicMock:
+    """Build a mock SqlaTable column with the given name and datetime flag."""
     col = MagicMock()
     col.column_name = name
     col.is_dttm = is_dttm
@@ -63,6 +65,7 @@ def _make_column(name: str, is_dttm: bool = False) -> MagicMock:
 
 
 def _make_metric(name: str, expression: str = "COUNT(*)") -> MagicMock:
+    """Build a mock SqlMetric with the given name and SQL expression."""
     metric = MagicMock()
     metric.metric_name = name
     metric.verbose_name = None
@@ -79,6 +82,7 @@ def _make_dataset(
     metrics: list[Any] | None = None,
     main_dttm_col: str | None = None,
 ) -> MagicMock:
+    """Build a mock SqlaTable dataset with default columns and metrics."""
     ds = MagicMock()
     ds.id = dataset_id
     ds.table_name = table_name
@@ -124,7 +128,7 @@ def _mock_command_result(
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_success(mcp_server) -> None:
+async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     """Happy path: metrics + columns returns data."""
     dataset = _make_dataset()
     result_data = _mock_command_result()
@@ -168,7 +172,7 @@ async def test_query_dataset_success(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_not_found(mcp_server) -> None:
+async def test_query_dataset_not_found(mcp_server: FastMCP) -> None:
     """Dataset ID that doesn't exist returns error."""
     with patch.object(
         query_dataset_module,
@@ -192,7 +196,7 @@ async def test_query_dataset_not_found(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_invalid_metric(mcp_server) -> None:
+async def test_query_dataset_invalid_metric(mcp_server: FastMCP) -> None:
     """Unknown metric name returns validation error with suggestions."""
     dataset = _make_dataset()
 
@@ -220,7 +224,7 @@ async def test_query_dataset_invalid_metric(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_invalid_column(mcp_server) -> None:
+async def test_query_dataset_invalid_column(mcp_server: FastMCP) -> None:
     """Unknown column name returns validation error."""
     dataset = _make_dataset()
 
@@ -247,7 +251,7 @@ async def test_query_dataset_invalid_column(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_no_metrics_no_columns(mcp_server) -> None:
+async def test_query_dataset_no_metrics_no_columns(mcp_server: FastMCP) -> None:
     """Providing neither metrics nor columns raises validation error."""
     from fastmcp.exceptions import ToolError
 
@@ -266,7 +270,7 @@ async def test_query_dataset_no_metrics_no_columns(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_with_time_range(mcp_server) -> None:
+async def test_query_dataset_with_time_range(mcp_server: FastMCP) -> None:
     """time_range is converted to TEMPORAL_RANGE filter + granularity."""
     dataset = _make_dataset(main_dttm_col="order_date")
     result_data = _mock_command_result()
@@ -318,7 +322,7 @@ async def test_query_dataset_with_time_range(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_time_range_no_temporal_column(mcp_server) -> None:
+async def test_query_dataset_time_range_no_temporal_column(mcp_server: FastMCP) -> None:
     """time_range without a temporal column returns error."""
     dataset = _make_dataset(main_dttm_col=None)
 
@@ -345,7 +349,7 @@ async def test_query_dataset_time_range_no_temporal_column(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_with_filters(mcp_server) -> None:
+async def test_query_dataset_with_filters(mcp_server: FastMCP) -> None:
     """User-provided filters are passed through to the query."""
     dataset = _make_dataset()
     result_data = _mock_command_result()
@@ -396,7 +400,7 @@ async def test_query_dataset_with_filters(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_empty_results(mcp_server) -> None:
+async def test_query_dataset_empty_results(mcp_server: FastMCP) -> None:
     """Query that returns no data gives a response with row_count=0."""
     dataset = _make_dataset()
     empty_result = {
@@ -448,7 +452,7 @@ async def test_query_dataset_empty_results(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_by_uuid(mcp_server) -> None:
+async def test_query_dataset_by_uuid(mcp_server: FastMCP) -> None:
     """UUID-based lookup works."""
     dataset = _make_dataset()
     result_data = _mock_command_result()
@@ -492,7 +496,7 @@ async def test_query_dataset_by_uuid(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_permission_denied(mcp_server) -> None:
+async def test_query_dataset_permission_denied(mcp_server: FastMCP) -> None:
     """Permission denied from ChartDataCommand.validate() returns error."""
     from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
     from superset.exceptions import SupersetSecurityException
@@ -536,7 +540,7 @@ async def test_query_dataset_permission_denied(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_order_by_valid(mcp_server) -> None:
+async def test_query_dataset_order_by_valid(mcp_server: FastMCP) -> None:
     """order_by with valid column/metric names passes through."""
     dataset = _make_dataset()
     result_data = _mock_command_result()
@@ -587,7 +591,7 @@ async def test_query_dataset_order_by_valid(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_order_by_invalid(mcp_server) -> None:
+async def test_query_dataset_order_by_invalid(mcp_server: FastMCP) -> None:
     """order_by with an unknown name returns validation error."""
     dataset = _make_dataset()
 
@@ -614,7 +618,7 @@ async def test_query_dataset_order_by_invalid(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_time_column_override(mcp_server) -> None:
+async def test_query_dataset_time_column_override(mcp_server: FastMCP) -> None:
     """Explicit time_column overrides dataset main_dttm_col."""
     dataset = _make_dataset(main_dttm_col="order_date")
     result_data = _mock_command_result()
@@ -663,7 +667,7 @@ async def test_query_dataset_time_column_override(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_non_dttm_time_column_warns(mcp_server) -> None:
+async def test_query_dataset_non_dttm_time_column_warns(mcp_server: FastMCP) -> None:
     """Using a non-datetime column for time_range produces a warning."""
     dataset = _make_dataset(main_dttm_col=None)
     result_data = _mock_command_result()
@@ -705,7 +709,7 @@ async def test_query_dataset_non_dttm_time_column_warns(mcp_server) -> None:
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_invalid_filter_column(mcp_server) -> None:
+async def test_query_dataset_invalid_filter_column(mcp_server: FastMCP) -> None:
     """Filter on a column that doesn't exist returns validation error."""
     dataset = _make_dataset()
 
@@ -735,3 +739,46 @@ async def test_query_dataset_invalid_filter_column(mcp_server) -> None:
     data = json.loads(result.content[0].text)
     assert data["error_type"] == "ValidationError"
     assert "nonexistent" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_metadata_access_denied_no_suggestions(
+    mcp_server: FastMCP,
+) -> None:
+    """Users without data-model metadata access cannot probe column/metric names.
+
+    The privacy gate must fire before the validation step that returns close-match
+    suggestions, so restricted users cannot enumerate schema details via typos.
+    """
+    dataset = _make_dataset()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "_resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.mcp_service.dataset.tool.query_dataset"
+            ".user_can_view_data_model_metadata",
+            return_value=False,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        # Typo that would normally trigger close-match suggestions
+                        "metrics": ["countt"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    # Must be denied before returning any schema suggestions
+    assert data["error_type"] == "DataModelMetadataRestricted"
+    # Must NOT contain column/metric name suggestions
+    assert "countt" not in data.get("error", "")
+    assert "count" not in data.get("error", "")

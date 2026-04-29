@@ -38,8 +38,14 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
+    QueryDatasetFilter,
     QueryDatasetRequest,
     QueryDatasetResponse,
+)
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
 )
 from superset.mcp_service.utils import _is_uuid
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
@@ -94,6 +100,7 @@ def _validate_names(
     return errors
 
 
+@requires_data_model_metadata_access
 @tool(
     tags=["data"],
     class_permission_name="Dataset",
@@ -176,6 +183,19 @@ async def query_dataset(  # noqa: C901
         )
 
         # ------------------------------------------------------------------
+        # Step 1b: Check data-model metadata access before returning schema info.
+        # The decorator hides this tool from search; this check enforces direct calls.
+        # ------------------------------------------------------------------
+        if not user_can_view_data_model_metadata():
+            await ctx.warning("Dataset metadata access blocked by privacy controls")
+            return DatasetError.create(
+                error=(
+                    "You don't have permission to access dataset details for your role."
+                ),
+                error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+            )
+
+        # ------------------------------------------------------------------
         # Step 2: Validate requested columns and metrics
         # ------------------------------------------------------------------
         await ctx.report_progress(2, 5, "Validating columns and metrics")
@@ -216,6 +236,8 @@ async def query_dataset(  # noqa: C901
         query_filters: list[dict[str, Any]] = [
             {"col": f.col, "op": f.op, "val": f.val} for f in request.filters
         ]
+        # Track all applied filters (including synthesized ones) for the response.
+        effective_filters: list[QueryDatasetFilter] = list(request.filters)
         granularity: str | None = None
 
         if request.time_range:
@@ -256,6 +278,13 @@ async def query_dataset(  # noqa: C901
                     "op": "TEMPORAL_RANGE",
                     "val": request.time_range,
                 }
+            )
+            effective_filters.append(
+                QueryDatasetFilter(
+                    col=temporal_col,
+                    op="TEMPORAL_RANGE",
+                    val=request.time_range,
+                )
             )
             granularity = temporal_col
             await ctx.debug(
@@ -299,7 +328,7 @@ async def query_dataset(  # noqa: C901
                 datasource={"id": dataset.id, "type": "table"},
                 queries=[query_dict],
                 form_data={},
-                force=request.force_refresh,
+                force=not request.use_cache or request.force_refresh,
                 custom_cache_timeout=request.cache_timeout,
             )
 
@@ -340,7 +369,7 @@ async def query_dataset(  # noqa: C901
                 cache_status=get_cache_status_from_result(
                     query_result, force_refresh=request.force_refresh
                 ),
-                applied_filters=request.filters,
+                applied_filters=effective_filters,
                 warnings=warnings,
             )
 
