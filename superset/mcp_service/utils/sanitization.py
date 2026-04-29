@@ -74,6 +74,15 @@ def escape_llm_context_delimiters(value: Any) -> Any:
     """Escape delimiter tokens in operational values that should not be wrapped."""
     if isinstance(value, str):
         return _escape_llm_context_delimiters(value)
+    if isinstance(value, dict):
+        return {
+            key: escape_llm_context_delimiters(nested_value)
+            for key, nested_value in value.items()
+        }
+    if isinstance(value, list):
+        return [escape_llm_context_delimiters(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(escape_llm_context_delimiters(item) for item in value)
     return value
 
 
@@ -122,9 +131,7 @@ def sanitize_for_llm_context(
         if current_field_name and (
             _normalize_field_name(current_field_name) in normalized_exclusions
         ):
-            if isinstance(current_value, str):
-                return _escape_llm_context_delimiters(current_value)
-            return current_value
+            return escape_llm_context_delimiters(current_value)
 
         if isinstance(current_value, str):
             return _wrap_llm_context_string(current_value)

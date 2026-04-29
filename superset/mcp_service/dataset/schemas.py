@@ -477,6 +477,21 @@ def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> Dataset
         for index, metric in enumerate(payload.get("metrics", []))
     ]
 
+    payload["tags"] = [
+        {
+            **tag,
+            "name": sanitize_for_llm_context(
+                tag.get("name"),
+                field_path=("tags", str(index), "name"),
+            ),
+            "description": sanitize_for_llm_context(
+                tag.get("description"),
+                field_path=("tags", str(index), "description"),
+            ),
+        }
+        for index, tag in enumerate(payload.get("tags", []))
+    ]
+
     return DatasetInfo.model_validate(payload)
 
 

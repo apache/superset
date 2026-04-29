@@ -96,7 +96,10 @@ from superset.mcp_service.system.schemas import (
     RoleInfo,
     TagInfo,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
+)
 from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
@@ -797,6 +800,9 @@ def _sanitize_dashboard_info_for_llm_context(
             "description": sanitize_for_llm_context(
                 chart.get("description"),
                 field_path=("charts", str(index), "description"),
+            ),
+            "datasource_name": escape_llm_context_delimiters(
+                chart.get("datasource_name"),
             ),
         }
         for index, chart in enumerate(payload.get("charts", []))

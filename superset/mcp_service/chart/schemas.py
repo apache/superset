@@ -55,7 +55,10 @@ from superset.mcp_service.system.schemas import (
     PaginationInfo,
     TagInfo,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
+)
 from superset.mcp_service.utils.sanitization import (
     sanitize_filter_value,
     sanitize_user_input,
@@ -417,6 +420,10 @@ def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:
             payload.get(field_name),
             field_path=(field_name,),
         )
+
+    payload["datasource_name"] = escape_llm_context_delimiters(
+        payload.get("datasource_name")
+    )
 
     if payload.get("filters") is not None:
         payload["filters"] = sanitize_for_llm_context(
