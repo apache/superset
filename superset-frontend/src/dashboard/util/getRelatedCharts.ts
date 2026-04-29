@@ -88,10 +88,13 @@ export function getRelatedCharts(
   slices: Record<string, Slice>,
 ) {
   let related: number[] = [];
+  if (!filter) {
+    return related;
+  }
   const isCrossFilter =
     Object.keys(slices).includes(filterKey) && isAppliedCrossFilterType(filter);
 
-  const chartsInScope = Array.isArray(filter.scope)
+  const chartsInScope = Array.isArray(filter?.scope)
     ? filter.scope
     : ((filter as Filter).chartsInScope ?? []);
 
@@ -117,6 +120,9 @@ export function getRelatedChartsForChartCustomization(
   customizationItem: ChartCustomization,
   slices: Record<string, Slice>,
 ): number[] {
+  if (!customizationItem) {
+    return [];
+  }
   const { chartsInScope, targets } = customizationItem;
 
   if (Array.isArray(chartsInScope)) {

@@ -778,7 +778,11 @@ const transformProps = (
     percentMetrics,
     serverPaginationData: serverPagination
       ? serverPaginationData
-      : defaultServerPaginationData,
+      : {
+          ...defaultServerPaginationData,
+          visibleColumns: serverPaginationData?.visibleColumns,
+          clientView: serverPaginationData?.clientView,
+        },
     setDataMask,
     alignPositiveNegative,
     colorPositiveNegative,

@@ -41,9 +41,9 @@ export const getRelevantDataMask = (
           prop === 'ownState' &&
           value &&
           typeof value === 'object' &&
-          ('clientView' in value || 'visibleColumns' in value)
+          'clientView' in value
         ) {
-          return [item.id, omit(value, ['clientView', 'visibleColumns'])];
+          return [item.id, omit(value, ['clientView'])];
         }
         return [item.id, value];
       }),

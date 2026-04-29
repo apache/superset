@@ -373,8 +373,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       isRawRecords
         ? String(value ?? '')
         : getTimeFormatterForGranularity(timeGrain)(
-            value as number | Date | null | undefined,
-          ),
+          value as number | Date | null | undefined,
+        ),
     [timeGrain, isRawRecords],
   );
   const [tableSize, setTableSize] = useState<TableSize>({
@@ -479,24 +479,24 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               groupBy.length === 0
                 ? []
                 : groupBy.map(col => {
-                    // Resolve adhoc column labels back to original column names
-                    // so that cross-filters work on the receiving chart
-                    const resolvedCol = columnLabelToNameMap[col] ?? col;
-                    const val = ensureIsArray(updatedFilters?.[col]);
-                    if (!val.length)
-                      return {
-                        col: resolvedCol,
-                        op: 'IS NULL' as const,
-                      };
+                  // Resolve adhoc column labels back to original column names
+                  // so that cross-filters work on the receiving chart
+                  const resolvedCol = columnLabelToNameMap[col] ?? col;
+                  const val = ensureIsArray(updatedFilters?.[col]);
+                  if (!val.length)
                     return {
                       col: resolvedCol,
-                      op: 'IN' as const,
-                      val: val.map(el =>
-                        el instanceof Date ? el.getTime() : el!,
-                      ),
-                      grain: resolvedCol === DTTM_ALIAS ? timeGrain : undefined,
+                      op: 'IS NULL' as const,
                     };
-                  }),
+                  return {
+                    col: resolvedCol,
+                    op: 'IN' as const,
+                    val: val.map(el =>
+                      el instanceof Date ? el.getTime() : el!,
+                    ),
+                    grain: resolvedCol === DTTM_ALIAS ? timeGrain : undefined,
+                  };
+                }),
           },
           filterState: {
             label: labelElements.join(', '),
@@ -609,15 +609,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           drillBy: cellPoint.isMetric
             ? undefined
             : {
-                filters: [
-                  {
-                    col: cellPoint.key,
-                    op: '==',
-                    val: extractTextFromHTML(cellPoint.value),
-                  },
-                ],
-                groupbyFieldName: 'groupby',
-              },
+              filters: [
+                {
+                  col: cellPoint.key,
+                  op: '==',
+                  val: extractTextFromHTML(cellPoint.value),
+                },
+              ],
+              groupbyFieldName: 'groupby',
+            },
         });
       };
     }
@@ -658,9 +658,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [comparisonLabels],
   );
 
+  const isTimeComparisonMenuClick = useRef(false);
+
   const renderTimeComparisonDropdown = (): JSX.Element => {
     const allKey = comparisonColumns[0].key;
     const handleOnClick = (data: any) => {
+      isTimeComparisonMenuClick.current = true;
+      setTimeout(() => {
+        isTimeComparisonMenuClick.current = false;
+      }, 200);
       const { key } = data;
       // Toggle 'All' key selection
       if (key === allKey) {
@@ -687,7 +693,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       <Dropdown
         placement="bottomRight"
         open={showComparisonDropdown}
-        onOpenChange={(flag: boolean) => {
+        onOpenChange={(flag: boolean, info?: { source: string }) => {
+          if (info && info.source === 'menu') {
+            return;
+          }
+          if (!flag && isTimeComparisonMenuClick.current) {
+            isTimeComparisonMenuClick.current = false;
+            return;
+          }
           setShowComparisonDropdown(flag);
         }}
         menu={{
@@ -808,6 +821,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     return selectableColumnKeys;
   });
 
+  const [localVisibleColumnKeys, setLocalVisibleColumnKeys] = useState<string[]>(selectedVisibleColumnKeys);
+
   useEffect(() => {
     setSelectedVisibleColumnKeys(prevSelection => {
       const availableKeys = new Set(selectableColumnKeys);
@@ -898,49 +913,73 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     storedVisibleColumnKeys.length,
   ]);
 
-  const handleVisibleColumnsChange = useCallback(
-    (nextVisibleColumns: string[]) => {
-      if (isEqual(nextVisibleColumns, selectedVisibleColumnKeys)) {
-        return;
-      }
-      setSelectedVisibleColumnKeys(nextVisibleColumns);
-      persistTableOwnState({ visibleColumns: nextVisibleColumns });
-    },
-    [persistTableOwnState, selectedVisibleColumnKeys],
-  );
+  const isColumnMenuClick = useRef(false);
 
   const renderColumnSelectDropdown = (): JSX.Element | null => {
     if (!selectableColumnsMeta.length) {
       return null;
     }
 
+    const getPersistedVisibleColumns = () => {
+      const availableKeys = new Set(selectableColumnKeys);
+      const selectedFromOwnState = sanitizeVisibleColumnSelection(
+        serverPaginationData?.visibleColumns,
+        availableKeys,
+      );
+      if (selectedFromOwnState.length > 0) return selectedFromOwnState;
+      if (storedVisibleColumnKeys.length > 0) return storedVisibleColumnKeys;
+      return selectableColumnKeys;
+    };
+
     const handleOnClick = ({ key }: { key: string }) => {
+      isColumnMenuClick.current = true;
+      setTimeout(() => {
+        isColumnMenuClick.current = false;
+      }, 200);
       const targetKey = String(key);
-      const isSelected = selectedVisibleColumnKeys.includes(targetKey);
+      const isSelected = localVisibleColumnKeys.includes(targetKey);
       const nextVisibleColumns = isSelected
-        ? selectedVisibleColumnKeys.filter(columnKey => columnKey !== targetKey)
-        : [...selectedVisibleColumnKeys, targetKey];
+        ? localVisibleColumnKeys.filter(columnKey => columnKey !== targetKey)
+        : [...localVisibleColumnKeys, targetKey];
 
       // Keep at least one visible column so table structure stays valid.
       if (!nextVisibleColumns.length) {
         return;
       }
 
-      handleVisibleColumnsChange(nextVisibleColumns);
+      setLocalVisibleColumnKeys(nextVisibleColumns);
     };
 
     return (
       <Dropdown
         placement="bottomRight"
         open={showColumnSelectorDropdown}
-        onOpenChange={(flag: boolean) => {
+        onOpenChange={(flag: boolean, info?: { source: string }) => {
+          if (info && info.source === 'menu') {
+            return;
+          }
+          if (!flag && isColumnMenuClick.current) {
+            isColumnMenuClick.current = false;
+            return;
+          }
           setShowColumnSelectorDropdown(flag);
+          if (flag) {
+            setLocalVisibleColumnKeys(selectedVisibleColumnKeys);
+          } else {
+            if (!isEqual(localVisibleColumnKeys, selectedVisibleColumnKeys)) {
+              setSelectedVisibleColumnKeys(localVisibleColumnKeys);
+            }
+            const persisted = getPersistedVisibleColumns();
+            if (!isEqual(localVisibleColumnKeys, persisted)) {
+              persistTableOwnState({ visibleColumns: localVisibleColumnKeys });
+            }
+          }
         }}
         menu={{
           selectable: true,
           multiple: true,
           onClick: handleOnClick,
-          selectedKeys: selectedVisibleColumnKeys,
+          selectedKeys: localVisibleColumnKeys,
           items: [
             {
               key: 'columns-group',
@@ -979,7 +1018,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                         font-size: ${theme.fontSizeSM}px;
                       `}
                     >
-                      {selectedVisibleColumnKeys.includes(
+                      {localVisibleColumnKeys.includes(
                         String(column.key),
                       ) && <CheckOutlined />}
                     </span>
@@ -1036,7 +1075,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const firstColumnInGroup = visibleColumnsMeta[startPosition];
       const originalLabel = firstColumnInGroup
         ? columnsMeta.find(col => col.key === firstColumnInGroup.key)
-            ?.originalLabel || key
+          ?.originalLabel || key
         : key;
 
       // Add placeholder <th> for columns before this header
@@ -1229,7 +1268,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
               if (
                 formatter.objectFormatting ===
-                  ObjectFormattingEnum.TEXT_COLOR ||
+                ObjectFormattingEnum.TEXT_COLOR ||
                 formatter.toTextColor
               ) {
                 color = formatterResult;
@@ -1312,29 +1351,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             valueRangeFlag &&
             `
                 width: ${`${cellWidth({
-                  value: value as number,
-                  valueRange,
-                  alignPositiveNegative,
-                })}%`};
+              value: value as number,
+              valueRange,
+              alignPositiveNegative,
+            })}%`};
                 left: ${`${cellOffset({
-                  value: value as number,
-                  valueRange,
-                  alignPositiveNegative,
-                })}%`};
-                background-color: ${
-                  (backgroundColorCellBar && `${backgroundColorCellBar}99`) ||
-                  cellBackground({
-                    value: value as number,
-                    colorPositiveNegative,
-                    theme,
-                  })
-                };
+              value: value as number,
+              valueRange,
+              alignPositiveNegative,
+            })}%`};
+                background-color: ${(backgroundColorCellBar && `${backgroundColorCellBar}99`) ||
+            cellBackground({
+              value: value as number,
+              colorPositiveNegative,
+              theme,
+            })
+            };
               `}
           `;
 
           let arrowStyles = css`
             color: ${basicColorFormatters &&
-            basicColorFormatters[row.index][originKey]?.arrowColor ===
+              basicColorFormatters[row.index][originKey]?.arrowColor ===
               ColorSchemeEnum.Green
               ? theme.colorSuccess
               : theme.colorError};
@@ -1362,11 +1400,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             onClick:
               emitCrossFilters && !valueRange && !isMetric
                 ? () => {
-                    // allow selecting text in a cell
-                    if (!getSelectedText()) {
-                      toggleFilter(key, value);
-                    }
+                  // allow selecting text in a cell
+                  if (!getSelectedText()) {
+                    toggleFilter(key, value);
                   }
+                }
                 : undefined,
             onContextMenu: (e: MouseEvent) => {
               if (handleContextMenu) {
@@ -1383,7 +1421,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             className: [
               className,
               value == null ||
-              (value instanceof DateWithFormatter && value.input == null)
+                (value instanceof DateWithFormatter && value.input == null)
                 ? 'dt-is-null'
                 : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
@@ -1597,10 +1635,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   useEffect(() => {
     const options = (
       columns as unknown as ColumnWithLooseAccessor &
-        {
-          columnKey: string;
-          sortType?: string;
-        }[]
+      {
+        columnKey: string;
+        sortType?: string;
+      }[]
     )
       .filter(col => col?.sortType === 'alphanumeric')
       .map(column => ({
