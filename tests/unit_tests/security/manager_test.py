@@ -1547,3 +1547,62 @@ def test_validate_child_in_parent_multilayer_null_params(
     assert not sm._validate_child_in_parent_multilayer(
         child_slice_id=1, parent_slice=parent_slice
     )
+
+
+def test_user_view_menu_names_for_guest_user(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that user_view_menu_names resolves permissions from the guest
+    user's roles instead of querying by user_id (which is None for guests).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_role = mocker.MagicMock(spec=Role)
+    mock_role.id = 99
+
+    mock_guest = mocker.MagicMock()
+    mock_guest.is_anonymous = False
+    mock_guest.roles = [mock_role]
+
+    mock_g = SimpleNamespace(user=mock_guest)
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+
+    mock_result = [SimpleNamespace(name="[PostgreSQL].[my_table](id:1)")]
+    mock_query = mocker.MagicMock()
+    mock_query.join.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = mock_result
+    mocker.patch.object(sm.session, "query", return_value=mock_query)
+
+    result = sm.user_view_menu_names("datasource_access")
+
+    assert result == {"[PostgreSQL].[my_table](id:1)"}
+
+
+def test_user_view_menu_names_for_guest_user_no_roles(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that user_view_menu_names returns empty set when guest user has
+    no roles with valid IDs.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_role = mocker.MagicMock(spec=Role)
+    mock_role.id = None
+
+    mock_guest = mocker.MagicMock()
+    mock_guest.is_anonymous = False
+    mock_guest.roles = [mock_role]
+
+    mock_g = SimpleNamespace(user=mock_guest)
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+
+    result = sm.user_view_menu_names("datasource_access")
+
+    assert result == set()
