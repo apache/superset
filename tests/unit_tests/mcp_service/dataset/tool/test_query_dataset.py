@@ -42,8 +42,15 @@ def mcp_server() -> FastMCP:
 
 @pytest.fixture(autouse=True)
 def mock_auth() -> Generator[MagicMock, None, None]:
-    """Mock authentication for all tests."""
-    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
+    """Mock authentication and metadata access for all tests."""
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
+        patch(
+            "superset.mcp_service.dataset.tool.query_dataset"
+            ".user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+    ):
         mock_user = Mock()
         mock_user.id = 1
         mock_user.username = "admin"
