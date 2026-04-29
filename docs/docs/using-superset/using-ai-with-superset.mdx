@@ -55,15 +55,26 @@ Ask your AI assistant to browse what's available in your Superset instance:
 
 Describe the visualization you want and AI creates it for you:
 
+- **Preview-first workflow** -- by default AI generates an Explore link so you can review the chart before it is saved. Say "save it" to commit permanently
 - **Create charts from natural language** -- describe what you want to see and AI picks the right chart type, metrics, and dimensions
 - **Preview before saving** -- `generate_chart` defaults to `save_chart=False`, showing the chart in Explore before it's committed. Ask AI to save once you're satisfied.
-- **Modify existing charts** -- `update_chart` also supports preview mode so you can review changes before saving
+- **Modify existing charts** -- `update_chart` also supports preview mode so you can review changes before saving (update filters, change chart types, add metrics)
 - **Get Explore links** -- open any chart in Superset's Explore view for further refinement
 
 **Example prompts:**
 > "Create a bar chart showing monthly revenue by region from the sales dataset"
 > "Update chart 42 to use a line chart instead"
 > "Give me a link to explore this chart further"
+
+:::tip Preview-first workflow
+Charts are **not saved by default**. The workflow is intentionally iterative:
+
+1. **Explore** — AI generates an Explore link so you can see the chart before it exists in Superset
+2. **Iterate** — ask the AI to adjust the chart; changes are previewed without touching the database
+3. **Save** — when you're happy, say "save it" and the chart is permanently stored
+
+To skip the preview and save immediately, include "and save it" in your prompt.
+:::
 
 ### Create Dashboards
 
@@ -76,16 +87,40 @@ Build dashboards from a collection of charts:
 > "Create a dashboard called 'Q4 Sales Overview' with charts 10, 15, and 22"
 > "Add the revenue trend chart to the executive dashboard"
 
+### Browse Databases
+
+Discover what database connections are configured in your Superset instance:
+
+- **List databases** -- see all database connections you have access to
+- **Get database details** -- name, backend type (PostgreSQL, Snowflake, etc.), and connection status
+
+**Example prompts:**
+> "What databases are connected to Superset?"
+> "Show me details about the data warehouse connection"
+
+### Create Virtual Datasets
+
+Build ad-hoc SQL datasets that can be used as the basis for charts:
+
+- **Create virtual datasets** -- write a SQL query and save it as a reusable dataset
+- **Use immediately in charts** -- the returned dataset ID can be passed directly to chart creation
+
+**Example prompts:**
+> "Create a dataset from: SELECT region, SUM(revenue) as total_revenue FROM orders GROUP BY region"
+> "Make a virtual dataset called 'monthly_signups' from the users table filtered to last 12 months"
+
 ### Run SQL Queries
 
 Execute SQL directly through your AI assistant:
 
 - **Run queries** -- execute SQL with full Superset RBAC enforcement (you can only query data your roles allow)
 - **Open SQL Lab** -- get a link to SQL Lab pre-populated with a query, ready to run and explore
+- **Save queries** -- save a SQL query to SQL Lab's Saved Queries for later reuse
 
 **Example prompts:**
 > "Run this query: SELECT region, SUM(revenue) FROM sales GROUP BY region"
 > "Open SQL Lab with a query to show the top 10 customers by order count"
+> "Save this query as 'Weekly Revenue Report'"
 
 ### Analyze Chart Data
 
