@@ -43,6 +43,7 @@ from superset.mcp_service.system.schemas import (
     PaginationInfo,
     TagInfo,
 )
+from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils import json
 
 
@@ -401,6 +402,51 @@ def _humanize_timestamp(dt: datetime | None) -> str | None:
     return humanize.naturaltime(datetime.now() - dt)
 
 
+def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> DatasetInfo:
+    """Wrap dataset read-path descriptive fields before LLM exposure."""
+    payload = dataset_info.model_dump(mode="python")
+
+    for field_name in ("description", "certification_details", "sql"):
+        payload[field_name] = sanitize_for_llm_context(
+            payload.get(field_name),
+            field_path=(field_name,),
+        )
+
+    for field_name in ("params", "template_params"):
+        payload[field_name] = sanitize_for_llm_context(
+            payload.get(field_name),
+            field_path=(field_name,),
+        )
+
+    payload["columns"] = [
+        {
+            **column,
+            "description": sanitize_for_llm_context(
+                column.get("description"),
+                field_path=("columns", str(index), "description"),
+            ),
+        }
+        for index, column in enumerate(payload.get("columns", []))
+    ]
+
+    payload["metrics"] = [
+        {
+            **metric,
+            "expression": sanitize_for_llm_context(
+                metric.get("expression"),
+                field_path=("metrics", str(index), "expression"),
+            ),
+            "description": sanitize_for_llm_context(
+                metric.get("description"),
+                field_path=("metrics", str(index), "description"),
+            ),
+        }
+        for index, metric in enumerate(payload.get("metrics", []))
+    ]
+
+    return DatasetInfo.model_validate(payload)
+
+
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if not dataset:
         return None
@@ -435,46 +481,52 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         )
         for metric in getattr(dataset, "metrics", [])
     ]
-    return DatasetInfo(
-        id=getattr(dataset, "id", None),
-        table_name=getattr(dataset, "table_name", None),
-        schema_name=getattr(dataset, "schema", None),
-        database_name=getattr(dataset.database, "database_name", None)
-        if getattr(dataset, "database", None)
-        else None,
-        description=getattr(dataset, "description", None),
-        certified_by=getattr(dataset, "certified_by", None),
-        certification_details=getattr(dataset, "certification_details", None),
-        changed_on=getattr(dataset, "changed_on", None),
-        changed_on_humanized=_humanize_timestamp(getattr(dataset, "changed_on", None)),
-        created_on=getattr(dataset, "created_on", None),
-        created_on_humanized=_humanize_timestamp(getattr(dataset, "created_on", None)),
-        tags=[
-            TagInfo.model_validate(tag, from_attributes=True)
-            for tag in getattr(dataset, "tags", [])
-        ]
-        if getattr(dataset, "tags", None)
-        else [],
-        is_virtual=getattr(dataset, "is_virtual", None),
-        database_id=getattr(dataset, "database_id", None),
-        uuid=str(getattr(dataset, "uuid", ""))
-        if getattr(dataset, "uuid", None)
-        else None,
-        schema_perm=getattr(dataset, "schema_perm", None),
-        url=(
-            f"{get_superset_base_url()}/tablemodelview/edit/"
-            f"{getattr(dataset, 'id', None)}"
-            if getattr(dataset, "id", None)
-            else None
-        ),
-        sql=getattr(dataset, "sql", None),
-        main_dttm_col=getattr(dataset, "main_dttm_col", None),
-        offset=getattr(dataset, "offset", None),
-        cache_timeout=getattr(dataset, "cache_timeout", None),
-        params=params,
-        template_params=_parse_json_field(dataset, "template_params"),
-        extra=_parse_json_field(dataset, "extra"),
-        columns=columns,
-        metrics=metrics,
-        is_favorite=getattr(dataset, "is_favorite", None),
+    return _sanitize_dataset_info_for_llm_context(
+        DatasetInfo(
+            id=getattr(dataset, "id", None),
+            table_name=getattr(dataset, "table_name", None),
+            schema_name=getattr(dataset, "schema", None),
+            database_name=getattr(dataset.database, "database_name", None)
+            if getattr(dataset, "database", None)
+            else None,
+            description=getattr(dataset, "description", None),
+            certified_by=getattr(dataset, "certified_by", None),
+            certification_details=getattr(dataset, "certification_details", None),
+            changed_on=getattr(dataset, "changed_on", None),
+            changed_on_humanized=_humanize_timestamp(
+                getattr(dataset, "changed_on", None)
+            ),
+            created_on=getattr(dataset, "created_on", None),
+            created_on_humanized=_humanize_timestamp(
+                getattr(dataset, "created_on", None)
+            ),
+            tags=[
+                TagInfo.model_validate(tag, from_attributes=True)
+                for tag in getattr(dataset, "tags", [])
+            ]
+            if getattr(dataset, "tags", None)
+            else [],
+            is_virtual=getattr(dataset, "is_virtual", None),
+            database_id=getattr(dataset, "database_id", None),
+            uuid=str(getattr(dataset, "uuid", ""))
+            if getattr(dataset, "uuid", None)
+            else None,
+            schema_perm=getattr(dataset, "schema_perm", None),
+            url=(
+                f"{get_superset_base_url()}/tablemodelview/edit/"
+                f"{getattr(dataset, 'id', None)}"
+                if getattr(dataset, "id", None)
+                else None
+            ),
+            sql=getattr(dataset, "sql", None),
+            main_dttm_col=getattr(dataset, "main_dttm_col", None),
+            offset=getattr(dataset, "offset", None),
+            cache_timeout=getattr(dataset, "cache_timeout", None),
+            params=params,
+            template_params=_parse_json_field(dataset, "template_params"),
+            extra=_parse_json_field(dataset, "extra"),
+            columns=columns,
+            metrics=metrics,
+            is_favorite=getattr(dataset, "is_favorite", None),
+        )
     )

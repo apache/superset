@@ -20,9 +20,14 @@ import pytest
 from superset.mcp_service.utils.sanitization import (
     _check_dangerous_patterns,
     _check_sql_patterns,
+    _normalize_field_name,
     _remove_dangerous_unicode,
     _strip_html_tags,
+    LLM_CONTEXT_CLOSE_DELIMITER,
+    LLM_CONTEXT_EXCLUDED_FIELD_NAMES,
+    LLM_CONTEXT_OPEN_DELIMITER,
     sanitize_filter_value,
+    sanitize_for_llm_context,
     sanitize_user_input,
 )
 
@@ -478,3 +483,121 @@ def test_strip_html_tags_img_onerror_entity_bypass():
     result = _strip_html_tags("&lt;img src=x onerror=alert(1)&gt;")
     assert "<img" not in result
     assert "onerror" not in result
+
+
+# --- sanitize_for_llm_context tests ---
+
+
+def test_normalize_field_name_handles_case_and_hyphens():
+    assert _normalize_field_name("Schema-Name") == "schema_name"
+
+
+def test_sanitize_for_llm_context_wraps_plain_string():
+    assert sanitize_for_llm_context("hello world") == (
+        f"{LLM_CONTEXT_OPEN_DELIMITER}\nhello world\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    )
+
+
+def test_sanitize_for_llm_context_recurses_through_nested_payloads():
+    payload = {
+        "title": "Revenue dashboard",
+        "items": [
+            {"description": "Quarterly trends"},
+            {"notes": ["Watch margins", "Check seasonality"]},
+        ],
+    }
+
+    assert sanitize_for_llm_context(payload) == {
+        "title": (
+            f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
+            "Revenue dashboard\n"
+            f"{LLM_CONTEXT_CLOSE_DELIMITER}"
+        ),
+        "items": [
+            {
+                "description": (
+                    f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
+                    "Quarterly trends\n"
+                    f"{LLM_CONTEXT_CLOSE_DELIMITER}"
+                )
+            },
+            {
+                "notes": [
+                    (
+                        f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
+                        "Watch margins\n"
+                        f"{LLM_CONTEXT_CLOSE_DELIMITER}"
+                    ),
+                    (
+                        f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
+                        "Check seasonality\n"
+                        f"{LLM_CONTEXT_CLOSE_DELIMITER}"
+                    ),
+                ]
+            },
+        ],
+    }
+
+
+def test_sanitize_for_llm_context_preserves_excluded_operational_fields():
+    payload = {
+        "url": "https://superset.example.com/dashboard/7",
+        "uuid": "9f6b69e8-0d89-4b43-92b4-a5f645b37363",
+        "slug": "north-america-sales",
+        "cache_key": "dashboard-cache-key",
+        "database_name": "analytics",
+        "schema-name": "public",
+        "title": "Executive dashboard",
+    }
+
+    result = sanitize_for_llm_context(payload)
+
+    assert result["url"] == payload["url"]
+    assert result["uuid"] == payload["uuid"]
+    assert result["slug"] == payload["slug"]
+    assert result["cache_key"] == payload["cache_key"]
+    assert result["database_name"] == payload["database_name"]
+    assert result["schema-name"] == payload["schema-name"]
+    assert result["title"] != payload["title"]
+
+
+def test_sanitize_for_llm_context_preserves_shape_and_non_string_values():
+    payload = {
+        "title": "Chart summary",
+        "position": 3,
+        "published": True,
+        "metadata": None,
+        "ratios": [1.5, False, None],
+        "filters": ("region", 2),
+    }
+
+    result = sanitize_for_llm_context(payload)
+
+    assert isinstance(result, dict)
+    assert result["position"] == 3
+    assert result["published"] is True
+    assert result["metadata"] is None
+    assert result["ratios"] == [1.5, False, None]
+    assert result["filters"][1] == 2
+    assert result["title"] == (
+        f"{LLM_CONTEXT_OPEN_DELIMITER}\nChart summary\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    )
+    assert result["filters"][0] == (
+        f"{LLM_CONTEXT_OPEN_DELIMITER}\nregion\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    )
+
+
+def test_sanitize_for_llm_context_honors_custom_excluded_field_names():
+    payload = {"custom_id": "abc123", "description": "User-written summary"}
+
+    result = sanitize_for_llm_context(
+        payload,
+        excluded_field_names=LLM_CONTEXT_EXCLUDED_FIELD_NAMES | {"custom_id"},
+    )
+
+    assert result["custom_id"] == "abc123"
+    assert result["description"] == (
+        f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
+        "User-written summary\n"
+        f"{LLM_CONTEXT_CLOSE_DELIMITER}"
+    )

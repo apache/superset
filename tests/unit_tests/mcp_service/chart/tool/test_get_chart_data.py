@@ -23,7 +23,15 @@ from typing import Any
 
 import pytest
 
-from superset.mcp_service.chart.schemas import GetChartDataRequest
+from superset.mcp_service.chart.schemas import (
+    ChartData,
+    GetChartDataRequest,
+    PerformanceMetadata,
+)
+from superset.mcp_service.chart.tool.get_chart_data import (
+    _sanitize_chart_data_for_llm_context,
+)
+from superset.mcp_service.utils import sanitize_for_llm_context
 
 
 def _collect_groupby_extras(
@@ -224,6 +232,47 @@ class TestBigNumberChartFallback:
         assert len(metrics) == 1
         assert metrics[0]["label"] == "Period Comparison"
         assert groupby == []
+
+
+class TestChartDataSanitization:
+    """Tests for chart read-path payload sanitization."""
+
+    def test_sanitize_chart_data_wraps_rows_summaries_and_csv(self):
+        """ChartData helper should wrap user-controlled strings in read responses."""
+        chart_data = ChartData(
+            chart_id=7,
+            chart_name="Revenue by Region",
+            chart_type="bar",
+            columns=[],
+            data=[
+                {"region": "EMEA", "amount": 120},
+                {"region": "LATAM", "amount": 95},
+            ],
+            row_count=2,
+            total_rows=2,
+            summary="Two rows returned",
+            insights=["EMEA leads", "LATAM is second"],
+            data_quality={},
+            recommended_visualizations=[],
+            data_freshness=None,
+            performance=PerformanceMetadata(query_duration_ms=12, cache_status="miss"),
+            csv_data="region,amount\nEMEA,120\nLATAM,95\n",
+            format="csv",
+        )
+
+        result = _sanitize_chart_data_for_llm_context(chart_data)
+
+        assert result.chart_name == sanitize_for_llm_context("Revenue by Region")
+        assert result.summary == sanitize_for_llm_context("Two rows returned")
+        assert result.insights == [
+            sanitize_for_llm_context("EMEA leads"),
+            sanitize_for_llm_context("LATAM is second"),
+        ]
+        assert result.data[0]["region"] == sanitize_for_llm_context("EMEA")
+        assert result.data[0]["amount"] == 120
+        assert result.csv_data == sanitize_for_llm_context(
+            "region,amount\nEMEA,120\nLATAM,95\n"
+        )
 
 
 class TestWorldMapChartFallback:

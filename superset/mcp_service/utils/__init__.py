@@ -17,6 +17,10 @@
 
 from __future__ import annotations
 
+from superset.mcp_service.utils.sanitization import (
+    sanitize_for_llm_context as sanitize_for_llm_context,
+)
+
 
 def _is_uuid(value: str) -> bool:
     """Check if a string is a valid UUID."""

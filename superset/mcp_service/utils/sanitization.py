@@ -31,8 +31,86 @@ Key features:
 
 import html
 import re
+from typing import Any
 
 import nh3
+
+LLM_CONTEXT_OPEN_DELIMITER = "<UNTRUSTED-CONTENT>"
+LLM_CONTEXT_CLOSE_DELIMITER = "</UNTRUSTED-CONTENT>"
+LLM_CONTEXT_EXCLUDED_FIELD_NAMES = frozenset(
+    {
+        "cache_key",
+        "database",
+        "database_name",
+        "schema",
+        "schema_name",
+        "slug",
+        "url",
+        "urls",
+        "uuid",
+    }
+)
+
+
+def _normalize_field_name(field_name: str) -> str:
+    """Normalize a field name for exclusion matching."""
+    return field_name.strip().lower().replace("-", "_")
+
+
+def _wrap_llm_context_string(value: str) -> str:
+    """Wrap an untrusted string with explicit LLM-context delimiters."""
+    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+
+
+def sanitize_for_llm_context(
+    value: Any,
+    *,
+    field_path: tuple[str, ...] = (),
+    excluded_field_names: frozenset[str] | None = None,
+) -> Any:
+    """
+    Recursively wrap user-controlled strings before placing them in LLM context.
+
+    Strings are wrapped in explicit untrusted-content delimiters unless the
+    current field name is part of the shared operational exclusion policy.
+    Container shapes and non-string values are preserved.
+    """
+    excluded_names = excluded_field_names or LLM_CONTEXT_EXCLUDED_FIELD_NAMES
+    normalized_exclusions = frozenset(
+        _normalize_field_name(field_name) for field_name in excluded_names
+    )
+
+    def _sanitize(current_value: Any, current_path: tuple[str, ...]) -> Any:
+        current_field_name = current_path[-1] if current_path else ""
+        if current_field_name and (
+            _normalize_field_name(current_field_name) in normalized_exclusions
+        ):
+            return current_value
+
+        if isinstance(current_value, str):
+            return _wrap_llm_context_string(current_value)
+
+        if isinstance(current_value, dict):
+            return {
+                key: _sanitize(nested_value, (*current_path, str(key)))
+                for key, nested_value in current_value.items()
+            }
+
+        if isinstance(current_value, list):
+            return [
+                _sanitize(item, (*current_path, str(index)))
+                for index, item in enumerate(current_value)
+            ]
+
+        if isinstance(current_value, tuple):
+            return tuple(
+                _sanitize(item, (*current_path, str(index)))
+                for index, item in enumerate(current_value)
+            )
+
+        return current_value
+
+    return _sanitize(value, field_path)
 
 
 def _strip_html_tags(value: str) -> str:

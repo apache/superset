@@ -34,6 +34,10 @@ from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     tool_requires_data_model_metadata_access,
 )
+from superset.mcp_service.utils.sanitization import (
+    LLM_CONTEXT_CLOSE_DELIMITER,
+    LLM_CONTEXT_OPEN_DELIMITER,
+)
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -44,6 +48,10 @@ list_datasets_module = importlib.import_module(
 get_dataset_info_module = importlib.import_module(
     "superset.mcp_service.dataset.tool.get_dataset_info"
 )
+
+
+def _wrapped(value: str) -> str:
+    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
 
 
 def create_mock_dataset(
@@ -1327,7 +1335,7 @@ class TestDatasetCertificationSerialization:
 
         assert result is not None
         assert result.certified_by == "Analytics Engineering"
-        assert result.certification_details == "Production-ready, SLA-backed"
+        assert result.certification_details == _wrapped("Production-ready, SLA-backed")
 
     def test_serialize_dataset_with_none_certification(self):
         """serialize_dataset_object handles None certification fields."""
@@ -1340,6 +1348,48 @@ class TestDatasetCertificationSerialization:
         assert result is not None
         assert result.certified_by is None
         assert result.certification_details is None
+
+    def test_serialize_dataset_wraps_llm_context_fields(self):
+        """serialize_dataset_object wraps user-controlled read-path fields."""
+        from superset.mcp_service.dataset.schemas import serialize_dataset_object
+
+        column = MagicMock()
+        column.column_name = "region"
+        column.verbose_name = "Region"
+        column.type = "VARCHAR"
+        column.is_dttm = False
+        column.groupby = True
+        column.filterable = True
+        column.description = "Region description"
+
+        metric = MagicMock()
+        metric.metric_name = "count"
+        metric.verbose_name = "Count"
+        metric.expression = "COUNT(*)"
+        metric.description = "Row count"
+        metric.d3format = None
+
+        dataset = create_mock_dataset(columns=[column], metrics=[metric])
+        dataset.description = "Dataset instructions"
+        dataset.certification_details = "Certified by analytics"
+        dataset.sql = "select * from sales"
+        dataset.params = {"label": "Monthly sales"}
+        dataset.template_params = {"region": "EMEA"}
+
+        result = serialize_dataset_object(dataset)
+
+        assert result is not None
+        assert result.table_name == "Test DatasetInfo"
+        assert result.schema_name == "main"
+        assert result.database_name == "examples"
+        assert result.description == _wrapped("Dataset instructions")
+        assert result.certification_details == _wrapped("Certified by analytics")
+        assert result.sql == _wrapped("select * from sales")
+        assert result.params == {"label": _wrapped("Monthly sales")}
+        assert result.template_params == {"region": _wrapped("EMEA")}
+        assert result.columns[0].description == _wrapped("Region description")
+        assert result.metrics[0].expression == _wrapped("COUNT(*)")
+        assert result.metrics[0].description == _wrapped("Row count")
 
 
 class TestDatasetDefaultColumnFiltering:

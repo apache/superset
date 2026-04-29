@@ -41,6 +41,7 @@ from superset.mcp_service.chart.tool.get_chart_sql import (
     _resolve_metrics_and_groupby,
     get_chart_sql,
 )
+from superset.mcp_service.utils import sanitize_for_llm_context
 
 _get_chart_sql_mod = importlib.import_module(
     "superset.mcp_service.chart.tool.get_chart_sql"
@@ -106,12 +107,39 @@ class TestExtractSqlFromResult:
             datasource_name="my_table",
         )
         assert isinstance(output, ChartSql)
-        assert output.sql == "SELECT * FROM my_table WHERE x > 1"
+        assert output.sql == sanitize_for_llm_context(
+            "SELECT * FROM my_table WHERE x > 1"
+        )
         assert output.language == "sql"
         assert output.chart_id == 10
-        assert output.chart_name == "Sales Chart"
+        assert output.chart_name == sanitize_for_llm_context("Sales Chart")
         assert output.datasource_name == "my_table"
         assert output.error is None
+
+    def test_successful_sql_extraction_preserves_operational_identifiers(self):
+        """Chart SQL wrapping should not alter datasource identifiers."""
+        result = {
+            "queries": [
+                {
+                    "query": "SELECT * FROM orders",
+                    "language": "sql",
+                    "error": "Missing optional predicate",
+                }
+            ]
+        }
+
+        output = _extract_sql_from_result(
+            result,
+            chart_id=10,
+            chart_name="Orders",
+            datasource_name="analytics.orders",
+        )
+
+        assert isinstance(output, ChartSql)
+        assert output.datasource_name == "analytics.orders"
+        assert output.error == sanitize_for_llm_context(
+            "Query 1: Missing optional predicate"
+        )
 
     def test_empty_queries_returns_error(self):
         """Test that empty query results return a ChartError."""
@@ -164,7 +192,7 @@ class TestExtractSqlFromResult:
             result, chart_id=7, chart_name="Partial", datasource_name="tbl"
         )
         assert isinstance(output, ChartSql)
-        assert output.sql == "SELECT col1 FROM tbl"
+        assert output.sql == sanitize_for_llm_context("SELECT col1 FROM tbl")
         assert output.error is not None
 
     def test_null_chart_metadata(self):

@@ -37,6 +37,8 @@ from superset.mcp_service.chart.tool.generate_chart import (
     _compile_chart,
     CompileResult,
 )
+from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.utils import json as utils_json
 
 
 class TestGenerateChart:
@@ -393,7 +395,7 @@ class TestChartSerializationEagerLoading:
 
         assert result is not None
         assert result.id == 42
-        assert result.slice_name == "Test Chart"
+        assert result.slice_name == sanitize_for_llm_context("Test Chart")
         assert result.tags == []
         assert "owners" not in result.model_dump()
 
@@ -409,7 +411,54 @@ class TestChartSerializationEagerLoading:
 
         assert result is not None
         assert result.certified_by == "Data Team"
-        assert result.certification_details == "Verified Q1 2026 metrics"
+        assert result.certification_details == sanitize_for_llm_context(
+            "Verified Q1 2026 metrics"
+        )
+
+    def test_serialize_chart_object_sanitizes_chart_metadata_and_filters(self):
+        """serialize_chart_object sanitizes chart read-path content in place."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        chart.description = "Show sales instructions"
+        chart.certification_details = "Verified by analytics"
+        chart.params = utils_json.dumps(
+            {
+                "datasource": "42__table",
+                "datasource_id": 42,
+                "datasource_type": "table",
+                "viz_type": "echarts_timeseries_bar",
+                "adhoc_filters": [
+                    {
+                        "expressionType": "SQL",
+                        "sqlExpression": "region = 'EMEA'",
+                    }
+                ],
+                "where": "country = 'BR'",
+                "time_range": "Last quarter",
+            }
+        )
+
+        result = serialize_chart_object(chart)
+
+        assert result is not None
+        assert result.slice_name == sanitize_for_llm_context("Test Chart")
+        assert result.description == sanitize_for_llm_context("Show sales instructions")
+        assert result.certification_details == sanitize_for_llm_context(
+            "Verified by analytics"
+        )
+        assert result.form_data is not None
+        assert result.form_data["datasource"] == "42__table"
+        assert result.form_data["where"] == sanitize_for_llm_context("country = 'BR'")
+        assert result.form_data["time_range"] == sanitize_for_llm_context(
+            "Last quarter"
+        )
+        assert result.filters is not None
+        assert result.filters.where == sanitize_for_llm_context("country = 'BR'")
+        assert result.filters.time_range == sanitize_for_llm_context("Last quarter")
+        assert result.filters.adhoc_filters[
+            0
+        ].sql_expression == sanitize_for_llm_context("region = 'EMEA'")
 
     def test_serialize_chart_object_fails_on_detached_instance(self):
         """serialize_chart_object raises when accessing lazy attrs on detached

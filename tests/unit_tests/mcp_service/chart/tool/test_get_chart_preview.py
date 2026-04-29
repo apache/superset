@@ -22,11 +22,19 @@ Unit tests for get_chart_preview MCP tool
 import pytest
 
 from superset.mcp_service.chart.schemas import (
+    AccessibilityMetadata,
     ASCIIPreview,
+    ChartPreview,
     GetChartPreviewRequest,
+    PerformanceMetadata,
     TablePreview,
     URLPreview,
+    VegaLitePreview,
 )
+from superset.mcp_service.chart.tool.get_chart_preview import (
+    _sanitize_chart_preview_for_llm_context,
+)
+from superset.mcp_service.utils import sanitize_for_llm_context
 
 
 class TestPreviewXAxisInQueryContext:
@@ -339,6 +347,87 @@ class TestGetChartPreview:
         assert metadata.query_duration_ms == 150
         assert metadata.cache_status == "hit"
         assert len(metadata.optimization_suggestions) == 1
+
+
+class TestChartPreviewSanitization:
+    """Tests for chart preview read-path sanitization."""
+
+    def test_sanitize_chart_preview_wraps_ascii_and_alt_text(self):
+        """ASCII previews should be wrapped while operational URLs stay raw."""
+        preview = ChartPreview(
+            chart_id=3,
+            chart_name="Regional Trend",
+            chart_type="line",
+            explore_url="http://localhost:8088/explore/?slice_id=3",
+            content=ASCIIPreview(ascii_content="North > South", width=20, height=5),
+            chart_description="Preview of line: Regional Trend",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Preview of Regional Trend",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=8, cache_status="miss"),
+            format="ascii",
+            ascii_chart="North > South",
+            width=20,
+            height=5,
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+
+        assert result.chart_name == sanitize_for_llm_context("Regional Trend")
+        assert result.explore_url == "http://localhost:8088/explore/?slice_id=3"
+        assert result.chart_description == sanitize_for_llm_context(
+            "Preview of line: Regional Trend"
+        )
+        assert result.content.ascii_content == sanitize_for_llm_context("North > South")
+        assert result.ascii_chart == sanitize_for_llm_context("North > South")
+        assert result.accessibility.alt_text == sanitize_for_llm_context(
+            "Preview of Regional Trend"
+        )
+
+    def test_sanitize_chart_preview_wraps_vega_lite_data_values(self):
+        """Vega-Lite previews should wrap description and row string values."""
+        preview = ChartPreview(
+            chart_id=4,
+            chart_name="Category Share",
+            chart_type="pie",
+            explore_url="http://localhost:8088/explore/?slice_id=4",
+            content=VegaLitePreview(
+                specification={
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "description": "Pie chart for category share",
+                    "data": {
+                        "values": [
+                            {"category": "Retail", "value": 10},
+                            {"category": "Enterprise", "value": 20},
+                        ]
+                    },
+                }
+            ),
+            chart_description="Preview of pie: Category Share",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Preview of Category Share",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=11, cache_status="miss"),
+            format="vega_lite",
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+        specification = result.content.specification
+
+        assert specification["$schema"] == (
+            "https://vega.github.io/schema/vega-lite/v5.json"
+        )
+        assert specification["description"] == sanitize_for_llm_context(
+            "Pie chart for category share"
+        )
+        assert specification["data"]["values"][0][
+            "category"
+        ] == sanitize_for_llm_context("Retail")
+        assert specification["data"]["values"][0]["value"] == 10
 
     @pytest.mark.asyncio
     async def test_chart_types_support(self):

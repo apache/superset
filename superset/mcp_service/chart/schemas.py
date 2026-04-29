@@ -55,6 +55,7 @@ from superset.mcp_service.system.schemas import (
     PaginationInfo,
     TagInfo,
 )
+from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.sanitization import (
     sanitize_filter_value,
     sanitize_user_input,
@@ -373,6 +374,58 @@ def extract_filters_from_form_data(
     )
 
 
+CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = frozenset(
+    {
+        "all_columns",
+        "columns",
+        "datasource",
+        "datasource_id",
+        "datasource_name",
+        "datasource_type",
+        "entity",
+        "form_data_key",
+        "groupby",
+        "metric",
+        "metrics",
+        "series",
+        "slice_id",
+        "viz_type",
+        "x",
+        "y",
+        "size",
+    }
+)
+
+
+def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:
+    """Wrap chart read-path descriptive fields before LLM exposure."""
+    payload = chart_info.model_dump(mode="python")
+
+    for field_name in ("slice_name", "description", "certification_details"):
+        payload[field_name] = sanitize_for_llm_context(
+            payload.get(field_name),
+            field_path=(field_name,),
+        )
+
+    if payload.get("filters") is not None:
+        payload["filters"] = sanitize_for_llm_context(
+            payload["filters"],
+            field_path=("filters",),
+        )
+
+    if payload.get("form_data") is not None:
+        payload["form_data"] = sanitize_for_llm_context(
+            payload["form_data"],
+            field_path=("form_data",),
+            excluded_field_names=(
+                CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
+                | frozenset({"cache_key", "database", "database_name", "schema"})
+            ),
+        )
+
+    return ChartInfo.model_validate(payload)
+
+
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
@@ -399,30 +452,38 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     # Extract structured filter information
     filters_info = extract_filters_from_form_data(chart_form_data)
 
-    return ChartInfo(
-        id=chart_id,
-        slice_name=getattr(chart, "slice_name", None),
-        viz_type=getattr(chart, "viz_type", None),
-        datasource_name=getattr(chart, "datasource_name", None),
-        datasource_type=getattr(chart, "datasource_type", None),
-        url=chart_url,
-        description=getattr(chart, "description", None),
-        certified_by=getattr(chart, "certified_by", None),
-        certification_details=getattr(chart, "certification_details", None),
-        cache_timeout=getattr(chart, "cache_timeout", None),
-        form_data=chart_form_data,
-        filters=filters_info,
-        changed_on=getattr(chart, "changed_on", None),
-        changed_on_humanized=_humanize_timestamp(getattr(chart, "changed_on", None)),
-        created_on=getattr(chart, "created_on", None),
-        created_on_humanized=_humanize_timestamp(getattr(chart, "created_on", None)),
-        uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
-        tags=[
-            TagInfo.model_validate(tag, from_attributes=True)
-            for tag in getattr(chart, "tags", [])
-        ]
-        if getattr(chart, "tags", None)
-        else [],
+    return sanitize_chart_info_for_llm_context(
+        ChartInfo(
+            id=chart_id,
+            slice_name=getattr(chart, "slice_name", None),
+            viz_type=getattr(chart, "viz_type", None),
+            datasource_name=getattr(chart, "datasource_name", None),
+            datasource_type=getattr(chart, "datasource_type", None),
+            url=chart_url,
+            description=getattr(chart, "description", None),
+            certified_by=getattr(chart, "certified_by", None),
+            certification_details=getattr(chart, "certification_details", None),
+            cache_timeout=getattr(chart, "cache_timeout", None),
+            form_data=chart_form_data,
+            filters=filters_info,
+            changed_on=getattr(chart, "changed_on", None),
+            changed_on_humanized=_humanize_timestamp(
+                getattr(chart, "changed_on", None)
+            ),
+            created_on=getattr(chart, "created_on", None),
+            created_on_humanized=_humanize_timestamp(
+                getattr(chart, "created_on", None)
+            ),
+            uuid=str(getattr(chart, "uuid", ""))
+            if getattr(chart, "uuid", None)
+            else None,
+            tags=[
+                TagInfo.model_validate(tag, from_attributes=True)
+                for tag in getattr(chart, "tags", [])
+            ]
+            if getattr(chart, "tags", None)
+            else [],
+        )
     )
 
 
