@@ -1114,6 +1114,25 @@ test('getAxisType does not coerce Numeric x-axis to Time regardless of values', 
   );
 });
 
+test('getAxisType treats numeric as category for bar charts', () => {
+  expect(
+    getAxisType(
+      false,
+      false,
+      GenericDataType.Numeric,
+      EchartsTimeseriesSeriesType.Bar,
+    ),
+  ).toEqual(AxisType.Category);
+  expect(
+    getAxisType(
+      false,
+      false,
+      GenericDataType.Numeric,
+      EchartsTimeseriesSeriesType.Line,
+    ),
+  ).toEqual(AxisType.Value);
+});
+
 test('getMinAndMaxFromBounds returns empty object when not truncating', () => {
   expect(
     getMinAndMaxFromBounds(

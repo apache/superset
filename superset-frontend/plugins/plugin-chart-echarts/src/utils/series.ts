@@ -576,6 +576,7 @@ export function getAxisType(
   stack: StackType,
   forceCategorical?: boolean,
   dataType?: GenericDataType,
+  seriesType?: EchartsTimeseriesSeriesType,
 ): AxisType {
   if (forceCategorical) {
     return AxisType.Category;
@@ -583,7 +584,11 @@ export function getAxisType(
   if (dataType === GenericDataType.Temporal) {
     return AxisType.Time;
   }
-  if (dataType === GenericDataType.Numeric && !stack) {
+  if (
+    dataType === GenericDataType.Numeric &&
+    !stack &&
+    seriesType !== EchartsTimeseriesSeriesType.Bar
+  ) {
     return AxisType.Value;
   }
   return AxisType.Category;
