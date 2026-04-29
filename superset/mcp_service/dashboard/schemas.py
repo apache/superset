@@ -113,6 +113,11 @@ class DashboardError(BaseModel):
 
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str) -> str:
+        return sanitize_for_llm_context(value, field_path=("error",))
+
     @classmethod
     def create(cls, error: str, error_type: str) -> "DashboardError":
         """Create a standardized DashboardError with timestamp."""
