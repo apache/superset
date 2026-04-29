@@ -405,7 +405,7 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             try:
                 import MySQLdb
             except ImportError:
-                import pymysql as MySQLdb
+                import pymysql as MySQLdb  # noqa: N812
 
             ft = MySQLdb.constants.FIELD_TYPE
             cls.type_code_map = {
