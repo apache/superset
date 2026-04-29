@@ -246,7 +246,12 @@ class TestChartDataSanitization:
             chart_type="bar",
             columns=[],
             data=[
-                {"region": "EMEA", "amount": 120},
+                {
+                    "region": "EMEA",
+                    "amount": 120,
+                    "url": "https://example.com/in-row-data",
+                    "schema": "customer-provided schema text",
+                },
                 {"region": "LATAM", "amount": 95},
             ],
             row_count=2,
@@ -271,6 +276,12 @@ class TestChartDataSanitization:
         ]
         assert result.data[0]["region"] == sanitize_for_llm_context("EMEA")
         assert result.data[0]["amount"] == 120
+        assert result.data[0]["url"] == sanitize_for_llm_context(
+            "https://example.com/in-row-data"
+        )
+        assert result.data[0]["schema"] == sanitize_for_llm_context(
+            "customer-provided schema text"
+        )
         assert result.csv_data == sanitize_for_llm_context(
             "region,amount\nEMEA,120\nLATAM,95\n"
         )
@@ -285,7 +296,7 @@ class TestChartDataSanitization:
                     name="country",
                     display_name="Country",
                     data_type="STRING",
-                    sample_values=["Brazil", "Japan", None],
+                    sample_values=["Brazil", "Japan", "https://example.com", None],
                     null_count=0,
                     unique_count=2,
                 )
@@ -310,6 +321,7 @@ class TestChartDataSanitization:
         assert result.columns[0].sample_values == [
             sanitize_for_llm_context("Brazil"),
             sanitize_for_llm_context("Japan"),
+            sanitize_for_llm_context("https://example.com"),
             None,
         ]
         assert result.recommended_visualizations == ["table"]

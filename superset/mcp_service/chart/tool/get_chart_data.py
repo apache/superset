@@ -74,6 +74,7 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
     payload["data"] = sanitize_for_llm_context(
         payload.get("data", []),
         field_path=("data",),
+        excluded_field_names=frozenset(),
     )
     payload["columns"] = [
         {
@@ -81,6 +82,7 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
             "sample_values": sanitize_for_llm_context(
                 column.get("sample_values", []),
                 field_path=("columns", str(index), "sample_values"),
+                excluded_field_names=frozenset(),
             ),
         }
         for index, column in enumerate(payload.get("columns", []))

@@ -99,6 +99,7 @@ def _sanitize_preview_content_for_llm_context(content: dict[str, Any]) -> None:
         specification["data"]["values"] = sanitize_for_llm_context(
             values,
             field_path=("content", "specification", "data", "values"),
+            excluded_field_names=frozenset(),
         )
 
 

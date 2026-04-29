@@ -436,7 +436,10 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
         "state": {
             "dataMask": {
                 "native-filter-1": {
-                    "filterState": {"label": "EMEA"},
+                    "filterState": {
+                        "label": "EMEA",
+                        "url": "https://example.com/filter-value",
+                    },
                     "extraFormData": {
                         "filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]
                     },
@@ -477,6 +480,9 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
     assert result.data["filter_state"]["dataMask"]["native-filter-1"]["filterState"][
         "label"
     ] == _wrapped("EMEA")
+    assert result.data["filter_state"]["dataMask"]["native-filter-1"]["filterState"][
+        "url"
+    ] == _wrapped("https://example.com/filter-value")
     assert result.data["filter_state"]["dataMask"]["native-filter-1"]["extraFormData"][
         "filters"
     ][0]["val"][0] == _wrapped("EMEA")

@@ -37,6 +37,8 @@ import nh3
 
 LLM_CONTEXT_OPEN_DELIMITER = "<UNTRUSTED-CONTENT>"
 LLM_CONTEXT_CLOSE_DELIMITER = "</UNTRUSTED-CONTENT>"
+LLM_CONTEXT_ESCAPED_OPEN_DELIMITER = "[ESCAPED-UNTRUSTED-CONTENT-OPEN]"
+LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER = "[ESCAPED-UNTRUSTED-CONTENT-CLOSE]"
 LLM_CONTEXT_EXCLUDED_FIELD_NAMES = frozenset(
     {
         "cache_key",
@@ -59,7 +61,21 @@ def _normalize_field_name(field_name: str) -> str:
 
 def _wrap_llm_context_string(value: str) -> str:
     """Wrap an untrusted string with explicit LLM-context delimiters."""
-    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    wrapped_prefix = f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
+    wrapped_suffix = f"\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    if value.startswith(wrapped_prefix) and value.endswith(wrapped_suffix):
+        return value
+
+    escaped_value = value.replace(
+        LLM_CONTEXT_OPEN_DELIMITER,
+        LLM_CONTEXT_ESCAPED_OPEN_DELIMITER,
+    ).replace(
+        LLM_CONTEXT_CLOSE_DELIMITER,
+        LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER,
+    )
+    return (
+        f"{LLM_CONTEXT_OPEN_DELIMITER}\n{escaped_value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    )
 
 
 def sanitize_for_llm_context(
@@ -75,7 +91,11 @@ def sanitize_for_llm_context(
     current field name is part of the shared operational exclusion policy.
     Container shapes and non-string values are preserved.
     """
-    excluded_names = excluded_field_names or LLM_CONTEXT_EXCLUDED_FIELD_NAMES
+    excluded_names = (
+        LLM_CONTEXT_EXCLUDED_FIELD_NAMES
+        if excluded_field_names is None
+        else excluded_field_names
+    )
     normalized_exclusions = frozenset(
         _normalize_field_name(field_name) for field_name in excluded_names
     )

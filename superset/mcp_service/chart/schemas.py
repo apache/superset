@@ -411,6 +411,7 @@ def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:
         payload["filters"] = sanitize_for_llm_context(
             payload["filters"],
             field_path=("filters",),
+            excluded_field_names=frozenset(),
         )
 
     if payload.get("form_data") is not None:

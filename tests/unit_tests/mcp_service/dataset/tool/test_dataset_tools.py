@@ -1373,8 +1373,21 @@ class TestDatasetCertificationSerialization:
         dataset.description = "Dataset instructions"
         dataset.certification_details = "Certified by analytics"
         dataset.sql = "select * from sales"
-        dataset.params = {"label": "Monthly sales"}
-        dataset.template_params = {"region": "EMEA"}
+        dataset.params = {
+            "label": "Monthly sales",
+            "url": "https://example.com/params",
+        }
+        dataset.template_params = {
+            "region": "EMEA",
+            "schema": "template schema text",
+        }
+        dataset.extra = json.dumps(
+            {
+                "metadata": {
+                    "url": "https://example.com/extra",
+                },
+            }
+        )
 
         result = serialize_dataset_object(dataset)
 
@@ -1385,11 +1398,24 @@ class TestDatasetCertificationSerialization:
         assert result.description == _wrapped("Dataset instructions")
         assert result.certification_details == _wrapped("Certified by analytics")
         assert result.sql == _wrapped("select * from sales")
-        assert result.params == {"label": _wrapped("Monthly sales")}
-        assert result.template_params == {"region": _wrapped("EMEA")}
+        assert result.params == {
+            "label": _wrapped("Monthly sales"),
+            "url": _wrapped("https://example.com/params"),
+        }
+        assert result.template_params == {
+            "region": _wrapped("EMEA"),
+            "schema": _wrapped("template schema text"),
+        }
+        assert result.extra == {
+            "metadata": {
+                "url": _wrapped("https://example.com/extra"),
+            },
+        }
         assert result.columns[0].description == _wrapped("Region description")
+        assert result.columns[0].verbose_name == _wrapped("Region")
         assert result.metrics[0].expression == _wrapped("COUNT(*)")
         assert result.metrics[0].description == _wrapped("Row count")
+        assert result.metrics[0].verbose_name == _wrapped("Count")
 
 
 class TestDatasetDefaultColumnFiltering:

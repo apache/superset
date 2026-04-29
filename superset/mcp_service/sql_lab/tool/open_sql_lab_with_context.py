@@ -22,7 +22,7 @@ Tool for generating SQL Lab URLs with pre-populated sql and context.
 """
 
 import logging
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import urlencode
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -38,30 +38,11 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 logger = logging.getLogger(__name__)
 
 
-def _sanitize_sql_lab_url_for_llm_context(url: str) -> str:
-    """Wrap untrusted SQL Lab query parameters while keeping the URL usable."""
-    parsed_url = urlsplit(url)
-    query_params = parse_qsl(parsed_url.query, keep_blank_values=True)
-    sanitized_query_params = [
-        (
-            key,
-            sanitize_for_llm_context(value, field_path=(key,))
-            if key in {"sql", "title"}
-            else value,
-        )
-        for key, value in query_params
-    ]
-    return urlunsplit(
-        parsed_url._replace(query=urlencode(sanitized_query_params, doseq=True))
-    )
-
-
 def _sanitize_sql_lab_response_for_llm_context(
     response: SqlLabResponse,
 ) -> SqlLabResponse:
     """Wrap user-controlled SQL Lab response content before LLM exposure."""
     payload = response.model_dump(mode="python")
-    payload["url"] = _sanitize_sql_lab_url_for_llm_context(payload["url"])
 
     for field_name in ("title", "error"):
         payload[field_name] = sanitize_for_llm_context(

@@ -35,6 +35,7 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.tool.generate_chart import (
     _compile_chart,
+    _sanitize_generate_chart_form_data_for_llm_context,
     CompileResult,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
@@ -459,6 +460,38 @@ class TestChartSerializationEagerLoading:
         assert result.filters.adhoc_filters[
             0
         ].sql_expression == sanitize_for_llm_context("region = 'EMEA'")
+
+    def test_generate_chart_form_data_response_is_sanitized(self):
+        form_data = {
+            "viz_type": "table",
+            "datasource": "42__table",
+            "where": "country = 'BR'",
+            "time_range": "Last quarter",
+            "adhoc_filters": [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "region = 'EMEA'",
+                    "comparator": "EMEA",
+                }
+            ],
+            "url": "https://example.com/user-value",
+        }
+
+        result = _sanitize_generate_chart_form_data_for_llm_context(form_data)
+
+        assert result["viz_type"] == "table"
+        assert result["datasource"] == "42__table"
+        assert result["where"] == sanitize_for_llm_context("country = 'BR'")
+        assert result["time_range"] == sanitize_for_llm_context("Last quarter")
+        assert result["adhoc_filters"][0]["sqlExpression"] == sanitize_for_llm_context(
+            "region = 'EMEA'"
+        )
+        assert result["adhoc_filters"][0]["comparator"] == sanitize_for_llm_context(
+            "EMEA"
+        )
+        assert result["url"] == sanitize_for_llm_context(
+            "https://example.com/user-value"
+        )
 
     def test_serialize_chart_object_fails_on_detached_instance(self):
         """serialize_chart_object raises when accessing lazy attrs on detached

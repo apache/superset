@@ -400,7 +400,11 @@ class TestChartPreviewSanitization:
                     "description": "Pie chart for category share",
                     "data": {
                         "values": [
-                            {"category": "Retail", "value": 10},
+                            {
+                                "category": "Retail",
+                                "url": "https://example.com/retail",
+                                "value": 10,
+                            },
                             {"category": "Enterprise", "value": 20},
                         ]
                     },
@@ -428,6 +432,9 @@ class TestChartPreviewSanitization:
         assert specification["data"]["values"][0][
             "category"
         ] == sanitize_for_llm_context("Retail")
+        assert specification["data"]["values"][0]["url"] == sanitize_for_llm_context(
+            "https://example.com/retail"
+        )
         assert specification["data"]["values"][0]["value"] == 10
 
     def test_sanitize_chart_preview_wraps_table_content(self):

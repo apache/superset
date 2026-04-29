@@ -412,10 +412,17 @@ def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> Dataset
             field_path=(field_name,),
         )
 
+    payload["extra"] = sanitize_for_llm_context(
+        payload.get("extra"),
+        field_path=("extra",),
+        excluded_field_names=frozenset(),
+    )
+
     for field_name in ("params", "template_params"):
         payload[field_name] = sanitize_for_llm_context(
             payload.get(field_name),
             field_path=(field_name,),
+            excluded_field_names=frozenset(),
         )
 
     payload["columns"] = [
@@ -424,6 +431,10 @@ def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> Dataset
             "description": sanitize_for_llm_context(
                 column.get("description"),
                 field_path=("columns", str(index), "description"),
+            ),
+            "verbose_name": sanitize_for_llm_context(
+                column.get("verbose_name"),
+                field_path=("columns", str(index), "verbose_name"),
             ),
         }
         for index, column in enumerate(payload.get("columns", []))
@@ -439,6 +450,10 @@ def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> Dataset
             "description": sanitize_for_llm_context(
                 metric.get("description"),
                 field_path=("metrics", str(index), "description"),
+            ),
+            "verbose_name": sanitize_for_llm_context(
+                metric.get("verbose_name"),
+                field_path=("metrics", str(index), "verbose_name"),
             ),
         }
         for index, metric in enumerate(payload.get("metrics", []))

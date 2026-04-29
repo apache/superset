@@ -82,6 +82,7 @@ def _apply_permalink_state(
     payload["filter_state"] = sanitize_for_llm_context(
         permalink_state,
         field_path=("filter_state",),
+        excluded_field_names=frozenset(),
     )
     payload["is_permalink_state"] = True
     return DashboardInfo.model_validate(payload)

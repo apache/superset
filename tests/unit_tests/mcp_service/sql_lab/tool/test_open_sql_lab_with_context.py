@@ -138,18 +138,8 @@ class TestOpenSqlLabWithContext:
             assert parsed.path == "/sqllab"
             assert params["dbid"] == ["7"]
             assert params["schema"] == ["analytics"]
-            assert params["title"] == [
-                sanitize_for_llm_context(
-                    "Review this query",
-                    field_path=("title",),
-                )
-            ]
-            assert params["sql"] == [
-                sanitize_for_llm_context(
-                    "SELECT * FROM users LIMIT 10",
-                    field_path=("sql",),
-                )
-            ]
+            assert params["title"] == ["Review this query"]
+            assert params["sql"] == ["SELECT * FROM users LIMIT 10"]
         finally:
             _restore_modules(saved_modules)
 
@@ -191,9 +181,7 @@ class TestOpenSqlLabWithContext:
             assert response.title is None
             assert params["dbid"] == ["12"]
             assert params["schema"] == ["public"]
-            assert params["sql"] == [
-                sanitize_for_llm_context(expected_sql, field_path=("sql",))
-            ]
+            assert params["sql"] == [expected_sql]
         finally:
             _restore_modules(saved_modules)
 
@@ -230,13 +218,11 @@ class TestOpenSqlLabWithContext:
 
             assert response.schema_name is None
             assert "schema" not in params
-            assert params["sql"] == [
-                sanitize_for_llm_context(expected_sql, field_path=("sql",))
-            ]
+            assert params["sql"] == [expected_sql]
         finally:
             _restore_modules(saved_modules)
 
-    def test_sanitizes_only_untrusted_sql_lab_url_parameters(self) -> None:
+    def test_keeps_sql_lab_url_query_parameters_operational(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
             url = (
@@ -244,17 +230,24 @@ class TestOpenSqlLabWithContext:
                 "dbid=7&schema=analytics&sql=SELECT+1&title=Inspect+query"
             )
 
-            sanitized_url = mod._sanitize_sql_lab_url_for_llm_context(url)
-            params = parse_qs(urlsplit(sanitized_url).query)
+            response = mod._sanitize_sql_lab_response_for_llm_context(
+                mod.SqlLabResponse(
+                    url=url,
+                    database_id=7,
+                    schema="analytics",
+                    title="Inspect query",
+                )
+            )
+            params = parse_qs(urlsplit(response.url).query)
 
             assert params["dbid"] == ["7"]
             assert params["schema"] == ["analytics"]
-            assert params["sql"] == [
-                sanitize_for_llm_context("SELECT 1", field_path=("sql",))
-            ]
-            assert params["title"] == [
-                sanitize_for_llm_context("Inspect query", field_path=("title",))
-            ]
+            assert params["sql"] == ["SELECT 1"]
+            assert params["title"] == ["Inspect query"]
+            assert response.title == sanitize_for_llm_context(
+                "Inspect query",
+                field_path=("title",),
+            )
         finally:
             _restore_modules(saved_modules)
 

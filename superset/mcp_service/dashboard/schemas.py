@@ -769,6 +769,7 @@ def _sanitize_dashboard_info_for_llm_context(
             "targets": sanitize_for_llm_context(
                 native_filter.get("targets", []),
                 field_path=("native_filters", str(index), "targets"),
+                excluded_field_names=frozenset(),
             ),
         }
         for index, native_filter in enumerate(payload.get("native_filters", []))
@@ -793,6 +794,7 @@ def _sanitize_dashboard_info_for_llm_context(
         payload["filter_state"] = sanitize_for_llm_context(
             payload["filter_state"],
             field_path=("filter_state",),
+            excluded_field_names=frozenset(),
         )
 
     return DashboardInfo.model_validate(payload)

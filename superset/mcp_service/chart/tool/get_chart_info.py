@@ -122,6 +122,7 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
         payload["filters"] = sanitize_for_llm_context(
             payload["filters"],
             field_path=("filters",),
+            excluded_field_names=frozenset(),
         )
     if payload.get("form_data") is not None:
         payload["form_data"] = sanitize_for_llm_context(
