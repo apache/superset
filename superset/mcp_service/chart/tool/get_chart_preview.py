@@ -95,8 +95,9 @@ def _sanitize_preview_content_for_llm_context(content: dict[str, Any]) -> None:
             field_path=("content", "specification", "description"),
         )
 
-    if (values := specification.get("data", {}).get("values")) is not None:
-        specification["data"]["values"] = sanitize_for_llm_context(
+    data = specification.get("data")
+    if isinstance(data, dict) and (values := data.get("values")) is not None:
+        data["values"] = sanitize_for_llm_context(
             values,
             field_path=("content", "specification", "data", "values"),
             excluded_field_names=frozenset(),

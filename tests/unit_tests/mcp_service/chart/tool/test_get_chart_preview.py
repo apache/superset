@@ -437,6 +437,36 @@ class TestChartPreviewSanitization:
         )
         assert specification["data"]["values"][0]["value"] == 10
 
+    def test_sanitize_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(self):
+        preview = ChartPreview(
+            chart_id=4,
+            chart_name="Category Share",
+            chart_type="pie",
+            explore_url="http://localhost:8088/explore/?slice_id=4",
+            content=VegaLitePreview(
+                specification={
+                    "description": "Pie chart for category share",
+                    "data": "named_dataset",
+                }
+            ),
+            chart_description="Preview of pie: Category Share",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Preview of Category Share",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=11, cache_status="miss"),
+            format="vega_lite",
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+        specification = result.content.specification
+
+        assert specification["description"] == sanitize_for_llm_context(
+            "Pie chart for category share"
+        )
+        assert specification["data"] == "named_dataset"
+
     def test_sanitize_chart_preview_wraps_table_content(self):
         preview = ChartPreview(
             chart_id=5,

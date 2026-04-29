@@ -59,6 +59,16 @@ def _normalize_field_name(field_name: str) -> str:
     return field_name.strip().lower().replace("-", "_")
 
 
+def _escape_llm_context_delimiters(value: str) -> str:
+    return value.replace(
+        LLM_CONTEXT_OPEN_DELIMITER,
+        LLM_CONTEXT_ESCAPED_OPEN_DELIMITER,
+    ).replace(
+        LLM_CONTEXT_CLOSE_DELIMITER,
+        LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER,
+    )
+
+
 def _wrap_llm_context_string(value: str) -> str:
     """Wrap an untrusted string with explicit LLM-context delimiters."""
     wrapped_prefix = f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
@@ -66,13 +76,7 @@ def _wrap_llm_context_string(value: str) -> str:
     if value.startswith(wrapped_prefix) and value.endswith(wrapped_suffix):
         return value
 
-    escaped_value = value.replace(
-        LLM_CONTEXT_OPEN_DELIMITER,
-        LLM_CONTEXT_ESCAPED_OPEN_DELIMITER,
-    ).replace(
-        LLM_CONTEXT_CLOSE_DELIMITER,
-        LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER,
-    )
+    escaped_value = _escape_llm_context_delimiters(value)
     return (
         f"{LLM_CONTEXT_OPEN_DELIMITER}\n{escaped_value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
     )
@@ -105,6 +109,8 @@ def sanitize_for_llm_context(
         if current_field_name and (
             _normalize_field_name(current_field_name) in normalized_exclusions
         ):
+            if isinstance(current_value, str):
+                return _escape_llm_context_delimiters(current_value)
             return current_value
 
         if isinstance(current_value, str):
