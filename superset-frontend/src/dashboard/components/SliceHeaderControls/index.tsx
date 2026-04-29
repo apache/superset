@@ -140,7 +140,7 @@ export interface SliceHeaderControlsProps {
 
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
-  supersetCanCSV?: boolean;
+  supersetCanDownload?: boolean;
 
   crossFiltersEnabled?: boolean;
 }
@@ -511,7 +511,7 @@ const SliceHeaderControls = (
               dataSize={20}
               isRequest
               isVisible
-              canDownload={!!props.supersetCanCSV}
+              canDownload={!!props.supersetCanDownload}
               columnDisplayNames={datasetWithVerboseMap?.verbose_map}
             />
           }
@@ -554,7 +554,7 @@ const SliceHeaderControls = (
     newMenuItems.push(shareMenuItems);
   }
 
-  if (props.supersetCanCSV) {
+  if (props.supersetCanDownload) {
     newMenuItems.push({
       type: 'submenu',
       key: MenuKeys.Download,
@@ -585,7 +585,7 @@ const SliceHeaderControls = (
           icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
         },
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
-        props.supersetCanCSV &&
+        props.supersetCanDownload &&
         isTable
           ? [
               {

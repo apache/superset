@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
+import { DataMaskStateWithId, isFeatureEnabled, FeatureFlag, JsonObject } from '@superset-ui/core';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -355,7 +355,9 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
-          superset_can_csv: findPermission('can_csv', 'Superset', roles),
+          superset_can_download: isFeatureEnabled(FeatureFlag.GranularExportControls)
+            ? findPermission('can_export_data', 'Superset', roles)
+            : findPermission('can_csv', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
             conf: common?.conf,
