@@ -24,6 +24,7 @@ import {
   type ChangeEvent,
   useMemo,
 } from 'react';
+import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -313,6 +314,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   }, [sortedTreeData, sortedTables]);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounceValue(searchTerm);
   const handleSearchChange = useCallback(
     ({ target }: ChangeEvent<HTMLInputElement>) => setSearchTerm(target.value),
     [],
@@ -370,9 +372,9 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
 
   // Check if any nodes match the search term
   const hasMatchingNodes = useMemo(() => {
-    if (!searchTerm) return true;
+    if (!debouncedSearchTerm) return true;
 
-    const lowerTerm = searchTerm.toLowerCase();
+    const lowerTerm = debouncedSearchTerm.toLowerCase();
 
     const checkNode = (node: TreeNodeData): boolean => {
       if (node.type === 'empty') return false;
@@ -384,7 +386,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     };
 
     return displayTreeData.some(node => checkNode(node));
-  }, [searchTerm, displayTreeData]);
+  }, [debouncedSearchTerm, displayTreeData]);
 
   // Node renderer for react-arborist
   const renderNode = useCallback(
@@ -393,7 +395,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         {...props}
         manuallyOpenedNodes={manuallyOpenedNodes}
         loadingNodes={loadingNodes}
-        searchTerm={searchTerm}
+        searchTerm={debouncedSearchTerm}
         catalog={catalog}
         pinnedTableKeys={pinnedTableKeys}
         pinnedSchemas={pinnedSchemas}
@@ -423,7 +425,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
       toggleSortColumns,
       loadingNodes,
       manuallyOpenedNodes,
-      searchTerm,
+      debouncedSearchTerm,
     ],
   );
 
@@ -482,7 +484,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
               return <Skeleton active />;
             }
 
-            if (searchTerm && !hasMatchingNodes) {
+            if (debouncedSearchTerm && !hasMatchingNodes) {
               return (
                 <Empty
                   description={t('No matching results found')}
@@ -499,7 +501,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
                 height={height || 500}
                 rowHeight={ROW_HEIGHT}
                 indent={16}
-                searchTerm={searchTerm}
+                searchTerm={debouncedSearchTerm}
                 searchMatch={searchMatch}
                 disableDrag
                 disableDrop
@@ -525,7 +527,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
                   // react-arborist marks all schemas as open (isOpen=true) even before any
                   // user interaction. Using treeRef in that case would treat every first
                   // click as a close action, so fall back to manuallyOpenedNodes instead.
-                  const wasOpen = searchTerm
+                  const wasOpen = debouncedSearchTerm
                     ? (treeRef.current?.get(id)?.isOpen ??
                       manuallyOpenedNodes[id] ??
                       false)

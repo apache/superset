@@ -26,6 +26,10 @@ from pydantic import BaseModel
 
 from superset.daos.base import BaseDAO
 from superset.mcp_service.constants import ModelType
+from superset.mcp_service.privacy import (
+    filter_user_directory_columns,
+    USER_DIRECTORY_FIELDS,
+)
 from superset.mcp_service.utils import _is_uuid
 
 # Type variables for generic model tools
@@ -59,12 +63,17 @@ class BaseCore(ABC):
         pass
 
     def _log_error(self, error: Exception, context: str = "") -> None:
-        """Log an error with context."""
+        """Log an error at DEBUG level for stack-trace context.
+
+        Callers must re-raise the exception after calling this method.
+        The GlobalErrorHandlerMiddleware is the single source of truth
+        for error classification and logging level.
+        """
         error_msg = f"Error in {self.__class__.__name__}"
         if context:
             error_msg += f" ({context})"
         error_msg += f": {str(error)}"
-        self.logger.error(error_msg, exc_info=True)
+        self.logger.debug(error_msg, exc_info=True)
 
     def _log_info(self, message: str) -> None:
         """Log an info message."""
@@ -116,12 +125,16 @@ class ModelListCore(BaseCore, Generic[L]):
         self.output_schema = output_schema
         self.item_serializer = item_serializer
         self.filter_type = filter_type
-        self.default_columns = list(default_columns)  # Copy to prevent mutation
-        self.search_columns = list(search_columns)  # Copy to prevent mutation
+        self.default_columns = filter_user_directory_columns(default_columns)
+        self.search_columns = filter_user_directory_columns(search_columns)
         self.list_field_name = list_field_name
         self.output_list_schema = output_list_schema
-        self._all_columns = list(all_columns) if all_columns else list(default_columns)
-        self._sortable_columns = list(sortable_columns) if sortable_columns else []
+        self._all_columns = filter_user_directory_columns(
+            all_columns if all_columns else default_columns
+        )
+        self._sortable_columns = filter_user_directory_columns(
+            sortable_columns if sortable_columns else []
+        )
 
     @property
     def all_columns(self) -> List[str]:
@@ -132,6 +145,39 @@ class ModelListCore(BaseCore, Generic[L]):
     def sortable_columns(self) -> List[str]:
         """Return a copy of sortable_columns to prevent external mutation."""
         return list(self._sortable_columns)
+
+    def _get_columns_to_load(
+        self, select_columns: Any | None
+    ) -> tuple[List[str], List[str]]:
+        """Return requested and loaded columns after privacy filtering."""
+        if not select_columns:
+            return self.default_columns, list(self.default_columns)
+
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        parsed_columns = parse_json_or_list(select_columns, param_name="select_columns")
+        columns_to_load = filter_user_directory_columns(parsed_columns)
+        if not columns_to_load:
+            raise ValueError("select_columns contains no valid columns")
+
+        return columns_to_load, list(columns_to_load)
+
+    def _validate_order_column(self, order_column: str | None) -> None:
+        """Reject privacy-filtered or unknown sort columns.
+
+        Validation is skipped when no sortable_columns were declared, to preserve
+        backward-compatible passthrough behaviour for tools that rely on DAO-level
+        sort handling.
+        """
+        if (
+            order_column
+            and self._sortable_columns
+            and order_column not in self._sortable_columns
+        ):
+            raise ValueError(
+                f"Invalid order_column '{order_column}'. "
+                f"Allowed columns: {', '.join(self._sortable_columns)}"
+            )
 
     def run_tool(
         self,
@@ -150,22 +196,13 @@ class ModelListCore(BaseCore, Generic[L]):
 
         # Parse filters using generic utility (accepts JSON string or object)
         from superset.mcp_service.utils.schema_utils import (
-            parse_json_or_list,
             parse_json_or_passthrough,
         )
 
         filters = parse_json_or_passthrough(filters, param_name="filters")
 
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)
-        if select_columns:
-            select_columns = parse_json_or_list(
-                select_columns, param_name="select_columns"
-            )
-            columns_to_load = list(select_columns)
-            columns_requested = select_columns
-        else:
-            columns_to_load = list(self.default_columns)
-            columns_requested = self.default_columns
+        columns_requested, columns_to_load = self._get_columns_to_load(select_columns)
 
         # Ensure computed columns have their dependencies loaded.
         # Humanized timestamps are derived from their raw counterparts —
@@ -177,6 +214,8 @@ class ModelListCore(BaseCore, Generic[L]):
         for computed, dependency in computed_deps.items():
             if computed in columns_to_load and dependency not in columns_to_load:
                 columns_to_load.append(dependency)
+
+        self._validate_order_column(order_column)
 
         # Query the DAO
         items: List[Any]
@@ -567,13 +606,18 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         self.model_type = model_type
         self.dao_class = dao_class
         self.output_schema = output_schema
-        self.select_columns = select_columns
-        self.sortable_columns = sortable_columns
-        self.default_columns = default_columns
-        self.search_columns = search_columns
+        self.select_columns = [
+            column
+            for column in select_columns
+            if getattr(column, "name", None) not in USER_DIRECTORY_FIELDS
+        ]
+        self.sortable_columns = filter_user_directory_columns(sortable_columns)
+        self.default_columns = filter_user_directory_columns(default_columns)
+        self.search_columns = filter_user_directory_columns(search_columns)
         self.default_sort = default_sort
         self.default_sort_direction = default_sort_direction
-        self.exclude_filter_columns = exclude_filter_columns or set()
+        self.exclude_filter_columns = set(exclude_filter_columns or set())
+        self.exclude_filter_columns.update(USER_DIRECTORY_FIELDS)
 
     def _get_filter_columns(self) -> Dict[str, List[str]]:
         """Get filterable columns and operators from the DAO."""

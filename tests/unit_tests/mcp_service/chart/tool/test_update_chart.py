@@ -26,6 +26,7 @@ import pytest
 from fastmcp import Client
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -40,7 +41,6 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.chart.tool.update_chart import (
     _build_preview_form_data,
     _build_update_payload,
-    _find_chart,
 )
 
 # The __init__.py re-exports the update_chart *function*, so a plain
@@ -70,10 +70,10 @@ class TestUpdateChart:
         table_request = UpdateChartRequest(identifier=123, config=table_config)
         assert table_request.identifier == 123
         # config is now Dict[str, Any] in the schema; validate via dict access
-        assert table_request.config["chart_type"] == "table"
-        assert len(table_request.config["columns"]) == 2
-        assert table_request.config["columns"][0]["name"] == "region"
-        assert table_request.config["columns"][1]["aggregate"] == "SUM"
+        assert table_request.config.chart_type == "table"
+        assert len(table_request.config.columns) == 2
+        assert table_request.config.columns[0].name == "region"
+        assert table_request.config.columns[1].aggregate == "SUM"
 
         # XY chart update with UUID
         xy_config = XYChartConfig(
@@ -90,10 +90,10 @@ class TestUpdateChart:
             identifier="a1b2c3d4-e5f6-7890-abcd-ef1234567890", config=xy_config
         )
         assert xy_request.identifier == "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-        assert xy_request.config["chart_type"] == "xy"
-        assert xy_request.config["x"]["name"] == "date"
-        assert xy_request.config["y"][0]["aggregate"] == "SUM"
-        assert xy_request.config["kind"] == "line"
+        assert xy_request.config.chart_type == "xy"
+        assert xy_request.config.x.name == "date"
+        assert xy_request.config.y[0].aggregate == "SUM"
+        assert xy_request.config.kind == "line"
 
     @pytest.mark.asyncio
     async def test_update_chart_with_chart_name(self):
@@ -175,7 +175,7 @@ class TestUpdateChart:
                 kind=chart_type,
             )
             request = UpdateChartRequest(identifier=1, config=config)
-            assert request.config["kind"] == chart_type
+            assert request.config.kind == chart_type
 
         # Test multiple Y columns
         multi_y_config = XYChartConfig(
@@ -189,8 +189,8 @@ class TestUpdateChart:
             kind="line",
         )
         request = UpdateChartRequest(identifier=1, config=multi_y_config)
-        assert len(request.config["y"]) == 3
-        assert request.config["y"][1]["aggregate"] == "AVG"
+        assert len(request.config.y) == 3
+        assert request.config.y[1].aggregate == "AVG"
 
         # Test filter operators
         operators = ["=", "!=", ">", ">=", "<", "<="]
@@ -201,7 +201,7 @@ class TestUpdateChart:
             filters=filters,
         )
         request = UpdateChartRequest(identifier=1, config=table_config)
-        assert len(request.config["filters"]) == 6
+        assert len(request.config.filters) == 6
 
     @pytest.mark.asyncio
     async def test_update_chart_response_structure(self):
@@ -257,12 +257,12 @@ class TestUpdateChart:
             ),
         )
         request = UpdateChartRequest(identifier=1, config=config)
-        assert request.config["x_axis"]["title"] == "Date"
-        assert request.config["x_axis"]["format"] == "smart_date"
-        assert request.config["x_axis"]["scale"] == "linear"
-        assert request.config["y_axis"]["title"] == "Sales Amount"
-        assert request.config["y_axis"]["format"] == "$,.2f"
-        assert request.config["y_axis"]["scale"] == "log"
+        assert request.config.x_axis.title == "Date"
+        assert request.config.x_axis.format == "smart_date"
+        assert request.config.x_axis.scale == "linear"
+        assert request.config.y_axis.title == "Sales Amount"
+        assert request.config.y_axis.format == "$,.2f"
+        assert request.config.y_axis.scale == "log"
 
     @pytest.mark.asyncio
     async def test_update_chart_legend_configurations(self):
@@ -276,8 +276,8 @@ class TestUpdateChart:
                 legend=LegendConfig(show=True, position=pos),
             )
             request = UpdateChartRequest(identifier=1, config=config)
-            assert request.config["legend"]["position"] == pos
-            assert request.config["legend"]["show"] is True
+            assert request.config.legend.position == pos
+            assert request.config.legend.show is True
 
         # Hidden legend
         config = XYChartConfig(
@@ -287,7 +287,7 @@ class TestUpdateChart:
             legend=LegendConfig(show=False),
         )
         request = UpdateChartRequest(identifier=1, config=config)
-        assert request.config["legend"]["show"] is False
+        assert request.config.legend.show is False
 
     @pytest.mark.asyncio
     async def test_update_chart_aggregation_functions(self):
@@ -299,7 +299,7 @@ class TestUpdateChart:
                 columns=[ColumnRef(name="value", aggregate=agg)],
             )
             request = UpdateChartRequest(identifier=1, config=config)
-            assert request.config["columns"][0]["aggregate"] == agg
+            assert request.config.columns[0].aggregate == agg
 
     @pytest.mark.asyncio
     async def test_update_chart_error_responses(self):
@@ -383,10 +383,10 @@ class TestUpdateChart:
         )
 
         request = UpdateChartRequest(identifier=1, config=config)
-        assert len(request.config["filters"]) == 3
-        assert request.config["filters"][0]["column"] == "region"
-        assert request.config["filters"][1]["op"] == ">="
-        assert request.config["filters"][2]["value"] == "2024-01-01"
+        assert len(request.config.filters) == 3
+        assert request.config.filters[0].column == "region"
+        assert request.config.filters[1].op == ">="
+        assert request.config.filters[2].value == "2024-01-01"
 
     @pytest.mark.asyncio
     async def test_update_chart_cache_control(self):
@@ -519,7 +519,7 @@ class TestUpdateChartDatasetAccess:
 
 
 class TestFindChart:
-    """Tests for _find_chart helper."""
+    """Tests for find_chart_by_identifier helper (moved to chart_helpers)."""
 
     @patch("superset.daos.chart.ChartDAO.find_by_id")
     def test_find_chart_by_numeric_id(self, mock_find):
@@ -527,7 +527,7 @@ class TestFindChart:
         mock_chart = Mock()
         mock_find.return_value = mock_chart
 
-        result = _find_chart(42)
+        result = find_chart_by_identifier(42)
 
         mock_find.assert_called_once_with(42)
         assert result is mock_chart
@@ -538,7 +538,7 @@ class TestFindChart:
         mock_chart = Mock()
         mock_find.return_value = mock_chart
 
-        result = _find_chart("123")
+        result = find_chart_by_identifier("123")
 
         mock_find.assert_called_once_with(123)
         assert result is mock_chart
@@ -550,7 +550,7 @@ class TestFindChart:
         mock_find.return_value = mock_chart
 
         uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-        result = _find_chart(uuid)
+        result = find_chart_by_identifier(uuid)
 
         mock_find.assert_called_once_with(uuid, id_column="uuid")
         assert result is mock_chart
@@ -560,7 +560,7 @@ class TestFindChart:
         """Returns None when chart is not found."""
         mock_find.return_value = None
 
-        result = _find_chart(999)
+        result = find_chart_by_identifier(999)
 
         assert result is None
 
@@ -609,12 +609,14 @@ class TestBuildUpdatePayload:
         chart = Mock()
         chart.datasource_id = None  # Avoid dataset lookup
 
-        result = _build_update_payload(request, chart)
+        result = _build_update_payload(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         assert result["slice_name"] == "My Custom Name"
         assert "viz_type" in result
         assert "params" in result
+        # query_context must be cleared so get_chart_data uses updated params
+        assert result["query_context"] is None
 
     def test_config_update_keeps_existing_name(self):
         """When config is provided but no chart_name, keeps existing slice_name."""
@@ -627,10 +629,12 @@ class TestBuildUpdatePayload:
         chart.datasource_id = None
         chart.slice_name = "Existing Name"
 
-        result = _build_update_payload(request, chart)
+        result = _build_update_payload(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         assert result["slice_name"] == "Existing Name"
+        # query_context must be cleared so get_chart_data uses updated params
+        assert result["query_context"] is None
 
 
 class TestUpdateChartNameOnly:
@@ -690,6 +694,8 @@ class TestUpdateChartNameOnly:
             assert result.structured_content["success"] is True
             assert result.structured_content["chart"]["slice_name"] == "Renamed Chart"
             assert result.structured_content["chart"]["is_unsaved_state"] is False
+            # Rename-only: form_data should be empty (visualization unchanged)
+            assert result.structured_content["form_data"] == {}
 
             # Verify UpdateChartCommand was called with name-only payload
             mock_update_cmd_cls.assert_called_once_with(
@@ -861,7 +867,7 @@ class TestBuildPreviewFormData:
         chart.slice_name = "Existing"
         chart.params = '{"viz_type": "line", "custom_flag": true}'
 
-        result = _build_preview_form_data(request, chart)
+        result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         # Existing keys not touched by the new config are preserved
@@ -918,7 +924,7 @@ class TestBuildPreviewFormData:
         chart.slice_name = "Broken"
         chart.params = "not-json"
 
-        result = _build_preview_form_data(request, chart)
+        result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
         assert result["slice_id"] == 9
@@ -990,6 +996,15 @@ class TestUpdateChartSaveWithConfig:
         assert chart["slice_name"] == "After-save"
         assert "slice_id=77" in result.structured_content["explore_url"]
         mock_update_cmd_cls.assert_called_once()
+
+        # Verify query_context is cleared so get_chart_data uses updated params
+        payload = mock_update_cmd_cls.call_args[0][1]
+        assert payload["query_context"] is None
+
+        # Verify form_data is returned in the response
+        form_data = result.structured_content["form_data"]
+        assert isinstance(form_data, dict)
+        assert "viz_type" in form_data
 
 
 class TestUpdateChartErrorPaths:
