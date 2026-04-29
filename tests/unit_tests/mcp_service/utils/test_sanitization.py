@@ -26,6 +26,7 @@ from superset.mcp_service.utils.sanitization import (
     _normalize_field_name,
     _remove_dangerous_unicode,
     _strip_html_tags,
+    escape_llm_context_delimiters,
     LLM_CONTEXT_CLOSE_DELIMITER,
     LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER,
     LLM_CONTEXT_ESCAPED_OPEN_DELIMITER,
@@ -607,6 +608,17 @@ def test_sanitize_for_llm_context_escapes_excluded_operational_fields() -> None:
         f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
         "Executive dashboard\n"
         f"{LLM_CONTEXT_CLOSE_DELIMITER}"
+    )
+
+
+def test_escape_llm_context_delimiters_escapes_without_wrapping() -> None:
+    result = escape_llm_context_delimiters(
+        f"dataset {LLM_CONTEXT_OPEN_DELIMITER} x {LLM_CONTEXT_CLOSE_DELIMITER}"
+    )
+
+    assert result == (
+        f"dataset {LLM_CONTEXT_ESCAPED_OPEN_DELIMITER} "
+        f"x {LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER}"
     )
 
 

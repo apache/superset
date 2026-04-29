@@ -411,7 +411,7 @@ class TestChartSerializationEagerLoading:
         result = serialize_chart_object(chart)
 
         assert result is not None
-        assert result.certified_by == "Data Team"
+        assert result.certified_by == sanitize_for_llm_context("Data Team")
         assert result.certification_details == sanitize_for_llm_context(
             "Verified Q1 2026 metrics"
         )

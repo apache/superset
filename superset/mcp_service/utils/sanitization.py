@@ -70,6 +70,13 @@ def _escape_llm_context_delimiters(value: str) -> str:
     )
 
 
+def escape_llm_context_delimiters(value: Any) -> Any:
+    """Escape delimiter tokens in operational values that should not be wrapped."""
+    if isinstance(value, str):
+        return _escape_llm_context_delimiters(value)
+    return value
+
+
 def _wrap_llm_context_string(value: str) -> str:
     """Wrap an untrusted string with explicit LLM-context delimiters."""
     wrapped_prefix = f"{LLM_CONTEXT_OPEN_DELIMITER}\n"

@@ -143,8 +143,15 @@ class TestOpenSqlLabWithContext:
             assert parsed.path == "/sqllab"
             assert params["dbid"] == ["7"]
             assert params["schema"] == ["analytics"]
-            assert params["title"] == ["Review this query"]
-            assert params["sql"] == ["SELECT * FROM users LIMIT 10"]
+            assert params["title"] == [
+                sanitize_for_llm_context("Review this query", field_path=("title",))
+            ]
+            assert params["sql"] == [
+                sanitize_for_llm_context(
+                    "SELECT * FROM users LIMIT 10",
+                    field_path=("sql",),
+                )
+            ]
         finally:
             _restore_modules(saved_modules)
 
@@ -186,7 +193,9 @@ class TestOpenSqlLabWithContext:
             assert response.title is None
             assert params["dbid"] == ["12"]
             assert params["schema"] == ["public"]
-            assert params["sql"] == [expected_sql]
+            assert params["sql"] == [
+                sanitize_for_llm_context(expected_sql, field_path=("sql",))
+            ]
         finally:
             _restore_modules(saved_modules)
 
@@ -223,11 +232,13 @@ class TestOpenSqlLabWithContext:
 
             assert response.schema_name is None
             assert "schema" not in params
-            assert params["sql"] == [expected_sql]
+            assert params["sql"] == [
+                sanitize_for_llm_context(expected_sql, field_path=("sql",))
+            ]
         finally:
             _restore_modules(saved_modules)
 
-    def test_keeps_sql_lab_url_query_parameters_operational(self) -> None:
+    def test_sanitizes_sql_lab_url_query_parameters_for_llm_context(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
             url = (
@@ -247,8 +258,12 @@ class TestOpenSqlLabWithContext:
 
             assert params["dbid"] == ["7"]
             assert params["schema"] == ["analytics"]
-            assert params["sql"] == ["SELECT 1"]
-            assert params["title"] == ["Inspect query"]
+            assert params["sql"] == [
+                sanitize_for_llm_context("SELECT 1", field_path=("sql",))
+            ]
+            assert params["title"] == [
+                sanitize_for_llm_context("Inspect query", field_path=("title",))
+            ]
             assert response.title == sanitize_for_llm_context(
                 "Inspect query",
                 field_path=("title",),

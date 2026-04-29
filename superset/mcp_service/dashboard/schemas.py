@@ -759,7 +759,13 @@ def _sanitize_dashboard_info_for_llm_context(
     """Wrap dashboard read-path descriptive fields before LLM exposure."""
     payload = dashboard_info.model_dump(mode="python")
 
-    for field_name in ("dashboard_title", "description", "certification_details"):
+    for field_name in (
+        "dashboard_title",
+        "description",
+        "css",
+        "certified_by",
+        "certification_details",
+    ):
         payload[field_name] = sanitize_for_llm_context(
             payload.get(field_name),
             field_path=(field_name,),

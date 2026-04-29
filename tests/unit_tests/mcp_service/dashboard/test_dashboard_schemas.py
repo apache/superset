@@ -346,6 +346,8 @@ class TestSerializeDashboardObject:
 
         dashboard = _mock_dashboard(id=7, slug="safe-slug", slices=[chart])
         dashboard.description = "Dashboard instructions"
+        dashboard.css = "/* dashboard-level CSS */"
+        dashboard.certified_by = "Analytics Team"
         dashboard.certification_details = "Certified by analytics"
         dashboard.uuid = "dashboard-uuid-7"
         dashboard.json_metadata = json_dumps(
@@ -365,6 +367,8 @@ class TestSerializeDashboardObject:
 
         assert result.dashboard_title == _wrapped("Test Dashboard")
         assert result.description == _wrapped("Dashboard instructions")
+        assert result.css == _wrapped("/* dashboard-level CSS */")
+        assert result.certified_by == _wrapped("Analytics Team")
         assert result.certification_details == _wrapped("Certified by analytics")
         assert result.slug == "safe-slug"
         assert result.url == "http://localhost:8088/superset/dashboard/safe-slug/"

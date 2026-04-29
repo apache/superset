@@ -43,7 +43,10 @@ from superset.mcp_service.system.schemas import (
     PaginationInfo,
     TagInfo,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
+)
 from superset.utils import json
 
 
@@ -412,11 +415,14 @@ def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> Dataset
     """Wrap dataset read-path descriptive fields before LLM exposure."""
     payload = dataset_info.model_dump(mode="python")
 
-    for field_name in ("description", "certification_details", "sql"):
+    for field_name in ("description", "certified_by", "certification_details", "sql"):
         payload[field_name] = sanitize_for_llm_context(
             payload.get(field_name),
             field_path=(field_name,),
         )
+
+    for field_name in ("table_name", "schema_name", "database_name", "schema_perm"):
+        payload[field_name] = escape_llm_context_delimiters(payload.get(field_name))
 
     payload["extra"] = sanitize_for_llm_context(
         payload.get("extra"),
@@ -434,6 +440,9 @@ def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> Dataset
     payload["columns"] = [
         {
             **column,
+            "column_name": escape_llm_context_delimiters(
+                column.get("column_name"),
+            ),
             "description": sanitize_for_llm_context(
                 column.get("description"),
                 field_path=("columns", str(index), "description"),
@@ -449,6 +458,9 @@ def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> Dataset
     payload["metrics"] = [
         {
             **metric,
+            "metric_name": escape_llm_context_delimiters(
+                metric.get("metric_name"),
+            ),
             "expression": sanitize_for_llm_context(
                 metric.get("expression"),
                 field_path=("metrics", str(index), "expression"),

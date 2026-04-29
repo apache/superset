@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 from superset.mcp_service.utils.sanitization import (
+    escape_llm_context_delimiters as escape_llm_context_delimiters,
     sanitize_for_llm_context as sanitize_for_llm_context,
 )
 

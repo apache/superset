@@ -407,7 +407,12 @@ def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:
     """Wrap chart read-path descriptive fields before LLM exposure."""
     payload = chart_info.model_dump(mode="python")
 
-    for field_name in ("slice_name", "description", "certification_details"):
+    for field_name in (
+        "slice_name",
+        "description",
+        "certified_by",
+        "certification_details",
+    ):
         payload[field_name] = sanitize_for_llm_context(
             payload.get(field_name),
             field_path=(field_name,),
