@@ -29,7 +29,6 @@ from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
-    DashboardFilter,
     ListDashboardsRequest,
 )
 from superset.utils import json
