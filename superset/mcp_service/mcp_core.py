@@ -18,13 +18,17 @@
 from __future__ import annotations
 
 import logging
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
 
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel
+from sqlalchemy import func
 
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
+from superset.extensions import db
 from superset.mcp_service.constants import MAX_PAGE_SIZE, ModelType
 from superset.mcp_service.privacy import (
     filter_user_directory_columns,
@@ -39,6 +43,23 @@ from superset.mcp_service.utils.schema_utils import (
     parse_json_or_passthrough,
 )
 from superset.utils import json
+
+
+def _slugify(value: str) -> str:
+    """Normalize a string to a slug-like form for comparison.
+
+    Lowercases, drops apostrophes so possessives collapse
+    ("World Bank's" → "worldbanks" territory), then collapses any
+    remaining non-alphanumerics to single hyphens and trims
+    leading/trailing hyphens. Mirrors how agents typically guess slugs
+    from a dashboard title (e.g. "World Bank's Data" → "world-banks-data").
+    """
+    lowered = value.lower()
+    # Drop apostrophes entirely so "bank's" collapses to "banks" rather than
+    # splitting into "bank-s". Covers straight and curly variants.
+    stripped = re.sub(r"['’]", "", lowered)
+    return re.sub(r"[^a-z0-9]+", "-", stripped).strip("-")
+
 
 # Type variables for generic model tools
 T = TypeVar("T")  # For model objects
@@ -349,6 +370,7 @@ class ModelGetInfoCore(BaseCore):
         supports_slug: bool = False,
         logger: logging.Logger | None = None,
         query_options: list[Any] | None = None,
+        title_column_name: str | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
@@ -357,6 +379,94 @@ class ModelGetInfoCore(BaseCore):
         self.serializer = serializer
         self.supports_slug = supports_slug
         self.query_options = query_options or []
+        # When set, enables a slugified-title fallback after slug lookup
+        # fails, so identifiers like "world-banks-data" still resolve to
+        # "World Bank's Data" when the dashboard's slug field is empty.
+        # Defaults to the DAO's `title_column` attribute when not overridden.
+        self.title_column_name = title_column_name or getattr(
+            dao_class, "title_column", None
+        )
+
+    def _base_filtered_query(self) -> Any:
+        """Build a query for this DAO's model with base_filter applied.
+
+        Ensures slug-like and title-based lookups respect RBAC — e.g.
+        DashboardAccessFilter excludes rows the current user is not
+        allowed to see. Mirrors DashboardDAO.get_by_id_or_slug.
+        """
+        model_class = self.dao_class.model_cls
+        query = db.session.query(model_class)
+
+        if (base_filter := getattr(self.dao_class, "base_filter", None)) is not None:
+            query = base_filter(
+                self.dao_class.id_column_name,
+                SQLAInterface(model_class, db.session),
+            ).apply(query, None)
+
+        if self.query_options:
+            query = query.options(*self.query_options)
+        return query
+
+    def _find_by_slugified_title(self, identifier: str) -> Any:
+        """Resolve a slug-like identifier by matching against slugified titles.
+
+        First narrows candidates with an ILIKE on the title column so the
+        DB does the heavy filtering — a slug like "world-banks-data" maps
+        to the pattern "%world%banks%data%". The ILIKE side strips
+        apostrophes from the title (via SQL REPLACE) so it matches the
+        same way `_slugify` does in Python — without that, "World Bank's
+        Data" wouldn't match "%banks%" because the raw title has "bank's".
+        Then confirms each candidate with `_slugify` to weed out
+        coincidental ILIKE matches (e.g. "Worldwide Bank Sandbox Data").
+
+        Orders by primary key so the returned row is deterministic when
+        multiple titles slugify to the same value. The caller can always
+        disambiguate by id or UUID; in the rare collision case we log a
+        warning and return the lowest-id match.
+        """
+        if not self.title_column_name:
+            return None
+        target = _slugify(identifier)
+        if not target:
+            return None
+
+        model_class = self.dao_class.model_cls
+        title_col = getattr(model_class, self.title_column_name, None)
+        if title_col is None:
+            return None
+
+        parts = [p for p in target.split("-") if p]
+        # parts is non-empty: target is non-empty and contains at least one
+        # alphanumeric run. The pattern preserves the agent's word order so
+        # we don't return rows whose titles only happen to share the same
+        # tokens shuffled.
+        pattern = "%" + "%".join(parts) + "%"
+        # Strip both straight and curly apostrophes from the title before
+        # comparing — matches `_slugify`'s Python-side handling.
+        normalized_title = func.replace(func.replace(title_col, "'", ""), "’", "")
+        id_col = getattr(model_class, self.dao_class.id_column_name)
+        candidates = (
+            self._base_filtered_query()
+            .filter(normalized_title.ilike(pattern))
+            .order_by(id_col)
+            .all()
+        )
+
+        matches = [
+            obj
+            for obj in candidates
+            if _slugify(getattr(obj, self.title_column_name, "") or "") == target
+        ]
+        if not matches:
+            return None
+        if len(matches) > 1:
+            ids = [getattr(m, "id", None) for m in matches]
+            self._log_warning(
+                f"Identifier '{identifier}' matched {len(matches)} rows by "
+                f"slugified title (ids={ids}); returning the first. Pass an "
+                "id or UUID to disambiguate."
+            )
+        return matches[0]
 
     def _find_object(self, identifier: int | str) -> Any:
         """Find object by identifier using appropriate method."""
@@ -388,15 +498,22 @@ class ModelGetInfoCore(BaseCore):
             if result:
                 return result
 
-            # Fallback to the existing id_or_slug_filter for complex cases
-            from superset.extensions import db
+            # Fallback to the existing id_or_slug_filter for complex cases.
+            # Apply base_filter so disallowed rows aren't exposed here.
             from superset.models.dashboard import id_or_slug_filter
 
-            model_class = self.dao_class.model_cls
-            query = db.session.query(model_class).filter(id_or_slug_filter(identifier))
-            if opts:
-                query = query.options(*opts)
-            return query.one_or_none()
+            slug_result = (
+                self._base_filtered_query()
+                .filter(id_or_slug_filter(identifier))
+                .one_or_none()
+            )
+            if slug_result is not None:
+                return slug_result
+
+            # Many dashboards have empty slugs, so slug lookup alone silently
+            # fails when agents pass a slug-like string derived from the
+            # dashboard title. Fall back to slugified-title matching.
+            return self._find_by_slugified_title(identifier)
 
         # If we get here, it's an invalid identifier
         return None
