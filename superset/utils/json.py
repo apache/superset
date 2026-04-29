@@ -194,6 +194,7 @@ def dumps(  # pylint: disable=too-many-arguments
     separators: Union[tuple[str, str], None] = None,
     cls: Union[type[simplejson.JSONEncoder], None] = None,
     encoding: Optional[str] = "utf-8",
+    ensure_ascii: bool = True,
 ) -> str:
     """
     Dumps object to compatible JSON format
@@ -219,6 +220,7 @@ def dumps(  # pylint: disable=too-many-arguments
         "separators": separators,
         "cls": cls,
         "encoding": encoding,
+        "ensure_ascii": ensure_ascii,
     }
     try:
         results_string = simplejson.dumps(obj, **dumps_kwargs)
