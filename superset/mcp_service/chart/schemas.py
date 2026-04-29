@@ -1696,10 +1696,10 @@ class URLPreview(BaseModel):
 
     type: Literal["url"] = "url"
     preview_url: str = Field(..., description="Explore URL for opening the chart")
-    width: int = Field(..., description="Image width in pixels")
-    height: int = Field(..., description="Image height in pixels")
+    width: int = Field(..., description="Requested Explore viewport width in pixels")
+    height: int = Field(..., description="Requested Explore viewport height in pixels")
     supports_interaction: bool = Field(
-        False, description="Static image, no interaction"
+        True, description="Explore URL supports chart interaction"
     )
 
 
