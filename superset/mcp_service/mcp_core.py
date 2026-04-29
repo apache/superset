@@ -20,21 +20,29 @@ from __future__ import annotations
 import logging
 import re
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
 
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel
 from sqlalchemy import func
 
-from superset.daos.base import BaseDAO
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
-from superset.mcp_service.constants import ModelType
+from superset.mcp_service.constants import MAX_PAGE_SIZE, ModelType
 from superset.mcp_service.privacy import (
     filter_user_directory_columns,
+    SELF_REFERENCING_FILTER_COLUMNS,
     USER_DIRECTORY_FIELDS,
 )
+from superset.mcp_service.system.schemas import PaginationInfo
 from superset.mcp_service.utils import _is_uuid
+from superset.mcp_service.utils.permissions_utils import get_current_user
+from superset.mcp_service.utils.schema_utils import (
+    parse_json_or_list,
+    parse_json_or_passthrough,
+)
+from superset.utils import json
 
 
 def _slugify(value: str) -> str:
@@ -84,12 +92,17 @@ class BaseCore(ABC):
         pass
 
     def _log_error(self, error: Exception, context: str = "") -> None:
-        """Log an error with context."""
+        """Log an error at DEBUG level for stack-trace context.
+
+        Callers must re-raise the exception after calling this method.
+        The GlobalErrorHandlerMiddleware is the single source of truth
+        for error classification and logging level.
+        """
         error_msg = f"Error in {self.__class__.__name__}"
         if context:
             error_msg += f" ({context})"
         error_msg += f": {str(error)}"
-        self.logger.error(error_msg, exc_info=True)
+        self.logger.debug(error_msg, exc_info=True)
 
     def _log_info(self, message: str) -> None:
         """Log an info message."""
@@ -169,8 +182,6 @@ class ModelListCore(BaseCore, Generic[L]):
         if not select_columns:
             return self.default_columns, list(self.default_columns)
 
-        from superset.mcp_service.utils.schema_utils import parse_json_or_list
-
         parsed_columns = parse_json_or_list(select_columns, param_name="select_columns")
         columns_to_load = filter_user_directory_columns(parsed_columns)
         if not columns_to_load:
@@ -195,6 +206,44 @@ class ModelListCore(BaseCore, Generic[L]):
                 f"Allowed columns: {', '.join(self._sortable_columns)}"
             )
 
+    @staticmethod
+    def _prepend_self_lookup_filters(
+        filters: Any,
+        created_by_me: bool,
+        owned_by_me: bool,
+        user: Any,
+    ) -> Any:
+        """Translate created_by_me/owned_by_me flags into ColumnOperator filters.
+
+        Validates authentication and injects the current user's ID in one step,
+        so no placeholder value ever reaches the DAO layer.
+
+        When both flags are set, a single combined OR filter is used so results
+        include items where the user is either the creator or an owner.
+        """
+        if not (created_by_me or owned_by_me):
+            return filters
+
+        if not user or not getattr(user, "is_authenticated", False):
+            raise ValueError("This operation requires an authenticated user")
+
+        user_id: int = user.id
+        extra: ColumnOperator
+        if created_by_me and owned_by_me:
+            extra = ColumnOperator(
+                col="created_by_fk_or_owner", opr="eq", value=user_id
+            )
+        elif created_by_me:
+            extra = ColumnOperator(col="created_by_fk", opr="eq", value=user_id)
+        else:
+            extra = ColumnOperator(col="owner", opr="eq", value=user_id)
+
+        if filters is None:
+            return [extra]
+        if isinstance(filters, list):
+            return [extra] + filters
+        return [extra, filters]
+
     def run_tool(
         self,
         filters: Any | None = None,
@@ -204,18 +253,18 @@ class ModelListCore(BaseCore, Generic[L]):
         order_direction: Literal["asc", "desc"] | None = "asc",
         page: int = 0,
         page_size: int = 10,
+        created_by_me: bool = False,
+        owned_by_me: bool = False,
     ) -> L:
-        from superset.mcp_service.constants import MAX_PAGE_SIZE
-
         # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
         page_size = min(page_size, MAX_PAGE_SIZE)
 
         # Parse filters using generic utility (accepts JSON string or object)
-        from superset.mcp_service.utils.schema_utils import (
-            parse_json_or_passthrough,
-        )
-
         filters = parse_json_or_passthrough(filters, param_name="filters")
+
+        filters = self._prepend_self_lookup_filters(
+            filters, created_by_me, owned_by_me, get_current_user()
+        )
 
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)
         columns_requested, columns_to_load = self._get_columns_to_load(select_columns)
@@ -252,7 +301,6 @@ class ModelListCore(BaseCore, Generic[L]):
             if obj is not None:
                 item_objs.append(obj)
         total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
-        from superset.mcp_service.system.schemas import PaginationInfo
 
         # Report 1-based page in response to match the 1-based input convention
         # used by all list tool wrappers (list_charts, list_datasets, etc.)
@@ -287,7 +335,12 @@ class ModelListCore(BaseCore, Generic[L]):
             "columns_loaded": columns_to_load,
             "columns_available": self.all_columns,
             "sortable_columns": self.sortable_columns,
-            "filters_applied": filters if isinstance(filters, list) else [],
+            "filters_applied": [
+                f
+                for f in (filters if isinstance(filters, list) else [])
+                if (f.get("col") if isinstance(f, dict) else getattr(f, "col", None))
+                not in SELF_REFERENCING_FILTER_COLUMNS
+            ],
             "pagination": pagination_info,
             "timestamp": datetime.now(timezone.utc),
         }
@@ -545,10 +598,6 @@ class InstanceInfoCore(BaseCore):
         self, base_counts: Dict[str, int]
     ) -> Dict[str, Dict[str, int]]:
         """Calculate time-based metrics for recent activity."""
-        from datetime import datetime, timedelta, timezone
-
-        from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-
         now = datetime.now(timezone.utc)
         time_metrics = {}
 
@@ -633,8 +682,6 @@ class InstanceInfoCore(BaseCore):
 
     def get_resource(self) -> str:
         """Resource interface for generating instance metadata as JSON."""
-        from superset.utils import json
-
         instance_info = self._generate_instance_info()
         return json.dumps(instance_info.model_dump(), indent=2)
 
@@ -647,8 +694,6 @@ class InstanceInfoCore(BaseCore):
             custom_metrics = self._calculate_custom_metrics(base_counts, time_metrics)
 
             # Combine all data with fallbacks for required fields
-            from datetime import datetime, timezone
-
             response_data = {
                 **base_counts,
                 **time_metrics,
