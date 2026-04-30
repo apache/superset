@@ -109,7 +109,7 @@ export async function embedDashboard({
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   let refreshTimerId: NodeJS.Timeout | null = null;
   let isUnmounted = false;
-  
+
   function log(...info: unknown[]) {
     if (debug) {
       console.debug(`[superset-embedded-sdk][dashboard ${id}]`, ...info);
@@ -237,7 +237,7 @@ export async function embedDashboard({
 
     try {
       const newGuestToken = await fetchGuestToken();
-      
+
       // Check again after async operation
       if (isUnmounted) {
         log("skipping token emission - component unmounted during fetch");
@@ -245,7 +245,7 @@ export async function embedDashboard({
       }
 
       ourPort.emit("guestToken", { guestToken: newGuestToken });
-      
+
       // Schedule next refresh only if not unmounted
       if (!isUnmounted) {
         refreshTimerId = setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(newGuestToken));
@@ -265,14 +265,14 @@ export async function embedDashboard({
     log("unmounting");
     // Set unmount flag to prevent further operations
     isUnmounted = true;
-    
+
     // Clear any pending refresh timer
     if (refreshTimerId) {
       clearTimeout(refreshTimerId);
       refreshTimerId = null;
       log("cleared refresh timer");
     }
-    
+
     // Clear the DOM
     //@ts-ignore
     mountPoint.replaceChildren();
