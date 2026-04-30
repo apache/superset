@@ -733,7 +733,7 @@ function DashboardList(props: DashboardListProps) {
       name: t('Dashboard'),
       buttonStyle: 'primary',
       onClick: () => {
-        navigateTo('/dashboard/new', { assign: true });
+        navigateTo('/dashboard/new/', { assign: true });
       },
     });
   }
