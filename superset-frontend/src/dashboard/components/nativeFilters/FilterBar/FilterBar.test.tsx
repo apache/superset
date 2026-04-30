@@ -838,11 +838,13 @@ test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', 
   const outOfScopeRequiredCall = updateDataMaskSpy.mock.calls.find(
     call => call[0] === outOfScopeRequiredFilterId,
   );
-  expect(outOfScopeRequiredCall?.[1].filterState.value).toEqual(['value2']);
+  expect(outOfScopeRequiredCall?.[1]?.filterState?.value).toEqual(['value2']);
   const outOfScopeNonRequiredCall = updateDataMaskSpy.mock.calls.find(
     call => call[0] === outOfScopeNonRequiredFilterId,
   );
-  expect(outOfScopeNonRequiredCall?.[1].filterState.value).toEqual(['value3']);
+  expect(outOfScopeNonRequiredCall?.[1]?.filterState?.value).toEqual([
+    'value3',
+  ]);
 
   updateDataMaskSpy.mockRestore();
 });
