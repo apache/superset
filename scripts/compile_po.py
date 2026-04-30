@@ -159,14 +159,10 @@ def _sync_po_to_frontend(
     if os.path.exists(frontend_trans_dir):
         shutil.rmtree(frontend_trans_dir)
     os.makedirs(frontend_trans_dir, exist_ok=True)
-    po_files = glob.glob(
-        os.path.join(translations_dir, "**", "*.po"), recursive=True
-    )
+    po_files = glob.glob(os.path.join(translations_dir, "**", "*.po"), recursive=True)
     dest_files = []
     for f in po_files:
-        dest = os.path.join(
-            frontend_trans_dir, os.path.relpath(f, translations_dir)
-        )
+        dest = os.path.join(frontend_trans_dir, os.path.relpath(f, translations_dir))
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         shutil.copy2(f, dest)
         dest_files.append(dest)
@@ -180,15 +176,13 @@ def _convert_po_files_parallel(
     npx_cmd: str,  # noqa: ARG001
 ) -> list[str]:
     print(
-        f"4. Converting {len(po_files)} PO files in parallel"
-        f" (workers={MAX_WORKERS})..."
+        f"4. Converting {len(po_files)} PO files in parallel (workers={MAX_WORKERS})..."
     )
     failures: list[str] = []
     completed = 0
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_to_po = {
-            executor.submit(convert_po_file, f, po2json_cmd): f
-            for f in po_files
+            executor.submit(convert_po_file, f, po2json_cmd): f for f in po_files
         }
         for future in as_completed(future_to_po):
             ok, po_path, err = future.result()
@@ -198,10 +192,7 @@ def _convert_po_files_parallel(
             if ok:
                 print(f"  [{completed}/{len(po_files)}] {locale}/{fname} OK")
             else:
-                print(
-                    f"  [{completed}/{len(po_files)}]"
-                    f" {locale}/{fname} FAILED: {err}"
-                )
+                print(f"  [{completed}/{len(po_files)}] {locale}/{fname} FAILED: {err}")
                 failures.append(po_path)
     if failures:
         print(f"  {len(failures)} files failed to convert:")
