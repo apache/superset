@@ -84,11 +84,7 @@ test('Should render', async () => {
         name: 'column_name_01',
       }),
     ).toBeInTheDocument();
-  });
-  await waitFor(() => {
     expect(screen.getByTitle('column_name_02')).toBeInTheDocument();
-  });
-  await waitFor(() => {
     expect(screen.getByTitle('column_name_03')).toBeInTheDocument();
   });
 });
@@ -135,11 +131,7 @@ test('Should filter results', async () => {
         name: 'column_name_01',
       }),
     ).toBeInTheDocument();
-  });
-  await waitFor(() => {
     expect(screen.queryByTitle('column_name_02')).not.toBeInTheDocument();
-  });
-  await waitFor(() => {
     expect(screen.queryByTitle('column_name_03')).not.toBeInTheDocument();
   });
 });
