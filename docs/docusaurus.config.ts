@@ -898,6 +898,20 @@ const config: Config = {
     footer: {
       links: [],
       copyright: `
+          <div class="footer__social-links">
+            <a href="https://bit.ly/join-superset-slack" target="_blank" rel="noopener noreferrer" title="Join us on Slack" aria-label="Slack">
+              <img src="/img/community/slack-symbol.svg" alt="Slack" />
+            </a>
+            <a href="https://x.com/apachesuperset" target="_blank" rel="noopener noreferrer" title="Follow us on X" aria-label="X">
+              <img src="/img/community/x-symbol.svg" alt="X" />
+            </a>
+            <a href="https://www.linkedin.com/company/apache-superset" target="_blank" rel="noopener noreferrer" title="Follow us on LinkedIn" aria-label="LinkedIn">
+              <img src="/img/community/linkedin-symbol.svg" alt="LinkedIn" />
+            </a>
+            <a href="https://bsky.app/profile/apachesuperset.bsky.social" target="_blank" rel="noopener noreferrer" title="Follow us on Bluesky" aria-label="Bluesky">
+              <img src="/img/community/bluesky-symbol.svg" alt="Bluesky" />
+            </a>
+          </div>
           <div class="footer__ci-services">
             <span>CI powered by</span>
             <a href="https://www.netlify.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/netlify.png" alt="Netlify" title="Netlify - Deploy Previews" /></a>
