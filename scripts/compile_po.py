@@ -290,7 +290,7 @@ def compile_translations() -> None:
         print(f"\u274c Pipeline completed with {len(failures)} conversion failure(s).")
         sys.exit(1)
 
-    print("Pipeline completed successfully FC17!")
+    print("\u2705 Pipeline completed successfully!")
 
 
 if __name__ == "__main__":
