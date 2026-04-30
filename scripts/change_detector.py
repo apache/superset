@@ -32,6 +32,7 @@ PATTERNS = {
         r"^scripts/",
         r"^setup\.py",
         r"^requirements/.+\.txt",
+        r"^pyproject\.toml",
         r"^.pylintrc",
     ],
     "frontend": [
@@ -151,7 +152,7 @@ def main(event_type: str, sha: str, repo: str) -> None:
 
 def get_git_sha() -> str:
     return os.getenv("GITHUB_SHA") or subprocess.check_output(  # noqa: S603
-        ["git", "rev-parse", "HEAD"]  # noqa: S607
+        ["git", "rev-parse", "HEAD"]  # noqa: S603, S607
     ).strip().decode("utf-8")
 
 
