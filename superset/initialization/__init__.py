@@ -201,7 +201,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
-        from superset.views.dynamic_plugins import DynamicPluginsView
+        from superset.views.dynamic_plugins import (
+            DynamicPluginsRestAPI,
+            DynamicPluginsView,
+        )
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.groups import GroupsListView
@@ -269,6 +272,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(TagRestApi)
+        appbuilder.add_api(DynamicPluginsRestAPI)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
         appbuilder.add_api(LogRestApi)
