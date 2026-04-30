@@ -577,6 +577,11 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
         :param cancel_query_id: SingleStore connection ID and aggregator ID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # SingleStore format: "CONNECTION_ID AGGREGATOR_ID" (two space-separated integers)
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+(\s+\d+)?$"):
+            return False
+
         try:
             cursor.execute(f"KILL CONNECTION {cancel_query_id}")
         except Exception:  # pylint: disable=broad-except
