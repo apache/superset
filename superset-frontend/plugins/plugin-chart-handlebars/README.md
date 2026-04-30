@@ -93,3 +93,15 @@ Below, you will find a list of all currently registered helpers in the Handlebar
 
 4. **`parseJson`**: Parses a JSON string into a JavaScript object.
    - **Usage**: `{{parseJson jsonString}}`.
+   
+5. **eq**: Returns true if values are equal.
+   - **Usage**: {{eq a b}}
+
+6. **neq**: Returns true if values are not equal.
+   - **Usage**: {{neq a b}}
+
+7. **gt**: Returns true if a > b.
+   - **Usage**: {{gt a b}}
+
+8. **lt**: Returns true if a < b.
+   - **Usage**: {{lt a b}}
