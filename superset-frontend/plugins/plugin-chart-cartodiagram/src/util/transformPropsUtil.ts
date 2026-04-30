@@ -18,17 +18,31 @@
  */
 
 import {
+  CategoricalColorNamespace,
+  ChartDataResponseResult,
   ChartProps,
   convertKeysToCamelCase,
   DataRecord,
+  DataRecordValue,
+  ensureIsArray,
+  getColumnLabel,
+  getTimeFormatter,
+  normalizeTimestamp,
+  NumberFormatter,
+  TimeFormatter,
+  ValueFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { isObject } from 'lodash';
+import WKB from 'ol/format/WKB';
 import {
   LocationConfigMapping,
   SelectedChartConfig,
   ChartConfig,
   ChartConfigFeature,
 } from '../types';
+import { GeometryFormat, NULL_STRING } from '../constants';
+import { wkbToGeoJSON, wktToGeoJSON } from './mapUtil';
 
 const COLUMN_SEPARATOR = ', ';
 
@@ -55,6 +69,55 @@ export const getGeojsonColumns = (columns: string[]) =>
     return [...prev, idx];
   }, []);
 
+export const getWkbColumns = (columns: string[]) =>
+  columns.reduce((prev, current, idx) => {
+    let isWkb;
+
+    try {
+      new WKB().readFeature(current);
+      isWkb = true;
+    } catch {
+      isWkb = false;
+    }
+    if (!isWkb) {
+      return [...prev];
+    }
+    return [...prev, idx];
+  }, []);
+
+const WktFormatIdentifiers = [
+  'SRID=',
+  'POINT',
+  'LINESTRING',
+  'POLYGON',
+  'MULTIPOINT',
+  'MULTILINESTRING',
+  'MULTIPOLYGON',
+];
+export const getWktColumns = (columns: string[]) =>
+  columns.reduce((prev, current, idx) => {
+    const isWkt = WktFormatIdentifiers.some(identifier =>
+      current.startsWith(identifier),
+    );
+    if (!isWkt) {
+      return [...prev];
+    }
+    return [...prev, idx];
+  }, []);
+
+const getGeomColumns = (geomFormat: GeometryFormat, columns: string[]) => {
+  let geomColumns: number[];
+
+  if (geomFormat === GeometryFormat.GEOJSON) {
+    geomColumns = getGeojsonColumns(columns);
+  } else if (geomFormat === GeometryFormat.WKB) {
+    geomColumns = getWkbColumns(columns);
+  } else {
+    geomColumns = getWktColumns(columns);
+  }
+  return geomColumns;
+};
+
 /**
  * Create a column name ignoring provided indices.
  *
@@ -76,6 +139,7 @@ export const createColumnName = (columns: string[], ignoreIdx: number[]) =>
 export const groupByLocationGenericX = (
   data: DataRecord[],
   params: SelectedChartConfig['params'],
+  geomFormat: GeometryFormat,
   queryData: any,
 ) => {
   const locations: LocationConfigMapping = {};
@@ -95,16 +159,16 @@ export const groupByLocationGenericX = (
           return;
         }
 
-        const geojsonCols = getGeojsonColumns(labelMap);
+        const geomColumns = getGeomColumns(geomFormat, labelMap);
 
-        if (geojsonCols.length > 1) {
+        if (geomColumns.length > 1) {
           // TODO what should we do, if there is more than one geom column?
           console.log(
             'More than one geometry column detected. Using first found.',
           );
         }
-        const location = labelMap[geojsonCols[0]];
-        const filter = geojsonCols.length ? [geojsonCols[0]] : [];
+        const location = labelMap[geomColumns[0]];
+        const filter = geomColumns.length ? [geomColumns[0]] : [];
         const leftOverKey = createColumnName(labelMap, filter);
 
         if (!Object.keys(locations).includes(location)) {
@@ -171,6 +235,7 @@ export const groupByLocation = (data: DataRecord[], geomColumn: string) => {
 export const stripGeomFromColnamesAndTypes = (
   queryData: any,
   geomColumn: string,
+  geomFormat: GeometryFormat,
 ) => {
   const newColnames: string[] = [];
   const newColtypes: number[] = [];
@@ -180,8 +245,8 @@ export const stripGeomFromColnamesAndTypes = (
     }
 
     const parts = colname.split(COLUMN_SEPARATOR);
-    const geojsonColumns = getGeojsonColumns(parts);
-    const filter = geojsonColumns.length ? [geojsonColumns[0]] : [];
+    const geomColumns = getGeomColumns(geomFormat, parts);
+    const filter = geomColumns.length ? [geomColumns[0]] : [];
 
     const newColname = createColumnName(parts, filter);
     if (newColnames.includes(newColname)) {
@@ -202,21 +267,30 @@ export const stripGeomFromColnamesAndTypes = (
  *
  * @param queryData The querydata.
  * @param geomColumn Name of the geom column.
+ * @param geomFormat The format of the geometries.
  * @returns labelMap without the geom column.
  */
 export const stripGeomColumnFromLabelMap = (
   labelMap: { [key: string]: string[] },
   geomColumn: string,
+  geomFormat: GeometryFormat,
 ) => {
   const newLabelMap: Record<string, string[]> = {};
   Object.entries(labelMap).forEach(([key, value]) => {
     if (key === geomColumn) {
       return;
     }
-    const geojsonCols = getGeojsonColumns(value);
-    const filter = geojsonCols.length ? [geojsonCols[0]] : [];
+    let geomColumns: number[];
+    if (geomFormat === GeometryFormat.GEOJSON) {
+      geomColumns = getGeojsonColumns(value);
+    } else if (geomFormat === GeometryFormat.WKB) {
+      geomColumns = getWkbColumns(value);
+    } else {
+      geomColumns = getWktColumns(value);
+    }
+    const filter = geomColumns.length ? [geomColumns[0]] : [];
     const columnName = createColumnName(value, filter);
-    const restItems = value.filter((v, idx) => !geojsonCols.includes(idx));
+    const restItems = value.filter((v, idx) => !geomColumns.includes(idx));
     newLabelMap[columnName] = restItems;
   });
   return newLabelMap;
@@ -232,18 +306,142 @@ export const stripGeomColumnFromLabelMap = (
 export const stripGeomColumnFromQueryData = (
   queryData: any,
   geomColumn: string,
+  geomFormat: GeometryFormat,
 ) => {
   const queryDataClone = {
     ...structuredClone(queryData),
-    ...stripGeomFromColnamesAndTypes(queryData, geomColumn),
+    ...stripGeomFromColnamesAndTypes(queryData, geomColumn, geomFormat),
   };
   if (queryDataClone.label_map) {
     queryDataClone.label_map = stripGeomColumnFromLabelMap(
       queryData.label_map,
       geomColumn,
+      geomFormat,
     );
   }
   return queryDataClone;
+};
+
+// copy of
+// superset-frontend/plugins/plugin-chart-echarts/src/utils/series.ts
+export const formatSeriesName = (
+  name: DataRecordValue | undefined,
+  {
+    numberFormatter,
+    timeFormatter,
+    coltype,
+  }: {
+    numberFormatter?: ValueFormatter;
+    timeFormatter?: TimeFormatter;
+    coltype?: GenericDataType;
+  } = {},
+) => {
+  if (name === undefined || name === null) {
+    return NULL_STRING;
+  }
+  if (typeof name === 'boolean' || typeof name === 'bigint') {
+    return name.toString();
+  }
+  if (name instanceof Date || coltype === GenericDataType.Temporal) {
+    const normalizedName =
+      typeof name === 'string' ? normalizeTimestamp(name) : name;
+    const d =
+      normalizedName instanceof Date
+        ? normalizedName
+        : new Date(normalizedName);
+
+    return timeFormatter ? timeFormatter(d) : d.toISOString();
+  }
+  if (typeof name === 'number') {
+    return numberFormatter ? numberFormatter(name) : name.toString();
+  }
+  return name;
+};
+
+// copy of
+// superset-frontend/plugins/plugin-chart-echarts/src/utils/series.ts
+export const extractGroupbyLabel = ({
+  datum = {},
+  groupby,
+  numberFormatter,
+  timeFormatter,
+  coltypeMapping = {},
+}: {
+  datum?: DataRecord;
+  groupby?: string[] | null;
+  numberFormatter?: NumberFormatter;
+  timeFormatter?: TimeFormatter;
+  coltypeMapping?: Record<string, GenericDataType>;
+}) =>
+  ensureIsArray(groupby)
+    .map(val =>
+      formatSeriesName(datum[val], {
+        numberFormatter,
+        timeFormatter,
+        ...(coltypeMapping[val] && { coltype: coltypeMapping[val] }),
+      }),
+    )
+    .join(', ');
+
+// copy of
+// superset-frontend/plugins/plugin-chart-echarts/src/utils/series.ts
+export const getColtypesMapping = ({
+  coltypes = [],
+  colnames = [],
+}: Pick<ChartDataResponseResult, 'coltypes' | 'colnames'>): Record<
+  string,
+  GenericDataType
+> =>
+  colnames.reduce(
+    (accumulator, item, index) => ({ ...accumulator, [item]: coltypes[index] }),
+    {},
+  );
+
+/**
+ * Reserve label colors for the chart.
+ *
+ * We call the CategoricalColorNamespace singleton to reserve
+ * label colors for the chart. This is necessary to ensure that
+ * we do not run into color collisions when rendering multiple
+ * charts in the same cartodiagram.
+ *
+ * TODO This only works in the context of a dashboard,
+ *      since only there, the CategoricalColorNamespace singleton is being used.
+ *      In the explore view, label colors cannot be reserved without changing
+ *      the overall color handling in superset.
+ *
+ * @param formData The formdata of the underlying chart
+ * @param dataByLocation The data grouped by location
+ * @param strippedQueryData The query data without the geom column
+ * @param sliceId The id of the chart slice
+ */
+export const reserveLabelColors = (
+  formData: Record<string, any>,
+  dataByLocation: LocationConfigMapping,
+  strippedQueryData: any,
+  sliceId: number,
+) => {
+  // Call color singleton to reserve label colors
+  // get needed control values from underlying chart config
+  const { colorScheme = '', groupby = [], dateFormat } = formData;
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const groupbyLabels = groupby.map(getColumnLabel);
+  Object.keys(dataByLocation).forEach(location => {
+    const coltypeMapping = getColtypesMapping({
+      ...strippedQueryData,
+      data: dataByLocation[location],
+    });
+    dataByLocation[location].forEach(datum => {
+      const name = extractGroupbyLabel({
+        datum,
+        groupby: groupbyLabels,
+        coltypeMapping,
+        timeFormatter: getTimeFormatter(dateFormat),
+      });
+
+      colorFn(name, sliceId);
+    });
+  });
 };
 
 /**
@@ -251,6 +449,7 @@ export const stripGeomColumnFromQueryData = (
  *
  * @param selectedChart The configuration of the referenced Superset chart
  * @param geomColumn The name of the geometry column
+ * @param geomFormat The format of the geometries
  * @param chartProps The properties provided within this OL plugin
  * @param chartTransformer The transformer function
  * @returns The chart configurations
@@ -258,11 +457,14 @@ export const stripGeomColumnFromQueryData = (
 export const getChartConfigs = (
   selectedChart: SelectedChartConfig,
   geomColumn: string,
+  geomFormat: GeometryFormat,
   chartProps: ChartProps,
   chartTransformer: any,
+  sliceId: number,
 ) => {
   const chartFormDataSnake = selectedChart.params;
   const chartFormData = convertKeysToCamelCase(chartFormDataSnake);
+  chartFormData.sliceId = sliceId;
 
   const baseConfig = {
     ...chartProps,
@@ -294,13 +496,26 @@ export const getChartConfigs = (
     dataByLocation = groupByLocationGenericX(
       data,
       selectedChart.params,
+      geomFormat,
       queryData,
     );
   } else {
     dataByLocation = groupByLocation(data, geomColumn);
   }
+  const strippedQueryData = stripGeomColumnFromQueryData(
+    queryData,
+    geomColumn,
+    geomFormat,
+  );
 
-  const strippedQueryData = stripGeomColumnFromQueryData(queryData, geomColumn);
+  // We have to reserve the label colors before
+  // transforming the chart props.
+  reserveLabelColors(
+    baseConfig.formData,
+    dataByLocation,
+    strippedQueryData,
+    sliceId,
+  );
 
   Object.keys(dataByLocation).forEach(location => {
     const config = {
@@ -314,9 +529,22 @@ export const getChartConfigs = (
     };
     const transformedProps = chartTransformer(config);
 
+    let geojsonFeature;
+
+    if (geomFormat === GeometryFormat.GEOJSON) {
+      geojsonFeature = {
+        type: 'Feature',
+        geometry: JSON.parse(location),
+      };
+    } else if (geomFormat === GeometryFormat.WKB) {
+      geojsonFeature = wkbToGeoJSON(location);
+    } else {
+      geojsonFeature = wktToGeoJSON(location);
+    }
+
     const feature: ChartConfigFeature = {
       type: 'Feature',
-      geometry: JSON.parse(location),
+      geometry: geojsonFeature.geometry,
       properties: {
         ...transformedProps,
       },
