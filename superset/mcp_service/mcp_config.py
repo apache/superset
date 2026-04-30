@@ -335,6 +335,21 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
 
             auth_provider = JWTVerifier(**common_kwargs)
 
+        # Wrap with CompositeTokenVerifier when API key auth is enabled
+        # so that API key tokens (e.g. sst_...) pass through the transport
+        # layer instead of being rejected by the JWT verifier.
+        if app.config.get("FAB_API_KEY_ENABLED", False):
+            from superset.mcp_service.composite_token_verifier import (
+                CompositeTokenVerifier,
+            )
+
+            api_key_prefixes = app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
+            auth_provider = CompositeTokenVerifier(
+                jwt_verifier=auth_provider,
+                api_key_prefixes=api_key_prefixes,
+            )
+            logger.info("API key auth enabled for MCP")
+
         return auth_provider
     except Exception:
         # Do not log the exception — it may contain the HS256 secret

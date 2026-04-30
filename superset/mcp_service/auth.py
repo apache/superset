@@ -218,6 +218,14 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     if access_token is None:
         return None
 
+    # API key pass-through: CompositeTokenVerifier accepted this token
+    # at the transport layer but defers actual validation to
+    # _resolve_user_from_api_key() (priority 2 in get_user_from_request).
+    claims = getattr(access_token, "claims", None)
+    if isinstance(claims, dict) and claims.get("_api_key_passthrough"):
+        logger.debug("API key pass-through token detected, deferring to API key auth")
+        return None
+
     # Use configurable resolver or default
     from superset.mcp_service.mcp_config import default_user_resolver
 

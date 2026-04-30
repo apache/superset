@@ -1361,6 +1361,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_tag", "Chart")
         self.add_permission_view_menu("can_tag", "Dashboard")
 
+        # API Key permissions (FAB's ApiKeyApi blueprint).
+        # Superset uses AppBuilder(update_perms=False) so FAB skips
+        # permission creation during blueprint registration. Create them
+        # explicitly here so that ``superset init`` picks them up and
+        # sync_role_definitions assigns them to the Admin role.
+        if current_app.config.get("FAB_API_KEY_ENABLED", False):
+            for perm in ("can_list", "can_create", "can_get", "can_delete"):
+                self.add_permission_view_menu(perm, "ApiKey")
+
     def create_missing_perms(self) -> None:
         """
         Creates missing FAB permissions for datasources, schemas and metrics.
