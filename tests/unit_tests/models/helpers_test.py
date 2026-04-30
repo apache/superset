@@ -1965,3 +1965,49 @@ def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
     assert not any(p in probe_sql for p in always_false_patterns), (
         f"Row-dependent engines: probe must NOT use WHERE false, got: {probe_sql}"
     )
+
+
+def test_filter_by_verbose_name_resolves_to_column(
+    database: Database,
+) -> None:
+    """
+    A filter whose "col" value matches a column's verbose_name
+    (e.g. the label emitted by "Drill to detail by") must resolve to that
+    column and produce a WHERE clause on the underlying column_name.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(
+                column_name="country_code",
+                verbose_name="Country",
+                type="TEXT",
+            ),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["b"],
+        # Filter uses the verbose label, as "Drill to detail by" does.
+        filter=[{"col": "Country", "op": "==", "val": "US"}],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The filter should be translated to a WHERE clause on the real column.
+    assert "WHERE" in sql, f"Expected WHERE clause, got SQL: {sql}"
+    assert "country_code" in sql, f"Expected filter on 'country_code', got SQL: {sql}"
+    assert "'US'" in sql, f"Expected filter value 'US', got SQL: {sql}"
