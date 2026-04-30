@@ -802,6 +802,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if code_verifier:
             req_body["code_verifier"] = code_verifier
 
+        cls._validate_oauth2_token_uri(uri)
         response = (
             requests.post(uri, data=req_body, timeout=timeout)
             if config["request_content_type"] == "data"
@@ -809,6 +810,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
         response.raise_for_status()
         return response.json()
+
+    @classmethod
+    def _validate_oauth2_token_uri(cls, uri: str) -> None:
+        """Validate OAuth2 token URI to prevent SSRF attacks."""
+        import ipaddress
+        import socket as _socket
+        from urllib.parse import urlparse
+
+        parsed = urlparse(uri)
+        if parsed.scheme not in ("https", "http"):
+            raise ValueError(
+                f"OAuth2 token URI must use http or https scheme, got: {parsed.scheme!r}"
+            )
+        hostname = parsed.hostname or ""
+        try:
+            ip = ipaddress.ip_address(_socket.gethostbyname(hostname))
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                raise ValueError(
+                    "OAuth2 token URI must not point to a private or reserved network address"
+                )
+        except _socket.gaierror:
+            pass
 
     @classmethod
     def get_oauth2_fresh_token(
@@ -827,6 +850,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "refresh_token": refresh_token,
             "grant_type": "refresh_token",
         }
+        cls._validate_oauth2_token_uri(uri)
         response = (
             requests.post(uri, data=req_body, timeout=timeout)
             if config["request_content_type"] == "data"
