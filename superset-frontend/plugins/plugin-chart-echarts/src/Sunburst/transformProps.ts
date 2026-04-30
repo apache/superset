@@ -285,8 +285,6 @@ export default function transformProps(
   }
   const labelProps = {
     color: theme.colorText,
-    textBorderColor: theme.colorBgBase,
-    textBorderWidth: 1,
   };
   const traverse = (
     treeNodes: TreeNode[],
