@@ -59,12 +59,6 @@ MCP_RBAC_ENABLED = True
 # per RFC 6750 Section 3.1. This flag NEVER affects client-facing output.
 MCP_JWT_DEBUG_ERRORS = False
 
-# Enable parse_request decorator for MCP tools.
-# When True (default), tool requests are automatically parsed from JSON strings
-# to Pydantic models, working around a Claude Code double-serialization bug
-# (https://github.com/anthropics/claude-code/issues/5504).
-# Set to False to disable and let FastMCP handle request parsing natively.
-MCP_PARSE_REQUEST_ENABLED = True
 
 # Session configuration for local development
 MCP_SESSION_CONFIG = {
@@ -224,7 +218,6 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
     "excluded_tools": [  # Tools to skip size checking
         "health_check",  # Always small
-        "get_chart_preview",  # Returns URLs, not data
         "generate_explore_link",  # Returns URLs
         "open_sql_lab_with_context",  # Returns URLs
         "search_tools",  # Returns tool schemas for discovery (intentionally large)
@@ -248,9 +241,31 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
 # - "bm25": Natural language search using BM25 ranking (recommended)
 # - "regex": Pattern-based search using regular expressions
 #
+# Schema Compaction:
+# ------------------
+# When compact_schemas=True, search results strip $defs sections and replace
+# $ref pointers with {"type": "object"}, and truncate tool descriptions.
+# This reduces per-search token cost by ~40-60%.  Full schemas remain
+# available when the tool is actually invoked via call_tool.
+#
 # Rollback:
 # ---------
-# Set enabled=False in superset_config.py for instant rollback.
+# - Set enabled=False to disable tool search entirely (full catalog exposed).
+# - Set compact_schemas=False to disable schema compaction only (full $defs
+#   and descriptions in search results, tool search still active).
+# - Set max_description_length=0 to disable description truncation only.
+#
+# Summary Mode (include_schemas):
+# --------------------------------
+# When include_schemas=False (default), search results omit inputSchema
+# entirely and include a lightweight "parameters_hint" field listing
+# top-level parameter names (e.g. "page, page_size, search, filters").
+# This reduces per-search token cost by ~80% vs compact mode while still
+# conveying what parameters a tool accepts.  Full schemas remain available
+# when invoking the tool via call_tool.
+# - Set include_schemas=True to restore full inputSchema in search results.
+# - compact_schemas is ignored when include_schemas=False (no schema to
+#   compact); max_description_length still applies in summary mode.
 # =============================================================================
 MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
     "enabled": True,  # Enabled by default — reduces initial context by ~70%
@@ -262,6 +277,9 @@ MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
     ],
     "search_tool_name": "search_tools",  # Name of the search tool
     "call_tool_name": "call_tool",  # Name of the call proxy tool
+    "compact_schemas": True,  # Strip $defs/$ref (requires include_schemas=True)
+    "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
+    "include_schemas": True,  # full inputSchema in search results
 }
 
 
@@ -318,11 +336,30 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
         return None
 
 
-def default_user_resolver(app: Any, access_token: Any) -> Optional[str]:
-    """Extract username from JWT token claims."""
-    if hasattr(access_token, "subject"):
+def default_user_resolver(app: Any, access_token: Any) -> str | None:
+    """Extract username from JWT token claims.
+
+    Checks the ``claims`` dict first (FastMCP's AccessToken format),
+    then falls back to legacy attribute access for backward compatibility.
+    """
+    # FastMCP AccessToken stores JWT claims in a dict
+    claims = getattr(access_token, "claims", None)
+    if isinstance(claims, dict) and claims:
+        # Prefer human-readable username claims over opaque `sub`
+        # (OIDC `sub` is often a stable opaque ID, not a Superset username)
+        username = (
+            claims.get("preferred_username")
+            or claims.get("username")
+            or claims.get("email")
+            or claims.get("sub")
+        )
+        if username:
+            return username
+
+    # Legacy attribute access for backward compatibility
+    if hasattr(access_token, "subject") and access_token.subject:
         return access_token.subject
-    if hasattr(access_token, "client_id"):
+    if hasattr(access_token, "client_id") and access_token.client_id:
         return access_token.client_id
     if hasattr(access_token, "payload") and isinstance(access_token.payload, dict):
         return (

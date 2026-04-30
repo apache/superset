@@ -31,7 +31,7 @@ const SaveDatasetActionButton = ({
 }: SaveDatasetActionButtonProps) => (
   <>
     <Button
-      color="primary"
+      color="default"
       variant="text"
       onClick={() => setShowSave(true)}
       icon={<Icons.SaveOutlined />}
@@ -40,7 +40,7 @@ const SaveDatasetActionButton = ({
     />
     {onSaveAsExplore && (
       <Button
-        color="primary"
+        color="default"
         variant="text"
         onClick={() => onSaveAsExplore?.()}
         icon={<Icons.TableOutlined />}

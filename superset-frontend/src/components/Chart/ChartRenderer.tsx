@@ -275,10 +275,11 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
         const nextFormData = nextProps.formData as JsonObject;
         const currentFormData = this.props.formData as JsonObject;
         const isMatrixifyEnabled =
-          (nextFormData.matrixify_mode_rows !== undefined &&
+          nextFormData.matrixify_enable === true &&
+          ((nextFormData.matrixify_mode_rows !== undefined &&
             nextFormData.matrixify_mode_rows !== 'disabled') ||
-          (nextFormData.matrixify_mode_columns !== undefined &&
-            nextFormData.matrixify_mode_columns !== 'disabled');
+            (nextFormData.matrixify_mode_columns !== undefined &&
+              nextFormData.matrixify_mode_columns !== 'disabled'));
         if (!isMatrixifyEnabled) return false;
 
         // Check all matrixify-related properties

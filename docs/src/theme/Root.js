@@ -147,7 +147,9 @@ export default function Root({ children }) {
         const button = event.target.closest('.get-started-button, .default-button-theme');
         if (button) {
           const buttonText = button.textContent?.trim() || 'Unknown';
-          const href = button.getAttribute('href') || '';
+          const clickedLink = event.target.closest?.('a');
+          const href =
+            clickedLink?.getAttribute('href') || button.getAttribute('href') || '';
           trackEvent('CTA', 'Click', `${buttonText} - ${href}`);
         }
       };
