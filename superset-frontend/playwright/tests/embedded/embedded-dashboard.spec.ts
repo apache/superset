@@ -20,7 +20,7 @@
 import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
 import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
 import { readFileSync, existsSync } from 'fs';
-import { join, extname } from 'path';
+import { join, extname, resolve, sep } from 'path';
 import { apiEnableEmbedding, getGuestToken } from '../../helpers/api/embedded';
 import { getDashboardBySlug } from '../../helpers/api/dashboard';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
@@ -83,11 +83,16 @@ function createEmbedAppServer(): Server {
       return;
     }
 
-    // Serve static files from embedded-app/
-    const filePath = join(
-      EMBED_APP_DIR,
-      urlPath === '/' ? 'index.html' : urlPath,
-    );
+    // Serve static files from embedded-app/, confined to EMBED_APP_DIR
+    // to prevent path traversal via crafted URLs (e.g. /../../etc/passwd).
+    const requested = urlPath === '/' ? 'index.html' : urlPath;
+    const resolvedRoot = resolve(EMBED_APP_DIR);
+    const filePath = resolve(join(resolvedRoot, requested));
+    if (filePath !== resolvedRoot && !filePath.startsWith(resolvedRoot + sep)) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
     if (!existsSync(filePath)) {
       res.writeHead(404);
       res.end('Not found');
