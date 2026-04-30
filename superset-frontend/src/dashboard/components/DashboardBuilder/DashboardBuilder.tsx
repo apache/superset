@@ -414,6 +414,8 @@ const DashboardBuilder = () => {
       : undefined;
   const standaloneMode = getUrlParam(URL_PARAMS.standalone);
   const isReport = standaloneMode === DashboardStandaloneMode.Report;
+  const showFiltersUrlParam = getUrlParam(URL_PARAMS.showFilters);
+  const hideFilterBar = isReport && showFiltersUrlParam !== true;
   const hideDashboardHeader =
     uiConfig.hideTitle ||
     standaloneMode === DashboardStandaloneMode.HideNavAndTitle ||
@@ -511,12 +513,12 @@ const DashboardBuilder = () => {
           filterBarOrientation === FilterBarOrientation.Horizontal && (
             <FilterBar
               orientation={FilterBarOrientation.Horizontal}
-              hidden={isReport}
+              hidden={hideFilterBar}
             />
           )}
       </>
     ),
-    [hideDashboardHeader, showFilterBar, filterBarOrientation, isReport],
+    [hideDashboardHeader, showFilterBar, filterBarOrientation, hideFilterBar],
   );
 
   const renderDraggableContent = useCallback(
@@ -578,7 +580,7 @@ const DashboardBuilder = () => {
       return (
         <FiltersPanel
           width={filterBarWidth}
-          hidden={isReport}
+          hidden={hideFilterBar}
           data-test="dashboard-filters-panel"
         >
           <StickyPanel ref={containerRef} width={filterBarWidth}>
@@ -603,7 +605,7 @@ const DashboardBuilder = () => {
       toggleDashboardFiltersOpen,
       filterBarHeight,
       filterBarOffset,
-      isReport,
+      hideFilterBar,
     ],
   );
 

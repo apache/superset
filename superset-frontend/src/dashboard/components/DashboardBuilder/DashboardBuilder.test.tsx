@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
 import fetchMock from 'fetch-mock';
 import {
   fireEvent,
@@ -42,6 +43,7 @@ import {
 import { storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import * as urlUtils from 'src/utils/urlUtils';
 import * as useNativeFiltersModule from './state';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
@@ -455,6 +457,116 @@ describe('DashboardBuilder', () => {
     });
 
     expect(queryByTestId('dashboard-filters-panel')).not.toBeInTheDocument();
+  });
+
+  test('should hide filter panel in standalone=3 report mode', () => {
+    const urlParamSpy = (
+      jest.spyOn(urlUtils, 'getUrlParam') as jest.SpyInstance
+    ).mockImplementation((param: { name: string }) => {
+      if (param.name === 'standalone') return 3;
+      return null;
+    });
+    const nativeFiltersSpy = jest
+      .spyOn(useNativeFiltersModule, 'useNativeFilters')
+      .mockReturnValue({
+        showDashboard: true,
+        missingInitialFilters: [],
+        dashboardFiltersOpen: true,
+        toggleDashboardFiltersOpen: jest.fn(),
+        nativeFiltersEnabled: true,
+      });
+    try {
+      const { getByTestId } = setup();
+      const filterPanel = getByTestId('dashboard-filters-panel');
+      expect(filterPanel).toHaveStyleRule('display', 'none');
+    } finally {
+      urlParamSpy.mockRestore();
+      nativeFiltersSpy.mockRestore();
+    }
+  });
+
+  test('should show filter panel in standalone=3 when show_filters=true', () => {
+    const urlParamSpy = (
+      jest.spyOn(urlUtils, 'getUrlParam') as jest.SpyInstance
+    ).mockImplementation((param: { name: string }) => {
+      if (param.name === 'standalone') return 3;
+      if (param.name === 'show_filters') return true;
+      return null;
+    });
+    const nativeFiltersSpy = jest
+      .spyOn(useNativeFiltersModule, 'useNativeFilters')
+      .mockReturnValue({
+        showDashboard: true,
+        missingInitialFilters: [],
+        dashboardFiltersOpen: true,
+        toggleDashboardFiltersOpen: jest.fn(),
+        nativeFiltersEnabled: true,
+      });
+    try {
+      const { getByTestId } = setup();
+      const filterPanel = getByTestId('dashboard-filters-panel');
+      expect(filterPanel).not.toHaveStyleRule('display', 'none');
+    } finally {
+      urlParamSpy.mockRestore();
+      nativeFiltersSpy.mockRestore();
+    }
+  });
+
+  test('should hide filter panel in standalone=3 when show_filters=false', () => {
+    const urlParamSpy = (
+      jest.spyOn(urlUtils, 'getUrlParam') as jest.SpyInstance
+    ).mockImplementation((param: { name: string }) => {
+      if (param.name === 'standalone') return 3;
+      if (param.name === 'show_filters') return false;
+      return null;
+    });
+    const nativeFiltersSpy = jest
+      .spyOn(useNativeFiltersModule, 'useNativeFilters')
+      .mockReturnValue({
+        showDashboard: true,
+        missingInitialFilters: [],
+        dashboardFiltersOpen: true,
+        toggleDashboardFiltersOpen: jest.fn(),
+        nativeFiltersEnabled: true,
+      });
+    try {
+      const { getByTestId } = setup();
+      const filterPanel = getByTestId('dashboard-filters-panel');
+      expect(filterPanel).toHaveStyleRule('display', 'none');
+    } finally {
+      urlParamSpy.mockRestore();
+      nativeFiltersSpy.mockRestore();
+    }
+  });
+
+  test('should show filters but hide tab navigation in report mode with show_filters=true on tabbed dashboard', () => {
+    const urlParamSpy = (
+      jest.spyOn(urlUtils, 'getUrlParam') as jest.SpyInstance
+    ).mockImplementation((param: { name: string }) => {
+      if (param.name === 'standalone') return 3;
+      if (param.name === 'show_filters') return true;
+      return null;
+    });
+    const nativeFiltersSpy = jest
+      .spyOn(useNativeFiltersModule, 'useNativeFilters')
+      .mockReturnValue({
+        showDashboard: true,
+        missingInitialFilters: [],
+        dashboardFiltersOpen: true,
+        toggleDashboardFiltersOpen: jest.fn(),
+        nativeFiltersEnabled: true,
+      });
+    try {
+      const { getByTestId, queryByRole } = setup({
+        dashboardLayout: undoableDashboardLayoutWithTabs,
+      });
+      const filterPanel = getByTestId('dashboard-filters-panel');
+      expect(filterPanel).not.toHaveStyleRule('display', 'none');
+      expect(queryByRole('tablist')).not.toBeInTheDocument();
+    } finally {
+      urlParamSpy.mockRestore();
+      nativeFiltersSpy.mockRestore();
+    }
   });
 });
 
