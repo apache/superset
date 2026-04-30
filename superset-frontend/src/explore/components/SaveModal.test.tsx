@@ -255,7 +255,7 @@ test('disables overwrite option for new slice', () => {
 });
 
 test('disables overwrite option for non-owner', () => {
-  const { getByRole } = setup(
+  const { getByRole, getByText } = setup(
     {},
     mockStore({
       ...initialState,
@@ -263,6 +263,11 @@ test('disables overwrite option for non-owner', () => {
     }),
   );
   expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+  expect(
+    getByText(
+      'Must be a chart owner to overwrite the existing chart. Save as a new chart instead.',
+    ),
+  ).toBeInTheDocument();
 });
 
 test('updates slice name and selected dashboard', async () => {

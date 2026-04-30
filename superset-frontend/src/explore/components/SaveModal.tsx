@@ -34,6 +34,7 @@ import {
   Loading,
   Divider,
   Flex,
+  Typography,
   TreeSelect,
 } from '@superset-ui/core/components';
 import { logging } from '@apache-superset/core/utils';
@@ -597,18 +598,32 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   renderSaveChartModal = () => {
     const info = this.info();
+    const canOverwriteSlice = this.canOverwriteSlice();
+    const isChartOwner = this.props.slice?.owners?.includes(
+      this.props.user.userId,
+    );
+    const isExistingChartNonOwner = Boolean(this.props.slice && !isChartOwner);
     return (
       <Form data-test="save-modal-body" layout="vertical">
         <FormItem data-test="radio-group">
           <Radio
             id="overwrite-radio"
-            disabled={!this.canOverwriteSlice()}
+            disabled={!canOverwriteSlice}
             checked={this.state.action === 'overwrite'}
             onChange={() => this.changeAction('overwrite')}
             data-test="save-overwrite-radio"
           >
             {t('Save (Overwrite)')}
           </Radio>
+          {isExistingChartNonOwner && (
+            <div>
+              <Typography.Text type="secondary">
+                {t(
+                  'Must be a chart owner to overwrite the existing chart. Save as a new chart instead.',
+                )}
+              </Typography.Text>
+            </div>
+          )}
           <Radio
             id="saveas-radio"
             data-test="saveas-radio"
