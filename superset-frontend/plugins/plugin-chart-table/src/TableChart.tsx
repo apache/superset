@@ -77,6 +77,8 @@ import {
 } from '@ant-design/icons';
 import { isEmpty, debounce, isEqual } from 'lodash';
 import {
+  ColorFormatters,
+  getTextColorForBackground,
   ObjectFormattingEnum,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
@@ -151,22 +153,32 @@ function cellWidth({
 
 /**
  * Sanitize a column identifier for use in HTML id attributes and CSS selectors.
+ * Replaces characters that are invalid in CSS selectors with safe alternatives.
+ *
+ * Note: The returned value should be prefixed with a string (e.g., "header-")
+ * to ensure it forms a valid HTML ID (IDs cannot start with a digit).
+ *
+ * Exported for testing.
  */
 export function sanitizeHeaderId(columnId: string): string {
   return (
     columnId
+      // Semantic replacements first: preserve meaning in IDs for readability
+      // (e.g., '%pct_nice' → 'percentpct_nice' instead of '_pct_nice')
       .replace(/%/g, 'percent')
       .replace(/#/g, 'hash')
       .replace(/△/g, 'delta')
+      // Generic sanitization for remaining special characters
       .replace(/\s+/g, '_')
       .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_+|_+$/g, '')
+      .replace(/_+/g, '_') // Collapse consecutive underscores
+      .replace(/^_+|_+$/g, '') // Trim leading/trailing underscores
   );
 }
 
 /**
- * Cell left margin (offset) calculation for horizontal bar chart
+ * Cell left margin (offset) calculation for horizontal bar chart elements
+ * when alignPositiveNegative is not set
  */
 function cellOffset({
   value,
@@ -202,9 +214,11 @@ function cellBackground({
   if (!colorPositiveNegative) {
     return `${theme.colorFill}`;
   }
+
   if (value < 0) {
     return `${theme.colorError}50`;
   }
+
   return `${theme.colorSuccess}50`;
 }
 
@@ -217,6 +231,9 @@ function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   return sortIcon;
 }
 
+/**
+ * Label that is visually hidden but accessible
+ */
 const VisuallyHidden = styled.label`
   position: absolute;
   width: 1px;
@@ -378,7 +395,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     showCellBars = true,
     sortDesc = false,
     filters,
-    sticky = true,
+    sticky = true, // whether to use sticky header
     columnColorFormatters,
     allowRearrangeColumns = false,
     allowRenderHtml = true,
@@ -412,17 +429,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           ),
     [timeGrain, isRawRecords],
   );
-
   const [tableSize, setTableSize] = useState<TableSize>({
     width: 0,
     height: 0,
   });
+  // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
   const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
   const [selectedComparisonColumns, setSelectedComparisonColumns] = useState([
     comparisonColumns[0].key,
   ]);
   const [hideComparisonKeys, setHideComparisonKeys] = useState<string[]>([]);
+  // recalculated totals to display when the search filter is applied (client-side pagination)
   const [displayedTotals, setDisplayedTotals] = useState<D | undefined>(totals);
   const theme = useTheme();
 
@@ -430,6 +448,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     setDisplayedTotals(totals);
   }, [totals]);
 
+  // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
     const getServerPagination = (n: number) => n <= rowCount;
     return (
@@ -584,6 +603,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const showAllColumns = selectedComparisonColumns.includes(allColumns);
 
     return columnsMeta.filter(({ label, key }) => {
+      // Extract the key portion after the space, assuming the format is always "label key"
       const keyPortion = key.substring(label.length);
       const isKeyHidded = hideComparisonKeys.includes(keyPortion);
       const isLableMain = label === main;
@@ -697,19 +717,27 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const getHeaderColumns = useCallback(
     (columnsMeta: DataColumnMeta[], enableTimeComparison?: boolean) => {
       const resultMap: Record<string, number[]> = {};
+
       if (!enableTimeComparison) {
         return resultMap;
       }
+
       columnsMeta.forEach((element, index) => {
+        // Check if element's label is one of the comparison labels
         if (comparisonLabels.includes(element.label)) {
+          // Extract the key portion after the space, assuming the format is always "label key"
           const keyPortion = element.key.substring(element.label.length);
+
+          // If the key portion is not in the map, initialize it with the current index
           if (!resultMap[keyPortion]) {
             resultMap[keyPortion] = [index];
           } else {
+            // Add the index to the existing array
             resultMap[keyPortion].push(index);
           }
         }
       });
+
       return resultMap;
     },
     [comparisonLabels],
@@ -719,16 +747,24 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const allKey = comparisonColumns[0].key;
     const handleOnClick = (data: any) => {
       const { key } = data;
+      // Toggle 'All' key selection
       if (key === allKey) {
         setSelectedComparisonColumns([allKey]);
       } else if (selectedComparisonColumns.includes(allKey)) {
         setSelectedComparisonColumns([key]);
       } else {
+        // Toggle selection for other keys
         setSelectedComparisonColumns(
           selectedComparisonColumns.includes(key)
-            ? selectedComparisonColumns.filter(k => k !== key)
+            ? selectedComparisonColumns.filter(k => k !== key) // Deselect if already selected
             : [...selectedComparisonColumns, key],
-        );
+        ); // Select if not already selected
+      }
+    };
+
+    const handleOnBlur = () => {
+      if (selectedComparisonColumns.length === 3) {
+        setSelectedComparisonColumns([comparisonColumns[0].key]);
       }
     };
 
@@ -736,14 +772,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       <Dropdown
         placement="bottomRight"
         open={showComparisonDropdown}
-        onOpenChange={(flag: boolean) => setShowComparisonDropdown(flag)}
+        onOpenChange={(flag: boolean) => {
+          setShowComparisonDropdown(flag);
+        }}
         menu={{
           multiple: true,
           onClick: handleOnClick,
+          onBlur: handleOnBlur,
           selectedKeys: selectedComparisonColumns,
           items: [
             {
-              key: 'all-header',
+              key: 'all',
               label: (
                 <div
                   css={css`
@@ -753,23 +792,38 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     font-size: ${theme.fontSizeSM}px;
                   `}
                 >
-                  {t('Select columns to display. Multiselect supported.')}
+                  {t(
+                    'Select columns that will be displayed in the table. You can multiselect columns.',
+                  )}
                 </div>
               ),
               type: 'group',
-              children: comparisonColumns.map(column => ({
-                key: column.key,
-                label: (
-                  <>
-                    <span css={css`color: ${theme.colorText};`}>
-                      {column.label}
-                    </span>
-                    <span css={css`float: right; font-size: ${theme.fontSizeSM}px;`}>
-                      {selectedComparisonColumns.includes(column.key) && <CheckOutlined />}
-                    </span>
-                  </>
-                ),
-              })),
+              children: comparisonColumns.map(
+                (column: { key: string; label: string }) => ({
+                  key: column.key,
+                  label: (
+                    <>
+                      <span
+                        css={css`
+                          color: ${theme.colorText};
+                        `}
+                      >
+                        {column.label}
+                      </span>
+                      <span
+                        css={css`
+                          float: right;
+                          font-size: ${theme.fontSizeSM}px;
+                        `}
+                      >
+                        {selectedComparisonColumns.includes(column.key) && (
+                          <CheckOutlined />
+                        )}
+                      </span>
+                    </>
+                  ),
+                }),
+              ),
             },
           ],
         }}
@@ -782,48 +836,87 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     );
   };
 
+  // Compute visible columns before groupHeaderColumns to ensure index consistency.
+  // This filters out columns with config.visible === false.
   const visibleColumnsMeta = useMemo(
     () => filteredColumnsMeta.filter(col => col.config?.visible !== false),
     [filteredColumnsMeta],
   );
 
+  // Use visibleColumnsMeta for groupHeaderColumns to ensure indices match the actual
+  // table columns. This fixes header misalignment when columns are filtered.
   const groupHeaderColumns = useMemo(
     () => getHeaderColumns(visibleColumnsMeta, isUsingTimeComparison),
     [visibleColumnsMeta, getHeaderColumns, isUsingTimeComparison],
   );
 
   const renderGroupingHeaders = (): JSX.Element => {
+    // TODO: Make use of ColumnGroup to render the aditional headers
     const headers: any = [];
     let currentColumnIndex = 0;
+
+    // Sort entries by their first column index to ensure correct left-to-right order.
+    // Object.entries() maintains insertion order, but when columns are filtered,
+    // the first occurrence of each metric might not match the visual column order.
     const sortedEntries = Object.entries(groupHeaderColumns || {}).sort(
       (a, b) => a[1][0] - b[1][0],
     );
 
     sortedEntries.forEach(([key, value]) => {
+      // Calculate the number of placeholder columns needed before the current header
       const startPosition = value[0];
       const colSpan = value.length;
+      // Retrieve the originalLabel from the first column in this group.
+      // Use visibleColumnsMeta to ensure consistent indexing with the actual table columns.
       const firstColumnInGroup = visibleColumnsMeta[startPosition];
       const originalLabel = firstColumnInGroup
         ? columnsMeta.find(col => col.key === firstColumnInGroup.key)
             ?.originalLabel || key
         : key;
 
+      // Add placeholder <th> for columns before this header
       for (let i = currentColumnIndex; i < startPosition; i += 1) {
-        headers.push(<th key={`placeholder-${i}`} style={{ borderBottom: 0 }} />);
+        headers.push(
+          <th
+            key={`placeholder-${i}`}
+            style={{ borderBottom: 0 }}
+            aria-label={`Header-${i}`}
+          />,
+        );
       }
 
+      // Add the current header <th>
       headers.push(
         <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
           {originalLabel}
-          <span css={css`float: right; & svg { color: ${theme.colorIcon} !important; }`}>
+          <span
+            css={css`
+              float: right;
+              & svg {
+                color: ${theme.colorIcon} !important;
+              }
+            `}
+          >
             {hideComparisonKeys.includes(key) ? (
-              <PlusCircleOutlined onClick={() => setHideComparisonKeys(hideComparisonKeys.filter(k => k !== key))} />
+              <PlusCircleOutlined
+                onClick={() =>
+                  setHideComparisonKeys(
+                    hideComparisonKeys.filter(k => k !== key),
+                  )
+                }
+              />
             ) : (
-              <MinusCircleOutlined onClick={() => setHideComparisonKeys([...hideComparisonKeys, key])} />
+              <MinusCircleOutlined
+                onClick={() =>
+                  setHideComparisonKeys([...hideComparisonKeys, key])
+                }
+              />
             )}
           </span>
         </th>,
       );
+
+      // Update the current column index
       currentColumnIndex = startPosition + colSpan;
     });
 
@@ -847,7 +940,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   };
 
   const getColumnConfigs = useCallback(
-    (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> & { columnKey: string } => {
+    (
+      column: DataColumnMeta,
+      i: number,
+    ): ColumnWithLooseAccessor<D> & {
+      columnKey: string;
+    } => {
       const {
         key,
         label: originalLabel,
@@ -859,251 +957,678 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       } = column;
       const label = config.customColumnName || originalLabel;
       let displayLabel = label;
-      const isComparisonColumn = ['#', '△', '%', t('Main')].includes(column.label);
+
+      const isComparisonColumn = ['#', '△', '%', t('Main')].includes(
+        column.label,
+      );
 
       if (isComparisonColumn) {
         if (column.label === t('Main')) {
           displayLabel = config.customColumnName || column.originalLabel || '';
         } else if (config.customColumnName) {
-          displayLabel = config.displayTypeIcon !== false ? `${column.label} ${config.customColumnName}` : config.customColumnName;
+          displayLabel =
+            config.displayTypeIcon !== false
+              ? `${column.label} ${config.customColumnName}`
+              : config.customColumnName;
         } else if (config.displayTypeIcon === false) {
           displayLabel = '';
         }
       }
 
-      const columnWidth = Number.isNaN(Number(config.columnWidth)) ? config.columnWidth : Number(config.columnWidth);
+      const columnWidth = Number.isNaN(Number(config.columnWidth))
+        ? config.columnWidth
+        : Number(config.columnWidth);
+
+      // inline style for both th and td cell
       const sharedStyle: CSSProperties = getSharedStyle(column);
-      const alignPositiveNegative = config.alignPositiveNegative ?? defaultAlignPN;
-      const colorPositiveNegative = config.colorPositiveNegative ?? defaultColorPN;
+
+      const alignPositiveNegative =
+        config.alignPositiveNegative === undefined
+          ? defaultAlignPN
+          : config.alignPositiveNegative;
+      const colorPositiveNegative =
+        config.colorPositiveNegative === undefined
+          ? defaultColorPN
+          : config.colorPositiveNegative;
+
       const { truncateLongCells } = config;
-      const hasColumnColorFormatters = Array.isArray(columnColorFormatters) && columnColorFormatters.length > 0;
-      const hasBasicColorFormatters = isUsingTimeComparison && Array.isArray(basicColorFormatters) && basicColorFormatters.length > 0;
-      const generalShowCellBars = config.showCellBars ?? showCellBars;
-      const valueRange = !hasBasicColorFormatters && generalShowCellBars && (isMetric || isRawRecords || isPercentMetric) && getValueRange(key, alignPositiveNegative);
+
+      const hasColumnColorFormatters =
+        Array.isArray(columnColorFormatters) &&
+        columnColorFormatters.length > 0;
+
+      const hasBasicColorFormatters =
+        isUsingTimeComparison &&
+        Array.isArray(basicColorFormatters) &&
+        basicColorFormatters.length > 0;
+      const generalShowCellBars =
+        config.showCellBars === undefined ? showCellBars : config.showCellBars;
+      const valueRange =
+        !hasBasicColorFormatters &&
+        generalShowCellBars &&
+        (isMetric || isRawRecords || isPercentMetric) &&
+        getValueRange(key, alignPositiveNegative);
 
       let className = '';
-      if (emitCrossFilters && !isMetric) className += ' dt-is-filter';
+      if (emitCrossFilters && !isMetric) {
+        className += ' dt-is-filter';
+      }
+
       if (!isMetric && !isPercentMetric) {
         className += ' right-border-only';
       } else if (comparisonLabels.includes(label)) {
         const groupinHeader = key.substring(label.length);
         const columnsUnderHeader = groupHeaderColumns[groupinHeader] || [];
-        if (i === columnsUnderHeader[columnsUnderHeader.length - 1]) className += ' right-border-only';
+        if (i === columnsUnderHeader[columnsUnderHeader.length - 1]) {
+          className += ' right-border-only';
+        }
       }
 
+      // Cache sanitized header ID to avoid recomputing it multiple times
       const headerId = sanitizeHeaderId(column.originalLabel ?? column.key);
 
       return {
-        id: String(i),
+        id: String(i), // to allow duplicate column keys
+        // must use custom accessor to allow `.` in column names
+        // typing is incorrect in current version of `@types/react-table`
+        // so we ask TS not to check.
         columnKey: key,
         accessor: ((datum: D) => datum[key]) as never,
         Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
           const [isHtml, text] = formatColumnValue(column, value, row.original);
           const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
+
           let backgroundColor;
           let color;
           let backgroundColorCellBar;
           let valueRangeFlag = true;
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
-
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
-            backgroundColor = basicColorFormatters[row.index][originKey]?.backgroundColor;
-            arrow = column.label === comparisonLabels[0] ? basicColorFormatters[row.index][originKey]?.mainArrow : '';
+            backgroundColor =
+              basicColorFormatters[row.index][originKey]?.backgroundColor;
+            arrow =
+              column.label === comparisonLabels[0]
+                ? basicColorFormatters[row.index][originKey]?.mainArrow
+                : '';
           }
 
           if (hasColumnColorFormatters) {
+            const applyFormatter = (
+              formatter: ColorFormatters[number],
+              valueToFormat: any,
+            ) => {
+              const formatterResult =
+                formatter.getColorFromValue(valueToFormat);
+              if (!formatterResult) return;
+
+              if (
+                formatter.objectFormatting ===
+                  ObjectFormattingEnum.TEXT_COLOR ||
+                formatter.toTextColor
+              ) {
+                color = formatterResult;
+              } else if (
+                formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
+              ) {
+                if (generalShowCellBars)
+                  backgroundColorCellBar = formatterResult.slice(0, -2);
+              } else {
+                backgroundColor = formatterResult;
+                valueRangeFlag = false;
+              }
+            };
             columnColorFormatters
-              .filter(f => f.columnFormatting ? f.columnFormatting === column.key : f.column === column.key)
-              .forEach(formatter => {
-                const formatterResult = formatter.getColorFromValue(formatter.columnFormatting ? row.original[formatter.column] : (value as any));
-                if (!formatterResult) return;
-                if (formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR) {
-                  color = formatterResult.slice(0, -2);
-                } else if (formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR) {
-                  if (generalShowCellBars) backgroundColorCellBar = formatterResult.slice(0, -2);
-                } else {
-                  backgroundColor = formatterResult;
-                  valueRangeFlag = false;
+              .filter(formatter => {
+                if (formatter.columnFormatting) {
+                  return formatter.columnFormatting === column.key;
                 }
+                return formatter.column === column.key;
+              })
+              .forEach(formatter => {
+                let valueToFormat;
+                if (formatter.columnFormatting) {
+                  valueToFormat = row.original[formatter.column];
+                } else {
+                  valueToFormat = value;
+                }
+                applyFormatter(formatter, valueToFormat);
               });
+
+            columnColorFormatters
+              .filter(
+                formatter =>
+                  formatter.columnFormatting ===
+                  ObjectFormattingEnum.ENTIRE_ROW,
+              )
+              .forEach(formatter =>
+                applyFormatter(formatter, row.original[formatter.column]),
+              );
           }
 
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
+            backgroundColor =
+              basicColorColumnFormatters[row.index][column.key]
+                ?.backgroundColor || backgroundColor;
+            arrow =
+              column.label === comparisonLabels[0]
+                ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
+                : '';
+          }
+          const rowSurfaceColor =
+            row.index % 2 === 0 ? theme.colorBgLayout : theme.colorBgBase;
+          const resolvedTextColor = getTextColorForBackground(
+            { backgroundColor, color },
+            rowSurfaceColor,
+          );
           const StyledCell = styled.td`
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
-            font-weight: ${color ? theme.fontWeightBold : theme.fontWeightNormal};
+            font-weight: ${color
+              ? `${theme.fontWeightBold}`
+              : `${theme.fontWeightNormal}`};
             background: ${backgroundColor || undefined};
-            padding-left: ${column.isChildColumn ? `${theme.sizeUnit * 5}px` : `${theme.sizeUnit}px`};
+            padding-left: ${column.isChildColumn
+              ? `${theme.sizeUnit * 5}px`
+              : `${theme.sizeUnit}px`};
           `;
 
           const cellBarStyles = css`
-            position: absolute; height: 100%; display: block; top: 0;
-            ${valueRange && typeof value === 'number' && valueRangeFlag && `
-              width: ${cellWidth({ value, valueRange, alignPositiveNegative })}%;
-              left: ${cellOffset({ value, valueRange, alignPositiveNegative })}%;
-              background-color: ${backgroundColorCellBar ? `${backgroundColorCellBar}99` : cellBackground({ value, colorPositiveNegative, theme })};
-            `}
+            position: absolute;
+            height: 100%;
+            display: block;
+            top: 0;
+            ${valueRange &&
+            typeof value === 'number' &&
+            valueRangeFlag &&
+            `
+                width: ${`${cellWidth({
+                  value: value as number,
+                  valueRange,
+                  alignPositiveNegative,
+                })}%`};
+                left: ${`${cellOffset({
+                  value: value as number,
+                  valueRange,
+                  alignPositiveNegative,
+                })}%`};
+                background-color: ${
+                  (backgroundColorCellBar && `${backgroundColorCellBar}99`) ||
+                  cellBackground({
+                    value: value as number,
+                    colorPositiveNegative,
+                    theme,
+                  })
+                };
+              `}
           `;
 
-          const arrowStyles = css`
-            color: ${(basicColorColumnFormatters?.[row.index]?.[column.key]?.arrowColor ?? basicColorFormatters?.[row.index]?.[originKey]?.arrowColor) === ColorSchemeEnum.Green ? theme.colorSuccess : theme.colorError};
+          let arrowStyles = css`
+            color: ${basicColorFormatters &&
+            basicColorFormatters[row.index][originKey]?.arrowColor ===
+              ColorSchemeEnum.Green
+              ? theme.colorSuccess
+              : theme.colorError};
             margin-right: ${theme.sizeUnit}px;
           `;
+
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
+            arrowStyles = css`
+              color: ${basicColorColumnFormatters[row.index][column.key]
+                ?.arrowColor === ColorSchemeEnum.Green
+                ? theme.colorSuccess
+                : theme.colorError};
+              margin-right: ${theme.sizeUnit}px;
+            `;
+          }
 
           const cellProps = {
             'aria-labelledby': `header-${headerId}`,
             role: 'cell',
+            // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
-            onClick: emitCrossFilters && !valueRange && !isMetric ? () => !getSelectedText() && toggleFilter(key, value) : undefined,
+            onClick:
+              emitCrossFilters && !valueRange && !isMetric
+                ? () => {
+                    // allow selecting text in a cell
+                    if (!getSelectedText()) {
+                      toggleFilter(key, value);
+                    }
+                  }
+                : undefined,
             onContextMenu: (e: MouseEvent) => {
               if (handleContextMenu) {
-                e.preventDefault(); e.stopPropagation();
-                handleContextMenu(row.original, { key, value, isMetric }, e.nativeEvent.clientX, e.nativeEvent.clientY);
+                e.preventDefault();
+                e.stopPropagation();
+                handleContextMenu(
+                  row.original,
+                  { key, value, isMetric },
+                  e.nativeEvent.clientX,
+                  e.nativeEvent.clientY,
+                );
               }
             },
-            className: [className, value == null ? 'dt-is-null' : '', isActiveFilterValue(key, value) ? ' dt-is-active-filter' : ''].join(' '),
+            className: [
+              className,
+              value == null ||
+              (value instanceof DateWithFormatter && value.input == null)
+                ? 'dt-is-null'
+                : '',
+              isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
+            ].join(' '),
+            style: resolvedTextColor
+              ? ({ color: resolvedTextColor } as CSSProperties)
+              : undefined,
             tabIndex: 0,
           };
-
           if (html) {
-            return (
-              <StyledCell {...cellProps}>
-                {/* eslint-disable-next-line react/no-danger */}
-                <div className={truncateLongCells ? 'dt-truncate-cell' : ''} style={truncateLongCells && columnWidth ? { width: columnWidth } : undefined} dangerouslySetInnerHTML={html} />
-              </StyledCell>
-            );
+            if (truncateLongCells) {
+              return (
+                <StyledCell {...cellProps}>
+                  <div
+                    className="dt-truncate-cell"
+                    style={columnWidth ? { width: columnWidth } : undefined}
+                    // Safe: HTML is sanitized via formatColumnValue
+                    // eslint-disable-next-line react/no-danger
+                    dangerouslySetInnerHTML={html}
+                  />
+                </StyledCell>
+              );
+            }
+            // Safe: HTML is sanitized via formatColumnValue
+            // eslint-disable-next-line react/no-danger
+            return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
           }
-
+          // If cellProps renders textContent already, then we don't have to
+          // render `Cell`. This saves some time for large tables.
           return (
             <StyledCell {...cellProps}>
-              {valueRange && <div className={cx('cell-bar', typeof value === 'number' && value < 0 ? 'negative' : 'positive')} css={cellBarStyles} role="presentation" />}
-              {/* eslint-disable-next-line react/no-danger */}
-                <div className={truncateLongCells ? 'dt-truncate-cell' : ''} style={truncateLongCells && columnWidth ? { width: columnWidth } : undefined}>
-                {arrow && <span css={arrowStyles}>{arrow}</span>}
-                {text}
-              </div>
+              {valueRange && (
+                <div
+                  /* The following classes are added to support custom CSS styling */
+                  className={cx(
+                    'cell-bar',
+                    typeof value === 'number' && value < 0
+                      ? 'negative'
+                      : 'positive',
+                  )}
+                  css={cellBarStyles}
+                  role="presentation"
+                />
+              )}
+              {truncateLongCells ? (
+                <div
+                  className="dt-truncate-cell"
+                  style={columnWidth ? { width: columnWidth } : undefined}
+                >
+                  {arrow && <span css={arrowStyles}>{arrow}</span>}
+                  {text}
+                </div>
+              ) : (
+                <>
+                  {arrow && <span css={arrowStyles}>{arrow}</span>}
+                  {text}
+                </>
+              )}
             </StyledCell>
           );
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
             id={`header-${headerId}`}
-            title={description || t('Shift + Click to sort by multiple columns')}
+            title={
+              description || t('Shift + Click to sort by multiple columns')
+            }
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
-            style={{ ...sharedStyle, ...style }}
-            onKeyDown={(e: ReactKeyboardEvent<HTMLElement>) => Object.values(ACTION_KEYS).includes(e.key) && col.toggleSortBy()}
+            style={{
+              ...sharedStyle,
+              ...style,
+            }}
+            onKeyDown={(e: ReactKeyboardEvent<HTMLElement>) => {
+              // programatically sort column on keypress
+              if (Object.values(ACTION_KEYS).includes(e.key)) {
+                col.toggleSortBy();
+              }
+            }}
             role="columnheader button"
             onClick={onClick}
-            {...(allowRearrangeColumns && { draggable: true, onDragStart, onDragOver: e => e.preventDefault(), onDrop })}
+            data-column-name={col.id}
+            {...(allowRearrangeColumns && {
+              draggable: 'true',
+              onDragStart,
+              onDragOver: e => e.preventDefault(),
+              onDragEnter: e => e.preventDefault(),
+              onDrop,
+            })}
             tabIndex={0}
           >
-            {config.columnWidth ? <div style={{ width: columnWidth, height: 0.01 }} /> : null}
-            <div css={{ display: 'inline-flex', alignItems: 'flex-end' }}>
-              <span>{displayLabel}</span>
+            {/* can't use `columnWidth &&` because it may also be zero */}
+            {config.columnWidth ? (
+              // column width hint
+              <div
+                style={{
+                  width: columnWidth,
+                  height: 0.01,
+                }}
+              />
+            ) : null}
+            <div
+              data-column-name={col.id}
+              css={{
+                display: 'inline-flex',
+                alignItems: 'flex-end',
+              }}
+            >
+              <span data-column-name={col.id}>{displayLabel}</span>
               <SortIcon column={col} />
             </div>
           </th>
         ),
+
         Footer: displayedTotals ? (
           i === 0 ? (
-            <th key="footer-summary">
-              <div css={css`display: flex; align-items: center; & svg { margin-left: ${theme.sizeUnit}px; color: ${theme.colorBorder} !important; }`}>
+            <th key={`footer-summary-${i}`}>
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  & svg {
+                    margin-left: ${theme.sizeUnit}px;
+                    color: ${theme.colorBorder} !important;
+                  }
+                `}
+              >
                 {t('Summary')}
-                <Tooltip overlay={t('Show total aggregations. Row limit does not apply.')}><InfoCircleOutlined /></Tooltip>
+                <Tooltip
+                  overlay={t(
+                    'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
+                  )}
+                >
+                  <InfoCircleOutlined />
+                </Tooltip>
               </div>
             </th>
           ) : (
-            <td key={`footer-total-${i}`} style={sharedStyle}><strong>{formatColumnValue(column, displayedTotals[key])[1]}</strong></td>
+            <td key={`footer-total-${i}`} style={sharedStyle}>
+              <strong>
+                {formatColumnValue(column, displayedTotals[key])[1]}
+              </strong>
+            </td>
           )
         ) : undefined,
         sortDescFirst: sortDesc,
         sortType: getSortTypeByDataType(dataType),
       };
     },
-    [getSharedStyle, defaultAlignPN, defaultColorPN, columnColorFormatters, isUsingTimeComparison, basicColorFormatters, showCellBars, isRawRecords, getValueRange, emitCrossFilters, comparisonLabels, displayedTotals, theme, sortDesc, groupHeaderColumns, allowRenderHtml, basicColorColumnFormatters, isActiveFilterValue, toggleFilter, handleContextMenu, allowRearrangeColumns],
+    [
+      getSharedStyle,
+      defaultAlignPN,
+      defaultColorPN,
+      columnColorFormatters,
+      isUsingTimeComparison,
+      basicColorFormatters,
+      showCellBars,
+      isRawRecords,
+      getValueRange,
+      emitCrossFilters,
+      comparisonLabels,
+      displayedTotals,
+      theme,
+      sortDesc,
+      groupHeaderColumns,
+      allowRenderHtml,
+      basicColorColumnFormatters,
+      isActiveFilterValue,
+      toggleFilter,
+      handleContextMenu,
+      allowRearrangeColumns,
+    ],
   );
 
-  const columns = useMemo(() => visibleColumnsMeta.map(getColumnConfigs), [visibleColumnsMeta, getColumnConfigs]);
+  const columns = useMemo(
+    () => visibleColumnsMeta.map(getColumnConfigs),
+    [visibleColumnsMeta, getColumnConfigs],
+  );
+
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
 
-  const handleFilteredDataChange = useCallback((rows: Row<D>[], searchText?: string) => {
-    if (!totals || serverPagination) return;
-    if (!searchText?.trim()) { setDisplayedTotals(totals); return; }
-    const updatedTotals: Record<string, DataRecordValue> = { ...totals };
-    filteredColumnsMeta.forEach(column => {
-      if (column.isMetric || column.isPercentMetric) {
-        updatedTotals[column.key] = rows.reduce((acc, row) => {
-          const numValue = Number(String(row.original?.[column.key] ?? '').replace(/,/g, ''));
-          return Number.isFinite(numValue) ? acc + numValue : acc;
-        }, 0);
+  const handleFilteredDataChange = useCallback(
+    (rows: Row<D>[], searchText?: string) => {
+      if (!totals || serverPagination) {
+        return;
       }
-    });
-    setDisplayedTotals(updatedTotals as D);
-  }, [filteredColumnsMeta, serverPagination, totals]);
+
+      if (!searchText?.trim()) {
+        setDisplayedTotals(totals);
+        return;
+      }
+
+      const updatedTotals: Record<string, DataRecordValue> = { ...totals };
+
+      filteredColumnsMeta.forEach(column => {
+        if (column.isMetric || column.isPercentMetric) {
+          const aggregatedValue = rows.reduce<number>((acc, row) => {
+            const rawValue = row.original?.[column.key];
+            const numValue = Number(String(rawValue ?? '').replace(/,/g, ''));
+            return Number.isFinite(numValue) ? acc + numValue : acc;
+          }, 0);
+
+          updatedTotals[column.key] = aggregatedValue;
+        }
+      });
+
+      setDisplayedTotals(updatedTotals as D);
+    },
+    [filteredColumnsMeta, serverPagination, totals],
+  );
 
   useEffect(() => {
-    const options = (columns as (ColumnWithLooseAccessor & { columnKey: string; sortType?: string })[]).filter(col => col?.sortType === 'alphanumeric').map(column => ({ value: column.columnKey, label: column.columnKey }));
-    if (!isEqual(options, searchOptions)) setSearchOptions(options || []);
+    const options = (
+      columns as unknown as ColumnWithLooseAccessor &
+        {
+          columnKey: string;
+          sortType?: string;
+        }[]
+    )
+      .filter(col => col?.sortType === 'alphanumeric')
+      .map(column => ({
+        value: column.columnKey,
+        label: column.columnKey,
+      }));
+
+    if (!isEqual(options, searchOptions)) {
+      setSearchOptions(options || []);
+    }
   }, [columns, searchOptions]);
 
-  const handleServerPaginationChange = useCallback((pageNumber: number, pageSize: number) => {
-    updateTableOwnState(setDataMask, { ...serverPaginationData, currentPage: pageNumber, pageSize });
-  }, [serverPaginationData, setDataMask]);
+  const handleServerPaginationChange = useCallback(
+    (pageNumber: number, pageSize: number) => {
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        currentPage: pageNumber,
+        pageSize,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    },
+    [serverPaginationData, setDataMask],
+  );
 
   useEffect(() => {
-    if (hasServerPageLengthChanged) updateTableOwnState(setDataMask, { ...serverPaginationData, currentPage: 0, pageSize: serverPageLength });
-  }, [hasServerPageLengthChanged, serverPageLength, serverPaginationData, setDataMask]);
+    if (hasServerPageLengthChanged) {
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        currentPage: 0,
+        pageSize: serverPageLength,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    }
+  }, [
+    hasServerPageLengthChanged,
+    serverPageLength,
+    serverPaginationData,
+    setDataMask,
+  ]);
 
-  const handleSizeChange = useCallback(({ width, height }: { width: number; height: number }) => setTableSize({ width, height }), []);
+  const handleSizeChange = useCallback(
+    ({ width, height }: { width: number; height: number }) => {
+      setTableSize({ width, height });
+    },
+    [],
+  );
 
   useLayoutEffect(() => {
+    // After initial load the table should resize only when the new sizes
+    // Are not only scrollbar updates, otherwise, the table would twitch
     const scrollBarSize = getScrollBarSize();
-    if (width - tableSize.width > scrollBarSize || height - tableSize.height > scrollBarSize) {
-      handleSizeChange({ width: width - scrollBarSize, height: height - scrollBarSize });
-    } else if (tableSize.width - width > scrollBarSize || tableSize.height - height > scrollBarSize) {
-      handleSizeChange({ width, height });
+    const { width: tableWidth, height: tableHeight } = tableSize;
+    // Table is increasing its original size
+    if (
+      width - tableWidth > scrollBarSize ||
+      height - tableHeight > scrollBarSize
+    ) {
+      handleSizeChange({
+        width: width - scrollBarSize,
+        height: height - scrollBarSize,
+      });
+    } else if (
+      tableWidth - width > scrollBarSize ||
+      tableHeight - height > scrollBarSize
+    ) {
+      // Table is decreasing its original size
+      handleSizeChange({
+        width,
+        height,
+      });
     }
   }, [width, height, handleSizeChange, tableSize]);
 
-  const handleSortByChange = useCallback((sortBy: SortByItem[]) => {
-    if (!serverPagination) return;
-    updateTableOwnState(setDataMask, { ...serverPaginationData, sortBy } as unknown as any);
-  }, [serverPagination, serverPaginationData, setDataMask]);
+  const { width: widthFromState, height: heightFromState } = tableSize;
 
-  const debouncedSearch = debounce((searchText: string) => {
-    updateTableOwnState(setDataMask, { ...serverPaginationData, searchColumn: serverPaginationData?.searchColumn || searchOptions[0]?.value, searchText, currentPage: 0 } as unknown as any);
-  }, 800);
+  const handleSortByChange = useCallback(
+    (sortBy: SortByItem[]) => {
+      if (!serverPagination) return;
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        sortBy,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    },
+    [serverPagination, serverPaginationData, setDataMask],
+  );
 
-  const [clientViewRows, setClientViewRows] = useState<DataRecord[]>([]);
-  const exportColumns = useMemo(() => visibleColumnsMeta.map(col => ({ key: col.key, label: col.config?.customColumnName || col.originalLabel || col.key })), [visibleColumnsMeta]);
-  const prevClientViewRef = useRef<{ rows: DataRecord[]; columns: typeof exportColumns } | null>(null);
+  const handleSearch = (searchText: string) => {
+    const modifiedOwnState = {
+      ...serverPaginationData,
+      searchColumn:
+        serverPaginationData?.searchColumn || searchOptions[0]?.value,
+      searchText,
+      currentPage: 0, // Reset to first page when searching
+    };
+    updateTableOwnState(setDataMask, modifiedOwnState);
+  };
 
-  useEffect(() => {
-    if (serverPagination) return;
-    const prev = prevClientViewRef.current;
-    if (!prev || !isEqual(prev.rows, clientViewRows) || !isEqual(prev.columns, exportColumns)) {
-      prevClientViewRef.current = { rows: clientViewRows, columns: exportColumns };
-      updateTableOwnState(setDataMask, { ...serverPaginationData, clientView: { rows: clientViewRows, columns: exportColumns, count: clientViewRows.length } });
+  const debouncedSearch = debounce(handleSearch, 800);
+
+  const handleChangeSearchCol = (searchCol: string) => {
+    if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        searchColumn: searchCol,
+        searchText: '',
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
     }
-  }, [clientViewRows, exportColumns, serverPagination, setDataMask, serverPaginationData]);
+  };
+
+  // collect client-side filtered rows for export & push snapshot to ownState (guarded)
+  const [clientViewRows, setClientViewRows] = useState<DataRecord[]>([]);
+
+  const exportColumns = useMemo(
+    () =>
+      visibleColumnsMeta.map(col => ({
+        key: col.key,
+        label: col.config?.customColumnName || col.originalLabel || col.key,
+      })),
+    [visibleColumnsMeta],
+  );
+
+  // Use a ref to store previous clientViewRows and exportColumns for robust change detection
+  const prevClientViewRef = useRef<{
+    rows: DataRecord[];
+    columns: typeof exportColumns;
+  } | null>(null);
+  useEffect(() => {
+    if (serverPagination) return; // only for client-side mode
+    const prev = prevClientViewRef.current;
+    const rowsChanged = !prev || !isEqual(prev.rows, clientViewRows);
+    const columnsChanged = !prev || !isEqual(prev.columns, exportColumns);
+    if (rowsChanged || columnsChanged) {
+      prevClientViewRef.current = {
+        rows: clientViewRows,
+        columns: exportColumns,
+      };
+      updateTableOwnState(setDataMask, {
+        ...serverPaginationData,
+        clientView: {
+          rows: clientViewRows,
+          columns: exportColumns,
+          count: clientViewRows.length,
+        },
+      });
+    }
+  }, [
+    clientViewRows,
+    exportColumns,
+    serverPagination,
+    setDataMask,
+    serverPaginationData,
+  ]);
 
   return (
     <Styles>
       <DataTable<D>
-        columns={columns} data={data} rowCount={rowCount} tableClassName="table table-striped table-condensed"
-        pageSize={pageSize} serverPaginationData={serverPaginationData} pageSizeOptions={pageSizeOptions}
-        width={tableSize.width} height={tableSize.height} serverPagination={serverPagination}
-        onServerPaginationChange={handleServerPaginationChange} onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
-        initialSearchText={serverPaginationData?.searchText || ''} sortByFromParent={serverPaginationData?.sortBy || []}
-        searchInputId={`${slice_id}-search`} maxPageItemCount={width > 340 ? 9 : 7} noResults={getNoResultsMessage}
-        searchInput={includeSearch && SearchInput} selectPageSize={pageSize !== null && SelectPageSize}
-        sticky={sticky} renderGroupingHeaders={!isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined}
-        renderTimeComparisonDropdown={isUsingTimeComparison ? renderTimeComparisonDropdown : undefined}
-        handleSortByChange={handleSortByChange} onSearchColChange={(searchCol: string) => updateTableOwnState(setDataMask, { ...serverPaginationData, searchColumn: searchCol, searchText: '' } as any)}
-        manualSearch={serverPagination} onSearchChange={debouncedSearch} searchOptions={searchOptions}
-        onFilteredDataChange={handleFilteredDataChange} onFilteredRowsChange={setClientViewRows}
+        columns={columns}
+        data={data}
+        rowCount={rowCount}
+        tableClassName="table table-striped table-condensed"
+        pageSize={pageSize}
+        serverPaginationData={serverPaginationData}
+        pageSizeOptions={pageSizeOptions}
+        width={widthFromState}
+        height={heightFromState}
+        serverPagination={serverPagination}
+        onServerPaginationChange={handleServerPaginationChange}
+        onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
+        initialSearchText={serverPaginationData?.searchText || ''}
+        sortByFromParent={serverPaginationData?.sortBy || []}
+        searchInputId={`${slice_id}-search`}
+        // 9 page items in > 340px works well even for 100+ pages
+        maxPageItemCount={width > 340 ? 9 : 7}
+        noResults={getNoResultsMessage}
+        searchInput={includeSearch && SearchInput}
+        selectPageSize={pageSize !== null && SelectPageSize}
+        // not in use in Superset, but needed for unit tests
+        sticky={sticky}
+        renderGroupingHeaders={
+          !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
+        }
+        renderTimeComparisonDropdown={
+          isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
+        }
+        handleSortByChange={handleSortByChange}
+        onSearchColChange={handleChangeSearchCol}
+        manualSearch={serverPagination}
+        onSearchChange={debouncedSearch}
+        searchOptions={searchOptions}
+        onFilteredDataChange={handleFilteredDataChange}
+        onFilteredRowsChange={setClientViewRows}
       />
     </Styles>
   );

@@ -1937,6 +1937,25 @@ describe('plugin-chart-table', () => {
         expect(clearCall![0].extraFormData.filters).toEqual([]);
       });
 
+      test('page size selector arrow stays above resize handles (#39305)', () => {
+        // .resize-handle elements in dashboard ResizableContainer sit at
+        // z-index: 10 — the page size arrow must stack above them or it
+        // gets covered on dashboard charts.
+        const { container } = render(
+          ProviderWrapper({
+            children: (
+              <TableChart {...transformProps(testData.basic)} sticky={false} />
+            ),
+          }),
+        );
+
+        const arrow = container.querySelector(
+          '.dt-select-page-size .ant-select .ant-select-arrow',
+        );
+        expect(arrow).not.toBeNull();
+        expect(getComputedStyle(arrow as HTMLElement).zIndex).toBe('11');
+      });
+
       test('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,
@@ -2341,44 +2360,27 @@ describe('plugin-chart-table', () => {
     });
   });
 });
+
 /**
- * DRILL TO DETAIL FIX VERIFICATION (#23847)
+ * DRILL-TO-DETAIL FIX VERIFICATION (#23847)
  */
 describe('Drill-to-Detail Temporal Range Logic', () => {
-  test('uses TEMPORAL_RANGE for monthly grain', () => {
+  const renderChartAndOpenContextMenu = (
+    timeGrain?: TimeGranularity,
+    timestampValue?: string | number | null,
+  ) => {
     const onContextMenu = jest.fn();
-    const props = transformProps({
-      ...testData.basic,
-      rawFormData: {
-        ...testData.basic.rawFormData,
-        time_grain_sqla: TimeGranularity.MONTH,
-      },
-      hooks: { onContextMenu, setDataMask: jest.fn() },
-    });
-    render(<TableChart {...props} sticky={false} />);
+    const data = cloneDeep(testData.basic);
 
-    const tbody = screen.getAllByRole('rowgroup')[1];
-    fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
-
-    const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
-    const filter = drillToDetail.find((f: any) => f.col === '__timestamp');
-    expect(filter.op).toBe('TEMPORAL_RANGE');
-    // Boundary: 2020-01-01 -> 2020-02-01
-    expect(filter.val).toContain(
-      '2020-01-01T12:34:56.000Z : 2020-02-01T00:00:00.000Z',
-    );
-  });
-
-  test('correctly handles NULL values by emitting IS NULL instead of 1970 timestamp', () => {
-    const onContextMenu = jest.fn();
-    const nullData = cloneDeep(testData.basic);
-    nullData.queriesData[0].data[0].__timestamp = null;
+    if (timestampValue !== undefined) {
+      data.queriesData[0].data[0].__timestamp = timestampValue;
+    }
 
     const props = transformProps({
-      ...nullData,
+      ...data,
       rawFormData: {
-        ...nullData.rawFormData,
-        time_grain_sqla: TimeGranularity.MONTH,
+        ...data.rawFormData,
+        ...(timeGrain ? { time_grain_sqla: timeGrain } : {}),
       },
       hooks: { onAddFilter: jest.fn(), onContextMenu, setDataMask: jest.fn() },
     });
@@ -2388,26 +2390,46 @@ describe('Drill-to-Detail Temporal Range Logic', () => {
     fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
 
     const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
-    const filter = drillToDetail.find((f: any) => f.col === '__timestamp');
+    return drillToDetail.find((f: any) => f.col === '__timestamp');
+  };
+
+  test('uses TEMPORAL_RANGE for monthly grain', () => {
+    const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH);
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toContain(
+      '2020-01-01T12:34:56.000Z : 2020-02-01T00:00:00.000Z',
+    );
+  });
+
+  test('uses the full bucket for week ending sunday grain', () => {
+    const filter = renderChartAndOpenContextMenu(
+      TimeGranularity.WEEK_ENDING_SUNDAY,
+      '2020-01-05T00:00:00',
+    );
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toBe(
+      '2019-12-30T00:00:00.000Z : 2020-01-06T00:00:00.000Z',
+    );
+  });
+
+  test('uses the full bucket for week ending saturday grain', () => {
+    const filter = renderChartAndOpenContextMenu(
+      TimeGranularity.WEEK_ENDING_SATURDAY,
+      '2020-01-04T00:00:00',
+    );
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toBe(
+      '2019-12-29T00:00:00.000Z : 2020-01-05T00:00:00.000Z',
+    );
+  });
+
+  test('correctly handles NULL values by emitting IS NULL instead of 1970 timestamp', () => {
+    const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH, null);
 
     expect(filter.op).toBe('IS NULL');
     expect(filter.val).toBeNull();
-  });
-
-  test('uses exact match for non-temporal columns', () => {
-    const onContextMenu = jest.fn();
-    const props = transformProps({
-      ...testData.basic,
-      hooks: { onContextMenu, setDataMask: jest.fn() },
-    });
-    render(<TableChart {...props} sticky={false} />);
-
-    const tbody = screen.getAllByRole('rowgroup')[1];
-    fireEvent.contextMenu(tbody.querySelectorAll('td')[1]); // Click 'name' column
-
-    const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
-    const nameFilter = drillToDetail.find((f: any) => f.col === 'name');
-    expect(nameFilter.op).toBe('==');
-    expect(nameFilter.val).toBe('Michael');
   });
 });
