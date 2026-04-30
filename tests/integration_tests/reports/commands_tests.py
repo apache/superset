@@ -62,7 +62,6 @@ from superset.commands.report.exceptions import (
     ReportScheduleScreenshotTimeout,
     ReportScheduleSystemErrorsException,
     ReportScheduleUnexpectedError,
-    ReportScheduleWorkingTimeoutError,
 )
 from superset.commands.report.execute import (
     AsyncExecuteReportScheduleCommand,
@@ -2471,28 +2470,25 @@ def test_same_execution_replay_write_failure_does_not_claim_active_row(
 @pytest.mark.usefixtures("create_report_slack_chart_working")
 def test_report_schedule_working_timeout(create_report_slack_chart_working):
     """
-    ExecuteReport Command: Test report schedule still working but should timed out
+    ExecuteReport Command: Test report schedule still working but timed out
+    resets to NOOP so the next scheduled tick retries.
     """
     current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
         seconds=create_report_slack_chart_working.working_timeout + 1
     )
     with freeze_time(current_time):
-        with pytest.raises(ReportScheduleWorkingTimeoutError):
-            AsyncExecuteReportScheduleCommand(
-                TEST_ID,
-                create_report_slack_chart_working.id,
-                datetime.utcnow(),
-            ).run()
+        # Should NOT raise — resets to NOOP and returns
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID,
+            create_report_slack_chart_working.id,
+            datetime.utcnow(),
+        ).run()
 
     logs = db.session.query(ReportExecutionLog).all()
     # Two logs, first is created by fixture
     assert len(logs) == 2
-    assert ReportScheduleWorkingTimeoutError.message in [
-        log.error_message for log in logs
-    ]
-    assert sum(log.state == ReportState.WORKING for log in logs) == 1
-    assert sum(log.state == ReportState.ERROR for log in logs) == 1
-    assert create_report_slack_chart_working.last_state == ReportState.ERROR
+    assert any("stuck" in (log.error_message or "").lower() for log in logs)
+    assert create_report_slack_chart_working.last_state == ReportState.NOOP
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_success")
