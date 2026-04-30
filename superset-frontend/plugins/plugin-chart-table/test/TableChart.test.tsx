@@ -2360,3 +2360,76 @@ describe('plugin-chart-table', () => {
     });
   });
 });
+
+/**
+ * DRILL-TO-DETAIL FIX VERIFICATION (#23847)
+ */
+describe('Drill-to-Detail Temporal Range Logic', () => {
+  const renderChartAndOpenContextMenu = (
+    timeGrain?: TimeGranularity,
+    timestampValue?: string | number | null,
+  ) => {
+    const onContextMenu = jest.fn();
+    const data = cloneDeep(testData.basic);
+
+    if (timestampValue !== undefined) {
+      data.queriesData[0].data[0].__timestamp = timestampValue;
+    }
+
+    const props = transformProps({
+      ...data,
+      rawFormData: {
+        ...data.rawFormData,
+        ...(timeGrain ? { time_grain_sqla: timeGrain } : {}),
+      },
+      hooks: { onAddFilter: jest.fn(), onContextMenu, setDataMask: jest.fn() },
+    });
+    render(<TableChart {...props} sticky={false} />);
+
+    const tbody = screen.getAllByRole('rowgroup')[1];
+    fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
+
+    const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
+    return drillToDetail.find((f: any) => f.col === '__timestamp');
+  };
+
+  test('uses TEMPORAL_RANGE for monthly grain', () => {
+    const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH);
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toContain(
+      '2020-01-01T12:34:56.000Z : 2020-02-01T00:00:00.000Z',
+    );
+  });
+
+  test('uses the full bucket for week ending sunday grain', () => {
+    const filter = renderChartAndOpenContextMenu(
+      TimeGranularity.WEEK_ENDING_SUNDAY,
+      '2020-01-05T00:00:00',
+    );
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toBe(
+      '2019-12-30T00:00:00.000Z : 2020-01-06T00:00:00.000Z',
+    );
+  });
+
+  test('uses the full bucket for week ending saturday grain', () => {
+    const filter = renderChartAndOpenContextMenu(
+      TimeGranularity.WEEK_ENDING_SATURDAY,
+      '2020-01-04T00:00:00',
+    );
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toBe(
+      '2019-12-29T00:00:00.000Z : 2020-01-05T00:00:00.000Z',
+    );
+  });
+
+  test('correctly handles NULL values by emitting IS NULL instead of 1970 timestamp', () => {
+    const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH, null);
+
+    expect(filter.op).toBe('IS NULL');
+    expect(filter.val).toBeNull();
+  });
+});
