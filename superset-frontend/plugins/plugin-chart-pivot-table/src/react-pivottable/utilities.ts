@@ -357,21 +357,9 @@ const baseAggregatorTemplates = {
                   this.val !== null ? this.val : coercedValue,
                 );
               }
-            } else if (
-              mode === 'first' &&
-              this.sorter(
-                x as any,
-                this.val !== null ? this.val : (x as any),
-              ) <= 0
-            ) {
-              this.val = x;
-            } else if (
-              mode === 'last' &&
-              this.sorter(
-                x as any,
-                this.val !== null ? this.val : (x as any),
-              ) >= 0
-            ) {
+            } else if (mode === 'first') {
+              this.val = this.val === null ? x : this.val;
+            } else if (mode === 'last') {
               this.val = x;
             }
             if (
