@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
-from sqlalchemy import types
+from sqlalchemy import func, types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.constants import TimeGrain
@@ -28,8 +29,45 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.sql.parse import LimitMethod
-from superset.utils.core import GenericDataType
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
+from superset.sql.parse import KQLTokenType, LimitMethod, tokenize_kql
+from superset.utils.core import FilterOperator, GenericDataType
+
+logger = logging.getLogger(__name__)
+
+_OPENING_BRACKET = [
+    (KQLTokenType.WORD, "ARRAY"),
+    (KQLTokenType.OTHER, "("),
+    (KQLTokenType.OTHER, "["),
+]
+_CLOSING_BRACKET = [(KQLTokenType.OTHER, "]"), (KQLTokenType.OTHER, ")")]
+
+
+def strip_array_brackets(kql: str) -> str:
+    """
+    Replace ``ARRAY([...])`` wrappers with ``[...]`` using the KQL tokenizer.
+
+    SQLAlchemy sometimes wraps bracket-quoted KQL identifiers in ARRAY(),
+    which is invalid KQL. This strips the wrapper while preserving the contents.
+    """
+    tokens = tokenize_kql(kql)
+
+    to_remove: set[int] = set()
+    depth = 0
+    for i in range(len(tokens)):
+        if tokens[i : i + 3] == _OPENING_BRACKET:
+            to_remove.add(i)
+            to_remove.add(i + 1)
+            depth += 1
+        elif depth > 0 and tokens[i : i + 2] == _CLOSING_BRACKET:
+            to_remove.add(i + 1)
+            depth -= 1
+
+    tokens = [token for i, token in enumerate(tokens) if i not in to_remove]
+    return "".join(val for _, val in tokens)
 
 
 class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -190,6 +228,14 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
 
+    column_type_mappings = (
+        (
+            re.compile(r"^array.*", re.IGNORECASE),
+            types.String(),
+            GenericDataType.STRING,
+        ),
+    )
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-outside-toplevel,import-error
@@ -200,6 +246,44 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             kusto_exceptions.OperationalError: SupersetDBAPIOperationalError,
             kusto_exceptions.ProgrammingError: SupersetDBAPIProgrammingError,
         }
+
+    @classmethod
+    def handle_null_filter(
+        cls,
+        sqla_col: Any,
+        op: FilterOperator,
+    ) -> Any:
+        """
+        Handle null/not null filter operations for KQL.
+
+        In KQL, null checks use functions:
+        - isnull(col) for IS NULL
+        - isnotnull(col) for IS NOT NULL
+
+        :param sqla_col: SQLAlchemy column element
+        :param op: Filter operator (IS_NULL or IS_NOT_NULL)
+        :return: SQLAlchemy expression for the null filter
+        """
+        if op == FilterOperator.IS_NULL:
+            return func.isnull(sqla_col)
+        if op == FilterOperator.IS_NOT_NULL:
+            return func.isnotnull(sqla_col)
+
+        raise ValueError(f"Invalid null filter operator: {op}")
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        """
+        Convert from number of seconds since the epoch to a timestamp.
+        """
+        return "unixtime_seconds_todatetime({col})"
+
+    @classmethod
+    def epoch_ms_to_dttm(cls) -> str:
+        """
+        Convert from number of milliseconds since the epoch to a timestamp.
+        """
+        return "unixtime_milliseconds_todatetime({col})"
 
     @classmethod
     def convert_dttm(
@@ -213,3 +297,22 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""datetime({dttm.isoformat(timespec="microseconds")})"""
 
         return None
+
+    @classmethod
+    def execute(
+        cls,
+        cursor: Any,
+        query: str,
+        database: "Database",
+        **kwargs: Any,
+    ) -> None:
+        """
+        Execute a KQL query, fixing ARRAY() wrappers around
+        bracket-quoted identifiers.
+
+        Example:
+            ARRAY(["age"]) -> ["age"]
+            ARRAY(["user_name"]) -> ["user_name"]
+        """
+        processed_query = strip_array_brackets(query)
+        super().execute(cursor, processed_query, database, **kwargs)

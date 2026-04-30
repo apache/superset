@@ -3019,6 +3019,274 @@ def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
         ),
         ("'test'", [(KQLTokenType.STRING, "'test'")]),
         ("```test```", [(KQLTokenType.STRING, "```test```")]),
+        # Double-quoted strings
+        ('"hello"', [(KQLTokenType.STRING, '"hello"')]),
+        # Single-quoted string with escaped quote
+        (
+            "'it\\'s a test'",
+            [(KQLTokenType.STRING, "'it\\'s a test'")],
+        ),
+        # Double-quoted string with escaped quote
+        (
+            '"say \\"hi\\""',
+            [(KQLTokenType.STRING, '"say \\"hi\\""')],
+        ),
+        # Semicolon token
+        (
+            "a; b",
+            [
+                (KQLTokenType.WORD, "a"),
+                (KQLTokenType.SEMICOLON, ";"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "b"),
+            ],
+        ),
+        # Semicolon inside string is not a SEMICOLON token
+        (
+            "'a;b'",
+            [(KQLTokenType.STRING, "'a;b'")],
+        ),
+        # Numbers
+        (
+            "42",
+            [(KQLTokenType.NUMBER, "42")],
+        ),
+        # Other/punctuation tokens
+        (
+            "()",
+            [
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        # Empty input
+        ("", []),
+        # ARRAY bracket pattern used in Kusto engine spec
+        (
+            'ARRAY(["age"])',
+            [
+                (KQLTokenType.WORD, "ARRAY"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, "["),
+                (KQLTokenType.STRING, '"age"'),
+                (KQLTokenType.OTHER, "]"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        # Mixed identifiers, operators, and strings
+        (
+            "tbl | where name == 'Alice' | take 5",
+            [
+                (KQLTokenType.WORD, "tbl"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "where"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "name"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.STRING, "'Alice'"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "take"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.NUMBER, "5"),
+            ],
+        ),
+        # Underscore in identifiers
+        (
+            "my_table",
+            [(KQLTokenType.WORD, "my_table")],
+        ),
+        # Identifiers starting with underscore
+        (
+            "_col1",
+            [(KQLTokenType.WORD, "_col1")],
+        ),
+        # Multiline string with semicolons and quotes
+        (
+            "```select 'x'; drop```",
+            [(KQLTokenType.STRING, "```select 'x'; drop```")],
+        ),
+        # Adjacent strings without whitespace
+        (
+            "'a''b'",
+            [
+                (KQLTokenType.STRING, "'a'"),
+                (KQLTokenType.STRING, "'b'"),
+            ],
+        ),
+        # Dot operator
+        (
+            "db.table",
+            [
+                (KQLTokenType.WORD, "db"),
+                (KQLTokenType.OTHER, "."),
+                (KQLTokenType.WORD, "table"),
+            ],
+        ),
+        # Bracket-quoted identifier (KQL style)
+        (
+            '["column name"]',
+            [
+                (KQLTokenType.OTHER, "["),
+                (KQLTokenType.STRING, '"column name"'),
+                (KQLTokenType.OTHER, "]"),
+            ],
+        ),
+        # Whitespace variants (tab, newline)
+        (
+            "a\t\nb",
+            [
+                (KQLTokenType.WORD, "a"),
+                (KQLTokenType.WHITESPACE, "\t\n"),
+                (KQLTokenType.WORD, "b"),
+            ],
+        ),
+        # Summarize with count aggregation
+        (
+            "T | summarize count() by State",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "count"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "State"),
+            ],
+        ),
+        # Aliased aggregation with avg
+        (
+            "T | summarize avg_val = avg(price) by category",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "avg_val"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "avg"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "price"),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "category"),
+            ],
+        ),
+        # Multiple aggregations with dcount
+        (
+            "T | summarize cnt = count(), uniq = dcount(user_id)",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "cnt"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "count"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.OTHER, ","),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "uniq"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "dcount"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "user_id"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        # Summarize with bin time bucketing
+        (
+            "T | summarize count() by bin(ts, 1h)",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "count"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "bin"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "ts"),
+                (KQLTokenType.OTHER, ","),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.NUMBER, "1"),
+                (KQLTokenType.WORD, "h"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
+        (
+            "T | summarize dcountif(user_id, status == 'active') by region",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "summarize"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "dcountif"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "user_id"),
+                (KQLTokenType.OTHER, ","),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "status"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.OTHER, "="),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.STRING, "'active'"),
+                (KQLTokenType.OTHER, ")"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "by"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "region"),
+            ],
+        ),
+        (
+            "T | project tostring(value)",
+            [
+                (KQLTokenType.WORD, "T"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.OTHER, "|"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "project"),
+                (KQLTokenType.WHITESPACE, " "),
+                (KQLTokenType.WORD, "tostring"),
+                (KQLTokenType.OTHER, "("),
+                (KQLTokenType.WORD, "value"),
+                (KQLTokenType.OTHER, ")"),
+            ],
+        ),
     ],
 )
 def test_tokenize_kql(kql: str, expected: list[tuple[KQLTokenType, str]]) -> None:
