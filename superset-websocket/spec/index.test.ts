@@ -573,7 +573,8 @@ describe('server', () => {
       server.trackClient(channelId, socketInstance);
 
       const ws2 = new wsMock('localhost');
-      vi.spyOn(ws2, 'readyState', 'get').mockReturnValue(WebSocket.OPEN);
+      const readyStateSpy = vi.spyOn(ws2, 'readyState', 'get');
+      readyStateSpy.mockReturnValue(WebSocket.OPEN);
       const socketInstance2 = {
         ws: ws2,
         channel: channelId,
@@ -585,7 +586,7 @@ describe('server', () => {
 
       expect(server.channels[channelId].sockets.length).toBe(2);
 
-      vi.spyOn(ws2, 'readyState', 'get').mockReturnValue(WebSocket.CLOSED);
+      readyStateSpy.mockReturnValue(WebSocket.CLOSED);
       server.cleanChannel(channelId);
 
       expect(server.channels[channelId].sockets.length).toBe(1);
