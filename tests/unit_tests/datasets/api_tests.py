@@ -120,3 +120,41 @@ def test_get_dataset_include_rendered_sql_passes_table_to_template_processor(
 
     assert response.status_code == 200
     mock_get_processor.assert_called_once_with(database=database, table=dataset)
+
+
+def test_handle_filters_args_returns_request_scoped_filters(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Dataset API: ``_handle_filters_args`` must return a fresh ``Filters``
+    instance per call so concurrent requests don't share filter state.
+
+    Regression test for #33828: under concurrent traffic the FAB default
+    implementation mutates ``self._filters`` (a single shared instance),
+    causing filters from one request to leak into another.
+    """
+    from flask_appbuilder.const import API_FILTERS_RIS_KEY
+
+    from superset.datasets.api import DatasetRestApi
+
+    api = DatasetRestApi()
+    api.datamodel = MagicMock()
+    api.search_columns = ["table_name"]
+    api.search_filters = {}
+    api._base_filters = MagicMock()  # noqa: SLF001
+
+    # Each call should construct a fresh Filters instance via datamodel.get_filters
+    rison_args = {
+        API_FILTERS_RIS_KEY: [{"col": "table_name", "opr": "eq", "value": "a"}],
+    }
+    api._handle_filters_args(rison_args)  # noqa: SLF001
+    api._handle_filters_args(rison_args)  # noqa: SLF001
+
+    assert api.datamodel.get_filters.call_count == 2
+    # Returned object must be the joined-filters result of the *fresh* Filters,
+    # not the shared self._filters attribute.
+    fresh_filters = api.datamodel.get_filters.return_value
+    assert fresh_filters.rest_add_filters.call_count == 2
+    assert fresh_filters.get_joined_filters.call_count == 2

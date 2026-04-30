@@ -26,7 +26,12 @@ from zipfile import is_zipfile, ZipFile
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.api.schemas import get_item_schema
-from flask_appbuilder.const import API_RESULT_RES_KEY, API_SELECT_COLUMNS_RIS_KEY
+from flask_appbuilder.const import (
+    API_FILTERS_RIS_KEY,
+    API_RESULT_RES_KEY,
+    API_SELECT_COLUMNS_RIS_KEY,
+)
+from flask_appbuilder.models.filters import Filters
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from jinja2.exceptions import TemplateSyntaxError
@@ -306,6 +311,30 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     list_outer_default_load = True
     show_outer_default_load = True
+
+    def _handle_filters_args(self, rison_args: dict[str, Any]) -> Filters:
+        """
+        Build a request-scoped ``Filters`` instance from Rison-encoded args.
+
+        Overrides :meth:`flask_appbuilder.api.ModelRestApi._handle_filters_args`,
+        which mutates ``self._filters`` (a single instance shared across requests).
+        Under concurrent traffic that shared state can leak filters from one
+        request into another — e.g. two parallel ``GET /api/v1/dataset/`` calls
+        filtering by different ``table_name`` values can return mixed results.
+
+        Returning a fresh ``Filters`` per call keeps each request isolated.
+
+        :param rison_args: Arguments parsed from the API request's Rison-encoded
+            ``q`` parameter.
+        :returns: A request-scoped ``Filters`` instance joined with the API's
+            base filters.
+        """
+        filters = self.datamodel.get_filters(
+            search_columns=self.search_columns,
+            search_filters=self.search_filters,
+        )
+        filters.rest_add_filters(rison_args.get(API_FILTERS_RIS_KEY, []))
+        return filters.get_joined_filters(self._base_filters)
 
     @expose("/", methods=("POST",))
     @protect()
