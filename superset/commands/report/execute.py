@@ -930,7 +930,7 @@ class ReportWorkingState(BaseReportState):
     """
     Handle Working state.
 
-    When a report is found in WORKING state, one of three things happened:
+    When a report is found in WORKING state, one of two things happened:
 
     1. The report is genuinely still running (recent WORKING log entry).
        → Raise ``ReportSchedulePreviousWorkingError`` so the scheduler
@@ -938,13 +938,14 @@ class ReportWorkingState(BaseReportState):
 
     2. The worker crashed (OOM, pod eviction, etc.) and the report is stuck.
        The ``working_timeout`` has elapsed.
-       → Transition to **NOOP** so the next scheduled tick picks it up
-         and retries naturally.  This avoids a 24-hour wait for daily
-         schedules (the old behaviour transitioned to ERROR, which only
-         retried on the next cron tick).
+       → Reset to **NOOP** and immediately re-execute via
+         ``ReportNotTriggeredErrorState``.  This is safe because by the
+         time ``working_timeout`` (typically ≥ 1 hour) has elapsed, any
+         celery broker requeue (~30 min) has already been attempted and
+         rejected with ``ReportSchedulePreviousWorkingError``.
 
     next states:
-    - NOOP   (was stuck → eligible for retry on next cron tick)
+    - NOOP → (immediate retry via ReportNotTriggeredErrorState)
     - WORKING (genuinely still running)
     """
 
@@ -962,7 +963,7 @@ class ReportWorkingState(BaseReportState):
             )
             logger.warning(
                 "Working state timeout after %.2fs, resetting to NOOP "
-                "for retry on next scheduled tick - execution_id: %s",
+                "and retrying immediately - execution_id: %s",
                 elapsed_seconds if elapsed_seconds else 0,
                 self._execution_id,
             )
@@ -971,9 +972,14 @@ class ReportWorkingState(BaseReportState):
                 error_message=(
                     "Working timeout reached: previous execution appears "
                     "stuck (possibly due to a worker crash). "
-                    "Resetting for retry on next scheduled tick."
+                    "Resetting and retrying."
                 ),
             )
+            ReportNotTriggeredErrorState(
+                self._report_schedule,
+                self._scheduled_dttm,
+                self._execution_id,
+            ).next()
             return
         logger.warning(
             "Report still in working state, refusing to re-compute - execution_id: %s",
