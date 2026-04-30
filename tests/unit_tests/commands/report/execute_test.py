@@ -33,7 +33,6 @@ from superset.commands.report.exceptions import (
     ReportScheduleScreenshotTimeout,
     ReportScheduleStateNotFoundError,
     ReportScheduleUnexpectedError,
-    ReportScheduleWorkingTimeoutError,
 )
 from superset.commands.report.execute import (
     BaseReportState,
@@ -1110,8 +1109,10 @@ def _make_state_instance(
     return instance
 
 
-def test_working_state_timeout_raises_timeout_error(mocker: MockerFixture) -> None:
-    """Working state past timeout should raise WorkingTimeoutError and log ERROR."""
+def test_working_state_timeout_resets_to_noop_and_retries(
+    mocker: MockerFixture,
+) -> None:
+    """Working state past timeout should reset to NOOP and immediately retry."""
     state = _make_state_instance(mocker, ReportWorkingState)
     mocker.patch.object(state, "is_on_working_timeout", return_value=True)
 
@@ -1123,13 +1124,23 @@ def test_working_state_timeout_raises_timeout_error(mocker: MockerFixture) -> No
     )
     mocker.patch.object(state, "update_report_schedule_and_log")
 
-    with pytest.raises(ReportScheduleWorkingTimeoutError):
-        state.next()
-
-    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
-        ReportState.ERROR,
-        error_message=str(ReportScheduleWorkingTimeoutError()),
+    # Mock the retry path so it doesn't actually execute the report
+    mock_retry_state = mocker.Mock()
+    mocker.patch(
+        "superset.commands.report.execute.ReportNotTriggeredErrorState",
+        return_value=mock_retry_state,
     )
+
+    # Should NOT raise — resets state and retries immediately
+    state.next()
+
+    state.update_report_schedule_and_log.assert_called_once()  # type: ignore[attr-defined]
+    call_args = state.update_report_schedule_and_log.call_args  # type: ignore[attr-defined]
+    assert call_args[0][0] == ReportState.NOOP
+    assert "stuck" in call_args[1]["error_message"].lower()
+
+    # Verify immediate retry was triggered
+    mock_retry_state.next.assert_called_once()
 
 
 def test_working_state_still_working_raises_previous_working(
