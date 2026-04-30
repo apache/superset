@@ -20,7 +20,12 @@
 
 # Notify PMC members of changes to GitHub Actions
 
-/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar @sadpandajoe
+/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar @sadpandajoe @hainenber
+
+# Notify PMC members of changes to CI-executed scripts (supply-chain risk:
+# scripts/ files run directly in CI workflows and can execute arbitrary code)
+
+/scripts/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar @sadpandajoe @hainenber
 
 # Notify PMC members of changes to required GitHub Actions
 

@@ -16,19 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   DataRecord,
   DataRecordValue,
   getTimeFormatterForGranularity,
-  t,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { GenericDataType } from '@apache-superset/core/common';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { isEqual } from 'lodash';
 
 import {
   CellClickedEvent,
-  IMenuActionParams,
+  SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import {
   AgGridTableChartTransformedProps,
@@ -40,8 +40,9 @@ import AgGridDataTable from './AgGridTable';
 import { updateTableOwnState } from './utils/externalAPIs';
 import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVisibility';
 import { useColDefs } from './utils/useColDefs';
-import { getCrossFilterDataMask } from './utils/getCrossFilterDataMask';
+import { buildSelectionCrossFilterDataMask } from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
+import type { FilterState } from './utils/filterStateManager';
 
 const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   let calculatedGridHeight = height;
@@ -84,9 +85,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     width,
     onChartStateChange,
     chartState,
+    metricSqlExpressions,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
+
+  // Extract metric column names for SQL conversion
+  const metricColumns = useMemo(
+    () =>
+      columns
+        .filter(col => col.isMetric || col.isPercentMetric)
+        .map(col => col.key),
+    [columns],
+  );
 
   useEffect(() => {
     const options = columns
@@ -100,6 +111,29 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       setSearchOptions(options || []);
     }
   }, [columns]);
+
+  useEffect(() => {
+    if (!serverPagination || !serverPaginationData || !rowCount) return;
+
+    const currentPage = serverPaginationData.currentPage ?? 0;
+    const currentPageSize = serverPaginationData.pageSize ?? serverPageLength;
+    const totalPages = Math.ceil(rowCount / currentPageSize);
+
+    if (currentPage >= totalPages && totalPages > 0) {
+      const validPage = Math.max(0, totalPages - 1);
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        currentPage: validPage,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    }
+  }, [
+    rowCount,
+    serverPagination,
+    serverPaginationData,
+    serverPageLength,
+    setDataMask,
+  ]);
 
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -119,6 +153,54 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       }
     },
     [onChartStateChange],
+  );
+
+  const handleFilterChanged = useCallback(
+    (completeFilterState: FilterState) => {
+      if (!serverPagination) return;
+      // Sync chartState immediately with the new filter model to prevent stale state
+      // This ensures chartState and ownState are in sync
+      if (onChartStateChange && chartState) {
+        const filterModel =
+          completeFilterState.originalFilterModel &&
+          Object.keys(completeFilterState.originalFilterModel).length > 0
+            ? completeFilterState.originalFilterModel
+            : undefined;
+        const updatedChartState = {
+          ...chartState,
+          filterModel,
+          timestamp: Date.now(),
+        };
+        onChartStateChange(updatedChartState);
+      }
+
+      // Prepare modified own state for server pagination
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        agGridFilterModel:
+          completeFilterState.originalFilterModel &&
+          Object.keys(completeFilterState.originalFilterModel).length > 0
+            ? completeFilterState.originalFilterModel
+            : undefined,
+        agGridSimpleFilters: completeFilterState.simpleFilters,
+        agGridComplexWhere: completeFilterState.complexWhere,
+        agGridHavingClause: completeFilterState.havingClause,
+        lastFilteredColumn: completeFilterState.lastFilteredColumn,
+        lastFilteredInputPosition: completeFilterState.inputPosition,
+        currentPage: 0, // Reset to first page when filtering
+        metricSqlExpressions,
+      };
+
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    },
+    [
+      setDataMask,
+      serverPagination,
+      serverPaginationData,
+      onChartStateChange,
+      chartState,
+      metricSqlExpressions,
+    ],
   );
 
   const filteredColumns = useMemo(() => {
@@ -166,38 +248,88 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const isActiveFilterValue = useCallback(
     function isActiveFilterValue(key: string, val: DataRecordValue) {
-      return !!filters && filters[key]?.includes(val);
+      if (!filters || !filters[key]) return false;
+      return filters[key].some(filterVal => {
+        if (filterVal === val) return true;
+        if (filterVal instanceof Date && val instanceof Date) {
+          return filterVal.getTime() === val.getTime();
+        }
+        return false;
+      });
     },
     [filters],
   );
 
   const timestampFormatter = useCallback(
-    value => getTimeFormatterForGranularity(timeGrain)(value),
-    [timeGrain],
+    (value: DataRecordValue) =>
+      isRawRecords
+        ? String(value ?? '')
+        : getTimeFormatterForGranularity(timeGrain)(
+            value as number | Date | null | undefined,
+          ),
+    [timeGrain, isRawRecords],
   );
 
-  const toggleFilter = useCallback(
-    (event: CellClickedEvent | IMenuActionParams) => {
+  const activeColumnRef = useRef<string | null>(null);
+
+  const handleCellClicked = useCallback(
+    (event: CellClickedEvent) => {
+      if (!emitCrossFilters || !event.column) return;
+      const colDef = event.column.getColDef();
+      if (colDef.context?.isMetric || colDef.context?.isPercentMetric) return;
+
+      const key = event.column.getColId();
+      activeColumnRef.current = key;
+
+      // Re-click on already-filtered single selection → untoggle
+      // AG Grid doesn't change selection when re-clicking the same row,
+      // so onSelectionChanged won't fire — handle clear directly here
+      const selectedNodes = event.api.getSelectedNodes();
       if (
-        emitCrossFilters &&
-        event.column &&
-        !(
-          event.column.getColDef().context?.isMetric ||
-          event.column.getColDef().context?.isPercentMetric
-        )
+        selectedNodes.length === 1 &&
+        selectedNodes[0] === event.node &&
+        isActiveFilterValue(key, event.value)
       ) {
-        const crossFilterProps = {
-          key: event.column.getColId(),
-          value: event.value,
-          filters,
-          timeGrain,
-          isActiveFilterValue,
-          timestampFormatter,
-        };
-        setDataMask(getCrossFilterDataMask(crossFilterProps).dataMask);
+        event.node.setSelected(false);
+        setDataMask(
+          buildSelectionCrossFilterDataMask({
+            key,
+            values: [],
+            timeGrain,
+            timestampFormatter,
+          }).dataMask,
+        );
       }
     },
-    [emitCrossFilters, setDataMask, filters, timeGrain],
+    [
+      emitCrossFilters,
+      isActiveFilterValue,
+      setDataMask,
+      timeGrain,
+      timestampFormatter,
+    ],
+  );
+
+  const handleSelectionChanged = useCallback(
+    (event: SelectionChangedEvent) => {
+      if (!emitCrossFilters || !activeColumnRef.current) return;
+
+      const key = activeColumnRef.current;
+      const selectedRows = event.api.getSelectedRows();
+      const values = selectedRows
+        .map(row => row[key] as DataRecordValue)
+        .filter(v => v != null);
+
+      setDataMask(
+        buildSelectionCrossFilterDataMask({
+          key,
+          values,
+          timeGrain,
+          timestampFormatter,
+        }).dataMask,
+      );
+    },
+    [emitCrossFilters, setDataMask, timeGrain, timestampFormatter],
   );
 
   const handleServerPaginationChange = useCallback(
@@ -206,6 +338,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         currentPage: pageNumber,
         pageSize,
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -218,6 +352,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         currentPage: 0,
         pageSize,
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -230,6 +366,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         searchColumn: searchCol,
         searchText: '',
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     }
@@ -243,6 +381,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           serverPaginationData?.searchColumn || searchOptions[0]?.value,
         searchText,
         currentPage: 0, // Reset to first page when searching
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -255,6 +395,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const modifiedOwnState = {
         ...serverPaginationData,
         sortBy,
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -288,12 +430,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onSearchColChange={handleChangeSearchCol}
         onSearchChange={handleSearch}
         onSortChange={handleSortByChange}
+        onFilterChanged={handleFilterChanged}
+        metricColumns={metricColumns}
         id={slice_id}
-        handleCrossFilter={toggleFilter}
+        handleCellClicked={handleCellClicked}
+        handleSelectionChanged={handleSelectionChanged}
+        filters={filters}
         percentMetrics={percentMetrics}
         serverPageLength={serverPageLength}
         hasServerPageLengthChanged={hasServerPageLengthChanged}
-        isActiveFilterValue={isActiveFilterValue}
         renderTimeComparisonDropdown={
           isUsingTimeComparison ? renderTimeComparisonVisibility : () => null
         }

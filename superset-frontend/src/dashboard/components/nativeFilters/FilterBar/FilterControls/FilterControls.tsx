@@ -26,24 +26,34 @@ import {
   useRef,
   useState,
 } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   DataMask,
   DataMaskStateWithId,
   Filter,
   Divider,
-  t,
   isNativeFilterWithDataMask,
+  NativeFilterTarget,
+  ChartCustomization,
+  isChartCustomizationDivider,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { css, SupersetTheme, useTheme, styled } from '@apache-superset/core/ui';
+import {
+  css,
+  SupersetTheme,
+  useTheme,
+  styled,
+} from '@apache-superset/core/theme';
 import {
   createHtmlPortalNode,
   InPortal,
   OutPortal,
 } from 'react-reverse-portal';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import {
   useDashboardHasTabs,
   useSelectFiltersInScope,
+  useSelectCustomizationsInScope,
 } from 'src/dashboard/components/nativeFilters/state';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -54,19 +64,36 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
+import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
+import { getInitialDataMask } from 'src/dataMask/reducer';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
+import { CustomizationsOutOfScopeCollapsible } from '../CustomizationsOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
 import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
-import GroupByFilterCard from '../../ChartCustomization/GroupByFilterCard';
-import { selectChartCustomizationItems } from '../../ChartCustomization/selectors';
+import FilterControl from './FilterControl';
+import FilterDivider from './FilterDivider';
+
+function addDataMaskToCustomization(
+  customization: ChartCustomization,
+  dataMaskSelected: DataMaskStateWithId,
+): ChartCustomization & { dataMask: DataMask } {
+  const dataMask =
+    dataMaskSelected[customization.id] ?? getInitialDataMask(customization.id);
+  return { ...customization, dataMask };
+}
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
+  onPendingCustomizationDataMaskChange: (
+    customizationId: string,
+    dataMask: DataMask,
+  ) => void;
+  chartCustomizationValues: (ChartCustomization | ChartCustomizationDivider)[];
   clearAllTriggers?: Record<string, boolean>;
   onClearAllComplete?: (filterId: string) => void;
   hideHeader?: boolean;
@@ -119,11 +146,14 @@ const ChartCustomizationContent = styled.div`
 const FilterControls: FC<FilterControlsProps> = ({
   dataMaskSelected,
   onFilterSelectionChange,
+  onPendingCustomizationDataMaskChange,
+  chartCustomizationValues,
   clearAllTriggers,
   onClearAllComplete,
   hideHeader = false,
 }) => {
   const theme = useTheme();
+  const dispatch = useDispatch();
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
@@ -139,8 +169,6 @@ const FilterControls: FC<FilterControlsProps> = ({
   const chartIds = useChartIds();
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
-
-  const chartCustomizationItems = useSelector(selectChartCustomizationItems);
 
   const selectedCrossFilters = useMemo(
     () =>
@@ -158,18 +186,26 @@ const FilterControls: FC<FilterControlsProps> = ({
     clearAllTriggers,
     onClearAllComplete,
   );
-  const portalNodes = useMemo(() => {
-    const nodes = new Array(filtersWithValues.length);
-    for (let i = 0; i < filtersWithValues.length; i += 1) {
-      nodes[i] = createHtmlPortalNode();
-    }
-    return nodes;
-  }, [filtersWithValues.length]);
+  const portalNodes = useMemo(
+    () =>
+      Array.from({ length: filtersWithValues.length }, () =>
+        createHtmlPortalNode(),
+      ),
+    [filtersWithValues.length],
+  );
 
   const filterIds = new Set(filtersWithValues.map(item => item.id));
 
   const [filtersInScope, filtersOutOfScope] =
     useSelectFiltersInScope(filtersWithValues);
+
+  const filteredChartCustomizationValues = useMemo(
+    () => chartCustomizationValues.filter(item => !item.removed),
+    [chartCustomizationValues],
+  );
+
+  const [customizationsInScope, customizationsOutOfScope] =
+    useSelectCustomizationsInScope(filteredChartCustomizationValues);
 
   const hasRequiredFirst = useMemo(
     () => filtersWithValues.some(filter => filter.requiredFirst),
@@ -178,11 +214,18 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
+  const showCustomizationCollapsePanel =
+    dashboardHasTabs && filteredChartCustomizationValues.length > 0;
 
   const [sectionsOpen, setSectionsOpen] = useState({
     filters: true,
     chartCustomization: true,
   });
+
+  const showFiltersOutOfScope =
+    showCollapsePanel &&
+    (hideHeader || sectionsOpen.filters) &&
+    filtersOutOfScope.length > 0;
 
   const toggleSection = useCallback((section: keyof typeof sectionsOpen) => {
     setSectionsOpen(prev => ({
@@ -190,6 +233,33 @@ const FilterControls: FC<FilterControlsProps> = ({
       [section]: !prev[section],
     }));
   }, []);
+
+  const handleChartCustomizationChange = useCallback(
+    (customizationItem: ChartCustomization, dataMask: DataMask) => {
+      const columnValue = dataMask.ownState?.column;
+      const existingTarget = customizationItem.targets?.[0] || {};
+
+      dispatch(
+        setPendingChartCustomization({
+          ...customizationItem,
+          targets: [
+            {
+              ...existingTarget,
+              ...(columnValue && {
+                column: {
+                  ...existingTarget.column,
+                  name: columnValue,
+                },
+              }),
+            },
+          ] as [Partial<NativeFilterTarget>],
+        }),
+      );
+
+      onPendingCustomizationDataMaskChange(customizationItem.id, dataMask);
+    },
+    [dispatch, onPendingCustomizationDataMaskChange],
+  );
 
   const renderer = useCallback(
     ({ id }: Filter | Divider, index: number | undefined) => {
@@ -205,6 +275,38 @@ const FilterControls: FC<FilterControlsProps> = ({
       );
     },
     [filtersWithValues, portalNodes],
+  );
+
+  const customizationRenderer = useCallback(
+    (item: ChartCustomization | ChartCustomizationDivider, index: number) => {
+      if (isChartCustomizationDivider(item)) {
+        return (
+          <FilterDivider
+            key={item.id}
+            title={item.title}
+            description={item.description}
+            orientation={FilterBarOrientation.Vertical}
+          />
+        );
+      }
+      const filterWithDataMask = addDataMaskToCustomization(
+        item,
+        dataMaskSelected,
+      );
+      return (
+        <FilterControl
+          key={item.id}
+          filter={filterWithDataMask}
+          dataMaskSelected={dataMaskSelected}
+          onFilterSelectionChange={(_, dataMask) =>
+            handleChartCustomizationChange(item, dataMask)
+          }
+          orientation={FilterBarOrientation.Vertical}
+          overflow={false}
+        />
+      );
+    },
+    [dataMaskSelected, handleChartCustomizationChange],
   );
 
   const renderVerticalContent = useCallback(
@@ -246,7 +348,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           </SectionContainer>
         )}
 
-        {showCollapsePanel && (hideHeader || sectionsOpen.filters) && (
+        {showFiltersOutOfScope && (
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
             renderer={renderer}
@@ -254,7 +356,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           />
         )}
 
-        {chartCustomizationItems.length > 0 && (
+        {customizationsInScope.length > 0 && (
           <SectionContainer>
             {!hideHeader && (
               <SectionHeader
@@ -278,7 +380,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                     lineHeight: 1.3,
                   }}
                 >
-                  {t('Chart Customization')}
+                  {t('Display controls')}
                 </Title>
                 <StyledIcon
                   iconSize="m"
@@ -289,14 +391,9 @@ const FilterControls: FC<FilterControlsProps> = ({
             {(hideHeader || sectionsOpen.chartCustomization) && (
               <SectionContent>
                 <ChartCustomizationContent>
-                  {chartCustomizationItems
-                    .filter(item => !item.removed)
-                    .map(item => (
-                      <GroupByFilterCard
-                        key={item.id}
-                        customizationItem={item}
-                      />
-                    ))}
+                  {customizationsInScope.map((item, index) =>
+                    customizationRenderer(item, index),
+                  )}
                 </ChartCustomizationContent>
               </SectionContent>
             )}
@@ -305,6 +402,15 @@ const FilterControls: FC<FilterControlsProps> = ({
             )}
           </SectionContainer>
         )}
+
+        {showCustomizationCollapsePanel &&
+          (hideHeader || sectionsOpen.chartCustomization) && (
+            <CustomizationsOutOfScopeCollapsible
+              customizationsOutOfScope={customizationsOutOfScope}
+              renderer={customizationRenderer}
+              forceRender={false}
+            />
+          )}
       </>
     ),
     [
@@ -313,10 +419,16 @@ const FilterControls: FC<FilterControlsProps> = ({
       showCollapsePanel,
       filtersOutOfScope,
       hasRequiredFirst,
-      chartCustomizationItems,
+      customizationsInScope,
+      customizationsOutOfScope,
+      showCustomizationCollapsePanel,
+      customizationRenderer,
       sectionsOpen,
       toggleSection,
+      theme,
       hideHeader,
+      handleChartCustomizationChange,
+      dataMaskSelected,
     ],
   );
 
@@ -382,7 +494,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     const dividerItems = [];
     if (
       (crossFilters.length > 0 || nativeFiltersInScope.length > 0) &&
-      chartCustomizationItems.length > 0
+      chartCustomizationValues.length > 0
     ) {
       dividerItems.push({
         id: 'chart-customization-divider',
@@ -401,9 +513,27 @@ const FilterControls: FC<FilterControlsProps> = ({
       });
     }
 
-    const chartCustomizations = chartCustomizationItems
-      .filter(item => !item.removed)
-      .map(item => ({
+    const chartCustomizations = customizationsInScope.map(item => {
+      if (isChartCustomizationDivider(item)) {
+        return {
+          id: `chart-customization-${item.id}`,
+          element: (
+            <div
+              className="chart-customization-item-wrapper"
+              css={css`
+                flex-shrink: 0;
+              `}
+            >
+              <FilterDivider
+                title={item.title}
+                description={item.description}
+                orientation={FilterBarOrientation.Horizontal}
+              />
+            </div>
+          ),
+        };
+      }
+      return {
         id: `chart-customization-${item.id}`,
         element: (
           <div
@@ -412,13 +542,19 @@ const FilterControls: FC<FilterControlsProps> = ({
               flex-shrink: 0;
             `}
           >
-            <GroupByFilterCard
-              customizationItem={item}
-              orientation="horizontal"
+            <FilterControl
+              filter={addDataMaskToCustomization(item, dataMaskSelected)}
+              dataMaskSelected={dataMaskSelected}
+              onFilterSelectionChange={(_, dataMask) =>
+                handleChartCustomizationChange(item, dataMask)
+              }
+              orientation={FilterBarOrientation.Horizontal}
+              overflow={false}
             />
           </div>
         ),
-      }));
+      };
+    });
 
     return [
       ...chartCustomizations,
@@ -431,8 +567,11 @@ const FilterControls: FC<FilterControlsProps> = ({
     renderer,
     rendererCrossFilter,
     selectedCrossFilters,
-    chartCustomizationItems,
+    customizationsInScope,
     theme,
+    handleChartCustomizationChange,
+    dataMaskSelected,
+    chartCustomizationValues.length,
   ]);
 
   const renderHorizontalContent = useCallback(
@@ -471,17 +610,27 @@ const FilterControls: FC<FilterControlsProps> = ({
           dropdownContent={
             overflowedFiltersInScope.length ||
             overflowedCrossFilters.length ||
-            (filtersOutOfScope.length && showCollapsePanel)
+            (filtersOutOfScope.length && showCollapsePanel) ||
+            (customizationsOutOfScope.length && showCustomizationCollapsePanel)
               ? () => (
-                  <FiltersDropdownContent
-                    overflowedCrossFilters={overflowedCrossFilters}
-                    filtersInScope={overflowedFiltersInScope}
-                    filtersOutOfScope={filtersOutOfScope}
-                    renderer={renderer}
-                    rendererCrossFilter={rendererCrossFilter}
-                    showCollapsePanel={showCollapsePanel}
-                    forceRenderOutOfScope={hasRequiredFirst}
-                  />
+                  <>
+                    <FiltersDropdownContent
+                      overflowedCrossFilters={overflowedCrossFilters}
+                      filtersInScope={overflowedFiltersInScope}
+                      filtersOutOfScope={filtersOutOfScope}
+                      renderer={renderer}
+                      rendererCrossFilter={rendererCrossFilter}
+                      showCollapsePanel={showCollapsePanel}
+                      forceRenderOutOfScope={hasRequiredFirst}
+                    />
+                    {showCustomizationCollapsePanel && (
+                      <CustomizationsOutOfScopeCollapsible
+                        customizationsOutOfScope={customizationsOutOfScope}
+                        renderer={customizationRenderer}
+                        forceRender={false}
+                      />
+                    )}
+                  </>
                 )
               : undefined
           }
@@ -508,6 +657,9 @@ const FilterControls: FC<FilterControlsProps> = ({
       overflowedCrossFilters,
       filtersOutOfScope,
       showCollapsePanel,
+      customizationsOutOfScope,
+      showCustomizationCollapsePanel,
+      customizationRenderer,
       renderer,
       rendererCrossFilter,
       hasRequiredFirst,
@@ -521,12 +673,19 @@ const FilterControls: FC<FilterControlsProps> = ({
       overflowedFiltersInScope.map(({ id }) => id),
     );
 
-    return filtersWithValues.map(
-      filter =>
-        filtersOutOfScopeIds.has(filter.id) ||
-        overflowedFiltersInScopeIds.has(filter.id),
-    );
-  }, [filtersOutOfScope, filtersWithValues, overflowedFiltersInScope]);
+    return filtersWithValues.map(filter => {
+      // Out-of-scope filters in vertical mode are in a Collapse panel, not overflowed
+      if (filtersOutOfScopeIds.has(filter.id)) {
+        return filterBarOrientation === FilterBarOrientation.Horizontal;
+      }
+      return overflowedFiltersInScopeIds.has(filter.id);
+    });
+  }, [
+    filtersOutOfScope,
+    filtersWithValues,
+    overflowedFiltersInScope,
+    filterBarOrientation,
+  ]);
 
   useEffect(() => {
     if (outlinedFilterId && overflowedIds.includes(outlinedFilterId)) {

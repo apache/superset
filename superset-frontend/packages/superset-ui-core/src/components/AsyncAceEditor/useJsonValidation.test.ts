@@ -20,24 +20,24 @@ import { renderHook } from '@testing-library/react-hooks';
 import { useJsonValidation } from './useJsonValidation';
 
 describe('useJsonValidation', () => {
-  it('returns empty array for valid JSON', () => {
+  test('returns empty array for valid JSON', () => {
     const { result } = renderHook(() => useJsonValidation('{"key": "value"}'));
     expect(result.current).toEqual([]);
   });
 
-  it('returns empty array when disabled', () => {
+  test('returns empty array when disabled', () => {
     const { result } = renderHook(() =>
       useJsonValidation('invalid json', { enabled: false }),
     );
     expect(result.current).toEqual([]);
   });
 
-  it('returns empty array for empty input', () => {
+  test('returns empty array for empty input', () => {
     const { result } = renderHook(() => useJsonValidation(''));
     expect(result.current).toEqual([]);
   });
 
-  it('extracts line and column from error message with parentheses', () => {
+  test('extracts line and column from error message with parentheses', () => {
     // Since we can't control the exact error message from JSON.parse,
     // let's test with a mock that demonstrates the pattern matching
     const mockError = {
@@ -52,7 +52,7 @@ describe('useJsonValidation', () => {
     expect(match![2]).toBe('2');
   });
 
-  it('returns error on first line when no line/column info in message', () => {
+  test('returns error on first line when no line/column info in message', () => {
     const invalidJson = '{invalid}';
     const { result } = renderHook(() => useJsonValidation(invalidJson));
 
@@ -60,16 +60,41 @@ describe('useJsonValidation', () => {
     expect(result.current[0]).toMatchObject({
       type: 'error',
       row: 0,
-      column: 0,
+      column: 1,
       text: expect.stringContaining('Invalid JSON'),
     });
   });
 
-  it('uses custom error prefix', () => {
+  test('uses custom error prefix', () => {
     const { result } = renderHook(() =>
       useJsonValidation('{invalid}', { errorPrefix: 'Custom error' }),
     );
 
     expect(result.current[0].text).toContain('Custom error');
+  });
+
+  test('falls back to "syntax error" when thrown error has no message (line 59 || branch)', () => {
+    const spy = jest.spyOn(JSON, 'parse').mockImplementationOnce(() => {
+      throw {}; // no .message property → error.message is undefined → falsy
+    });
+
+    const { result } = renderHook(() => useJsonValidation('some invalid json'));
+    spy.mockRestore();
+
+    expect(result.current).toHaveLength(1);
+    expect(result.current[0].text).toContain('syntax error');
+  });
+
+  test('extracts row and column from error when message contains (line X column Y)', () => {
+    const spy = jest.spyOn(JSON, 'parse').mockImplementationOnce(() => {
+      throw new SyntaxError('Unexpected token (line 3 column 5)');
+    });
+
+    const { result } = renderHook(() => useJsonValidation('some invalid json'));
+    spy.mockRestore();
+
+    expect(result.current).toHaveLength(1);
+    expect(result.current[0].row).toBe(2); // 3 - 1 = 2 (0-based)
+    expect(result.current[0].column).toBe(4); // 5 - 1 = 4 (0-based)
   });
 });

@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import TYPE_CHECKING
+from typing import cast, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -31,8 +31,10 @@ from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.elements import ColumnElement
 
 from superset.superset_typing import AdhocColumn
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
+    from superset.jinja_context import BaseTemplateProcessor
     from superset.models.core import Database
 
 
@@ -1419,14 +1421,89 @@ def test_adhoc_column_to_sqla_with_column_reference(database: Database) -> None:
         "isColumnReference": True,
     }
 
-    result = table.adhoc_column_to_sqla(col_with_spaces)
+    result, generic_type = table.adhoc_column_to_sqla(col_with_spaces)
 
     # Should return a valid SQLAlchemy column
     assert result is not None
+    # TEXT column should resolve to STRING generic type
+    assert generic_type == GenericDataType.STRING
     result_str = str(result)
 
     # The column name should be present (may or may not be quoted depending on dialect)
     assert "Customer Name" in result_str or '"Customer Name"' in result_str
+
+
+def test_virtual_dataset_calculated_column_selected_via_templated_adhoc_dimension(
+    database: Database,
+) -> None:
+    """
+    Calculated columns on virtual datasets must be resolvable when the column
+    reference comes from a templated `sqlExpression` (e.g. using `filter_values`).
+
+    Regression test for cases where selecting a calculated column by name would
+    fall back to treating the resolved name as a bare identifier (breaking SQL
+    execution because the calculated expression is not present in the virtual
+    dataset's FROM subquery).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="virtual_t",
+        # Non-empty `sql` makes the table a virtual dataset.
+        sql="SELECT random_value, category FROM t",
+        columns=[
+            TableColumn(column_name="random_value", type="INTEGER"),
+            TableColumn(column_name="category", type="TEXT"),
+            TableColumn(
+                column_name="gt_or_lt_50",
+                type="TEXT",
+                expression=(
+                    "CASE WHEN random_value > 50 THEN 'GT 50' ELSE 'LT 50' END"
+                ),
+            ),
+        ],
+    )
+
+    class DummyTemplateProcessor:
+        def process_template(self, sql_expression: str) -> str:
+            # Only resolve the templated column name; leave other expressions
+            # (like the calculated column's CASE expression) untouched.
+            if "filter_values('aggregation')" in sql_expression:
+                return "gt_or_lt_50"
+            return sql_expression
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": (
+            "{{ filter_values('aggregation')[0] if "
+            "filter_values('aggregation') else \"'Total'\" }}"
+        ),
+        "label": "breakdown_by",
+        "isColumnReference": True,
+    }
+
+    result, _ = table.adhoc_column_to_sqla(
+        adhoc_col,
+        template_processor=cast("BaseTemplateProcessor", DummyTemplateProcessor()),
+    )
+    assert result is not None
+
+    # The calculated column expression should be inlined (not treated as a bare
+    # identifier), so SQL must contain the CASE expression.
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "CASE WHEN" in sql
+    assert "random_value" in sql
+    assert "'GT 50'" in sql
+    assert "'LT 50'" in sql
+    assert "gt_or_lt_50" not in sql
 
 
 def test_adhoc_column_to_sqla_preserves_column_type_for_time_grain(
@@ -1470,9 +1547,11 @@ def test_adhoc_column_to_sqla_preserves_column_type_for_time_grain(
     }
 
     # Should not raise ColumnNotFoundException
-    result = table.adhoc_column_to_sqla(date_col)
+    result, generic_type = table.adhoc_column_to_sqla(date_col)
 
     assert result is not None
+    # DATE column maps to the TEMPORAL generic type
+    assert generic_type == GenericDataType.TEMPORAL
     result_str = str(result)
 
     # Verify the column name is present (may be quoted depending on dialect)
@@ -1513,7 +1592,7 @@ def test_adhoc_column_to_sqla_with_temporal_column_types(database: Database) -> 
             "columnType": "BASE_AXIS",
         }
 
-        result = table.adhoc_column_to_sqla(time_col)
+        result, _ = table.adhoc_column_to_sqla(time_col)
 
         assert result is not None
         result_str = str(result)
@@ -1611,7 +1690,7 @@ def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> No
         "isColumnReference": True,
     }
 
-    result = table.adhoc_column_to_sqla(col_with_spaces)
+    result, _ = table.adhoc_column_to_sqla(col_with_spaces)
 
     # Compile the column to SQL to see how it's rendered
     with database.get_sqla_engine() as engine:
@@ -1632,7 +1711,7 @@ def test_adhoc_column_with_spaces_generates_quoted_sql(database: Database) -> No
         "isColumnReference": True,
     }
 
-    result_numeric = table.adhoc_column_to_sqla(col_numeric)
+    result_numeric, _ = table.adhoc_column_to_sqla(col_numeric)
 
     with database.get_sqla_engine() as engine:
         sql_numeric = str(
@@ -1681,8 +1760,8 @@ def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
     }
 
     # Get SQLAlchemy columns
-    customer_sqla = table.adhoc_column_to_sqla(customer_col)
-    order_sqla = table.adhoc_column_to_sqla(order_col)
+    customer_sqla, _ = table.adhoc_column_to_sqla(customer_col)
+    order_sqla, _ = table.adhoc_column_to_sqla(order_col)
 
     # Build a full query
     tbl = table.get_sqla_table()
@@ -1703,3 +1782,523 @@ def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
     # Verify SELECT and FROM clauses are present
     assert "SELECT" in sql
     assert "FROM" in sql
+
+
+def test_orderby_adhoc_column(database: Database) -> None:
+    """
+    Test that orderby works with adhoc column labels.
+
+    When orderby contains a string that matches the label of an adhoc column
+    in the columns list, it should correctly convert to a SQLAlchemy column
+    instead of raising QueryObjectValidationError.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a"),
+            TableColumn(column_name="b"),
+        ],
+    )
+
+    # Should not raise QueryObjectValidationError
+    result = table.get_sqla_query(
+        columns=[
+            {"expressionType": "SQL", "label": "custom_col", "sqlExpression": "a + 1"},
+            "b",
+        ],
+        orderby=[("custom_col", False)],  # Order by adhoc column label
+        metrics=[],
+        extras={},
+        filter=[],
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    # Verify the SQL contains the expression from the adhoc column
+    sql = str(result.sqla_query)
+    assert "ORDER BY" in sql.upper()
+
+
+def test_extras_where_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that extras.where is wrapped in parentheses when composed with other
+    filters.
+
+    Without parentheses, an extras.where containing OR operators combined
+    with other filters via AND could produce unexpected evaluation order due
+    to SQL operator precedence (AND binds tighter than OR). Wrapping in
+    parentheses ensures the expression is treated as a single logical unit.
+    """
+    from unittest.mock import patch
+
+    from sqlalchemy import text as sa_text
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    with (
+        patch.object(
+            table,
+            "get_sqla_row_level_filters",
+            return_value=[sa_text("(b = 'restricted')")],
+        ),
+        patch.object(
+            table,
+            "_process_select_expression",
+            return_value="1 = 1 OR 1 = 1",
+        ),
+    ):
+        sqla_query = table.get_sqla_query(
+            columns=["a"],
+            extras={"where": "1=1 OR 1=1"},
+            is_timeseries=False,
+            metrics=[],
+        )
+
+        with database.get_sqla_engine() as engine:
+            sql = str(
+                sqla_query.sqla_query.compile(
+                    dialect=engine.dialect,
+                    compile_kwargs={"literal_binds": True},
+                )
+            )
+
+        assert "(1 = 1 OR 1 = 1)" in sql, (
+            f"extras.where should be wrapped in parentheses. Generated SQL: {sql}"
+        )
+
+        assert "b = 'restricted'" in sql, (
+            f"Additional filters should be present in query. Generated SQL: {sql}"
+        )
+
+
+def test_extras_having_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that extras.having is wrapped in parentheses when composed with
+    other HAVING filters, to ensure correct evaluation order.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+        metrics=[
+            SqlMetric(metric_name="cnt", expression="COUNT(*)"),
+        ],
+    )
+
+    with patch.object(
+        table,
+        "_process_select_expression",
+        return_value="COUNT(*) > 0 OR 1 = 1",
+    ):
+        sqla_query = table.get_sqla_query(
+            groupby=["b"],
+            metrics=["cnt"],
+            extras={"having": "COUNT(*) > 0 OR 1=1"},
+            is_timeseries=False,
+        )
+
+        with database.get_sqla_engine() as engine:
+            sql = str(
+                sqla_query.sqla_query.compile(
+                    dialect=engine.dialect,
+                    compile_kwargs={"literal_binds": True},
+                )
+            )
+
+        assert "(COUNT(*) > 0 OR 1 = 1)" in sql, (
+            f"extras.having should be wrapped in parentheses. Generated SQL: {sql}"
+        )
+
+
+def _run_probe(
+    database: Database,
+    type_probe_needs_row: bool = False,
+) -> str:
+    """
+    Run adhoc_column_to_sqla with a mocked get_columns_description and
+    return the SQL that was passed to it.
+
+    ``type_probe_needs_row`` is patched onto the database's real engine spec
+    class so every other method keeps working normally.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "round(a / 50) * 50 / 1000",
+        "label": "Duration",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+    captured: list[str] = []
+
+    def fake_get_columns_description(
+        db: object,
+        catalog: object,
+        schema: object,
+        sql: str,
+    ) -> list[dict[str, object]]:
+        captured.append(sql)
+        return [
+            {
+                "column_name": "Duration",
+                "name": "Duration",
+                "type": "FLOAT",
+                "is_dttm": False,
+            }
+        ]
+
+    spec_cls = database.db_engine_spec
+    with (
+        patch(
+            "superset.connectors.sqla.models.get_columns_description",
+            side_effect=fake_get_columns_description,
+        ),
+        patch.object(spec_cls, "type_probe_needs_row", type_probe_needs_row),
+    ):
+        result, _ = table.adhoc_column_to_sqla(adhoc_col)
+
+    assert result is not None
+    assert len(captured) == 1, "Expected exactly one type-probe query"
+    return captured[0]
+
+
+def test_adhoc_column_type_probe_uses_where_false(database: Database) -> None:
+    """
+    Most engines populate cursor.description from query-plan metadata, so the
+    probe uses WHERE FALSE — zero rows read, no table scan.
+
+    SQLAlchemy renders sa.false() differently per dialect:
+      - Most databases:  WHERE false
+      - SQLite:          WHERE 0 = 1
+    """
+    probe_sql = _run_probe(database, type_probe_needs_row=False).lower()
+
+    always_false_patterns = ("where false", "where 0 = 1")
+    assert any(p in probe_sql for p in always_false_patterns), (
+        f"Probe query should use a WHERE false condition to avoid scanning the "
+        f"table, but got: {probe_sql}"
+    )
+    assert "limit" not in probe_sql, (
+        f"WHERE false probe must not contain LIMIT, but got: {probe_sql}"
+    )
+
+
+def test_adhoc_column_type_probe_uses_limit_1_for_row_dependent_engines(
+    database: Database,
+) -> None:
+    """
+    Druid and Pinot build cursor.description by inspecting the first returned
+    row. WHERE FALSE yields no rows, so description stays None. These engines
+    must fall back to LIMIT 1.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+    from superset.db_engine_specs.pinot import PinotEngineSpec
+
+    for spec_cls in (DruidEngineSpec, PinotEngineSpec):
+        assert spec_cls.type_probe_needs_row is True, (
+            f"{spec_cls.__name__} must declare type_probe_needs_row = True"
+        )
+
+    probe_sql = _run_probe(database, type_probe_needs_row=True).lower()
+
+    assert "limit 1" in probe_sql, (
+        f"Row-dependent engines: probe should use LIMIT 1, got: {probe_sql}"
+    )
+    always_false_patterns = ("where false", "where 0 = 1")
+    assert not any(p in probe_sql for p in always_false_patterns), (
+        f"Row-dependent engines: probe must NOT use WHERE false, got: {probe_sql}"
+    )
+
+
+def _adhoc_col_with_probed_type(
+    database: Database,
+    probed_type: str,
+    probed_is_dttm: bool = False,
+) -> "GenericDataType | None":
+    """
+    Run adhoc_column_to_sqla against a mocked DB probe that returns
+    ``probed_type``, and return the resolved generic type.
+
+    Uses an expression (not a bare column name) so the metadata-lookup branch
+    is skipped and the probe branch runs.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="pending_duration_seconds", type="BIGINT")],
+    )
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "CAST(FLOOR(pending_duration_seconds / 86400) AS BIGINT)",
+        "label": "Pending Days",
+    }
+
+    def fake_get_columns_description(
+        db: object,
+        catalog: object,
+        schema: object,
+        sql: str,
+    ) -> list[dict[str, object]]:
+        """Return a single-column description mirroring SupersetResultSet output."""
+        # Mirror what SupersetResultSet.columns builds: it derives type_generic
+        # from the native type via db_engine_spec.get_column_spec().
+        spec = table.db_engine_spec.get_column_spec(native_type=probed_type)
+        type_generic = spec.generic_type if spec else None
+        return [
+            {
+                "column_name": "Pending Days",
+                "name": "Pending Days",
+                "type": probed_type,
+                "type_generic": type_generic,
+                "is_dttm": probed_is_dttm,
+            }
+        ]
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=fake_get_columns_description,
+    ):
+        _, generic_type = table.adhoc_column_to_sqla(
+            adhoc_col,
+            force_type_check=True,
+        )
+    return generic_type
+
+
+def test_adhoc_column_to_sqla_returns_numeric_type_from_probe(
+    database: Database,
+) -> None:
+    """
+    Regression: when the adhoc SQL expression casts to a numeric type,
+    adhoc_column_to_sqla must surface the NUMERIC generic type from the DB
+    probe so downstream filter-value coercion unquotes numeric values.
+    """
+    assert _adhoc_col_with_probed_type(database, "BIGINT") == GenericDataType.NUMERIC
+
+
+def test_adhoc_column_to_sqla_returns_string_type_from_probe(
+    database: Database,
+) -> None:
+    """String-typed adhoc expressions should report the STRING generic type."""
+    assert _adhoc_col_with_probed_type(database, "VARCHAR") == GenericDataType.STRING
+
+
+def test_adhoc_column_to_sqla_skips_probe_when_not_forced(
+    database: Database,
+) -> None:
+    """
+    Without ``force_type_check`` and no time grain, the probe is skipped and
+    the returned generic type is None (there's no cheap way to infer it).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "CAST(a AS BIGINT)",
+        "label": "a_bigint",
+    }
+
+    def _should_not_be_called(*_: object, **__: object) -> list[dict[str, object]]:
+        """Sentinel that fails if the DB probe is unexpectedly triggered."""
+        raise AssertionError("probe should not run without force_type_check")
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=_should_not_be_called,
+    ):
+        _, generic_type = table.adhoc_column_to_sqla(adhoc_col)
+
+    assert generic_type is None
+
+
+def test_adhoc_column_to_sqla_returns_type_from_column_metadata(
+    database: Database,
+) -> None:
+    """
+    When the adhoc ``sqlExpression`` resolves to a real column in the dataset,
+    the returned generic type comes from that column's ``type`` — not from a
+    DB probe.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="amount", type="BIGINT")],
+    )
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "amount",
+        "label": "amount",
+        "isColumnReference": True,
+    }
+
+    def _should_not_be_called(*_: object, **__: object) -> list[dict[str, object]]:
+        """Sentinel that fails if the DB probe runs despite metadata resolution."""
+        raise AssertionError(
+            "probe should not run when the column resolves from metadata"
+        )
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=_should_not_be_called,
+    ):
+        _, generic_type = table.adhoc_column_to_sqla(
+            adhoc_col,
+            force_type_check=True,
+        )
+
+    assert generic_type == GenericDataType.NUMERIC
+
+
+def test_numeric_adhoc_filter_value_is_unquoted_in_where_clause(
+    database: Database,
+) -> None:
+    """
+    End-to-end regression for the cross-filter bug: an IN-filter on an adhoc
+    numeric expression must render the value as an int (``IN (3)``) rather
+    than a string (``IN ('3')``).
+
+    Before the fix, filter value coercion defaulted to STRING for adhoc
+    columns because the filter path could not discover the column's type.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="pending_duration_seconds", type="BIGINT")],
+    )
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": (
+            "CAST(FLOOR(pending_duration_seconds / (60 * 60 * 24)) AS BIGINT)"
+        ),
+        "label": "Pending Days",
+    }
+
+    def fake_get_columns_description(
+        *_: object, **__: object
+    ) -> list[dict[str, object]]:
+        """Return a BIGINT column description for the numeric adhoc expression."""
+        return [
+            {
+                "column_name": "Pending Days",
+                "name": "Pending Days",
+                "type": "BIGINT",
+                "type_generic": GenericDataType.NUMERIC,
+                "is_dttm": False,
+            }
+        ]
+
+    with patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        side_effect=fake_get_columns_description,
+    ):
+        sqla_query = table.get_sqla_query(
+            columns=["pending_duration_seconds"],
+            filter=[{"col": adhoc_col, "op": "IN", "val": ["3"]}],
+            is_timeseries=False,
+            row_limit=10,
+        )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The numeric value should be emitted without quotes.
+    assert "IN (3)" in sql, f"Expected numeric IN-list, got SQL: {sql}"
+    assert "IN ('3')" not in sql, f"Value should not be quoted, got SQL: {sql}"
+
+
+def test_filter_by_verbose_name_resolves_to_column(
+    database: Database,
+) -> None:
+    """
+    A filter whose "col" value matches a column's verbose_name
+    (e.g. the label emitted by "Drill to detail by") must resolve to that
+    column and produce a WHERE clause on the underlying column_name.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(
+                column_name="country_code",
+                verbose_name="Country",
+                type="TEXT",
+            ),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["b"],
+        # Filter uses the verbose label, as "Drill to detail by" does.
+        filter=[{"col": "Country", "op": "==", "val": "US"}],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The filter should be translated to a WHERE clause on the real column.
+    assert "WHERE" in sql, f"Expected WHERE clause, got SQL: {sql}"
+    assert "country_code" in sql, f"Expected filter on 'country_code', got SQL: {sql}"
+    assert "'US'" in sql, f"Expected filter value 'US', got SQL: {sql}"

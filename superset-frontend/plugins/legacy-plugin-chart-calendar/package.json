@@ -23,7 +23,7 @@
     "lib"
   ],
   "dependencies": {
-    "d3-array": "^2.0.3",
+    "d3-array": "^3.2.4",
     "d3-selection": "^3.0.0",
     "d3-tip": "^0.9.1",
     "prop-types": "^15.8.1"

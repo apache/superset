@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { Form, StyledModal } from '@superset-ui/core/components';
 
 const MODAL_MARGIN = 16;
@@ -39,9 +39,23 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
     min-width: auto;
   }
 
+  .ant-modal-header {
+    margin-bottom: 0;
+  }
+
   .ant-modal-body {
-    padding: 0px;
-    overflow: auto;
+    overflow: hidden;
+    padding: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .ant-collapse {
+    border-bottom: 0;
+
+    .ant-collapse-item:last-child > .ant-collapse-content {
+      border-radius: 0;
+    }
   }
 
   ${({ expanded }) =>
@@ -60,7 +74,8 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
 
 export const BaseModalBody = styled.div<BaseModalBodyProps>`
   display: flex;
-  height: ${({ expanded }) => (expanded ? '100%' : '700px')};
+  height: 100%;
+  min-height: 500px;
   flex-direction: row;
   flex: 1;
 

@@ -35,6 +35,7 @@ from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.commands.importers.v1.utils import (
     get_resource_mappings_batched,
+    import_tag,
     load_configs,
     load_metadata,
     validate_metadata_type,
@@ -45,6 +46,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
@@ -82,12 +84,20 @@ class ImportAssetsCommand(BaseCommand):
         self.ssh_tunnel_priv_key_passwords: dict[str, str] = (
             kwargs.get("ssh_tunnel_priv_key_passwords") or {}
         )
+        self.encrypted_extra_secrets: dict[str, dict[str, str]] = (
+            kwargs.get("encrypted_extra_secrets") or {}
+        )
         self._configs: dict[str, Any] = {}
         self.sparse = kwargs.get("sparse", False)
 
     # pylint: disable=too-many-locals
     @staticmethod
-    def _import(configs: dict[str, Any], sparse: bool = False) -> None:  # noqa: C901
+    def _import(  # noqa: C901
+        configs: dict[str, Any],
+        sparse: bool = False,
+        contents: Optional[dict[str, Any]] = None,
+    ) -> None:
+        contents = {} if contents is None else contents
         # import databases first
         database_ids: dict[str, int] = {}
         dataset_info: dict[str, dict[str, Any]] = {}
@@ -136,6 +146,13 @@ class ImportAssetsCommand(BaseCommand):
                 charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id
 
+                # Handle tags using import_tag function
+                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                    if "tags" in config:
+                        import_tag(
+                            config["tags"], contents, chart.id, "chart", db.session
+                        )
+
         # import dashboards
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
@@ -161,6 +178,17 @@ class ImportAssetsCommand(BaseCommand):
                 )
                 db.session.execute(insert(dashboard_slices).values(dashboard_chart_ids))
 
+                # Handle tags using import_tag function
+                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                    if "tags" in config:
+                        import_tag(
+                            config["tags"],
+                            contents,
+                            dashboard.id,
+                            "dashboard",
+                            db.session,
+                        )
+
                 # Migrate any filter-box charts to native dashboard filters.
                 migrate_dashboard(dashboard)
 
@@ -178,7 +206,7 @@ class ImportAssetsCommand(BaseCommand):
     )
     def run(self) -> None:
         self.validate()
-        self._import(self._configs, self.sparse)
+        self._import(self._configs, self.sparse, self.contents)
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
@@ -199,6 +227,7 @@ class ImportAssetsCommand(BaseCommand):
             self.ssh_tunnel_passwords,
             self.ssh_tunnel_private_keys,
             self.ssh_tunnel_priv_key_passwords,
+            self.encrypted_extra_secrets,
         )
 
         if exceptions:

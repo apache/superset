@@ -44,6 +44,36 @@ if os.environ.get("FASTMCP_TRANSPORT", "stdio") == "stdio":
 from superset.mcp_service.app import init_fastmcp_server, mcp
 
 
+def _add_default_middlewares() -> None:
+    """Add the standard middleware stack to the MCP instance.
+
+    This ensures all entry points (stdio, streamable-http, etc.) get
+    the same protection middlewares that the Flask CLI and server.py add.
+    Order is innermost → outermost (last-added wraps everything).
+    """
+    from superset.mcp_service.middleware import (
+        create_response_size_guard_middleware,
+        GlobalErrorHandlerMiddleware,
+        LoggingMiddleware,
+        StructuredContentStripperMiddleware,
+    )
+
+    # Response size guard (innermost among these)
+    if size_guard := create_response_size_guard_middleware():
+        mcp.add_middleware(size_guard)
+        limit = size_guard.token_limit
+        sys.stderr.write(f"[MCP] Response size guard enabled (token_limit={limit})\n")
+
+    # Logging
+    mcp.add_middleware(LoggingMiddleware())
+
+    # Global error handler
+    mcp.add_middleware(GlobalErrorHandlerMiddleware())
+
+    # Structured content stripper (must be outermost)
+    mcp.add_middleware(StructuredContentStripperMiddleware())
+
+
 def main() -> None:
     """
     Run the MCP service in stdio mode with proper output suppression.
@@ -97,6 +127,7 @@ def main() -> None:
             # Initialize the FastMCP server
             # Disable auth config for stdio mode to avoid Flask app output
             init_fastmcp_server()
+            _add_default_middlewares()
 
         # Log captured output to stderr for debugging (optional)
         captured = captured_output.getvalue()
@@ -118,12 +149,13 @@ def main() -> None:
     else:
         # For other transports, use normal initialization
         init_fastmcp_server()
+        _add_default_middlewares()
 
         # Run with specified transport
         if transport == "streamable-http":
             host = os.environ.get("FASTMCP_HOST", "127.0.0.1")
             port = int(os.environ.get("FASTMCP_PORT", "5008"))
-            mcp.run(transport=transport, host=host, port=port)
+            mcp.run(transport=transport, host=host, port=port, stateless_http=True)
         else:
             mcp.run(transport=transport)
 

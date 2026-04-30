@@ -33,20 +33,22 @@ import type { PlaceholderProps } from './types';
 function DefaultPlaceholder({
   width,
   height,
-  showLoadingForImport = false,
+  showLoadingForImport = true,
   placeholderStyle: style,
 }: PlaceholderProps) {
-  return (
-    // since `width` defaults to 100%, we can display the placeholder once
-    // height is specified.
-    (height && (
+  if (showLoadingForImport) {
+    return (
       <div key="async-asm-placeholder" style={{ width, height, ...style }}>
-        {showLoadingForImport && <Loading position="floating" />}
+        <Loading position="floating" size="s" />
       </div>
-    )) ||
-    // `|| null` is for in case of height=0.
-    null
-  );
+    );
+  }
+  if (height) {
+    return (
+      <div key="async-asm-placeholder" style={{ width, height, ...style }} />
+    );
+  }
+  return null;
 }
 
 /**
@@ -119,7 +121,7 @@ export function AsyncEsmComponent<
     const Component = component || placeholder;
     return Component ? (
       // placeholder does not get the ref
-      // @ts-ignore: Suppress TypeScript error for ref assignment
+      // @ts-expect-error: Suppress TypeScript error for ref assignment
       <Component ref={Component === component ? ref : null} {...props} />
     ) : null;
   });

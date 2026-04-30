@@ -4,18 +4,51 @@ updates:
 
   - package-ecosystem: "github-actions"
     directory: "/"
+    ignore:
+      # Ignore temporarily as release schedule is too mentally taxing for dep-handling maintainers
+      # Additionally, very few PRs are reviewed by this action.
+      - dependency-name: anthropics/claude-code-action
     schedule:
       interval: "daily"
 
   - package-ecosystem: "npm"
     ignore:
-      # not until React >= 18.0.0
+      # TODO: remove below entries until React >= 18.0.0
       - dependency-name: "storybook"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "@storybook*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "eslint-plugin-storybook"
+      - dependency-name: "react-error-boundary"
+      - dependency-name: "@rjsf/*"
+      # remark-gfm v4+ requires react-markdown v9+, which needs React 18
+      - dependency-name: "remark-gfm"
+      - dependency-name: "react-markdown"
+      # TODO: remove below entries until React >= 19.0.0
+      - dependency-name: "react-icons"
       # JSDOM v30 doesn't play well with Jest v30
       # Source: https://jestjs.io/blog#known-issues
       # GH thread: https://github.com/jsdom/jsdom/issues/3492
       - dependency-name: "jest-environment-jsdom"
+      # `@swc/plugin-transform-imports` doesn't work with current Webpack-SWC hybrid setup
+      # See https://github.com/apache/superset/pull/37384#issuecomment-3793991389
+      # TODO: remove the plugin once Lodash usage has been migrated to a more readily tree-shakeable alternative
+      - dependency-name: "@swc/plugin-transform-imports"
+      # `just-handlerbars-helpers` library in plugin-chart-handlebars requires `currencyformatter`` to be < 2
+      - dependency-name: "currencyformatter.js"
+        update-types: ["version-update:semver-major"]
+      # TODO: remove below clause once https://github.com/pmmmwh/react-refresh-webpack-plugin/pull/940 lands onto a future release
+      # and confirm the issue https://github.com/apache/superset/issues/39600 is fixed
+      - dependency-name: "react-checkbox-tree"
+        update-types: ["version-update:semver-major"]
+    groups:
+      storybook:
+        applies-to: version-updates
+        patterns:
+          - "@storybook*"
+          - "storybook"
+        update-types:
+          - "patch"
     directory: "/superset-frontend/"
     schedule:
       interval: "daily"
@@ -26,15 +59,13 @@ updates:
     versioning-strategy: increase
 
 
-  # NOTE: `uv` support is in beta, more details here:
-  # https://github.com/dependabot/dependabot-core/pull/10040#issuecomment-2696978430
-  - package-ecosystem: "uv"
-    directory: "requirements/"
+  - package-ecosystem: "pip"
+    directory: "/"
     open-pull-requests-limit: 10
     schedule:
       interval: "weekly"
     labels:
-      - uv
+      - pip
       - dependabot
 
   - package-ecosystem: "npm"
@@ -46,6 +77,22 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/docs/"
+    ignore:
+      # TODO: remove below entries until React >= 18.0.0 in superset-frontend
+      - dependency-name: "storybook"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@storybook*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "eslint-plugin-storybook"
+      - dependency-name: "react-error-boundary"
+    groups:
+      storybook:
+        applies-to: version-updates
+        patterns:
+          - "@storybook*"
+          - "storybook"
+        update-types:
+          - "patch"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
@@ -83,16 +130,6 @@ updates:
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-histogram/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-partition/"
     schedule:
       interval: "daily"
@@ -114,6 +151,9 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-pivot-table/"
+    ignore:
+      # TODO: remove below entries until React >= 19.0.0
+      - dependency-name: "react-icons"
     schedule:
       interval: "daily"
     labels:
@@ -164,6 +204,9 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-table/"
+    ignore:
+      # TODO: remove below entries until React >= 19.0.0
+      - dependency-name: "react-icons"
     schedule:
       interval: "daily"
     labels:
@@ -193,16 +236,6 @@ updates:
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-sankey/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-preset-chart-nvd3/"
     schedule:
       interval: "daily"
@@ -223,27 +256,7 @@ updates:
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-event-flow/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-paired-t-test/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-sankey-loop/"
     schedule:
       interval: "daily"
     labels:
@@ -263,7 +276,7 @@ updates:
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/preset-chart-xy/"
+    directory: "/superset-frontend/plugins/plugin-chart-ag-grid-table/"
     schedule:
       interval: "daily"
     labels:
@@ -273,7 +286,7 @@ updates:
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-heatmap/"
+    directory: "/superset-frontend/plugins/plugin-chart-cartodiagram/"
     schedule:
       interval: "daily"
     labels:
@@ -293,17 +306,11 @@ updates:
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-sunburst/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-handlebars/"
+    ignore:
+      # `just-handlerbars-helpers` library in plugin-chart-handlebars requires `currencyformatter`` to be < 2
+      - dependency-name: "currencyformatter.js"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "daily"
     labels:
@@ -338,16 +345,7 @@ updates:
       # not until React >= 18.0.0
       - dependency-name: "react-markdown"
       - dependency-name: "remark-gfm"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
-    directory: "/superset-frontend/packages/superset-ui-demo/"
+      - dependency-name: "react-error-boundary"
     schedule:
       interval: "daily"
     labels:

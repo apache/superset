@@ -22,11 +22,133 @@ Unit tests for get_chart_preview MCP tool
 import pytest
 
 from superset.mcp_service.chart.schemas import (
+    AccessibilityMetadata,
     ASCIIPreview,
+    ChartPreview,
     GetChartPreviewRequest,
+    InteractivePreview,
+    PerformanceMetadata,
     TablePreview,
     URLPreview,
+    VegaLitePreview,
 )
+from superset.mcp_service.chart.tool.get_chart_preview import (
+    _sanitize_chart_preview_for_llm_context,
+)
+from superset.mcp_service.utils import sanitize_for_llm_context
+
+
+class TestPreviewXAxisInQueryContext:
+    """Tests for x_axis inclusion in preview query context columns.
+
+    When generating chart previews (table, vega_lite), the query context must
+    include both x_axis and groupby columns. Previously only groupby was used,
+    causing series charts with group_by to lose the x_axis dimension.
+    """
+
+    def test_table_preview_includes_x_axis_and_groupby(self):
+        """Test that table preview builds columns with both x_axis and groupby."""
+        form_data = {
+            "x_axis": "territory",
+            "groupby": ["year"],
+            "metrics": [{"label": "SUM(sales)"}],
+        }
+
+        x_axis_config = form_data.get("x_axis")
+        groupby_columns = form_data.get("groupby", [])
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+
+        assert columns == ["territory", "year"]
+
+    def test_vega_lite_preview_includes_x_axis_and_groupby(self):
+        """Test that vega_lite preview builds columns with both x_axis and groupby."""
+        form_data = {
+            "x_axis": "platform",
+            "groupby": ["genre"],
+            "metrics": [{"label": "SUM(global_sales)"}],
+        }
+
+        x_axis_config = form_data.get("x_axis")
+        groupby_columns = form_data.get("groupby", [])
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+
+        assert columns == ["platform", "genre"]
+
+    def test_preview_x_axis_dict_format(self):
+        """Test preview column building with x_axis as dict."""
+        form_data = {
+            "x_axis": {"column_name": "order_date"},
+            "groupby": ["region"],
+            "metrics": [{"label": "SUM(revenue)"}],
+        }
+
+        x_axis_config = form_data.get("x_axis")
+        groupby_columns = form_data.get("groupby", [])
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+        elif x_axis_config and isinstance(x_axis_config, dict):
+            col_name = x_axis_config.get("column_name")
+            if col_name and col_name not in columns:
+                columns.insert(0, col_name)
+
+        assert columns == ["order_date", "region"]
+
+    def test_preview_no_groupby_x_axis_only(self):
+        """Test preview with x_axis but no groupby."""
+        form_data = {
+            "x_axis": "date",
+            "metrics": [{"label": "SUM(sales)"}],
+        }
+
+        x_axis_config = form_data.get("x_axis")
+        groupby_columns = form_data.get("groupby", [])
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+
+        assert columns == ["date"]
+
+    def test_preview_no_x_axis_groupby_only(self):
+        """Test preview with groupby but no x_axis (e.g., table chart)."""
+        form_data = {
+            "groupby": ["category", "region"],
+            "metrics": [{"label": "COUNT(*)"}],
+        }
+
+        x_axis_config = form_data.get("x_axis")
+        groupby_columns = form_data.get("groupby", [])
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+
+        assert columns == ["category", "region"]
+
+    def test_preview_x_axis_not_duplicated(self):
+        """Test x_axis isn't duplicated if already in groupby."""
+        form_data = {
+            "x_axis": "territory",
+            "groupby": ["territory", "year"],
+            "metrics": [{"label": "SUM(sales)"}],
+        }
+
+        x_axis_config = form_data.get("x_axis")
+        groupby_columns = form_data.get("groupby", [])
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+
+        assert columns == ["territory", "year"]
 
 
 class TestGetChartPreview:
@@ -57,7 +179,7 @@ class TestGetChartPreview:
 
         # Default format
         request4 = GetChartPreviewRequest(identifier=789)
-        assert request4.format == "url"  # default
+        assert request4.format == "ascii"  # default
 
     @pytest.mark.asyncio
     async def test_preview_format_types(self):
@@ -71,16 +193,15 @@ class TestGetChartPreview:
     async def test_url_preview_structure(self):
         """Test URLPreview response structure."""
         preview = URLPreview(
-            preview_url="http://localhost:5008/screenshot/chart/123.png",
+            preview_url="http://example.com/explore/?slice_id=123",
             width=800,
             height=600,
-            supports_interaction=False,
         )
         assert preview.type == "url"
-        assert preview.preview_url == "http://localhost:5008/screenshot/chart/123.png"
+        assert preview.preview_url == "http://example.com/explore/?slice_id=123"
         assert preview.width == 800
         assert preview.height == 600
-        assert preview.supports_interaction is False
+        assert preview.supports_interaction is True
 
     @pytest.mark.asyncio
     async def test_ascii_preview_structure(self):
@@ -145,7 +266,6 @@ class TestGetChartPreview:
         # Additional fields that may be present for backward compatibility
         _ = [
             "format",
-            "preview_url",
             "ascii_chart",
             "table_data",
             "width",
@@ -171,10 +291,9 @@ class TestGetChartPreview:
         for width, height in standard_sizes:
             # URL preview with dimensions
             url_preview = URLPreview(
-                preview_url="http://example.com/chart.png",
+                preview_url="http://example.com/explore/?slice_id=123",
                 width=width,
                 height=height,
-                supports_interaction=False,
             )
             assert url_preview.width == width
             assert url_preview.height == height
@@ -227,6 +346,194 @@ class TestGetChartPreview:
         assert metadata.query_duration_ms == 150
         assert metadata.cache_status == "hit"
         assert len(metadata.optimization_suggestions) == 1
+
+
+class TestChartPreviewSanitization:
+    """Tests for chart preview read-path sanitization."""
+
+    def test_sanitize_chart_preview_wraps_ascii_and_alt_text(self) -> None:
+        """ASCII previews should be wrapped while operational URLs stay raw."""
+        preview = ChartPreview(
+            chart_id=3,
+            chart_name="Regional Trend",
+            chart_type="line",
+            explore_url="http://localhost:8088/explore/?slice_id=3",
+            content=ASCIIPreview(ascii_content="North > South", width=20, height=5),
+            chart_description="Preview of line: Regional Trend",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Preview of Regional Trend",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=8, cache_status="miss"),
+            format="ascii",
+            ascii_chart="North > South",
+            width=20,
+            height=5,
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+
+        assert result.chart_name == sanitize_for_llm_context("Regional Trend")
+        assert result.explore_url == "http://localhost:8088/explore/?slice_id=3"
+        assert result.chart_description == sanitize_for_llm_context(
+            "Preview of line: Regional Trend"
+        )
+        assert result.content.ascii_content == sanitize_for_llm_context("North > South")
+        assert result.ascii_chart == sanitize_for_llm_context("North > South")
+        assert result.accessibility.alt_text == sanitize_for_llm_context(
+            "Preview of Regional Trend"
+        )
+
+    def test_sanitize_chart_preview_wraps_vega_lite_data_values(self):
+        """Vega-Lite previews should wrap description and row string values."""
+        preview = ChartPreview(
+            chart_id=4,
+            chart_name="Category Share",
+            chart_type="pie",
+            explore_url="http://localhost:8088/explore/?slice_id=4",
+            content=VegaLitePreview(
+                specification={
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "description": "Pie chart for category share",
+                    "data": {
+                        "values": [
+                            {
+                                "category": "Retail",
+                                "url": "https://example.com/retail",
+                                "value": 10,
+                            },
+                            {"category": "Enterprise", "value": 20},
+                        ]
+                    },
+                }
+            ),
+            chart_description="Preview of pie: Category Share",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Preview of Category Share",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=11, cache_status="miss"),
+            format="vega_lite",
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+        specification = result.content.specification
+
+        assert specification["$schema"] == (
+            "https://vega.github.io/schema/vega-lite/v5.json"
+        )
+        assert specification["description"] == sanitize_for_llm_context(
+            "Pie chart for category share"
+        )
+        assert specification["data"]["values"][0][
+            "category"
+        ] == sanitize_for_llm_context("Retail")
+        assert specification["data"]["values"][0]["url"] == sanitize_for_llm_context(
+            "https://example.com/retail"
+        )
+        assert specification["data"]["values"][0]["value"] == 10
+
+    def test_sanitize_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
+        self,
+    ) -> None:
+        """Non-mapping Vega-Lite data should not be treated as inline values."""
+        preview = ChartPreview(
+            chart_id=4,
+            chart_name="Category Share",
+            chart_type="pie",
+            explore_url="http://localhost:8088/explore/?slice_id=4",
+            content=VegaLitePreview(
+                specification={
+                    "description": "Pie chart for category share",
+                    "data": "named_dataset",
+                }
+            ),
+            chart_description="Preview of pie: Category Share",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Preview of Category Share",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=11, cache_status="miss"),
+            format="vega_lite",
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+        specification = result.content.specification
+
+        assert specification["description"] == sanitize_for_llm_context(
+            "Pie chart for category share"
+        )
+        assert specification["data"] == "named_dataset"
+
+    def test_sanitize_chart_preview_wraps_table_content(self):
+        preview = ChartPreview(
+            chart_id=5,
+            chart_name="Top Customers",
+            chart_type="table",
+            explore_url="/explore/?slice_id=5",
+            content=TablePreview(
+                table_data="Customer | Revenue\nAcme | 100",
+                row_count=1,
+                supports_sorting=True,
+            ),
+            chart_description="Preview of table: Top Customers",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Top customer revenue table",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=9, cache_status="miss"),
+            format="table",
+            table_data="Customer | Revenue\nAcme | 100",
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+
+        assert result.content.table_data == sanitize_for_llm_context(
+            "Customer | Revenue\nAcme | 100"
+        )
+        assert result.table_data == sanitize_for_llm_context(
+            "Customer | Revenue\nAcme | 100"
+        )
+        assert result.content.row_count == 1
+        assert result.content.supports_sorting is True
+
+    def test_sanitize_chart_preview_wraps_interactive_html_but_keeps_urls(self):
+        preview = ChartPreview(
+            chart_id=6,
+            chart_name="Interactive Trend",
+            chart_type="line",
+            explore_url="/explore/?slice_id=6",
+            content=InteractivePreview(
+                html_content="<div>Revenue by region</div>",
+                preview_url="/superset/explore/?slice_id=6&standalone=1",
+                width=800,
+                height=600,
+            ),
+            chart_description="Interactive preview",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Interactive revenue trend",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=13, cache_status="hit"),
+            format="interactive",
+            width=800,
+            height=600,
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+
+        assert result.content.html_content == sanitize_for_llm_context(
+            "<div>Revenue by region</div>"
+        )
+        assert (
+            result.content.preview_url == "/superset/explore/?slice_id=6&standalone=1"
+        )
+        assert result.explore_url == "/explore/?slice_id=6"
 
     @pytest.mark.asyncio
     async def test_chart_types_support(self):

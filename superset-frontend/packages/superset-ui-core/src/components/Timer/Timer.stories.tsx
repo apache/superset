@@ -22,30 +22,31 @@ import { Timer, TimerProps } from '.';
 export default {
   title: 'Components/Timer',
   component: Timer,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'A live elapsed-time display that counts up from a given start time. Used to show query and dashboard load durations. Requires a startTime timestamp to function.',
+      },
+    },
+  },
 };
 
 export const InteractiveTimer = (args: TimerProps) => <Timer {...args} />;
 
 InteractiveTimer.args = {
-  isRunning: false,
+  isRunning: true,
+  status: 'success',
 };
 
 InteractiveTimer.argTypes = {
-  startTime: {
-    defaultValue: extendedDayjs().utc().valueOf(),
-    table: {
-      disable: true,
-    },
-  },
-  endTime: {
-    table: {
-      disable: true,
-    },
+  isRunning: {
+    control: 'boolean',
+    description:
+      'Whether the timer is actively counting. Toggle to start/stop.',
   },
   status: {
-    control: {
-      type: 'select',
-    },
+    control: { type: 'select' },
     options: [
       'success',
       'warning',
@@ -55,11 +56,99 @@ InteractiveTimer.argTypes = {
       'primary',
       'secondary',
     ],
+    description: 'Visual status of the timer badge.',
+  },
+  startTime: {
+    defaultValue: extendedDayjs().utc().valueOf(),
+    table: { disable: true },
+  },
+  endTime: {
+    table: { disable: true },
   },
 };
 
 InteractiveTimer.parameters = {
-  actions: {
-    disabled: true,
+  actions: { disabled: true },
+  docs: {
+    staticProps: {
+      startTime: 1737936000000,
+    },
+    liveExample: `function Demo() {
+  const [isRunning, setIsRunning] = React.useState(true);
+  const [startTime] = React.useState(Date.now());
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <Timer
+        startTime={startTime}
+        isRunning={isRunning}
+        status="success"
+      />
+      <Button onClick={() => setIsRunning(r => !r)}>
+        {isRunning ? 'Stop' : 'Start'}
+      </Button>
+    </div>
+  );
+}`,
+    examples: [
+      {
+        title: 'Status Variants',
+        code: `function StatusVariants() {
+  const [startTime] = React.useState(Date.now());
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {['success', 'warning', 'danger', 'info', 'default', 'primary', 'secondary'].map(status => (
+        <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ width: 80 }}>{status}</span>
+          <Timer startTime={startTime} isRunning status={status} />
+        </div>
+      ))}
+    </div>
+  );
+}`,
+      },
+      {
+        title: 'Completed Timer',
+        code: `function CompletedTimer() {
+  const start = Date.now() - 5230;
+  const end = Date.now();
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <Timer
+        startTime={start}
+        endTime={end}
+        isRunning={false}
+        status="success"
+      />
+      <span style={{ color: '#999' }}>Query completed in ~5.2 seconds</span>
+    </div>
+  );
+}`,
+      },
+      {
+        title: 'Start and Stop',
+        code: `function StartStop() {
+  const [isRunning, setIsRunning] = React.useState(false);
+  const [startTime, setStartTime] = React.useState(null);
+  const handleToggle = () => {
+    if (!isRunning && !startTime) {
+      setStartTime(Date.now());
+    }
+    setIsRunning(r => !r);
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <Timer
+        startTime={startTime}
+        isRunning={isRunning}
+        status={isRunning ? 'warning' : 'success'}
+      />
+      <Button onClick={handleToggle}>
+        {isRunning ? 'Pause' : startTime ? 'Resume' : 'Start'}
+      </Button>
+    </div>
+  );
+}`,
+      },
+    ],
   },
 };

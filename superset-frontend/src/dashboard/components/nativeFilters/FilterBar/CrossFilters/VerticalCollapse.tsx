@@ -18,8 +18,8 @@
  */
 
 import { useMemo, useState, useCallback } from 'react';
-import { t } from '@superset-ui/core';
-import { css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import CrossFilter from './CrossFilter';

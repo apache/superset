@@ -77,7 +77,7 @@ afterEach(async () => {
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   // Wait for any pending effects to complete
   await new Promise(resolve => setTimeout(resolve, 0));
 });
@@ -93,7 +93,7 @@ test('renders with default props', async () => {
     name: 'Select database or type to search databases',
   });
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas: test_schema',
+    name: 'Select schema: test_schema',
   });
   const tableSelect = screen.getByRole('combobox', {
     name: 'Select table or type to search tables',

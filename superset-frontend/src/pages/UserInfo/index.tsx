@@ -18,8 +18,13 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
-import { css, useTheme, styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import {
+  SupersetClient,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
+import { css, useTheme, styled } from '@apache-superset/core/theme';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Descriptions } from 'src/components/Descriptions';
@@ -29,6 +34,7 @@ import {
   UserInfoResetPasswordModal,
 } from 'src/features/userInfo/UserInfoModal';
 import { Icons, Collapse } from '@superset-ui/core/components';
+import { ApiKeyList } from 'src/features/apiKeys/ApiKeyList';
 
 const StyledHeader = styled.div`
   ${({ theme }) => css`
@@ -93,10 +99,6 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
   const { addDangerToast } = useToasts();
   const [userDetails, setUserDetails] = useState(user);
 
-  useEffect(() => {
-    getUserDetails();
-  }, []);
-
   const getUserDetails = useCallback(() => {
     SupersetClient.get({ endpoint: '/api/v1/me/' })
       .then(({ json }) => {
@@ -108,9 +110,13 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
         setUserDetails(transformedUser);
       })
       .catch(error => {
-        addDangerToast('Failed to fetch user info:', error);
+        addDangerToast(`${t('Failed to fetch user info')}:`, error);
       });
   }, [userDetails]);
+
+  useEffect(() => {
+    getUserDetails();
+  }, []);
 
   const SubMenuButtons: SubMenuProps['buttons'] = [
     {
@@ -156,11 +162,20 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
 
   return (
     <StyledLayout>
-      <StyledHeader>Your user information</StyledHeader>
+      <StyledHeader>{t('Your user information')}</StyledHeader>
       <DescriptionsContainer>
-        <Collapse defaultActiveKey={['userInfo', 'personalInfo']} ghost>
+        <Collapse
+          defaultActiveKey={[
+            'userInfo',
+            'personalInfo',
+            ...(isFeatureEnabled(FeatureFlag.FabApiKeyEnabled)
+              ? ['apiKeys']
+              : []),
+          ]}
+          ghost
+        >
           <Collapse.Panel
-            header={<DescriptionTitle>User info</DescriptionTitle>}
+            header={<DescriptionTitle>{t('User info')}</DescriptionTitle>}
             key="userInfo"
           >
             <Descriptions
@@ -169,22 +184,25 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
               column={1}
               labelStyle={{ width: '120px' }}
             >
-              <Descriptions.Item label="User Name">
+              <Descriptions.Item label={t('User Name')}>
                 {user.username}
               </Descriptions.Item>
-              <Descriptions.Item label="Is Active?">
-                {user.isActive ? 'Yes' : 'No'}
+              <Descriptions.Item label={t('Is Active?')}>
+                {user.isActive ? t('Yes') : t('No')}
               </Descriptions.Item>
-              <Descriptions.Item label="Role">
-                {user.roles ? Object.keys(user.roles).join(', ') : 'None'}
+              <Descriptions.Item label={t('Roles')}>
+                {user.roles ? Object.keys(user.roles).join(', ') : t('None')}
               </Descriptions.Item>
-              <Descriptions.Item label="Login count">
+              <Descriptions.Item label={t('Groups')}>
+                {user.groups.length ? user.groups.join(', ') : t('None')}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('Login count')}>
                 {user.loginCount}
               </Descriptions.Item>
             </Descriptions>
           </Collapse.Panel>
           <Collapse.Panel
-            header={<DescriptionTitle>Personal info</DescriptionTitle>}
+            header={<DescriptionTitle>{t('Personal info')}</DescriptionTitle>}
             key="personalInfo"
           >
             <Descriptions
@@ -193,15 +211,25 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
               column={1}
               labelStyle={{ width: '120px' }}
             >
-              <Descriptions.Item label="First Name">
+              <Descriptions.Item label={t('First Name')}>
                 {userDetails.firstName}
               </Descriptions.Item>
-              <Descriptions.Item label="Last Name">
+              <Descriptions.Item label={t('Last Name')}>
                 {userDetails.lastName}
               </Descriptions.Item>
-              <Descriptions.Item label="Email">{user.email}</Descriptions.Item>
+              <Descriptions.Item label={t('Email')}>
+                {user.email}
+              </Descriptions.Item>
             </Descriptions>
           </Collapse.Panel>
+          {isFeatureEnabled(FeatureFlag.FabApiKeyEnabled) && (
+            <Collapse.Panel
+              header={<DescriptionTitle>{t('API Keys')}</DescriptionTitle>}
+              key="apiKeys"
+            >
+              <ApiKeyList />
+            </Collapse.Panel>
+          )}
         </Collapse>
       </DescriptionsContainer>
       {modalState.resetPassword && (

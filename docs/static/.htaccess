@@ -35,7 +35,7 @@ RewriteRule ^usertutorial\.html$ /docs/using-superset/creating-your-first-dashbo
 RewriteRule ^security\.html$ /docs/security/ [R=301,L]
 RewriteRule ^sqllab\.html$ /docs/configuration/sql-templating [R=301,L]
 RewriteRule ^gallery\.html$ /docs/intro [R=301,L]
-RewriteRule ^druid\.html$ /docs/configuration/databases [R=301,L]
+RewriteRule ^druid\.html$ /docs/databases [R=301,L]
 RewriteRule ^misc\.html$ /docs/configuration/country-map-tools [R=301,L]
 RewriteRule ^visualization\.html$ /docs/configuration/country-map-tools [R=301,L]
 RewriteRule ^videos\.html$ /docs/faq [R=301,L]
@@ -47,7 +47,7 @@ RewriteRule ^docs/installation/email-reports$ /docs/configuration/alerts-reports
 RewriteRule ^docs/roadmap$ /docs/intro [R=301,L]
 RewriteRule ^docs/contributing/contribution-guidelines$ /docs/contributing/ [R=301,L]
 RewriteRule ^docs/contributing/contribution-page$ /docs/contributing/ [R=301,L]
-RewriteRule ^docs/databases/yugabyte/$ /docs/configuration/databases [R=301,L]
+RewriteRule ^docs/databases/yugabyte/$ /docs/databases [R=301,L]
 RewriteRule ^docs/frequently-asked-questions$ /docs/faq [R=301,L]
 RewriteRule ^docs/installation/running-on-kubernetes/$ /docs/installation/kubernetes [R=301,L]
 RewriteRule ^docs/contributing/testing-locally/$ /docs/contributing/howtos [R=301,L]
@@ -61,8 +61,6 @@ RewriteRule ^docs/installation/configuring-superset/$ /docs/configuration/config
 RewriteRule ^docs/installation/cache/$ /docs/configuration/cache [R=301,L]
 RewriteRule ^docs/installation/async-queries-celery/$ /docs/configuration/async-queries-celery [R=301,L]
 RewriteRule ^docs/installation/event-logging/$ /docs/configuration/event-logging [R=301,L]
-
-RewriteRule ^docs/databases.*$ /docs/configuration/databases [R=301,L]
 
 # pre-commit hooks documentation
 RewriteRule ^docs/contributing/hooks-and-linting/$ /docs/contributing/development/#git-hooks-1

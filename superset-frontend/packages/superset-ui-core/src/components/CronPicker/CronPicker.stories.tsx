@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Divider } from '../Divider';
 import { Input } from '../Input';
 import { CronPicker } from '.';
@@ -28,22 +28,19 @@ export default {
 };
 
 export const InteractiveCronPicker = (props: CronProps) => {
-  // @ts-ignore
-  const inputRef = useRef<Input>(null);
   const [value, setValue] = useState(props.value);
-  const customSetValue = useCallback(
-    (newValue: string) => {
-      setValue(newValue);
-      inputRef.current?.setValue(newValue);
-    },
-    [inputRef],
-  );
+  useEffect(() => {
+    setValue(props.value);
+  }, [props.value]);
+  const customSetValue = useCallback((newValue: string) => {
+    setValue(newValue);
+  }, []);
   const [error, onError] = useState<CronError>();
 
   return (
     <div>
       <Input
-        ref={inputRef}
+        value={value}
         onBlur={event => {
           setValue(event.target.value);
         }}

@@ -28,9 +28,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
-  t,
   getChartControlPanelRegistry,
   QueryFormData,
   DatasourceType,
@@ -40,8 +40,14 @@ import {
   usePrevious,
   isFeatureEnabled,
   FeatureFlag,
+  VizType,
 } from '@superset-ui/core';
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import {
   ControlPanelSectionConfig,
   ControlState,
@@ -83,9 +89,19 @@ const TABS_KEYS = {
   MATRIXIFY: 'MATRIXIFY',
 };
 
+// Table charts don't support matrixify feature
+const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
+  VizType.Table,
+  VizType.TableAgGrid,
+  VizType.PivotTable,
+  VizType.TimeTable,
+  VizType.TimePivot,
+]);
+
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
-  actions: ExploreActions;
+  // Only setControlValue is used from actions in this component
+  actions: Pick<ExploreActions, 'setControlValue'>;
   datasource_type: DatasourceType;
   chart: ChartState;
   controls: Record<string, ControlState>;
@@ -290,6 +306,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const prevChartStatus = usePrevious(props.chart.chartStatus);
 
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
+  const [activeTabKey, setActiveTabKey] = useState<string>(TABS_KEYS.DATA);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -631,6 +648,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </span>
     );
 
+    let isInSubSection = false;
     const PanelChildren = (
       <>
         <StashFormDataContainer
@@ -648,8 +666,19 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             .filter(Boolean)}
         />
         {isVisible && (
-          <>
+          <div style={{ paddingLeft: theme.sizeUnit * 2 }}>
             {section.controlSetRows.map((controlSets, i) => {
+              // Detect sub-section header rows (React elements with no name prop)
+              const isSubSectionHeaderRow = controlSets.some(
+                item =>
+                  isValidElement(item) &&
+                  !(item as React.ReactElement<Record<string, unknown>>).props
+                    ?.name,
+              );
+              if (isSubSectionHeaderRow) {
+                isInSubSection = true;
+              }
+
               const renderedControls = controlSets
                 .map(controlItem => {
                   if (!controlItem) {
@@ -698,14 +727,23 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               if (renderedControls.length === 0) {
                 return null;
               }
-              return (
+              // Indent controls within sub-sections for visual hierarchy
+              const paddingLeft =
+                isInSubSection && !isSubSectionHeaderRow
+                  ? theme.sizeUnit * 3
+                  : 0;
+              return paddingLeft ? (
+                <div key={`controlsetrow-${i}`} style={{ paddingLeft }}>
+                  <ControlRow controls={renderedControls} />
+                </div>
+              ) : (
                 <ControlRow
                   key={`controlsetrow-${i}`}
                   controls={renderedControls}
                 />
               );
             })}
-          </>
+          </div>
         )}
       </>
     );
@@ -715,7 +753,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       label: <PanelHeader />,
       children: PanelChildren,
       className: section.label ? '' : 'hidden-collapse-header',
-      style: { visibility: isVisible ? 'visible' : 'hidden' },
+      style: { display: isVisible ? 'block' : 'none' },
     };
   };
 
@@ -793,7 +831,24 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   ]);
 
   const showCustomizeTab = customizeSections.length > 0;
-  const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
+  const showMatrixifyTab =
+    isFeatureEnabled(FeatureFlag.Matrixify) &&
+    !MATRIXIFY_INCOMPATIBLE_CHARTS.has(form_data.viz_type as VizType);
+
+  // Check if matrixify is enabled in form_data
+  const matrixifyIsEnabled =
+    form_data.matrixify_enable === true &&
+    ((form_data.matrixify_mode_rows !== undefined &&
+      form_data.matrixify_mode_rows !== 'disabled') ||
+      (form_data.matrixify_mode_columns !== undefined &&
+        form_data.matrixify_mode_columns !== 'disabled'));
+
+  // Auto-switch to Matrixify tab when it's enabled
+  useEffect(() => {
+    if (showMatrixifyTab && matrixifyIsEnabled) {
+      setActiveTabKey(TABS_KEYS.MATRIXIFY);
+    }
+  }, [showMatrixifyTab, matrixifyIsEnabled]);
 
   // Check if matrixify sections have validation errors
   const matrixifyHasErrors = useMemo(() => {
@@ -882,6 +937,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           id="controlSections"
           data-test="control-tabs"
           allowOverflow={false}
+          activeKey={activeTabKey}
+          onChange={(key: string) => setActiveTabKey(key)}
           items={[
             {
               key: TABS_KEYS.DATA,

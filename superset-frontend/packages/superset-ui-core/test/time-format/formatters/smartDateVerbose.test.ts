@@ -27,19 +27,19 @@ describe('smartDateVerboseFormatter', () => {
   describe('when locale is default', () => {
     const formatter = createSmartDateVerboseFormatter();
 
-    it('is a function', () => {
+    test('is a function', () => {
       expect(formatter).toBeInstanceOf(TimeFormatter);
     });
 
-    it('shows only year when 1st day of the year', () => {
+    test('shows only year when 1st day of the year', () => {
       expect(formatter(new Date('2020-01-01'))).toBe('2020');
     });
 
-    it('shows month and year when 1st of month', () => {
+    test('shows month and year when 1st of month', () => {
       expect(formatter(new Date('2020-03-01'))).toBe('Mar 2020');
     });
 
-    it('shows weekday when any day of the month', () => {
+    test('shows weekday when any day of the month', () => {
       expect(formatter(new Date('2020-03-03'))).toBe('Tue Mar 3');
       expect(formatter(new Date('2020-03-15'))).toBe('Sun Mar 15');
     });
@@ -91,19 +91,19 @@ describe('smartDateVerboseFormatter', () => {
     };
     const formatter = createSmartDateVerboseFormatter(locale);
 
-    it('is a function', () => {
+    test('is a function', () => {
       expect(formatter).toBeInstanceOf(TimeFormatter);
     });
 
-    it('shows only year when 1st day of the year', () => {
+    test('shows only year when 1st day of the year', () => {
       expect(formatter(new Date('2020-01-01'))).toBe('2020');
     });
 
-    it('shows month and year when 1st of month', () => {
+    test('shows month and year when 1st of month', () => {
       expect(formatter(new Date('2020-04-01'))).toBe('Abr 2020');
     });
 
-    it('shows weekday when any day of the month', () => {
+    test('shows weekday when any day of the month', () => {
       expect(formatter(new Date('2020-03-03'))).toBe('Ter Mar 3');
       expect(formatter(new Date('2020-03-15'))).toBe('Dom Mar 15');
     });

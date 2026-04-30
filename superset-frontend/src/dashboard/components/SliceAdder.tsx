@@ -20,10 +20,10 @@
 import { Component } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
-// @ts-ignore
+// @ts-expect-error
 import { createFilter } from 'react-search-input';
-import { t } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, css } from '@apache-superset/core/theme';
 import {
   Button,
   Checkbox,

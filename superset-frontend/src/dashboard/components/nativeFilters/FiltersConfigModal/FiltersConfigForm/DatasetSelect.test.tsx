@@ -57,7 +57,7 @@ const DATASETS = [
 const mockOnChange = jest.fn();
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
 });
 
@@ -205,7 +205,7 @@ test('includes table_name field in option data structure', async () => {
 
 test('uses API count instead of filteredResult.length', async () => {
   supersetGetCache.clear();
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.get('glob:*/api/v1/dataset/*', {
     result: [
       {
@@ -232,7 +232,7 @@ test('uses API count instead of filteredResult.length', async () => {
 
 test('returns total count from API when data is filtered', async () => {
   supersetGetCache.clear();
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 
   fetchMock.get('glob:*/api/v1/dataset/*', {
     result: [

@@ -22,9 +22,16 @@ from io import BytesIO
 from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
+import rison
 from flask import current_app, g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
-from flask_appbuilder.api import expose, merge_response_func, protect, rison, safe
+from flask_appbuilder.api import (
+    expose,
+    merge_response_func,
+    protect,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.const import (
     API_DESCRIPTION_COLUMNS_RIS_KEY,
     API_LABEL_COLUMNS_RIS_KEY,
@@ -38,7 +45,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import db
+from superset import db, is_feature_enabled
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.create import CreateDashboardCommand
@@ -48,6 +55,7 @@ from superset.commands.dashboard.delete import (
 )
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
+    DashboardChartCustomizationsUpdateFailedError,
     DashboardColorsConfigUpdateFailedError,
     DashboardCopyError,
     DashboardCreateFailedError,
@@ -59,11 +67,13 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
+from superset.commands.dashboard.export_example import ExportExampleCommand
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import (
+    UpdateDashboardChartCustomizationsCommand,
     UpdateDashboardColorsConfigCommand,
     UpdateDashboardCommand,
     UpdateDashboardNativeFiltersCommand,
@@ -89,6 +99,7 @@ from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.dashboards.schemas import (
     CacheScreenshotSchema,
     DashboardCacheScreenshotResponseSchema,
+    DashboardChartCustomizationsConfigUpdateSchema,
     DashboardColorsConfigUpdateSchema,
     DashboardCopySchema,
     DashboardDatasetSchema,
@@ -109,7 +120,7 @@ from superset.dashboards.schemas import (
     thumbnail_query_schema,
 )
 from superset.exceptions import ScreenshotImageNotAvailableException
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
@@ -193,6 +204,7 @@ BASE_LIST_COLUMNS = [
     "owners.id",
     "owners.first_name",
     "owners.last_name",
+    "owners.email",
     "roles.id",
     "roles.name",
     "is_managed_externally",
@@ -237,7 +249,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "cache_dashboard_screenshot",
         "screenshot",
         "put_filters",
+        "put_chart_customizations",
         "put_colors",
+        "export_as_example",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -373,6 +387,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     add_model_schema = DashboardPostSchema()
     edit_model_schema = DashboardPutSchema()
     update_filters_model_schema = DashboardNativeFiltersConfigUpdateSchema()
+    update_chart_customizations_model_schema = (
+        DashboardChartCustomizationsConfigUpdateSchema()
+    )
     update_colors_model_schema = DashboardColorsConfigUpdateSchema()
     chart_entity_response_schema = ChartEntityResponseSchema()
     dashboard_get_response_schema = DashboardGetResponseSchema()
@@ -457,6 +474,12 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               type: string
             name: id_or_slug
             description: Either the id of the dashboard, or its slug
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_item_schema'
           responses:
             200:
               description: Dashboard
@@ -476,7 +499,26 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        result = self.dashboard_get_response_schema.dump(dash)
+        columns: list[str] | None = None
+        if q := request.args.get("q"):
+            try:
+                args = rison.loads(q)
+            except Exception:
+                return self.response_400(message="Invalid rison query parameter")
+            if isinstance(args, dict):
+                columns = args.get("columns")
+
+        if columns:
+            schema_fields = self.dashboard_get_response_schema.fields
+            key_to_name = {
+                field.data_key or name: name for name, field in schema_fields.items()
+            }
+            only = [key_to_name[c] for c in columns if c in key_to_name]
+            schema = DashboardGetResponseSchema(only=only)
+        else:
+            schema = self.dashboard_get_response_schema
+
+        result = schema.dump(dash)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
@@ -871,6 +913,90 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             response = self.response_422(message=str(ex))
         return response
 
+    @expose("/<pk>/chart_customizations", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.put_chart_customizations"
+        ),
+        log_to_statsd=False,
+    )
+    @requires_json
+    def put_chart_customizations(self, pk: int) -> Response:
+        """
+        Modify chart customizations configuration for a dashboard.
+        ---
+        put:
+          summary: Update chart customizations configuration for a dashboard.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: Chart customizations configuration
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: >-
+                    #/components/schemas/DashboardChartCustomizationsConfigUpdateSchema
+          responses:
+            200:
+              description: Dashboard chart customizations updated
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.update_chart_customizations_model_schema.load(
+                request.json, partial=True
+            )
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        try:
+            configuration = UpdateDashboardChartCustomizationsCommand(pk, item).run()
+            response = self.response(
+                200,
+                result=configuration,
+            )
+        except DashboardNotFoundError:
+            response = self.response_404()
+        except DashboardForbiddenError:
+            response = self.response_403()
+        except TagForbiddenError as ex:
+            response = self.response(403, message=str(ex))
+        except DashboardInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DashboardChartCustomizationsUpdateFailedError as ex:
+            logger.error(
+                "Error changing chart customizations for dashboard %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            response = self.response_422(message=str(ex))
+        return response
+
     @expose("/<pk>/colors", methods=("PUT",))
     @protect()
     @safe
@@ -1012,7 +1138,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
@@ -1072,7 +1198,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -1135,15 +1261,107 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             response.set_cookie(token, "done", max_age=600)
         return response
 
+    @expose("/<pk>/export_as_example/", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("export")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.export_as_example"
+        ),
+        log_to_statsd=False,
+    )
+    def export_as_example(self, pk: int) -> Response:
+        """Export dashboard as example bundle (Parquet + YAML ZIP).
+        ---
+        get:
+          summary: Export dashboard as example bundle
+          description: >-
+            Exports a dashboard with its charts and datasets in the example
+            format used by the Superset example loading system. The export
+            includes Parquet data files and YAML configuration files.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dashboard id
+          - in: query
+            name: export_data
+            schema:
+              type: boolean
+              default: true
+            description: Whether to include Parquet data files
+          - in: query
+            name: sample_rows
+            schema:
+              type: integer
+            description: Limit data export to this many rows per dataset
+          responses:
+            200:
+              description: Example bundle ZIP file
+              content:
+                application/zip:
+                  schema:
+                    type: string
+                    format: binary
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Get optional query params
+        export_data = request.args.get("export_data", "true").lower() == "true"
+        sample_rows = request.args.get("sample_rows", type=int)
+
+        # Build ZIP from command output
+        buf = BytesIO()
+        try:
+            with ZipFile(buf, "w") as bundle:
+                for filename, content_fn in ExportExampleCommand(
+                    pk, export_data, sample_rows
+                ).run():
+                    bundle.writestr(filename, content_fn())
+        except DashboardNotFoundError:
+            return self.response_404()
+
+        buf.seek(0)
+
+        # Generate filename from dashboard slug or ID
+        if dashboard := self.datamodel.get(pk):
+            # Sanitize slug for filename
+            slug = dashboard.slug or f"dashboard_{pk}"
+            safe_name = "".join(c if c.isalnum() or c in "._-" else "_" for c in slug)
+        else:
+            safe_name = f"dashboard_{pk}"
+
+        filename = f"{safe_name}_example.zip"
+
+        response = send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=filename,
+        )
+        if token := request.args.get("token"):
+            response.set_cookie(token, "done", max_age=600)
+        return response
+
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
     @protect()
-    @rison(screenshot_query_schema)
+    @parse_rison(screenshot_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".cache_dashboard_screenshot",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.cache_dashboard_screenshot"
+        ),
         log_to_statsd=False,
     )
     def cache_dashboard_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
@@ -1177,6 +1395,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         try:
             payload = CacheScreenshotSchema().load(request.json)
         except ValidationError as error:
@@ -1293,6 +1515,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         dashboard = self.datamodel.get(pk, self._base_filters)
 
         # Making sure the dashboard still exists
@@ -1340,7 +1566,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @validate_feature_flags(["THUMBNAILS"])
     @protect()
     @safe
-    @rison(thumbnail_query_schema)
+    @parse_rison(thumbnail_query_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
         log_to_statsd=False,
@@ -1460,7 +1686,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         except ScreenshotImageNotAvailableException:
             return self.response_404()
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error(
+            logger.warning(
                 "Error retrieving thumbnail for dashboard %s: %s",
                 str(dashboard.id),
                 str(ex),
@@ -1477,10 +1703,11 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_fav_star_ids_schema)
+    @parse_rison(get_fav_star_ids_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".favorite_status",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.favorite_status"
+        ),
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
@@ -1573,8 +1800,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".remove_favorite",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.remove_favorite"
+        ),
         log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:
@@ -1871,9 +2099,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @permission_name("set_embedded")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.delete_embedded"
+        ),
         log_to_statsd=False,
     )
     @with_dashboard

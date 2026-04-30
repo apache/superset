@@ -39,14 +39,14 @@ const mockedProps = {
 };
 
 beforeEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.put('glob:*/api/v1/dataset/7?override_columns=*', {});
   fetchMock.get('glob:*/api/v1/dataset/7', { result: {} });
   fetchMock.get('glob:*/api/v1/database/?q=*', { result: [] });
 });
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
 });
 
