@@ -21,8 +21,13 @@ from flask_appbuilder import Model
 from jinja2.exceptions import TemplateError
 from pytest_mock import MockerFixture
 
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.exceptions import (
+    SupersetParseError,
+    SupersetSecurityException,
+    SupersetTemplateException,
+)
 from superset.models.sql_lab import Query, SavedQuery
 
 
@@ -48,6 +53,11 @@ from superset.models.sql_lab import Query, SavedQuery
             message="Invalid SQL syntax",
         ),
         TemplateError,
+        # ``{{ dataset(id) }}`` referencing a deleted dataset previously
+        # bubbled up through ``sql_tables`` and broke saved-query list
+        # endpoints (see issue #32771).
+        DatasetNotFoundError("Dataset 1 not found!"),
+        SupersetTemplateException("Template rendering failed"),
     ],
 )
 def test_sql_tables_mixin_sql_tables_exception(
