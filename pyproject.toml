@@ -48,7 +48,7 @@ dependencies = [
     "cryptography>=42.0.4, <47.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <4.0.0",
-    "flask-appbuilder>=5.0.2,<6",
+    "flask-appbuilder>=5.2.1, <6.0.0",
     "flask-caching>=2.1.0, <3",
     "flask-compress>=1.13, <2.0",
     "flask-talisman>=1.0.0, <2.0",
@@ -70,13 +70,13 @@ dependencies = [
     # marshmallow>=4 has issues: https://github.com/apache/superset/issues/33162
     "marshmallow>=3.0, <4",
     "marshmallow-union>=0.1",
-    "msgpack>=1.0.0, <1.1",
+    "msgpack>=1.0.0, <1.2",
     "nh3>=0.2.11, <0.3",
     "numpy>1.23.5, <2.3",
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
-    "pandas[excel]>=2.1.4, <2.2",
+    "pandas[excel]>=2.1.4, <2.4",
     "bottleneck", # recommended performance dependency for pandas, see https://pandas.pydata.org/docs/getting_started/install.html#performance-dependencies-recommended
     # --------------------------
     "parsedatetime",
@@ -89,10 +89,11 @@ dependencies = [
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
     "pygeohash",
-    "pyarrow>=16.1.0, <19", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
+    "pyarrow>=16.1.0, <21", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
     "pyyaml>=6.0.0, <7.0.0",
     "PyJWT>=2.4.0, <3.0",
     "redis>=5.0.0, <6.0",
+    "rison>=2.0.0, <3.0",
     "selenium>=4.14.0, <5.0",
     "shillelagh[gsheetsapi]>=1.4.3, <2.0",
     "sshtunnel>=0.4.0, <0.5",
@@ -108,7 +109,7 @@ dependencies = [
     "watchdog>=6.0.0",
     "wtforms>=2.3.3, <4",
     "wtforms-json",
-    "xlsxwriter>=3.0.7, <3.1",
+    "xlsxwriter>=3.0.7, <3.3",
 ]
 
 [project.optional-dependencies]
@@ -144,7 +145,7 @@ solr = ["sqlalchemy-solr >= 0.2.0"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.12, <0.3.0"]
 exasol = ["sqlalchemy-exasol >= 2.4.0, <3.0"]
 excel = ["xlrd>=1.2.0, <1.3"]
-fastmcp = ["fastmcp>=3.1.0,<4.0"]
+fastmcp = ["fastmcp>=3.2.4,<4.0"]
 firebird = ["sqlalchemy-firebird>=0.7.0, <0.8"]
 firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
 gevent = ["gevent>=23.9.1"]
@@ -174,7 +175,7 @@ oracle = ["cx-Oracle>8.0.0, <8.1"]
 parseable = ["sqlalchemy-parseable>=0.1.3,<0.2.0"]
 pinot = ["pinotdb>=5.0.0, <6.0.0"]
 playwright = ["playwright>=1.37.0, <2"]
-postgres = ["psycopg2-binary==2.9.9"]
+postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
 trino = ["trino>=0.328.0"]
 prophet = ["prophet>=1.1.6, <2"]
@@ -183,6 +184,7 @@ risingwave = ["sqlalchemy-risingwave"]
 shillelagh = ["shillelagh[all]>=1.4.3, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.2.4, <2"]
+sqlite = ["syntaqlite>=0.1.0"]
 spark = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7",
@@ -226,6 +228,7 @@ development = [
     "ruff",
     "sqloxide",
     "statsd",
+    "syntaqlite>=0.1.0",
 ]
 
 [project.urls]
@@ -238,7 +241,7 @@ combine_as_imports = true
 include_trailing_comma = true
 line_length = 88
 known_first_party = "superset, apache-superset-core, apache-superset-extensions-cli"
-known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, marshmallow-union, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, polyline, prison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, selenium, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
+known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, marshmallow-union, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, polyline, rison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, selenium, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, syntaqlite, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
 multi_line_output = 3
 order_by_type = false
 
@@ -372,6 +375,7 @@ unfixable = []
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
+"superset/mcp_service/app.py" = ["S608", "E501"]  # LLM instruction text: SQL examples (S608) and long lines in multiline string (E501)
 "scripts/*" = ["TID251"]
 "setup.py" = ["TID251"]
 "superset/config.py" = ["TID251"]

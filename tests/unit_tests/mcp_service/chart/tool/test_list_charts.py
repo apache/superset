@@ -19,9 +19,11 @@
 Tests for the list_charts request schema
 """
 
-from unittest.mock import Mock
+import importlib
+from unittest.mock import Mock, patch
 
 import pytest
+from fastmcp import Client
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
@@ -29,11 +31,33 @@ from superset.mcp_service.chart.schemas import (
     ListChartsRequest,
 )
 from superset.mcp_service.constants import MAX_PAGE_SIZE
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    remove_chart_data_model_columns,
+    request_uses_chart_data_model_filter,
+    user_can_view_data_model_metadata,
+)
+from superset.utils import json
+
+list_charts_module = importlib.import_module(
+    "superset.mcp_service.chart.tool.list_charts"
+)
 
 
 @pytest.fixture
 def mcp_server():
     return mcp
+
+
+@pytest.fixture(autouse=True)
+def mock_auth():
+    """Mock authentication for client-based tool tests."""
+    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_get_user.return_value = mock_user
+        yield mock_get_user
 
 
 @pytest.fixture
@@ -235,3 +259,127 @@ class TestChartDefaultColumnFiltering:
             "description",
             "cache_timeout",
         }
+
+
+class TestChartDataModelMetadataPrivacy:
+    """Test data-model field privacy helpers for chart listing."""
+
+    def test_remove_data_model_columns(self):
+        assert remove_chart_data_model_columns(
+            ["id", "slice_name", "datasource_name", "form_data", "url"]
+        ) == ["id", "slice_name", "url"]
+
+    def test_uses_data_model_filter(self):
+        request = ListChartsRequest(
+            filters=[
+                ChartFilter(
+                    col="datasource_name",
+                    opr="like",
+                    value="Vehicle Sales",
+                )
+            ]
+        )
+
+        assert request_uses_chart_data_model_filter(request.filters) is True
+
+    def test_user_can_view_data_model_metadata_uses_dataset_permission(self):
+        with patch("superset.security_manager", new_callable=Mock) as security_manager:
+            security_manager.can_access.side_effect = [False, True, False]
+
+            assert user_can_view_data_model_metadata() is True
+
+        security_manager.can_access.assert_any_call("can_get_drill_info", "Dataset")
+        security_manager.can_access.assert_any_call(
+            "can_get_or_create_dataset", "Dataset"
+        )
+
+    @pytest.mark.asyncio
+    async def test_list_charts_returns_structured_privacy_error(self, mcp_server):
+        request = ListChartsRequest(
+            filters=[
+                ChartFilter(
+                    col="datasource_name",
+                    opr="like",
+                    value="Vehicle Sales",
+                )
+            ]
+        )
+
+        with patch.object(
+            list_charts_module,
+            "user_can_view_data_model_metadata",
+            return_value=False,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "list_charts",
+                    {"request": request.model_dump()},
+                )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == DATA_MODEL_METADATA_ERROR_TYPE
+
+
+class TestListChartsCreatedByMe:
+    """Tests for the created_by_me flag on ListChartsRequest."""
+
+    def test_created_by_me_default_is_false(self):
+        request = ListChartsRequest()
+        assert request.created_by_me is False
+
+    def test_created_by_me_true_accepted(self):
+        request = ListChartsRequest(created_by_me=True)
+        assert request.created_by_me is True
+
+    def test_created_by_me_combined_with_filters(self):
+        request = ListChartsRequest(
+            created_by_me=True,
+            filters=[ChartFilter(col="slice_name", opr="sw", value="My")],
+        )
+        assert request.created_by_me is True
+        assert len(request.filters) == 1
+
+    def test_created_by_me_with_search_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="created_by_me"):
+            ListChartsRequest(created_by_me=True, search="My charts")
+
+    def test_chart_filter_rejects_created_by_fk(self):
+        """created_by_fk is not a public filter column; use created_by_me instead."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            ChartFilter(col="created_by_fk", opr="eq", value=1)
+
+
+class TestListChartsOwnedByMe:
+    """Tests for the owned_by_me flag on ListChartsRequest."""
+
+    def test_owned_by_me_default_is_false(self):
+        request = ListChartsRequest()
+        assert request.owned_by_me is False
+
+    def test_owned_by_me_true_accepted(self):
+        request = ListChartsRequest(owned_by_me=True)
+        assert request.owned_by_me is True
+
+    def test_owned_by_me_combined_with_filters(self):
+        request = ListChartsRequest(
+            owned_by_me=True,
+            filters=[ChartFilter(col="slice_name", opr="sw", value="My")],
+        )
+        assert request.owned_by_me is True
+        assert len(request.filters) == 1
+
+    def test_owned_by_me_with_search_raises(self):
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="owned_by_me"):
+            ListChartsRequest(owned_by_me=True, search="My charts")
+
+    def test_owned_by_me_and_created_by_me_allowed(self):
+        """Both flags together are valid (OR logic — creator or owner)."""
+        request = ListChartsRequest(owned_by_me=True, created_by_me=True)
+        assert request.owned_by_me is True
+        assert request.created_by_me is True

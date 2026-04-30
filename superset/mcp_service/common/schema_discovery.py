@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.inspection import inspect
 
 from superset.mcp_service.constants import ModelType
+from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
 
 
 class ColumnMetadata(BaseModel):
@@ -127,8 +128,6 @@ _COLUMN_DESCRIPTIONS: dict[str, str] = {
     "uuid": "Unique UUID identifier",
     "created_on": "Timestamp when the resource was created",
     "changed_on": "Timestamp when the resource was last modified",
-    "created_by_fk": "User ID of the creator",
-    "changed_by_fk": "User ID of the last modifier",
     "description": "User-provided description text",
     "cache_timeout": "Cache timeout override in seconds",
     "perm": "Permission string for access control",
@@ -146,7 +145,6 @@ _COLUMN_DESCRIPTIONS: dict[str, str] = {
     "params": "JSON string of chart parameters/configuration",
     "query_context": "JSON string of the query context for data fetching",
     "last_saved_at": "Timestamp of the last explicit save",
-    "last_saved_by_fk": "User ID who last saved this chart",
     # Dataset-specific
     "table_name": "Name of the database table or view",
     "schema": "Database schema name",
@@ -169,9 +167,9 @@ _COLUMN_DESCRIPTIONS: dict[str, str] = {
     "dashboard_title": "Dashboard display title",
     "slug": "URL-friendly identifier for the dashboard",
     "published": "Whether the dashboard is published and visible",
-    "position_json": "JSON layout of dashboard components",
-    "json_metadata": "JSON metadata including filters and settings",
     "css": "Custom CSS for the dashboard",
+    "native_filters": "Native filter configuration (name, type, targets)",
+    "cross_filters_enabled": "Whether cross-filtering between charts is enabled",
     "theme_id": "Theme ID for dashboard styling",
 }
 
@@ -221,6 +219,8 @@ def get_columns_from_model(
     # Add extra columns (computed fields, relationships, etc.)
     if extra_columns:
         for name, metadata in extra_columns.items():
+            if exclude_columns and name in exclude_columns:
+                continue
             # Check if already added from model columns
             if not any(c.name == name for c in columns):
                 columns.append(metadata)
@@ -569,7 +569,12 @@ def get_chart_columns() -> list[ColumnMetadata]:
     """Get column metadata for Chart model dynamically."""
     from superset.models.slice import Slice
 
-    return get_columns_from_model(Slice, CHART_DEFAULT_COLUMNS, CHART_EXTRA_COLUMNS)
+    return get_columns_from_model(
+        Slice,
+        CHART_DEFAULT_COLUMNS,
+        CHART_EXTRA_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS),
+    )
 
 
 def get_dataset_columns() -> list[ColumnMetadata]:
@@ -577,7 +582,10 @@ def get_dataset_columns() -> list[ColumnMetadata]:
     from superset.connectors.sqla.models import SqlaTable
 
     return get_columns_from_model(
-        SqlaTable, DATASET_DEFAULT_COLUMNS, DATASET_EXTRA_COLUMNS
+        SqlaTable,
+        DATASET_DEFAULT_COLUMNS,
+        DATASET_EXTRA_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS),
     )
 
 
@@ -586,7 +594,10 @@ def get_dashboard_columns() -> list[ColumnMetadata]:
     from superset.models.dashboard import Dashboard
 
     return get_columns_from_model(
-        Dashboard, DASHBOARD_DEFAULT_COLUMNS, DASHBOARD_EXTRA_COLUMNS
+        Dashboard,
+        DASHBOARD_DEFAULT_COLUMNS,
+        DASHBOARD_EXTRA_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS),
     )
 
 
@@ -607,7 +618,7 @@ def get_database_columns() -> list[ColumnMetadata]:
         Database,
         DATABASE_DEFAULT_COLUMNS,
         DATABASE_EXTRA_COLUMNS,
-        exclude_columns=DATABASE_EXCLUDE_COLUMNS,
+        exclude_columns=DATABASE_EXCLUDE_COLUMNS | set(USER_DIRECTORY_FIELDS),
     )
 
 

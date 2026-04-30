@@ -36,6 +36,8 @@ import {
   SMART_DATE_ID,
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
+import { CellProps, Column, HeaderProps } from 'react-table';
+import DataTable from '../src/DataTable/DataTable';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
@@ -1741,6 +1743,219 @@ describe('plugin-chart-table', () => {
         );
       });
 
+      test('clicking a cell emits cross-filter, clicking again clears it', () => {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+        const { rerender } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // Click a string cell to apply cross-filter
+        const nameCell = screen.getByText('Michael');
+        fireEvent.click(nameCell);
+
+        // Find the cross-filter call (not the ownState call)
+        const crossFilterCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState?.filters,
+        );
+        expect(crossFilterCall).toBeDefined();
+        const firstCallArg = crossFilterCall![0];
+        // Should set the filter
+        expect(firstCallArg.filterState.filters).toEqual({
+          name: ['Michael'],
+        });
+        expect(firstCallArg.extraFormData.filters).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              col: 'name',
+              op: 'IN',
+              val: ['Michael'],
+            }),
+          ]),
+        );
+
+        // Now simulate Redux updating the filters prop (as would happen in dashboard)
+        setDataMask.mockClear();
+        rerender(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={{ name: ['Michael'] }}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The cell should now have the active filter class
+        const activeCells = document.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Click same cell again to clear cross-filter
+        setDataMask.mockClear();
+        const sameCellAgain = screen.getByText('Michael');
+        fireEvent.click(sameCellAgain);
+
+        // Find the cross-filter clearing call
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        const secondCallArg = clearCall![0];
+        // Should clear the filter
+        expect(secondCallArg.filterState.filters).toBeNull();
+        expect(secondCallArg.extraFormData.filters).toEqual([]);
+      });
+
+      test('cross-filter toggle works with DateWithFormatter values', () => {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+
+        // The data has a __timestamp column with DateWithFormatter values
+        // after processDataRecords. Let's verify this.
+        const timestampVal = props.data[0].__timestamp;
+        expect(timestampVal).toBeInstanceOf(DateWithFormatter);
+
+        const { rerender } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // Click a timestamp cell - find it by text content
+        const timestampCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(timestampCell);
+
+        const crossFilterCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState?.filters,
+        );
+        expect(crossFilterCall).toBeDefined();
+        const firstCallArg = crossFilterCall![0];
+
+        // Now re-render with the filters from the first click
+        // This simulates what happens via Redux in the real app
+        setDataMask.mockClear();
+        rerender(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={firstCallArg.filterState.filters}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The timestamp cell should be active
+        const activeCells = document.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Click the same timestamp cell again to clear
+        setDataMask.mockClear();
+        const sameCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(sameCell);
+
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        // Should CLEAR the filter (not re-apply it)
+        expect(clearCall![0].filterState.filters).toBeNull();
+        expect(clearCall![0].extraFormData.filters).toEqual([]);
+      });
+
+      test('cross-filter toggle clears when DateWithFormatter references differ', () => {
+        // Regression test: when memoizeOne cache misses between renders,
+        // new DateWithFormatter instances are created with different references.
+        // isActiveFilterValue must compare by time value, not reference.
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+
+        const timestampVal = props.data[0].__timestamp as DateWithFormatter;
+        expect(timestampVal).toBeInstanceOf(DateWithFormatter);
+
+        // Build filters with a DIFFERENT DateWithFormatter instance (same time value)
+        const filterKey = '__timestamp';
+        const differentRef = new DateWithFormatter(timestampVal.input, {
+          formatter: timestampVal.formatter,
+        });
+        expect(differentRef).not.toBe(timestampVal); // different reference
+        expect(differentRef.getTime()).toBe(timestampVal.getTime()); // same time
+
+        const { container } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              filters={{ [filterKey]: [differentRef] }}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        // The cell should show active filter despite different reference
+        const activeCells = container.querySelectorAll('.dt-is-active-filter');
+        expect(activeCells.length).toBeGreaterThan(0);
+
+        // Clicking should CLEAR the filter, not re-apply it
+        setDataMask.mockClear();
+        const timestampCell = screen.getByText('2020-01-01 12:34:56');
+        fireEvent.click(timestampCell);
+
+        const clearCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState !== undefined,
+        );
+        expect(clearCall).toBeDefined();
+        expect(clearCall![0].filterState.filters).toBeNull();
+        expect(clearCall![0].extraFormData.filters).toEqual([]);
+      });
+
+      test('page size selector arrow stays above resize handles (#39305)', () => {
+        // .resize-handle elements in dashboard ResizableContainer sit at
+        // z-index: 10 — the page size arrow must stack above them or it
+        // gets covered on dashboard charts.
+        const { container } = render(
+          ProviderWrapper({
+            children: (
+              <TableChart {...transformProps(testData.basic)} sticky={false} />
+            ),
+          }),
+        );
+
+        const arrow = container.querySelector(
+          '.dt-select-page-size .ant-select .ant-select-arrow',
+        );
+        expect(arrow).not.toBeNull();
+        expect(getComputedStyle(arrow as HTMLElement).zIndex).toBe('11');
+      });
+
       test('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,
@@ -1786,6 +2001,362 @@ describe('plugin-chart-table', () => {
           expect(totalCellAfter).toBeInTheDocument();
         });
       });
+
+      test('preserves client-side search text across temporal table rerenders', async () => {
+        const formDataWithSearch = {
+          ...testData.basic.formData,
+          include_search: true,
+          server_pagination: false,
+        };
+
+        const renderChart = () => {
+          const props = transformProps({
+            ...testData.basic,
+            formData: formDataWithSearch,
+          });
+          props.includeSearch = true;
+
+          return (
+            <ProviderWrapper>
+              <TableChart {...props} sticky={false} />
+            </ProviderWrapper>
+          );
+        };
+
+        const { rerender } = render(renderChart());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderChart());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text when rerendered with empty data', async () => {
+        const formDataWithSearch = {
+          ...testData.basic.formData,
+          include_search: true,
+          server_pagination: false,
+        };
+
+        const renderChart = (data = testData.basic.queriesData[0].data) => {
+          const props = transformProps({
+            ...testData.basic,
+            formData: formDataWithSearch,
+            queriesData: [
+              {
+                ...testData.basic.queriesData[0],
+                data,
+              },
+            ],
+          });
+          props.includeSearch = true;
+
+          return (
+            <ProviderWrapper>
+              <TableChart {...props} sticky={false} />
+            </ProviderWrapper>
+          );
+        };
+
+        const { rerender } = render(renderChart());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderChart([]));
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByLabelText('Search 0 records')).toHaveValue(
+            'Michael',
+          );
+        });
+      });
+
+      test('preserves client-side search text for function accessor columns', async () => {
+        type DataRow = {
+          city: string;
+          firstName: string;
+        };
+
+        const makeColumns = (): Column<DataRow>[] => [
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>First name</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            id: 'firstName',
+            accessor: ((row: DataRow) => row.firstName) as never,
+          },
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>City</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            id: 'city',
+            accessor: ((row: DataRow) => row.city) as never,
+          },
+        ];
+
+        const data: DataRow[] = [
+          { firstName: 'Michael', city: 'Paris' },
+          { firstName: 'Jordan', city: 'London' },
+        ];
+
+        const renderDataTable = () => (
+          <ProviderWrapper>
+            <DataTable<DataRow>
+              columns={makeColumns()}
+              data={data}
+              rowCount={data.length}
+              serverPagination={false}
+              serverPaginationData={{}}
+              onServerPaginationChange={jest.fn()}
+              handleSortByChange={jest.fn()}
+              sortByFromParent={[]}
+              onSearchColChange={jest.fn()}
+              searchOptions={[]}
+              sticky={false}
+            />
+          </ProviderWrapper>
+        );
+
+        const { rerender } = render(renderDataTable());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderDataTable());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text for string accessor columns without ids', async () => {
+        type DataRow = {
+          city: string;
+          firstName: string;
+        };
+
+        const makeColumns = (): Column<DataRow>[] => [
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>First name</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            accessor: 'firstName',
+          },
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>City</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            accessor: 'city',
+          },
+        ];
+
+        const data: DataRow[] = [
+          { firstName: 'Michael', city: 'Paris' },
+          { firstName: 'Jordan', city: 'London' },
+        ];
+
+        const renderDataTable = () => (
+          <ProviderWrapper>
+            <DataTable<DataRow>
+              columns={makeColumns()}
+              data={data}
+              rowCount={data.length}
+              serverPagination={false}
+              serverPaginationData={{}}
+              onServerPaginationChange={jest.fn()}
+              handleSortByChange={jest.fn()}
+              sortByFromParent={[]}
+              onSearchColChange={jest.fn()}
+              searchOptions={[]}
+              sticky={false}
+            />
+          </ProviderWrapper>
+        );
+
+        const { rerender } = render(renderDataTable());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderDataTable());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+      });
+    });
+
+    test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'Name_Renamed',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Name_Renamed', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ Name_Renamed: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({
+        Name_Renamed: 'name',
+      });
+    });
+
+    test('should not populate columnLabelToNameMap for physical columns', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: ['name'],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ name: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({});
+    });
+
+    test('should not populate columnLabelToNameMap when adhoc label matches sqlExpression', () => {
+      const result = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'name',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [{ name: 'Michael', sum__num: 2467063 }],
+          },
+        ],
+      });
+      expect(result.columnLabelToNameMap).toEqual({});
+    });
+
+    test('cross-filter on adhoc column with custom label emits original column name', () => {
+      const setDataMask = jest.fn();
+      const baseProps = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Aggregate,
+          groupby: [
+            {
+              sqlExpression: 'name',
+              label: 'Name_Renamed',
+              expressionType: 'SQL',
+            },
+          ],
+          metrics: ['sum__num'],
+        },
+        filterState: { filters: {} },
+        ownState: {},
+        hooks: {
+          onAddFilter: jest.fn(),
+          setDataMask,
+          onContextMenu: jest.fn(),
+        },
+        emitCrossFilters: true,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Name_Renamed', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: [
+              { Name_Renamed: 'Michael', sum__num: 2467063 },
+              { Name_Renamed: 'Joe', sum__num: 2467 },
+            ],
+          },
+        ],
+      });
+
+      render(
+        <ProviderWrapper>
+          <TableChart {...baseProps} emitCrossFilters sticky={false} />
+        </ProviderWrapper>,
+      );
+
+      // Verify the table rendered with data
+      expect(screen.getByText('Michael')).toBeInTheDocument();
+
+      // Find the td cell containing "Michael" and click it
+      const cell = screen.getByText('Michael').closest('td')!;
+      fireEvent.click(cell);
+
+      expect(setDataMask).toHaveBeenCalled();
+      const lastCall =
+        setDataMask.mock.calls[setDataMask.mock.calls.length - 1][0];
+      const { filters } = lastCall.extraFormData;
+      expect(filters).toHaveLength(1);
+      // Should emit the original column name, not the label
+      expect(filters[0].col).toBe('name');
+      expect(filters[0].val).toEqual(['Michael']);
     });
   });
 });

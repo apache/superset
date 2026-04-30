@@ -28,6 +28,7 @@ import { apiGetChart, ENDPOINTS } from '../../helpers/api/chart';
 import { createTestChart } from './chart-test-helpers';
 import { waitForGet, waitForPut } from '../../helpers/api/intercepts';
 import {
+  expectDeleted,
   expectStatusOneOf,
   expectValidExportZip,
 } from '../../helpers/api/assertions';
@@ -88,17 +89,9 @@ test('should delete a chart with confirmation', async ({
   await expect(chartListPage.getChartRow(chartName)).not.toBeVisible();
 
   // Backend verification: API returns 404
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetChart(page, chartId, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Chart ${chartId} should return 404` },
-    )
-    .toBe(404);
+  await expectDeleted(page, ENDPOINTS.CHART, chartId, {
+    label: `Chart ${chartId}`,
+  });
 });
 
 test('should edit chart name via properties modal', async ({
@@ -246,17 +239,9 @@ test('should bulk delete multiple charts', async ({
 
   // Backend verification: Both return 404
   for (const chart of [chart1, chart2]) {
-    await expect
-      .poll(
-        async () => {
-          const response = await apiGetChart(page, chart.id, {
-            failOnStatusCode: false,
-          });
-          return response.status();
-        },
-        { timeout: 10000, message: `Chart ${chart.id} should return 404` },
-      )
-      .toBe(404);
+    await expectDeleted(page, ENDPOINTS.CHART, chart.id, {
+      label: `Chart ${chart.id}`,
+    });
   }
 });
 

@@ -58,6 +58,10 @@ categories:
       url: https://www.ontruck.com/
 
   Financial Services:
+    - name: Aadhar Housing Finance Limited
+      url: https://www.aadharhousing.com
+      contributors: ["@thakerhardiks"]
+
     - name: Aktia Bank plc
       url: https://www.aktia.com
 
@@ -286,6 +290,11 @@ categories:
     - name: GfK Data Lab
       url: https://www.gfk.com/home
       contributors: ["@mherr"]
+
+    - name: Hifadih Business & Technology
+      url: https://hifadih.net/en
+      logo: hifadih.png
+      contributors: ["@saintLaurent00"]
 
     # Logo approved by @anmol-hpe on behalf of HPE
     - name: HPE
