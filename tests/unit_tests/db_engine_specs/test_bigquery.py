@@ -18,7 +18,7 @@
 # pylint: disable=line-too-long, import-outside-toplevel, protected-access, invalid-name
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from unittest import mock
 
 import pytest
@@ -528,3 +528,133 @@ def test_get_view_names_excludes_materialized_views() -> None:
     assert "table_type = 'VIEW'" in executed_query
     # Ensure it's not querying for materialized views
     assert "MATERIALIZED VIEW" not in executed_query
+
+
+def _patch_bq_fetch_deps(
+    mocker: MockerFixture, max_mb: int = 200
+) -> tuple[mock.MagicMock, mock.MagicMock]:
+    """Helper to patch Flask g and current_app for BigQuery fetch_data tests."""
+    flask_g = mocker.patch("superset.db_engine_specs.bigquery.g")
+    app = mocker.patch("superset.db_engine_specs.bigquery.current_app")
+    # Make current_app truthy and .config.get() return a plain int
+    app.__bool__ = mock.Mock(return_value=True)
+    app.config = mock.MagicMock()
+    app.config.get = mock.Mock(return_value=max_mb)
+    return flask_g, app
+
+
+def test_fetch_data_within_memory_limit(mocker: MockerFixture) -> None:
+    """
+    Test that fetch_data returns all rows when the result fits within the
+    configured memory limit.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    rows = [(1, "a"), (2, "b"), (3, "c")]
+
+    cursor = mock.MagicMock()
+    # First fetchmany returns all rows; the result set is smaller than limit
+    cursor.fetchmany.return_value = rows
+
+    flask_g, _ = _patch_bq_fetch_deps(mocker, max_mb=200)
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=100)
+
+    assert result == rows
+    assert flask_g.bq_memory_limited is False
+    assert flask_g.bq_memory_limited_row_count == 3
+
+
+def test_fetch_data_truncated_by_memory_limit(mocker: MockerFixture) -> None:
+    """
+    Test that fetch_data truncates results and sets the memory_limited flag
+    when the memory budget is exceeded.
+
+    We use a very small budget (1 MB) so that after the first batch the
+    method computes ``remaining_rows <= 0``, hitting the truncation path.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    # 1000 rows of ~10KB each --> first batch ~10 MB >> 1 MB budget
+    first_batch = [(i, "x" * 10_000) for i in range(1000)]
+
+    cursor = mock.MagicMock()
+    cursor.fetchmany.return_value = first_batch
+
+    # 1 MB budget: first batch exceeds it, so remaining_rows <= 0
+    flask_g, _ = _patch_bq_fetch_deps(mocker, max_mb=1)
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=None)
+
+    assert result == first_batch
+    assert flask_g.bq_memory_limited is True
+    assert flask_g.bq_memory_limited_row_count == len(first_batch)
+
+
+def test_fetch_data_empty_result(mocker: MockerFixture) -> None:
+    """
+    Test that fetch_data handles an empty result set gracefully.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    cursor = mock.MagicMock()
+    cursor.fetchmany.return_value = []
+
+    flask_g, _ = _patch_bq_fetch_deps(mocker, max_mb=200)
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=100)
+
+    assert result == []
+    assert flask_g.bq_memory_limited is False
+    assert flask_g.bq_memory_limited_row_count == 0
+
+
+def test_fetch_data_fallback_on_exception(mocker: MockerFixture) -> None:
+    """
+    Test that fetch_data falls back to the parent implementation when the
+    progressive fetch raises an exception.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    cursor = mock.MagicMock()
+    cursor.fetchmany.side_effect = RuntimeError("cursor error")
+    cursor.fetchall.return_value = [(1, "a"), (2, "b")]
+    cursor.description = [("col1", None), ("col2", None)]
+
+    flask_g, _ = _patch_bq_fetch_deps(mocker, max_mb=200)
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=None)
+
+    assert result == [(1, "a"), (2, "b")]
+    assert flask_g.bq_memory_limited is False
+    assert flask_g.bq_memory_limited_row_count == 2
+
+
+def test_fetch_data_converts_bigquery_row_objects(mocker: MockerFixture) -> None:
+    """
+    Test that BigQuery Row objects are converted to plain values.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    class FakeRow:
+        """Mimics google.cloud.bigquery.table.Row"""
+
+        def __init__(self, vals: tuple[Any, ...]) -> None:
+            self._vals = vals
+
+        def values(self) -> tuple[Any, ...]:
+            return self._vals
+
+    FakeRow.__name__ = "Row"
+
+    rows = [FakeRow((1, "a")), FakeRow((2, "b"))]
+
+    cursor = mock.MagicMock()
+    cursor.fetchmany.return_value = rows
+
+    flask_g, _ = _patch_bq_fetch_deps(mocker, max_mb=200)
+
+    result = BigQueryEngineSpec.fetch_data(cursor, limit=100)
+
+    assert result == [(1, "a"), (2, "b")]
+    assert flask_g.bq_memory_limited is False

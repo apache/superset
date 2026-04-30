@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+import sys
 import urllib
 from datetime import datetime
 from re import Pattern
@@ -27,6 +28,7 @@ from typing import Any, TYPE_CHECKING, TypedDict
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from flask import current_app, g, has_app_context, has_request_context
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
@@ -303,13 +305,86 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return None
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
-        data = super().fetch_data(cursor, limit)
-        # Support type BigQuery Row, introduced here PR #4071
-        # google.cloud.bigquery.table.Row
-        if data and type(data[0]).__name__ == "Row":
-            data = [r.values() for r in data]  # type: ignore
-        return data
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:  # noqa: C901
+        """
+        Progressive fetch for BigQuery to prevent browser memory overload.
+
+        Samples a first batch to estimate row size, then extrapolates the
+        total number of rows that fit within ``BQ_FETCH_MAX_MB``.
+        Falls back to the parent implementation on any error.
+        """
+        max_mb: int = (
+            current_app.config.get("BQ_FETCH_MAX_MB", 200) if has_app_context() else 200
+        )
+        max_bytes = max_mb * 1024 * 1024
+
+        try:
+            initial_batch_size = min(1000, limit) if limit else 1000
+            first_batch: list[Any] = cursor.fetchmany(initial_batch_size)
+
+            if not first_batch:
+                if has_request_context():
+                    g.bq_memory_limited = False
+                    g.bq_memory_limited_row_count = 0
+                return []
+
+            # Support BigQuery Row objects (PR #4071)
+            if type(first_batch[0]).__name__ == "Row":
+                first_batch = [r.values() for r in first_batch]
+
+            # Estimate how many rows fit in the memory budget.
+            # Sum container + element sizes (one level deep) for a better
+            # estimate. Most BigQuery cell values are primitives (str, int,
+            # float, date), so one level captures the dominant allocation.
+            first_batch_bytes = sum(
+                sys.getsizeof(row) + sum(sys.getsizeof(v) for v in row)
+                for row in first_batch
+            )
+            rows_fetched = len(first_batch)
+            avg_bytes_per_row = first_batch_bytes / rows_fetched
+            total_rows_for_target = int(max_bytes / avg_bytes_per_row)
+
+            if limit:
+                total_rows_for_target = min(limit, total_rows_for_target)
+
+            remaining_rows = total_rows_for_target - rows_fetched
+
+            # First batch already covers the budget or the result set
+            if rows_fetched < initial_batch_size or remaining_rows <= 0:
+                memory_limited = (
+                    remaining_rows <= 0 and rows_fetched == initial_batch_size
+                )
+                if has_request_context():
+                    g.bq_memory_limited = memory_limited
+                    g.bq_memory_limited_row_count = len(first_batch)
+                return first_batch
+
+            # Fetch one extra row to confirm truncation without false positives
+            second_batch: list[Any] = cursor.fetchmany(remaining_rows + 1) or []
+            if second_batch and type(second_batch[0]).__name__ == "Row":
+                second_batch = [r.values() for r in second_batch]
+
+            # Truncation is confirmed only when more rows exist beyond the budget
+            memory_limited = len(second_batch) > remaining_rows
+            if memory_limited:
+                second_batch = second_batch[:remaining_rows]
+
+            data = first_batch + second_batch
+
+            if has_request_context():
+                g.bq_memory_limited = memory_limited
+                g.bq_memory_limited_row_count = len(data)
+            return data
+
+        except Exception:  # pylint: disable=broad-except
+            # Fallback to parent implementation
+            data = super().fetch_data(cursor, limit)
+            if data and type(data[0]).__name__ == "Row":
+                data = [r.values() for r in data]  # type: ignore
+            if has_request_context():
+                g.bq_memory_limited = False
+                g.bq_memory_limited_row_count = len(data) if data else 0
+            return data
 
     @staticmethod
     def _mutate_label(label: str) -> str:

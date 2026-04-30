@@ -190,6 +190,18 @@ class QueryContextProcessor:
         )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
+        warning: str | None = None
+        if cache.bq_memory_limited:
+            row_count = cache.bq_memory_limited_row_count
+            chart_id = (self._query_context.form_data or {}).get("slice_id", "")
+            prefix = f"Chart {chart_id}: " if chart_id else ""
+            warning = _(
+                "%(prefix)sResults truncated to %(row_count)s rows"
+                " due to memory constraints.",
+                prefix=prefix,
+                row_count=f"{row_count:,}",
+            )
+
         return {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
@@ -210,6 +222,7 @@ class QueryContextProcessor:
             "from_dttm": query_obj.from_dttm,
             "to_dttm": query_obj.to_dttm,
             "label_map": label_map,
+            "warning": warning,
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:

@@ -77,6 +77,7 @@ export interface ChartDataResponseResult {
   // TODO(hainenber): define proper type for below attributes
   rejected_filters?: any[];
   applied_filters?: any[];
+  warning?: string | null;
   /**
    * Detected ISO 4217 currency code when AUTO mode is used.
    * Returns the currency code if all filtered data contains a single currency,

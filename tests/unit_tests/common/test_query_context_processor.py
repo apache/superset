@@ -928,6 +928,7 @@ def test_get_df_payload_validates_before_cache_key_generation():
                 mock_cache.query = "SELECT * FROM table"
                 mock_cache.error_message = None
                 mock_cache.status = "success"
+                mock_cache.bq_memory_limited = False
                 mock_cache_manager.get.return_value = mock_cache
 
                 # Call get_df_payload
@@ -1303,6 +1304,7 @@ def test_force_cached_normalizes_totals_query_row_limit():
                 cache.is_cached = True
                 cache.sql_rowcount = len(df)
                 cache.cache_dttm = "2024-01-01T00:00:00"
+                cache.bq_memory_limited = False
                 return cache
 
             mock_cache_manager.get.side_effect = cache_get
@@ -1359,6 +1361,8 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
             self.applied_template_filters = []
             self.rejected_filter_columns = []
             self.annotation_data = {}
+            self.bq_memory_limited = False
+            self.bq_memory_limited_row_count = 0
             self.set_query_result = MagicMock()
 
     mock_cache = MockCache()
@@ -1379,3 +1383,119 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
     assert mock_cache.is_loaded is False, (
         "Cache should be inv when no applied_filter_columns and query has filters"
     )
+
+
+def test_get_df_payload_bq_memory_limited_warning():
+    """
+    Test that get_df_payload includes a warning when BigQuery results are
+    truncated due to the memory limit (g.bq_memory_limited is set).
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.form_data = {"slice_id": 42}
+
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    mock_datasource.uid = "test_ds"
+    mock_datasource.cache_timeout = None
+    mock_datasource.changed_on = None
+    mock_datasource.get_extra_cache_keys.return_value = []
+    mock_datasource.data = MagicMock()
+    mock_datasource.data.get.return_value = {}
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+    )
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = True
+        mock_cache.df = pd.DataFrame({"col1": [1, 2, 3]})
+        mock_cache.query = "SELECT col1 FROM table"
+        mock_cache.error_message = None
+        mock_cache.status = "success"
+        mock_cache.applied_filter_columns = ["col1"]
+        mock_cache.applied_template_filters = []
+        mock_cache.rejected_filter_columns = []
+        mock_cache.annotation_data = {}
+        mock_cache.is_cached = True
+        mock_cache.sql_rowcount = 3
+        mock_cache.cache_dttm = "2024-01-01T00:00:00"
+        mock_cache.queried_dttm = "2024-01-01T00:00:00"
+        mock_cache.bq_memory_limited = True
+        mock_cache.bq_memory_limited_row_count = 5000
+        mock_cache_manager.get.return_value = mock_cache
+
+        with patch.object(query_obj, "validate", return_value=None):
+            with patch.object(processor, "query_cache_key", return_value="key"):
+                with patch.object(processor, "get_cache_timeout", return_value=3600):
+                    result = processor.get_df_payload(query_obj, force_cached=False)
+
+    assert result["warning"] is not None
+    assert "Chart 42" in result["warning"]
+    assert "5,000 rows" in result["warning"]
+    assert "memory constraints" in result["warning"]
+
+
+def test_get_df_payload_no_warning_when_not_memory_limited():
+    """
+    Test that get_df_payload does not include a warning when BigQuery
+    results were not truncated.
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.form_data = {}
+
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    mock_datasource.uid = "test_ds"
+    mock_datasource.cache_timeout = None
+    mock_datasource.changed_on = None
+    mock_datasource.get_extra_cache_keys.return_value = []
+    mock_datasource.data = MagicMock()
+    mock_datasource.data.get.return_value = {}
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+    )
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = True
+        mock_cache.df = pd.DataFrame({"col1": [1, 2]})
+        mock_cache.query = "SELECT col1 FROM table"
+        mock_cache.error_message = None
+        mock_cache.status = "success"
+        mock_cache.applied_filter_columns = ["col1"]
+        mock_cache.applied_template_filters = []
+        mock_cache.rejected_filter_columns = []
+        mock_cache.annotation_data = {}
+        mock_cache.is_cached = True
+        mock_cache.sql_rowcount = 2
+        mock_cache.cache_dttm = "2024-01-01T00:00:00"
+        mock_cache.queried_dttm = "2024-01-01T00:00:00"
+        mock_cache.bq_memory_limited = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        with patch.object(query_obj, "validate", return_value=None):
+            with patch.object(processor, "query_cache_key", return_value="key"):
+                with patch.object(processor, "get_cache_timeout", return_value=3600):
+                    result = processor.get_df_payload(query_obj, force_cached=False)
+
+    assert result["warning"] is None

@@ -42,7 +42,10 @@ import {
   getQuerySettings,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import {
+  addDangerToast,
+  addWarningToast,
+} from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
@@ -805,6 +808,11 @@ export function exploreJSON(
               }),
             ),
         );
+        (queriesResponse as QueryData[]).forEach(response => {
+          if (response.warning) {
+            dispatch(addWarningToast(response.warning, { noDuplicate: true }));
+          }
+        });
         return dispatch(
           chartUpdateSucceeded(queriesResponse as QueryData[], key as number),
         );
