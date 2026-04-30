@@ -362,15 +362,14 @@ class BaseReportState:
         """
         Get multple tabs urls
         """
+        parent_state = self._report_schedule.extra.get("dashboard") or {}
         return [
             self._get_tab_url(
                 {
                     "anchor": tab_anchor,
-                    "dataMask": None,
-                    "activeTabs": None,
-                    "urlParams": [
-                        ["native_filters", native_filter_params]  # type: ignore
-                    ],
+                    "dataMask": parent_state.get("dataMask"),
+                    "activeTabs": parent_state.get("activeTabs"),
+                    "urlParams": parent_state.get("urlParams")
                 },
                 user_friendly=user_friendly,
             )
