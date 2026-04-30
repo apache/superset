@@ -821,3 +821,55 @@ test('calculated column search is case-insensitive', async () => {
     expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
   });
 });
+
+// Regression guard for FR-004a: if the editor unmounts while a debounced
+// validation is still pending, the parent must still receive the latest
+// typed state. .cancel() drops it; .flush() runs validate() which writes
+// errors via setState — a no-op during unmount, so the post-commit callback
+// that propagates onChange never fires. The drain path must compute errors
+// synchronously and call props.onChange directly.
+test('drains pending validation on unmount and propagates to parent', async () => {
+  const testProps = createProps();
+  const renderProps = {
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
+  };
+  const { unmount } = await asyncRender(renderProps);
+
+  // Add-item triggers a synchronous chain: CRUDCollection.onAddItem →
+  // setState → post-commit setColumns → setState → post-commit
+  // validateAndChange → validationPending=true and the 300ms debounce
+  // is scheduled. No internal TextControl debounce in this path.
+  const calcColsTab = screen.getByTestId('collection-tab-Calculated columns');
+  await userEvent.click(calcColsTab);
+
+  const addBtn = screen.getByRole('button', { name: /add item/i });
+
+  // Reset the mock so we only count post-add calls.
+  renderProps.onChange.mockClear();
+
+  await userEvent.click(addBtn);
+
+  // The add-item chain should have set validationPending=true by now.
+  // Sanity-check that the natural debounce hasn't fired yet (i.e., we
+  // really are testing the drain, not the post-debounce path).
+  expect(renderProps.onChange).not.toHaveBeenCalled();
+
+  // Unmount BEFORE the 300ms debounce fires. Without the drain,
+  // props.onChange would never be called for this pending state.
+  unmount();
+  await cleanupAsyncOperations();
+
+  // The drain must propagate exactly once with the new datasource (now
+  // including the freshly-added calculated column) and the synchronously
+  // computed errors array.
+  expect(renderProps.onChange).toHaveBeenCalledTimes(1);
+  const [datasourceArg, errorsArg] = renderProps.onChange.mock.calls[0];
+  expect(datasourceArg).toEqual(
+    expect.objectContaining({
+      columns: expect.any(Array),
+      metrics: expect.any(Array),
+    }),
+  );
+  expect(Array.isArray(errorsArg)).toBe(true);
+});
