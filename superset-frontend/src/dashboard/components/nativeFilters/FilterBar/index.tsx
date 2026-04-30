@@ -498,17 +498,20 @@ const FilterBar: FC<FiltersBarProps> = ({
       // Range filters use [null, null] as the cleared value; others use undefined
       const clearedValue =
         filterType === 'filter_range' ? [null, null] : undefined;
-      const clearedDataMask = {
-        filterState: { value: clearedValue },
-        extraFormData: {},
-      };
+      const isRequired = !!filter.controlValues?.enableEmptyFilter;
       if (dataMaskSelected[id]) {
-        dispatch(updateDataMask(id, clearedDataMask));
+        // Stage the cleared value locally; do NOT dispatch to Redux here.
+        // Persistence happens when the user clicks Apply.
         setDataMaskSelected(draft => {
           if (draft[id].filterState?.value !== undefined) {
             draft[id].filterState!.value = clearedValue;
           }
           draft[id].extraFormData = {};
+          if (draft[id].filterState) {
+            draft[id].filterState!.validateStatus = isRequired
+              ? 'error'
+              : undefined;
+          }
         });
         newClearAllTriggers[id] = true;
       }
