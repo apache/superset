@@ -2341,3 +2341,80 @@ describe('plugin-chart-table', () => {
     });
   });
 });
+
+// Numeric values with String dataType (e.g. backend mis-reports type for computed columns)
+// get 'alphanumeric' sort, which treats raw numbers as non-strings and produces unstable order.
+// They should sort numerically regardless of display format.
+test('sorts numeric-backed percentage column numerically when dataType is String', async () => {
+  const props = transformProps({
+    ...testData.raw,
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      order_desc: false,
+      metrics: ['pct'],
+      column_config: {
+        pct: { d3NumberFormat: '.1%' },
+      },
+    },
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['pct'],
+        coltypes: [GenericDataType.String],
+        data: [
+          { pct: 0.4 },
+          { pct: 0.056 },
+          { pct: 0.506 },
+          { pct: 0.066 },
+          { pct: 0.41 },
+        ],
+      },
+    ],
+  });
+
+  render(
+    ProviderWrapper({
+      children: <TableChart {...props} sticky={false} />,
+    }),
+  );
+
+  const header = screen.getByText('pct');
+  fireEvent.click(header);
+
+  const cells = document.querySelectorAll('tbody td');
+  const values = Array.from(cells).map(td => td.textContent);
+  expect(values).toEqual(['5.6%', '6.6%', '40.0%', '41.0%', '50.6%']);
+});
+
+test('sorts genuinely string columns alphanumerically', () => {
+  const props = transformProps({
+    ...testData.raw,
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      order_desc: false,
+      metrics: [],
+      columns: ['label'],
+    },
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['label'],
+        coltypes: [GenericDataType.String],
+        data: [{ label: 'banana' }, { label: 'apple' }, { label: 'cherry' }],
+      },
+    ],
+  });
+
+  render(
+    ProviderWrapper({
+      children: <TableChart {...props} sticky={false} />,
+    }),
+  );
+
+  const header = screen.getByText('label');
+  fireEvent.click(header);
+
+  const cells = document.querySelectorAll('tbody td');
+  const values = Array.from(cells).map(td => td.textContent);
+  expect(values).toEqual(['apple', 'banana', 'cherry']);
+});

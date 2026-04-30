@@ -1267,7 +1267,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           )
         ) : undefined,
         sortDescFirst: sortDesc,
-        sortType: getSortTypeByDataType(dataType),
+        // Metrics and percent metrics always have numeric values; use numeric sort
+        // even if the backend reports the column type as String.
+        sortType:
+          isMetric || isPercentMetric
+            ? 'basic'
+            : getSortTypeByDataType(dataType),
       };
     },
     [
