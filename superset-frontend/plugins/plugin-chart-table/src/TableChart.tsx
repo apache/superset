@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -294,17 +294,13 @@ const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
 
 /**
- * Calculates the exclusive end time boundary based on granularity.
- * standard SQL inclusive/exclusive pattern: [start, end)
+ * Calculates the inclusive/exclusive temporal range for a bucket.
+ * standard SQL range pattern: [start, end)
  */
-function getEndTimeFromGranularity(
+function getTimeRangeFromGranularity(
   startTime: Date,
-  granularity?: TimeGranularity,
-): Date {
-  if (!granularity) {
-    return startTime;
-  }
-
+  granularity: TimeGranularity,
+): [Date, Date] {
   const time = startTime.getTime();
   const date = startTime.getUTCDate();
   const month = startTime.getUTCMonth();
@@ -317,38 +313,44 @@ function getEndTimeFromGranularity(
 
   switch (granularity) {
     case TimeGranularity.SECOND:
-      return new Date(time + MS_IN_SECOND);
+      return [startTime, new Date(time + MS_IN_SECOND)];
     case TimeGranularity.MINUTE:
-      return new Date(time + MS_IN_MINUTE);
+      return [startTime, new Date(time + MS_IN_MINUTE)];
     case TimeGranularity.FIVE_MINUTES:
-      return new Date(time + MS_IN_MINUTE * 5);
+      return [startTime, new Date(time + MS_IN_MINUTE * 5)];
     case TimeGranularity.TEN_MINUTES:
-      return new Date(time + MS_IN_MINUTE * 10);
+      return [startTime, new Date(time + MS_IN_MINUTE * 10)];
     case TimeGranularity.FIFTEEN_MINUTES:
-      return new Date(time + MS_IN_MINUTE * 15);
+      return [startTime, new Date(time + MS_IN_MINUTE * 15)];
     case TimeGranularity.THIRTY_MINUTES:
-      return new Date(time + MS_IN_MINUTE * 30);
+      return [startTime, new Date(time + MS_IN_MINUTE * 30)];
     case TimeGranularity.HOUR:
-      return new Date(time + MS_IN_HOUR);
+      return [startTime, new Date(time + MS_IN_HOUR)];
     case TimeGranularity.DAY:
     case TimeGranularity.DATE:
-      return new Date(Date.UTC(year, month, date + 1));
+      return [startTime, new Date(Date.UTC(year, month, date + 1))];
     case TimeGranularity.WEEK:
     case TimeGranularity.WEEK_STARTING_SUNDAY:
     case TimeGranularity.WEEK_STARTING_MONDAY:
-      return new Date(Date.UTC(year, month, date + 7));
+      return [startTime, new Date(Date.UTC(year, month, date + 7))];
     case TimeGranularity.WEEK_ENDING_SATURDAY:
     case TimeGranularity.WEEK_ENDING_SUNDAY:
-      // startTime is already the end of the bucket, range is [startTime - 6 days, startTime + 1 day)
-      return new Date(Date.UTC(year, month, date + 1));
+      // Week-ending buckets are labeled by the bucket's final day.
+      return [
+        new Date(Date.UTC(year, month, date - 6)),
+        new Date(Date.UTC(year, month, date + 1)),
+      ];
     case TimeGranularity.MONTH:
-      return new Date(Date.UTC(year, month + 1, 1));
+      return [startTime, new Date(Date.UTC(year, month + 1, 1))];
     case TimeGranularity.QUARTER:
-      return new Date(Date.UTC(year, Math.floor(month / 3) * 3 + 3, 1));
+      return [
+        startTime,
+        new Date(Date.UTC(year, Math.floor(month / 3) * 3 + 3, 1)),
+      ];
     case TimeGranularity.YEAR:
-      return new Date(Date.UTC(year + 1, 0, 1));
+      return [startTime, new Date(Date.UTC(year + 1, 0, 1))];
     default:
-      return new Date(Date.UTC(year, month, date + 1));
+      return [startTime, new Date(Date.UTC(year, month, date + 1))];
   }
 }
 
@@ -638,8 +640,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   ? dataRecordValue
                   : new Date(dataRecordValue as string | number);
 
-              const endTime = getEndTimeFromGranularity(startTime, timeGrain);
-              const timeRangeValue = `${startTime.toISOString()} : ${endTime.toISOString()}`;
+              const [rangeStartTime, rangeEndTime] = getTimeRangeFromGranularity(
+                startTime,
+                timeGrain,
+              );
+              const timeRangeValue = `${rangeStartTime.toISOString()} : ${rangeEndTime.toISOString()}`;
 
               drillToDetailFilters.push({
                 col: col.key,
