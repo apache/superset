@@ -472,6 +472,38 @@ FEATURE_FLAGS = {
 
 A current list of feature flags can be found in the [Feature Flags](/admin-docs/configuration/feature-flags) documentation.
 
+## Security Configuration
+
+### HASH_ALGORITHM
+
+Controls the hashing algorithm used for internal checksums and cache keys (thumbnails, cache keys, etc.). The default is `sha256`, which satisfies environments with stricter compliance requirements (e.g., FedRAMP). Set it to `md5` to retain the legacy behavior from older Superset deployments:
+
+```python
+HASH_ALGORITHM = "sha256"  # default; set to "md5" for legacy behavior
+```
+
+A companion `HASH_ALGORITHM_FALLBACKS` list (default: `["md5"]`) lets UUID lookups fall back to older algorithms, which enables gradual migration without breaking existing entries. Set it to `[]` for strict mode (use only `HASH_ALGORITHM`).
+
+:::note
+This setting affects internal Superset operations only, not user passwords or authentication tokens. Changing it in an existing deployment may invalidate cached values but does not require a database migration.
+:::
+
+## SQL Lab Query History Pruning
+
+SQL Lab query history is stored in the metadata database and is **not** pruned by default. To trim older rows, enable the `prune_query` Celery beat task by uncommenting it in `CELERY_BEAT_SCHEDULE` and choosing a retention window:
+
+```python
+CELERY_BEAT_SCHEDULE = {
+    "prune_query": {
+        "task": "prune_query",
+        "schedule": crontab(minute=0, hour=0, day_of_month=1),
+        "kwargs": {"retention_period_days": 180},
+    },
+}
+```
+
+Adjust `retention_period_days` to control how long query rows are kept. Companion opt-in tasks (`prune_logs`, `prune_tasks`) exist for pruning the logs and tasks tables; see the commented-out examples in `superset/config.py`. Without enabling these tasks, the metadata database will grow unbounded over time.
+
 :::resources
 - [Blog: Feature Flags in Apache Superset](https://preset.io/blog/feature-flags-in-apache-superset-and-preset/)
 :::

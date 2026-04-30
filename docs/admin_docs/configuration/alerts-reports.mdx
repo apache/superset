@@ -81,6 +81,87 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 5
 ```
 
+### Webhook integration
+
+Superset can send alert and report notifications to any HTTP endpoint — useful for chat platforms, incident management tools, or custom automation.
+
+#### Enabling Webhooks
+
+Enable the feature flag in `superset_config.py`:
+
+```python
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "ALERT_REPORT_WEBHOOK": True,
+}
+```
+
+#### Configuring a Webhook Recipient
+
+When creating or editing an alert or report, select **Webhook** as the notification method and enter your endpoint URL.
+
+#### Payload Format
+
+Superset sends an HTTP POST with `Content-Type: application/json`:
+
+```json
+{
+  "name": "My Alert",
+  "header": {
+    "notification_format": "JSON",
+    "notification_type": "Alert",
+    "notification_source": "Alert",
+    "chart_id": 42,
+    "dashboard_id": null
+  },
+  "text": "Alert condition met: value exceeded threshold",
+  "description": "Monthly revenue dropped below target",
+  "url": "https://your-superset-host/superset/dashboard/1/"
+}
+```
+
+When a report includes file attachments (CSV, PDF, or PNG screenshots), the request is sent as `multipart/form-data` instead. In that case, each top-level payload field (`name`, `text`, `description`, `url`) becomes its own form field, and nested structures like `header` are serialized as a JSON-encoded string in their own field. Every attachment is added as a repeated form field named `files`:
+
+```
+POST /webhook HTTP/1.1
+Content-Type: multipart/form-data; boundary=...
+
+--...
+Content-Disposition: form-data; name="name"
+
+My Alert
+--...
+Content-Disposition: form-data; name="header"
+
+{"notification_format": "JSON", "notification_type": "Alert", ...}
+--...
+Content-Disposition: form-data; name="text"
+
+Alert condition met: value exceeded threshold
+--...
+Content-Disposition: form-data; name="files"; filename="report.csv"
+Content-Type: text/csv
+
+<file bytes>
+--...
+```
+
+Webhook consumers should branch on `Content-Type`: parse the body as JSON when `application/json`, or read the individual form fields (decoding `header` as JSON) when `multipart/form-data`.
+
+#### HTTPS Enforcement
+
+To require HTTPS webhook URLs (recommended for production), set:
+
+```python
+ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
+```
+
+When enabled, Superset rejects webhook configurations that use `http://` URLs.
+
+#### Retry Behavior
+
+Superset automatically retries webhook deliveries on `429 Too Many Requests` and `5xx` server errors using exponential backoff.
+
 ### Kubernetes-specific
 
 - You must have a `celery beat` pod running. If you're using the chart included in the GitHub repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset), you need to put `supersetCeleryBeat.enabled = true` in your values override.
