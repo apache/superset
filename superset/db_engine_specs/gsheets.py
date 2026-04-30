@@ -41,7 +41,7 @@ from superset.databases.schemas import encrypted_field_properties, EncryptedStri
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2TokenRefreshError, SupersetException
 from superset.utils import json
 from superset.utils.oauth2 import get_oauth2_access_token
 
@@ -152,7 +152,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         "https://accounts.google.com/o/oauth2/v2/auth"
     )
     oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
-    oauth2_exception = UnauthenticatedError
+    oauth2_exception = (UnauthenticatedError, OAuth2TokenRefreshError)
 
     @classmethod
     def get_oauth2_authorization_uri(
