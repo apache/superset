@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
 import fetchMock from 'fetch-mock';
 import {
   fireEvent,
@@ -511,10 +512,17 @@ test('should apply min-height to the top-level tab drop target so tabs can be dr
   );
   expect(headerWrapper).toBeInTheDocument();
 
-  // Verify the StyledHeader CSS includes min-height for the empty drop target.
-  // Without this, the drop target has zero height and users cannot drag tabs
-  // onto dashboards that already have content (the Droppable renders an empty
-  // div and needs explicit min-height to be a valid react-dnd hover target).
+  // The Droppable inside the header should have the empty-droptarget class
+  // when there are no top-level tabs and edit mode is active. Without this
+  // class (and its associated min-height CSS rule), the drop target has zero
+  // height and users cannot drag tabs onto dashboards that already have
+  // content.
+  const droptarget = headerWrapper!.querySelector('.empty-droptarget');
+  expect(droptarget).toBeInTheDocument();
+
+  // Verify the StyledHeader CSS defines min-height for .empty-droptarget.
+  // getComputedStyle doesn't work in jsdom for styled-components injected
+  // styles, so we check the CSSOM directly.
   const allRules = Array.from(document.styleSheets).flatMap(sheet => {
     try {
       return Array.from(sheet.cssRules).map(rule => rule.cssText);
@@ -523,8 +531,7 @@ test('should apply min-height to the top-level tab drop target so tabs can be dr
     }
   });
   const emptyDroptargetRule = allRules.find(
-    rule =>
-      rule.includes('.empty-droptarget') && rule.includes('min-height'),
+    rule => rule.includes('.empty-droptarget') && rule.includes('min-height'),
   );
   expect(emptyDroptargetRule).toBeDefined();
 });
