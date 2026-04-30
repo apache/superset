@@ -1983,6 +1983,161 @@ describe('plugin-chart-table', () => {
         });
       });
 
+      test('applies column number format to summary row for metric column', () => {
+        const props = transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            query_mode: QueryMode.Aggregate,
+            show_totals: true,
+            metrics: ['sum__num'],
+            column_config: {
+              sum__num: { d3NumberFormat: '.0%' },
+            },
+          },
+          queriesData: [
+            testData.basic.queriesData[0],
+            {
+              annotation_data: null,
+              cache_key: null,
+              cached_dttm: null,
+              cache_timeout: null,
+              queried_dttm: null,
+              data: [{ sum__num: 0.27 }],
+              colnames: ['sum__num'],
+              coltypes: [GenericDataType.Numeric],
+              error: null,
+              is_cached: false,
+              query: 'SELECT ...',
+              rowcount: 1,
+              sql_rowcount: 1,
+              stacktrace: null,
+              status: 'success',
+              from_dttm: null,
+              to_dttm: null,
+            },
+          ],
+        });
+
+        render(
+          <ProviderWrapper>
+            <TableChart {...props} sticky={false} />
+          </ProviderWrapper>,
+        );
+
+        const table = screen.getByRole('table');
+        expect(within(table).getByText('27%')).toBeInTheDocument();
+      });
+
+      test('applies column number format to summary row for non-metric numeric column', () => {
+        // non-metric columns with explicit d3NumberFormat should format the totals row
+        const props = transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            query_mode: QueryMode.Aggregate,
+            show_totals: true,
+            metrics: [],
+            column_config: {
+              sum__num: { d3NumberFormat: '.0%' },
+            },
+          },
+          queriesData: [
+            testData.basic.queriesData[0],
+            {
+              annotation_data: null,
+              cache_key: null,
+              cached_dttm: null,
+              cache_timeout: null,
+              queried_dttm: null,
+              data: [{ sum__num: 0.27 }],
+              colnames: ['sum__num'],
+              coltypes: [GenericDataType.Numeric],
+              error: null,
+              is_cached: false,
+              query: 'SELECT ...',
+              rowcount: 1,
+              sql_rowcount: 1,
+              stacktrace: null,
+              status: 'success',
+              from_dttm: null,
+              to_dttm: null,
+            },
+          ],
+        });
+
+        render(
+          <ProviderWrapper>
+            <TableChart {...props} sticky={false} />
+          </ProviderWrapper>,
+        );
+
+        const table = screen.getByRole('table');
+        expect(within(table).getByText('27%')).toBeInTheDocument();
+      });
+
+      test('applies column number format to summary row after search filter', async () => {
+        // summary row should keep formatting when search is applied
+        const props = transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            query_mode: QueryMode.Aggregate,
+            show_totals: true,
+            include_search: true,
+            server_pagination: false,
+            metrics: ['sum__num'],
+            column_config: {
+              sum__num: { d3NumberFormat: '.0%' },
+            },
+          },
+          queriesData: [
+            testData.basic.queriesData[0],
+            {
+              annotation_data: null,
+              cache_key: null,
+              cached_dttm: null,
+              cache_timeout: null,
+              queried_dttm: null,
+              data: [{ sum__num: 0.27 }],
+              colnames: ['sum__num'],
+              coltypes: [GenericDataType.Numeric],
+              error: null,
+              is_cached: false,
+              query: 'SELECT ...',
+              rowcount: 1,
+              sql_rowcount: 1,
+              stacktrace: null,
+              status: 'success',
+              from_dttm: null,
+              to_dttm: null,
+            },
+          ],
+        });
+        props.includeSearch = true;
+
+        render(
+          <ProviderWrapper>
+            <TableChart {...props} sticky={false} />
+          </ProviderWrapper>,
+        );
+
+        const table = screen.getByRole('table');
+        // Before search: summary should show formatted value
+        expect(within(table).getByText('27%')).toBeInTheDocument();
+
+        // After filtering: summary should still show formatted value
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          const rows = within(table).getAllByRole('row');
+          // The summary row value should still be formatted
+          const footerRow = rows[rows.length - 1];
+          expect(footerRow.textContent).toContain('%');
+        });
+      });
+
       test('preserves client-side search text across temporal table rerenders', async () => {
         const formDataWithSearch = {
           ...testData.basic.formData,
