@@ -165,6 +165,16 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     return '';
   };
 
+  const updatePopupPosition = () => {
+    const svgHeight = svg.node().getBoundingClientRect().height;
+    const [x, y] = d3.mouse(svg.node());
+    hoverPopup
+      .style('display', 'block')
+      .style('top', `${y + 30}px`)
+      .style('left', `${x}px`)
+      .classed('popup-at-bottom', y > (svgHeight * 2) / 3);
+  };
+
   const mouseenter = function mouseenter(this: SVGPathElement, d: GeoFeature) {
     // Darken color
     let c: string = colorFn(d);
@@ -185,6 +195,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
       .html(
         `<div><strong>${getNameOfRegion(d)}</strong><br>${result.length > 0 ? formatter(result[0].metric) : ''}</div>`,
       );
+    updatePopupPosition();
   };
 
   const mousemove = function mousemove() {
@@ -192,6 +203,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     hoverPopup
       .style('top', `${position[1] + 30}px`)
       .style('left', `${position[0]}px`);
+    updatePopupPosition();
   };
 
   const mouseout = function mouseout(this: SVGPathElement) {
