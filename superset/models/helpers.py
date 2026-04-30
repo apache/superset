@@ -26,6 +26,7 @@ import logging
 import re
 import uuid
 from collections.abc import Hashable
+from contextvars import ContextVar
 from datetime import datetime, timedelta
 from typing import (
     Any,
@@ -82,12 +83,13 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SupersetErrorException,
     SupersetErrorsException,
+    SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
+from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement, strip_jinja
 from superset.superset_typing import (
     AdhocMetric,
     Column as ColumnTyping,
@@ -146,6 +148,10 @@ OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 # Right suffix used for joining offset results
 R_SUFFIX = "__right_suffix"
 
+RLS_IN_PROGRESS_TABLE_IDS: ContextVar[frozenset[int]] = ContextVar(
+    "rls_in_progress_table_ids", default=frozenset()
+)
+
 
 class CachedTimeOffset(TypedDict):
     """Result type for time offset processing"""
@@ -184,12 +190,57 @@ SQLA_QUERY_KEYS = {
 }
 
 
+def _apply_subquery_rls(
+    database: Database,
+    catalog: str | None,
+    default_schema: str,
+    parsed_statement: SQLStatement,
+) -> bool:
+    """
+    Apply RLS predicates to any subqueries in the parsed statement.
+
+    :returns: True if RLS predicates were applied, False if no subquery was present.
+    :raises SupersetSecurityException: if subqueries are disallowed or nesting is
+        too deep.
+    """
+    if not parsed_statement.has_subquery():
+        return False
+
+    if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                message=_("Custom SQL fields cannot contain sub-queries."),
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+    # Allow up to 10 levels of nested RLS (e.g., subquery in an RLS rule whose
+    # target table also has RLS rules). The ContextVar is populated by
+    # get_rls_filters() as it processes each table, so at depth N the set
+    # contains the N tables already being expanded.  Checking > 10 (not > 0)
+    # ensures RLS IS enforced at depth 1+ — only a genuine DoS-depth cycle aborts.
+    if len(RLS_IN_PROGRESS_TABLE_IDS.get()) > 10:
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
+                message=_("Maximum RLS nesting depth exceeded."),
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+    from superset.utils.rls import apply_rls
+
+    return apply_rls(database, catalog, default_schema, parsed_statement)
+
+
 def validate_adhoc_subquery(
     sql: str,
     database: Database,
     catalog: str | None,
     default_schema: str,
     engine: str,
+    is_predicate: bool = False,
 ) -> str:
     """
     Check if adhoc SQL contains sub-queries or nested sub-queries with table.
@@ -197,29 +248,83 @@ def validate_adhoc_subquery(
     If sub-queries are allowed, the adhoc SQL is modified to insert any applicable RLS
     predicates to it.
 
-    :param sql: adhoc sql expression
+    :param sql: adhoc sql expression or predicate
+    :param is_predicate: if True, sql is treated as a predicate
+        (fragment of a WHERE clause).
     :raise SupersetSecurityException if sql contains sub-queries or
     nested sub-queries with table
     """
-    parsed_statement = SQLStatement(sql, engine)
-    rls_applied = False
-    if parsed_statement.has_subquery():
-        if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
+    # Step 1: Construct the SQL to parse for validation.
+    # Strip Jinja before parsing to avoid syntax errors while keeping SQL structure.
+    clean_sql = strip_jinja(sql)
+    parse_sql = f"SELECT * WHERE {clean_sql}" if is_predicate else clean_sql
+
+    # Step 2: Parse — SQLStatement raises SupersetParseError for multi-statement SQL
+    # (e.g. "1=1; DROP TABLE users"), which we surface as a security exception.
+    try:
+        parsed_statement = SQLStatement(parse_sql, engine)
+
+        # Block set operations that break out of the synthetic SELECT wrapper.
+        # A predicate fragment should never result in a top-level set operation.
+        if is_predicate and parsed_statement.is_set_operation:
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                    message=_("Custom SQL fields cannot contain sub-queries."),
+                    message=_(
+                        "Invalid predicate structure: set operations are not allowed."
+                    ),
                     level=ErrorLevel.ERROR,
                 )
             )
+    except SupersetParseError as ex:
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                message=_("Invalid SQL or multi-statement injection detected."),
+                level=ErrorLevel.ERROR,
+            )
+        ) from ex
 
-        # enforce RLS rules in any relevant tables
-        rls_applied = apply_rls(database, catalog, default_schema, parsed_statement)
+    rls_applied = _apply_subquery_rls(
+        database, catalog, default_schema, parsed_statement
+    )
 
     # Only regenerate the SQL if RLS predicates were actually applied;
-    # unnecessary round-tripping through sqlglot can alter dialect-specific
-    # syntax.
-    return parsed_statement.format() if rls_applied else sql
+    # unnecessary round-tripping through sqlglot can alter dialect-specific syntax.
+    if not rls_applied:
+        return sql
+
+    if is_predicate:
+        # If the original clause contained Jinja, return it unchanged.
+        # Jinja was stripped only for validation; the downstream template
+        # processor must render it before execution, and any RLS injection
+        # into the rendered SQL happens at query time via get_rls_filters().
+        if clean_sql != sql:
+            return sql
+
+        # Return only the expression part for predicates to avoid corrupting
+        # the RLS rule with the synthetic 'SELECT * WHERE' wrapper.
+        # We use format() on the WHERE clause to ensure correct dialect mapping.
+        root = parsed_statement._parsed
+        if where := root.args.get("where"):
+            return SQLStatement(ast=where.this, engine=engine).format()
+
+        # If it's not a Select root with a WHERE clause, it might be a
+        # break-out attempt (e.g. UNION).
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                message=_("Invalid predicate structure."),
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+    # If the original SQL had Jinja templates, return it unchanged.
+    # Jinja was stripped only for validation; the downstream template
+    # processor must render it before execution.
+    if clean_sql != sql:
+        return sql
+    return parsed_statement.format()
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -2070,9 +2175,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if rls_applied:
                     from_sql = parsed_script.format()
 
+            except SupersetSecurityException:
+                raise
             except Exception as ex:
-                # Log the error but don't fail - RLS application is best-effort
-                logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
+                # If RLS predicates cannot be applied, fail closed rather than
+                # allowing the query to execute without row-level security filters.
+                raise QueryObjectValidationError(
+                    _("Failed to apply row-level security to virtual dataset")
+                ) from ex
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
         from_clause = (

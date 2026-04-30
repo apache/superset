@@ -135,6 +135,42 @@ class CTASMethod(enum.Enum):
     VIEW = enum.auto()
 
 
+_SQL_SUBQUERY_KEYWORDS = re.compile(
+    r"\b(SELECT|UNION|INTERSECT|EXCEPT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|MERGE)\b",
+    re.IGNORECASE,
+)
+
+
+def strip_jinja(sql: str) -> str:
+    """
+    Replaces Jinja tags with parser-safe placeholders before SQL parsing.
+
+    Variable tags ({{ ... }}) containing SQL subquery keywords (word-boundary
+    match) are replaced with a synthetic subquery marker so has_subquery()
+    remains fail-closed. Variable tags without SQL keywords become "__jinja__".
+    Block tags and comments are removed entirely.
+    """
+    # Remove Jinja comments
+    sql = re.sub(r"\{#.*?#\}", "", sql, flags=re.DOTALL)
+
+    def _replace_var(m: re.Match[str]) -> str:
+        if _SQL_SUBQUERY_KEYWORDS.search(m.group(0)):
+            return "(SELECT 1)"
+        return "__jinja__"
+
+    sql = re.sub(r"\{\{.*?\}\}", _replace_var, sql, flags=re.DOTALL)
+
+    def _replace_block(m: re.Match[str]) -> str:
+        # Block tags containing SQL control keywords are replaced with a
+        # synthetic subquery marker so has_subquery() remains fail-closed.
+        if _SQL_SUBQUERY_KEYWORDS.search(m.group(0)):
+            return "(SELECT 1)"
+        return ""
+
+    sql = re.sub(r"\{%.*?%\}", _replace_block, sql, flags=re.DOTALL)
+    return sql
+
+
 class RLSMethod(enum.Enum):
     """
     Methods for enforcing RLS.
@@ -678,20 +714,28 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             exp.Update,
             exp.Delete,
             exp.Merge,
+            exp.Copy,
             exp.Create,
             exp.Drop,
             exp.TruncateTable,
             exp.Alter,
         )
 
-        for node_type in mutating_nodes:
-            if self._parsed.find(node_type):
+        for node in self._parsed.walk():
+            if isinstance(node, mutating_nodes):
                 return True
 
-        # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
+        # depending on the dialect (Oracle, MS SQL) some DML is parsed as a
         # command, not an expression - check at root level
-        if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
-            return True  # pragma: no cover
+        if isinstance(self._parsed, exp.Command) and self._parsed.name.upper() in {
+            "ALTER",
+            "MERGE",
+            "UPSERT",
+            "REPLACE",
+            "COPY",
+            "TRUNCATE",
+        }:
+            return True
 
         if (
             self._dialect == Dialects.POSTGRES
@@ -718,6 +762,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             ).is_mutating()
 
         return False
+
+    @property
+    def is_set_operation(self) -> bool:
+        """
+        Return True if the statement is a set operation (Union, Except, Intersect).
+        """
+        return isinstance(self._parsed, (exp.Union, exp.Except, exp.Intersect))
 
     def format(self, comments: bool = True) -> str:
         """
@@ -880,14 +931,26 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: True if the statement has a subquery.
         """
-        return bool(self._parsed.find(exp.Subquery)) or (
-            isinstance(self._parsed, exp.Select)
-            and any(
-                isinstance(expression, exp.Select)
-                for expression in self._parsed.walk()
-                if expression != self._parsed
-            )
-        )
+        # A subquery is any Select or set operation (Union, Except, Intersect)
+        # that is contained within another expression (like Subquery, In, Exists).
+        for node in self._parsed.walk():
+            if isinstance(node, exp.Subquery):
+                return True
+
+            # If we find a Select or set operation that isn't the root, it's a subquery.
+            if (
+                isinstance(node, (exp.Select, exp.Union, exp.Except, exp.Intersect))
+                and node != self._parsed
+            ):
+                # If the root is a set operation, its direct children are its
+                # components, not subqueries in the security sense.
+                if (
+                    isinstance(self._parsed, (exp.Union, exp.Except, exp.Intersect))
+                    and node.parent == self._parsed
+                ):
+                    continue
+                return True
+        return False
 
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """
@@ -1414,6 +1477,25 @@ def extract_tables_from_statement(
             for source in scope.sources.values()
             if isinstance(source, exp.Table) and not is_cte(source, scope)
         ]
+        # traverse_scope omits the primary target table for DML statements
+        # (UPDATE/DELETE/INSERT/MERGE); add it explicitly so RLS checks cover it.
+        if isinstance(statement, (exp.Update, exp.Delete)) and isinstance(
+            statement.this, exp.Table
+        ):
+            sources = [statement.this, *sources]
+        elif isinstance(statement, exp.Insert):
+            # INSERT INTO t VALUES (...) → statement.this is exp.Table
+            # INSERT INTO t (col, ...) VALUES (...) → statement.this is exp.Schema
+            target = (
+                statement.this.this
+                if isinstance(statement.this, exp.Schema)
+                else statement.this
+            )
+            if isinstance(target, exp.Table):
+                sources = [target, *sources]
+        elif isinstance(statement, exp.Merge) and isinstance(statement.this, exp.Table):
+            # MERGE INTO target USING source — add the target table explicitly
+            sources = [statement.this, *sources]
 
     return {
         Table(

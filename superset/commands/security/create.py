@@ -25,6 +25,7 @@ from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.security import RLSDAO
 from superset.extensions import db
+from superset.models.helpers import validate_adhoc_subquery
 from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
@@ -43,12 +44,27 @@ class CreateRLSRuleCommand(BaseCommand):
 
     def validate(self) -> None:
         roles = populate_roles(self._roles)
-        tables = (
+        tables: list[SqlaTable] = (
             db.session.query(SqlaTable)
             .filter(SqlaTable.id.in_(self._tables))  # type: ignore[attr-defined]
             .all()
         )
         if len(tables) != len(self._tables):
             raise DatasourceNotFoundValidationError()
+
+        if clause := self._properties.get("clause"):
+            if not tables:
+                raise DatasourceNotFoundValidationError()
+
+            for table in tables:
+                validate_adhoc_subquery(
+                    clause,
+                    table.database,
+                    table.catalog,
+                    table.schema or "",
+                    table.database.backend,
+                    is_predicate=True,
+                )
+
         self._properties["roles"] = roles
         self._properties["tables"] = tables

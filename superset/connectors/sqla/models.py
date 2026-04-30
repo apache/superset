@@ -78,6 +78,7 @@ from superset.connectors.sqla.utils import (
 )
 from superset.daos.exceptions import DatasourceNotFound
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
@@ -754,15 +755,73 @@ class BaseDatasource(
             rules are always included regardless of this parameter.
         :returns: A list of SQL clauses to be ANDed together.
         """
+        from superset.models.helpers import RLS_IN_PROGRESS_TABLE_IDS
+
+        # Circular reference detection
+        table_ids = RLS_IN_PROGRESS_TABLE_IDS.get()
+        if self.id in table_ids:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
+                    message=_(
+                        "Circular RLS policy detected for table: %(table)s",
+                        table=self.table_name,
+                    ),
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+        token = RLS_IN_PROGRESS_TABLE_IDS.set(table_ids | {self.id})
+        try:
+            return self._get_processed_rls_filters(
+                template_processor, include_global_guest_rls
+            )
+        finally:
+            RLS_IN_PROGRESS_TABLE_IDS.reset(token)
+
+    def _process_rls_clause(
+        self,
+        clause: str,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> TextClause:
+        """
+        Process an RLS clause with security validation and template processing.
+        """
+        processed = self._process_select_expression(
+            expression=clause,
+            database_id=self.database_id,
+            engine=self.database.backend,
+            schema=self.schema,
+            template_processor=template_processor,
+        )
+
+        if not processed:
+            # _process_select_expression returns None when the expression was not
+            # processed (e.g. Jinja templates), and may return "" for degenerate
+            # inputs. In both cases fall back to template processing to avoid
+            # generating empty parentheses `()` that would produce invalid SQL.
+            processed = (
+                template_processor.process_template(clause)
+                if template_processor
+                else clause
+            )
+        return self.text(f"({processed})")
+
+    def _get_processed_rls_filters(
+        self,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+        include_global_guest_rls: bool = True,
+    ) -> list[TextClause]:
+        """
+        Private helper to process RLS filters.
+        """
         template_processor = template_processor or self.get_template_processor()
 
         all_filters: list[TextClause] = []
         filter_groups: dict[Union[int, str], list[TextClause]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
-                clause = self.text(
-                    f"({template_processor.process_template(filter_.clause)})"
-                )
+                clause = self._process_rls_clause(filter_.clause, template_processor)
                 if filter_.group_key:
                     filter_groups[filter_.group_key].append(clause)
                 else:
@@ -772,10 +831,10 @@ class BaseDatasource(
                 for rule in security_manager.get_guest_rls_filters(self):
                     if not include_global_guest_rls and not rule.get("dataset"):
                         continue
-                    clause = self.text(
-                        f"({template_processor.process_template(rule['clause'])})"
+
+                    all_filters.append(
+                        self._process_rls_clause(rule["clause"], template_processor)
                     )
-                    all_filters.append(clause)
 
             grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]
             all_filters.extend(grouped_filters)

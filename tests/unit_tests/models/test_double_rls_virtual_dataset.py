@@ -39,7 +39,40 @@ def mock_datasource() -> MagicMock:
     datasource = MagicMock(spec=BaseDatasource)
     datasource.get_template_processor.return_value = MagicMock()
     datasource.get_template_processor.return_value.process_template = lambda x: x
-    datasource.text = lambda x: TextClause(x)
+
+    # Mock text method to return something string-like for assertions
+    def _text(x: str) -> MagicMock:
+        m = MagicMock(spec=TextClause)
+        m.__str__.return_value = x  # type: ignore
+        return m
+
+    datasource.text = _text
+    datasource.database = MagicMock()
+    datasource.database.backend = "postgresql"
+    datasource.database_id = 1
+    datasource.id = 1
+    datasource.schema = "public"
+    datasource.table_name = "test_table"
+
+    # Manually add method to bypass spec limitations
+    datasource._process_select_expression = MagicMock(return_value=None)
+
+    # Bind real methods so logic executes against mocked security_manager
+    datasource.get_sqla_row_level_filters = (
+        lambda *args, **kwargs: BaseDatasource.get_sqla_row_level_filters(
+            datasource, *args, **kwargs
+        )
+    )
+    datasource._get_processed_rls_filters = (
+        lambda *args, **kwargs: BaseDatasource._get_processed_rls_filters(
+            datasource, *args, **kwargs
+        )
+    )
+    datasource._process_rls_clause = (
+        lambda *args, **kwargs: BaseDatasource._process_rls_clause(
+            datasource, *args, **kwargs
+        )
+    )
     return datasource
 
 
@@ -74,8 +107,8 @@ def test_rls_filters_include_guest_when_enabled(
         ),
     ):
         # Call with include_global_guest_rls=True
-        filters = BaseDatasource.get_sqla_row_level_filters(
-            mock_datasource, include_global_guest_rls=True
+        filters = mock_datasource.get_sqla_row_level_filters(
+            include_global_guest_rls=True
         )
 
         # Should include both regular and guest RLS
@@ -116,8 +149,8 @@ def test_rls_filters_exclude_guest_when_requested(
         ),
     ):
         # Call internal API with include_global_guest_rls=False
-        filters = BaseDatasource.get_sqla_row_level_filters(
-            mock_datasource, include_global_guest_rls=False
+        filters = mock_datasource.get_sqla_row_level_filters(
+            include_global_guest_rls=False
         )
 
         # Should include only regular RLS, not guest RLS
@@ -158,7 +191,7 @@ def test_rls_filters_include_guest_by_default(
         ),
     ):
         # Call internal API with default include_global_guest_rls=True
-        filters = BaseDatasource.get_sqla_row_level_filters(mock_datasource)
+        filters = mock_datasource.get_sqla_row_level_filters()
 
         # Should include both regular and guest RLS
         assert len(filters) == 2
@@ -193,8 +226,8 @@ def test_regular_rls_always_included(
         ),
     ):
         # Call internal API with include_global_guest_rls=False
-        filters = BaseDatasource.get_sqla_row_level_filters(
-            mock_datasource, include_global_guest_rls=False
+        filters = mock_datasource.get_sqla_row_level_filters(
+            include_global_guest_rls=False
         )
 
         # Regular RLS should still be included
@@ -233,8 +266,8 @@ def test_guest_rls_skipped_when_feature_disabled(
         ),
     ):
         # Even with include_global_guest_rls=True, feature flag takes precedence
-        filters = BaseDatasource.get_sqla_row_level_filters(
-            mock_datasource, include_global_guest_rls=True
+        filters = mock_datasource.get_sqla_row_level_filters(
+            include_global_guest_rls=True
         )
 
         # Should include only regular RLS
@@ -278,8 +311,8 @@ def test_filter_grouping_preserved(
             return_value=False,
         ),
     ):
-        filters = BaseDatasource.get_sqla_row_level_filters(
-            mock_datasource, include_global_guest_rls=False
+        filters = mock_datasource.get_sqla_row_level_filters(
+            include_global_guest_rls=False
         )
 
         # Should have 2 filters: one ungrouped, one grouped (ORed)
