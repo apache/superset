@@ -33,6 +33,7 @@ import {
   SelectOption,
 } from 'src/features/roles/types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { SupersetClient } from '@superset-ui/core';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
 import { type UserObject } from 'src/pages/UsersList/types';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
@@ -146,41 +147,33 @@ function RoleListEditModal({
   }, [addDangerToast, id]);
 
   useEffect(() => {
-    if (!stablePermissionIds.length) {
-      setRolePermissions([]);
-      setLoadingRolePermissions(false);
-      return;
-    }
-
     setLoadingRolePermissions(true);
     permissionFetchSucceeded.current = false;
-    const filters = [{ col: 'id', opr: 'in', value: stablePermissionIds }];
 
-    fetchPaginatedData({
-      endpoint: `/api/v1/security/permissions-resources/`,
-      pageSize: 100,
-      setData: (data: SelectOption[]) => {
+    SupersetClient.get({
+      endpoint: `/api/v1/security/roles/${id}/permissions/`,
+    })
+      .then(response => {
         permissionFetchSucceeded.current = true;
-        setRolePermissions(data);
-      },
-      filters,
-      setLoadingState: (loading: boolean) => setLoadingRolePermissions(loading),
-      loadingKey: 'rolePermissions',
-      addDangerToast,
-      errorMessage: t('There was an error loading permissions.'),
-      mapResult: (permission: {
-        id: number;
-        permission: { name: string };
-        view_menu: { name: string };
-      }) => ({
-        value: permission.id,
-        label: formatPermissionLabel(
-          permission.permission.name,
-          permission.view_menu.name,
-        ),
-      }),
-    });
-  }, [addDangerToast, id, stablePermissionIds]);
+        const result: Array<{
+          id: number;
+          permission_name: string;
+          view_menu_name: string;
+        }> = response.json?.result ?? [];
+        setRolePermissions(
+          result.map(p => ({
+            value: p.id,
+            label: formatPermissionLabel(p.permission_name, p.view_menu_name),
+          })),
+        );
+      })
+      .catch(() => {
+        addDangerToast(t('There was an error loading permissions.'));
+      })
+      .finally(() => {
+        setLoadingRolePermissions(false);
+      });
+  }, [addDangerToast, id]);
 
   useEffect(() => {
     if (!stableGroupIds.length) {

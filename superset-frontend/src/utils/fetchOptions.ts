@@ -88,16 +88,21 @@ export const fetchPaginatedData = async ({
     }
 
     const totalPages = Math.ceil(totalItems / pageSize);
+    const concurrencyLimit = 5;
+    const allResults = [...firstPageResults];
 
-    const requests = Array.from({ length: totalPages - 1 }, (_, i) =>
-      fetchPage(i + 1),
-    );
-    const remainingResults = await Promise.all(requests);
+    for (let batch = 1; batch < totalPages; batch += concurrencyLimit) {
+      const batchEnd = Math.min(batch + concurrencyLimit, totalPages);
+      // eslint-disable-next-line no-await-in-loop
+      const batchResults = await Promise.all(
+        Array.from({ length: batchEnd - batch }, (_, i) =>
+          fetchPage(batch + i),
+        ),
+      );
+      allResults.push(...batchResults.flatMap(res => res.results));
+    }
 
-    setData([
-      ...firstPageResults,
-      ...remainingResults.flatMap(res => res.results),
-    ]);
+    setData(allResults);
   } catch (err) {
     addDangerToast(t(errorMessage));
   } finally {
