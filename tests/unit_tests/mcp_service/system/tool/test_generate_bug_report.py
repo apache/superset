@@ -346,6 +346,42 @@ class TestGenerateBugReportViaMCP:
         finally:
             app.config.pop("MCP_BUG_REPORT_CONTACT", None)
 
+    @pytest.mark.asyncio
+    async def test_generate_bug_report_includes_mcp_call_id(self, mcp_server):
+        """Bug report includes mcp_call_id when provided."""
+        with patch("flask.g") as mock_g:
+            mock_g.user = None
+
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_bug_report",
+                    {
+                        "request": {
+                            "tool_name": "health_check",
+                            "mcp_call_id": "abc123def456",
+                        }
+                    },
+                )
+
+        data = json.loads(result.content[0].text)
+        assert "abc123def456" in data["report"]
+        assert "MCP Call ID" in data["report"]
+
+    @pytest.mark.asyncio
+    async def test_generate_bug_report_omits_mcp_call_id_when_absent(self, mcp_server):
+        """Bug report omits MCP Call ID line when not provided."""
+        with patch("flask.g") as mock_g:
+            mock_g.user = None
+
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_bug_report",
+                    {"request": {"tool_name": "health_check"}},
+                )
+
+        data = json.loads(result.content[0].text)
+        assert "MCP Call ID" not in data["report"]
+
 
 # ---------------------------------------------------------------------------
 # Schema-level tests: max_length caps
