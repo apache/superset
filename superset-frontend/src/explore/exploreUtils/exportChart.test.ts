@@ -58,7 +58,9 @@ beforeEach(() => {
   });
 });
 
-// Tests for exportChart URL prefix handling in streaming export
+// Tests for exportChart URL prefix handling in streaming export.
+// Streaming uses native fetch (not SupersetClient), so exportChart must apply
+// ensureAppRoot before passing the URL to onStartStreamingExport.
 test('exportChart v1 API passes prefixed URL to onStartStreamingExport when app root is configured', async () => {
   const appRoot = '/superset';
   ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
@@ -111,6 +113,24 @@ test('exportChart v1 API passes nested prefix for deeply nested deployments', as
   expect(callArgs.exportType).toBe('xlsx');
 });
 
+// Regression test for the double-prefix bug: SupersetClient.postForm adds appRoot
+// internally via getUrl(), so the URL passed must NOT already be prefixed.
+test('exportChart v1 API calls postForm with unprefixed URL when app root is configured', async () => {
+  const { SupersetClient } = jest.requireMock('@superset-ui/core');
+  const appRoot = '/analytics';
+  ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
+
+  await exportChart({
+    formData: baseFormData,
+    resultFormat: 'csv',
+  });
+
+  expect(SupersetClient.postForm).toHaveBeenCalledTimes(1);
+  const [url] = SupersetClient.postForm.mock.calls[0];
+  expect(url).toBe('/api/v1/chart/data');
+  expect(url).not.toContain(appRoot);
+});
+
 test('exportChart passes csv exportType for CSV exports', async () => {
   const onStartStreamingExport = jest.fn();
 
@@ -143,7 +163,7 @@ test('exportChart passes xlsx exportType for Excel exports', async () => {
   );
 });
 
-test('exportChart legacy API (useLegacyApi=true) passes prefixed URL with app root configured', async () => {
+test('exportChart legacy API (useLegacyApi=true) passes prefixed URL to onStartStreamingExport when app root is configured', async () => {
   const appRoot = '/superset';
   ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
 
@@ -165,6 +185,8 @@ test('exportChart legacy API (useLegacyApi=true) passes prefixed URL with app ro
 
   expect(onStartStreamingExport).toHaveBeenCalledTimes(1);
   const callArgs = onStartStreamingExport.mock.calls[0][0];
+  // The legacy blueprint path is /superset/explore_json/; with appRoot=/superset the
+  // full streaming URL is /superset/superset/explore_json/ (appRoot + blueprint prefix).
   expect(callArgs.url).toBe('/superset/superset/explore_json/?csv=true');
   expect(callArgs.exportType).toBe('csv');
 });
