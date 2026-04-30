@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/// <reference types="@emotion/jest" />
 import fetchMock from 'fetch-mock';
 import {
   fireEvent,
@@ -485,6 +486,54 @@ test('should render ParentSize wrapper with height 100% for tabs', async () => {
   expect(gridContainer).toBeInTheDocument();
   expect(parentSizeWrapper).toBeInTheDocument();
   expect(tabPanels.length).toBeGreaterThan(0);
+});
+
+test('should apply min-height to the top-level tab drop target so tabs can be dropped on dashboards with content', () => {
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+  const { container } = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardLayout: undoableDashboardLayout,
+      dashboardState: { ...mockState.dashboardState, editMode: true },
+    }),
+    useDnd: true,
+    useTheme: true,
+  });
+
+  const headerWrapper = container.querySelector(
+    '[data-test="dashboard-header-wrapper"]',
+  );
+  expect(headerWrapper).toBeInTheDocument();
+
+  // The Droppable inside the header should have the empty-droptarget class
+  // when there are no top-level tabs and edit mode is active. Without this
+  // class (and its associated min-height CSS rule), the drop target has zero
+  // height and users cannot drag tabs onto dashboards that already have
+  // content.
+  const droptarget = headerWrapper!.querySelector('.empty-droptarget');
+  expect(droptarget).toBeInTheDocument();
+
+  // Verify the StyledHeader CSS defines min-height for .empty-droptarget.
+  // getComputedStyle doesn't work in jsdom for styled-components injected
+  // styles, so we check the CSSOM directly.
+  const allRules = Array.from(document.styleSheets).flatMap(sheet => {
+    try {
+      return Array.from(sheet.cssRules).map(rule => rule.cssText);
+    } catch {
+      return [];
+    }
+  });
+  const emptyDroptargetRule = allRules.find(
+    rule => rule.includes('.empty-droptarget') && rule.includes('min-height'),
+  );
+  expect(emptyDroptargetRule).toBeDefined();
 });
 
 test('should maintain layout when switching between tabs', async () => {
