@@ -21,8 +21,6 @@ import {
   ControlSetItem,
   ControlState,
   sharedControls,
-  Dataset,
-  ColumnMeta,
   defineSavedMetrics,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
@@ -77,11 +75,7 @@ export const metricsControlSetItem: ControlSetItem = {
       { controls, datasource, form_data }: ControlPanelState,
       controlState: ControlState,
     ) => ({
-      columns: datasource?.columns[0]?.hasOwnProperty('filterable')
-        ? (datasource as Dataset)?.columns?.filter(
-            (c: ColumnMeta) => c.filterable,
-          )
-        : datasource?.columns,
+      columns: datasource?.columns || [],
       savedMetrics: defineSavedMetrics(datasource),
       // current active adhoc metrics
       selectedMetrics:
