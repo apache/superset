@@ -33,14 +33,39 @@ const defaultBootstrapData = {
 
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
-  default: jest.fn(() => defaultBootstrapData),
+  default: jest.fn(() => ({
+    common: {
+      conf: {
+        AUTH_TYPE: 1,
+        AUTH_PROVIDERS: [],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  })),
 }));
 
-const mockGetBootstrapData = getBootstrapData as jest.Mock;
+const mockEnsureAppRoot = jest.fn((path: string) => path);
+jest.mock('src/utils/pathUtils', () => ({
+  ensureAppRoot: (...args: string[]) => mockEnsureAppRoot(...args),
+}));
+
+const mockGetBootstrapData = jest.mocked(getBootstrapData);
 
 beforeEach(() => {
-  mockGetBootstrapData.mockReturnValue(defaultBootstrapData);
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 1,
+        AUTH_PROVIDERS: [],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  } as ReturnType<typeof getBootstrapData>);
+  mockEnsureAppRoot.mockClear();
+  mockEnsureAppRoot.mockImplementation((path: string) => path);
 });
+
+// --- DB / LDAP Auth tests ---
 
 test('should render login form elements', () => {
   render(<Login />, { useRedux: true });
@@ -64,20 +89,231 @@ test('should render form instruction text', () => {
   ).toBeInTheDocument();
 });
 
-test('should render SAML provider buttons', () => {
+test('should call ensureAppRoot for login endpoint on DB auth', () => {
+  render(<Login />, { useRedux: true });
+  expect(mockEnsureAppRoot).toHaveBeenCalledWith('/login/');
+});
+
+// --- OAuth tests ---
+
+test('should render OAuth provider buttons when AUTH_TYPE is OAuth', () => {
   mockGetBootstrapData.mockReturnValue({
     common: {
       conf: {
-        AUTH_TYPE: 5,
+        AUTH_TYPE: 4,
         AUTH_PROVIDERS: [
-          { name: 'okta', icon: 'okta' },
-          { name: 'onelogin', icon: 'onelogin' },
+          { name: 'google', icon: 'google' },
+          { name: 'github', icon: 'github' },
         ],
         AUTH_USER_REGISTRATION: false,
       },
     },
   });
   render(<Login />, { useRedux: true });
-  expect(screen.getByText('Sign in with Okta')).toBeInTheDocument();
-  expect(screen.getByText('Sign in with Onelogin')).toBeInTheDocument();
+  expect(
+    screen.getByRole('link', { name: /Sign in with Google/ }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('link', { name: /Sign in with Github/ }),
+  ).toBeInTheDocument();
+});
+
+test('should not render username/password fields for OAuth auth type', () => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 4,
+        AUTH_PROVIDERS: [{ name: 'google', icon: 'google' }],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(screen.queryByTestId('username-input')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('password-input')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('login-button')).not.toBeInTheDocument();
+});
+
+test('should call ensureAppRoot for OAuth provider login URLs', () => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 4,
+        AUTH_PROVIDERS: [
+          { name: 'google', icon: 'google' },
+          { name: 'github', icon: 'github' },
+        ],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(mockEnsureAppRoot).toHaveBeenCalledWith('/login/google');
+  expect(mockEnsureAppRoot).toHaveBeenCalledWith('/login/github');
+});
+
+// --- OID tests ---
+
+test('should render OID provider buttons when AUTH_TYPE is OID', () => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 0,
+        AUTH_PROVIDERS: [
+          { name: 'google', url: 'https://accounts.google.com' },
+        ],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(
+    screen.getByRole('link', { name: /Sign in with Google/ }),
+  ).toBeInTheDocument();
+});
+
+test('should not render username/password fields for OID auth type', () => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 0,
+        AUTH_PROVIDERS: [
+          { name: 'google', url: 'https://accounts.google.com' },
+        ],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(screen.queryByTestId('username-input')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('password-input')).not.toBeInTheDocument();
+});
+
+// --- Registration button tests ---
+
+test('should render register button when AUTH_USER_REGISTRATION is enabled', () => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 1,
+        AUTH_PROVIDERS: [],
+        AUTH_USER_REGISTRATION: true,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(screen.getByTestId('register-button')).toBeInTheDocument();
+});
+
+test('should not render register button when AUTH_USER_REGISTRATION is disabled', () => {
+  render(<Login />, { useRedux: true });
+  expect(screen.queryByTestId('register-button')).not.toBeInTheDocument();
+});
+
+// --- ensureAppRoot / SUPERSET_APP_ROOT tests ---
+
+test('should prefix OAuth provider URLs with application root', () => {
+  mockEnsureAppRoot.mockImplementation(
+    (path: string) => `/superset${path.startsWith('/') ? path : `/${path}`}`,
+  );
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 4,
+        AUTH_PROVIDERS: [{ name: 'google', icon: 'google' }],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  const googleLink = screen.getByRole('link', {
+    name: /Sign in with Google/,
+  });
+  expect(googleLink).toHaveAttribute('href', '/superset/login/google');
+});
+
+test('should prefix multiple OAuth provider URLs with application root', () => {
+  mockEnsureAppRoot.mockImplementation(
+    (path: string) => `/app${path.startsWith('/') ? path : `/${path}`}`,
+  );
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 4,
+        AUTH_PROVIDERS: [
+          { name: 'google', icon: 'google' },
+          { name: 'github', icon: 'github' },
+        ],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(
+    screen.getByRole('link', { name: /Sign in with Google/ }),
+  ).toHaveAttribute('href', '/app/login/google');
+  expect(
+    screen.getByRole('link', { name: /Sign in with Github/ }),
+  ).toHaveAttribute('href', '/app/login/github');
+});
+
+test('should prefix register URL with application root', () => {
+  mockEnsureAppRoot.mockImplementation(
+    (path: string) => `/superset${path.startsWith('/') ? path : `/${path}`}`,
+  );
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 1,
+        AUTH_PROVIDERS: [],
+        AUTH_USER_REGISTRATION: true,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(screen.getByTestId('register-button')).toHaveAttribute(
+    'href',
+    '/superset/register/',
+  );
+});
+
+test('should prefix OID provider URLs with application root', () => {
+  mockEnsureAppRoot.mockImplementation(
+    (path: string) => `/superset${path.startsWith('/') ? path : `/${path}`}`,
+  );
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 0,
+        AUTH_PROVIDERS: [
+          { name: 'google', url: 'https://accounts.google.com' },
+        ],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(
+    screen.getByRole('link', { name: /Sign in with Google/ }),
+  ).toHaveAttribute('href', '/superset/login/google');
+});
+
+test('should use ensureAppRoot for all generated URLs with deep application root', () => {
+  mockEnsureAppRoot.mockImplementation(
+    (path: string) =>
+      `/my-org/superset${path.startsWith('/') ? path : `/${path}`}`,
+  );
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 4,
+        AUTH_PROVIDERS: [{ name: 'google', icon: 'google' }],
+        AUTH_USER_REGISTRATION: false,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(
+    screen.getByRole('link', { name: /Sign in with Google/ }),
+  ).toHaveAttribute('href', '/my-org/superset/login/google');
 });
