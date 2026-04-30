@@ -30,7 +30,8 @@ import {
 } from '@superset-ui/core';
 import { FilterElement } from './FilterBar/FilterControls/types';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
-import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
+import { CHART_TYPE, TAB_TYPE, TABS_TYPE } from '../../util/componentTypes';
+import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { isChartCustomizationId } from './FiltersConfigModal/utils';
 import {
   migrateChartCustomizationArray,
@@ -178,10 +179,48 @@ export function useDashboardHasTabs() {
   );
 }
 
-function useActiveDashboardTabs() {
-  return useSelector<RootState, ActiveTabs>(
+function useActiveDashboardTabs(): ActiveTabs {
+  const reduxTabs = useSelector<RootState, ActiveTabs>(
     state => state.dashboardState?.activeTabs,
   );
+  const dashboardLayout = useDashboardLayout();
+
+  return useMemo(() => {
+    if (reduxTabs?.length > 0) return reduxTabs;
+
+    // When activeTabs is empty (e.g. embedded dashboards with hideTab:true
+    // where the Tabs component never mounts, or transient first-render race),
+    // derive the default active tabs from the layout: pick the first tab at
+    // each nesting level along the default path.
+    const root = dashboardLayout[DASHBOARD_ROOT_ID];
+    if (!root?.children?.length) return reduxTabs;
+
+    const firstChildId = root.children[0];
+    if (firstChildId === DASHBOARD_GRID_ID) return reduxTabs;
+
+    const tabsContainer = dashboardLayout[firstChildId];
+    if (tabsContainer?.type !== TABS_TYPE || !tabsContainer.children?.length) {
+      return reduxTabs;
+    }
+
+    const defaults: string[] = [];
+    const queue = [tabsContainer.children[0]];
+    while (queue.length > 0) {
+      const tabId = queue.shift()!;
+      defaults.push(tabId);
+      const tab = dashboardLayout[tabId];
+      if (tab?.children) {
+        for (const childId of tab.children) {
+          const child = dashboardLayout[childId];
+          if (child?.type === TABS_TYPE && child.children?.length) {
+            queue.push(child.children[0]);
+          }
+        }
+      }
+    }
+
+    return defaults.length > 0 ? defaults : reduxTabs;
+  }, [reduxTabs, dashboardLayout]);
 }
 
 function useSelectChartTabParents() {
@@ -251,16 +290,14 @@ export function useIsFilterInScope() {
 
 export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
   const dashboardHasTabs = useDashboardHasTabs();
-  const activeTabs = useActiveDashboardTabs();
   const isFilterInScope = useIsFilterInScope();
 
   return useMemo(() => {
     let filtersInScope: (Filter | Divider)[] = [];
     const filtersOutOfScope: (Filter | Divider)[] = [];
 
-    // Skip scope evaluation when tabs exist but activeTabs hasn't been
-    // populated yet (embedded dashboards on initial render).
-    if (!dashboardHasTabs || activeTabs.length === 0) {
+    // we check native filters scopes only on dashboards with tabs
+    if (!dashboardHasTabs) {
       filtersInScope = filters;
     } else {
       filters.forEach(filter => {
@@ -274,7 +311,7 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
       });
     }
     return [filtersInScope, filtersOutOfScope];
-  }, [filters, dashboardHasTabs, activeTabs, isFilterInScope]);
+  }, [filters, dashboardHasTabs, isFilterInScope]);
 }
 
 export function useIsCustomizationInScope() {
@@ -320,7 +357,6 @@ export function useSelectCustomizationsInScope(
   customizations: (ChartCustomization | ChartCustomizationDivider)[],
 ) {
   const dashboardHasTabs = useDashboardHasTabs();
-  const activeTabs = useActiveDashboardTabs();
   const isCustomizationInScope = useIsCustomizationInScope();
 
   return useMemo(() => {
@@ -333,9 +369,8 @@ export function useSelectCustomizationsInScope(
       | ChartCustomizationDivider
     )[] = [];
 
-    // Skip scope evaluation when tabs exist but activeTabs hasn't been
-    // populated yet (embedded dashboards on initial render).
-    if (!dashboardHasTabs || activeTabs.length === 0) {
+    // we check customization scopes only on dashboards with tabs
+    if (!dashboardHasTabs) {
       customizationsInScope = customizations;
     } else {
       customizations.forEach(customization => {
@@ -349,5 +384,5 @@ export function useSelectCustomizationsInScope(
       });
     }
     return [customizationsInScope, customizationsOutOfScope];
-  }, [customizations, dashboardHasTabs, activeTabs, isCustomizationInScope]);
+  }, [customizations, dashboardHasTabs, isCustomizationInScope]);
 }

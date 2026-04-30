@@ -526,44 +526,70 @@ test('filter with mix of existing and non-existent charts in chartsInScope', () 
   expect(result.current(filter)).toBe(true);
 });
 
-// --- Embedded mode: activeTabs is empty on initial render ---
-// When an embedded dashboard loads fresh (no permalink, no stored state),
-// activeTabs starts as [] because hydrateDashboard receives null and falls back
-// to []. The Tabs component fires setActiveTab in a useEffect AFTER the first
-// render, so the filter bar renders with activeTabs = [] and all filters
-// evaluate as "out of scope" — producing a blank filter bar.
+// --- Embedded / hideTab: activeTabs is empty ---
+// When an embedded dashboard uses hideTab:true, the Tabs component never
+// mounts, so setActiveTab never fires and activeTabs stays []. The same
+// empty state occurs transiently on first render of any tabbed dashboard.
 //
-// useIsFilterInScope correctly reports false with empty activeTabs — that's
-// accurate scope evaluation. The fix belongs in useSelectFiltersInScope, which
-// should bypass scope evaluation entirely when activeTabs hasn't initialized.
+// useActiveDashboardTabs derives the default first tab from the layout when
+// Redux activeTabs is empty, so scope evaluation uses the correct default
+// tab instead of either "no tabs active" (blank filter bar) or "all tabs"
+// (showing out-of-scope filters).
 
-test('useIsFilterInScope: filters with chartsInScope report out-of-scope when activeTabs is empty', () => {
+// Helper: build a layout with ROOT_ID → TABS container → TAB children
+function embeddedLayout(extras: Record<string, Record<string, unknown>> = {}) {
+  return {
+    ROOT_ID: {
+      type: 'ROOT',
+      id: 'ROOT_ID',
+      children: ['TABS-1'],
+    },
+    'TABS-1': {
+      type: 'TABS',
+      id: 'TABS-1',
+      children: ['TAB-Company', 'TAB-Desktop'],
+    },
+    'TAB-Company': {
+      type: 'TAB',
+      id: 'TAB-Company',
+      children: ['CHART-1', 'CHART-2'],
+    },
+    'TAB-Desktop': {
+      type: 'TAB',
+      id: 'TAB-Desktop',
+      children: ['CHART-3'],
+    },
+    'CHART-1': {
+      type: 'CHART',
+      meta: { chartId: 1 },
+      parents: ['ROOT_ID', 'TAB-Company'],
+    },
+    'CHART-2': {
+      type: 'CHART',
+      meta: { chartId: 2 },
+      parents: ['ROOT_ID', 'TAB-Company'],
+    },
+    'CHART-3': {
+      type: 'CHART',
+      meta: { chartId: 3 },
+      parents: ['ROOT_ID', 'TAB-Desktop'],
+    },
+    ...extras,
+  };
+}
+
+test('useIsFilterInScope: filter scoped to default tab is in-scope when activeTabs is empty', () => {
   (useSelector as jest.Mock).mockImplementation((selector: Function) => {
     const mockState = {
       dashboardState: { activeTabs: [] },
-      dashboardLayout: {
-        present: {
-          'CHART-1': {
-            type: 'CHART',
-            meta: { chartId: 1 },
-            parents: ['ROOT_ID', 'TAB-Company'],
-          },
-          'CHART-2': {
-            type: 'CHART',
-            meta: { chartId: 2 },
-            parents: ['ROOT_ID', 'TAB-Company'],
-          },
-          'TAB-Company': { type: 'TAB', id: 'TAB-Company' },
-          'TAB-Desktop': { type: 'TAB', id: 'TAB-Desktop' },
-        },
-      },
+      dashboardLayout: { present: embeddedLayout() },
     };
     return selector(mockState);
   });
 
   const filter: Filter = {
-    id: 'filter_embedded',
-    name: 'Embedded Filter',
+    id: 'filter_default_tab',
+    name: 'Default Tab Filter',
     filterType: 'filter_select',
     type: NativeFilterType.NativeFilter,
     chartsInScope: [1, 2],
@@ -572,28 +598,51 @@ test('useIsFilterInScope: filters with chartsInScope report out-of-scope when ac
     defaultDataMask: {},
     cascadeParentIds: [],
     targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
-    description: 'Filter that should be visible in embedded mode',
+    description: 'Filter scoped to default (first) tab',
+  };
+
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(result.current(filter)).toBe(true);
+});
+
+test('useIsFilterInScope: filter scoped only to non-default tab is out-of-scope when activeTabs is empty', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: [] },
+      dashboardLayout: { present: embeddedLayout() },
+    };
+    return selector(mockState);
+  });
+
+  const filter: Filter = {
+    id: 'filter_other_tab',
+    name: 'Other Tab Filter',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [3],
+    scope: { rootPath: ['TAB-Desktop'], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
+    description: 'Filter scoped only to non-default tab',
   };
 
   const { result } = renderHook(() => useIsFilterInScope());
   expect(result.current(filter)).toBe(false);
 });
 
-test('useIsFilterInScope: filters with rootPath fallback report out-of-scope when activeTabs is empty', () => {
+test('useIsFilterInScope: filter with rootPath to default tab is in-scope when activeTabs is empty', () => {
   (useSelector as jest.Mock).mockImplementation((selector: Function) => {
     const mockState = {
       dashboardState: { activeTabs: [] },
-      dashboardLayout: {
-        present: {
-          'TAB-Company': { type: 'TAB', id: 'TAB-Company' },
-        },
-      },
+      dashboardLayout: { present: embeddedLayout() },
     };
     return selector(mockState);
   });
 
   const filter: Filter = {
-    id: 'filter_rootpath_embedded',
+    id: 'filter_rootpath_default',
     name: 'RootPath Filter',
     filterType: 'filter_select',
     type: NativeFilterType.NativeFilter,
@@ -602,46 +651,26 @@ test('useIsFilterInScope: filters with rootPath fallback report out-of-scope whe
     defaultDataMask: {},
     cascadeParentIds: [],
     targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
-    description: 'Filter using rootPath fallback in embedded mode',
+    description: 'Filter using rootPath to default tab',
   };
 
   const { result } = renderHook(() => useIsFilterInScope());
-  expect(result.current(filter)).toBe(false);
+  expect(result.current(filter)).toBe(true);
 });
 
-test('useSelectFiltersInScope: all filters should be in scope when dashboard has tabs but activeTabs is empty (embedded initial render)', () => {
+test('useSelectFiltersInScope: only default-tab filters are in scope when activeTabs is empty (embedded hideTab)', () => {
   (useSelector as jest.Mock).mockImplementation((selector: Function) => {
     const mockState = {
       dashboardState: { activeTabs: [] },
-      dashboardLayout: {
-        present: {
-          'CHART-1': {
-            type: 'CHART',
-            meta: { chartId: 1 },
-            parents: ['ROOT_ID', 'TAB-Company'],
-          },
-          'CHART-2': {
-            type: 'CHART',
-            meta: { chartId: 2 },
-            parents: ['ROOT_ID', 'TAB-Company'],
-          },
-          'CHART-3': {
-            type: 'CHART',
-            meta: { chartId: 3 },
-            parents: ['ROOT_ID', 'TAB-Desktop'],
-          },
-          'TAB-Company': { type: 'TAB', id: 'TAB-Company' },
-          'TAB-Desktop': { type: 'TAB', id: 'TAB-Desktop' },
-        },
-      },
+      dashboardLayout: { present: embeddedLayout() },
     };
     return selector(mockState);
   });
 
   const filters: Filter[] = [
     {
-      id: 'filter_1',
-      name: 'Survey Rating Filter',
+      id: 'filter_company',
+      name: 'Company Tab Filter',
       filterType: 'filter_select',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [1, 2],
@@ -650,43 +679,39 @@ test('useSelectFiltersInScope: all filters should be in scope when dashboard has
       defaultDataMask: {},
       cascadeParentIds: [],
       targets: [{ column: { name: 'survey_rating' }, datasetId: 1 }],
-      description: 'Filter for survey rating',
+      description: 'Filter scoped to default tab',
     },
     {
-      id: 'filter_2',
-      name: 'Date Range Filter',
-      filterType: 'filter_time',
+      id: 'filter_desktop_only',
+      name: 'Desktop Only Filter',
+      filterType: 'filter_select',
       type: NativeFilterType.NativeFilter,
-      chartsInScope: [1, 2, 3],
-      scope: { rootPath: ['TAB-Company', 'TAB-Desktop'], excluded: [] },
+      chartsInScope: [3],
+      scope: { rootPath: ['TAB-Desktop'], excluded: [] },
       controlValues: {},
       defaultDataMask: {},
       cascadeParentIds: [],
-      targets: [{ column: { name: 'date' }, datasetId: 1 }],
-      description: 'Date range filter',
+      targets: [{ column: { name: 'pool_name' }, datasetId: 2 }],
+      description: 'Filter scoped only to non-default tab',
     },
   ];
 
   const { result } = renderHook(() => useSelectFiltersInScope(filters));
-  // All filters should be in scope — not hidden
-  expect(result.current[0]).toHaveLength(2);
-  expect(result.current[1]).toHaveLength(0);
+  expect(result.current[0]).toHaveLength(1);
+  expect(result.current[0][0]).toEqual(
+    expect.objectContaining({ id: 'filter_company' }),
+  );
+  expect(result.current[1]).toHaveLength(1);
+  expect(result.current[1][0]).toEqual(
+    expect.objectContaining({ id: 'filter_desktop_only' }),
+  );
 });
 
-test('useSelectFiltersInScope: mixed filters and dividers should all be in scope when activeTabs is empty (embedded initial render)', () => {
+test('useSelectFiltersInScope: dividers are always in scope even when activeTabs is empty', () => {
   (useSelector as jest.Mock).mockImplementation((selector: Function) => {
     const mockState = {
       dashboardState: { activeTabs: [] },
-      dashboardLayout: {
-        present: {
-          'CHART-1': {
-            type: 'CHART',
-            meta: { chartId: 1 },
-            parents: ['ROOT_ID', 'TAB-Company'],
-          },
-          'TAB-Company': { type: 'TAB', id: 'TAB-Company' },
-        },
-      },
+      dashboardLayout: { present: embeddedLayout() },
     };
     return selector(mockState);
   });
@@ -699,8 +724,8 @@ test('useSelectFiltersInScope: mixed filters and dividers should all be in scope
       description: 'Divider in embedded mode',
     },
     {
-      id: 'filter_embedded_mixed',
-      name: 'Embedded Filter',
+      id: 'filter_default',
+      name: 'Default Tab Filter',
       filterType: 'filter_select',
       type: NativeFilterType.NativeFilter,
       chartsInScope: [1],
@@ -709,7 +734,7 @@ test('useSelectFiltersInScope: mixed filters and dividers should all be in scope
       defaultDataMask: {},
       cascadeParentIds: [],
       targets: [{ column: { name: 'col' }, datasetId: 1 }],
-      description: 'Filter in embedded mode',
+      description: 'Filter in default tab',
     },
   ];
 
@@ -722,22 +747,7 @@ test('useSelectFiltersInScope: correctly scopes chartsInScope filters when activ
   (useSelector as jest.Mock).mockImplementation((selector: Function) => {
     const mockState = {
       dashboardState: { activeTabs: ['TAB-Company'] },
-      dashboardLayout: {
-        present: {
-          'CHART-1': {
-            type: 'CHART',
-            meta: { chartId: 1 },
-            parents: ['ROOT_ID', 'TAB-Company'],
-          },
-          'CHART-2': {
-            type: 'CHART',
-            meta: { chartId: 2 },
-            parents: ['ROOT_ID', 'TAB-Desktop'],
-          },
-          'TAB-Company': { type: 'TAB', id: 'TAB-Company' },
-          'TAB-Desktop': { type: 'TAB', id: 'TAB-Desktop' },
-        },
-      },
+      dashboardLayout: { present: embeddedLayout() },
     };
     return selector(mockState);
   });
@@ -761,7 +771,7 @@ test('useSelectFiltersInScope: correctly scopes chartsInScope filters when activ
       name: 'Inactive Tab Filter',
       filterType: 'filter_select',
       type: NativeFilterType.NativeFilter,
-      chartsInScope: [2],
+      chartsInScope: [3],
       scope: { rootPath: ['TAB-Desktop'], excluded: [] },
       controlValues: {},
       defaultDataMask: {},
