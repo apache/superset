@@ -171,7 +171,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     dispatch(
       tableApiUtil.invalidateTags([{ type: 'TableMetadatas', id: name }]),
     );
-    dispatch(syncTable(table, tableData, table.queryEditorId));
+    dispatch(syncTable(table, tableData, currentQueryEditorId));
   };
 
   const renderWell = () => {
