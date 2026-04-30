@@ -389,7 +389,9 @@ def apply_client_processing(  # noqa: C901
             query["data"] = processed_df.to_dict()
         elif query["result_format"] == ChartDataResultFormat.CSV:
             buf = StringIO()
-            processed_df.to_csv(buf, index=show_default_index)
+            # Apply CSV_EXPORT config for consistent CSV formatting
+            csv_export_config = current_app.config.get("CSV_EXPORT", {})
+            processed_df.to_csv(buf, index=show_default_index, **csv_export_config)
             buf.seek(0)
             query["data"] = buf.getvalue()
 
