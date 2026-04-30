@@ -26,25 +26,11 @@ test('should render', async () => {
       value={{ metric_name: 'test', uuid: '1' }}
       type={DndItemType.Metric}
     />,
-    { useDnd: true },
+    { useDndKit: true },
   );
 
   expect(
     await screen.findByTestId('DatasourcePanelDragOption'),
   ).toBeInTheDocument();
   expect(screen.getByText('test')).toBeInTheDocument();
-});
-
-test('should have attribute draggable:true', async () => {
-  render(
-    <DatasourcePanelDragOption
-      value={{ metric_name: 'test', uuid: '1' }}
-      type={DndItemType.Metric}
-    />,
-    { useDnd: true },
-  );
-
-  expect(
-    await screen.findByTestId('DatasourcePanelDragOption'),
-  ).toHaveAttribute('draggable', 'true');
 });

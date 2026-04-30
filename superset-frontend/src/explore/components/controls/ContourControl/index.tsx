@@ -127,6 +127,8 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
         accept={[]}
         ghostButtonText={ghostButtonText}
         onClickGhostButton={handleClickGhostButton}
+        sortableType="ContourOption"
+        itemCount={contours.length}
         {...props}
       />
       <ContourPopoverTrigger
