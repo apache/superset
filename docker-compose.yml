@@ -61,6 +61,22 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/nginx/templates:/etc/nginx/templates:ro
+    # Wait for the webpack dev server's manifest.json to be served before
+    # starting nginx. This prevents 404s on static assets at startup. The
+    # probe targets host.docker.internal so it works regardless of whether
+    # the dev server runs in the superset-node container
+    # (BUILD_SUPERSET_FRONTEND_IN_DOCKER=true, the default) or directly on
+    # the host (BUILD_SUPERSET_FRONTEND_IN_DOCKER=false).
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "Waiting for webpack dev server at host.docker.internal:9000/static/assets/manifest.json..."
+        until curl -sf -o /dev/null http://host.docker.internal:9000/static/assets/manifest.json; do
+          sleep 2
+        done
+        echo "Webpack dev server is ready; starting nginx."
+        exec nginx -g 'daemon off;'
 
   redis:
     image: redis:7
