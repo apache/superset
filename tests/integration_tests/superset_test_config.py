@@ -78,6 +78,15 @@ FEATURE_FLAGS = {
 
 WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
 
+# Enable CORS for embedded dashboard E2E tests (test app on port 9000)
+ENABLE_CORS = True
+CORS_OPTIONS: dict = {
+    "origins": [
+        "http://localhost:9000",
+    ],
+    "supports_credentials": True,
+}
+
 
 def GET_FEATURE_FLAGS_FUNC(ff):  # noqa: N802
     ff_copy = copy(ff)
@@ -86,6 +95,7 @@ def GET_FEATURE_FLAGS_FUNC(ff):  # noqa: N802
 
 
 TESTING = True
+TALISMAN_ENABLED = False
 WTF_CSRF_ENABLED = False
 
 FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_access"]]}

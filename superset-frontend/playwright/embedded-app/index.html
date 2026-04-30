@@ -1,0 +1,96 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Embedded Dashboard Test App</title>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    #superset-container { width: 100%; height: 100vh; }
+    #superset-container iframe { width: 100%; height: 100%; border: none; }
+    #error { color: red; padding: 20px; display: none; }
+    #status { padding: 10px; font-family: monospace; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="status">Initializing embedded dashboard...</div>
+  <div id="error"></div>
+  <div id="superset-container" data-test="embedded-container"></div>
+
+  <script src="/sdk/index.js"></script>
+  <script>
+    (async function () {
+      const params = new URLSearchParams(window.location.search);
+      const uuid = params.get('uuid');
+      const supersetDomain = params.get('supersetDomain');
+
+      if (!uuid || !supersetDomain) {
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('error').textContent =
+          'Missing required query params: uuid, supersetDomain';
+        return;
+      }
+
+      const statusEl = document.getElementById('status');
+
+      // fetchGuestToken is injected by Playwright via page.exposeFunction()
+      // Falls back to window.__guestToken for simple/static token injection
+      async function fetchGuestToken() {
+        if (typeof window.__fetchGuestToken === 'function') {
+          statusEl.textContent = 'Fetching guest token...';
+          const token = await window.__fetchGuestToken();
+          statusEl.textContent = 'Guest token received, loading dashboard...';
+          return token;
+        }
+        if (window.__guestToken) {
+          return window.__guestToken;
+        }
+        throw new Error('No guest token source available');
+      }
+
+      try {
+        // Parse optional UI config from query params
+        const uiConfig = {};
+        if (params.get('hideTitle') === 'true') uiConfig.hideTitle = true;
+        if (params.get('hideTab') === 'true') uiConfig.hideTab = true;
+        if (params.get('hideChartControls') === 'true') uiConfig.hideChartControls = true;
+
+        const dashboard = await supersetEmbeddedSdk.embedDashboard({
+          id: uuid,
+          supersetDomain: supersetDomain,
+          mountPoint: document.getElementById('superset-container'),
+          fetchGuestToken: fetchGuestToken,
+          dashboardUiConfig: Object.keys(uiConfig).length > 0 ? uiConfig : undefined,
+          debug: params.get('debug') === 'true',
+        });
+
+        statusEl.textContent = 'Dashboard embedded successfully';
+        // Expose dashboard API on window for Playwright assertions
+        window.__embeddedDashboard = dashboard;
+      } catch (err) {
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('error').textContent = 'Embed failed: ' + err.message;
+        statusEl.textContent = 'Error';
+      }
+    })();
+  </script>
+</body>
+</html>

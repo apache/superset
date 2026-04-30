@@ -43,6 +43,7 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
+      SUPERSET_FEATURE_EMBEDDED_SUPERSET: "true"
     services:
       postgres:
         image: postgres:17-alpine
@@ -113,6 +114,11 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
+      - name: Build embedded SDK
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: build-embedded-sdk
       - name: Install Playwright
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies

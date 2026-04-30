@@ -132,26 +132,14 @@ export interface DashboardResult {
   published?: boolean;
 }
 
-/**
- * Get a dashboard by its title
- * @param page - Playwright page instance (provides authentication context)
- * @param title - The dashboard_title to search for
- * @returns Dashboard object if found, null if not found
- */
-export async function getDashboardByName(
+async function getDashboardByFilter(
   page: Page,
-  title: string,
+  col: 'dashboard_title' | 'slug',
+  value: string,
 ): Promise<DashboardResult | null> {
-  const filter = {
-    filters: [
-      {
-        col: 'dashboard_title',
-        opr: 'eq',
-        value: title,
-      },
-    ],
-  };
-  const queryParam = rison.encode(filter);
+  const queryParam = rison.encode({
+    filters: [{ col, opr: 'eq', value }],
+  });
   const response = await apiGet(
     page,
     `${ENDPOINTS.DASHBOARD}?q=${queryParam}`,
@@ -168,4 +156,30 @@ export async function getDashboardByName(
   }
 
   return null;
+}
+
+/**
+ * Get a dashboard by its title
+ * @param page - Playwright page instance (provides authentication context)
+ * @param title - The dashboard_title to search for
+ * @returns Dashboard object if found, null if not found
+ */
+export async function getDashboardByName(
+  page: Page,
+  title: string,
+): Promise<DashboardResult | null> {
+  return getDashboardByFilter(page, 'dashboard_title', title);
+}
+
+/**
+ * Get a dashboard by its slug
+ * @param page - Playwright page instance (provides authentication context)
+ * @param slug - The slug to search for
+ * @returns Dashboard object if found, null if not found
+ */
+export async function getDashboardBySlug(
+  page: Page,
+  slug: string,
+): Promise<DashboardResult | null> {
+  return getDashboardByFilter(page, 'slug', slug);
 }
