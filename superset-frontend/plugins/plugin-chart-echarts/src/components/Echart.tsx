@@ -205,6 +205,15 @@ function Echart(
         chartRef.current?.getZr().on(name, handler);
       });
 
+      chartRef.current.setOption(
+        {
+          aria: {
+            enabled: true,
+          },
+          ...echartOptions,
+        },
+        true,
+      );
       const getEchartsTheme = (options: any) => {
         const antdTheme = theme;
         const echartsTheme = {
