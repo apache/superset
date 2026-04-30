@@ -1937,6 +1937,25 @@ describe('plugin-chart-table', () => {
         expect(clearCall![0].extraFormData.filters).toEqual([]);
       });
 
+      test('page size selector arrow stays above resize handles (#39305)', () => {
+        // .resize-handle elements in dashboard ResizableContainer sit at
+        // z-index: 10 — the page size arrow must stack above them or it
+        // gets covered on dashboard charts.
+        const { container } = render(
+          ProviderWrapper({
+            children: (
+              <TableChart {...transformProps(testData.basic)} sticky={false} />
+            ),
+          }),
+        );
+
+        const arrow = container.querySelector(
+          '.dt-select-page-size .ant-select .ant-select-arrow',
+        );
+        expect(arrow).not.toBeNull();
+        expect(getComputedStyle(arrow as HTMLElement).zIndex).toBe('11');
+      });
+
       test('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,
