@@ -19,8 +19,18 @@
 import { ChartProps, getValueFormatter } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, queriesData, datasource } = chartProps;
   const {
+    width,
+    height,
+    formData,
+    queriesData,
+    datasource,
+    hooks = {},
+    filterState,
+    emitCrossFilters,
+  } = chartProps;
+  const {
+    entity,
     linearColorScheme,
     numberFormat,
     currencyFormat,
@@ -49,6 +59,8 @@ export default function transformProps(chartProps: ChartProps) {
     detectedCurrency,
   );
 
+  const { onContextMenu, setDataMask } = hooks;
+
   return {
     width,
     height,
@@ -59,5 +71,10 @@ export default function transformProps(chartProps: ChartProps) {
     colorScheme,
     sliceId,
     formatter,
+    entity,
+    onContextMenu,
+    setDataMask,
+    emitCrossFilters,
+    filterState,
   };
 }
