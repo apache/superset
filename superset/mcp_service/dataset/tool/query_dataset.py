@@ -152,7 +152,23 @@ async def query_dataset(  # noqa: C901
         from superset.connectors.sqla.models import SqlaTable
 
         # ------------------------------------------------------------------
-        # Step 1: Resolve dataset
+        # Step 1: Check data-model metadata access BEFORE the dataset lookup.
+        # Doing this first prevents leaking dataset existence — restricted
+        # users always receive DataModelMetadataRestricted, never NotFound.
+        # The decorator hides this tool from search; this check enforces
+        # direct calls that bypass tool discovery.
+        # ------------------------------------------------------------------
+        if not user_can_view_data_model_metadata():
+            await ctx.warning("Dataset metadata access blocked by privacy controls")
+            return DatasetError.create(
+                error=(
+                    "You don't have permission to access dataset details for your role."
+                ),
+                error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+            )
+
+        # ------------------------------------------------------------------
+        # Step 2: Resolve dataset
         # ------------------------------------------------------------------
         await ctx.report_progress(1, 5, "Looking up dataset")
         eager_options = [
@@ -169,20 +185,6 @@ async def query_dataset(  # noqa: C901
             return DatasetError.create(
                 error=f"No dataset found with identifier: {request.dataset_id}",
                 error_type="NotFound",
-            )
-
-        # ------------------------------------------------------------------
-        # Step 1b: Check data-model metadata access before revealing any
-        # dataset details (name, column/metric counts) to the client.
-        # The decorator hides this tool from search; this check enforces direct calls.
-        # ------------------------------------------------------------------
-        if not user_can_view_data_model_metadata():
-            await ctx.warning("Dataset metadata access blocked by privacy controls")
-            return DatasetError.create(
-                error=(
-                    "You don't have permission to access dataset details for your role."
-                ),
-                error_type=DATA_MODEL_METADATA_ERROR_TYPE,
             )
 
         dataset_name = getattr(dataset, "table_name", None) or f"Dataset {dataset.id}"

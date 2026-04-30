@@ -796,3 +796,36 @@ async def test_query_dataset_metadata_access_denied_no_suggestions(
     # Must NOT contain column/metric name suggestions
     assert "countt" not in data.get("error", "")
     assert "count" not in data.get("error", "")
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_metadata_access_denied_nonexistent_dataset(
+    mcp_server: FastMCP,
+) -> None:
+    """Metadata-restricted users must not be able to probe dataset existence.
+
+    The privacy gate fires before the DAO lookup, so a restricted caller
+    always receives DataModelMetadataRestricted — never NotFound — regardless
+    of whether the requested dataset ID exists.
+    """
+    with patch.object(
+        query_dataset_module,
+        "user_can_view_data_model_metadata",
+        return_value=False,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        # Use a dataset_id that does not exist
+                        "dataset_id": 999999,
+                        "metrics": ["count"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    # Must receive restricted error, not a NotFound that leaks existence
+    assert data["error_type"] == "DataModelMetadataRestricted"
+    assert data["error_type"] != "NotFound"
