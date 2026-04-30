@@ -1133,12 +1133,22 @@ def test_working_state_timeout_raises_timeout_error(mocker: MockerFixture) -> No
 
 
 def test_working_state_still_working_raises_previous_working(
+    app: SupersetApp,
     mocker: MockerFixture,
 ) -> None:
     """Working state not yet timed out should raise PreviousWorkingError."""
+    app.config["ALERT_REPORTS_STALE_WORKING_TIMEOUT"] = 300
+
     state = _make_state_instance(mocker, ReportWorkingState)
     mocker.patch.object(state, "is_on_working_timeout", return_value=False)
     mocker.patch.object(state, "update_report_schedule_and_log")
+
+    mock_log = mocker.Mock()
+    mock_log.end_dttm = datetime.utcnow() - timedelta(seconds=30)
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=mock_log,
+    )
 
     with pytest.raises(ReportSchedulePreviousWorkingError):
         state.next()
@@ -1147,6 +1157,112 @@ def test_working_state_still_working_raises_previous_working(
         ReportState.WORKING,
         error_message=str(ReportSchedulePreviousWorkingError()),
     )
+
+
+def test_working_state_stale_resets_and_retries(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """WORKING state older than stale threshold should reset to NOOP and retry."""
+    app.config["ALERT_REPORTS_STALE_WORKING_TIMEOUT"] = 300
+
+    state = _make_state_instance(mocker, ReportWorkingState)
+    mocker.patch.object(state, "is_on_working_timeout", return_value=False)
+    mocker.patch.object(state, "update_report_schedule_and_log")
+
+    mock_log = mocker.Mock()
+    mock_log.end_dttm = datetime.utcnow() - timedelta(seconds=1800)  # 30 min ago
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=mock_log,
+    )
+
+    # Spy on __init__ to verify arg order: (schedule, scheduled_dttm, execution_id)
+    init_spy = mocker.patch.object(
+        ReportNotTriggeredErrorState, "__init__", return_value=None
+    )
+    mocker.patch.object(ReportNotTriggeredErrorState, "next")
+
+    state.next()
+
+    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
+        ReportState.NOOP, error_message="stale working state reset"
+    )
+    init_spy.assert_called_once_with(
+        state._report_schedule,
+        state._scheduled_dttm,
+        state._execution_id,
+    )
+
+
+def test_working_state_elapsed_at_stale_boundary_resets(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """WORKING state elapsed exactly at stale threshold should trigger reset."""
+    app.config["ALERT_REPORTS_STALE_WORKING_TIMEOUT"] = 300
+
+    state = _make_state_instance(mocker, ReportWorkingState)
+    mocker.patch.object(state, "is_on_working_timeout", return_value=False)
+    mocker.patch.object(state, "update_report_schedule_and_log")
+
+    mock_log = mocker.Mock()
+    mock_log.end_dttm = datetime.utcnow() - timedelta(seconds=300)
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=mock_log,
+    )
+
+    mocker.patch.object(ReportNotTriggeredErrorState, "__init__", return_value=None)
+    mock_retry_next = mocker.patch.object(ReportNotTriggeredErrorState, "next")
+
+    state.next()
+
+    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
+        ReportState.NOOP, error_message="stale working state reset"
+    )
+    mock_retry_next.assert_called_once()
+
+
+def test_working_state_elapsed_just_below_stale_threshold_blocks(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """WORKING state below stale threshold should raise PreviousWorkingError."""
+    app.config["ALERT_REPORTS_STALE_WORKING_TIMEOUT"] = 300
+
+    state = _make_state_instance(mocker, ReportWorkingState)
+    mocker.patch.object(state, "is_on_working_timeout", return_value=False)
+    mocker.patch.object(state, "update_report_schedule_and_log")
+
+    mock_log = mocker.Mock()
+    mock_log.end_dttm = datetime.utcnow() - timedelta(seconds=299)
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=mock_log,
+    )
+
+    with pytest.raises(ReportSchedulePreviousWorkingError):
+        state.next()
+
+
+def test_working_state_no_log_found_raises_previous_working(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """When no working log exists, elapsed is unknown — block re-computation."""
+    app.config["ALERT_REPORTS_STALE_WORKING_TIMEOUT"] = 300
+
+    state = _make_state_instance(mocker, ReportWorkingState)
+    mocker.patch.object(state, "is_on_working_timeout", return_value=False)
+    mocker.patch.object(state, "update_report_schedule_and_log")
+    mocker.patch(
+        "superset.commands.report.execute.ReportScheduleDAO.find_last_entered_working_log",
+        return_value=None,
+    )
+
+    with pytest.raises(ReportSchedulePreviousWorkingError):
+        state.next()
 
 
 def test_success_state_grace_period_returns_without_sending(

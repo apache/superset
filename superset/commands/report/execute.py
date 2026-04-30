@@ -815,13 +815,16 @@ class BaseReportState:
             < last_success.end_dttm
         )
 
-    def is_on_working_timeout(self) -> bool:
+    def is_on_working_timeout(
+        self, last_working: ReportExecutionLog | None = None
+    ) -> bool:
         """
         Checks if an alert is in a working timeout
         """
-        last_working = ReportScheduleDAO.find_last_entered_working_log(
-            self._report_schedule
-        )
+        if last_working is None:
+            last_working = ReportScheduleDAO.find_last_entered_working_log(
+                self._report_schedule
+            )
         if not last_working:
             return False
         return (
@@ -933,20 +936,22 @@ class ReportWorkingState(BaseReportState):
     next states:
     - Error
     - Working
+    - NOOP -> re-execute (stale crash recovery)
     """
 
     current_states = [ReportState.WORKING]
 
     def next(self) -> None:
-        if self.is_on_working_timeout():
-            last_working = ReportScheduleDAO.find_last_entered_working_log(
-                self._report_schedule
-            )
-            elapsed_seconds = (
-                (datetime.utcnow() - last_working.end_dttm).total_seconds()
-                if last_working
-                else None
-            )
+        last_working = ReportScheduleDAO.find_last_entered_working_log(
+            self._report_schedule
+        )
+        elapsed_seconds = (
+            (datetime.utcnow() - last_working.end_dttm).total_seconds()
+            if last_working
+            else None
+        )
+
+        if self.is_on_working_timeout(last_working):
             logger.error(
                 "Working state timeout after %.2fs - execution_id: %s",
                 elapsed_seconds if elapsed_seconds else 0,
@@ -958,6 +963,39 @@ class ReportWorkingState(BaseReportState):
                 error_message=str(exception_timeout),
             )
             raise exception_timeout
+
+        stale_timeout = app.config["ALERT_REPORTS_STALE_WORKING_TIMEOUT"]
+        if elapsed_seconds is not None and elapsed_seconds >= stale_timeout:
+            logger.warning(
+                "Report found in stale WORKING state after %.0fs, "
+                "likely due to crashed worker - resetting and retrying - "
+                "execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
+            if (
+                self._report_schedule.working_timeout is not None
+                and stale_timeout >= self._report_schedule.working_timeout
+            ):
+                logger.warning(
+                    "ALERT_REPORTS_STALE_WORKING_TIMEOUT (%ds) is >= working_timeout "
+                    "(%ds) for schedule %s; stale recovery will never fire before "
+                    "working_timeout. Consider lowering "
+                    "ALERT_REPORTS_STALE_WORKING_TIMEOUT.",
+                    stale_timeout,
+                    self._report_schedule.working_timeout,
+                    self._report_schedule.name,
+                )
+            self.update_report_schedule_and_log(
+                ReportState.NOOP, error_message="stale working state reset"
+            )
+            ReportNotTriggeredErrorState(
+                self._report_schedule,
+                self._scheduled_dttm,
+                self._execution_id,
+            ).next()
+            return
+
         logger.warning(
             "Report still in working state, refusing to re-compute - execution_id: %s",
             self._execution_id,
