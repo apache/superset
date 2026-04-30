@@ -48,7 +48,7 @@ Shape:
 See spec FR-016..FR-021 and data-model.md §``version_changes``.
 
 Revision ID: e1f3c5a7b9d0
-Revises: d8e9f0a1b2c3
+Revises: c9d7e21a4b3f
 Create Date: 2026-04-24 10:00:00.000000
 
 """
@@ -59,7 +59,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "e1f3c5a7b9d0"
-down_revision = "d8e9f0a1b2c3"
+down_revision = "c9d7e21a4b3f"
 
 
 def upgrade() -> None:

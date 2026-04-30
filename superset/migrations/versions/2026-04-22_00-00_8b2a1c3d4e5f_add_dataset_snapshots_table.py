@@ -25,7 +25,7 @@ fragile against Superset's ``override_columns=True`` delete+reinsert
 pattern.
 
 Revision ID: 8b2a1c3d4e5f
-Revises: 04ea0c58fcb9
+Revises: 56cd24c07170
 Create Date: 2026-04-22 00:00:00.000000
 """
 
@@ -35,7 +35,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "8b2a1c3d4e5f"
-down_revision = "04ea0c58fcb9"
+down_revision = "56cd24c07170"
 
 
 def upgrade() -> None:
