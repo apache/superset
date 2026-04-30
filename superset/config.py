@@ -1337,6 +1337,11 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
+# Maximum number of versions retained per entity in version history.
+# When the limit is reached the oldest version is pruned on each save.
+# The live (current) version is never pruned.
+SUPERSET_VERSION_HISTORY_MAX_VERSIONS: int = 25
+
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None

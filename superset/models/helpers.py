@@ -534,14 +534,23 @@ class ImportExportMixin(UUIDMixin):
 
     def reset_ownership(self) -> None:
         """object will belong to the user the current user"""
-        # make sure the object doesn't have relations to a user
-        # it will be filled by appbuilder on save
-        self.created_by = None
-        self.changed_by = None
-        # flask global context might not exist (in cli or tests for example)
+        # Reset the audit pointers. When a Flask request context is
+        # available we explicitly stamp the current user, otherwise we
+        # leave the attributes unset so Flask-AppBuilder's column
+        # defaults fill them in on save. An explicit assignment is
+        # required because once the ``created_by`` / ``changed_by``
+        # relationships are configured (which happens eagerly on models
+        # registered with SQLAlchemy-Continuum), setting them to
+        # ``None`` propagates to the FK column and suppresses the
+        # ``default=`` callable.
         self.owners = []
-        if g and hasattr(g, "user"):
+        if g and hasattr(g, "user") and g.user:
+            self.created_by = g.user
+            self.changed_by = g.user
             self.owners = [g.user]
+        else:
+            self.created_by = None
+            self.changed_by = None
 
     @property
     def params_dict(self) -> dict[Any, Any]:

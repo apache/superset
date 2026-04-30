@@ -24,6 +24,38 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Entity version history for charts, dashboards, and datasets
+
+Saves of charts, dashboards, and datasets now automatically produce a version history — browsable and restorable via new API endpoints. No frontend UI in this release; the backend plumbing is the deliverable.
+
+**New endpoints** (per entity type — same pattern for `chart`, `dashboard`, and `dataset`):
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/{resource}/<uuid>/versions/` | List the entity's version history (0-based `version_number`, `version_uuid`, `issued_at`, `changed_by`) |
+| `GET` | `/api/v1/{resource}/<uuid>/versions/<version_uuid>/` | Get a single version snapshot (scalar fields at that version; plus `columns` / `metrics` for datasets) |
+| `POST` | `/api/v1/{resource}/<uuid>/versions/<version_uuid>/restore` | Restore the entity to the state captured by that version |
+
+`<version_uuid>` is a deterministic `UUIDv5` derived from the entity's UUID and the Continuum transaction id — stable across replicas and retention pruning. Authorisation reuses the resource's existing `can_write` permission; workspace admins can list/restore any entity.
+
+**Behaviour changes on save:**
+
+- Every save of a chart, dashboard, or dataset produces one new version row. Rows preserve the full post-save state (scalar fields for all three entity types; `TableColumn` / `SqlMetric` children for datasets; `dashboard_slices` chart membership for dashboards — the last two via purpose-built JSON snapshot tables, `dataset_snapshots` and `dashboard_snapshots`, documented in ADR-004 and ADR-005 in the ticket's spec folder).
+- First save after an entity already exists in the DB creates a retroactive baseline version so the UI can show "what this looked like before I edited it."
+- Tags, owners, and roles are **not** versioned in v1 (ADR-005). A restore leaves those at their live values.
+
+**New config key:**
+
+| Key | Default | Purpose |
+|---|---|---|
+| `SUPERSET_VERSION_HISTORY_MAX_VERSIONS` | `25` | Maximum versions retained per entity. Synchronous prune runs after each save; the live version is never pruned. |
+
+**Impact on external integrations:**
+
+- Five new tables — `dashboards_version`, `slices_version`, `tables_version` (Continuum parent shadow tables), plus `dataset_snapshots` and `dashboard_snapshots` (JSON snapshot tables for complex child state) — and one shared `version_transaction` table are populated on every save. External tooling that queries Superset's DB directly will see writes to these tables proportional to save traffic.
+- No existing endpoints change request or response shape.
+- Version capture is always active — no feature flag.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:

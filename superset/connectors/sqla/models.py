@@ -849,6 +849,11 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
     __tablename__ = "table_columns"
     __table_args__ = (UniqueConstraint("table_id", "column_name"),)
+    # NOTE: Not Continuum-versioned. Dataset child history is captured as
+    # JSON snapshots in ``dataset_snapshots`` via the after_flush listener
+    # in superset/versioning/dataset_snapshots.py. The validity-strategy
+    # shadow table approach proved fragile against Superset's
+    # override_columns=True delete+reinsert pattern.
 
     id = Column(Integer, primary_key=True)
     column_name = Column(String(255), nullable=False)
@@ -1094,6 +1099,8 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
 
     __tablename__ = "sql_metrics"
     __table_args__ = (UniqueConstraint("table_id", "metric_name"),)
+    # NOTE: Not Continuum-versioned. See TableColumn — metrics are
+    # captured in dataset_snapshots alongside columns.
 
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(255), nullable=False)
@@ -1222,6 +1229,12 @@ class SqlaTable(
     owner_class = security_manager.user_model
 
     __tablename__ = "tables"
+    # Exclude M2M association relationships: Continuum only captures FK columns on
+    # association INSERTs (not the auto-increment id), which breaks the NOT NULL PK.
+    # deleted_at exclusion will be added when sc-103157 (soft delete) is merged (T043).
+    __versioned__: dict[str, Any] = {
+        "exclude": ["owners", "row_level_security_filters"]
+    }
 
     # Note this uniqueness constraint is not part of the physical schema, i.e., it does
     # not exist in the migrations, but is required by `import_from_dict` to ensure the

@@ -146,6 +146,30 @@ cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
 db = get_sqla_class()()
+
+# make_versioned() MUST be called immediately after db is constructed and before
+# any versioned model class is defined.  Continuum patches the SQLAlchemy
+# metaclass at call time; models constructed before this call are silently skipped.
+from sqlalchemy_continuum import (  # noqa: E402
+    make_versioned,
+    versioning_manager as _continuum_manager,
+)
+
+from superset.versioning.factory import (  # noqa: E402
+    VersioningFlaskPlugin,
+    VersionTransactionFactory,
+)
+
+# Rename the transaction table from "transaction" (SQL reserved word) to
+# "version_transaction" via the custom factory before make_versioned() fires.
+_continuum_manager.transaction_cls = VersionTransactionFactory()
+
+make_versioned(
+    user_cls=None,
+    plugins=[VersioningFlaskPlugin()],
+    options={"strategy": "validity"},
+)
+
 _event_logger: dict[str, Any] = {}
 encrypted_field_factory = EncryptedFieldFactory()
 event_logger = LocalProxy(lambda: _event_logger.get("event_logger"))

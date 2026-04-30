@@ -599,6 +599,89 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     # Surface exceptions during initialization of extensions
                     print(ex)
 
+    def init_versioning(self) -> None:
+        """Register SQLAlchemy-Continuum baseline and retention listeners.
+
+        Must be called after all versioned model classes have been imported so
+        that VERSIONED_MODELS can be populated and configure_mappers() has run.
+        """
+        from sqlalchemy import event
+        from sqlalchemy.orm import Session  # noqa: F401
+        from sqlalchemy_continuum import version_class
+
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
+        from superset.versioning.baseline import (
+            register_baseline_listener,
+            VERSIONED_MODELS,
+        )
+
+        # Note: previously this block called ``configure_mappers()`` before
+        # importing the snapshot modules, believing their Table declarations
+        # needed ``version_transaction`` to exist. That's not actually the
+        # case — the snapshot tables reference ``version_transaction.id``
+        # only at the DB level (via the migration); the SQLAlchemy Table
+        # objects here intentionally declare ``transaction_id`` as a plain
+        # ``BigInteger`` without a FK to avoid the resolution dependency.
+        # Removing the global ``configure_mappers()`` avoids eagerly
+        # resolving relationships in other unrelated models (notably
+        # Flask-AppBuilder's AuditMixin on classes like Tag, whose
+        # ``created_by`` primaryjoin only resolves under specific class
+        # registry states in SQLAlchemy 1.4).
+        from superset.versioning.changes import (  # noqa: E402
+            register_change_record_listener,
+        )
+        from superset.versioning.dashboard_snapshots import (  # noqa: E402
+            register_dashboard_snapshot_listener,
+        )
+        from superset.versioning.dataset_snapshots import (  # noqa: E402
+            register_dataset_snapshot_listener,
+        )
+
+        # Note: TableColumn / SqlMetric are NOT Continuum-versioned; their
+        # history is captured as JSON snapshots via
+        # register_dataset_snapshot_listener() below.
+        versioned_models: list[type] = []
+        for model_cls in (Dashboard, Slice, SqlaTable):
+            try:
+                version_class(model_cls)  # ensure Continuum wired this model
+                VERSIONED_MODELS.append(model_cls)
+                versioned_models.append(model_cls)
+            except Exception:  # pylint: disable=broad-except  # noqa: S110
+                pass
+
+        register_baseline_listener()
+        register_dataset_snapshot_listener()
+        register_dashboard_snapshot_listener()
+        register_change_record_listener()
+
+        # Retention-prune listener: after each commit, delete oldest version rows
+        # that exceed SUPERSET_VERSION_HISTORY_MAX_VERSIONS (FR-007).
+        versioned_model_set = frozenset(versioned_models)
+
+        @event.listens_for(db.session, "after_commit")
+        def _prune_version_history(session: Session) -> None:
+            # pylint: disable=import-outside-toplevel
+            from sqlalchemy import inspect as sa_inspect
+
+            from superset.daos.version import VersionDAO
+
+            for obj in list(session.identity_map.values()):
+                if type(obj) not in versioned_model_set:
+                    continue
+                # Read id via instance_state.key to avoid triggering a lazy
+                # load on expired attributes: the session is in 'committed'
+                # state during after_commit and cannot emit SQL.
+                state = sa_inspect(obj)
+                entity_id = state.key[1][0] if state.key else None
+                if entity_id is None:
+                    continue
+                try:
+                    VersionDAO.prune_versions(type(obj), entity_id)
+                except Exception:  # pylint: disable=broad-except  # noqa: S110
+                    pass  # prune_versions logs internally
+
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -624,6 +707,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.init_views()
 
         self.init_all_dependencies_and_extensions()
+
+        # Must run after all versioned models are imported and mappers configured.
+        self.init_versioning()
 
     def check_secret_key(self) -> None:
         def log_default_secret_key_warning() -> None:

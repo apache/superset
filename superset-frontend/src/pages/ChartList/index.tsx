@@ -83,6 +83,8 @@ import { findPermission } from 'src/utils/findPermission';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
+// TEMP: sc-103156 versioning demo. Revert before any commit.
+import VersionHistoryDropdown from './VersionHistoryDropdown';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -574,6 +576,13 @@ function ChartList(props: ChartListProps) {
                     </Tooltip>
                   )}
                 </ConfirmStatusChange>
+              )}
+              {/* TEMP: sc-103156 versioning demo. Revert before any commit. */}
+              {original.uuid && canEdit && (
+                <VersionHistoryDropdown
+                  chartUuid={original.uuid}
+                  onRestored={() => refreshData()}
+                />
               )}
             </StyledActions>
           );

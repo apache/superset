@@ -73,6 +73,14 @@ class Slice(  # pylint: disable=too-many-public-methods
     query_context_factory: QueryContextFactory | None = None
 
     __tablename__ = "slices"
+    # query_context is excluded: it is a cached/regenerated field, not user-authored.
+    # deleted_at exclusion will be added when sc-103157 (soft delete) is merged (T043).
+    # Exclude M2M association relationships: Continuum only captures FK columns on
+    # association INSERTs (not the auto-increment id), which breaks the NOT NULL PK.
+    # Ownership changes are administrative metadata, not user-authored content.
+    __versioned__: dict[str, Any] = {
+        "exclude": ["query_context", "owners", "dashboards"]
+    }
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
     datasource_id = Column(Integer)
