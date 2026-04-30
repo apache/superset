@@ -16,17 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * as common from './common';
-export * as authentication from './authentication';
-export * as commands from './commands';
-export * as editors from './editors';
-export * as extensions from './extensions';
-export * as menus from './menus';
-export * as sqlLab from './sqlLab';
-export * as views from './views';
-export * as contributions from './contributions';
-export * as theme from './theme';
-export * as translation from './translation';
-export * as components from './components';
-export * as utils from './utils';
-export * as colors from './colors';
+
+import { ColorSchemeGroup } from '@apache-superset/core/theme';
+
+// ─── ColorSchemeGroup enum ────────────────────────────────────────────────────
+
+test('ColorSchemeGroup has the expected string values', () => {
+  expect(ColorSchemeGroup.Custom).toBe('custom');
+  expect(ColorSchemeGroup.Featured).toBe('featured');
+  expect(ColorSchemeGroup.Other).toBe('other');
+});

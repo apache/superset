@@ -58,6 +58,10 @@
       "types": "./lib/components/index.d.ts",
       "default": "./lib/components/index.js"
     },
+    "./colors": {
+      "types": "./lib/colors/index.d.ts",
+      "default": "./lib/colors/index.js"
+    },
     "./utils": {
       "types": "./lib/utils/index.d.ts",
       "default": "./lib/utils/index.js"

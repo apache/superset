@@ -19,7 +19,12 @@
 import { useEffect, useState } from 'react';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  getCategoricalSchemeRegistry,
+} from '@superset-ui/core';
+import type { CategoricalSchemeRegistryLike } from '@apache-superset/core/theme';
 import {
   authentication,
   core,
@@ -45,6 +50,11 @@ declare global {
       menus: typeof menus;
       sqlLab: typeof sqlLab;
       views: typeof views;
+      colors: {
+        ColorSchemeGroup: typeof supersetCore.colors.ColorSchemeGroup;
+        getCategoricalSchemeNames(): string[];
+        getSchemeColors(schemeName: string): string[] | null;
+      };
     };
   }
 }
@@ -68,6 +78,8 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
     }
 
     // Provide the implementations for @apache-superset/core
+    const registry =
+      getCategoricalSchemeRegistry() as CategoricalSchemeRegistryLike | null;
     window.superset = {
       ...supersetCore,
       authentication,
@@ -78,6 +90,15 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       menus,
       sqlLab,
       views,
+      colors: {
+        ColorSchemeGroup: supersetCore.colors.ColorSchemeGroup,
+        getCategoricalSchemeNames(): string[] {
+          return (registry?.keys() ?? []).sort();
+        },
+        getSchemeColors(schemeName: string): string[] | null {
+          return registry?.get(schemeName)?.colors ?? null;
+        },
+      },
     };
 
     const setup = async () => {
