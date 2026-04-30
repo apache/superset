@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import prettyMs from 'pretty-ms';
+import { getIntlDurationFormatter } from '@superset-ui/core/number-format/utils/getIntlDurationFormatter';
+import { parseMilliseconds } from '@superset-ui/core/number-format/utils/parseMilliseconds';
 
 /**
  * Maximum ETA to display (24 hours in seconds).
@@ -29,20 +30,41 @@ const MAX_ETA_SECONDS = 86400;
  * Format a duration in seconds to a human-readable string.
  *
  * @param seconds - Duration in seconds
+ * @param locale - Current locale
  * @returns Formatted string like "1m 30s" or "2h 15m", or null if invalid
  */
 export function formatDuration(
   seconds: number | null | undefined,
+  locale?: string,
 ): string | null {
   if (seconds === null || seconds === undefined || seconds <= 0) {
     return null;
   }
 
-  return prettyMs(seconds * 1000, {
-    unitCount: 2,
-    secondsDecimalDigits: 0,
-    keepDecimalsOnWholeSeconds: false,
-  });
+  const durObject = parseMilliseconds(seconds * 1000);
+  const unitOrder = [
+    'years',
+    'days',
+    'hours',
+    'minutes',
+    'seconds',
+    'milliseconds',
+    'microseconds',
+    'nanoseconds',
+  ] as const;
+  const nonZeroUnits = unitOrder
+    .filter(unit => durObject[unit] > 0)
+    .slice(0, 2)
+    .reduce(
+      (obj, unit) => {
+        obj[unit] = durObject[unit];
+        return obj;
+      },
+      {} as Record<string, number>,
+    );
+  return getIntlDurationFormatter(locale, { style: 'narrow' }).format(
+    nonZeroUnits,
+  );
 }
 
 /**
@@ -53,11 +75,13 @@ export function formatDuration(
  *
  * @param progressPercent - Progress as a fraction (0.0 to 1.0)
  * @param durationSeconds - Time elapsed so far in seconds
+ * @param locale - Current locale
  * @returns Formatted ETA string or null if cannot be calculated
  */
 export function calculateEta(
   progressPercent: number | null | undefined,
   durationSeconds: number | null | undefined,
+  locale?: string,
 ): string | null {
   // Need both progress and duration to calculate ETA
   if (
@@ -76,19 +100,16 @@ export function calculateEta(
 
   // ETA = (elapsed / progress) * (1 - progress)
   const estimatedTotalTime = durationSeconds / progressPercent;
-  const remainingSeconds = estimatedTotalTime * (1 - progressPercent);
+  const remainingSeconds = Math.round(
+    estimatedTotalTime * (1 - progressPercent),
+  );
 
   // Only show ETA if it's reasonable (less than 24 hours)
   if (remainingSeconds <= 0 || remainingSeconds > MAX_ETA_SECONDS) {
     return null;
   }
 
-  // Use unitCount: 2 to show up to 2 units (e.g., "1m 30s" instead of just "1m")
-  // Use secondsDecimalDigits: 0 to show whole seconds (e.g., "52s" instead of "52.4s")
-  return prettyMs(remainingSeconds * 1000, {
-    unitCount: 2,
-    secondsDecimalDigits: 0,
-  });
+  return formatDuration(remainingSeconds, locale);
 }
 
 /**
@@ -105,6 +126,7 @@ export function calculateEta(
  * @param progressTotal - Total count of items to process
  * @param progressPercent - Progress as a fraction (0.0 to 1.0)
  * @param durationSeconds - Time elapsed so far in seconds (used for ETA calculation)
+ * @param locale - Current locale
  * @returns Array of lines for tooltip display
  */
 export function formatProgressTooltip(
@@ -113,6 +135,7 @@ export function formatProgressTooltip(
   progressTotal?: number | null,
   progressPercent?: number | null,
   durationSeconds?: number | null,
+  locale?: string,
 ): string[] {
   const lines: string[] = [];
   let progressPart = '';
@@ -142,7 +165,7 @@ export function formatProgressTooltip(
   }
 
   // Add ETA on a separate line if available
-  const eta = calculateEta(progressPercent, durationSeconds);
+  const eta = calculateEta(progressPercent, durationSeconds, locale);
   if (eta) {
     lines.push(`ETA: ${eta}`);
   }

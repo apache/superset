@@ -25,6 +25,7 @@ import {
 import { useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { useMemo, useCallback, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Tooltip, Label, Modal, Checkbox } from '@superset-ui/core/components';
 import {
   CreatedInfo,
@@ -52,6 +53,7 @@ import {
 } from 'src/features/tasks/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ExplorePageState } from 'src/explore/types';
 
 const PAGE_SIZE = 25;
 
@@ -77,6 +79,9 @@ interface TaskListProps {
 
 function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   const theme = useTheme();
+  const locale = useSelector(
+    (state: ExplorePageState) => state?.common?.locale,
+  );
 
   // Check if GTF feature flag is enabled
   if (!isFeatureEnabled(FeatureFlag.GlobalTaskFramework)) {
@@ -380,7 +385,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           row: {
             original: { duration_seconds },
           },
-        }: TaskCellProps) => formatDuration(duration_seconds) ?? '-',
+        }: TaskCellProps) => formatDuration(duration_seconds, locale) ?? '-',
         accessor: 'duration_seconds',
         Header: t('Duration'),
         size: 'sm',
@@ -530,7 +535,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         disableSortBy: true,
       },
     ],
-    [user.userId, theme, openCancelModal],
+    [user.userId, theme, locale, openCancelModal],
   );
 
   const filters: ListViewFilters = useMemo(
