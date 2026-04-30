@@ -306,7 +306,7 @@ async def test_query_dataset_with_time_range(mcp_server: FastMCP) -> None:
         ),
     ):
         async with Client(mcp_server) as client:
-            await client.call_tool(
+            result = await client.call_tool(
                 "query_dataset",
                 {
                     "request": {
@@ -326,6 +326,13 @@ async def test_query_dataset_with_time_range(mcp_server: FastMCP) -> None:
     assert temporal_filters[0]["val"] == "Last 7 days"
     # Should set granularity
     assert query_dict["granularity"] == "order_date"
+    # applied_filters in response must include the synthesized TEMPORAL_RANGE filter
+    data = json.loads(result.content[0].text)
+    resp_filters = data["applied_filters"]
+    temporal_resp = [f for f in resp_filters if f["op"] == "TEMPORAL_RANGE"]
+    assert len(temporal_resp) == 1
+    assert temporal_resp[0]["col"] == "order_date"
+    assert temporal_resp[0]["val"] == "Last 7 days"
 
 
 @pytest.mark.asyncio

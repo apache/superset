@@ -171,19 +171,9 @@ async def query_dataset(  # noqa: C901
                 error_type="NotFound",
             )
 
-        dataset_name = getattr(dataset, "table_name", None) or f"Dataset {dataset.id}"
-        await ctx.info(
-            "Dataset found: id=%s, name=%s, columns=%s, metrics=%s"
-            % (
-                dataset.id,
-                dataset_name,
-                len(dataset.columns),
-                len(dataset.metrics),
-            )
-        )
-
         # ------------------------------------------------------------------
-        # Step 1b: Check data-model metadata access before returning schema info.
+        # Step 1b: Check data-model metadata access before revealing any
+        # dataset details (name, column/metric counts) to the client.
         # The decorator hides this tool from search; this check enforces direct calls.
         # ------------------------------------------------------------------
         if not user_can_view_data_model_metadata():
@@ -194,6 +184,17 @@ async def query_dataset(  # noqa: C901
                 ),
                 error_type=DATA_MODEL_METADATA_ERROR_TYPE,
             )
+
+        dataset_name = getattr(dataset, "table_name", None) or f"Dataset {dataset.id}"
+        await ctx.info(
+            "Dataset found: id=%s, name=%s, columns=%s, metrics=%s"
+            % (
+                dataset.id,
+                dataset_name,
+                len(dataset.columns),
+                len(dataset.metrics),
+            )
+        )
 
         # ------------------------------------------------------------------
         # Step 2: Validate requested columns and metrics
@@ -440,7 +441,7 @@ async def query_dataset(  # noqa: C901
                 cache_status=cache_label,
             ),
             cache_status=cache_status,
-            applied_filters=request.filters,
+            applied_filters=effective_filters,
             warnings=warnings,
         )
 
