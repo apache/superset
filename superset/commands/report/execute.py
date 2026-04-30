@@ -43,7 +43,6 @@ from superset.commands.report.exceptions import (
     ReportScheduleStateNotFoundError,
     ReportScheduleSystemErrorsException,
     ReportScheduleUnexpectedError,
-    ReportScheduleWorkingTimeoutError,
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import (
@@ -929,10 +928,24 @@ class ReportNotTriggeredErrorState(BaseReportState):
 
 class ReportWorkingState(BaseReportState):
     """
-    Handle Working state
+    Handle Working state.
+
+    When a report is found in WORKING state, one of three things happened:
+
+    1. The report is genuinely still running (recent WORKING log entry).
+       → Raise ``ReportSchedulePreviousWorkingError`` so the scheduler
+         skips this tick.
+
+    2. The worker crashed (OOM, pod eviction, etc.) and the report is stuck.
+       The ``working_timeout`` has elapsed.
+       → Transition to **NOOP** so the next scheduled tick picks it up
+         and retries naturally.  This avoids a 24-hour wait for daily
+         schedules (the old behaviour transitioned to ERROR, which only
+         retried on the next cron tick).
+
     next states:
-    - Error
-    - Working
+    - NOOP   (was stuck → eligible for retry on next cron tick)
+    - WORKING (genuinely still running)
     """
 
     current_states = [ReportState.WORKING]
@@ -947,17 +960,21 @@ class ReportWorkingState(BaseReportState):
                 if last_working
                 else None
             )
-            logger.error(
-                "Working state timeout after %.2fs - execution_id: %s",
+            logger.warning(
+                "Working state timeout after %.2fs, resetting to NOOP "
+                "for retry on next scheduled tick - execution_id: %s",
                 elapsed_seconds if elapsed_seconds else 0,
                 self._execution_id,
             )
-            exception_timeout = ReportScheduleWorkingTimeoutError()
             self.update_report_schedule_and_log(
-                ReportState.ERROR,
-                error_message=str(exception_timeout),
+                ReportState.NOOP,
+                error_message=(
+                    "Working timeout reached: previous execution appears "
+                    "stuck (possibly due to a worker crash). "
+                    "Resetting for retry on next scheduled tick."
+                ),
             )
-            raise exception_timeout
+            return
         logger.warning(
             "Report still in working state, refusing to re-compute - execution_id: %s",
             self._execution_id,

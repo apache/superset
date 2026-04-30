@@ -33,7 +33,6 @@ from superset.commands.report.exceptions import (
     ReportScheduleScreenshotTimeout,
     ReportScheduleStateNotFoundError,
     ReportScheduleUnexpectedError,
-    ReportScheduleWorkingTimeoutError,
 )
 from superset.commands.report.execute import (
     BaseReportState,
@@ -1110,8 +1109,8 @@ def _make_state_instance(
     return instance
 
 
-def test_working_state_timeout_raises_timeout_error(mocker: MockerFixture) -> None:
-    """Working state past timeout should raise WorkingTimeoutError and log ERROR."""
+def test_working_state_timeout_resets_to_noop(mocker: MockerFixture) -> None:
+    """Working state past timeout should reset to NOOP for retry on next tick."""
     state = _make_state_instance(mocker, ReportWorkingState)
     mocker.patch.object(state, "is_on_working_timeout", return_value=True)
 
@@ -1123,13 +1122,13 @@ def test_working_state_timeout_raises_timeout_error(mocker: MockerFixture) -> No
     )
     mocker.patch.object(state, "update_report_schedule_and_log")
 
-    with pytest.raises(ReportScheduleWorkingTimeoutError):
-        state.next()
+    # Should NOT raise — just resets state and returns
+    state.next()
 
-    state.update_report_schedule_and_log.assert_called_once_with(  # type: ignore[attr-defined]
-        ReportState.ERROR,
-        error_message=str(ReportScheduleWorkingTimeoutError()),
-    )
+    state.update_report_schedule_and_log.assert_called_once()  # type: ignore[attr-defined]
+    call_args = state.update_report_schedule_and_log.call_args  # type: ignore[attr-defined]
+    assert call_args[0][0] == ReportState.NOOP
+    assert "stuck" in call_args[1]["error_message"].lower()
 
 
 def test_working_state_still_working_raises_previous_working(
