@@ -328,11 +328,17 @@ export const antdEnhancedIcons: Record<
   .filter(key => !EXCLUDED_ICONS.some(excluded => key.includes(excluded)))
   .reduce(
     (acc, key) => {
-      acc[key as AntdIconNames] = (props: IconType) => (
+      acc[key as AntdIconNames] = ({
+        // Forward-compat: TS 6.0 treats IconComponentProps.component as a
+        // different shape than BaseIconProps.component; strip it from spread
+        // props so our own component binding is authoritative.
+        component: _ignoredComponent,
+        ...rest
+      }: IconType) => (
         <BaseIconComponent
           component={AntdIcons[key as AntdIconNames]}
           fileName={key}
-          {...props}
+          {...rest}
         />
       );
       return acc;

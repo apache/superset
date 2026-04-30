@@ -19,7 +19,7 @@
 import {
   useEffect,
   useState,
-  RefObject,
+  ForwardedRef,
   forwardRef,
   ComponentType,
   ForwardRefExoticComponent,
@@ -101,7 +101,7 @@ export function AsyncEsmComponent<
 
   const AsyncComponent: AsyncComponent = forwardRef(function AsyncComponent(
     props: FullProps,
-    ref: RefObject<ComponentType<FullProps>>,
+    ref: ForwardedRef<ComponentType<FullProps>>,
   ) {
     const [loaded, setLoaded] = useState(component !== undefined);
     useEffect(() => {

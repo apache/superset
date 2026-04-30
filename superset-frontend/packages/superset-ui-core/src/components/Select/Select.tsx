@@ -34,6 +34,8 @@ import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, formatNumber, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import {
+  BaseOptionType,
+  DefaultOptionType,
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
 } from 'antd/es/select';
@@ -211,7 +213,17 @@ const Select = forwardRef(
     );
 
     const initialOptionsSorted = useMemo(
-      () => initialOptions.slice().sort(sortSelectedFirst),
+      () =>
+        initialOptions
+          .slice()
+          // Forward-compat: TS 6.0 infers stricter antd option types; widen the
+          // comparator to accept the broader DefaultOptionType shape.
+          .sort(
+            sortSelectedFirst as unknown as (
+              a: BaseOptionType | DefaultOptionType,
+              b: BaseOptionType | DefaultOptionType,
+            ) => number,
+          ),
       [initialOptions, sortSelectedFirst],
     );
 
@@ -239,7 +251,17 @@ const Select = forwardRef(
         missingValues.length > 0
           ? missingValues.concat(selectOptions)
           : selectOptions;
-      return result.slice().sort(sortSelectedFirst);
+      return (
+        result
+          .slice()
+          // Forward-compat: see note on initialOptionsSorted.
+          .sort(
+            sortSelectedFirst as unknown as (
+              a: BaseOptionType | DefaultOptionType,
+              b: BaseOptionType | DefaultOptionType,
+            ) => number,
+          )
+      );
     }, [selectOptions, selectValue, sortSelectedFirst]);
 
     const enabledOptions = useMemo(
@@ -751,8 +773,21 @@ const Select = forwardRef(
           data-test={ariaLabel || name}
           autoClearSearchValue={autoClearSearchValue}
           popupRender={popupRender}
-          filterOption={handleFilterOption}
-          filterSort={sortComparatorWithSearch}
+          // Forward-compat: TS 6.0 infers stricter antd option types; local
+          // helpers typed against AntdLabeledValue are behaviorally compatible
+          // with the broader BaseOptionType/DefaultOptionType antd expects.
+          filterOption={
+            handleFilterOption as unknown as (
+              search: string,
+              option?: BaseOptionType | DefaultOptionType,
+            ) => boolean
+          }
+          filterSort={
+            sortComparatorWithSearch as unknown as (
+              a: BaseOptionType | DefaultOptionType,
+              b: BaseOptionType | DefaultOptionType,
+            ) => number
+          }
           getPopupContainer={
             getPopupContainer || (triggerNode => triggerNode.parentNode)
           }
@@ -763,13 +798,26 @@ const Select = forwardRef(
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onBlur={handleOnBlur}
-          onDeselect={handleOnDeselect}
+          // Forward-compat: TS 6.0 narrows the Select value type handed to
+          // SelectHandler; our local handlers already accept the broader union.
+          onDeselect={
+            handleOnDeselect as unknown as (
+              value: unknown,
+              option: BaseOptionType | DefaultOptionType,
+            ) => void
+          }
           onOpenChange={handleOnDropdownVisibleChange}
-          // @ts-expect-error
+          // @ts-expect-error antd Select does not declare onPaste on its prop
+          // surface, but the underlying input accepts it and we rely on that.
           onPaste={onPaste}
           onPopupScroll={undefined}
           onSearch={shouldShowSearch ? handleOnSearch : undefined}
-          onSelect={handleOnSelect}
+          onSelect={
+            handleOnSelect as unknown as (
+              value: unknown,
+              option: BaseOptionType | DefaultOptionType,
+            ) => void
+          }
           onClear={handleClear}
           placeholder={placeholder}
           tokenSeparators={tokenSeparators}
