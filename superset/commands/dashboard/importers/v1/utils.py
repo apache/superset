@@ -65,11 +65,12 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     """Update dashboard metadata to use new IDs"""
     fixed = config.copy()
 
-    # build map old_id => new_id
+    # build map old_id => new_id and uuid => new_id
     old_ids = build_uuid_to_id_map(fixed["position"])
     id_map = {
         old_id: chart_ids[uuid] for uuid, old_id in old_ids.items() if uuid in chart_ids
     }
+    uuid_to_new_id = {uuid: chart_ids[uuid] for uuid in old_ids if uuid in chart_ids}
 
     # fix metadata
     metadata = fixed.get("metadata", {})
@@ -139,55 +140,109 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
             native_filter["scope"]["excluded"] = [
                 id_map[old_id] for old_id in scope_excluded if old_id in id_map
             ]
-    fixed = update_cross_filter_scoping(fixed, id_map)
+
+        # fix chartsInScope references (from PR #26389)
+        charts_in_scope = native_filter.get("chartsInScope", [])
+        if charts_in_scope:
+            native_filter["chartsInScope"] = _remap_chart_ids(
+                charts_in_scope, id_map, uuid_to_new_id
+            )
+
+    fixed = update_cross_filter_scoping(fixed, id_map, uuid_to_new_id)
     return fixed
 
 
+def _remap_chart_ids(
+    id_list: list[Any],
+    id_map: dict[int, int],
+    uuid_to_new_id: dict[str, int] | None = None,
+) -> list[int]:
+    """Remap old chart IDs (int or UUID string) to new integer IDs.
+
+    Handles both the standard import format (integer IDs) and the example-export
+    format (UUID strings produced by export_example.remap_chart_configuration).
+    """
+    result = []
+    for item in id_list:
+        if isinstance(item, int):
+            if item in id_map:
+                result.append(id_map[item])
+        elif isinstance(item, str) and uuid_to_new_id:
+            new_id = uuid_to_new_id.get(item)
+            if new_id is not None:
+                result.append(new_id)
+    return result
+
+
+def _update_cross_filter_scope(
+    cross_filter_config: Any,
+    id_map: dict[int, int],
+    uuid_to_new_id: dict[str, int] | None = None,
+) -> None:
+    """Update scope.excluded and chartsInScope in a cross-filter configuration.
+
+    Imported dashboard metadata is loosely validated, so malformed payloads may
+    supply ``null`` or non-dict values where a cross-filter config is expected.
+    Skip anything that isn't a dict rather than raising ``AttributeError``.
+    """
+    if not isinstance(cross_filter_config, dict):
+        return
+
+    scope = cross_filter_config.get("scope", {})
+    if isinstance(scope, dict):
+        if excluded := scope.get("excluded", []):
+            scope["excluded"] = _remap_chart_ids(excluded, id_map, uuid_to_new_id)
+
+    if charts_in_scope := cross_filter_config.get("chartsInScope", []):
+        cross_filter_config["chartsInScope"] = _remap_chart_ids(
+            charts_in_scope, id_map, uuid_to_new_id
+        )
+
+
 def update_cross_filter_scoping(
-    config: dict[str, Any], id_map: dict[int, int]
+    config: dict[str, Any],
+    id_map: dict[int, int],
+    uuid_to_new_id: dict[str, int] | None = None,
 ) -> dict[str, Any]:
-    # fix cross filter references
+    """Fix cross filter references by remapping chart IDs.
+
+    Handles both the standard import format (integer-keyed chart_configuration)
+    and the example-export format (UUID-keyed, produced by export_example).
+    """
     fixed = config.copy()
+    metadata = fixed.get("metadata", {})
 
-    cross_filter_global_config = fixed.get("metadata", {}).get(
-        "global_chart_configuration", {}
-    )
-    scope_excluded = cross_filter_global_config.get("scope", {}).get("excluded", [])
-    if scope_excluded:
-        cross_filter_global_config["scope"]["excluded"] = [
-            id_map[old_id] for old_id in scope_excluded if old_id in id_map
-        ]
+    # Update global_chart_configuration
+    global_config = metadata.get("global_chart_configuration", {})
+    _update_cross_filter_scope(global_config, id_map, uuid_to_new_id)
 
-    if "chart_configuration" in (metadata := fixed.get("metadata", {})):
-        # Build remapped configuration in a single pass for clarity/readability.
-        new_chart_configuration: dict[str, Any] = {}
-        for old_id_str, chart_config in metadata["chart_configuration"].items():
-            try:
-                old_id_int = int(old_id_str)
-            except (TypeError, ValueError):
-                continue
+    # Update chart_configuration entries
+    if "chart_configuration" not in metadata:
+        return fixed
 
+    new_chart_configuration: dict[str, Any] = {}
+    for old_id_str, chart_config in metadata["chart_configuration"].items():
+        try:
+            old_id_int = int(old_id_str)
             new_id = id_map.get(old_id_int)
             if new_id is None:
                 continue
+        except (TypeError, ValueError):
+            # UUID-keyed entry (e.g. from export_example): resolve via chart UUIDs
+            new_id = uuid_to_new_id.get(old_id_str) if uuid_to_new_id else None
+            if new_id is None:
+                # Unknown key — preserve unchanged rather than silently drop
+                new_chart_configuration[old_id_str] = chart_config
+                continue
 
-            if isinstance(chart_config, dict):
-                chart_config["id"] = new_id
+        if isinstance(chart_config, dict):
+            chart_config["id"] = new_id
+            if cross_filters := chart_config.get("crossFilters", {}):
+                _update_cross_filter_scope(cross_filters, id_map, uuid_to_new_id)
 
-                # Update cross filter scope excluded ids
-                scope = chart_config.get("crossFilters", {}).get("scope", {})
-                if isinstance(scope, dict):
-                    excluded_scope = scope.get("excluded", [])
-                    if excluded_scope:
-                        chart_config["crossFilters"]["scope"]["excluded"] = [
-                            id_map[old_id]
-                            for old_id in excluded_scope
-                            if old_id in id_map
-                        ]
+        new_chart_configuration[str(new_id)] = chart_config
 
-            new_chart_configuration[str(new_id)] = chart_config
-
-        metadata["chart_configuration"] = new_chart_configuration
+    metadata["chart_configuration"] = new_chart_configuration
     return fixed
 
 
