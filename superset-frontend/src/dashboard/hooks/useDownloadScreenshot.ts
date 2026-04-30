@@ -77,6 +77,8 @@ export const useDownloadScreenshot = (
   const downloadScreenshot = useCallback(
     (format: DownloadScreenshotFormat) => {
       let retries = 0;
+      let isFetching = false;
+      let isDownloaded = false;
 
       const toastIntervalId = setInterval(
         () =>
@@ -121,6 +123,11 @@ export const useDownloadScreenshot = (
             return response.blob().then(blob => ({ blob, fileName }));
           })
           .then(({ blob, fileName }) => {
+            if (isDownloaded) {
+              return;
+            }
+            isDownloaded = true;
+            stopIntervals('success');
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -129,7 +136,6 @@ export const useDownloadScreenshot = (
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
-            stopIntervals('success');
           })
           .catch(err => {
             if ((err as SupersetApiError).status === 404) {
@@ -138,14 +144,22 @@ export const useDownloadScreenshot = (
           });
 
       const fetchImageWithRetry = (cacheKey: string) => {
+        if (isDownloaded || isFetching) {
+          return;
+        }
         if (retries >= MAX_RETRIES) {
           stopIntervals('failure');
           logging.error('Max retries reached');
           return;
         }
-        checkImageReady(cacheKey).catch(() => {
-          retries += 1;
-        });
+        isFetching = true;
+        checkImageReady(cacheKey)
+          .catch(() => {
+            retries += 1;
+          })
+          .finally(() => {
+            isFetching = false;
+          });
       };
 
       SupersetClient.post({
