@@ -42,6 +42,13 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 MCP_SERVICE_HOST = "localhost"
 MCP_SERVICE_PORT = 5008
 
+# Bug-report support contact surfaced by the generate_bug_report tool. Each
+# deployment should override this in superset_config.py to point users at the
+# right channel (e.g. an internal support address, a vendor support team).
+# When unset, the tool falls back to a neutral default that points at the
+# user's Superset administrator and the Apache Superset issue tracker.
+MCP_BUG_REPORT_CONTACT: str | None = None
+
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
