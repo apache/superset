@@ -16,6 +16,8 @@
 # limitations under the License.
 #
 set -e
+exec > >(tee -a /app/docker/debug.log) 2>&1
+
 
 #
 # Always install local overrides first
