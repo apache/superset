@@ -37,7 +37,8 @@ const useDatasetsList = (
   schema: string | null | undefined,
 ) => {
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);
-  const encodedSchema = schema ? encodeURIComponent(schema) : undefined;
+  const supportsSchemas = db?.supports_schemas !== false;
+  const encodedSchema = schema ? encodeURIComponent(schema) : null;
 
   const getDatasetsList = useCallback(async (filters: object[]) => {
     let results: DatasetObject[] = [];
@@ -77,14 +78,16 @@ const useDatasetsList = (
   useEffect(() => {
     const filters = [
       { col: 'database', opr: 'rel_o_m', value: db?.id },
-      { col: 'schema', opr: 'eq', value: encodedSchema },
+      ...(supportsSchemas
+        ? [{ col: 'schema', opr: 'eq', value: encodedSchema }]
+        : []),
       { col: 'sql', opr: 'dataset_is_null_or_empty', value: true },
     ];
 
-    if (schema && db?.id !== undefined) {
+    if (db?.id !== undefined && (schema || !supportsSchemas)) {
       getDatasetsList(filters);
     }
-  }, [db?.id, schema, encodedSchema, getDatasetsList]);
+  }, [db?.id, schema, encodedSchema, supportsSchemas, getDatasetsList]);
 
   const datasetNames = useMemo(
     () => datasets?.map(dataset => dataset.table_name),

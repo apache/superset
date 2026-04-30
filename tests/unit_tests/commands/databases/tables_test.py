@@ -148,6 +148,78 @@ def test_tables_with_catalog(
     )
 
 
+@pytest.fixture
+def database_without_schema_support(mocker: MockerFixture) -> MagicMock:
+    """
+    Mock a database that does not support schemas (e.g. YDB).
+    """
+    mocker.patch("superset.commands.database.tables.db")
+
+    database = mocker.MagicMock()
+    database.database_name = "test_database"
+    database.get_default_catalog.return_value = None
+    database.db_engine_spec.supports_schemas = False
+    database.get_all_table_names_in_schema.return_value = {
+        ("table1", None, None),
+        ("table2", None, None),
+    }
+    database.get_all_view_names_in_schema.return_value = set()
+    database.get_all_materialized_view_names_in_schema.return_value = set()
+
+    DatabaseDAO = mocker.patch("superset.commands.database.tables.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database
+
+    return database
+
+
+def test_tables_without_schema_support(
+    mocker: MockerFixture,
+    database_without_schema_support: MagicMock,
+) -> None:
+    """
+    Test that schema is overridden to None for databases that don't support schemas.
+    Any schema name passed to the command is ignored.
+    """
+    get_datasources_accessible_by_user = mocker.patch.object(
+        security_manager,
+        "get_datasources_accessible_by_user",
+        side_effect=[
+            {
+                DatasourceName("table1", None),  # type: ignore[arg-type]
+                DatasourceName("table2", None),  # type: ignore[arg-type]
+            },
+            set(),  # Empty set for views
+            set(),  # Empty set for materialized views
+        ],
+    )
+
+    db = mocker.patch("superset.commands.database.tables.db")
+    db.session.query().filter().options().all.return_value = []
+
+    # Schema name should be overridden to None when supports_schemas=False
+    payload = TablesDatabaseCommand(1, None, "any_schema", False).run()
+
+    assert payload["count"] == 2
+    assert {item["value"] for item in payload["result"]} == {"table1", "table2"}
+
+    # Verify schema was set to None when calling the underlying DB methods
+    database_without_schema_support.get_all_table_names_in_schema.assert_called_with(
+        catalog=None,
+        schema=None,
+        force=False,
+        cache=database_without_schema_support.table_cache_enabled,
+        cache_timeout=database_without_schema_support.table_cache_timeout,
+    )
+
+    # Verify security_manager was called with schema=None
+    get_datasources_accessible_by_user.assert_any_call(
+        database=database_without_schema_support,
+        catalog=None,
+        schema=None,
+        datasource_names=mocker.ANY,
+    )
+
+
 def test_tables_without_catalog(
     mocker: MockerFixture,
     database_without_catalog: MockerFixture,

@@ -240,6 +240,35 @@ describe('useTables hook', () => {
     expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1);
   });
 
+  test('fetches tables without schema when supportsSchemas is false', async () => {
+    const expectDbId = 'db1';
+    const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
+    fetchMock.get(tableApiRoute, fakeApiResult);
+    fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
+      count: 0,
+      result: [],
+    });
+    fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
+      result: fakeSchemaApiResult,
+    });
+    const { result, waitFor } = renderHook(
+      () =>
+        useTables({
+          dbId: expectDbId,
+          supportsSchemas: false,
+        }),
+      {
+        wrapper: createWrapper({
+          useRedux: true,
+          store,
+        }),
+      },
+    );
+    // Tables are fetched even though no schema is provided or validated against schemaOptions
+    await waitFor(() => expect(result.current.data).toEqual(expectedData));
+    expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1);
+  });
+
   test('returns refreshed data after expires', async () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schema1';
