@@ -133,6 +133,68 @@ class TestLoggingMiddlewareOnCallTool:
     @patch("superset.mcp_service.middleware.event_logger")
     @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
     @pytest.mark.asyncio
+    async def test_on_call_tool_includes_mcp_call_id_in_curated_payload(
+        self, mock_get_user_id, mock_event_logger
+    ):
+        """on_call_tool adds mcp_call_id to curated_payload."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value="tool_result")
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        mcp_call_id = call_kwargs["curated_payload"]["mcp_call_id"]
+        assert isinstance(mcp_call_id, str)
+        assert len(mcp_call_id) == 12
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_injects_mcp_call_id_into_tool_result_meta(
+        self, mock_get_user_id, mock_event_logger
+    ):
+        """on_call_tool injects mcp_call_id into ToolResult.meta."""
+        from fastmcp.tools.tool import ToolResult
+        from mcp import types as mt
+
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        original_result = ToolResult(content=[mt.TextContent(type="text", text="ok")])
+        call_next = AsyncMock(return_value=original_result)
+
+        result = await middleware.on_call_tool(ctx, call_next)
+
+        assert isinstance(result, ToolResult)
+        assert "mcp_call_id" in result.meta
+        assert len(result.meta["mcp_call_id"]) == 12
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_preserves_existing_meta(
+        self, mock_get_user_id, mock_event_logger
+    ):
+        """on_call_tool merges mcp_call_id with existing ToolResult.meta."""
+        from fastmcp.tools.tool import ToolResult
+        from mcp import types as mt
+
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        original_result = ToolResult(
+            content=[mt.TextContent(type="text", text="ok")],
+            meta={"existing_key": "existing_value"},
+        )
+        call_next = AsyncMock(return_value=original_result)
+
+        result = await middleware.on_call_tool(ctx, call_next)
+
+        assert result.meta["existing_key"] == "existing_value"
+        assert "mcp_call_id" in result.meta
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
     async def test_on_call_tool_extracts_entity_ids(
         self, mock_get_user_id, mock_event_logger
     ):
@@ -297,7 +359,9 @@ class TestIsErrorResponse:
 
         result = await middleware.on_call_tool(ctx, call_next)
 
-        assert result == error_result
+        assert isinstance(result, ToolResult)
+        assert result.content == error_result.content
+        assert "mcp_call_id" in result.meta
         mock_event_logger.log.assert_called_once()
         call_kwargs = mock_event_logger.log.call_args[1]
         assert call_kwargs["curated_payload"]["success"] is False

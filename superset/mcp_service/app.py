@@ -532,6 +532,7 @@ from superset.mcp_service.system import (  # noqa: F401, E402
     resources as system_resources,
 )
 from superset.mcp_service.system.tool import (  # noqa: F401, E402
+    generate_bug_report,
     get_instance_info,
     get_schema,
     health_check,

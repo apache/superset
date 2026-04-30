@@ -191,3 +191,34 @@ class PaginationInfo(BaseModel):
     has_next: bool
     has_previous: bool
     model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+
+class GenerateBugReportRequest(BaseModel):
+    """Request schema for generate_bug_report tool."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+
+    summary: str = Field(..., description="Brief summary of the issue")
+    steps_to_reproduce: str = Field(..., description="Steps to reproduce the issue")
+    expected_behavior: str = Field(..., description="Expected behavior")
+    actual_behavior: str = Field(..., description="Actual behavior observed")
+    mcp_call_id: str | None = Field(
+        None,
+        description=(
+            "Optional MCP call ID from a previous tool invocation. "
+            "When provided, it will be included in the bug report "
+            "for server-side log correlation."
+        ),
+    )
+
+
+class GenerateBugReportResponse(BaseModel):
+    """Response schema for generate_bug_report tool."""
+
+    report: str = Field(..., description="Formatted bug report text")
+    mcp_call_id: str | None = Field(
+        None, description="The MCP call ID if one was provided"
+    )
