@@ -17,17 +17,22 @@
  * under the License.
  */
 
-export * from './checkColumnType';
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices, columnsByType } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
-export * from './displayTimeRelatedControls';
-export * from './colorControls';
-export * from './metricColumnFilter';
-export * from './getUrlLinks';
+import { ReactNode } from 'react';
+import { PopoverProps } from '@superset-ui/core/components/Popover';
+import { ControlComponentProps, UrlLinkConfig } from '@superset-ui/chart-controls';
+
+export type { UrlLinkConfig };
+
+export type UrlLinkControlProps = ControlComponentProps<UrlLinkConfig[]> & {
+  colnames: string[];
+  label: string;
+  description: string;
+};
+
+export type UrlLinkPopoverProps = PopoverProps & {
+  columns: string[];
+  onChange: (value: UrlLinkConfig) => void;
+  config?: UrlLinkConfig;
+  title: string;
+  children: ReactNode;
+};
