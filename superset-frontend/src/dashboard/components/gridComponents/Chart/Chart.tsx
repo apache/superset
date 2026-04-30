@@ -27,8 +27,8 @@ import {
   RefObject,
 } from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { debounce } from 'lodash';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
@@ -760,11 +760,11 @@ const Chart = (props: ChartProps) => {
             },
             slice.viz_type,
           )}
-          queriesResponse={chart.queriesResponse ?? undefined}
+          queriesResponse={chart.queriesResponse ?? null}
           timeout={timeout}
           triggerQuery={chart.triggerQuery}
           vizType={slice.viz_type}
-          setControlValue={props.setControlValue}
+          setControlValue={props.setControlValue ?? (() => {})}
           datasetsStatus={
             datasetsStatus as 'loading' | 'error' | 'complete' | undefined
           }

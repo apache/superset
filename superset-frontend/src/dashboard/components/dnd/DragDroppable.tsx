@@ -33,7 +33,6 @@ import {
 } from 'react-dnd';
 import cx from 'classnames';
 import { css, styled } from '@apache-superset/core/theme';
-
 import { dragConfig, dropConfig } from './dragDroppableConfig';
 import type { DragDroppableProps as BaseDragDroppableProps } from './dragDroppableConfig';
 import { DROP_FORBIDDEN } from '../../util/getDropPosition';
@@ -92,15 +91,6 @@ const DragDroppableStyles = styled.div`
     &.dragdroppable-row {
       width: 100%;
     }
-    /* workaround to avoid a bug in react-dnd where the drag
-      preview expands outside of the bounds of the drag source card, see:
-      https://github.com/react-dnd/react-dnd/issues/832 */
-    &.dragdroppable-column {
-      /* for chrome */
-      transform: translate3d(0, 0, 0);
-      /* for safari */
-      backface-visibility: hidden;
-    }
 
     &.dragdroppable-column .resizable-container span div {
       z-index: 10;
@@ -122,15 +112,22 @@ const DragDroppableStyles = styled.div`
     }
   `};
 `;
+
+/**
+ * Note: This component remains a class component because it is tightly integrated
+ * with react-dnd's class-based HOC system (DragSource/DropTarget). The HOCs
+ * access component instance properties directly (mounted, ref, props, setState)
+ * in the hover/drop callbacks defined in dragDroppableConfig.ts.
+ *
+ * Converting to a function component would require migrating to react-dnd's
+ * hooks API (useDrag/useDrop), which would be a more extensive refactor.
+ */
 // export unwrapped component for testing
+// eslint-disable-next-line react-prefer-function-component/react-prefer-function-component -- react-dnd class-based HOC requires class component instance properties
 export class UnwrappedDragDroppable extends PureComponent<
   DragDroppableAllProps,
   DragDroppableState
 > {
-  mounted: boolean;
-
-  ref: HTMLDivElement | null;
-
   static defaultProps = {
     className: null,
     style: null,
@@ -151,6 +148,10 @@ export class UnwrappedDragDroppable extends PureComponent<
     dragSourceRef() {},
     dragPreviewRef() {},
   };
+
+  mounted: boolean;
+
+  ref: HTMLDivElement | null;
 
   constructor(props: DragDroppableAllProps) {
     super(props);
@@ -283,7 +284,6 @@ export class UnwrappedDragDroppable extends PureComponent<
 
 // react-dnd's DragSource/DropTarget HOC types don't play well with
 // class components using spread config tuples, so we use type assertions here
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const DragDroppableAsAny =
   UnwrappedDragDroppable as unknown as ReactComponentType<
     Record<string, unknown>
