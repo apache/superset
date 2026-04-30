@@ -22,7 +22,7 @@ import os
 import shutil
 import subprocess
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed, ThreadPoolExecutor
 
 MAX_WORKERS = min(8, (os.cpu_count() or 4) * 2)
 
@@ -87,13 +87,13 @@ def ensure_command(label: str, *names: str) -> str | None:
 def install_npm_packages(
     npm_cmd: str,
     node_modules_bin: str,
-    root_dir: str,  # FIX: aggiunto root_dir per cwd
+    root_dir: str,
 ) -> tuple[str | None, str | None]:
     packages = ["po2json", "prettier"]
     print(f"  Pre-installing npm packages: {', '.join(packages)}...")
     result = run_command(
         [npm_cmd, "install", "--no-save", "--prefer-offline", *packages],
-        cwd=root_dir,  # FIX: npm installa in root_dir invece che in cwd corrente
+        cwd=root_dir,
         timeout=120,
     )
     if result.returncode != 0:
@@ -102,7 +102,7 @@ def install_npm_packages(
     ext = ".cmd" if os.name == "nt" else ""
     po2json_bin = os.path.join(node_modules_bin, f"po2json{ext}")
     prettier_bin = os.path.join(node_modules_bin, f"prettier{ext}")
-    if not os.path.exists(po2json_bin) or not os.path.exists(prettier_bin):  # FIX: 'and' → 'or'
+    if not os.path.exists(po2json_bin) or not os.path.exists(prettier_bin):
         print("  Local binaries not found after install, will fall back to npx.")
         return None, None
     print(f"  po2json -> {po2json_bin}")
@@ -112,11 +112,11 @@ def install_npm_packages(
 
 def convert_po_file(
     po_file: str,
-    po2json_cmd: list[str],  # FIX: lista invece di stringa
+    po2json_cmd: list[str],
 ) -> tuple[bool, str, str]:
     json_file = po_file.replace(".po", ".json")
     cmd = [
-        *po2json_cmd,  # FIX: unpacking della lista
+        *po2json_cmd,
         "--domain",
         "superset",
         "--format",
@@ -145,7 +145,7 @@ def _run_pybabel(translations_dir: str, root_dir: str) -> bool:
         cwd=root_dir,
     )
     if result.returncode != 0:
-        print(f"  pybabel failed:\\n{result.stderr}")
+        print(f"  pybabel failed:\n{result.stderr}")
         return False
     print("  pybabel compile done.")
     return True
@@ -162,21 +162,21 @@ def _sync_po_to_frontend(
     po_files = glob.glob(
         os.path.join(translations_dir, "**", "*.po"), recursive=True
     )
-    dest_files = []  # FIX: raccoglie i path frontend
+    dest_files = []
     for f in po_files:
         dest = os.path.join(
             frontend_trans_dir, os.path.relpath(f, translations_dir)
         )
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         shutil.copy2(f, dest)
-        dest_files.append(dest)  # FIX: salva il path di destinazione
+        dest_files.append(dest)
     print(f"  Copied {len(po_files)} PO files to frontend.")
-    return dest_files  # FIX: ritorna path frontend, non backend
+    return dest_files
 
 
 def _convert_po_files_parallel(
     po_files: list[str],
-    po2json_cmd: list[str],  # FIX: lista
+    po2json_cmd: list[str],
     npx_cmd: str,  # noqa: ARG001
 ) -> list[str]:
     print(
@@ -187,7 +187,7 @@ def _convert_po_files_parallel(
     completed = 0
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_to_po = {
-            executor.submit(convert_po_file, f, po2json_cmd): f  # FIX: passa lista
+            executor.submit(convert_po_file, f, po2json_cmd): f
             for f in po_files
         }
         for future in as_completed(future_to_po):
@@ -229,7 +229,7 @@ def _run_prettier(
         prettier_cmd = [npx_cmd, "prettier", "--write", *json_files]
     result = run_command(prettier_cmd, timeout=300)
     if result.returncode != 0:
-        print(f"  prettier warnings:\\n{result.stderr}")
+        print(f"  prettier warnings:\n{result.stderr}")
     else:
         print("  prettier done.")
 
@@ -237,13 +237,13 @@ def _run_prettier(
 def compile_translations() -> None:
     print("0. Checking requirements...")
     if not ensure_python_module("babel", "Babel"):
-        sys.exit(1)  # FIX: exit code 1 invece di return
+        sys.exit(1)
     node_cmd = ensure_command("Node", "node.exe", "node")
     npm_cmd = ensure_command("NPM", "npm.cmd", "npm.exe", "npm")
     npx_cmd = ensure_command("NPX", "npx.cmd", "npx.exe", "npx")
     if not all([node_cmd, npm_cmd, npx_cmd]):
         print("Missing system dependencies. Aborting.")
-        sys.exit(1)  # FIX: exit code 1 invece di return
+        sys.exit(1)
 
     root_dir = os.path.abspath(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
@@ -256,10 +256,10 @@ def compile_translations() -> None:
 
     if not os.path.exists(translations_dir):
         print(f"  Translations dir missing: {translations_dir}")
-        sys.exit(1)  # FIX: exit code 1 invece di return
+        sys.exit(1)
 
     if not _run_pybabel(translations_dir, root_dir):
-        sys.exit(1)  # FIX: exit code 1 invece di return
+        sys.exit(1)
 
     po_files = _sync_po_to_frontend(translations_dir, frontend_trans_dir)
 
@@ -267,16 +267,15 @@ def compile_translations() -> None:
     po2json_bin, prettier_bin = install_npm_packages(
         npm_cmd,  # type: ignore[arg-type]
         node_modules_bin,
-        root_dir,  # FIX: passa root_dir
+        root_dir,
     )
-    # FIX: fallback come lista, non stringa
     po2json_cmd: list[str] = [po2json_bin] if po2json_bin else [npx_cmd, "po2json"]  # type: ignore[list-item]
     if po2json_bin is None:
         print("  Falling back to npx for po2json.")
 
     failures = _convert_po_files_parallel(
         po_files,
-        po2json_cmd,  # FIX: passa lista
+        po2json_cmd,
         npx_cmd,  # type: ignore[arg-type]
     )
     _run_prettier(
@@ -285,11 +284,11 @@ def compile_translations() -> None:
         npx_cmd,  # type: ignore[arg-type]
     )
 
-    if failures:  # FIX: exit code 1 se ci sono fallimenti
+    if failures:
         print(f"❌ Pipeline completed with {len(failures)} conversion failure(s).")
         sys.exit(1)
 
-    print("Pipeline completed successfully!")
+    print("Pipeline completed successfully FC17!")
 
 
 if __name__ == "__main__":
