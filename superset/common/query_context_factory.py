@@ -29,7 +29,12 @@ from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
 from superset.models.slice import Slice
 from superset.superset_typing import Column
-from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
+from superset.utils.core import (
+    DatasourceDict,
+    DatasourceType,
+    get_query_object_filter_column_name,
+    is_adhoc_column,
+)
 
 
 def create_query_object_factory() -> QueryObjectFactory:
@@ -244,72 +249,56 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             if (column["is_dttm"] if isinstance(column, dict) else column.is_dttm)
         }
         x_axis = form_data and form_data.get("x_axis")
+        if is_adhoc_column(x_axis):  # type: ignore
+            x_axis = x_axis.get("sqlExpression")
 
-        if granularity := query_object.granularity:
-            filter_to_remove = None
-            if is_adhoc_column(x_axis):  # type: ignore
-                x_axis = x_axis.get("sqlExpression")
-            if isinstance(x_axis, dict) and "sqlExpression" in x_axis:
-                x_axis = x_axis.get("sqlExpression")
-            if x_axis and x_axis in temporal_columns:
-                filter_to_remove = x_axis
-                x_axis_column = next(
-                    (
-                        column
-                        for column in query_object.columns
-                        if column == x_axis
-                        or (
-                            isinstance(column, dict)
-                            and column["sqlExpression"] == x_axis
-                        )
-                    ),
-                    None,
-                )
-                # Replaces x-axis column values with granularity
-                if x_axis_column:
-                    if isinstance(x_axis_column, dict):
-                        x_axis_column["sqlExpression"] = granularity
-                        x_axis_column["label"] = granularity
-                    else:
-                        query_object.columns = [
-                            granularity if column == x_axis_column else column
-                            for column in query_object.columns
-                        ]
-                    for post_processing in query_object.post_processing:
-                        if post_processing.get("operation") == "pivot":
-                            post_processing["options"]["index"] = [granularity]
+        # Always lock granularity to the chart x-axis temporal column when set.
+        # Otherwise `granularity` may be inferred from a dashboard filter on another
+        # datetime column, which rewrites GROUP BY / series and surfaces the wrong
+        # column on axes (e.g. event_b on Y-axis while X is event_a).
+        if x_axis and x_axis in temporal_columns:
+            query_object.granularity = x_axis
 
-            # If no temporal x-axis, then get the default temporal filter
-            if not filter_to_remove:
-                temporal_filters = [
-                    filter["col"]
-                    for filter in query_object.filter
-                    if filter["op"] == "TEMPORAL_RANGE"
-                ]
-                if len(temporal_filters) > 0:
-                    # Use granularity if it's already in the filters
-                    if granularity in temporal_filters:
-                        filter_to_remove = granularity
-                    else:
-                        # Use the first temporal filter
-                        filter_to_remove = temporal_filters[0]
+        granularity = query_object.granularity
+        if not granularity:
+            return
 
-            # Removes the temporal filter which may be an x-axis or
-            # another temporal filter. A new filter based on the value of
-            # the granularity will be added later in the code.
-            # In practice, this is replacing the previous default temporal filter.
-            if is_adhoc_column(filter_to_remove):  # type: ignore
-                filter_to_remove = filter_to_remove.get("sqlExpression")
+        filter_to_remove = None
+        if x_axis and x_axis in temporal_columns:
+            # Dedupe main time range vs TEMPORAL_RANGE on the x-axis only;
+            # keep TEMPORAL_RANGE on other datetime columns (e.g. event_b).
+            filter_to_remove = x_axis
+        else:
+            temporal_filters = [
+                filter["col"]
+                for filter in query_object.filter
+                if filter["op"] == "TEMPORAL_RANGE"
+            ]
+            if len(temporal_filters) > 0:
+                if granularity in temporal_filters:
+                    filter_to_remove = granularity
+                else:
+                    filter_to_remove = temporal_filters[0]
 
-            if filter_to_remove:
-                query_object.filter = [
-                    filter
-                    for filter in query_object.filter
-                    if filter["col"] != filter_to_remove
-                ]
+        if is_adhoc_column(filter_to_remove):  # type: ignore
+            filter_to_remove = filter_to_remove.get("sqlExpression")
+
+        if filter_to_remove:
+            query_object.filter = [
+                flt
+                for flt in query_object.filter
+                if get_query_object_filter_column_name(flt.get("col"))
+                != filter_to_remove
+            ]
 
     def _apply_filters(self, query_object: QueryObject) -> None:
-        if query_object.time_range:
+        if query_object.time_range and query_object.granularity:
             for filter_object in query_object.filter:
-                if filter_object["op"] == "TEMPORAL_RANGE":
+                if (
+                    filter_object["op"] == "TEMPORAL_RANGE"
+                    and get_query_object_filter_column_name(
+                        filter_object.get("col")
+                    )
+                    == query_object.granularity
+                ):
                     filter_object["val"] = query_object.time_range

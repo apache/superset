@@ -1266,6 +1266,21 @@ def get_x_axis_label(columns: list[Column] | None) -> str | None:
     return labels[0] if labels else None
 
 
+def get_query_object_filter_column_name(col: Any) -> str | None:
+    """
+    Return a comparable column identifier for a query filter ``col`` value.
+
+    Filter ``col`` may be a plain string or an adhoc column dict; this matches
+    the sqlExpression-or-label order used when aligning temporal filters to the
+    chart x-axis.
+    """
+    if col is None:
+        return None
+    if isinstance(col, dict):
+        return col.get("sqlExpression") or col.get("label")
+    return str(col)
+
+
 def get_column_name(column: Column, verbose_map: dict[str, Any] | None = None) -> str:
     """
     Extract label from column
