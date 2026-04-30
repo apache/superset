@@ -25,7 +25,7 @@ import {
   getColumnLabel,
   getNumberFormatter,
   LegendState,
-  ensureIsArray,
+  ensureIsArray, TimeGranularity,
 } from '@superset-ui/core';
 import type { ViewRootGroup } from 'echarts/types/src/util/types';
 import type GlobalModel from 'echarts/types/src/model/Global';
@@ -35,6 +35,7 @@ import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
 import { formatSeriesName } from '../utils/series';
 import { ExtraControls } from '../components/ExtraControls';
+import {TIMEGRAIN_TO_TIMESTAMP} from "../constants";
 
 const TIMER_DURATION = 300;
 
@@ -267,18 +268,49 @@ export default function EchartsTimeseries({
           ...(labelMap[seriesName] ?? []),
         ];
         const groupBy = ensureIsArray(formData.groupby);
+        let xAxisDrillByFilter: BinaryQueryObjectFilterClause | undefined;
+
+        const xAxisColumn =
+          xAxis.label === DTTM_ALIAS
+            ? formData.granularitySqla
+            : xAxis.label;
+
         if (data && xAxis.type === AxisType.Time) {
+
+          const timeValue = data[0];
+          const timeValueMs = typeof timeValue === 'number'
+              ? timeValue
+              : new Date(timeValue).getTime();
+          const grainMs =
+            TIMEGRAIN_TO_TIMESTAMP[formData.timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP] ??
+            TIMEGRAIN_TO_TIMESTAMP[TimeGranularity.DAY];
+
           drillToDetailFilters.push({
-            col:
-              // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
-              xAxis.label === DTTM_ALIAS
-                ? formData.granularitySqla
-                : xAxis.label,
+            col: xAxisColumn,
             grain: formData.timeGrainSqla,
             op: '==',
-            val: data[0],
-            formattedVal: xValueFormatter(data[0]),
+            val: timeValue,
+            formattedVal: xValueFormatter(timeValue),
           });
+          if (!Number.isNaN(timeValueMs)) {
+            const startTime = new Date(timeValueMs).toISOString();
+            const endTime = new Date(timeValueMs + grainMs).toISOString();
+            xAxisDrillByFilter = {
+              col: xAxisColumn,
+              op: 'TEMPORAL_RANGE',
+              val: `${startTime} : ${endTime}`,
+              formattedVal: xValueFormatter(timeValue),
+            };
+          }
+        } else if (data && data[0] !== undefined && data[0] !== null) {
+          xAxisDrillByFilter = {
+            col: xAxis.label,
+            op: '==',
+            val: data[0],
+            formattedVal: String(data[0]),
+          }
+        } else {
+          xAxisDrillByFilter = undefined;
         }
         [
           ...(xAxis.type === AxisType.Category && data ? [xAxis.label] : []),
@@ -291,6 +323,9 @@ export default function EchartsTimeseries({
             formattedVal: String(values[i]),
           }),
         );
+        if (xAxisDrillByFilter) {
+          drillByFilters.push(xAxisDrillByFilter);
+        }
         groupBy.forEach((dimension, i) => {
           const dimensionValues = labelMap[seriesName] ?? [];
 
