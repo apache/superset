@@ -24,7 +24,7 @@ from .health_check import health_check
 
 __all__ = [
     "generate_bug_report",
+    "health_check",
     "get_instance_info",
     "get_schema",
-    "health_check",
 ]
