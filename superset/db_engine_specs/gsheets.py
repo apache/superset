@@ -31,6 +31,7 @@ from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from requests import Session
 from shillelagh.adapters.api.gsheets.lib import SCOPES
+from shillelagh.exceptions import UnauthenticatedError
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -151,6 +152,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         "https://accounts.google.com/o/oauth2/v2/auth"
     )
     oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
+    oauth2_exception = UnauthenticatedError
 
     @classmethod
     def get_oauth2_authorization_uri(
