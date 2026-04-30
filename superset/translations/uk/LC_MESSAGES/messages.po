@@ -6809,7 +6809,7 @@ msgid "Indexes (%s)"
 msgstr "Індекси (%s)"
 
 msgid "Info"
-msgstr "Подробиці"
+msgstr "Відомості"
 
 msgid "Inherit range from time filter"
 msgstr "Успадкувати діапазон з часового фільтра"
