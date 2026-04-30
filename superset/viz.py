@@ -65,6 +65,7 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, csv, json
 from superset.utils.cache import set_and_log_cache
+from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     apply_max_row_limit,
     DateColumn,
@@ -472,6 +473,16 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
         cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
+
+        # Add an impersonation key to cache if impersonation is enabled on the db
+        # or if the CACHE_QUERY_BY_USER flag is on or per_user_caching is enabled on
+        #  the database
+        try:
+            add_impersonation_cache_key_if_needed(self.datasource.database, cache_dict)
+        except AttributeError:
+            # datasource or database do not exist
+            pass
+
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hash_from_str(json_data)
 

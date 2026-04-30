@@ -95,7 +95,7 @@ def test_cache_key_changes_for_new_query_object_same_params():
     assert query_object2.cache_key() == cache_key1
 
 
-@patch("superset.common.query_object.feature_flag_manager")
+@patch("superset.utils.cache_keys.feature_flag_manager")
 def test_cache_key_cache_query_by_user_on_no_datasource(feature_flag_mock):
     """
     When CACHE_QUERY_BY_USER flag is on and there is no datasource,
@@ -112,7 +112,7 @@ def test_cache_key_cache_query_by_user_on_no_datasource(feature_flag_mock):
     assert query_object.cache_key() == cache_key
 
 
-@patch("superset.common.query_object.feature_flag_manager")
+@patch("superset.utils.cache_keys.feature_flag_manager")
 @patch("superset.common.query_object.logger")
 def test_cache_key_cache_query_by_user_on_no_user(logger_mock, feature_flag_mock):
     """
@@ -140,16 +140,13 @@ def test_cache_key_cache_query_by_user_on_no_user(logger_mock, feature_flag_mock
     logger_mock.debug.assert_called()
 
 
-@patch("superset.common.query_object.feature_flag_manager")
-@patch("superset.common.query_object.logger")
+@patch("superset.utils.cache_keys.feature_flag_manager")
+@patch("superset.utils.cache_keys.logger")
 def test_cache_key_cache_query_by_user_on_with_user(logger_mock, feature_flag_mock):
     """
     When the same user is requesting a cache key with CACHE_QUERY_BY_USER
     flag on, the key will be the same
     """
-    # Configure logger to enable DEBUG level for isEnabledFor check
-    logger_mock.isEnabledFor.return_value = True
-
     datasource = SqlaTable(
         table_name="test_table",
         columns=[],
@@ -167,17 +164,17 @@ def test_cache_key_cache_query_by_user_on_with_user(logger_mock, feature_flag_mo
         cache_key1 = query_object.cache_key()
         assert query_object.cache_key() == cache_key1
 
-    # Should have both impersonation and cache key generation logs
+    # Should have impersonation log emitted by the cache_keys helper
     logger_mock.debug.assert_has_calls(
         [
-            call("Adding impersonation key to QueryObject cache dict: %s", "test_user"),
+            call("Adding impersonation key to cache dict: %s", "test_user"),
         ],
         any_order=True,
     )
 
 
-@patch("superset.common.query_object.feature_flag_manager")
-@patch("superset.common.query_object.logger")
+@patch("superset.utils.cache_keys.feature_flag_manager")
+@patch("superset.utils.cache_keys.logger")
 def test_cache_key_cache_query_by_user_on_with_different_user(
     logger_mock, feature_flag_mock
 ):
@@ -185,9 +182,6 @@ def test_cache_key_cache_query_by_user_on_with_different_user(
     When two different users are requesting a cache key with CACHE_QUERY_BY_USER
     flag on, the key will be different
     """
-    # Configure logger to enable DEBUG level for isEnabledFor check
-    logger_mock.isEnabledFor.return_value = True
-
     datasource = SqlaTable(
         table_name="test_table",
         columns=[],
@@ -209,21 +203,17 @@ def test_cache_key_cache_query_by_user_on_with_different_user(
 
     assert cache_key1 != cache_key2
 
-    # Should have both impersonation and cache key generation logs (any order)
+    # Should have impersonation logs emitted by the cache_keys helper
     logger_mock.debug.assert_has_calls(
         [
-            call(
-                "Adding impersonation key to QueryObject cache dict: %s", "test_user1"
-            ),
-            call(
-                "Adding impersonation key to QueryObject cache dict: %s", "test_user2"
-            ),
+            call("Adding impersonation key to cache dict: %s", "test_user1"),
+            call("Adding impersonation key to cache dict: %s", "test_user2"),
         ],
         any_order=True,
     )
 
 
-@patch("superset.common.query_object.feature_flag_manager")
+@patch("superset.utils.cache_keys.feature_flag_manager")
 @patch("superset.common.query_object.logger")
 def test_cache_key_cache_impersonation_on_no_user(logger_mock, feature_flag_mock):
     """
@@ -251,7 +241,7 @@ def test_cache_key_cache_impersonation_on_no_user(logger_mock, feature_flag_mock
     logger_mock.debug.assert_called()
 
 
-@patch("superset.common.query_object.feature_flag_manager")
+@patch("superset.utils.cache_keys.feature_flag_manager")
 @patch("superset.common.query_object.logger")
 def test_cache_key_cache_impersonation_on_with_user(logger_mock, feature_flag_mock):
     """
@@ -290,7 +280,7 @@ def test_cache_key_cache_impersonation_on_with_user(logger_mock, feature_flag_mo
     assert len(impersonation_calls) == 0
 
 
-@patch("superset.common.query_object.feature_flag_manager")
+@patch("superset.utils.cache_keys.feature_flag_manager")
 @patch("superset.common.query_object.logger")
 def test_cache_key_cache_impersonation_on_with_different_user(
     logger_mock, feature_flag_mock
@@ -335,8 +325,8 @@ def test_cache_key_cache_impersonation_on_with_different_user(
     assert len(impersonation_calls) == 0
 
 
-@patch("superset.common.query_object.feature_flag_manager")
-@patch("superset.common.query_object.logger")
+@patch("superset.utils.cache_keys.feature_flag_manager")
+@patch("superset.utils.cache_keys.logger")
 def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonation(
     logger_mock,
     feature_flag_mock,
@@ -346,9 +336,6 @@ def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonati
     flag on, and cache_impersonation is enabled on the database,
     the keys will be different
     """
-    # Configure logger to enable DEBUG level for isEnabledFor check
-    logger_mock.isEnabledFor.return_value = True
-
     datasource = SqlaTable(
         table_name="test_table",
         columns=[],
@@ -374,15 +361,11 @@ def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonati
 
     assert cache_key1 != cache_key2
 
-    # Should have both impersonation and cache key generation logs (any order)
+    # Should have impersonation logs emitted by the cache_keys helper
     logger_mock.debug.assert_has_calls(
         [
-            call(
-                "Adding impersonation key to QueryObject cache dict: %s", "test_user1"
-            ),
-            call(
-                "Adding impersonation key to QueryObject cache dict: %s", "test_user2"
-            ),
+            call("Adding impersonation key to cache dict: %s", "test_user1"),
+            call("Adding impersonation key to cache dict: %s", "test_user2"),
         ],
         any_order=True,
     )
