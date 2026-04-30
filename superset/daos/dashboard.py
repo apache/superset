@@ -23,7 +23,7 @@ from typing import Any, Dict, List
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Query
 
 from superset import is_feature_enabled, security_manager
@@ -38,7 +38,7 @@ from superset.dashboards.filters import DashboardAccessFilter, is_uuid
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, id_or_slug_filter
+from superset.models.dashboard import Dashboard, dashboard_user, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.utils import json
@@ -59,6 +59,10 @@ DASHBOARD_CUSTOM_FIELDS = {
 
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
+    # Column used by MCP tools for title-based identifier fallback, so a
+    # slug-like identifier can resolve to a dashboard even when its slug
+    # field is empty.
+    title_column = "dashboard_title"
 
     @classmethod
     def apply_column_operators(
@@ -79,14 +83,26 @@ class DashboardDAO(BaseDAO[Dashboard]):
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
             if c.col == "owner":
-                from superset.models.dashboard import dashboard_user
-
                 operator_enum = ColumnOperatorEnum(c.opr)
                 subq = select(dashboard_user.c.dashboard_id).where(
                     operator_enum.apply(dashboard_user.c.user_id, c.value)
                 )
                 query = query.filter(
                     Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
+            elif c.col == "created_by_fk_or_owner":
+                if c.opr != "eq":
+                    raise ValueError(
+                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                    )
+                owner_subq = select(dashboard_user.c.dashboard_id).where(
+                    dashboard_user.c.user_id == c.value
+                )
+                query = query.filter(
+                    or_(
+                        Dashboard.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
+                        Dashboard.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                    )
                 )
             elif c.col == "favorite":
                 user_id = get_user_id()

@@ -35,8 +35,11 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.tool.generate_chart import (
     _compile_chart,
+    _sanitize_generate_chart_form_data_for_llm_context,
     CompileResult,
 )
+from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.utils import json as utils_json
 
 
 class TestGenerateChart:
@@ -58,10 +61,10 @@ class TestGenerateChart:
         table_request = GenerateChartRequest(dataset_id="1", config=table_config)
         assert table_request.dataset_id == "1"
         # config is now Dict[str, Any] in the schema; validate via dict access
-        assert table_request.config["chart_type"] == "table"
-        assert len(table_request.config["columns"]) == 2
-        assert table_request.config["columns"][0]["name"] == "region"
-        assert table_request.config["columns"][1]["aggregate"] == "SUM"
+        assert table_request.config.chart_type == "table"
+        assert len(table_request.config.columns) == 2
+        assert table_request.config.columns[0].name == "region"
+        assert table_request.config.columns[1].aggregate == "SUM"
 
         # XY chart request
         xy_config = XYChartConfig(
@@ -75,12 +78,12 @@ class TestGenerateChart:
             legend=LegendConfig(show=True, position="top"),
         )
         xy_request = GenerateChartRequest(dataset_id="2", config=xy_config)
-        assert xy_request.config["chart_type"] == "xy"
-        assert xy_request.config["x"]["name"] == "date"
-        assert xy_request.config["y"][0]["aggregate"] == "SUM"
-        assert xy_request.config["kind"] == "line"
-        assert xy_request.config["x_axis"]["title"] == "Date"
-        assert xy_request.config["legend"]["show"] is True
+        assert xy_request.config.chart_type == "xy"
+        assert xy_request.config.x.name == "date"
+        assert xy_request.config.y[0].aggregate == "SUM"
+        assert xy_request.config.kind == "line"
+        assert xy_request.config.x_axis.title == "Date"
+        assert xy_request.config.legend.show is True
 
     @pytest.mark.asyncio
     async def test_generate_chart_validation_error_handling(self):
@@ -393,7 +396,7 @@ class TestChartSerializationEagerLoading:
 
         assert result is not None
         assert result.id == 42
-        assert result.slice_name == "Test Chart"
+        assert result.slice_name == sanitize_for_llm_context("Test Chart")
         assert result.tags == []
         assert "owners" not in result.model_dump()
 
@@ -408,8 +411,98 @@ class TestChartSerializationEagerLoading:
         result = serialize_chart_object(chart)
 
         assert result is not None
-        assert result.certified_by == "Data Team"
-        assert result.certification_details == "Verified Q1 2026 metrics"
+        assert result.certified_by == sanitize_for_llm_context("Data Team")
+        assert result.certification_details == sanitize_for_llm_context(
+            "Verified Q1 2026 metrics"
+        )
+
+    def test_serialize_chart_object_sanitizes_chart_metadata_and_filters(
+        self,
+    ) -> None:
+        """serialize_chart_object sanitizes chart read-path content in place."""
+        from superset.mcp_service.chart.schemas import serialize_chart_object
+
+        chart = _make_mock_chart()
+        chart.description = "Show sales instructions"
+        chart.certification_details = "Verified by analytics"
+        tag = Mock()
+        tag.id = 1
+        tag.name = "Tag instructions"
+        tag.type = "custom"
+        tag.description = "Tag description"
+        chart.tags = [tag]
+        chart.params = utils_json.dumps(
+            {
+                "datasource": "42__table",
+                "datasource_id": 42,
+                "datasource_type": "table",
+                "viz_type": "echarts_timeseries_bar",
+                "adhoc_filters": [
+                    {
+                        "expressionType": "SQL",
+                        "sqlExpression": "region = 'EMEA'",
+                    }
+                ],
+                "where": "country = 'BR'",
+                "time_range": "Last quarter",
+            }
+        )
+
+        result = serialize_chart_object(chart)
+
+        assert result is not None
+        assert result.slice_name == sanitize_for_llm_context("Test Chart")
+        assert result.description == sanitize_for_llm_context("Show sales instructions")
+        assert result.certification_details == sanitize_for_llm_context(
+            "Verified by analytics"
+        )
+        assert result.form_data is not None
+        assert result.form_data["datasource"] == "42__table"
+        assert result.form_data["where"] == sanitize_for_llm_context("country = 'BR'")
+        assert result.form_data["time_range"] == sanitize_for_llm_context(
+            "Last quarter"
+        )
+        assert result.filters is not None
+        assert result.filters.where == sanitize_for_llm_context("country = 'BR'")
+        assert result.filters.time_range == sanitize_for_llm_context("Last quarter")
+        assert result.filters.adhoc_filters[
+            0
+        ].sql_expression == sanitize_for_llm_context("region = 'EMEA'")
+        assert result.tags[0].name == sanitize_for_llm_context("Tag instructions")
+        assert result.tags[0].description == sanitize_for_llm_context("Tag description")
+
+    def test_generate_chart_form_data_response_is_sanitized(self) -> None:
+        """Generated chart form data wraps user-controlled response values."""
+        form_data = {
+            "viz_type": "table",
+            "datasource": "42__table",
+            "where": "country = 'BR'",
+            "time_range": "Last quarter",
+            "adhoc_filters": [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "region = 'EMEA'",
+                    "comparator": "EMEA",
+                }
+            ],
+            "url": "https://example.com/user-value",
+        }
+
+        result = _sanitize_generate_chart_form_data_for_llm_context(form_data)
+
+        assert result["viz_type"] == "table"
+        assert result["datasource"] == "42__table"
+        assert result["where"] == sanitize_for_llm_context("country = 'BR'")
+        assert result["time_range"] == sanitize_for_llm_context("Last quarter")
+        assert result["adhoc_filters"][0]["sqlExpression"] == sanitize_for_llm_context(
+            "region = 'EMEA'"
+        )
+        assert result["adhoc_filters"][0]["comparator"] == sanitize_for_llm_context(
+            "EMEA"
+        )
+        assert result["url"] == sanitize_for_llm_context(
+            "https://example.com/user-value"
+        )
 
     def test_serialize_chart_object_fails_on_detached_instance(self):
         """serialize_chart_object raises when accessing lazy attrs on detached
