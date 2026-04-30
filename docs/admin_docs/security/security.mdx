@@ -52,6 +52,15 @@ only see the objects that they have access to.
 The **sql_lab** role grants access to SQL Lab. Note that while **Admin** users have access
 to all databases by default, both **Alpha** and **Gamma** users need to be given access on a per database basis.
 
+Beyond the base `sql_lab` role, two additional SQL Lab permissions must be explicitly granted for users who need these capabilities:
+
+| Permission | Feature |
+|------------|---------|
+| `can_estimate_query_cost` on `SQLLab` | Estimate query cost before running |
+| `can_format_sql` on `SQLLab` | Format SQL using the database's dialect |
+
+Grant these in **Security → List Roles** by adding the permissions to the relevant role.
+
 ### Public
 
 The **Public** role is the most restrictive built-in role, designed specifically for anonymous/unauthenticated
@@ -181,6 +190,8 @@ However, it is crucial to understand the following:
 * **Auditing**: Enabling database-level auditing to monitor executed queries and access patterns.
 
 By combining Superset's configurable safeguards with strong database-level security practices, you can achieve a more robust and layered security posture.
+
+**Dataset Sample Access**: The `get_samples()` endpoint now enforces datasource-level access control. Users can only fetch sample rows from datasets they have been explicitly granted access to — the same permission check applied when running chart queries. This closes a prior gap where unauthenticated or under-privileged access could retrieve sample data.
 
 ### REST API for user & role management
 

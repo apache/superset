@@ -105,6 +105,45 @@ a > span > svg {
   opacity: 1;
 }
 
+/* Homepage split "Get started": gradient button + chevron column */
+.default-button-theme.get-started-split {
+  display: flex;
+  padding: 0;
+}
+
+.get-started-split-dropdown-menu.ant-dropdown-menu {
+  background: linear-gradient(180deg, #20a7c9 0%, #0c8fae 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+}
+
+.get-started-split-dropdown-menu--hero.ant-dropdown-menu {
+  min-width: 208px;
+}
+
+@media (max-width: 768px) {
+  .get-started-split-dropdown-menu--hero.ant-dropdown-menu {
+    min-width: 214px;
+  }
+}
+
+.get-started-split-dropdown-menu--navbar.ant-dropdown-menu {
+  min-width: 176px;
+}
+
+.get-started-split-dropdown-menu .ant-dropdown-menu-item {
+  color: #ffffff !important;
+}
+
+.get-started-split-dropdown-menu .ant-dropdown-menu-item:hover,
+.get-started-split-dropdown-menu .ant-dropdown-menu-item-active {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.get-started-split-dropdown-menu .ant-dropdown-menu-item a {
+  color: inherit !important;
+}
+
 /* Navbar */
 
 .navbar {
@@ -117,9 +156,12 @@ a > span > svg {
   border-radius: 10px;
   font-size: 18px;
   font-weight: bold;
-  width: 142px;
-  padding: 7px 0;
   margin-right: 20px;
+}
+
+.navbar .get-started-button.get-started-split {
+  width: 176px;
+  padding: 0;
 }
 
 .navbar .github-button {

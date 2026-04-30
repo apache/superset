@@ -59,15 +59,13 @@ updates:
     versioning-strategy: increase
 
 
-  # NOTE: `uv` support is in beta, more details here:
-  # https://github.com/dependabot/dependabot-core/pull/10040#issuecomment-2696978430
-  - package-ecosystem: "uv"
-    directory: "requirements/"
+  - package-ecosystem: "pip"
+    directory: "/"
     open-pull-requests-limit: 10
     schedule:
       interval: "weekly"
     labels:
-      - uv
+      - pip
       - dependabot
 
   - package-ecosystem: "npm"
