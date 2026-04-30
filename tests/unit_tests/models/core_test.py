@@ -774,7 +774,7 @@ def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:
         sqlalchemy_uri="sqlite://",
         encrypted_extra=json.dumps(oauth2_client_info),
     )
-    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    database.db_engine_spec.oauth2_exception = OAuth2Error
     _get_sqla_engine = mocker.patch.object(database, "_get_sqla_engine")
     _get_sqla_engine.side_effect = OAuth2Error("OAuth2 required")
 
@@ -805,7 +805,7 @@ def test_raw_connection_oauth_connection(mocker: MockerFixture) -> None:
         sqlalchemy_uri="sqlite://",
         encrypted_extra=json.dumps(oauth2_client_info),
     )
-    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    database.db_engine_spec.oauth2_exception = OAuth2Error
     get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
     get_sqla_engine().__enter__().raw_connection.side_effect = OAuth2Error(
         "OAuth2 required"
@@ -838,7 +838,7 @@ def test_raw_connection_oauth_execute(mocker: MockerFixture) -> None:
         sqlalchemy_uri="sqlite://",
         encrypted_extra=json.dumps(oauth2_client_info),
     )
-    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    database.db_engine_spec.oauth2_exception = OAuth2Error
     get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
     get_sqla_engine().__enter__().raw_connection().cursor().execute.side_effect = (
         OAuth2Error("OAuth2 required")
