@@ -299,18 +299,23 @@ var CalHeatMap = function () {
     // Takes the fetched "data" object as argument, must return a json object
     // formatted like {timestamp:count, timestamp2:count2},
     afterLoadData: function (timestamps) {
-      // See https://github.com/wa0x6e/cal-heatmap/issues/126#issuecomment-373301803
-      const stdTimezoneOffset = date => {
-        const jan = new Date(date.getFullYear(), 0, 1);
-        const jul = new Date(date.getFullYear(), 6, 1);
-        return Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
-      };
-      const offset = stdTimezoneOffset(new Date()) * 60;
+      // Use the DST-aware timezone offset for each individual timestamp so that
+      // every data point is shifted by its own local offset (not a fixed
+      // standard-time offset). This prevents data from landing in phantom hours
+      // during DST transitions and keeps the offset consistent with what
+      // getFormattedUTCTime undoes when formatting the tooltip.
+      //
+      // Around DST transitions two distinct UTC timestamps can shift to the
+      // same adjusted key (e.g. the "spring forward" hour that doesn't exist
+      // locally). Accumulate values on collision so no datapoints are silently
+      // dropped in hourly/minutely views.
       let results = {};
       for (let timestamp in timestamps) {
         const value = timestamps[timestamp];
-        timestamp = parseInt(timestamp, 10);
-        results[timestamp + offset] = value;
+        const ts = parseInt(timestamp, 10);
+        const offset = new Date(ts * 1000).getTimezoneOffset() * 60;
+        const adjustedTs = ts + offset;
+        results[adjustedTs] = (results[adjustedTs] || 0) + value;
       }
       return results;
     },
