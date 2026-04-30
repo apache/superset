@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
-import { logging } from '@apache-superset/core/utils';
+import { useCallback, useEffect, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import {
   ensureIsArray,
   FeatureFlag,
@@ -60,7 +60,7 @@ export interface ChartProps {
   sharedLabelColors?: string;
   width: number;
   height: number;
-  setControlValue: (name: string, value: unknown) => void;
+  setControlValue?: (name: string, value: unknown) => void;
   timeout?: number;
   vizType: string;
   triggerRender?: boolean;
@@ -69,7 +69,7 @@ export interface ChartProps {
   chartAlert?: string;
   chartStatus?: ChartStatus;
   chartStackTrace?: string;
-  queriesResponse: ChartState['queriesResponse'];
+  queriesResponse?: ChartState['queriesResponse'];
   latestQueryFormData?: ChartState['latestQueryFormData'];
   triggerQuery?: boolean;
   chartIsStale?: boolean;
@@ -126,19 +126,6 @@ const NONEXISTENT_DATASET = t(
   'The dataset associated with this chart no longer exists',
 );
 
-const defaultProps: Partial<ChartProps> = {
-  addFilter: () => BLANK,
-  onFilterMenuOpen: () => BLANK,
-  onFilterMenuClose: () => BLANK,
-  initialValues: BLANK,
-  setControlValue: () => BLANK,
-  triggerRender: false,
-  dashboardId: undefined,
-  chartStackTrace: undefined,
-  force: false,
-  isInView: true,
-};
-
 const Styles = styled.div<{ height: number; width?: number }>`
   min-height: ${p => p.height}px;
   position: relative;
@@ -186,252 +173,319 @@ const MessageSpan = styled.span`
   color: ${({ theme }) => theme.colorText};
 `;
 
-class Chart extends PureComponent<ChartProps, {}> {
-  static defaultProps = defaultProps;
+function Chart({
+  addFilter = () => BLANK,
+  onFilterMenuOpen = () => BLANK,
+  onFilterMenuClose = () => BLANK,
+  initialValues = BLANK,
+  setControlValue = () => BLANK,
+  triggerRender = false,
+  dashboardId,
+  chartStackTrace,
+  force = false,
+  isInView = true,
+  ...restProps
+}: ChartProps): JSX.Element {
+  const {
+    actions,
+    chartId,
+    datasource,
+    formData,
+    timeout,
+    ownState,
+    chartAlert,
+    chartStatus,
+    queriesResponse = [],
+    errorMessage,
+    chartIsStale,
+    width,
+    height,
+    datasetsStatus,
+    onQuery,
+    annotationData,
+    vizType,
+    latestQueryFormData,
+    triggerQuery,
+    postTransformProps,
+    emitCrossFilters,
+    onChartStateChange,
+    suppressLoadingSpinner,
+    filterState,
+  } = restProps;
 
-  renderStartTime: any;
+  const renderStartTimeRef = useRef<number>(Logger.getTimestamp());
+  // Update on each render to accurately track render duration
+  renderStartTimeRef.current = Logger.getTimestamp();
 
-  constructor(props: ChartProps) {
-    super(props);
-    this.handleRenderContainerFailure =
-      this.handleRenderContainerFailure.bind(this);
-  }
-
-  componentDidMount() {
-    if (this.props.triggerQuery) {
-      this.runQuery();
-    }
-  }
-
-  componentDidUpdate() {
-    if (this.props.triggerQuery) {
-      this.runQuery();
-    }
-  }
-
-  shouldRenderChart() {
-    return (
-      this.props.isInView ||
+  const shouldRenderChart = useCallback(
+    () =>
+      isInView ||
       !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
-      isCurrentUserBot()
-    );
-  }
+      isCurrentUserBot(),
+    [isInView],
+  );
 
-  runQuery() {
+  const runQuery = useCallback(() => {
     if (
       isFeatureEnabled(FeatureFlag.DashboardVirtualizationDeferData) &&
-      !this.shouldRenderChart()
+      !shouldRenderChart()
     ) {
       return;
     }
     // Create chart with POST request
-    this.props.actions.postChartFormData(
-      this.props.formData,
-      Boolean(this.props.force || getUrlParam(URL_PARAMS.force)), // allow override via url params force=true
-      this.props.timeout,
-      this.props.chartId,
-      this.props.dashboardId,
-      this.props.ownState,
-    );
-  }
-
-  handleRenderContainerFailure(
-    error: Error,
-    info: { componentStack: string } | null,
-  ) {
-    const { actions, chartId } = this.props;
-    logging.warn(error);
-    actions.chartRenderingFailed(
-      error.toString(),
+    actions.postChartFormData(
+      formData,
+      Boolean(force || getUrlParam(URL_PARAMS.force)), // allow override via url params force=true
+      timeout,
       chartId,
-      info ? info.componentStack : null,
-    );
-
-    actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
-      slice_id: chartId,
-      has_err: true,
-      error_details: error.toString(),
-      start_offset: this.renderStartTime,
-      ts: new Date().getTime(),
-      duration: Logger.getTimestamp() - this.renderStartTime,
-    });
-  }
-
-  renderErrorMessage(queryResponse: ChartErrorType) {
-    const {
-      chartId,
-      chartAlert,
-      chartStackTrace,
-      datasource,
       dashboardId,
-      height,
-      datasetsStatus,
-    } = this.props;
-    const error = queryResponse?.errors?.[0];
-    const message = chartAlert || queryResponse?.message;
+      ownState,
+    );
+  }, [
+    actions,
+    chartId,
+    dashboardId,
+    formData,
+    force,
+    ownState,
+    shouldRenderChart,
+    timeout,
+  ]);
 
-    // if datasource is still loading, don't render JS errors
-    // but always show backend API errors (which have an errors array)
-    // so users can see real issues like auth failures
-    if (
-      !error &&
-      chartAlert !== undefined &&
-      chartAlert !== NONEXISTENT_DATASET &&
-      datasource === PLACEHOLDER_DATASOURCE &&
-      datasetsStatus !== ResourceStatus.Error
-    ) {
-      return (
-        <Styles
-          key={chartId}
-          data-ui-anchor="chart"
-          className="chart-container"
-          data-test="chart-container"
-          height={height}
-        >
-          <Loading
-            size={this.props.dashboardId ? 's' : 'm'}
-            muted={!!this.props.dashboardId}
-          />
-        </Styles>
+  const handleRenderContainerFailure = useCallback(
+    (error: Error, info: { componentStack: string } | null) => {
+      logging.warn(error);
+      actions.chartRenderingFailed(
+        error.toString(),
+        chartId,
+        info ? info.componentStack : null,
       );
-    }
 
+      actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
+        slice_id: chartId,
+        has_err: true,
+        error_details: error.toString(),
+        start_offset: renderStartTimeRef.current,
+        ts: new Date().getTime(),
+        duration: Logger.getTimestamp() - renderStartTimeRef.current,
+      });
+    },
+    [actions, chartId],
+  );
+
+  // componentDidMount and componentDidUpdate combined
+  useEffect(() => {
+    if (triggerQuery) {
+      runQuery();
+    }
+  }, [triggerQuery, runQuery]);
+
+  const renderErrorMessage = useCallback(
+    (queryResponse: ChartErrorType) => {
+      const error = queryResponse?.errors?.[0];
+      const message = chartAlert || queryResponse?.message;
+
+      // if datasource is still loading, don't render JS errors
+      // but always show backend API errors (which have an errors array)
+      // so users can see real issues like auth failures
+      if (
+        !error &&
+        chartAlert !== undefined &&
+        chartAlert !== NONEXISTENT_DATASET &&
+        datasource === PLACEHOLDER_DATASOURCE &&
+        datasetsStatus !== ResourceStatus.Error
+      ) {
+        return (
+          <Styles
+            key={chartId}
+            data-ui-anchor="chart"
+            className="chart-container"
+            data-test="chart-container"
+            height={height}
+          >
+            <Loading size={dashboardId ? 's' : 'm'} muted={!!dashboardId} />
+          </Styles>
+        );
+      }
+
+      return (
+        <ChartErrorMessage
+          key={chartId}
+          chartId={chartId}
+          error={error}
+          subtitle={message}
+          link={queryResponse ? queryResponse.link : undefined}
+          source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
+          stackTrace={chartStackTrace}
+        />
+      );
+    },
+    [
+      chartAlert,
+      chartId,
+      chartStackTrace,
+      dashboardId,
+      datasetsStatus,
+      datasource,
+      height,
+    ],
+  );
+
+  const renderSpinner = useCallback(
+    (databaseName: string | undefined) => {
+      const message = databaseName
+        ? t('Waiting on %s', databaseName)
+        : t('Waiting on database...');
+
+      return (
+        <LoadingDiv>
+          <Loading
+            position="inline-centered"
+            size={dashboardId ? 's' : 'm'}
+            muted={!!dashboardId}
+          />
+          <MessageSpan>{message}</MessageSpan>
+        </LoadingDiv>
+      );
+    },
+    [dashboardId],
+  );
+
+  const renderChartContainer = useCallback(
+    () => (
+      <div className="slice_container" data-test="slice-container">
+        {shouldRenderChart() ? (
+          <ChartRenderer
+            annotationData={annotationData}
+            actions={actions}
+            chartId={chartId}
+            datasource={datasource}
+            initialValues={initialValues}
+            formData={formData}
+            height={height}
+            width={width}
+            setControlValue={setControlValue}
+            vizType={vizType}
+            triggerRender={triggerRender}
+            chartAlert={chartAlert}
+            chartStatus={chartStatus}
+            queriesResponse={queriesResponse}
+            triggerQuery={triggerQuery}
+            chartIsStale={chartIsStale}
+            addFilter={addFilter}
+            onFilterMenuOpen={onFilterMenuOpen}
+            onFilterMenuClose={onFilterMenuClose}
+            ownState={ownState}
+            postTransformProps={postTransformProps}
+            emitCrossFilters={emitCrossFilters}
+            onChartStateChange={onChartStateChange}
+            latestQueryFormData={latestQueryFormData}
+            filterState={filterState}
+            suppressLoadingSpinner={suppressLoadingSpinner}
+            source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
+          />
+        ) : (
+          <Loading size={dashboardId ? 's' : 'm'} muted={!!dashboardId} />
+        )}
+      </div>
+    ),
+    [
+      actions,
+      addFilter,
+      annotationData,
+      chartAlert,
+      chartId,
+      chartIsStale,
+      chartStatus,
+      dashboardId,
+      datasource,
+      emitCrossFilters,
+      filterState,
+      formData,
+      height,
+      initialValues,
+      latestQueryFormData,
+      onChartStateChange,
+      onFilterMenuClose,
+      onFilterMenuOpen,
+      ownState,
+      postTransformProps,
+      queriesResponse,
+      setControlValue,
+      shouldRenderChart,
+      suppressLoadingSpinner,
+      triggerQuery,
+      triggerRender,
+      vizType,
+      width,
+    ],
+  );
+
+  const databaseName = datasource?.database?.name as string | undefined;
+
+  const isLoading = chartStatus === 'loading';
+  // Suppress spinner during auto-refresh to avoid visual flicker
+  const showSpinner = isLoading && !suppressLoadingSpinner;
+
+  if (chartStatus === 'failed') {
     return (
-      <ChartErrorMessage
-        key={chartId}
-        chartId={chartId}
-        error={error}
-        subtitle={message}
-        link={queryResponse ? queryResponse.link : undefined}
-        source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
-        stackTrace={chartStackTrace}
+      <ErrorContainer height={height}>
+        {queriesResponse?.map(item =>
+          renderErrorMessage(item as ChartErrorType),
+        )}
+      </ErrorContainer>
+    );
+  }
+
+  if (errorMessage && ensureIsArray(queriesResponse).length === 0) {
+    return (
+      <EmptyState
+        size="large"
+        title={t('Add required control values to preview chart')}
+        description={getChartRequiredFieldsMissingMessage(true)}
+        image="chart.svg"
+      />
+    );
+  }
+  if (
+    !isLoading &&
+    !chartAlert &&
+    !errorMessage &&
+    chartIsStale &&
+    ensureIsArray(queriesResponse).length === 0
+  ) {
+    return (
+      <EmptyState
+        size="large"
+        title={t('Your chart is ready to go!')}
+        description={
+          <span>
+            {t(
+              'Click on "Create chart" button in the control panel on the left to preview a visualization or',
+            )}{' '}
+            <span role="button" tabIndex={0} onClick={onQuery}>
+              {t('click here')}
+            </span>
+            .
+          </span>
+        }
+        image="chart.svg"
       />
     );
   }
 
-  renderSpinner(databaseName: string | undefined) {
-    const message = databaseName
-      ? t('Waiting on %s', databaseName)
-      : t('Waiting on database...');
-
-    return (
-      <LoadingDiv>
-        <Loading
-          position="inline-centered"
-          size={this.props.dashboardId ? 's' : 'm'}
-          muted={!!this.props.dashboardId}
-        />
-        <MessageSpan>{message}</MessageSpan>
-      </LoadingDiv>
-    );
-  }
-
-  renderChartContainer() {
-    return (
-      <div className="slice_container" data-test="slice-container">
-        {this.shouldRenderChart() ? (
-          <ChartRenderer
-            {...this.props}
-            source={
-              this.props.dashboardId
-                ? ChartSource.Dashboard
-                : ChartSource.Explore
-            }
-            data-test={this.props.vizType}
-          />
-        ) : (
-          <Loading
-            size={this.props.dashboardId ? 's' : 'm'}
-            muted={!!this.props.dashboardId}
-          />
-        )}
-      </div>
-    );
-  }
-
-  render() {
-    const {
-      height,
-      chartAlert,
-      chartStatus,
-      datasource,
-      errorMessage,
-      chartIsStale,
-      queriesResponse = [],
-      width,
-    } = this.props;
-
-    const databaseName = datasource?.database?.name as string | undefined;
-
-    const isLoading = chartStatus === 'loading';
-    // Suppress spinner during auto-refresh to avoid visual flicker
-    const showSpinner = isLoading && !this.props.suppressLoadingSpinner;
-
-    if (chartStatus === 'failed') {
-      return (
-        <ErrorContainer height={height}>
-          {queriesResponse?.map(item =>
-            this.renderErrorMessage(item as ChartErrorType),
-          )}
-        </ErrorContainer>
-      );
-    }
-
-    if (errorMessage && ensureIsArray(queriesResponse).length === 0) {
-      return (
-        <EmptyState
-          size="large"
-          title={t('Add required control values to preview chart')}
-          description={getChartRequiredFieldsMissingMessage(true)}
-          image="chart.svg"
-        />
-      );
-    }
-    if (
-      !isLoading &&
-      !chartAlert &&
-      !errorMessage &&
-      chartIsStale &&
-      ensureIsArray(queriesResponse).length === 0
-    ) {
-      return (
-        <EmptyState
-          size="large"
-          title={t('Your chart is ready to go!')}
-          description={
-            <span>
-              {t(
-                'Click on "Create chart" button in the control panel on the left to preview a visualization or',
-              )}{' '}
-              <span role="button" tabIndex={0} onClick={this.props.onQuery}>
-                {t('click here')}
-              </span>
-              .
-            </span>
-          }
-          image="chart.svg"
-        />
-      );
-    }
-
-    return (
-      <ErrorBoundary
-        onError={this.handleRenderContainerFailure}
-        showMessage={false}
+  return (
+    <ErrorBoundary onError={handleRenderContainerFailure} showMessage={false}>
+      <Styles
+        data-ui-anchor="chart"
+        className="chart-container"
+        data-test="chart-container"
+        height={height}
+        width={width}
       >
-        <Styles
-          data-ui-anchor="chart"
-          className="chart-container"
-          data-test="chart-container"
-          height={height}
-          width={width}
-        >
-          {showSpinner
-            ? this.renderSpinner(databaseName)
-            : this.renderChartContainer()}
-        </Styles>
-      </ErrorBoundary>
-    );
-  }
+        {showSpinner ? renderSpinner(databaseName) : renderChartContainer()}
+      </Styles>
+    </ErrorBoundary>
+  );
 }
 export default Chart;
