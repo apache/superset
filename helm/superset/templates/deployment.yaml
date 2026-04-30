@@ -23,15 +23,9 @@ metadata:
   name: {{ template "superset.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "superset.name" . }}
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-    {{- if .Values.extraLabels }}
-      {{- toYaml .Values.extraLabels | nindent 4 }}
-    {{- end }}
-    {{- if .Values.supersetNode.deploymentLabels }}
-      {{- toYaml .Values.supersetNode.deploymentLabels | nindent 4 }}
+    {{- include "superset.componentLabels" (dict "component" "web" "root" .) | nindent 4 }}
+    {{- with .Values.supersetNode.deploymentLabels }}
+      {{- toYaml . | nindent 4 }}
     {{- end }}
   {{- if .Values.supersetNode.deploymentAnnotations }}
   annotations: {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
@@ -67,11 +61,7 @@ spec:
           {{- toYaml .Values.supersetNode.podAnnotations | nindent 8 }}
         {{- end }}
       labels:
-        app: {{ template "superset.name" . }}
-        release: {{ .Release.Name }}
-        {{- if .Values.extraLabels }}
-          {{- toYaml .Values.extraLabels | nindent 8 }}
-        {{- end }}
+        {{- include "supersetNode.selectorLabels" . | nindent 8 }}
         {{- if .Values.supersetNode.podLabels }}
           {{- toYaml .Values.supersetNode.podLabels | nindent 8 }}
         {{- end }}
