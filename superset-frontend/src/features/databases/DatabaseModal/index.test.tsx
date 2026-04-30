@@ -2134,6 +2134,42 @@ describe('dbReducer', () => {
     });
   });
 
+  // Regression test for https://github.com/apache/superset/issues/30504
+  // When creating a database, the POST response doesn't include engine_information,
+  // but it should be preserved from the initial state set by DbSelected action.
+  test('it preserves engine_information when Fetched action payload lacks it', () => {
+    const initialState: Partial<DatabaseObject> = {
+      database_name: 'TestDB',
+      engine: 'postgresql',
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
+      engine_information: {
+        supports_file_upload: true,
+        disable_ssh_tunneling: false,
+      },
+    };
+
+    // Simulate POST response that doesn't include engine_information
+    const action: DBReducerActionType = {
+      type: ActionType.Fetched,
+      payload: {
+        id: 123,
+        database_name: 'TestDB',
+        backend: 'postgresql',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+        // Note: engine_information is NOT in POST response
+      },
+    };
+
+    const currentState = dbReducer(initialState, action);
+
+    // engine_information should be preserved from initialState
+    expect(currentState).not.toBeNull();
+    expect(currentState!.engine_information).toEqual({
+      supports_file_upload: true,
+      disable_ssh_tunneling: false,
+    });
+  });
+
   test('it will add a SSH Tunnel config parameter', () => {
     const action: DBReducerActionType = {
       type: ActionType.ParametersSSHTunnelChange,
