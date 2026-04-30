@@ -17,7 +17,7 @@
  * under the License.
  */
 const zlib = require('zlib');
-const { ZSTDDecompress } = require('simple-zstd');
+const { decompress: zstdDecompress } = require('simple-zstd');
 
 const yargs = require('yargs');
 const { hideBin } = require('yargs/helpers');
@@ -116,13 +116,13 @@ function copyHeaders(originalResponse, response) {
  * Manipulate HTML server response to replace asset files with
  * local webpack-dev-server build.
  */
-function processHTML(proxyResponse, response) {
+async function processHTML(proxyResponse, response) {
   let body = Buffer.from([]);
   let originalResponse = proxyResponse;
-  let uncompress;
   const responseEncoding = originalResponse.headers['content-encoding'];
 
   // decode GZIP response
+  let uncompress;
   if (responseEncoding === 'gzip') {
     uncompress = zlib.createGunzip();
   } else if (responseEncoding === 'br') {
@@ -130,7 +130,7 @@ function processHTML(proxyResponse, response) {
   } else if (responseEncoding === 'deflate') {
     uncompress = zlib.createInflate();
   } else if (responseEncoding === 'zstd') {
-    uncompress = ZSTDDecompress();
+    uncompress = await zstdDecompress();
   }
   if (uncompress) {
     originalResponse.pipe(uncompress);
@@ -177,7 +177,15 @@ module.exports = newManifest => {
           // For HTML responses, flush headers before processing starts
           // processHTML sets up async handlers that will call response.end()
           response.flushHeaders();
-          processHTML(proxyResponse, response);
+          processHTML(proxyResponse, response).catch(e => {
+            // eslint-disable-next-line no-console
+            console.error(`Error requesting ${request.path} from proxy:`, e);
+            if (!response.writableEnded) {
+              response.end(
+                `Error requesting ${request.path} from proxy: ${e.message}`,
+              );
+            }
+          });
         } else {
           const isCSV = (proxyResponse.headers['content-type'] || '').includes(
             'text/csv',
