@@ -40,7 +40,6 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_dashboard_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,11 @@ DEFAULT_DASHBOARD_COLUMNS = [
     "id",
     "dashboard_title",
     "slug",
+    "description",
+    "certified_by",
+    "certification_details",
     "url",
+    "changed_on",
     "changed_on_humanized",
 ]
 
@@ -72,7 +75,6 @@ SORTABLE_DASHBOARD_COLUMNS = [
         destructiveHint=False,
     ),
 )
-@parse_request(ListDashboardsRequest)
 async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context
 ) -> DashboardList:
@@ -143,6 +145,8 @@ async def list_dashboards(
             order_direction=request.order_direction,
             page=max(request.page - 1, 0),
             page_size=request.page_size,
+            created_by_me=request.created_by_me,
+            owned_by_me=request.owned_by_me,
         )
     count = len(result.dashboards) if hasattr(result, "dashboards") else 0
     total_pages = getattr(result, "total_pages", None)

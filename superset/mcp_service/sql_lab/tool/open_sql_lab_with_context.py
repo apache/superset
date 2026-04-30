@@ -22,20 +22,60 @@ Tool for generating SQL Lab URLs with pre-populated sql and context.
 """
 
 import logging
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.mcp_service.sql_lab.schemas import (
     OpenSqlLabRequest,
     SqlLabResponse,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
+
+SQL_LAB_QUERY_PARAMS_TO_SANITIZE = frozenset({"sql", "title"})
+
+
+def _sanitize_sql_lab_url_for_llm_context(url: str) -> str:
+    """Wrap user-controlled SQL Lab query values while preserving navigation."""
+    if not url:
+        return url
+
+    parsed = urlsplit(url)
+    query_params = parse_qsl(parsed.query, keep_blank_values=True)
+    if not query_params:
+        return url
+
+    sanitized_params = [
+        (
+            name,
+            sanitize_for_llm_context(value, field_path=(name,))
+            if name in SQL_LAB_QUERY_PARAMS_TO_SANITIZE
+            else value,
+        )
+        for name, value in query_params
+    ]
+    return urlunsplit(parsed._replace(query=urlencode(sanitized_params)))
+
+
+def _sanitize_sql_lab_response_for_llm_context(
+    response: SqlLabResponse,
+) -> SqlLabResponse:
+    """Wrap user-controlled SQL Lab response content before LLM exposure."""
+    payload = response.model_dump(mode="python")
+    payload["url"] = _sanitize_sql_lab_url_for_llm_context(payload.get("url", ""))
+
+    for field_name in ("title", "error"):
+        payload[field_name] = sanitize_for_llm_context(
+            payload.get(field_name),
+            field_path=(field_name,),
+        )
+
+    return SqlLabResponse.model_validate(payload)
 
 
 @tool(
@@ -48,7 +88,6 @@ logger = logging.getLogger(__name__)
         destructiveHint=False,
     ),
 )
-@parse_request(OpenSqlLabRequest)
 def open_sql_lab_with_context(
     request: OpenSqlLabRequest, ctx: Context
 ) -> SqlLabResponse:
@@ -63,12 +102,17 @@ def open_sql_lab_with_context(
             # Validate database exists and is accessible
             database = DatabaseDAO.find_by_id(request.database_connection_id)
         if not database:
-            return SqlLabResponse(
-                url="",
-                database_id=request.database_connection_id,
-                schema_name=request.schema_name,
-                title=request.title,
-                error=f"Database with ID {request.database_connection_id} not found",
+            error_message = (
+                f"Database with ID {request.database_connection_id} not found"
+            )
+            return _sanitize_sql_lab_response_for_llm_context(
+                SqlLabResponse(
+                    url="",
+                    database_id=request.database_connection_id,
+                    schema_name=request.schema_name,
+                    title=request.title,
+                    error=error_message,
+                )
             )
 
         # Build query parameters for SQL Lab URL
@@ -111,20 +155,33 @@ def open_sql_lab_with_context(
             "Generated SQL Lab URL for database %s", request.database_connection_id
         )
 
-        return SqlLabResponse(
-            url=url,
-            database_id=request.database_connection_id,
-            schema_name=request.schema_name,
-            title=request.title,
-            error=None,
+        return _sanitize_sql_lab_response_for_llm_context(
+            SqlLabResponse(
+                url=url,
+                database_id=request.database_connection_id,
+                schema_name=request.schema_name,
+                title=request.title,
+                error=None,
+            )
         )
 
     except Exception as e:
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except Exception:  # noqa: BLE001
+            # Broad catch: the DB connection itself may be broken (e.g.,
+            # SSL drop), so even rollback can fail with non-SQLAlchemy
+            # errors. This is a cleanup path — swallow and log.
+            logger.warning(
+                "Database rollback failed during error handling", exc_info=True
+            )
         logger.error("Error generating SQL Lab URL: %s", e)
-        return SqlLabResponse(
-            url="",
-            database_id=request.database_connection_id,
-            schema_name=request.schema_name,
-            title=request.title,
-            error=f"Failed to generate SQL Lab URL: {str(e)}",
+        return _sanitize_sql_lab_response_for_llm_context(
+            SqlLabResponse(
+                url="",
+                database_id=request.database_connection_id,
+                schema_name=request.schema_name,
+                title=request.title,
+                error=f"Failed to generate SQL Lab URL: {str(e)}",
+            )
         )

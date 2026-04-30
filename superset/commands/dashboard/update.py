@@ -60,10 +60,15 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         self.validate()
         assert self._model is not None
         self.process_tab_diff()
+        self.process_native_filter_diff()
 
         # Update tags
         if (tags := self._properties.pop("tags", None)) is not None:
             update_tags(ObjectType.dashboard, self._model.id, self._model.tags, tags)
+
+        # Re-serialize position_json to escape 4-byte Unicode characters
+        if position_json := self._properties.get("position_json"):
+            self._properties["position_json"] = json.dumps(json.loads(position_json))
 
         dashboard = DashboardDAO.update(self._model, self._properties)
         if self._properties.get("json_metadata"):
@@ -121,7 +126,43 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
 
-    def process_tab_diff(self) -> None:  # noqa: C901
+    @staticmethod
+    def _send_deactivated_report_email(
+        report: ReportSchedule, description: str
+    ) -> None:
+        html_content = textwrap.dedent(
+            f"""
+                <html>
+                <head>
+                    <style type="text/css">
+                    table, th, td {{
+                        border-collapse: collapse;
+                        border-color: rgb(200, 212, 227);
+                        color: rgb(42, 63, 95);
+                        padding: 4px 8px;
+                    }}
+                    .image{{
+                        margin-bottom: 18px;
+                    }}
+                    </style>
+                </head>
+                <body>
+                    <div>{description}</div>
+                    <br>
+                </body>
+                </html>
+                """
+        )
+        for report_owner in report.owners:
+            if email := report_owner.email:
+                send_email_smtp(
+                    to=email,
+                    subject=f"[Report: {report.name}] Deactivated",
+                    html_content=html_content,
+                    config=current_app.config,
+                )
+
+    def process_tab_diff(self) -> None:
         def find_deleted_tabs() -> list[str]:
             position_json = self._properties.get("position_json", "")
             current_tabs = self._model.tabs  # type: ignore
@@ -147,49 +188,60 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 Please update your report settings to remove or change the tab used.
                 """  # noqa: E501
             )
-
-            html_content = textwrap.dedent(
-                f"""
-                    <html>
-                    <head>
-                        <style type="text/css">
-                        table, th, td {{
-                            border-collapse: collapse;
-                            border-color: rgb(200, 212, 227);
-                            color: rgb(42, 63, 95);
-                            padding: 4px 8px;
-                        }}
-                        .image{{
-                            margin-bottom: 18px;
-                        }}
-                        </style>
-                    </head>
-                    <body>
-                        <div>{description}</div>
-                        <br>
-                    </body>
-                    </html>
-                    """
-            )
-            for report_owner in report.owners:
-                if email := report_owner.email:
-                    send_email_smtp(
-                        to=email,
-                        subject=f"[Report: {report.name}] Deactivated",
-                        html_content=html_content,
-                        config=current_app.config,
-                    )
+            self._send_deactivated_report_email(report, description)
 
         def deactivate_reports(reports_list: list[ReportSchedule]) -> None:
             for report in reports_list:
-                # deactivate
                 ReportScheduleDAO.update(report, {"active": False})
-                # send email to report owner
                 send_deactivated_email_warning(report)
 
         deleted_tabs = find_deleted_tabs()
         reports = find_reports_containing_tabs(deleted_tabs)
         deactivate_reports(reports)
+
+    def process_native_filter_diff(self) -> None:
+        def find_deleted_native_filter_ids() -> list[str]:
+            new_json_metadata = self._properties.get("json_metadata", "")
+            if not new_json_metadata:
+                return []
+            current_metadata = json.loads(self._model.json_metadata or "{}")  # type: ignore
+            new_metadata = json.loads(new_json_metadata)
+            current_filter_ids = {
+                f["id"]
+                for f in (current_metadata.get("native_filter_configuration") or [])
+                if "id" in f
+            }
+            new_filter_ids = {
+                f["id"]
+                for f in (new_metadata.get("native_filter_configuration") or [])
+                if "id" in f
+            }
+            return list(current_filter_ids - new_filter_ids)
+
+        def find_reports_containing_native_filters(
+            filter_ids: list[str],
+        ) -> list[ReportSchedule]:
+            seen: set[int] = set()
+            reports: list[ReportSchedule] = []
+            for filter_id in filter_ids:
+                for report in ReportScheduleDAO.find_by_native_filter_id(filter_id):
+                    if report.dashboard_id != self._model.id:  # type: ignore
+                        continue
+                    if report.id not in seen:
+                        seen.add(report.id)
+                        reports.append(report)
+            return reports
+
+        description = textwrap.dedent(
+            """
+            The dashboard filter used in this report has been deleted and your report has not been sent.
+            Please update your report settings to remove or change the filter used.
+            """  # noqa: E501
+        )
+        deleted_filter_ids = find_deleted_native_filter_ids()
+        for report in find_reports_containing_native_filters(deleted_filter_ids):
+            ReportScheduleDAO.update(report, {"active": False})
+            self._send_deactivated_report_email(report, description)
 
 
 class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):

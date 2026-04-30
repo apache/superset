@@ -54,15 +54,21 @@ Dashboard Management:
 - generate_dashboard: Create a dashboard from chart IDs
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard
 
+Database Connections:
+- list_databases: List database connections with advanced filters (1-based pagination)
+- get_database_info: Get detailed database connection info by ID (backend, capabilities)
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
+- create_virtual_dataset: Save a SQL query as a virtual dataset for charting
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
 - get_chart_info: Get detailed chart information by ID
-- get_chart_preview: Get a visual preview of a chart with image URL
+- get_chart_preview: Get a visual preview of a chart as formatted content or URL
 - get_chart_data: Get underlying chart data in text-friendly format
+- get_chart_sql: Get the rendered SQL query for a chart (without executing it)
 - generate_chart: Create and save a new chart permanently
 - generate_explore_link: Create an interactive explore URL (preferred for exploration)
 - update_chart: Update existing saved chart configuration
@@ -79,6 +85,8 @@ Schema Discovery:
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
 - health_check: Simple health check tool (takes NO parameters, call without arguments)
+- generate_bug_report: Build a PII-sanitized bug report to send to Preset support
+  (use when the user says the MCP is broken or asks how to report an issue)
 
 Available Resources:
 - instance://metadata: Instance configuration, stats, and available dataset IDs
@@ -88,26 +96,93 @@ Available Prompts:
 - quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
 
+IMPORTANT - Using Saved Metrics vs Columns:
+When get_dataset_info returns a dataset, it includes both 'columns' and 'metrics'.
+- 'columns' are raw database columns (e.g., order_date, product_name, revenue)
+- 'metrics' are pre-defined saved metrics with SQL expressions
+  (e.g., count, total_revenue)
+
+When building chart configurations
+(generate_chart, generate_explore_link, update_chart):
+- For raw columns: use {{"name": "col_name", "aggregate": "SUM"}}
+- For saved metrics: use {{"name": "metric", "saved_metric": true}}
+  Do NOT add an aggregate when using saved_metric=true
+  (it's already defined in the metric).
+  Do NOT use a saved metric name as if it were a column — it will fail.
+
+Example: If get_dataset_info returns metrics=[{{"metric_name": "count", ...}}], use:
+  {{"name": "count", "saved_metric": true}}  ← CORRECT
+  {{"name": "count", "aggregate": "COUNT"}}  ← WRONG (count is not a column)
+
+IMPORTANT - Request Wrapper:
+For tools whose schema includes a top-level 'request' parameter, wrap all fields under request:
+  list_charts(request={{"filters": [...], "page": 1}})
+  get_chart_info(request={{"identifier": 123}})
+  get_dataset_info(request={{"identifier": 456}})
+  execute_sql(request={{"database_id": 1, "sql": "SELECT 1"}})
+Some tools do not use a request wrapper, so follow each tool's schema
+(for example: get_chart_type_schema(chart_type="xy")).
+
 Recommended Workflows:
 
-To create a chart:
-1. list_datasets -> find a dataset
-2. get_dataset_info(id) -> examine columns and metrics
-3. generate_explore_link(dataset_id, config) -> preview interactively
-4. generate_chart(dataset_id, config, save_chart=True) -> save permanently
+To add a chart to an existing dashboard:
+1. add_chart_to_existing_dashboard(dashboard_id, chart_id) -> updates dashboard directly
+   - If permission_denied=True is returned: inform the user they lack edit rights,
+     then ask if they want a new dashboard created instead. Only call generate_dashboard
+     after they confirm. Never silently create a new dashboard without asking first.
 
-To find your own charts/dashboards:
-1. get_instance_info -> get current_user.id
-2. list_charts(filters=[{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}])
-3. Or: list_dashboards(filters=[{{"col": "created_by_fk",
-   "opr": "eq", "value": current_user.id}}])
+To create a chart:
+1. list_datasets(request={{}}) -> find a dataset
+2. get_dataset_info(request={{"identifier": <id>}})
+   -> examine columns AND metrics
+3. generate_explore_link(request={{
+     "dataset_id": <id>,
+     "config": {{"chart_type": "xy", ...}}
+   }}) -> preview interactively
+4. generate_chart(request={{
+     "dataset_id": <id>,
+     "config": {{...}}, "save_chart": true
+   }}) -> save permanently
+
+To find your own charts/dashboards/datasets/databases:
+- list_charts(request={{"created_by_me": true}})      — items you created
+- list_dashboards(request={{"created_by_me": true}})  — items you created
+- list_datasets(request={{"created_by_me": true}})    — items you created
+- list_databases(request={{"created_by_me": true}})   — items you created
+
+To find items where you are listed as an owner (edit access):
+- list_charts(request={{"owned_by_me": true}})
+- list_dashboards(request={{"owned_by_me": true}})
+- list_datasets(request={{"owned_by_me": true}})
+
+To find all items you have any connection to (created OR own):
+- list_charts(request={{"created_by_me": true, "owned_by_me": true}})
+- list_dashboards(request={{"created_by_me": true, "owned_by_me": true}})
+- list_datasets(request={{"created_by_me": true, "owned_by_me": true}})
+
+Use created_by_me for authorship, owned_by_me for edit ownership, or both
+together for the union. All flags can be combined with 'filters' but not
+with 'search'.
 
 To explore data with SQL:
-1. list_datasets -> find a dataset and note its database_id
-2. execute_sql(database_id, sql) -> run query
-3. save_sql_query(database_id, label, sql) -> save query for later reuse
-4. open_sql_lab_with_context(database_id) -> open SQL Lab UI
+1. list_datasets(request={{}}) -> find a dataset and note its database_id
+2. execute_sql(request={{"database_id": <id>, "sql": "SELECT ..."}})
+3. save_sql_query(request={{
+     "database_id": <id>, "label": "name", "sql": "..."
+   }})
+4. open_sql_lab_with_context(request={{
+     "database_id": <id>
+   }})
+
+To chart from a SQL query (JOIN, CTE, aggregation):
+1. execute_sql(request={{"database_id": <id>, "sql": "..."}})
+   -> verify the query returns expected data
+2. Ask the user if they want to save it as a dataset
+3. create_virtual_dataset(request={{
+     "database_id": <id>, "sql": "...",
+     "dataset_name": "name"
+   }}) -> save as chartable dataset
+4. generate_explore_link or generate_chart with the new dataset
 
 generate_explore_link vs generate_chart:
 - Use generate_explore_link for exploration (no permanent chart created)
@@ -118,11 +193,18 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="xy", kind="bar": Bar chart for category comparison
 - chart_type="xy", kind="area": Area chart for volume visualization
 - chart_type="xy", kind="scatter": Scatter plot for correlation analysis
+- chart_type="big_number": Big Number display (single metric, header only)
+- chart_type="big_number", show_trendline=True,
+  temporal_column="<date_col>": Big Number with trendline
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
 - chart_type="pivot_table": Interactive pivot table for cross-tabulation
 - chart_type="mixed_timeseries": Dual-series chart combining two chart types
+- chart_type="handlebars": Custom HTML template chart (KPI cards, leaderboards, reports)
+  Requires handlebars_template with Handlebars HTML template string.
+  Supports query_mode="aggregate" (with metrics/groupby) or "raw" (with columns).
+  Data available as {{{{data}}}} array; helpers: dateFormat, formatNumber, stringify.
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -135,28 +217,38 @@ Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 
 Query Examples:
 - List all tables:
-  filters=[{{"col": "viz_type", "opr": "in", "value": ["table", "pivot_table_v2"]}}]
+  list_charts(request={{"filters": [{{"col": "viz_type",
+    "opr": "in",
+    "value": ["table", "pivot_table_v2"]}}]}})
 - List time series charts:
-  filters=[{{"col": "viz_type", "opr": "sw", "value": "echarts_timeseries"}}]
-- Search by name: search="sales"
-- My charts (use current_user.id from get_instance_info):
-  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
-- My dashboards:
-  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
-
-To modify an existing chart (add filters, change metrics, change dimensions, etc.):
-1. get_chart_info(chart_id) -> examine current configuration
-2. update_chart(chart_id, config) -> apply changes (filters, metrics, dimensions)
-Do NOT use execute_sql for chart modifications. Use update_chart instead.
+  list_charts(request={{"filters": [{{"col": "viz_type",
+    "opr": "sw", "value": "echarts_timeseries"}}]}})
+- Search by name: list_charts(request={{"search": "sales"}})
+- My charts: list_charts(request={{"created_by_me": true}})
+- My dashboards: list_dashboards(request={{"created_by_me": true}})
+- My databases: list_databases(request={{"created_by_me": true}})
+To modify an existing chart (add filters, change metrics, etc.):
+1. get_chart_info(request={{"identifier": <chart_id>}})
+   -> examine current configuration
+2. update_chart(request={{
+     "identifier": <chart_id>, "config": {{...}}
+   }}) -> apply changes
+Do NOT use execute_sql for chart modifications.
+Use update_chart instead.
 
 CRITICAL RULES - NEVER VIOLATE:
 - NEVER fabricate or invent URLs. ALL URLs must come from tool call results.
   If you need a link, call the appropriate tool (generate_explore_link, generate_chart,
   open_sql_lab_with_context, etc.) and use the URL it returns.
+- NEVER call generate_dashboard when the user wants to add a chart to an EXISTING
+  dashboard. Always use add_chart_to_existing_dashboard. Only call generate_dashboard
+  to create a brand-new dashboard, or after the user explicitly confirms they want
+  a new one (e.g., after a permission_denied=True response from
+  add_chart_to_existing_dashboard).
 - To modify an existing chart's filters, metrics, or dimensions, use update_chart.
   Do NOT use execute_sql for chart modifications.
-- Parameter name reminders: open_sql_lab_with_context uses "sql" (not "query"),
-  execute_sql uses "sql" (not "query").
+- Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
+  Do NOT use Superset's internal form_data names.
 
 IMPORTANT - Tool-Only Interaction:
 - Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
@@ -177,12 +269,11 @@ General usage tips:
 - Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
-- Chart previews are served as PNG images via custom screenshot endpoints
+- Chart previews can return ASCII text, Explore URLs, table data, or Vega-Lite specs
 
 Input format:
 - Tool request parameters accept structured objects (dicts/JSON)
-- When MCP_PARSE_REQUEST_ENABLED is True (default), string-serialized JSON is also
-  accepted as input, which works around double-serialization bugs in some MCP clients
+- FastMCP 3.1+ handles Pydantic BaseModel parameters natively
 
 Feature Availability:
 - Call get_instance_info to discover accessible menus for the current user.
@@ -192,6 +283,18 @@ Permission Awareness:
 - get_instance_info returns current_user.roles (e.g., ["Admin"], ["Alpha"], ["Viewer"]).
 - ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, dashboards, or running SQL).
+- Do NOT disclose dashboard access lists, dashboard owners, chart owners, dataset
+  owners, workspace admins, or other users' names, usernames, email addresses,
+  contact details, roles, admin status, ownership, or access-list information.
+- Do NOT infer access-list answers from dashboard metadata such as published status,
+  role restrictions, empty owner lists, or schema fields.
+- Do NOT use execute_sql to query user, role, owner, or access-list tables for this
+  information.
+- You may reference the current user's own identity details when appropriate, such
+  as confirming their own username.
+- If a user asks who can view/edit/access content, who owns content, who is an
+  admin, who to contact for access, or what role another user has, say that you
+  cannot provide that information and direct them to their workspace admin.
 - Common roles and their typical capabilities:
   - Admin: Full access to all features
   - Alpha: Can create and modify charts, dashboards, datasets, and run SQL
@@ -397,6 +500,8 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_data,
     get_chart_info,
     get_chart_preview,
+    get_chart_sql,
+    get_chart_type_schema,
     list_charts,
     update_chart,
     update_chart_preview,
@@ -407,7 +512,12 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     get_dashboard_info,
     list_dashboards,
 )
+from superset.mcp_service.database.tool import (  # noqa: F401, E402
+    get_database_info,
+    list_databases,
+)
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    create_virtual_dataset,
     get_dataset_info,
     list_datasets,
 )
@@ -424,6 +534,7 @@ from superset.mcp_service.system import (  # noqa: F401, E402
     resources as system_resources,
 )
 from superset.mcp_service.system.tool import (  # noqa: F401, E402
+    generate_bug_report,
     get_instance_info,
     get_schema,
     health_check,
