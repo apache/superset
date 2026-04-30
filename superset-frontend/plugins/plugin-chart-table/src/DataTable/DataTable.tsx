@@ -29,6 +29,7 @@ import {
   useMemo,
 } from 'react';
 import { typedMemo, usePrevious } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import {
   useTable,
@@ -565,6 +566,9 @@ export default typedMemo(function DataTable<D extends object>({
             align="center"
             justify="space-between"
             gap="middle"
+            css={(theme: SupersetTheme) => css`
+              font-size: ${theme.fontSizeSM}px;
+            `}
           >
             {hasPagination ? (
               <SelectPageSize
@@ -580,30 +584,32 @@ export default typedMemo(function DataTable<D extends object>({
               />
             ) : null}
             <Flex wrap align="center" gap="middle">
-              {serverPagination && (
-                <Space size="small" className="search-select-container">
-                  <span className="search-by-label">{t('Search by')}:</span>
-                  <SearchSelectDropdown
-                    searchOptions={searchOptions}
-                    value={serverPaginationData?.searchColumn || ''}
-                    onChange={onSearchColChange}
-                  />
-                </Space>
-              )}
               {searchInput && (
-                <GlobalFilter<D>
-                  searchInput={
-                    typeof searchInput === 'boolean' ? undefined : searchInput
-                  }
-                  preGlobalFilteredRows={preGlobalFilteredRows}
-                  setGlobalFilter={
-                    manualSearch ? handleSearchChange : setGlobalFilter
-                  }
-                  filterValue={manualSearch ? initialSearchText : filterValue}
-                  id={searchInputId}
-                  serverPagination={!!serverPagination}
-                  rowCount={rowCount}
-                />
+                <>
+                  {serverPagination && (
+                    <Space direction="vertical" size={4}>
+                      {t('Search by')}
+                      <SearchSelectDropdown
+                        searchOptions={searchOptions}
+                        value={serverPaginationData?.searchColumn || ''}
+                        onChange={onSearchColChange}
+                      />
+                    </Space>
+                  )}
+                  <GlobalFilter<D>
+                    searchInput={
+                      typeof searchInput === 'boolean' ? undefined : searchInput
+                    }
+                    preGlobalFilteredRows={preGlobalFilteredRows}
+                    setGlobalFilter={
+                      manualSearch ? handleSearchChange : setGlobalFilter
+                    }
+                    filterValue={manualSearch ? initialSearchText : filterValue}
+                    id={searchInputId}
+                    serverPagination={!!serverPagination}
+                    rowCount={rowCount}
+                  />
+                </>
               )}
               {renderTimeComparisonDropdown
                 ? renderTimeComparisonDropdown()
