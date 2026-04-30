@@ -25,10 +25,19 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { MemoryRouter } from 'react-router-dom';
+import { createMemoryHistory } from 'history';
+import { MemoryRouter, Router } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import SavedQueryList from '.';
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.requireActual('src/utils/getBootstrapData').default,
+  applicationRoot: jest.fn(() => '/superset'),
+  staticAssetsPrefix: jest.requireActual('src/utils/getBootstrapData')
+    .staticAssetsPrefix,
+}));
 
 // Increase default timeout
 jest.setTimeout(30000);
@@ -101,6 +110,30 @@ const renderList = (props = {}, storeOverrides = {}) =>
       }),
     },
   );
+
+// Renders with a real memory history so we can spy on push/replace without
+// breaking use-query-params (which needs a real location from router context).
+const renderListWithHistory = (props = {}, storeOverrides = {}) => {
+  const history = createMemoryHistory();
+  const result = render(
+    <Router history={history}>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <SavedQueryList user={mockUser} {...props} />
+      </QueryParamProvider>
+    </Router>,
+    {
+      useRedux: true,
+      store: configureStore([thunk])({
+        user: {
+          ...mockUser,
+          roles: { Admin: [['can_write', 'SavedQuery']] },
+        },
+        ...storeOverrides,
+      }),
+    },
+  );
+  return { ...result, history };
+};
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SavedQueryList', () => {
@@ -210,6 +243,60 @@ describe('SavedQueryList', () => {
       const qParam = params.get('q');
       expect(qParam).toContain('order_column:label');
     });
+  });
+
+  test('window.open for "open in new tab" retains the subdirectory prefix', async () => {
+    // When a query row is Cmd/Ctrl-clicked the component calls
+    // window.open(makeUrl(...)) — the full application-root-prefixed URL is needed
+    // because window.open operates in browser URL space, not React Router namespace.
+    // This test guards against accidentally removing makeUrl from the window.open call.
+    const mockWindowOpen = jest
+      .spyOn(window, 'open')
+      .mockImplementation(() => null);
+
+    renderList();
+    await screen.findByTestId('saved_query-list-view');
+    await screen.findByText(mockQueries[0].label);
+
+    const editButtons = await screen.findAllByTestId('edit-action');
+    fireEvent.click(editButtons[0], { metaKey: true });
+
+    expect(mockWindowOpen).toHaveBeenCalledWith(
+      expect.stringContaining('/superset/sqllab'),
+    );
+    mockWindowOpen.mockRestore();
+  });
+
+  test('+ Query button navigates without duplicating subdirectory prefix', async () => {
+    // applicationRoot is mocked to /superset. Without the fix, history.push would
+    // receive /superset/sqllab?new=true, and React Router would prepend /superset
+    // again, producing /superset/superset/sqllab?new=true.
+    const { history } = renderListWithHistory();
+    const pushSpy = jest.spyOn(history, 'push');
+    await screen.findByTestId('saved_query-list-view');
+
+    const queryButton = await screen.findByRole('button', { name: /query/i });
+    fireEvent.click(queryButton);
+
+    expect(pushSpy).toHaveBeenCalledWith('/sqllab?new=true');
+    expect(pushSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('/superset/sqllab'),
+    );
+  });
+
+  test('query label links do not include subdirectory prefix', async () => {
+    // <Link to> in React Router resolves relative to the basename, so passing
+    // makeUrl('/sqllab?savedQueryId=0') would produce /superset/superset/sqllab.
+    renderListWithHistory();
+    await screen.findByTestId('saved_query-list-view');
+    await screen.findByText(mockQueries[0].label);
+
+    const queryLink = screen.getByRole('link', { name: mockQueries[0].label });
+    expect(queryLink).toHaveAttribute('href', '/sqllab?savedQueryId=0');
+    expect(queryLink).not.toHaveAttribute(
+      'href',
+      expect.stringContaining('/superset/sqllab'),
+    );
   });
 
   test('shows/hides elements based on permissions', async () => {
