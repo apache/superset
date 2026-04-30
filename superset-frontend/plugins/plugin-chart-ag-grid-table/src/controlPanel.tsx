@@ -496,6 +496,18 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'show_numbered_column',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Add numbered column'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the numbered column'),
+            },
+          },
+        ],
+        [
+          {
             name: 'column_config',
             config: {
               type: 'ColumnConfigControl',

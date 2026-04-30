@@ -86,6 +86,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onChartStateChange,
     chartState,
     metricSqlExpressions,
+    showNumberedColumn,
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -230,6 +231,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       : (columns as InputColumn[]),
     data,
     serverPagination,
+    serverPaginationData,
+    serverPageLength,
+    showNumberedColumn,
     isRawRecords,
     defaultAlignPN: alignPositiveNegative,
     showCellBars,

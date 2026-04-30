@@ -28,6 +28,7 @@ import tinycolor from 'tinycolor2';
 import { createElement, type ComponentProps, ReactNode } from 'react';
 import { useColDefs } from '../../src/utils/useColDefs';
 import { InputColumn } from '../../src/types';
+import { PIVOT_COL_ID } from '../../src/consts';
 
 type TestCellStyleFunc = (params: unknown) => unknown;
 
@@ -122,6 +123,9 @@ const defaultThemeWrapper = makeThemeWrapper(supersetTheme);
 const defaultProps = {
   data: [{ test_col: 'value' }],
   serverPagination: false,
+  serverPaginationData: {},
+  serverPageLength: 0,
+  showNumberedColumn: false,
   isRawRecords: true,
   defaultAlignPN: false,
   showCellBars: false,
@@ -134,6 +138,12 @@ const defaultProps = {
   emitCrossFilters: false,
   alignPositiveNegative: false,
   slice_id: 1,
+};
+
+const basePropsNumericColumns = {
+  ...defaultProps,
+  columns: [makeColumn({ key: 'a', label: 'A' })],
+  data: [{ a: 1 }, { a: 2 }, { a: 3 }],
 };
 
 test('boolean columns use agCheckboxCellRenderer', () => {
@@ -827,4 +837,233 @@ test('cellStyle respects explicit horizontal alignment overrides', () => {
   expect(getCellStyleResult(cellStyle)).toMatchObject({
     textAlign: 'center',
   });
+});
+
+test('is not added when showNumberedColumn is false', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: false }),
+    { wrapper: defaultThemeWrapper },
+  );
+  expect(result.current.some(col => col.field === PIVOT_COL_ID)).toBe(false);
+  expect(result.current.length).toBe(1);
+});
+
+test('is added as first column when showNumberedColumn is true', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  expect(result.current[0].field).toBe(PIVOT_COL_ID);
+  expect(result.current[0].headerName).toBe('№');
+  expect(result.current.length).toBe(2);
+});
+
+test('width defaults to 36 when maxVisibleRowNumber is 0 (empty data)', () => {
+  const emptyProps = {
+    ...basePropsNumericColumns,
+    data: [],
+    showNumberedColumn: true,
+  };
+  const { result } = renderHook(() => useColDefs(emptyProps), {
+    wrapper: defaultThemeWrapper,
+  });
+  expect(result.current[0].width).toBe(36);
+});
+
+test('width uses server pagination row count when available', () => {
+  const serverProps = {
+    ...basePropsNumericColumns,
+    serverPagination: true,
+    serverPaginationData: { currentPage: 0, pageSize: 5 },
+    data: [{ a: 1 }, { a: 2 }],
+    showNumberedColumn: true,
+  };
+  const { result } = renderHook(() => useColDefs(serverProps), {
+    wrapper: defaultThemeWrapper,
+  });
+
+  expect(result.current[0].width).toBe(36);
+
+  const laterPageProps = {
+    ...serverProps,
+    serverPaginationData: { currentPage: 3, pageSize: 5 },
+    data: [{ a: 21 }, { a: 22 }],
+  };
+  const { result: resultLater } = renderHook(() => useColDefs(laterPageProps), {
+    wrapper: defaultThemeWrapper,
+  });
+  expect(resultLater.current[0].width).toBe(42);
+});
+
+test('valueGetter returns row numbers without server pagination', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  const colDef = result.current[0];
+  const { valueGetter } = colDef;
+  expect(valueGetter).toBeDefined();
+  expect(typeof valueGetter).toBe('function');
+
+  const getter = valueGetter as (params: {
+    node?: { rowIndex?: number };
+    data?: Record<string, unknown>;
+  }) => number;
+
+  const params = (rowIndex: number) => ({
+    node: { rowIndex },
+    data: basePropsNumericColumns.data[rowIndex],
+  });
+
+  expect(getter(params(0))).toBe(1);
+  expect(getter(params(1))).toBe(2);
+  expect(getter(params(2))).toBe(3);
+});
+
+test('valueGetter respects server pagination', () => {
+  const serverProps = {
+    ...basePropsNumericColumns,
+    serverPagination: true,
+    serverPaginationData: { currentPage: 2, pageSize: 5 },
+    data: [{ a: 11 }, { a: 12 }],
+  };
+  const { result } = renderHook(
+    () => useColDefs({ ...serverProps, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  const { valueGetter } = result.current[0];
+  expect(typeof valueGetter).toBe('function');
+
+  const getter = valueGetter as (params: {
+    node?: { rowIndex?: number };
+    data?: Record<string, unknown>;
+  }) => number;
+
+  expect(getter({ node: { rowIndex: 0 } })).toBe(11);
+  expect(getter({ node: { rowIndex: 1 } })).toBe(12);
+});
+
+test('has correct static column properties', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  const colDef = result.current[0];
+  expect(colDef.sortable).toBe(false);
+  expect(colDef.filter).toBe(false);
+  expect(colDef.pinned).toBe('left');
+  expect(colDef.lockPosition).toBe(true);
+  expect(colDef.suppressNavigable).toBe(true);
+  expect(colDef.suppressSizeToFit).toBe(true);
+  expect(colDef.resizable).toBe(false);
+  expect(colDef.suppressMovable).toBe(true);
+  expect(colDef.context).toEqual({ isMetric: true });
+  expect(colDef.headerStyle).toBeDefined();
+  expect(colDef.cellStyle).toBeDefined();
+});
+
+test('pageSize priority chain works correctly', () => {
+  const props1 = {
+    ...basePropsNumericColumns,
+    serverPagination: true,
+    serverPaginationData: { currentPage: 2, pageSize: 10 },
+    serverPageLength: 5,
+    data: Array.from({ length: 3 }, () => ({ a: 1 })),
+    showNumberedColumn: true,
+  };
+  const { result: res1 } = renderHook(() => useColDefs(props1), {
+    wrapper: defaultThemeWrapper,
+  });
+
+  expect(res1.current[0].width).toBe(42);
+
+  const props2 = {
+    ...props1,
+    serverPaginationData: { currentPage: 2 },
+    serverPageLength: 20,
+  };
+  const { result: res2 } = renderHook(() => useColDefs(props2), {
+    wrapper: defaultThemeWrapper,
+  });
+
+  expect(res2.current[0].width).toBe(42);
+});
+
+test('column width adapts to max row number length in client mode', () => {
+  const base = {
+    ...basePropsNumericColumns,
+    showNumberedColumn: true,
+    serverPagination: false,
+  };
+
+  const props9 = { ...base, data: Array.from({ length: 9 }, () => ({ a: 1 })) };
+  const { result: res9 } = renderHook(() => useColDefs(props9), {
+    wrapper: defaultThemeWrapper,
+  });
+  expect(res9.current[0].width).toBe(36);
+
+  const props10 = {
+    ...base,
+    data: Array.from({ length: 10 }, () => ({ a: 1 })),
+  };
+  const { result: res10 } = renderHook(() => useColDefs(props10), {
+    wrapper: defaultThemeWrapper,
+  });
+  expect(res10.current[0].width).toBe(42);
+
+  const props100 = {
+    ...base,
+    data: Array.from({ length: 100 }, () => ({ a: 1 })),
+  };
+  const { result: res100 } = renderHook(() => useColDefs(props100), {
+    wrapper: defaultThemeWrapper,
+  });
+  expect(res100.current[0].width).toBe(48);
+});
+
+test('row number column uses theme variables for styling', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  const colDef = result.current[0];
+  expect(colDef.cellStyle).toMatchObject({
+    backgroundColor: expect.any(String),
+    padding: '0',
+    textAlign: 'center',
+    fontSize: '0.9em',
+    color: expect.any(String),
+  });
+  expect(colDef.headerStyle).toMatchObject({
+    backgroundColor: expect.any(String),
+    fontSize: '1em',
+    color: expect.any(String),
+  });
+});
+
+test('valueGetter handles missing node or rowIndex gracefully', () => {
+  const { result } = renderHook(
+    () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
+    { wrapper: defaultThemeWrapper },
+  );
+  const getter = result.current[0].valueGetter as (params: {
+    node?: { rowIndex?: number };
+  }) => number;
+  expect(getter({})).toBe(1);
+  expect(getter({ node: {} })).toBe(1);
+
+  const serverProps = {
+    ...basePropsNumericColumns,
+    serverPagination: true,
+    serverPaginationData: { currentPage: 2, pageSize: 5 },
+    showNumberedColumn: true,
+  };
+  const { result: serverResult } = renderHook(() => useColDefs(serverProps), {
+    wrapper: defaultThemeWrapper,
+  });
+  const serverGetter = serverResult.current[0].valueGetter as (params: {
+    node?: { rowIndex?: number };
+  }) => number;
+  expect(serverGetter({})).toBe(2 * 5 + 1);
+  expect(serverGetter({ node: {} })).toBe(11);
 });
