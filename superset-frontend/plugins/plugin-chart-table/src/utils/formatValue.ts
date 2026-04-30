@@ -54,7 +54,11 @@ function formatValue(
     if (formatter instanceof CurrencyFormatter) {
       return [false, formatter(value as number, rowData, currencyColumn)];
     }
-    return [false, formatter(value as number)];
+    try {
+      return [false, formatter(value as number)];
+    } catch (e) {
+      return [false, String(value)];
+    }
   }
   if (typeof value === 'string') {
     return isProbablyHTML(value) ? [true, sanitizeHtml(value)] : [false, value];
