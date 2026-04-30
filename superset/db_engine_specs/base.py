@@ -590,7 +590,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Driver-specific params to be included in the `get_oauth2_token` request body
     oauth2_additional_token_request_params: dict[str, Any] = {}
     # Driver-specific exception that should be mapped to OAuth2RedirectError
-    oauth2_exception = OAuth2RedirectError
+    oauth2_exception: type[Exception] | tuple[type[Exception], ...] = (
+        OAuth2RedirectError
+    )
 
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
