@@ -16,23 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { common as coreType } from '@apache-superset/core';
-import { Disposable } from './models';
 
-const { GenericDataType } = coreType;
+import { extensions as extensionsImpl } from './index';
 
-export const core: typeof coreType = {
-  GenericDataType,
-  Disposable,
-};
-
-export * from './authentication';
-export * from './commands';
-export * from './editors';
-export * from './extensions';
-export * from './menus';
-export * from './models';
-export * from './sqlLab';
-export * from './storage';
-export * from './utils';
-export * from './views';
+test('extensions.getContext throws when not in extension context', () => {
+  expect(() => extensionsImpl.getContext()).toThrow(
+    'getContext() must be called within an extension context',
+  );
+});

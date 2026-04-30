@@ -34,9 +34,6 @@ if TYPE_CHECKING:
     from superset_core.rest_api.api import RestApi
 
 
-__all__ = ["initialize_core_api_dependencies"]
-
-
 def inject_dao_implementations() -> None:
     """
     Replace abstract DAO classes in superset_core common/queries/tasks daos with
@@ -229,6 +226,41 @@ def inject_model_session_implementation() -> None:
     core_models_module.get_session = get_session
 
 
+def inject_storage_implementations() -> None:
+    """
+    Replace abstract storage functions in superset_core.extensions.storage with concrete
+    implementations from Superset.
+    """
+    import superset_core.extensions.storage.ephemeral_state as core_ephemeral_state
+    import superset_core.extensions.storage.persistent_state as core_persistent_state
+
+    from superset.extensions.storage.ephemeral_state import EphemeralStateImpl
+    from superset.extensions.storage.persistent_state_impl import PersistentStateImpl
+
+    # Replace abstract functions with concrete implementations
+    core_ephemeral_state.get = EphemeralStateImpl.get
+    core_ephemeral_state.set = EphemeralStateImpl.set
+    core_ephemeral_state.remove = EphemeralStateImpl.remove
+    core_ephemeral_state.shared = EphemeralStateImpl.shared
+
+    core_persistent_state.get = PersistentStateImpl.get
+    core_persistent_state.set = PersistentStateImpl.set
+    core_persistent_state.remove = PersistentStateImpl.remove
+    core_persistent_state.shared = PersistentStateImpl.shared
+
+
+def inject_extension_context() -> None:
+    """
+    Replace abstract get_context in superset_core.extensions.context
+    with concrete implementation from Superset.
+    """
+    import superset_core.extensions.context as core_context
+
+    from superset.extensions.context import get_context
+
+    core_context.get_context = get_context
+
+
 def initialize_core_api_dependencies() -> None:
     """
     Initialize all dependency injections for the superset-core API.
@@ -242,3 +274,5 @@ def initialize_core_api_dependencies() -> None:
     inject_query_implementations()
     inject_task_implementations()
     inject_rest_api_implementations()
+    inject_storage_implementations()
+    inject_extension_context()

@@ -223,7 +223,7 @@ The `@apache-superset/core` package must be listed in both `peerDependencies` (t
 
 **`frontend/webpack.config.js`**
 
-The webpack configuration requires specific settings for Module Federation. Key settings include `externalsType: "window"` and `externals` to map `@apache-superset/core` to `window.superset` at runtime, `import: false` for shared modules to use the host's React instead of bundling a separate copy, and `remoteEntry.[contenthash].js` for cache busting.
+The webpack configuration requires specific settings for Module Federation. Key settings include `externalsType: "window"` and a function-based `externals` to map `@apache-superset/core` and its subpaths (like `@apache-superset/core/storage`) to `window.superset` at runtime, `import: false` for shared modules to use the host's React instead of bundling a separate copy, and `remoteEntry.[contenthash].js` for cache busting.
 
 **Convention**: Superset always loads extensions by requesting the `./index` module from the Module Federation container. The `exposes` entry must be exactly `'./index': './src/index.tsx'` — do not rename or add additional entries. All API registrations must be reachable from that file. See [Architecture](./architecture#module-federation) for a full explanation.
 
@@ -255,10 +255,14 @@ module.exports = (env, argv) => {
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.jsx'],
     },
-    // Map @apache-superset/core imports to window.superset at runtime
+    // Map @apache-superset/core and subpaths to window.superset at runtime
     externalsType: 'window',
-    externals: {
-      '@apache-superset/core': 'superset',
+    externals: ({ request }, callback) => {
+      if (request?.startsWith('@apache-superset/core')) {
+        const parts = request.replace('@apache-superset/core', 'superset').split('/');
+        return callback(null, parts);
+      }
+      callback();
     },
     module: {
       rules: [

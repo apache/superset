@@ -65,6 +65,10 @@
     "./testing": {
       "types": "./lib/testing.d.ts",
       "default": "./lib/testing.js"
+    },
+    "./storage": {
+      "types": "./lib/storage/index.d.ts",
+      "default": "./lib/storage/index.js"
     }
   },
   "files": [

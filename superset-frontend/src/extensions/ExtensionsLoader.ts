@@ -19,6 +19,11 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
+import {
+  createExtensionContext,
+  createBoundGetContext,
+} from './ExtensionContext';
+import './types';
 
 type Extension = core.Extension;
 
@@ -132,11 +137,17 @@ class ExtensionsLoader {
     const containerName = (extension as any).moduleFederationName || id;
     const container = (window as any)[containerName];
 
+    // Create extension context with bound storage
+    const context = createExtensionContext(extension);
+    const boundGetContext = createBoundGetContext(context);
+
+    // Provide bound getContext to this extension via window.superset.extensions
+    window.superset.extensions.getContext = boundGetContext;
+
     // @ts-expect-error
     await container.init(__webpack_share_scopes__.default);
 
     const factory = await container.get('./index');
-    // Execute the module factory - side effects fire registrations
     factory();
   }
 

@@ -16,8 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { extensions as extensionsApi } from '@apache-superset/core';
+import type { extensions as extensionsApi } from '@apache-superset/core';
 import ExtensionsLoader from 'src/extensions/ExtensionsLoader';
+
+export {
+  createExtensionContext,
+  createBoundGetContext,
+} from 'src/extensions/ExtensionContext';
+
+const getContext: typeof extensionsApi.getContext = () => {
+  throw new Error(
+    'getContext() must be called within an extension context. ' +
+      'Ensure this code is being executed by an extension.',
+  );
+};
 
 const getExtension: typeof extensionsApi.getExtension = id =>
   ExtensionsLoader.getInstance().getExtension(id);
@@ -26,6 +38,7 @@ const getAllExtensions: typeof extensionsApi.getAllExtensions = () =>
   ExtensionsLoader.getInstance().getExtensions();
 
 export const extensions: typeof extensionsApi = {
+  getContext,
   getExtension,
   getAllExtensions,
 };
