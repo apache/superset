@@ -70,6 +70,8 @@ SORTABLE_CHART_COLUMNS = [
     "created_on",
 ]
 
+_DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
+
 
 @tool(
     tags=["core"],
@@ -81,7 +83,8 @@ SORTABLE_CHART_COLUMNS = [
     ),
 )
 async def list_charts(
-    request: ListChartsRequest, ctx: Context
+    request: ListChartsRequest | None = None,
+    ctx: Context = None,
 ) -> ChartList | ChartError:
     """List charts with filtering and search.
 
@@ -91,6 +94,7 @@ async def list_charts(
     Sortable columns for order_column: id, slice_name, viz_type, description,
     changed_on, created_on
     """
+    request = request or _DEFAULT_LIST_CHARTS_REQUEST.model_copy(deep=True)
     await ctx.info(
         "Listing charts: page=%s, page_size=%s, search=%s"
         % (
