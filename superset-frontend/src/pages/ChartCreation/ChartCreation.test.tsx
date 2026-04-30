@@ -24,10 +24,8 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { supersetTheme } from '@apache-superset/core/theme';
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -80,24 +78,20 @@ const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
   isAnonymous: false,
   groups: [],
 };
-const history = createMemoryHistory();
 
-history.push = jest.fn();
+const mockHistoryPush = jest.fn();
 
-const routeProps = {
-  history,
-  location: {} as any,
-  match: {} as any,
-};
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    push: mockHistoryPush,
+  }),
+}));
 
 async function renderComponent(user = mockUser) {
+  mockHistoryPush.mockClear();
   const rendered = render(
-    <ChartCreation
-      user={user}
-      addSuccessToast={() => null}
-      theme={supersetTheme}
-      {...routeProps}
-    />,
+    <ChartCreation user={user} addSuccessToast={() => null} />,
     {
       useRedux: true,
       useRouter: true,
@@ -171,7 +165,7 @@ test('double-click viz type does nothing if no datasource is selected', async ()
   expect(
     screen.getByRole('button', { name: 'Create new chart' }),
   ).toBeDisabled();
-  expect(history.push).not.toHaveBeenCalled();
+  expect(mockHistoryPush).not.toHaveBeenCalled();
 });
 
 test('double-click viz type submits with formatted URL if datasource is selected', async () => {
@@ -193,7 +187,7 @@ test('double-click viz type submits with formatted URL if datasource is selected
     screen.getByRole('button', { name: 'Create new chart' }),
   ).toBeEnabled();
   const formattedUrl = '/explore/?viz_type=table&datasource=table_1__table';
-  expect(history.push).toHaveBeenCalledWith(formattedUrl);
+  expect(mockHistoryPush).toHaveBeenCalledWith(formattedUrl);
 });
 
 test('dropdown displays matching datasets when user types a search term', async () => {
@@ -335,18 +329,10 @@ test('shows loading spinner when dataset parameter is present in URL', async () 
     writable: true,
   });
 
-  render(
-    <ChartCreation
-      user={mockUser}
-      addSuccessToast={() => null}
-      theme={supersetTheme}
-      {...routeProps}
-    />,
-    {
-      useRedux: true,
-      useRouter: true,
-    },
-  );
+  render(<ChartCreation user={mockUser} addSuccessToast={() => null} />, {
+    useRedux: true,
+    useRouter: true,
+  });
 
   expect(screen.getByRole('status')).toBeInTheDocument();
 

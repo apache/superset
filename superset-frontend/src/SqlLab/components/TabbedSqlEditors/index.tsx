@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { useEffect, useCallback, useMemo, useRef } from 'react';
 import { EditableTabs } from '@superset-ui/core/components/Tabs';
 import { connect } from 'react-redux';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
+import { styled, css } from '@apache-superset/core/theme';
 import { Logger } from 'src/logger/LogUtils';
 import { EmptyState, Tooltip } from '@superset-ui/core/components';
 import { detectOS } from 'src/utils/common';
@@ -32,10 +32,10 @@ import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
 const DEFAULT_PROPS = {
-  queryEditors: [],
+  queryEditors: [] as QueryEditor[],
   offline: false,
-  saveQueryWarning: null,
-  scheduleQueryWarning: null,
+  saveQueryWarning: null as string | null,
+  scheduleQueryWarning: null as string | null,
 };
 
 const StyledEditableTabs = styled(EditableTabs)`
@@ -89,168 +89,199 @@ const TabTitle = styled.span`
   text-transform: none;
 `;
 
-const AddTabIconWrapper = styled.span`
-  display: inline-flex;
-  vertical-align: middle;
-`;
-
 // Get the user's OS
 const userOS = detectOS();
 
 type TabbedSqlEditorsProps = ReturnType<typeof mergeProps>;
 
-class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
-  constructor(props: TabbedSqlEditorsProps) {
-    super(props);
-    this.removeQueryEditor = this.removeQueryEditor.bind(this);
-    this.handleSelect = this.handleSelect.bind(this);
-    this.handleEdit = this.handleEdit.bind(this);
-  }
+function TabbedSqlEditors({
+  actions,
+  queryEditors = DEFAULT_PROPS.queryEditors,
+  queries,
+  tabHistory,
+  displayLimit,
+  offline = DEFAULT_PROPS.offline,
+  defaultQueryLimit,
+  maxRow,
+  saveQueryWarning = DEFAULT_PROPS.saveQueryWarning,
+  scheduleQueryWarning = DEFAULT_PROPS.scheduleQueryWarning,
+}: TabbedSqlEditorsProps) {
+  const activeQueryEditor = useMemo(() => {
+    if (tabHistory.length === 0) {
+      return queryEditors[0];
+    }
+    const qeid = tabHistory[tabHistory.length - 1];
+    return queryEditors.find(qe => qe.id === qeid) || null;
+  }, [tabHistory, queryEditors]);
 
-  componentDidMount() {
-    const qe = this.activeQueryEditor();
-    const latestQuery = this.props.queries[qe?.latestQueryId || ''];
+  // Track the last persisted resultsKey we fetched, so the effect retries when
+  // the active query editor resolves after mount (or its latest query changes)
+  // but dedupes when the same resultsKey has already been fetched.
+  const fetchedResultsKeyRef = useRef<string | null>(null);
+
+  // Fetch query results for the active editor's latest query when its
+  // persisted resultsKey changes (equivalent to componentDidMount, but resilient
+  // to async hydration of activeQueryEditor).
+  useEffect(() => {
+    const latestQuery = queries[activeQueryEditor?.latestQueryId || ''];
+    const resultsKey = latestQuery?.resultsKey;
     if (
       isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
-      latestQuery?.resultsKey
+      resultsKey &&
+      fetchedResultsKeyRef.current !== resultsKey
     ) {
+      fetchedResultsKeyRef.current = resultsKey;
       // when results are not stored in localStorage they need to be
       // fetched from the results backend (if configured)
-      this.props.actions.fetchQueryResults(
-        latestQuery,
-        this.props.displayLimit,
-      );
+      actions.fetchQueryResults(latestQuery, displayLimit);
     }
-  }
+  }, [queries, activeQueryEditor, actions, displayLimit]);
 
-  activeQueryEditor() {
-    if (this.props.tabHistory.length === 0) {
-      return this.props.queryEditors[0];
-    }
-    const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
-    return this.props.queryEditors.find(qe => qe.id === qeid) || null;
-  }
+  const newQueryEditor = useCallback(() => {
+    actions.addNewQueryEditor();
+  }, [actions]);
 
-  newQueryEditor() {
-    this.props.actions.addNewQueryEditor();
-  }
+  const removeQueryEditor = useCallback(
+    (qe: QueryEditor) => {
+      actions.removeQueryEditor(qe);
+    },
+    [actions],
+  );
 
-  handleSelect(key: string) {
-    const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
-    if (key !== qeid) {
-      const queryEditor = this.props.queryEditors.find(qe => qe.id === key);
-      if (!queryEditor) {
-        return;
+  const handleSelect = useCallback(
+    (key: string) => {
+      const qeid = tabHistory[tabHistory.length - 1];
+      if (key !== qeid) {
+        const queryEditor = queryEditors.find(qe => qe.id === key);
+        if (!queryEditor) {
+          return;
+        }
+        actions.setActiveQueryEditor(queryEditor);
       }
-      this.props.actions.setActiveQueryEditor(queryEditor);
-    }
-  }
+    },
+    [tabHistory, queryEditors, actions],
+  );
 
-  handleEdit(key: string, action: string) {
-    if (action === 'remove') {
-      const qe = this.props.queryEditors.find(qe => qe.id === key);
-      if (qe) {
-        this.removeQueryEditor(qe);
+  const handleEdit = useCallback(
+    (key: string, action: string) => {
+      if (action === 'remove') {
+        const qe = queryEditors.find(qe => qe.id === key);
+        if (qe) {
+          removeQueryEditor(qe);
+        }
       }
-    }
-    if (action === 'add') {
-      Logger.markTimeOrigin();
-      this.newQueryEditor();
-    }
-  }
+      if (action === 'add') {
+        Logger.markTimeOrigin();
+        newQueryEditor();
+      }
+    },
+    [queryEditors, removeQueryEditor, newQueryEditor],
+  );
 
-  removeQueryEditor(qe: QueryEditor) {
-    this.props.actions.removeQueryEditor(qe);
-  }
-
-  onTabClicked = () => {
+  const onTabClicked = useCallback(() => {
     Logger.markTimeOrigin();
-    const noQueryEditors = this.props.queryEditors?.length === 0;
+    const noQueryEditors = queryEditors?.length === 0;
     if (noQueryEditors) {
-      this.newQueryEditor();
+      newQueryEditor();
     }
+  }, [queryEditors, newQueryEditor]);
+
+  const editors = useMemo(
+    () =>
+      queryEditors?.map(qe => ({
+        key: qe.id,
+        label: <SqlEditorTabHeader queryEditor={qe} />,
+        children: (
+          <SqlEditor
+            queryEditor={qe}
+            defaultQueryLimit={defaultQueryLimit}
+            maxRow={maxRow}
+            displayLimit={displayLimit}
+            saveQueryWarning={saveQueryWarning}
+            scheduleQueryWarning={scheduleQueryWarning}
+          />
+        ),
+      })),
+    [
+      queryEditors,
+      defaultQueryLimit,
+      maxRow,
+      displayLimit,
+      saveQueryWarning,
+      scheduleQueryWarning,
+    ],
+  );
+
+  const emptyTab = (
+    <StyledTab>
+      <TabTitle>{t('Add a new tab')}</TabTitle>
+      <Tooltip
+        id="add-tab"
+        placement="bottom"
+        title={
+          userOS === 'Windows'
+            ? t('New tab (Ctrl + q)')
+            : t('New tab (Ctrl + t)')
+        }
+      >
+        <Icons.PlusCircleOutlined
+          iconSize="s"
+          css={css`
+            vertical-align: middle;
+          `}
+          data-test="add-tab-icon"
+        />
+      </Tooltip>
+    </StyledTab>
+  );
+
+  const emptyTabState = {
+    key: '0',
+    label: emptyTab,
+    children: (
+      <EmptyState
+        image="empty_sql_chart.svg"
+        size="large"
+        description={t('Add a new tab to create SQL Query')}
+      />
+    ),
   };
 
-  render() {
-    const editors = this.props.queryEditors?.map(qe => ({
-      key: qe.id,
-      label: <SqlEditorTabHeader queryEditor={qe} />,
-      children: (
-        <SqlEditor
-          queryEditor={qe}
-          defaultQueryLimit={this.props.defaultQueryLimit}
-          maxRow={this.props.maxRow}
-          displayLimit={this.props.displayLimit}
-          saveQueryWarning={this.props.saveQueryWarning}
-          scheduleQueryWarning={this.props.scheduleQueryWarning}
-        />
-      ),
-    }));
+  const tabItems = queryEditors?.length > 0 ? editors : [emptyTabState];
 
-    const emptyTab = (
-      <StyledTab>
-        <TabTitle>{t('Add a new tab')}</TabTitle>
+  return (
+    <StyledEditableTabs
+      activeKey={tabHistory[tabHistory.length - 1]}
+      id="a11y-query-editor-tabs"
+      className="SqlEditorTabs"
+      data-test="sql-editor-tabs"
+      onChange={handleSelect}
+      hideAdd={offline}
+      onTabClick={onTabClicked}
+      onEdit={handleEdit}
+      type={queryEditors?.length === 0 ? 'card' : 'editable-card'}
+      addIcon={
         <Tooltip
           id="add-tab"
-          placement="bottom"
+          placement="left"
           title={
             userOS === 'Windows'
               ? t('New tab (Ctrl + q)')
               : t('New tab (Ctrl + t)')
           }
         >
-          <AddTabIconWrapper>
-            <Icons.PlusCircleOutlined iconSize="s" data-test="add-tab-icon" />
-          </AddTabIconWrapper>
+          <Icons.PlusOutlined
+            iconSize="l"
+            css={css`
+              vertical-align: middle;
+            `}
+            data-test="add-tab-icon"
+          />
         </Tooltip>
-      </StyledTab>
-    );
-
-    const emptyTabState = {
-      key: '0',
-      label: emptyTab,
-      children: (
-        <EmptyState
-          image="empty_sql_chart.svg"
-          size="large"
-          description={t('Add a new tab to create SQL Query')}
-        />
-      ),
-    };
-
-    const tabItems =
-      this.props.queryEditors?.length > 0 ? editors : [emptyTabState];
-
-    return (
-      <StyledEditableTabs
-        activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
-        id="a11y-query-editor-tabs"
-        className="SqlEditorTabs"
-        data-test="sql-editor-tabs"
-        onChange={this.handleSelect}
-        hideAdd={this.props.offline}
-        onTabClick={this.onTabClicked}
-        onEdit={this.handleEdit}
-        type={this.props.queryEditors?.length === 0 ? 'card' : 'editable-card'}
-        addIcon={
-          <Tooltip
-            id="add-tab"
-            placement="left"
-            title={
-              userOS === 'Windows'
-                ? t('New tab (Ctrl + q)')
-                : t('New tab (Ctrl + t)')
-            }
-          >
-            <AddTabIconWrapper>
-              <Icons.PlusOutlined iconSize="l" data-test="add-tab-icon" />
-            </AddTabIconWrapper>
-          </Tooltip>
-        }
-        items={tabItems}
-      />
-    );
-  }
+      }
+      items={tabItems}
+    />
+  );
 }
 
 export function mapStateToProps({ sqlLab, common }: SqlLabRootState) {
