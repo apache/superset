@@ -89,7 +89,7 @@ const FilterBarSettings = () => {
     });
 
   const updateCrossFiltersSetting = useCallback(
-    async isEnabled => {
+    async (isEnabled: boolean) => {
       if (!isEnabled) {
         dispatch(clearDataMaskState());
       }

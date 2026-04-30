@@ -27,6 +27,7 @@ import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
+import { ConnectDragSource } from 'react-dnd';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
@@ -241,7 +242,7 @@ const ChartHolder = ({
   }, []);
 
   const renderChild = useCallback(
-    ({ dragSourceRef }) => (
+    ({ dragSourceRef }: { dragSourceRef?: ConnectDragSource }) => (
       <ResizableContainer
         id={component.id}
         adjustableWidth={parentComponent.type === ROW_TYPE}

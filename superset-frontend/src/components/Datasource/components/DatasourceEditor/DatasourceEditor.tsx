@@ -741,7 +741,7 @@ function ColumnCollectionTable({
                     {v}
                   </StyledLabelWrapper>
                 ),
-              type: d => (d ? <Label>{d}</Label> : null),
+              type: d => (d ? <Label>{String(d)}</Label> : null),
               advanced_data_type: d => <Label>{d as string}</Label>,
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
@@ -770,7 +770,7 @@ function ColumnCollectionTable({
                     {v}
                   </StyledLabelWrapper>
                 ),
-              type: d => (d ? <Label>{d}</Label> : null),
+              type: d => (d ? <Label>{String(d)}</Label> : null),
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
               groupby: checkboxGenerator,

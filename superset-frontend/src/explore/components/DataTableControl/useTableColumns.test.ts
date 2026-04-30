@@ -17,7 +17,7 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/common';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { Constants } from '@superset-ui/core/components';
 import { useTableColumns } from '.';
 

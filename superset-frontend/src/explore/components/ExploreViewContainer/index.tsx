@@ -413,7 +413,10 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   );
 
   const addHistory = useCallback(
-    async ({ isReplace = false, title } = {}) => {
+    async ({
+      isReplace = false,
+      title,
+    }: { isReplace?: boolean; title?: string } = {}) => {
       const formData = props.dashboardId
         ? {
             ...props.form_data,

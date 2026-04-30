@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { SupersetClient } from '@superset-ui/core';
 import { useDeckLayerMetadata } from './useDeckLayerMetadata';
 
@@ -52,15 +52,14 @@ test('fetches layer metadata successfully', async () => {
   };
   mockSupersetClientGet.mockResolvedValue(mockResponse);
 
-  const { result, waitForNextUpdate } = renderHook(() =>
-    useDeckLayerMetadata([1, 2]),
-  );
+  const { result } = renderHook(() => useDeckLayerMetadata([1, 2]));
 
   expect(result.current.isLoading).toBe(true);
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
 
-  expect(result.current.isLoading).toBe(false);
   expect(result.current.layers).toEqual([
     { sliceId: 1, name: 'Layer 1', type: 'deck_scatter' },
     { sliceId: 2, name: 'Layer 2', type: 'deck_arc' },
@@ -75,13 +74,12 @@ test('handles API error and returns fallback layers', async () => {
   const errorMessage = 'Network error';
   mockSupersetClientGet.mockRejectedValue(new Error(errorMessage));
 
-  const { result, waitForNextUpdate } = renderHook(() =>
-    useDeckLayerMetadata([1, 2, 3]),
-  );
+  const { result } = renderHook(() => useDeckLayerMetadata([1, 2, 3]));
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
 
-  expect(result.current.isLoading).toBe(false);
   expect(result.current.error).toBe(errorMessage);
   expect(result.current.layers).toEqual([
     { sliceId: 1, name: 'Layer 1', type: 'unknown' },
@@ -93,13 +91,12 @@ test('handles API error and returns fallback layers', async () => {
 test('handles non-Error object rejection', async () => {
   mockSupersetClientGet.mockRejectedValue('String error');
 
-  const { result, waitForNextUpdate } = renderHook(() =>
-    useDeckLayerMetadata([1]),
-  );
+  const { result } = renderHook(() => useDeckLayerMetadata([1]));
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
 
-  expect(result.current.isLoading).toBe(false);
   expect(result.current.error).toBe('Unknown error');
   expect(result.current.layers).toEqual([
     { sliceId: 1, name: 'Layer 1', type: 'unknown' },
@@ -125,22 +122,25 @@ test('refetches when sliceIds change', async () => {
     .mockResolvedValueOnce(mockResponse1)
     .mockResolvedValueOnce(mockResponse2);
 
-  const { result, rerender, waitForNextUpdate } = renderHook(
+  const { result, rerender } = renderHook(
     ({ ids }) => useDeckLayerMetadata(ids),
     {
       initialProps: { ids: [1] },
     },
   );
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
 
-  expect(result.current.isLoading).toBe(false);
   expect(result.current.layers).toHaveLength(1);
   expect(result.current.layers[0].sliceId).toBe(1);
 
   rerender({ ids: [2, 3] });
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.layers).toHaveLength(2);
+  });
 
   expect(result.current.isLoading).toBe(false);
   expect(result.current.layers).toHaveLength(2);
@@ -157,13 +157,12 @@ test('handles empty result from API', async () => {
   };
   mockSupersetClientGet.mockResolvedValue(mockResponse);
 
-  const { result, waitForNextUpdate } = renderHook(() =>
-    useDeckLayerMetadata([1, 2]),
-  );
+  const { result } = renderHook(() => useDeckLayerMetadata([1, 2]));
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
 
-  expect(result.current.isLoading).toBe(false);
   expect(result.current.layers).toEqual([]);
   expect(result.current.error).toBe(null);
 });
@@ -176,16 +175,17 @@ test('clears isLoading when sliceIds transitions from non-empty to empty', async
   };
   mockSupersetClientGet.mockResolvedValue(mockResponse);
 
-  const { result, rerender, waitForNextUpdate } = renderHook(
+  const { result, rerender } = renderHook(
     ({ ids }) => useDeckLayerMetadata(ids),
     {
       initialProps: { ids: [1] },
     },
   );
 
-  await waitForNextUpdate();
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
 
-  expect(result.current.isLoading).toBe(false);
   expect(result.current.layers).toHaveLength(1);
 
   act(() => {
@@ -204,16 +204,16 @@ test('does not refetch when sliceIds array has same values', async () => {
   };
   mockSupersetClientGet.mockResolvedValue(mockResponse);
 
-  const { result, rerender, waitForNextUpdate } = renderHook(
+  const { result, rerender } = renderHook(
     ({ ids }) => useDeckLayerMetadata(ids),
     {
       initialProps: { ids: [1] },
     },
   );
 
-  await waitForNextUpdate();
-
-  expect(result.current.isLoading).toBe(false);
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
 
   const callCount = mockSupersetClientGet.mock.calls.length;
 

@@ -203,9 +203,16 @@ if (!process.env.CI) {
 if (isDevMode) {
   plugins.push(
     new ReactRefreshWebpackPlugin({
-      // Exclude service worker from React Refresh - it runs in a worker context
-      // without DOM/window and doesn't need HMR
-      exclude: /service-worker/,
+      // Exclude:
+      //   - node_modules (the plugin's default — must be re-added when overriding
+      //     `exclude`, otherwise pre-bundled ESM packages such as
+      //     react-checkbox-tree get the refresh loader injected into their
+      //     nested webpack runtime, causing
+      //     `__webpack_require__.$Refresh$ is undefined` at module factory
+      //     execution time.
+      //   - service worker (runs in a worker context without DOM/window and
+      //     does not need HMR).
+      exclude: [/node_modules/, /service-worker/],
     }),
   );
 }
@@ -395,7 +402,6 @@ const config = {
               'react-dom',
               'redux',
               'react-redux',
-              'react-sortable-hoc',
               'react-table',
               'react-ace',
               'webpack.*',

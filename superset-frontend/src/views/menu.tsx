@@ -21,7 +21,7 @@ import 'src/public-path';
 // Menu App. Used in views that do not already include the Menu component in the layout.
 // eg, backend rendered views
 import { Provider } from 'react-redux';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { CacheProvider } from '@emotion/react';
 import { QueryParamProvider } from 'use-query-params';
@@ -65,4 +65,7 @@ const app = (
   </CacheProvider>
 );
 
-ReactDOM.render(app, document.getElementById('app-menu'));
+const menuMountPoint = document.getElementById('app-menu');
+if (menuMountPoint) {
+  createRoot(menuMountPoint).render(app);
+}

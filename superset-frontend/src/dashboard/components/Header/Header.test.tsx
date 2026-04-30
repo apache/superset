@@ -280,6 +280,22 @@ test('should edit the title', () => {
   expect(screen.getByDisplayValue('New Title')).toBeInTheDocument();
 });
 
+test('typing in the title only dispatches once on commit, not per keystroke', () => {
+  setup(editableState);
+  const editableTitle = screen.getByDisplayValue('Dashboard Title');
+  userEvent.click(editableTitle);
+  userEvent.clear(editableTitle);
+  userEvent.type(editableTitle, 'abcdef');
+  // No commit yet - typing should keep state local to DynamicEditableTitle
+  expect(updateDashboardTitle).not.toHaveBeenCalled();
+  expect(onChange).not.toHaveBeenCalled();
+  // Commit by blurring
+  userEvent.click(document.body);
+  expect(updateDashboardTitle).toHaveBeenCalledTimes(1);
+  expect(updateDashboardTitle).toHaveBeenCalledWith('abcdef');
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
 test('should render the "Draft" status', () => {
   setup();
   expect(screen.getByText('Draft')).toBeInTheDocument();

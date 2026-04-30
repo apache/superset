@@ -377,11 +377,12 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
   await userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
   await userEvent.hover(dataMenu);
-  const csvMenu = await screen.findByRole('menuitem', {
-    name: 'Upload CSV to database',
-  });
+  const csvMenu = await screen.findByText('Upload CSV to database');
   expect(csvMenu).toBeInTheDocument();
-  expect(csvMenu).toHaveAttribute('aria-disabled', 'true');
+  expect(csvMenu.closest('li[role="menuitem"]')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
 });
 
 test('Logs out and clears local storage item redux', async () => {

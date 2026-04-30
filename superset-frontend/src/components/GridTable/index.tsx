@@ -19,7 +19,7 @@
 import { useCallback, useMemo } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ThemedAgGridReact } from '@superset-ui/core/components';
-import type { Column, GridOptions } from 'ag-grid-community';
+import type { CellKeyDownEvent, Column, GridOptions } from 'ag-grid-community';
 import type { AgGridReactProps } from 'ag-grid-react';
 
 import copyTextToClipboard from 'src/utils/copy';
@@ -54,12 +54,13 @@ export function GridTable<RecordType extends object>({
   );
   const rowIndexLength = `${data.length}}`.length;
   const onKeyDown: AgGridReactProps<Record<string, any>>['onCellKeyDown'] =
-    useCallback(({ event, column, data, value, api }) => {
+    useCallback(({ event, column, data, value, api }: CellKeyDownEvent) => {
+      const keyEvent = event as KeyboardEvent | undefined;
       if (
         !document.getSelection?.()?.toString?.() &&
-        event &&
-        event.key === 'c' &&
-        (event.ctrlKey || event.metaKey)
+        keyEvent &&
+        keyEvent.key === 'c' &&
+        (keyEvent.ctrlKey || keyEvent.metaKey)
       ) {
         const columns =
           column.getColId() === PIVOT_COL_ID

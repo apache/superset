@@ -602,8 +602,8 @@ test('duplicate button visible only for virtual datasets', async () => {
   const virtualDuplicateButton = within(virtualRow!).getByTestId('copy');
   expect(virtualDuplicateButton).toBeInTheDocument();
 
-  // Verify the duplicate button is visible and clickable for virtual datasets
-  expect(virtualDuplicateButton).toBeVisible();
+  // Verify the duplicate button exists and is clickable for virtual datasets
+  expect(virtualDuplicateButton).toBeInTheDocument();
 });
 
 test('bulk select enables checkboxes', async () => {

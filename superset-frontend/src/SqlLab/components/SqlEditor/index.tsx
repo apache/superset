@@ -292,7 +292,10 @@ const SqlEditor: FC<Props> = ({
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
 
   const startQuery = useCallback(
-    (ctasArg = false, ctas_method = CtasEnum.Table) => {
+    (
+      ctasArg = false,
+      ctas_method: (typeof CtasEnum)[keyof typeof CtasEnum] = CtasEnum.Table,
+    ) => {
       if (!database) {
         return;
       }
