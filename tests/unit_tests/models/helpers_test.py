@@ -1937,6 +1937,64 @@ def test_extras_having_is_parenthesized(
         )
 
 
+def test_calculated_column_filter_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that calculated column expressions containing OR are wrapped in
+    parentheses when used in WHERE filters.
+
+    Without parentheses, a calculated column expression like
+    ``status = 'active' OR status = 'pending'`` combined with other filters
+    via AND would produce unexpected evaluation order due to SQL operator
+    precedence (AND binds tighter than OR), potentially dropping time range
+    and other filters. Same class of bug as fixed in PR #38183 for
+    extras.where/having, but on the calculated column filter path.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_active",
+                expression="status = 'active' OR status = 'pending'",
+                type="BOOLEAN",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "is_active",
+                "op": "IS TRUE",
+                "val": None,
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "(status = 'active' OR status = 'pending')" in sql, (
+        f"Calculated column expression should be wrapped in parentheses. "
+        f"Generated SQL: {sql}"
+    )
+
+
 def _run_probe(
     database: Database,
     type_probe_needs_row: bool = False,
