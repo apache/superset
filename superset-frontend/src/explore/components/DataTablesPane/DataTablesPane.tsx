@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState, MouseEvent } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -206,6 +206,7 @@ export const DataTablesPane = ({
         <StyledDiv>
           <SamplesPane
             datasource={datasource}
+            queryFormData={queryFormData}
             queryForce={queryForce}
             isRequest={isRequest.samples}
             setForceQuery={setForceQuery}

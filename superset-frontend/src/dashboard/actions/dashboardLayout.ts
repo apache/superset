@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { addWarningToast } from 'src/components/MessageToasts/actions';

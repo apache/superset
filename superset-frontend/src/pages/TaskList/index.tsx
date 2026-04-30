@@ -22,7 +22,8 @@ import {
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
-import { t, useTheme } from '@apache-superset/core';
+import { useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { useMemo, useCallback, useState } from 'react';
 import { Tooltip, Label, Modal, Checkbox } from '@superset-ui/core/components';
 import {

@@ -18,8 +18,8 @@
  */
 import { forwardRef, useState } from 'react';
 
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useDndMonitor } from '@dnd-kit/core';
 import {
@@ -141,6 +141,7 @@ const ItemTitleContainer = forwardRef<HTMLDivElement, Props>(
           key={`item-title-tab-${id}`}
           onClick={() => onChange(id)}
           className={classNames.join(' ')}
+          aria-selected={isActive}
         >
           <div css={{ display: 'flex', width: '100%', alignItems: 'center' }}>
             <div

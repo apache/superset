@@ -19,8 +19,8 @@
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t } from '@apache-superset/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -120,7 +120,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,
   );
-  const dashboardTheme = useSelector(
+  const reduxTheme = useSelector(
     (state: RootState) => state.dashboardInfo.theme,
   );
   const { addDangerToast } = useToasts();
@@ -295,11 +295,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
             <CrudThemeProvider
-              themeId={
-                dashboardTheme !== undefined
-                  ? dashboardTheme?.id
-                  : dashboard?.theme?.id
-              }
+              theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
             >
               <AutoRefreshProvider>
                 <DashboardContainer

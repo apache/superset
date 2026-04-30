@@ -138,14 +138,33 @@ THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
 ```
 
 Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`. You can
-override the base URL for selenium using:
+override the base URL for Selenium using:
 
 ```
 WEBDRIVER_BASEURL = "https://superset.company.com"
 ```
 
-Additional selenium web drive configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
-implement a custom function to authenticate selenium. The default function uses the `flask-login`
+To control which user account is used for rendering thumbnails and warming up caches, configure
+`THUMBNAIL_EXECUTORS` and `CACHE_WARMUP_EXECUTORS`. Each accepts a list of executor types (which
+resolve to an owner, creator, modifier, or the currently-logged-in user) and/or a `FixedExecutor`
+pinned to a specific username. By default, thumbnails render as the current user
+(`ExecutorType.CURRENT_USER`) and cache warmup runs as the chart/dashboard owner
+(`ExecutorType.OWNER`).
+
+To force both to run as a dedicated service account (`admin` in this example):
+
+```python
+from superset.tasks.types import ExecutorType, FixedExecutor
+
+THUMBNAIL_EXECUTORS = [FixedExecutor("admin")]
+CACHE_WARMUP_EXECUTORS = [FixedExecutor("admin")]
+```
+
+Use a dedicated read-only service account here rather than a personal admin account, so that
+thumbnail rendering and cache warmup tasks don't fail if a specific user's credentials change.
+
+Additional Selenium WebDriver configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
+implement a custom function to authenticate Selenium. The default function uses the `flask-login`
 session cookie. Here's an example of a custom function signature:
 
 ```python
@@ -159,9 +178,23 @@ Then on configuration:
 WEBDRIVER_AUTH_FUNC = auth_driver
 ```
 
-## Signal Cache Backend
+## ETag Support for Thumbnails
 
-Superset supports an optional signal cache (`SIGNAL_CACHE_CONFIG`) for
+Thumbnail and screenshot endpoints return `ETag` response headers based on the cached content digest. Clients can use conditional requests to avoid downloading unchanged images:
+
+```
+GET /api/v1/chart/42/thumbnail/
+If-None-Match: "abc123..."
+
+→ 304 Not Modified  (if unchanged)
+→ 200 OK            (with new image if changed)
+```
+
+This is particularly useful for embedded dashboards and external integrations that periodically poll for updated screenshots — unchanged thumbnails return immediately with no payload.
+
+## Distributed Coordination Backend
+
+Superset supports an optional distributed coordination (`DISTRIBUTED_COORDINATION_CONFIG`) for
 high-performance distributed operations. This configuration enables:
 
 - **Distributed locking**: Moves lock operations from the metadata database to Redis, improving
@@ -176,11 +209,11 @@ that are not available in general Flask-Caching backends.
 
 ### Configuration
 
-The signal cache uses Flask-Caching style configuration for consistency with other cache
-backends. Configure `SIGNAL_CACHE_CONFIG` in `superset_config.py`:
+The distributed coordination uses Flask-Caching style configuration for consistency with other cache
+backends. Configure `DISTRIBUTED_COORDINATION_CONFIG` in `superset_config.py`:
 
 ```python
-SIGNAL_CACHE_CONFIG = {
+DISTRIBUTED_COORDINATION_CONFIG = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_REDIS_HOST": "localhost",
     "CACHE_REDIS_PORT": 6379,
@@ -192,7 +225,7 @@ SIGNAL_CACHE_CONFIG = {
 For Redis Sentinel deployments:
 
 ```python
-SIGNAL_CACHE_CONFIG = {
+DISTRIBUTED_COORDINATION_CONFIG = {
     "CACHE_TYPE": "RedisSentinelCache",
     "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
@@ -205,7 +238,7 @@ SIGNAL_CACHE_CONFIG = {
 For SSL/TLS connections:
 
 ```python
-SIGNAL_CACHE_CONFIG = {
+DISTRIBUTED_COORDINATION_CONFIG = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_REDIS_HOST": "redis.example.com",
     "CACHE_REDIS_PORT": 6380,
@@ -229,7 +262,7 @@ Individual lock acquisitions can override this value when needed.
 
 ### Database-Only Mode
 
-When `SIGNAL_CACHE_CONFIG` is not configured, Superset uses database-backed operations:
+When `DISTRIBUTED_COORDINATION_CONFIG` is not configured, Superset uses database-backed operations:
 
 - **Locking**: Uses the KeyValue table with periodic cleanup of expired entries
 - **Event notifications**: Uses database polling instead of pub/sub

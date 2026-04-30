@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { logging } from '@apache-superset/core';
-import type { core } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import type { common as core } from '@apache-superset/core';
 import ExtensionsLoader from './ExtensionsLoader';
 
 type Extension = core.Extension;

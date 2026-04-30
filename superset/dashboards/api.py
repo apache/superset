@@ -22,10 +22,16 @@ from io import BytesIO
 from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
-import prison
+import rison
 from flask import current_app, g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
-from flask_appbuilder.api import expose, merge_response_func, protect, rison, safe
+from flask_appbuilder.api import (
+    expose,
+    merge_response_func,
+    protect,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.const import (
     API_DESCRIPTION_COLUMNS_RIS_KEY,
     API_LABEL_COLUMNS_RIS_KEY,
@@ -39,7 +45,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import db
+from superset import db, is_feature_enabled
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.create import CreateDashboardCommand
@@ -114,7 +120,7 @@ from superset.dashboards.schemas import (
     thumbnail_query_schema,
 )
 from superset.exceptions import ScreenshotImageNotAvailableException
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
@@ -496,7 +502,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         columns: list[str] | None = None
         if q := request.args.get("q"):
             try:
-                args = prison.loads(q)
+                args = rison.loads(q)
             except Exception:
                 return self.response_400(message="Invalid rison query parameter")
             if isinstance(args, dict):
@@ -1132,7 +1138,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
@@ -1192,7 +1198,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -1349,7 +1355,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
     @protect()
-    @rison(screenshot_query_schema)
+    @parse_rison(screenshot_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1389,6 +1395,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         try:
             payload = CacheScreenshotSchema().load(request.json)
         except ValidationError as error:
@@ -1505,6 +1515,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         dashboard = self.datamodel.get(pk, self._base_filters)
 
         # Making sure the dashboard still exists
@@ -1552,7 +1566,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @validate_feature_flags(["THUMBNAILS"])
     @protect()
     @safe
-    @rison(thumbnail_query_schema)
+    @parse_rison(thumbnail_query_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
         log_to_statsd=False,
@@ -1689,7 +1703,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_fav_star_ids_schema)
+    @parse_rison(get_fav_star_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (
             f"{self.__class__.__name__}.favorite_status"

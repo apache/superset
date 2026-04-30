@@ -20,7 +20,7 @@ import rison from 'rison';
 import { PureComponent, useCallback, type ReactNode } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import type { JsonObject } from '@superset-ui/core';
-import type { SupersetTheme } from '@apache-superset/core/ui';
+import { type SupersetTheme } from '@apache-superset/core/theme';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { Radio } from '@superset-ui/core/components/Radio';
@@ -31,15 +31,15 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import { Alert } from '@apache-superset/core/components';
 import {
   css,
   styled,
   themeObject,
-  Alert,
   withTheme,
-  t,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';
@@ -66,6 +66,7 @@ import {
   Loading,
   Row,
   Select,
+  Tooltip,
   Typography,
   Label,
 } from '@superset-ui/core/components';
@@ -370,6 +371,7 @@ const StyledTableTabs = styled(Tabs)`
     flex: 1;
     min-height: 0;
     overflow: auto;
+    padding-top: ${({ theme }) => theme.paddingMD}px;
   }
 
   .ant-tabs-content {
@@ -393,6 +395,7 @@ const EditLockContainer = styled.div`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   display: flex;
   align-items: center;
+  padding: ${({ theme }) => theme.paddingSM}px 0;
   a {
     padding: 0 10px;
   }
@@ -577,7 +580,8 @@ function ColumnCollectionTable({
                   <TextAreaControl
                     language="sql"
                     offerEditInModal={false}
-                    resize="vertical"
+                    maxLines={25}
+                    debounceDelay={300}
                   />
                 }
               />
@@ -2180,6 +2184,19 @@ class DatasourceEditor extends PureComponent<
             <FormContainer>
               <Fieldset compact>
                 <Field
+                  fieldKey="expression"
+                  label={t('SQL expression')}
+                  control={
+                    <TextAreaControl
+                      language="sql"
+                      offerEditInModal={false}
+                      minLines={3}
+                      maxLines={25}
+                      debounceDelay={300}
+                    />
+                  }
+                />
+                <Field
                   fieldKey="description"
                   label={t('Description')}
                   control={
@@ -2261,7 +2278,10 @@ class DatasourceEditor extends PureComponent<
           })}
           itemCellProps={{
             expression: () => ({
-              width: '240px',
+              style: {
+                maxWidth: '240px',
+                overflow: 'hidden',
+              },
             }),
           }}
           itemRenderers={{
@@ -2289,18 +2309,18 @@ class DatasourceEditor extends PureComponent<
             verbose_name: (v, onChange) => (
               <TextControl value={v as string} onChange={onChange} />
             ),
-            expression: (v, onChange) => (
-              <TextAreaControl
-                canEdit
-                initialValue={v as string}
-                onChange={onChange}
-                extraClasses={['datasource-sql-expression']}
-                language="sql"
-                offerEditInModal={false}
-                minLines={5}
-                textAreaStyles={{ minWidth: '200px', maxWidth: '450px' }}
-                resize="both"
-              />
+            expression: (v: unknown) => (
+              <Tooltip title={t('Expand row to edit')}>
+                <Typography.Text
+                  code
+                  ellipsis
+                  css={css`
+                    cursor: default;
+                  `}
+                >
+                  {v as string}
+                </Typography.Text>
+              </Tooltip>
             ),
             description: (v, onChange, label) => (
               <StackedField
@@ -2525,18 +2545,20 @@ class DatasourceEditor extends PureComponent<
               key: TABS_KEYS.SETTINGS,
               label: t('Settings'),
               children: (
-                <Row gutter={16}>
-                  <Col xs={24} md={12}>
-                    <FormContainer>
-                      {this.renderSettingsFieldset()}
-                    </FormContainer>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <FormContainer>
-                      {this.renderAdvancedFieldset()}
-                    </FormContainer>
-                  </Col>
-                </Row>
+                <div style={{ overflowX: 'hidden' }}>
+                  <Row gutter={16}>
+                    <Col xs={24} md={12}>
+                      <FormContainer>
+                        {this.renderSettingsFieldset()}
+                      </FormContainer>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <FormContainer>
+                        {this.renderAdvancedFieldset()}
+                      </FormContainer>
+                    </Col>
+                  </Row>
+                </div>
               ),
             },
           ]}

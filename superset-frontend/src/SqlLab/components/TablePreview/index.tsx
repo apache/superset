@@ -19,9 +19,10 @@
 import { type FC, useCallback, useMemo, useRef, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ClientErrorObject, getExtensionsRegistry } from '@superset-ui/core';
-import { css, styled, Alert, useTheme } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   SafeMarkdown,
   Breadcrumb,
@@ -285,7 +286,6 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         <Breadcrumb.Item>{backend}</Breadcrumb.Item>
         <Breadcrumb.Item>{databaseName}</Breadcrumb.Item>
         {catalog && <Breadcrumb.Item>{catalog}</Breadcrumb.Item>}
-        {schema && <Breadcrumb.Item>{schema}</Breadcrumb.Item>}
         <Breadcrumb.Item> </Breadcrumb.Item>
       </Breadcrumb>
       <div style={{ display: 'none' }} aria-hidden="true">
@@ -313,6 +313,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
       </div>
       <Title>
         <Icons.InsertRowAboveOutlined iconSize="l" />
+        {schema ? `${schema}.` : ''}
         {tableName}
         {titleActions()}
       </Title>

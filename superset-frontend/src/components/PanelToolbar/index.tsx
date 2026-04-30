@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Button, Divider, Dropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -62,7 +62,7 @@ const PanelToolbar = ({
               buttonSize="small"
               aria-label={command?.title}
               variant="text"
-              color="primary"
+              color="default"
             />
           );
         })
@@ -140,7 +140,7 @@ const PanelToolbar = ({
         >
           <Button
             showMarginRight={false}
-            color="primary"
+            color="default"
             variant="text"
             css={css`
               padding: 8px;

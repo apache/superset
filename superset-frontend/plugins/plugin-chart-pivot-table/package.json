@@ -27,12 +27,11 @@
     "access": "public"
   },
   "peerDependencies": {
-    "react-icons": "5.4.0",
+    "@ant-design/icons": "^5.6.1",
     "@apache-superset/core": "*",
-    "@ant-design/icons": "^5.2.6",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "lodash": "^4.17.11",
+    "lodash": "^4.18.1",
     "prop-types": "*",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
@@ -40,6 +39,6 @@
   "devDependencies": {
     "@babel/types": "^7.29.0",
     "@types/jest": "^30.0.0",
-    "jest": "^30.2.0"
+    "jest": "^30.3.0"
   }
 }

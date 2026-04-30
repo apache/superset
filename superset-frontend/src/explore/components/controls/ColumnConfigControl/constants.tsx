@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { validateNumber } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlFormItemSpec,
   D3_FORMAT_DOCS,
@@ -58,6 +58,8 @@ const d3NumberFormat: ControlFormItemSpec<'Select'> = {
   creatable: true,
   minWidth: '14em',
   debounceDelay: 500,
+  // default value tokenSeparators in superset-frontend/packages/superset-ui-core/src/components/Select/constants.ts
+  tokenSeparators: ['\r\n', '\n', '\t', ';'],
 };
 
 const d3TimeFormat: ControlFormItemSpec<'Select'> = {

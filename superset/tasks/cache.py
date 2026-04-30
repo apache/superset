@@ -212,7 +212,7 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         )
         for dashboard in tagged_dashboards:
             for chart in dashboard.slices:
-                tasks.append(get_task(chart))
+                tasks.append(get_task(chart, dashboard))
 
         # add charts that are tagged
         tagged_objects = (

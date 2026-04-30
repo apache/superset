@@ -60,7 +60,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
-from superset_core.api.models import Database as CoreDatabase
+from superset_core.common.models import Database as CoreDatabase
 
 from superset import db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
@@ -95,7 +95,7 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from superset_core.api.types import AsyncQueryHandle, QueryOptions, QueryResult
+    from superset_core.queries.types import AsyncQueryHandle, QueryOptions, QueryResult
 
     from superset.models.sql_lab import Query
 

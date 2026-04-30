@@ -17,7 +17,7 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ComparisonType,
   Currency,
@@ -34,8 +34,10 @@ import {
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,
+  AgGridChartState,
+  AgGridFilterModel,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { isEmpty, isEqual, merge } from 'lodash';
 import {
   ConditionalFormattingConfig,
@@ -429,6 +431,11 @@ const processColumns = memoizeOne(function processColumns(
         formatter,
         config,
       };
+    })
+    .sort((a, b) => {
+      const aIsMetric = a.isMetric || a.isPercentMetric ? 1 : 0;
+      const bIsMetric = b.isMetric || b.isPercentMetric ? 1 : 0;
+      return aIsMetric - bIsMetric;
     });
   return [metrics, percentMetrics, columns] as [
     typeof metrics,
@@ -455,6 +462,9 @@ const getPageSize = (
   // when pageSize not set, automatically add pagination if too many records
   return numRecords * numColumns > 5000 ? 200 : 0;
 };
+
+// Tracks slice_ids that have already applied their saved chartState filter on mount
+const savedFilterAppliedSet = new Set<number>();
 
 const transformProps = (
   chartProps: TableChartProps,
@@ -710,6 +720,36 @@ const transformProps = (
         : totalQuery?.data[0]
       : undefined;
 
+  // Map saved metric/calculated column labels to their SQL expressions for filter resolution
+  const metricSqlExpressions: Record<string, string> = {};
+  chartProps.datasource.metrics.forEach(metric => {
+    if (metric.metric_name && metric.expression) {
+      metricSqlExpressions[metric.metric_name] = metric.expression;
+    }
+  });
+  chartProps.datasource.columns.forEach(col => {
+    if (col.column_name && col.expression) {
+      metricSqlExpressions[col.column_name] = col.expression;
+      if (col.verbose_name && col.verbose_name !== col.column_name) {
+        metricSqlExpressions[col.verbose_name] = col.expression;
+      }
+    }
+  });
+
+  // Strip saved filter from chartState after initial application to prevent re-injection
+  let chartState = serverPaginationData?.chartState as
+    | AgGridChartState
+    | undefined;
+  const chartStateHasFilter = !!(
+    chartState?.filterModel && Object.keys(chartState.filterModel).length > 0
+  );
+
+  if (chartStateHasFilter && savedFilterAppliedSet.has(slice_id)) {
+    chartState = { ...chartState!, filterModel: {} as AgGridFilterModel };
+  } else if (chartStateHasFilter) {
+    savedFilterAppliedSet.add(slice_id);
+  }
+
   return {
     height,
     width,
@@ -742,7 +782,8 @@ const transformProps = (
     basicColorColumnFormatters,
     basicColorFormatters,
     formData,
-    chartState: serverPaginationData?.chartState,
+    metricSqlExpressions,
+    chartState,
     onChartStateChange,
   };
 };

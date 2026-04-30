@@ -45,6 +45,14 @@ describe('metricColumnFilter', () => {
     }) as SqlaFormData;
 
   describe('shouldSkipMetricColumn', () => {
+    test('should return false for empty colname', () => {
+      const colnames = ['metric1', '%metric1'];
+      const formData = createFormData([], ['metric1']);
+      expect(shouldSkipMetricColumn({ colname: '', colnames, formData })).toBe(
+        false,
+      );
+    });
+
     test('should skip unprefixed percent metric columns if prefixed version exists', () => {
       const colnames = ['metric1', '%metric1'];
       const formData = createFormData([], ['metric1']);

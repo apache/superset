@@ -17,6 +17,11 @@
   - any-glob-to-any-file:
     - 'superset/migrations/**'
 
+"risk:ci-script":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'scripts/**'
+
 ############################################
 # Dependencies
 ############################################
@@ -116,6 +121,11 @@
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/sk/**'
+
+"i18n:latvian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/lv/**'
 
 "i18n:ukrainian":
 - changed-files:

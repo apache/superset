@@ -26,7 +26,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
@@ -40,7 +40,6 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_dashboard_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,12 @@ DEFAULT_DASHBOARD_COLUMNS = [
     "id",
     "dashboard_title",
     "slug",
-    "uuid",
+    "description",
+    "certified_by",
+    "certification_details",
+    "url",
+    "changed_on",
+    "changed_on_humanized",
 ]
 
 SORTABLE_DASHBOARD_COLUMNS = [
@@ -62,13 +66,21 @@ SORTABLE_DASHBOARD_COLUMNS = [
 ]
 
 
-@tool(tags=["core"])
-@parse_request(ListDashboardsRequest)
+@tool(
+    tags=["core"],
+    class_permission_name="Dashboard",
+    annotations=ToolAnnotations(
+        title="List dashboards",
+        readOnlyHint=True,
+        destructiveHint=False,
+    ),
+)
 async def list_dashboards(
     request: ListDashboardsRequest, ctx: Context
 ) -> DashboardList:
     """List dashboards with filtering and search. Returns dashboard metadata
-    including title, slug, and UUID. Use select_columns to request additional fields.
+    including title, slug, URL, and last modified time. Use select_columns to
+    request additional fields.
 
     Sortable columns for order_column: id, dashboard_title, slug, published,
     changed_on, created_on
@@ -133,6 +145,8 @@ async def list_dashboards(
             order_direction=request.order_direction,
             page=max(request.page - 1, 0),
             page_size=request.page_size,
+            created_by_me=request.created_by_me,
+            owned_by_me=request.owned_by_me,
         )
     count = len(result.dashboards) if hasattr(result, "dashboards") else 0
     total_pages = getattr(result, "total_pages", None)

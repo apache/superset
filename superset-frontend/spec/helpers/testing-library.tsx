@@ -30,7 +30,7 @@ import {
   ThemeProvider,
   themeObject,
   supersetTheme,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import { BrowserRouter } from 'react-router-dom';

@@ -59,6 +59,7 @@ from superset.extensions import (
     stats_logger_manager,
     talisman,
 )
+from superset.extensions.context import extension_context
 from superset.security import SupersetSecurityManager
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
@@ -206,6 +207,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.groups import GroupsListView
         from superset.views.log.api import LogRestApi
         from superset.views.logs import ActionLogView
+        from superset.views.redirect import RedirectView
         from superset.views.roles import RolesListView
         from superset.views.sql_lab.views import (
             SavedQueryView,
@@ -445,6 +447,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TaggedObjectsModelView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
+        appbuilder.add_view_no_menu(RedirectView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
 
@@ -589,7 +592,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             if backend and backend.entrypoint:
                 try:
-                    eager_import(backend.entrypoint)
+                    with extension_context(extension.manifest):
+                        eager_import(backend.entrypoint)
+
                 except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
                     # Surface exceptions during initialization of extensions
                     print(ex)

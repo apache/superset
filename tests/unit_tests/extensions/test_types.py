@@ -219,16 +219,11 @@ def test_manifest_with_backend():
             "publisher": "my-org",
             "name": "my-extension",
             "displayName": "My Extension",
-            "backend": {
-                "entrypoint": "superset_extensions.my_org.my_extension.entrypoint"
-            },
+            "backend": {"entrypoint": "my_org.my_extension.entrypoint"},
         }
     )
     assert manifest.backend is not None
-    assert (
-        manifest.backend.entrypoint
-        == "superset_extensions.my_org.my_extension.entrypoint"
-    )
+    assert manifest.backend.entrypoint == "my_org.my_extension.entrypoint"
 
 
 def test_manifest_backend_no_files_field():
@@ -239,9 +234,7 @@ def test_manifest_backend_no_files_field():
             "publisher": "my-org",
             "name": "my-extension",
             "displayName": "My Extension",
-            "backend": {
-                "entrypoint": "superset_extensions.my_org.my_extension.entrypoint"
-            },
+            "backend": {"entrypoint": "my_org.my_extension.entrypoint"},
         }
     )
     # ManifestBackend should not have a 'files' field
@@ -258,11 +251,9 @@ def test_manifest_backend_required_entrypoint():
     """Test ManifestBackend requires entrypoint field."""
     # Test positive case - entrypoint provided
     backend = ManifestBackend.model_validate(
-        {"entrypoint": "superset_extensions.test_org.test_extension.entrypoint"}
+        {"entrypoint": "test_org.test_extension.entrypoint"}
     )
-    assert (
-        backend.entrypoint == "superset_extensions.test_org.test_extension.entrypoint"
-    )
+    assert backend.entrypoint == "test_org.test_extension.entrypoint"
 
     # Test negative case - entrypoint missing should raise ValidationError
     with pytest.raises(ValidationError) as exc_info:

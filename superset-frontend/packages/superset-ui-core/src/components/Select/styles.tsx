@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Select } from 'antd';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Spin } from '../Spin';
@@ -140,11 +140,17 @@ export const StyledErrorMessage = styled.div`
 
 export const StyledBulkActionsContainer = styled(Flex)`
   ${({ theme }) => `
-    padding: ${theme.sizeUnit}px;
+    padding: ${theme.sizeUnit}px 0;
     border-top: 1px solid ${theme.colorSplit};
-    gap: ${theme.sizeUnit * 2}px;
     & .superset-button {
       font-family: inherit;
+      margin-left: 0 !important;
+    }
+    & .superset-button:first-of-type {
+      padding-right: 0 !important;
+    }
+    & .superset-button:last-of-type {
+      padding-left: 0 !important;
     }
   `}
 `;

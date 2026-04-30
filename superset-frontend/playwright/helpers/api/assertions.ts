@@ -17,9 +17,10 @@
  * under the License.
  */
 
-import type { Response, APIResponse } from '@playwright/test';
+import type { Page, Response, APIResponse } from '@playwright/test';
 import { expect } from '@playwright/test';
 import * as unzipper from 'unzipper';
+import { apiGet } from './requests';
 
 /**
  * Common interface for response types with status() method.
@@ -59,6 +60,51 @@ export function expectStatusOneOf<T extends ResponseLike>(
     `Expected status to be one of ${expected.join(', ')}, got ${response.status()}`,
   ).toContain(response.status());
   return response;
+}
+
+/**
+ * Poll an API endpoint until it returns 404, confirming a resource was deleted.
+ * Shared across chart, dashboard, and dataset list tests.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param endpoint - API endpoint path (e.g. 'api/v1/dataset/')
+ * @param id - Resource ID to check
+ * @param options - Optional timeout (default 10000ms) and label for error messages
+ */
+export async function expectDeleted(
+  page: Page,
+  endpoint: string,
+  id: number,
+  options?: { timeout?: number; label?: string },
+): Promise<void> {
+  const timeout = options?.timeout ?? 10000;
+  const label = options?.label ?? `Resource ${id}`;
+  await expect
+    .poll(
+      async () => {
+        const response = await apiGet(page, `${endpoint}${id}`, {
+          failOnStatusCode: false,
+        });
+        return response.status();
+      },
+      { timeout, message: `${label} should return 404 after delete` },
+    )
+    .toBe(404);
+}
+
+/**
+ * Extract the resource ID from a JSON response body.
+ * Handles both `{ result: { id } }` and `{ id }` shapes.
+ * @param response - Playwright Response or APIResponse object
+ * @returns The extracted numeric ID
+ */
+export async function extractIdFromResponse(
+  response: ResponseLike,
+): Promise<number> {
+  const body = await response.json();
+  const id: number = body.result?.id ?? body.id;
+  expect(typeof id, 'Response body must contain a numeric id').toBe('number');
+  expect(Number.isNaN(id), 'Response id must not be NaN').toBe(false);
+  return id;
 }
 
 interface ExportZipOptions {

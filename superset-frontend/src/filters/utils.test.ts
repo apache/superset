@@ -23,7 +23,7 @@ import {
   NumberFormats,
   TimeFormats,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   getDataRecordFormatter,
   getRangeExtraFormData,

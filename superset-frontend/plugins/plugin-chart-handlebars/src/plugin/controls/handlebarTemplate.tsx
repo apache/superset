@@ -21,9 +21,9 @@ import {
   CustomControlConfig,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { validateNonEmpty } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import { InfoTooltip, SafeMarkdown } from '@superset-ui/core/components';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
@@ -106,8 +106,8 @@ export const handlebarsTemplateControlSetItem: ControlSetItem = {
     valueKey: null,
 
     validators: [validateNonEmpty],
-    mapStateToProps: ({ controls }) => ({
-      value: controls?.handlebars_template?.value,
+    mapStateToProps: ({ form_data }) => ({
+      value: form_data?.handlebarsTemplate ?? form_data?.handlebars_template,
     }),
   },
 };

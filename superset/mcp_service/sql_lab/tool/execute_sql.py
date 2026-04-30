@@ -22,31 +22,48 @@ Tool for executing SQL queries against databases using the unified
 Database.execute() API with RLS, template rendering, and security validation.
 """
 
-from __future__ import annotations
-
 import logging
+from decimal import Decimal
 from typing import Any
 
+import pandas as pd
 from fastmcp import Context
-from superset_core.api.types import CacheOptions, QueryOptions, QueryResult, QueryStatus
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool, ToolAnnotations
+from superset_core.queries.types import (
+    CacheOptions,
+    QueryOptions,
+    QueryResult,
+    QueryStatus,
+)
 
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.errors import SupersetErrorType
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.sql_lab.schemas import (
     ColumnInfo,
     ExecuteSqlRequest,
     ExecuteSqlResponse,
+    StatementData,
     StatementInfo,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.utils.oauth2_utils import (
+    build_oauth2_redirect_message,
+    OAUTH2_CONFIG_ERROR_MESSAGE,
+)
 
 logger = logging.getLogger(__name__)
 
 
-@tool(tags=["mutate"])
-@parse_request(ExecuteSqlRequest)
+@tool(
+    tags=["mutate"],
+    class_permission_name="SQLLab",
+    method_permission_name="execute_sql_query",
+    annotations=ToolAnnotations(
+        title="Execute SQL query",
+        readOnlyHint=False,
+        destructiveHint=True,
+    ),
+)
 async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlResponse:
     """Execute SQL query against database using the unified Database.execute() API."""
     await ctx.info(
@@ -78,21 +95,23 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                 db.session.query(Database).filter_by(id=request.database_id).first()
             )
             if not database:
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=f"Database with ID {request.database_id} not found",
-                        error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
-                        level=ErrorLevel.ERROR,
-                    )
+                await ctx.warning(
+                    "Database not found: database_id=%s" % request.database_id
+                )
+                return ExecuteSqlResponse(
+                    success=False,
+                    error=f"Database with ID {request.database_id} not found",
+                    error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR.value,
                 )
 
             if not security_manager.can_access_database(database):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        message=(f"Access denied to database {database.database_name}"),
-                        error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
-                        level=ErrorLevel.ERROR,
-                    )
+                await ctx.warning(
+                    "Access denied to database: %s" % database.database_name
+                )
+                return ExecuteSqlResponse(
+                    success=False,
+                    error=f"Access denied to database {database.database_name}",
+                    error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR.value,
                 )
 
         # 2. Build QueryOptions and execute query
@@ -133,6 +152,25 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
 
         return response
 
+    except OAuth2RedirectError as ex:
+        await ctx.warning(
+            "Database requires OAuth authentication: database_id=%s"
+            % request.database_id
+        )
+        return ExecuteSqlResponse(
+            success=False,
+            error=build_oauth2_redirect_message(ex),
+            error_type=SupersetErrorType.OAUTH2_REDIRECT.value,
+        )
+    except OAuth2Error:
+        await ctx.error(
+            "OAuth2 configuration/flow error: database_id=%s" % request.database_id
+        )
+        return ExecuteSqlResponse(
+            success=False,
+            error=OAUTH2_CONFIG_ERROR_MESSAGE,
+            error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR.value,
+        )
     except Exception as e:
         await ctx.error(
             "SQL execution failed: error=%s, database_id=%s"
@@ -144,6 +182,62 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         raise
 
 
+def _sanitize_row_values(rows: list[dict[str, Any]]) -> None:
+    """Sanitize non-serializable values in rows for JSON serialization."""
+    for row in rows:
+        for key, value in row.items():
+            if isinstance(value, (bytes, memoryview)):
+                raw = bytes(value) if isinstance(value, memoryview) else value
+                try:
+                    row[key] = raw.decode("utf-8")
+                except (UnicodeDecodeError, AttributeError):
+                    row[key] = raw.hex()
+            elif isinstance(value, Decimal):
+                row[key] = float(value)
+            elif not isinstance(value, (str, int, float, bool, type(None), list, dict)):
+                row[key] = str(value)
+
+
+def _data_to_statement_data(data: Any) -> StatementData:
+    """Convert statement data (DataFrame, list, dict, bytes) to StatementData.
+
+    When results come from cache, data may be a dict/list/bytes instead of
+    a pandas DataFrame. This function handles all cases defensively.
+    """
+    from superset.utils import json as json_utils
+
+    if isinstance(data, list):
+        rows_data = data
+    elif isinstance(data, dict):
+        rows_data = data.get("data", [data])
+        if not isinstance(rows_data, list):
+            rows_data = [rows_data]
+    elif isinstance(data, pd.DataFrame):
+        rows_data = data.to_dict(orient="records")
+        _sanitize_row_values(rows_data)
+        return StatementData(
+            rows=rows_data,
+            columns=[
+                ColumnInfo(name=col, type=str(data[col].dtype)) for col in data.columns
+            ],
+        )
+    elif isinstance(data, bytes):
+        try:
+            decoded = json_utils.loads(data)
+            rows_data = decoded if isinstance(decoded, list) else [decoded]
+        except (ValueError, UnicodeDecodeError):
+            rows_data = []
+    else:
+        rows_data = [{"value": str(data)}]
+
+    _sanitize_row_values(rows_data)
+    col_names = list(rows_data[0].keys()) if rows_data else []
+    return StatementData(
+        rows=rows_data,
+        columns=[ColumnInfo(name=col, type="object") for col in col_names],
+    )
+
+
 def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
     """Convert QueryResult to ExecuteSqlResponse."""
     if result.status != QueryStatus.SUCCESS:
@@ -153,42 +247,62 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
             error_type=result.status.value,
         )
 
-    # Build statement info list
-    statements = [
-        StatementInfo(
-            original_sql=stmt.original_sql,
-            executed_sql=stmt.executed_sql,
-            row_count=stmt.row_count,
-            execution_time_ms=stmt.execution_time_ms,
-        )
-        for stmt in result.statements
-    ]
+    # Build statement info list, including per-statement row data
+    # for data-bearing statements (e.g., SELECT).
+    statements: list[StatementInfo] = []
+    data_bearing_count = 0
 
-    # Find the last statement with data (SELECT results).
-    # For single statements this is the same as first.
-    # For multi-statement queries (e.g., SET ...; SELECT ...) this skips
-    # non-data statements and returns the actual query results.
+    for stmt in result.statements:
+        stmt_data: StatementData | None = None
+        if stmt.data is not None:
+            stmt_data = _data_to_statement_data(stmt.data)
+            data_bearing_count += 1
+
+        statements.append(
+            StatementInfo(
+                original_sql=stmt.original_sql,
+                executed_sql=stmt.executed_sql,
+                row_count=stmt.row_count,
+                execution_time_ms=stmt.execution_time_ms,
+                data=stmt_data,
+            )
+        )
+
+    # Top-level rows/columns come from the last data-bearing statement
+    # for backward compatibility.
     rows: list[dict[str, Any]] | None = None
     columns: list[ColumnInfo] | None = None
     row_count: int | None = None
     affected_rows: int | None = None
 
-    data_stmt = None
-    for stmt in reversed(result.statements):
+    last_data_stmt = None
+    for stmt in reversed(statements):
         if stmt.data is not None:
-            data_stmt = stmt
+            last_data_stmt = stmt
             break
 
-    if data_stmt is not None and data_stmt.data is not None:
-        # SELECT query - convert DataFrame
-        df = data_stmt.data
-        rows = df.to_dict(orient="records")
-        columns = [ColumnInfo(name=col, type=str(df[col].dtype)) for col in df.columns]
-        row_count = len(df)
+    if last_data_stmt is not None and last_data_stmt.data is not None:
+        rows = last_data_stmt.data.rows
+        columns = last_data_stmt.data.columns
+        row_count = len(last_data_stmt.data.rows)
     elif result.statements:
         # DML-only query
         last_stmt = result.statements[-1]
         affected_rows = last_stmt.row_count
+
+    # Warn when multiple data-bearing statements exist so the LLM
+    # knows to inspect the statements array for all results.
+    multi_statement_warning: str | None = None
+    if data_bearing_count > 1:
+        multi_statement_warning = (
+            f"This query contained {data_bearing_count} "
+            "data-bearing statements. "
+            "The top-level rows/columns contain only the "
+            "last data-bearing statement's results. "
+            "Check the 'data' field in each entry of the "
+            "'statements' array to see results from ALL "
+            "statements."
+        )
 
     return ExecuteSqlResponse(
         success=True,
@@ -202,4 +316,5 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
             else None
         ),
         statements=statements,
+        multi_statement_warning=multi_statement_warning,
     )

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
@@ -30,9 +31,35 @@ export const usePermissions = () => {
   const canDatasourceSamples = useSelector((state: RootState) =>
     findPermission('can_samples', 'Datasource', state.user?.roles),
   );
-  const canDownload = useSelector((state: RootState) =>
+  const canCsvLegacy = useSelector((state: RootState) =>
     findPermission('can_csv', 'Superset', state.user?.roles),
   );
+  const canExportCsvSqlLab = useSelector((state: RootState) =>
+    findPermission('can_export_csv', 'SQLLab', state.user?.roles),
+  );
+  const canExportDataGranular = useSelector((state: RootState) =>
+    findPermission('can_export_data', 'Superset', state.user?.roles),
+  );
+  const canExportImageGranular = useSelector((state: RootState) =>
+    findPermission('can_export_image', 'Superset', state.user?.roles),
+  );
+  const canCopyClipboardGranular = useSelector((state: RootState) =>
+    findPermission('can_copy_clipboard', 'Superset', state.user?.roles),
+  );
+  const granularExport = isFeatureEnabled(FeatureFlag.GranularExportControls);
+  const canExportData = granularExport ? canExportDataGranular : canCsvLegacy;
+  const canExportImage = granularExport ? canExportImageGranular : canCsvLegacy;
+  const canCopyClipboard = granularExport
+    ? canCopyClipboardGranular
+    : canCsvLegacy;
+  const canDownload = canExportData;
+  // SQL Lab uses a separate legacy permission (can_export_csv on SQLLab)
+  const canExportDataSqlLab = granularExport
+    ? canExportDataGranular
+    : canExportCsvSqlLab;
+  const canCopyClipboardSqlLab = granularExport
+    ? canCopyClipboardGranular
+    : canExportCsvSqlLab;
   const canDrill = useSelector((state: RootState) =>
     findPermission('can_drill', 'Dashboard', state.user?.roles),
   );
@@ -55,6 +82,11 @@ export const usePermissions = () => {
     canWriteExploreFormData,
     canDatasourceSamples,
     canDownload,
+    canExportData,
+    canExportDataSqlLab,
+    canExportImage,
+    canCopyClipboard,
+    canCopyClipboardSqlLab,
     canDrill,
     canDrillBy,
     canDrillToDetail,

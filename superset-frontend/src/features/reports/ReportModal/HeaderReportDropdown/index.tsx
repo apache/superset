@@ -18,14 +18,14 @@
  */
 import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   isFeatureEnabled,
   getExtensionsRegistry,
   usePrevious,
 } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Checkbox } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';
@@ -50,7 +50,7 @@ const StyledDropdownItemWithIcon = styled.div`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  > *:first-child {
+  > *:first-of-type {
     margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
