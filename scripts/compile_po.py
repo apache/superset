@@ -269,7 +269,9 @@ def compile_translations() -> None:
         node_modules_bin,
         root_dir,
     )
-    po2json_cmd: list[str] = [po2json_bin] if po2json_bin else [npx_cmd, "po2json"]  # type: ignore[list-item]
+    po2json_cmd: list[str] = (
+        [po2json_bin] if po2json_bin else [npx_cmd, "po2json"]  # type: ignore[list-item]
+    )
     if po2json_bin is None:
         print("  Falling back to npx for po2json.")
 
@@ -285,7 +287,7 @@ def compile_translations() -> None:
     )
 
     if failures:
-        print(f"❌ Pipeline completed with {len(failures)} conversion failure(s).")
+        print(f"\u274c Pipeline completed with {len(failures)} conversion failure(s).")
         sys.exit(1)
 
     print("Pipeline completed successfully FC17!")
