@@ -133,7 +133,7 @@ export class EmbeddedPage {
     const frame = this.iframe;
     return frame
       .locator(
-        '[data-test="dashboard-header-container"] [data-test="editable-title"]',
+        '[data-test="dashboard-header-container"] [data-test="editable-title-input"]',
       )
       .isVisible();
   }
