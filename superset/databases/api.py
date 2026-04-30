@@ -123,7 +123,7 @@ from superset.exceptions import (
 )
 from superset.extensions import security_manager
 from superset.models.core import Database
-from superset.sql.parse import Table
+from superset.sql.parse import Partition, Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import (
@@ -1079,15 +1079,32 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             parameters = QualifiedTableSchema().load(request.args)
         except ValidationError as ex:
             raise InvalidPayloadSchemaError(ex) from ex
-
-        table = Table(parameters["name"], parameters["schema"], parameters["catalog"])
+        table_name = str(parameters["name"])
+        table = Table(table_name, parameters["schema"], parameters["catalog"])
         try:
             security_manager.raise_for_access(database=database, table=table)
         except SupersetSecurityException as ex:
             # instead of raising 403, raise 404 to hide table existence
             raise TableNotFoundException("No such table") from ex
+        try:
+            is_partitioned_table, partition_fields = (
+                DatabaseDAO.is_odps_partitioned_table(database, table_name)
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning(
+                "Error determining ODPS partition info for table %s: %s; "
+                "falling back to non-partitioned path",
+                table_name,
+                error_msg_from_exception(ex),
+            )
+            is_partitioned_table, partition_fields = False, []
+        partition = Partition(is_partitioned_table, partition_fields)
+        if is_partitioned_table:
+            from superset.db_engine_specs.odps import OdpsEngineSpec
 
-        payload = database.db_engine_spec.get_table_metadata(database, table)
+            payload = OdpsEngineSpec.get_table_metadata(database, table, partition)
+        else:
+            payload = database.db_engine_spec.get_table_metadata(database, table)
 
         return self.response(200, **payload)
 
