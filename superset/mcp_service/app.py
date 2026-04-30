@@ -85,6 +85,8 @@ Schema Discovery:
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
 - health_check: Simple health check tool (takes NO parameters, call without arguments)
+- generate_bug_report: Build a PII-sanitized bug report to send to Preset support
+  (use when the user says the MCP is broken or asks how to report an issue)
 
 Available Resources:
 - instance://metadata: Instance configuration, stats, and available dataset IDs
@@ -532,6 +534,7 @@ from superset.mcp_service.system import (  # noqa: F401, E402
     resources as system_resources,
 )
 from superset.mcp_service.system.tool import (  # noqa: F401, E402
+    generate_bug_report,
     get_instance_info,
     get_schema,
     health_check,
