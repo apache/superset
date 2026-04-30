@@ -241,6 +241,7 @@ class LoggingMiddleware(Middleware):
         tool_name = getattr(context.message, "name", None)
 
         mcp_call_id = uuid.uuid4().hex[:12]
+        context.mcp_call_id = mcp_call_id
         start_time = time.time()
         success = False
         try:
@@ -396,8 +397,10 @@ class StructuredContentStripperMiddleware(Middleware):
             # unhandled exception — including ToolError from
             # GlobalErrorHandlerMiddleware, ValueError, TypeError, etc. —
             # will cause encoding failures on the wire.
+            mcp_call_id = getattr(context, "mcp_call_id", None)
             return ToolResult(
                 content=[mt.TextContent(type="text", text=f"Error: {e}")],
+                meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
             )
         if isinstance(result, ToolResult) and result.structured_content is not None:
             result = ToolResult(content=result.content, meta=result.meta)
