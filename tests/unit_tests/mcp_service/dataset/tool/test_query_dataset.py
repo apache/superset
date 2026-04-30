@@ -45,9 +45,9 @@ def mock_auth() -> Generator[MagicMock, None, None]:
     """Mock authentication and metadata access for all tests."""
     with (
         patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
-        patch(
-            "superset.mcp_service.dataset.tool.query_dataset"
-            ".user_can_view_data_model_metadata",
+        patch.object(
+            query_dataset_module,
+            "user_can_view_data_model_metadata",
             return_value=True,
         ),
     ):
@@ -765,9 +765,9 @@ async def test_query_dataset_metadata_access_denied_no_suggestions(
             "_resolve_dataset",
             return_value=dataset,
         ),
-        patch(
-            "superset.mcp_service.dataset.tool.query_dataset"
-            ".user_can_view_data_model_metadata",
+        patch.object(
+            query_dataset_module,
+            "user_can_view_data_model_metadata",
             return_value=False,
         ),
     ):
