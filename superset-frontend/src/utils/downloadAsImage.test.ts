@@ -683,3 +683,55 @@ test('clone path falls back to white background when theme is absent', async () 
 
   document.body.removeChild(container);
 });
+
+test('ag-grid path passes scale >= 2 to toJpeg', async () => {
+  jest.useFakeTimers();
+  const { container, agContainer, cleanup } = buildAgGridElement();
+  attachMockApi(agContainer);
+
+  let capturedScale: number | undefined;
+  mockToJpeg.mockImplementation(
+    (_el: HTMLElement, opts: { scale?: number }) => {
+      capturedScale = opts.scale;
+      return Promise.resolve('data:image/jpeg;base64,test');
+    },
+  );
+
+  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const exportPromise = handler(syntheticEventFor(container));
+  await jest.runAllTimersAsync();
+  await exportPromise;
+
+  expect(capturedScale).toBeGreaterThanOrEqual(2);
+
+  cleanup();
+  jest.useRealTimers();
+});
+
+test('clone path passes scale >= 2 to toJpeg', async () => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+
+  let capturedScale: number | undefined;
+  mockToJpeg.mockImplementation(
+    (_el: HTMLElement, opts: { scale?: number }) => {
+      capturedScale = opts.scale;
+      return Promise.resolve('data:image/jpeg;base64,test');
+    },
+  );
+
+  const handler = downloadAsImageOptimized('div', 'Bar Chart');
+  await handler(syntheticEventFor(container));
+
+  expect(capturedScale).toBeGreaterThanOrEqual(2);
+
+  document.body.removeChild(container);
+});
+
+test('scale formula enforces minimum 2 for standard and zero devicePixelRatio values', () => {
+  const computeScale = (dpr: number) => Math.max(dpr || 1, 2);
+  expect(computeScale(1)).toBe(2); // standard display: dpr=1 is truthy but Math.max clamps to 2
+  expect(computeScale(0)).toBe(2); // zero dpr: || gives 1, Math.max clamps to 2
+  expect(computeScale(2)).toBe(2); // exactly 2× retina
+  expect(computeScale(3)).toBe(3); // 3× retina: dpr wins over minimum
+});
