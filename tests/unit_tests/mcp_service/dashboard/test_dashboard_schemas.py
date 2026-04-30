@@ -35,7 +35,16 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_chart_summary,
     serialize_dashboard_object,
 )
+from superset.mcp_service.utils.sanitization import (
+    LLM_CONTEXT_CLOSE_DELIMITER,
+    LLM_CONTEXT_OPEN_DELIMITER,
+)
 from superset.utils.json import dumps as json_dumps
+
+
+def _wrapped(value: str) -> str:
+    """Return the expected LLM-context wrapper for assertions."""
+    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
 
 
 def _mock_dashboard(
@@ -180,10 +189,10 @@ class TestSerializeDashboardObject:
 
         assert len(result.native_filters) == 2
         assert result.native_filters[0].id == "NATIVE_FILTER-abc123"
-        assert result.native_filters[0].name == "Region Filter"
+        assert result.native_filters[0].name == _wrapped("Region Filter")
         assert result.native_filters[0].filter_type == "filter_select"
         assert len(result.native_filters[0].targets) == 1
-        assert result.native_filters[1].name == "Date Range"
+        assert result.native_filters[1].name == _wrapped("Date Range")
         assert result.cross_filters_enabled is True
 
     @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
@@ -215,7 +224,7 @@ class TestSerializeDashboardObject:
         result = serialize_dashboard_object(dashboard)
 
         assert len(result.native_filters) == 1
-        assert result.native_filters[0].name == "Product Line"
+        assert result.native_filters[0].name == _wrapped("Product Line")
         assert result.native_filters[0].filter_type == "filter_select"
         assert result.native_filters[0].targets == []
         assert result.cross_filters_enabled is True
@@ -243,7 +252,7 @@ class TestSerializeDashboardObject:
 
         assert len(result.charts) == 1
         assert result.charts[0].id == 5
-        assert result.charts[0].slice_name == "Revenue Chart"
+        assert result.charts[0].slice_name == _wrapped("Revenue Chart")
         assert result.charts[0].viz_type == "echarts_timeseries_bar"
         assert result.charts[0].datasource_name == "sales"
         assert result.charts[0].url == "http://localhost:8088/explore/?slice_id=5"
@@ -273,7 +282,7 @@ class TestSerializeDashboardObject:
         result = serialize_dashboard_object(dashboard)
 
         assert len(result.charts) == 1
-        assert result.charts[0].slice_name == "Revenue Chart"
+        assert result.charts[0].slice_name == _wrapped("Revenue Chart")
         assert result.charts[0].viz_type == "echarts_timeseries_bar"
         assert result.charts[0].datasource_name is None
         assert result.charts[0].url == "http://localhost:8088/explore/?slice_id=5"
@@ -316,6 +325,69 @@ class TestSerializeDashboardObject:
 
         assert result.charts[0].datasource_name is None
         assert result.native_filters[0].targets == []
+
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
+    @patch("superset.mcp_service.utils.url_utils.get_superset_base_url")
+    def test_descriptive_fields_are_sanitized(
+        self,
+        mock_base_url: MagicMock,
+        mock_can_view_data_model_metadata: MagicMock,
+    ) -> None:
+        """Dashboard serializers wrap user-controlled descriptive fields."""
+        mock_can_view_data_model_metadata.return_value = True
+        mock_base_url.return_value = "http://localhost:8088"
+
+        chart = MagicMock()
+        chart.id = 5
+        chart.slice_name = "Revenue Chart"
+        chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_name = "sales"
+        chart.description = "Monthly revenue"
+
+        dashboard = _mock_dashboard(id=7, slug="safe-slug", slices=[chart])
+        dashboard.description = "Dashboard instructions"
+        dashboard.css = "/* dashboard-level CSS */"
+        dashboard.certified_by = "Analytics Team"
+        dashboard.certification_details = "Certified by analytics"
+        dashboard.uuid = "dashboard-uuid-7"
+        tag = MagicMock()
+        tag.id = 1
+        tag.name = "Dashboard tag"
+        tag.type = "custom"
+        tag.description = "Dashboard tag description"
+        dashboard.tags = [tag]
+        dashboard.json_metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER-abc123",
+                        "name": "Region Filter",
+                        "filterType": "filter_select",
+                        "targets": [{"column": {"name": "region"}, "datasetId": 10}],
+                    }
+                ]
+            }
+        )
+
+        result = serialize_dashboard_object(dashboard)
+
+        assert result.dashboard_title == _wrapped("Test Dashboard")
+        assert result.description == _wrapped("Dashboard instructions")
+        assert result.css == _wrapped("/* dashboard-level CSS */")
+        assert result.certified_by == _wrapped("Analytics Team")
+        assert result.certification_details == _wrapped("Certified by analytics")
+        assert result.slug == "safe-slug"
+        assert result.url == "http://localhost:8088/superset/dashboard/safe-slug/"
+        assert result.uuid == "dashboard-uuid-7"
+        assert result.native_filters[0].id == "NATIVE_FILTER-abc123"
+        assert result.native_filters[0].name == _wrapped("Region Filter")
+        assert result.native_filters[0].targets == [
+            {"column": {"name": _wrapped("region")}, "datasetId": 10}
+        ]
+        assert result.charts[0].slice_name == _wrapped("Revenue Chart")
+        assert result.charts[0].description == _wrapped("Monthly revenue")
+        assert result.tags[0].name == _wrapped("Dashboard tag")
+        assert result.tags[0].description == _wrapped("Dashboard tag description")
 
 
 class TestExtractNativeFilters:
