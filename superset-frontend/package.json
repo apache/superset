@@ -364,7 +364,7 @@
     "ts-jest": "^29.4.9",
     "tscw-config": "^1.1.2",
     "tsx": "^4.21.0",
-    "typescript": "5.4.5",
+    "typescript": "6.0.3",
     "unzipper": "^0.12.3",
     "vm-browserify": "^1.1.2",
     "wait-on": "^9.0.5",
