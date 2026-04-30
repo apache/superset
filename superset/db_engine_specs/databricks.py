@@ -16,11 +16,13 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any, Callable, TYPE_CHECKING, TypedDict, Union
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from flask import current_app as app, g, has_request_context, url_for
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -44,6 +46,9 @@ from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.utils.oauth2 import OAuth2ClientConfig
+
+logger = logging.getLogger(__name__)
 
 
 try:
@@ -52,6 +57,26 @@ except ImportError:
 
     class ParamEscaper:  # type: ignore
         """Dummy class."""
+
+
+try:
+    from databricks.sql.exc import RequestError as DatabricksRequestError
+except ImportError:
+    DatabricksRequestError = Exception
+
+
+class _DatabricksAuthErrorMeta(type):
+    """Metaclass to match Databricks authentication errors (HTTP 401/403)."""
+
+    def __instancecheck__(cls, instance: object) -> bool:
+        return isinstance(instance, DatabricksRequestError) and any(
+            s in str(instance).lower()
+            for s in ("error 401", "error 403", "unauthorized", "invalid access token")
+        )
+
+
+class DatabricksAuthError(Exception, metaclass=_DatabricksAuthErrorMeta):
+    pass
 
 
 class DatabricksStringType(types.TypeDecorator):
@@ -107,13 +132,144 @@ def monkeypatch_dialect() -> None:
         pass
 
 
+class DatabricksOAuth2Mixin:
+    """Mixin adding OAuth2 per-user impersonation to all Databricks engine specs.
+
+    When OAuth2 is configured, each user authenticates individually with the
+    Databricks workspace. Their personal OAuth2 token replaces the shared PAT
+    in the connection URI, so queries execute under the user's identity.
+
+    Databricks OIDC endpoints are auto-derived from a ``host`` key in the
+    ``DATABASE_OAUTH2_CLIENTS`` config, so admins only need to provide
+    client_id, secret, and workspace host.
+    """
+
+    supports_oauth2 = True
+    oauth2_scope = "sql offline_access"
+    oauth2_exception = DatabricksAuthError
+    oauth2_token_request_type = "data"  # noqa: S105
+
+    @classmethod
+    def get_oauth2_config(cls) -> OAuth2ClientConfig | None:
+        oauth2_config = app.config["DATABASE_OAUTH2_CLIENTS"]
+        # Look up by exact engine_name first, then fall back to "Databricks"
+        # so a single config entry works for all Databricks specs (e.g.,
+        # "Databricks SQL Endpoint", "Databricks Interactive Cluster", etc.)
+        spec_config = oauth2_config.get(
+            cls.engine_name,  # type: ignore[attr-defined]
+            oauth2_config.get("Databricks"),
+        )
+        if spec_config is None:
+            return None
+        host = spec_config.get("host", "")
+        redirect_uri = app.config.get(
+            "DATABASE_OAUTH2_REDIRECT_URI",
+            url_for("DatabaseRestApi.oauth2", _external=True),
+        )
+
+        return {
+            "id": spec_config["id"],
+            "secret": spec_config["secret"],
+            "scope": spec_config.get("scope") or cls.oauth2_scope,
+            "redirect_uri": redirect_uri,
+            "authorization_request_uri": spec_config.get(
+                "authorization_request_uri",
+                f"https://{host}/oidc/v1/authorize" if host else None,
+            ),
+            "token_request_uri": spec_config.get(
+                "token_request_uri",
+                f"https://{host}/oidc/v1/token" if host else None,
+            ),
+            "request_content_type": spec_config.get(
+                "request_content_type",
+                cls.oauth2_token_request_type,
+            ),
+        }
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """Check if the exception indicates OAuth2 authentication is needed.
+
+        The databricks-sql-connector raises RequestError which gets wrapped
+        by SQLAlchemy into a DBAPIError. We check both the original exception
+        and the string representation for auth failure indicators.
+        """
+        if not has_request_context() or not hasattr(g, "user"):
+            return False
+
+        # Check the full exception chain for auth errors
+        current: BaseException | None = ex
+        while current is not None:
+            if isinstance(current, DatabricksAuthError):
+                return True
+            # Also check string for wrapped exceptions
+            ex_str = str(current).lower()
+            if any(
+                s in ex_str
+                for s in (
+                    "error 401",
+                    "status code 401",
+                    "error 403",
+                    "status code 403",
+                    "unauthorized",
+                    "forbidden",
+                    "credential was not sent",
+                )
+            ):
+                return True
+            current = current.__cause__
+
+        return False
+
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        if username is None:
+            return url, engine_kwargs
+
+        if user_token is not None:
+            # Replace the static PAT with the per-user OAuth2 access token.
+            # The databricks-sql-connector accepts OAuth tokens as the password
+            # in the URI: databricks://token:{oauth_token}@host:port
+            url = url.set(password=user_token)
+        elif database.is_oauth2_enabled():
+            # No stored OAuth token for this user yet. Proactively trigger the
+            # OAuth dance instead of falling back to the shared PAT, which would
+            # run queries as the PAT owner rather than the logged-in user.
+            cls.start_oauth2_dance(database)  # type: ignore[attr-defined]
+
+        return url, engine_kwargs
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        if not database.encrypted_extra:
+            return
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+            # Strip oauth2_client_info so it doesn't leak into create_engine()
+            encrypted_extra.pop("oauth2_client_info", None)
+            params.update(encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise
+
+
 class DatabricksBaseSchema(Schema):
     """
     Fields that are required for both Databricks drivers that uses a
     dynamic form.
     """
 
-    access_token = fields.Str(required=True)
+    access_token = fields.Str(required=False, load_default="")
     host = fields.Str(required=True)
     port = fields.Integer(
         required=True,
@@ -221,7 +377,7 @@ time_grain_expressions: dict[str | None, str] = {
 }
 
 
-class DatabricksHiveEngineSpec(HiveEngineSpec):
+class DatabricksHiveEngineSpec(DatabricksOAuth2Mixin, HiveEngineSpec):  # type: ignore[misc]
     """Databricks engine spec using Hive connector for Interactive Clusters."""
 
     engine_name = "Databricks Interactive Cluster"
@@ -239,7 +395,7 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     _time_grain_expressions = time_grain_expressions
 
 
-class DatabricksBaseEngineSpec(BaseEngineSpec):
+class DatabricksBaseEngineSpec(DatabricksOAuth2Mixin, BaseEngineSpec):  # type: ignore[misc]
     _time_grain_expressions = time_grain_expressions
 
     @classmethod
@@ -267,10 +423,10 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
     # backwards compatibility with ODBC connections to SQL Endpoints.
 
 
-class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngineSpec):
+class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngineSpec):  # type: ignore[misc]
     default_driver = ""
     encryption_parameters = {"ssl": "1"}
-    required_parameters = {"access_token", "host", "port"}
+    required_parameters = {"host", "port"}
     context_key_mapping = {
         "access_token": "password",
         "host": "hostname",
@@ -359,7 +515,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         ]
 
     @classmethod
-    def validate_parameters(  # type: ignore
+    def validate_parameters(  # type: ignore  # noqa: C901
         cls,
         properties: Union[
             DatabricksNativePropertiesType,
@@ -379,7 +535,12 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
 
         present = {key for key in parameters if parameters.get(key, ())}
 
-        if missing := sorted(cls.required_parameters - present):
+        # access_token is required only when OAuth2 is not configured
+        effective_required = set(cls.required_parameters)
+        if not cls.is_oauth2_enabled():
+            effective_required.add("access_token")
+
+        if missing := sorted(effective_required - present):
             errors.append(
                 SupersetError(
                     message=f"One or more parameters are missing: {', '.join(missing)}",

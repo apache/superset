@@ -120,7 +120,9 @@ impersonate_user_description = (
     "currently logged on user who must have permission to run them.<br/>"
     "If Hive and hive.server2.enable.doAs is enabled, will run the queries as "
     "service account, but impersonate the currently logged on user "
-    "via hive.server2.proxy.user property."
+    "via hive.server2.proxy.user property.<br/>"
+    "If Databricks with OAuth2 configured, queries will execute using each "
+    "user's personal OAuth2 access token."
 )
 force_ctas_schema_description = (
     "When allowing CREATE TABLE AS option in SQL Lab, "
