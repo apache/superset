@@ -754,7 +754,8 @@ const Select = forwardRef(
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
           getPopupContainer={
-            getPopupContainer || (triggerNode => triggerNode.parentNode)
+            getPopupContainer ??
+            (triggerNode => triggerNode.closest('.ant-modal') ?? document.body)
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
