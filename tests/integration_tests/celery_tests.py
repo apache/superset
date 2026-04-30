@@ -575,6 +575,34 @@ def test_in_app_context():
     )
 
 
+def test_teardown_without_app_context():
+    """Test teardown skips db.session.remove() outside app context.
+
+    Regression test for https://github.com/apache/superset/issues/36892
+    The task_postrun signal can fire after the app context is torn down,
+    so teardown() must check has_app_context() before calling db.session.remove().
+    """
+    from superset.tasks.celery_app import teardown
+
+    assert not has_app_context(), "Test must run outside of app context"
+
+    with mock.patch("superset.tasks.celery_app.db.session.remove") as mock_remove:
+        teardown(retval="success")
+        mock_remove.assert_not_called()
+
+
+def test_teardown_with_app_context():
+    """Test teardown calls db.session.remove() inside app context."""
+    from superset.tasks.celery_app import teardown, flask_app
+
+    with flask_app.app_context():
+        assert has_app_context(), "Test must run inside app context"
+
+        with mock.patch("superset.tasks.celery_app.db.session.remove") as mock_remove:
+            teardown(retval="success")
+            mock_remove.assert_called_once()
+
+
 def delete_tmp_view_or_table(name: str, ctas_method: CTASMethod):
     db.get_engine().execute(f"DROP {ctas_method.name} IF EXISTS {name}")
 
