@@ -70,7 +70,7 @@ dependencies = [
     # marshmallow>=4 has issues: https://github.com/apache/superset/issues/33162
     "marshmallow>=3.0, <4",
     "marshmallow-union>=0.1",
-    "msgpack>=1.0.0, <1.1",
+    "msgpack>=1.0.0, <1.2",
     "nh3>=0.2.11, <0.3",
     "numpy>1.23.5, <2.3",
     "packaging",
