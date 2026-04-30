@@ -30,7 +30,7 @@ import { buildActiveFilters } from '../util/activeDashboardFilters';
 import { getChartIdAndColumnFromFilterKey } from '../util/getDashboardFilterKey';
 import { LayoutItem } from '../types';
 
-interface FilterScope {
+export interface FilterScope {
   scope: string[];
   immune: number[];
 }

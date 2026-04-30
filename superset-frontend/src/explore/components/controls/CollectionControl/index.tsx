@@ -41,7 +41,7 @@ interface CollectionItem {
   [key: string]: unknown;
 }
 
-interface CollectionControlProps {
+export interface CollectionControlProps {
   name: string;
   label?: string | null;
   description?: string | null;

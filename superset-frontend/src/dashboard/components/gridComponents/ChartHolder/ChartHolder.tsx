@@ -42,7 +42,7 @@ import {
 
 export const CHART_MARGIN = 32;
 
-interface ChartHolderProps {
+export interface ChartHolderProps {
   id: string;
   parentId: string;
   dashboardId: number;

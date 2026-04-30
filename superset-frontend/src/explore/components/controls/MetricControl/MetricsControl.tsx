@@ -108,7 +108,7 @@ const getMetricsMatchingCurrentDataset = (
     );
   });
 
-interface MetricsControlProps {
+export interface MetricsControlProps {
   name: string;
   onChange: (value: unknown) => void;
   multi?: boolean;

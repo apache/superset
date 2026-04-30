@@ -57,7 +57,7 @@ export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
 // Delay before refreshing charts to ensure they are fully mounted
 const CHART_MOUNT_DELAY = 100;
 
-interface TabProps {
+export interface TabProps {
   dashboardId: number;
   id: string;
   parentId: string;

@@ -67,7 +67,7 @@ interface DashboardActions {
   setDatasources: (datasources: unknown) => void;
 }
 
-interface DashboardProps {
+export interface DashboardProps {
   actions: DashboardActions;
   dashboardId: number;
   editMode?: boolean;
