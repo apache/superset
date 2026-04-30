@@ -15,8 +15,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import annotations
-
 import glob
 import importlib.util
 import os
@@ -24,15 +22,14 @@ import shutil
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional
 
 MAX_WORKERS = min(8, (os.cpu_count() or 4) * 2)
 
 
 def run_command(
     command: list[str],
-    cwd: Optional[str] = None,
-    env: Optional[dict[str, str]] = None,
+    cwd: str | None = None,
+    env: dict[str, str] | None = None,
     timeout: int = 300,
 ) -> subprocess.CompletedProcess[str]:
     try:
@@ -55,17 +52,16 @@ def run_command(
         return Result()  # type: ignore[return-value]
 
 
-def find_command(*names: str) -> Optional[str]:
+def find_command(*names: str) -> str | None:
     for name in names:
-        path = shutil.which(name)
-        if path:
+        if path := shutil.which(name):
             if os.name == "nt" and path.lower().endswith(".com"):
                 continue
             return path
     return None
 
 
-def ensure_python_module(module_name: str, package_name: Optional[str] = None) -> bool:
+def ensure_python_module(module_name: str, package_name: str | None = None) -> bool:
     if importlib.util.find_spec(module_name) is not None:
         print(f"  Python module available: {module_name}")
         return True
@@ -79,9 +75,8 @@ def ensure_python_module(module_name: str, package_name: Optional[str] = None) -
     return False
 
 
-def ensure_command(label: str, *names: str) -> Optional[str]:
-    path = find_command(*names)
-    if path:
+def ensure_command(label: str, *names: str) -> str | None:
+    if path := find_command(*names):
         print(f"  Command available: {label} -> {path}")
         return path
     print(f"  Command NOT available: {label}")
@@ -89,8 +84,9 @@ def ensure_command(label: str, *names: str) -> Optional[str]:
 
 
 def install_npm_packages(
-    npm_cmd: str, node_modules_bin: str
-) -> tuple[Optional[str], Optional[str]]:
+    npm_cmd: str,
+    node_modules_bin: str,
+) -> tuple[str | None, str | None]:
     """Install po2json and prettier locally once, avoiding repeated npx -y downloads."""
     packages = ["po2json", "prettier"]
     print(f"  Pre-installing npm packages: {', '.join(packages)}...")
@@ -113,7 +109,9 @@ def install_npm_packages(
 
 
 def convert_po_file(
-    po_file: str, po2json_bin: str, npx_cmd: str
+    po_file: str,
+    po2json_bin: str,
+    npx_cmd: str,  # noqa: ARG001
 ) -> tuple[bool, str, str]:
     """Convert a single .po file to .json - called in parallel."""
     json_file = po_file.replace(".po", ".json")
@@ -155,7 +153,8 @@ def _run_pybabel(translations_dir: str, root_dir: str) -> bool:
 
 
 def _sync_po_to_frontend(
-    translations_dir: str, frontend_trans_dir: str
+    translations_dir: str,
+    frontend_trans_dir: str,
 ) -> list[str]:
     """Step 2: sync PO files to the frontend directory."""
     print("2. Syncing PO files to frontend...")
@@ -176,7 +175,9 @@ def _sync_po_to_frontend(
 
 
 def _convert_po_files_parallel(
-    po_files: list[str], po2json_bin: str, npx_cmd: str
+    po_files: list[str],
+    po2json_bin: str,
+    npx_cmd: str,
 ) -> list[str]:
     """Step 4: convert PO files to JSON in parallel."""
     print(
@@ -212,7 +213,7 @@ def _convert_po_files_parallel(
 
 def _run_prettier(
     po_files: list[str],
-    prettier_bin: Optional[str],
+    prettier_bin: str | None,
     npx_cmd: str,
 ) -> None:
     """Step 5: run prettier on all generated JSON files."""
@@ -265,13 +266,24 @@ def compile_translations() -> None:
     po_files = _sync_po_to_frontend(translations_dir, frontend_trans_dir)
 
     print(f"3. Installing npm tools once, shared across {MAX_WORKERS} workers...")
-    po2json_bin, prettier_bin = install_npm_packages(npm_cmd, node_modules_bin)  # type: ignore[arg-type]
+    po2json_bin, prettier_bin = install_npm_packages(
+        npm_cmd,  # type: ignore[arg-type]
+        node_modules_bin,
+    )
     if po2json_bin is None:
         print("  Falling back to npx for po2json.")
         po2json_bin = f"{npx_cmd} po2json"
 
-    _convert_po_files_parallel(po_files, po2json_bin, npx_cmd)  # type: ignore[arg-type]
-    _run_prettier(po_files, prettier_bin, npx_cmd)  # type: ignore[arg-type]
+    _convert_po_files_parallel(
+        po_files,
+        po2json_bin,
+        npx_cmd,  # type: ignore[arg-type]
+    )
+    _run_prettier(
+        po_files,
+        prettier_bin,
+        npx_cmd,  # type: ignore[arg-type]
+    )
 
     print("Pipeline completed successfully!")
 
