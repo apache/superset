@@ -113,6 +113,18 @@ const ACTION_KEYS = {
   space: ' ',
 };
 
+const DASHBOARD_PATH_SEGMENT = '/superset/dashboard/';
+
+const sanitizeVisibleColumnSelection = (
+  selection: unknown,
+  availableKeys: Set<string>,
+): string[] => {
+  if (!Array.isArray(selection) || selection.length === 0) {
+    return [];
+  }
+  return selection.map(String).filter(key => availableKeys.has(key));
+};
+
 /**
  * Return sortType based on data type
  */
@@ -374,6 +386,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
   const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
+  const [showColumnSelectorDropdown, setShowColumnSelectorDropdown] =
+    useState(false);
   const [selectedComparisonColumns, setSelectedComparisonColumns] = useState([
     comparisonColumns[0].key,
   ]);
@@ -739,11 +753,261 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     );
   };
 
-  // Compute visible columns before groupHeaderColumns to ensure index consistency.
-  // This filters out columns with config.visible === false.
-  const visibleColumnsMeta = useMemo(
+  const selectableColumnsMeta = useMemo(
     () => filteredColumnsMeta.filter(col => col.config?.visible !== false),
     [filteredColumnsMeta],
+  );
+
+  const selectableColumnKeys = useMemo(
+    () => selectableColumnsMeta.map(col => String(col.key)),
+    [selectableColumnsMeta],
+  );
+
+  const visibleColumnsStorageKey = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    const pathname = window.location?.pathname || '';
+    if (!pathname.includes(DASHBOARD_PATH_SEGMENT)) {
+      return null;
+    }
+    return `superset.table.visibleColumns:${pathname}:${slice_id}`;
+  }, [slice_id]);
+
+  const storedVisibleColumnKeys = useMemo(() => {
+    if (!visibleColumnsStorageKey || typeof window === 'undefined') {
+      return [];
+    }
+    try {
+      const raw = window.localStorage.getItem(visibleColumnsStorageKey);
+      if (!raw) {
+        return [];
+      }
+      const parsed = JSON.parse(raw);
+      return sanitizeVisibleColumnSelection(
+        parsed,
+        new Set(selectableColumnKeys),
+      );
+    } catch {
+      return [];
+    }
+  }, [selectableColumnKeys, visibleColumnsStorageKey]);
+
+  const [selectedVisibleColumnKeys, setSelectedVisibleColumnKeys] = useState<
+    string[]
+  >(() => {
+    const availableKeys = new Set(selectableColumnKeys);
+    const selectedFromOwnState = sanitizeVisibleColumnSelection(
+      serverPaginationData?.visibleColumns,
+      availableKeys,
+    );
+    if (selectedFromOwnState.length > 0) {
+      return selectedFromOwnState;
+    }
+    if (storedVisibleColumnKeys.length > 0) {
+      return storedVisibleColumnKeys;
+    }
+    return selectableColumnKeys;
+  });
+
+  useEffect(() => {
+    setSelectedVisibleColumnKeys(prevSelection => {
+      const availableKeys = new Set(selectableColumnKeys);
+      const sanitizedCurrent = prevSelection.filter(key =>
+        availableKeys.has(key),
+      );
+
+      const selectedFromOwnState = sanitizeVisibleColumnSelection(
+        serverPaginationData?.visibleColumns,
+        availableKeys,
+      );
+      if (selectedFromOwnState.length > 0) {
+        return isEqual(sanitizedCurrent, selectedFromOwnState)
+          ? sanitizedCurrent
+          : selectedFromOwnState;
+      }
+
+      if (storedVisibleColumnKeys.length > 0) {
+        return isEqual(sanitizedCurrent, storedVisibleColumnKeys)
+          ? sanitizedCurrent
+          : storedVisibleColumnKeys;
+      }
+
+      if (sanitizedCurrent.length > 0) {
+        return sanitizedCurrent;
+      }
+
+      return selectableColumnKeys;
+    });
+  }, [
+    selectableColumnKeys,
+    serverPaginationData?.visibleColumns,
+    storedVisibleColumnKeys,
+  ]);
+
+  const persistTableOwnState = useCallback(
+    (updates: Record<string, unknown>) => {
+      const selectedKeys =
+        (updates.visibleColumns as string[] | undefined) ??
+        selectedVisibleColumnKeys;
+      if (visibleColumnsStorageKey && typeof window !== 'undefined') {
+        try {
+          if (selectedKeys?.length) {
+            window.localStorage.setItem(
+              visibleColumnsStorageKey,
+              JSON.stringify(selectedKeys),
+            );
+          } else {
+            window.localStorage.removeItem(visibleColumnsStorageKey);
+          }
+        } catch {
+          // no-op: storage write failures should not block table interactions
+        }
+      }
+      updateTableOwnState(setDataMask, {
+        ...serverPaginationData,
+        ...updates,
+        ...(selectedKeys?.length ? { visibleColumns: selectedKeys } : {}),
+      });
+    },
+    [
+      selectedVisibleColumnKeys,
+      serverPaginationData,
+      setDataMask,
+      visibleColumnsStorageKey,
+    ],
+  );
+
+  useEffect(() => {
+    if (storedVisibleColumnKeys.length === 0) {
+      return;
+    }
+    const selectedFromOwnState = sanitizeVisibleColumnSelection(
+      serverPaginationData?.visibleColumns,
+      new Set(selectableColumnKeys),
+    );
+    if (
+      selectedFromOwnState.length === 0 &&
+      selectedVisibleColumnKeys.length > 0
+    ) {
+      persistTableOwnState({ visibleColumns: selectedVisibleColumnKeys });
+    }
+  }, [
+    persistTableOwnState,
+    selectableColumnKeys,
+    selectedVisibleColumnKeys,
+    serverPaginationData?.visibleColumns,
+    storedVisibleColumnKeys.length,
+  ]);
+
+  const handleVisibleColumnsChange = useCallback(
+    (nextVisibleColumns: string[]) => {
+      if (isEqual(nextVisibleColumns, selectedVisibleColumnKeys)) {
+        return;
+      }
+      setSelectedVisibleColumnKeys(nextVisibleColumns);
+      persistTableOwnState({ visibleColumns: nextVisibleColumns });
+    },
+    [persistTableOwnState, selectedVisibleColumnKeys],
+  );
+
+  const renderColumnSelectDropdown = (): JSX.Element | null => {
+    if (!selectableColumnsMeta.length) {
+      return null;
+    }
+
+    const handleOnClick = ({ key }: { key: string }) => {
+      const targetKey = String(key);
+      const isSelected = selectedVisibleColumnKeys.includes(targetKey);
+      const nextVisibleColumns = isSelected
+        ? selectedVisibleColumnKeys.filter(columnKey => columnKey !== targetKey)
+        : [...selectedVisibleColumnKeys, targetKey];
+
+      // Keep at least one visible column so table structure stays valid.
+      if (!nextVisibleColumns.length) {
+        return;
+      }
+
+      handleVisibleColumnsChange(nextVisibleColumns);
+    };
+
+    return (
+      <Dropdown
+        placement="bottomRight"
+        open={showColumnSelectorDropdown}
+        onOpenChange={(flag: boolean) => {
+          setShowColumnSelectorDropdown(flag);
+        }}
+        menu={{
+          selectable: true,
+          multiple: true,
+          onClick: handleOnClick,
+          selectedKeys: selectedVisibleColumnKeys,
+          items: [
+            {
+              key: 'columns-group',
+              label: (
+                <div
+                  css={css`
+                    max-width: 260px;
+                    padding: 0 ${theme.sizeUnit * 2}px;
+                    color: ${theme.colorText};
+                    font-size: ${theme.fontSizeSM}px;
+                  `}
+                >
+                  {t(
+                    'Choose which columns should be visible in this table on the dashboard.',
+                  )}
+                </div>
+              ),
+              type: 'group',
+              children: selectableColumnsMeta.map(column => ({
+                key: String(column.key),
+                label: (
+                  <>
+                    <span
+                      css={css`
+                        color: ${theme.colorText};
+                      `}
+                    >
+                      {column.config?.customColumnName ||
+                        column.originalLabel ||
+                        column.label ||
+                        column.key}
+                    </span>
+                    <span
+                      css={css`
+                        float: right;
+                        font-size: ${theme.fontSizeSM}px;
+                      `}
+                    >
+                      {selectedVisibleColumnKeys.includes(
+                        String(column.key),
+                      ) && <CheckOutlined />}
+                    </span>
+                  </>
+                ),
+              })),
+            },
+          ],
+        }}
+        trigger={['click']}
+      >
+        <span>
+          {t('Columns')} <DownOutlined />
+        </span>
+      </Dropdown>
+    );
+  };
+
+  // Compute visible columns before groupHeaderColumns to ensure index consistency.
+  // This combines static chart config visibility with dashboard-time user selection.
+  const visibleColumnsMeta = useMemo(
+    () =>
+      selectableColumnsMeta.filter(col =>
+        selectedVisibleColumnKeys.includes(String(col.key)),
+      ),
+    [selectableColumnsMeta, selectedVisibleColumnKeys],
   );
 
   // Use visibleColumnsMeta for groupHeaderColumns to ensure indices match the actual
@@ -1353,31 +1617,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      persistTableOwnState({
         currentPage: pageNumber,
         pageSize,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
-    [serverPaginationData, setDataMask],
+    [persistTableOwnState],
   );
 
   useEffect(() => {
     if (hasServerPageLengthChanged) {
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      persistTableOwnState({
         currentPage: 0,
         pageSize: serverPageLength,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     }
-  }, [
-    hasServerPageLengthChanged,
-    serverPageLength,
-    serverPaginationData,
-    setDataMask,
-  ]);
+  }, [hasServerPageLengthChanged, serverPageLength, persistTableOwnState]);
 
   const handleSizeChange = useCallback(
     ({ width, height }: { width: number; height: number }) => {
@@ -1417,36 +1672,30 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const handleSortByChange = useCallback(
     (sortBy: SortByItem[]) => {
       if (!serverPagination) return;
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      persistTableOwnState({
         sortBy,
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     },
-    [serverPagination, serverPaginationData, setDataMask],
+    [serverPagination, persistTableOwnState],
   );
 
   const handleSearch = (searchText: string) => {
-    const modifiedOwnState = {
-      ...serverPaginationData,
+    persistTableOwnState({
       searchColumn:
         serverPaginationData?.searchColumn || searchOptions[0]?.value,
       searchText,
       currentPage: 0, // Reset to first page when searching
-    };
-    updateTableOwnState(setDataMask, modifiedOwnState);
+    });
   };
 
   const debouncedSearch = debounce(handleSearch, 800);
 
   const handleChangeSearchCol = (searchCol: string) => {
     if (!isEqual(searchCol, serverPaginationData?.searchColumn)) {
-      const modifiedOwnState = {
-        ...serverPaginationData,
+      persistTableOwnState({
         searchColumn: searchCol,
         searchText: '',
-      };
-      updateTableOwnState(setDataMask, modifiedOwnState);
+      });
     }
   };
 
@@ -1477,8 +1726,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         rows: clientViewRows,
         columns: exportColumns,
       };
-      updateTableOwnState(setDataMask, {
-        ...serverPaginationData,
+      persistTableOwnState({
         clientView: {
           rows: clientViewRows,
           columns: exportColumns,
@@ -1486,13 +1734,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
       });
     }
-  }, [
-    clientViewRows,
-    exportColumns,
-    serverPagination,
-    setDataMask,
-    serverPaginationData,
-  ]);
+  }, [clientViewRows, exportColumns, serverPagination, persistTableOwnState]);
 
   return (
     <Styles>
@@ -1525,6 +1767,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         renderTimeComparisonDropdown={
           isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
         }
+        renderColumnSelectDropdown={renderColumnSelectDropdown}
         handleSortByChange={handleSortByChange}
         onSearchColChange={handleChangeSearchCol}
         manualSearch={serverPagination}

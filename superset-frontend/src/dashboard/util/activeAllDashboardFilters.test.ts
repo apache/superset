@@ -17,7 +17,10 @@
  * under the License.
  */
 import { DataMaskStateWithId } from '@superset-ui/core';
-import { getRelevantDataMask } from './activeAllDashboardFilters';
+import {
+  getAllActiveFilters,
+  getRelevantDataMask,
+} from './activeAllDashboardFilters';
 
 const mockDataMask: DataMaskStateWithId = {
   filter1: {
@@ -313,5 +316,46 @@ test('should return filterState unchanged (clientView stripping only applies to 
       value: ['A', 'B'],
       label: 'Categories A and B',
     },
+  });
+});
+
+test('should ignore chart ownState-only masks when computing active filters', () => {
+  const dataMask: DataMaskStateWithId = {
+    chart101: {
+      id: '101',
+      ownState: {
+        visibleColumns: ['country', 'sales'],
+      },
+    },
+    native1: {
+      id: 'native_1',
+      extraFormData: {
+        filters: [{ col: 'country', op: 'IN', val: ['KG'] }],
+      },
+      filterState: { value: ['KG'] },
+      ownState: {},
+    },
+  };
+
+  const nativeFilters = {
+    native_1: {
+      id: 'native_1',
+      filterType: 'filter_select',
+      chartsInScope: [101, 102],
+      scope: {},
+      targets: [],
+    },
+  } as any;
+
+  const result = getAllActiveFilters({
+    chartConfiguration: {},
+    dataMask,
+    nativeFilters,
+    allSliceIds: [101, 102],
+  });
+
+  expect(Object.keys(result)).toEqual(['native_1']);
+  expect(result.native_1.values).toEqual({
+    filters: [{ col: 'country', op: 'IN', val: ['KG'] }],
   });
 });
