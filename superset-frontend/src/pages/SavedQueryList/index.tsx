@@ -223,7 +223,7 @@ function SavedQueryList({
     name: t('Query'),
     buttonStyle: 'primary',
     onClick: () => {
-      history.push('/sqllab?new=true');
+      history.push(makeUrl('/sqllab?new=true'));
     },
   });
 
@@ -231,10 +231,6 @@ function SavedQueryList({
 
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
-    // makeUrl is correct here: clipboard and window.open operate in browser URL
-    // space and need the full application-root-prefixed path. Do NOT use makeUrl
-    // for history.push or <Link to> — React Router prepends the basename itself,
-    // which would double the subdirectory prefix.
     copyTextToClipboard(() =>
       Promise.resolve(
         `${window.location.origin}${makeUrl(`/sqllab?savedQueryId=${id}`)}`,
@@ -249,8 +245,7 @@ function SavedQueryList({
     if (openInNewWindow) {
       window.open(makeUrl(`/sqllab?savedQueryId=${id}`));
     } else {
-      // Router-relative path (no makeUrl): React Router prepends the basename.
-      history.push(`/sqllab?savedQueryId=${id}`);
+      history.push(makeUrl(`/sqllab?savedQueryId=${id}`));
     }
   };
 
@@ -343,7 +338,9 @@ function SavedQueryList({
           row: {
             original: { id, label },
           },
-        }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
+        }: any) => (
+          <Link to={makeUrl(`/sqllab?savedQueryId=${id}`)}>{label}</Link>
+        ),
         id: 'label',
       },
       {
