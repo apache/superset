@@ -372,6 +372,26 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
   ]
   ```
 
+### PKCE Support
+
+For public OAuth2 clients that cannot securely store a client secret, enable Proof Key for Code Exchange (PKCE) by adding `code_challenge_method` to the `remote_app` configuration:
+
+```python
+OAUTH_PROVIDERS = [
+    {
+        'name': 'myProvider',
+        'remote_app': {
+            'client_id': 'myClientId',
+            'client_secret': 'mySecret',  # may be empty for pure public clients
+            'code_challenge_method': 'S256',  # enables PKCE
+            'server_metadata_url': 'https://myAuthorizationServer/.well-known/openid-configuration'
+        }
+    }
+]
+```
+
+PKCE (`S256`) is recommended for all OAuth2 flows, even when a client secret is present, as it protects against authorization code interception attacks.
+
 ## LDAP Authentication
 
 FAB supports authenticating user credentials against an LDAP server.
