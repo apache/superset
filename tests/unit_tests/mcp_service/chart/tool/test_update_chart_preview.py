@@ -23,7 +23,9 @@ import importlib
 from unittest.mock import Mock, patch
 
 import pytest
+from fastmcp import Client
 
+from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
@@ -37,6 +39,39 @@ from superset.mcp_service.chart.schemas import (
 update_chart_preview_module = importlib.import_module(
     "superset.mcp_service.chart.tool.update_chart_preview"
 )
+
+
+@pytest.fixture
+def mcp_server():
+    return mcp
+
+
+@pytest.fixture
+def mock_auth():
+    """Mock authentication for tool-invocation tests."""
+    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
+        user = Mock()
+        user.id = 1
+        user.username = "admin"
+        mock_get_user.return_value = user
+        yield mock_get_user
+
+
+def _mock_dataset(id: int = 1) -> Mock:
+    """Mock SqlaTable with the attributes the tool reads."""
+    column = Mock()
+    column.column_name = "ds"
+    column.type = "TIMESTAMP"
+    database = Mock()
+    database.database_name = "main"
+    dataset = Mock()
+    dataset.id = id
+    dataset.table_name = "birth_names"
+    dataset.schema = None
+    dataset.columns = [column]
+    dataset.metrics = []
+    dataset.database = database
+    return dataset
 
 
 class TestUpdateChartPreview:
@@ -642,3 +677,107 @@ class TestUpdateChartPreview:
         assert result["error"] is None
         assert result["warnings"] == []
         mock_get_previous_form_data.assert_called_once_with("valid_key_12345")
+
+
+class TestUpdateChartPreviewValidation:
+    """Tier-1 validation gate and dataset access checks."""
+
+    @patch(
+        "superset.mcp_service.chart.tool.update_chart_preview.has_dataset_access",
+        return_value=True,
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch("superset.mcp_service.chart.tool.update_chart_preview.validate_and_compile")
+    @patch(
+        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
+    )
+    @pytest.mark.asyncio
+    async def test_validation_failure_skips_cache_write(
+        self,
+        mock_create_form_data,
+        mock_validate,
+        mock_find_dataset,
+        unused_access_mock,
+        mcp_server,
+        mock_auth,
+    ):
+        """Bad column ref → structured error with suggestions, no cache write."""
+        from superset.mcp_service.chart.compile import CompileResult
+        from superset.mcp_service.common.error_schemas import ChartGenerationError
+
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_validate.return_value = CompileResult(
+            success=False,
+            error="Column 'num_boys' does not exist in dataset",
+            error_code="CHART_VALIDATION_FAILED",
+            tier="validation",
+            error_obj=ChartGenerationError(
+                error_type="invalid_column",
+                message="Column 'num_boys' does not exist in dataset",
+                details="Available columns: ds, gender, name, num, sum_boys",
+                suggestions=["sum_boys"],
+                error_code="CHART_VALIDATION_FAILED",
+            ),
+        )
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="num_boys", aggregate="SUM")],
+            kind="line",
+        )
+        request = UpdateChartPreviewRequest(
+            form_data_key="prev_key", dataset_id="3", config=config
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_chart_preview", {"request": request.model_dump()}
+            )
+
+            assert result.data["success"] is False
+            assert result.data["chart"] is None
+            error = result.data["error"]
+            assert isinstance(error, dict)
+            assert error["error_code"] == "CHART_VALIDATION_FAILED"
+            assert "sum_boys" in error["suggestions"]
+            mock_create_form_data.assert_not_called()
+
+    @patch(
+        "superset.mcp_service.chart.tool.update_chart_preview.has_dataset_access",
+        return_value=False,
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch(
+        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
+    )
+    @pytest.mark.asyncio
+    async def test_dataset_access_denied_short_circuits(
+        self,
+        mock_create_form_data,
+        mock_find_dataset,
+        unused_access_mock,
+        mcp_server,
+        mock_auth,
+    ):
+        """has_dataset_access=False → DatasetNotAccessible, no cache write."""
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="region")]
+        )
+        request = UpdateChartPreviewRequest(
+            form_data_key="prev_key", dataset_id="3", config=config
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_chart_preview", {"request": request.model_dump()}
+            )
+
+            assert result.data["success"] is False
+            assert result.data["chart"] is None
+            error = result.data["error"]
+            assert isinstance(error, dict)
+            assert error["error_type"] == "DatasetNotAccessible"
+            mock_create_form_data.assert_not_called()
