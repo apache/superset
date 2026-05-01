@@ -1678,12 +1678,12 @@
     postcss-sort-media-queries "^5.2.0"
     tslib "^2.6.0"
 
-"@docusaurus/faster@^3.10.0":
-  version "3.10.0"
-  resolved "https://registry.yarnpkg.com/@docusaurus/faster/-/faster-3.10.0.tgz#0758a93196f685537aa7700bde62faf926e6c817"
-  integrity sha512-GNPtVH14ISjHfSwnHu3KiFGf86ICmJSQDeSv/QaanpBgiZGOtgZaslnC5q8WiguxM1EVkwcGxPuD8BXF4eggKw==
+"@docusaurus/faster@^3.10.1":
+  version "3.10.1"
+  resolved "https://registry.yarnpkg.com/@docusaurus/faster/-/faster-3.10.1.tgz#a63d89ae980c98e1eeab3ff15ee083f7c20ed353"
+  integrity sha512-XTZhE5C1gZ/DaYYMlSk02dwP5vhpQON5QHVz1s3892mSESAywgWanURpXEDAvt4GvGuq7s+XP8rTWHZvfaJmdQ==
   dependencies:
-    "@docusaurus/types" "3.10.0"
+    "@docusaurus/types" "3.10.1"
     "@rspack/core" "^1.7.10"
     "@swc/core" "^1.7.39"
     "@swc/html" "^1.13.5"
@@ -2045,6 +2045,22 @@
   version "3.10.0"
   resolved "https://registry.yarnpkg.com/@docusaurus/types/-/types-3.10.0.tgz#a69232bba74b738fcf4671fd5f0f079366dd3d13"
   integrity sha512-F0dOt3FOoO20rRaFK7whGFQZ3ggyrWEdQc/c8/UiRuzhtg4y1w9FspXH5zpCT07uMnJKBPGh+qNazbNlCQqvSw==
+  dependencies:
+    "@mdx-js/mdx" "^3.0.0"
+    "@types/history" "^4.7.11"
+    "@types/mdast" "^4.0.2"
+    "@types/react" "*"
+    commander "^5.1.0"
+    joi "^17.9.2"
+    react-helmet-async "npm:@slorber/react-helmet-async@1.3.0"
+    utility-types "^3.10.0"
+    webpack "^5.95.0"
+    webpack-merge "^5.9.0"
+
+"@docusaurus/types@3.10.1":
+  version "3.10.1"
+  resolved "https://registry.yarnpkg.com/@docusaurus/types/-/types-3.10.1.tgz#d42837938ae43ca2be0ca47e63e00476b5eb94be"
+  integrity sha512-XYMK8k1szDCFMw2V+Xyen0g7Kee1sP3dtFnl7vkGkZOkeAJ/oPDQPL8iz4HBKOo/cwU8QeV6onVjMqtP+tFzsw==
   dependencies:
     "@mdx-js/mdx" "^3.0.0"
     "@types/history" "^4.7.11"
