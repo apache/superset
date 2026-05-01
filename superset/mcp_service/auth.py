@@ -637,10 +637,9 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                 # scoped by thread (not ContextVar), so a prior request's session may
                 # still be bound to a different tenant's DB engine. Removing it here
                 # ensures the next DB access creates a fresh session bound to the
-                # correct engine for the current request's workspace context.
-                # The workspace context itself (g.__CURRENT_WORKSPACE_NAME__) is
-                # correctly propagated from the request via ContextVar — only the
-                # thread-local session binding is stale.
+                # correct engine for the current request. The per-request context is
+                # correctly propagated via ContextVar — only the thread-local session
+                # binding is stale.
                 from superset.extensions import db
 
                 db.session.remove()
