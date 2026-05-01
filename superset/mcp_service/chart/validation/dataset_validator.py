@@ -25,7 +25,12 @@ import logging
 from typing import Any, Dict, List, Tuple
 
 from superset.mcp_service.chart.schemas import (
+    BigNumberChartConfig,
     ColumnRef,
+    HandlebarsChartConfig,
+    MixedTimeseriesChartConfig,
+    PieChartConfig,
+    PivotTableChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -53,7 +58,7 @@ class DatasetValidator:
 
     @staticmethod
     def validate_against_dataset(
-        config: TableChartConfig | XYChartConfig,
+        config: Any,
         dataset_id: int | str,
         dataset_context: DatasetContext | None = None,
     ) -> Tuple[bool, ChartGenerationError | None]:
@@ -195,11 +200,16 @@ class DatasetValidator:
             return None
 
     @staticmethod
-    def _extract_column_references(
-        config: TableChartConfig | XYChartConfig,
-    ) -> List[ColumnRef]:
-        """Extract all column references from configuration."""
-        refs = []
+    def _extract_column_references(config: Any) -> List[ColumnRef]:  # noqa: C901
+        """Extract all column references from a chart configuration.
+
+        Covers every supported ``ChartConfig`` variant so fast-path tools
+        (``generate_explore_link``, ``update_chart_preview``) that only run
+        Tier-1 validation still catch bad column refs in pie / pivot table /
+        mixed timeseries / handlebars / big number charts — not just XY and
+        table.
+        """
+        refs: List[ColumnRef] = []
 
         if isinstance(config, TableChartConfig):
             refs.extend(config.columns)
@@ -209,10 +219,37 @@ class DatasetValidator:
             refs.extend(config.y)
             if config.group_by:
                 refs.extend(config.group_by)
+        elif isinstance(config, PieChartConfig):
+            refs.append(config.dimension)
+            refs.append(config.metric)
+        elif isinstance(config, PivotTableChartConfig):
+            refs.extend(config.rows)
+            if config.columns:
+                refs.extend(config.columns)
+            refs.extend(config.metrics)
+        elif isinstance(config, MixedTimeseriesChartConfig):
+            refs.append(config.x)
+            refs.extend(config.y)
+            if config.group_by:
+                refs.extend(config.group_by)
+            refs.extend(config.y_secondary)
+            if config.group_by_secondary:
+                refs.extend(config.group_by_secondary)
+        elif isinstance(config, HandlebarsChartConfig):
+            if config.columns:
+                refs.extend(config.columns)
+            if config.groupby:
+                refs.extend(config.groupby)
+            if config.metrics:
+                refs.extend(config.metrics)
+        elif isinstance(config, BigNumberChartConfig):
+            refs.append(config.metric)
+            if config.temporal_column:
+                refs.append(ColumnRef(name=config.temporal_column))
 
-        # Add filter columns
-        if hasattr(config, "filters") and config.filters:
-            for filter_config in config.filters:
+        # Filter columns (shared by every config type that defines ``filters``).
+        if filters := getattr(config, "filters", None):
+            for filter_config in filters:
                 refs.append(ColumnRef(name=filter_config.column))
 
         return refs
@@ -379,20 +416,28 @@ class DatasetValidator:
 
         # Find close matches
         column_lower = column_name.lower()
+        candidate_lookup = [name[0].lower() for name in all_names]
         close_matches = difflib.get_close_matches(
             column_lower,
-            [name[0].lower() for name in all_names],
+            candidate_lookup,
             n=max_suggestions,
             cutoff=0.6,
         )
 
-        # Build suggestions with proper case and type info
+        # Build suggestions with proper case and type info. ``ColumnSuggestion``
+        # requires ``similarity_score`` and does not have a ``data_type`` field;
+        # we score via difflib ratio and store the candidate kind in ``type``.
         suggestions = []
         for match in close_matches:
-            for name, col_type, data_type in all_names:
+            for name, col_type, _data_type in all_names:
                 if name.lower() == match:
+                    score = difflib.SequenceMatcher(None, column_lower, match).ratio()
                     suggestions.append(
-                        ColumnSuggestion(name=name, type=col_type, data_type=data_type)
+                        ColumnSuggestion(
+                            name=name,
+                            type=col_type,
+                            similarity_score=round(score, 3),
+                        )
                     )
                     break
 

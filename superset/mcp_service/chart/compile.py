@@ -40,6 +40,7 @@ from superset.commands.exceptions import CommandException
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
+    ColumnSuggestion,
     DatasetContext,
 )
 
@@ -97,11 +98,15 @@ def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
         )
 
     database = getattr(dataset, "database", None)
+    # ``DatasetContext.database_name`` is typed as required ``str``; default to
+    # an empty string when the relationship isn't loaded so we don't blow up
+    # Pydantic validation. The field is purely informational in error messages.
+    database_name = getattr(database, "database_name", None) or ""
     return DatasetContext(
         id=dataset.id,
         table_name=dataset.table_name,
         schema=dataset.schema,
-        database_name=database.database_name if database is not None else None,
+        database_name=database_name,
         available_columns=columns,
         available_metrics=metrics,
     )
@@ -198,6 +203,64 @@ def _compile_chart(
         )
 
 
+def _validate_adhoc_filter_columns(
+    form_data: Dict[str, Any], dataset_context: DatasetContext
+) -> ChartGenerationError | None:
+    """Tier-1 check for adhoc-filter column references stored in ``form_data``.
+
+    ``DatasetValidator._extract_column_references`` walks the typed
+    ``ChartConfig`` and only sees ``config.filters``. Tools like
+    ``update_chart_preview`` and ``update_chart`` (preview path) also merge
+    *previously cached* ``adhoc_filters`` into ``form_data`` that aren't
+    represented on the new config — those would otherwise bypass validation
+    and surface only when Explore tries to run the query.
+    """
+    adhoc_filters = form_data.get("adhoc_filters") or []
+    invalid: List[str] = []
+    for f in adhoc_filters:
+        if not isinstance(f, dict):
+            continue
+        # SIMPLE filters expose the column via "subject"; SQL-expression
+        # filters carry a free-form ``sqlExpression`` we can't safely parse,
+        # so skip those.
+        if f.get("expressionType") and f.get("expressionType") != "SIMPLE":
+            continue
+        column = f.get("subject") or f.get("col")
+        if not column or not isinstance(column, str):
+            continue
+        if not DatasetValidator._column_exists(column, dataset_context):
+            invalid.append(column)
+
+    if not invalid:
+        return None
+
+    suggestions: List[str] = []
+    for column in invalid:
+        for suggestion in DatasetValidator._get_column_suggestions(
+            column, dataset_context
+        ):
+            name = (
+                suggestion.name
+                if isinstance(suggestion, ColumnSuggestion)
+                else str(suggestion)
+            )
+            if name and name not in suggestions:
+                suggestions.append(name)
+
+    bad = ", ".join(sorted(set(invalid)))
+    return ChartGenerationError(
+        error_type="invalid_column",
+        message=(f"Filter references column(s) not in dataset: {bad}"),
+        details=(
+            "Adhoc filter columns must exist on the dataset. "
+            "If these filters were preserved from a previous chart preview, "
+            "remove them or pass an explicit ``filters`` list on the new config."
+        ),
+        suggestions=suggestions,
+        error_code="CHART_VALIDATION_FAILED",
+    )
+
+
 def _build_compile_error(message: str) -> ChartGenerationError:
     """Wrap a raw compile-failure string in the structured response envelope."""
     return ChartGenerationError(
@@ -261,6 +324,20 @@ def validate_and_compile(
             tier="validation",
             error_obj=error,
         )
+
+    # Validate adhoc-filter columns living only in form_data (e.g. filters
+    # preserved from a previously cached preview). The typed config-level
+    # validator above doesn't see those.
+    if dataset_context is not None:
+        filter_error = _validate_adhoc_filter_columns(form_data, dataset_context)
+        if filter_error is not None:
+            return CompileResult(
+                success=False,
+                error=filter_error.details or filter_error.message,
+                error_code="CHART_VALIDATION_FAILED",
+                tier="validation",
+                error_obj=filter_error,
+            )
 
     if not run_compile_check:
         return CompileResult(success=True)

@@ -951,11 +951,11 @@ class TestGenerateExploreLinkValidation:
     """Tier-1 validation gate (DatasetValidator) and dataset access checks."""
 
     @pytest.fixture(autouse=True)
-    def disable_validation_autopass(self):
-        """Don't auto-pass validation in this class — we want to exercise it."""
-        # The module-level autouse fixture patches validate_and_compile to
-        # always succeed. Override it here so each test can stub the real
-        # behavior it wants to verify.
+    def mock_validation_passes(self):
+        """Override the module-level autouse patch so each test in this class
+        can stub ``validate_and_compile`` itself. The fixture name MUST match
+        the module-level fixture for pytest's override-by-name to take effect.
+        """
         return
 
     @patch(
