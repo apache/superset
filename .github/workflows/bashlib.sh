@@ -59,6 +59,15 @@ build-assets() {
   say "::endgroup::"
 }
 
+build-embedded-sdk() {
+  cd "$GITHUB_WORKSPACE/superset-embedded-sdk"
+
+  say "::group::Build embedded SDK bundle for E2E tests"
+  npm ci
+  npm run build
+  say "::endgroup::"
+}
+
 build-instrumented-assets() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
