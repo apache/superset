@@ -23,10 +23,11 @@ from typing import Any, Dict, List
 import dateutil.parser
 from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import joinedload, Query
 
 from superset.connectors.sqla.models import (
     RLSFilterTables,
+    RowLevelSecurityFilter,
     SqlaTable,
     SqlMetric,
     TableColumn,
@@ -677,7 +678,6 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         one RLS filter attached. For virtual datasets, also includes RLS
         filters from physical tables referenced in the dataset's SQL.
         """
-        from superset.connectors.sqla.models import RowLevelSecurityFilter
 
         if not dataset_ids:
             return {}
@@ -780,7 +780,6 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         - physical_map: (table_name, schema, database_id) -> physical dataset id
         - phys_rls: physical dataset id -> list of RLS filter summaries
         """
-        from superset.connectors.sqla.models import RowLevelSecurityFilter
 
         all_table_names = {t.table for t in all_tables}
         physical_tables = (
@@ -896,9 +895,6 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         For virtual datasets, also includes RLS filters from physical tables
         referenced in the dataset's SQL.
         """
-        from sqlalchemy.orm import joinedload
-
-        from superset.connectors.sqla.models import RowLevelSecurityFilter
 
         # Direct RLS filters on this dataset — eager-load roles to avoid N+1
         filters = (
