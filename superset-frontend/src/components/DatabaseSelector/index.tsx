@@ -55,7 +55,7 @@ import { StyledFormLabel } from './styles';
 import {
   databaseLabel,
   databasesLabelLower,
-} from 'src/utils/semanticLayerLabels';
+} from 'src/features/semanticLayers/label';
 
 const DatabaseSelectorWrapper = styled.div<{ horizontal?: boolean }>`
   ${({ theme, horizontal }) =>

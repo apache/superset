@@ -38,7 +38,7 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
-import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 const AGGREGATED_DECK_GL_CHART_TYPES = [
   'deck_screengrid',

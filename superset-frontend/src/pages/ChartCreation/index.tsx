@@ -44,7 +44,10 @@ import {
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { datasetLabel, datasetLabelLower } from 'src/utils/semanticLayerLabels';
+import {
+  datasetLabel,
+  datasetLabelLower,
+} from 'src/features/semanticLayers/label';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;

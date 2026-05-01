@@ -58,7 +58,7 @@ import { Dataset } from '../types';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';
-import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 const PAGE_SIZE = 50;
 

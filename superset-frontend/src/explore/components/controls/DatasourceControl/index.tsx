@@ -46,7 +46,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
-import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 import {
   userHasPermission,
   isUserAdmin,

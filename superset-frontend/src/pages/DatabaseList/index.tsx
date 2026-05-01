@@ -74,7 +74,7 @@ import {
   databaseLabel,
   databaseLabelLower,
   databasesLabel,
-} from 'src/utils/semanticLayerLabels';
+} from 'src/features/semanticLayers/label';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(

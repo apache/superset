@@ -36,7 +36,7 @@ import { Tooltip, ImageLoader } from '@superset-ui/core/components';
 import { GenericLink, usePluginContext } from 'src/components';
 import { assetUrl } from 'src/utils/assetUrl';
 import { Theme } from '@emotion/react';
-import { datasetLabel } from 'src/utils/semanticLayerLabels';
+import { datasetLabel } from 'src/features/semanticLayers/label';
 
 const FALLBACK_THUMBNAIL_URL = assetUrl(
   '/static/assets/images/chart-card-fallback.svg',

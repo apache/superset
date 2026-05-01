@@ -55,7 +55,7 @@ import type { ConnectDragSource } from 'react-dnd';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
-import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 export type SliceAdderProps = {
   theme: Theme;

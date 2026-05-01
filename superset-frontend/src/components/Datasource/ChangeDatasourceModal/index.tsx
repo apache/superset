@@ -53,7 +53,7 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { InputRef } from 'antd';
 import type { Datasource, ChangeDatasourceModalProps } from '../types';
-import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 const CONFIRM_WARNING_MESSAGE = t(
   'Warning! Changing the dataset may break the chart if the metadata does not exist.',

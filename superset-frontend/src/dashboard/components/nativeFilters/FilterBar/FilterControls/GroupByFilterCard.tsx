@@ -54,7 +54,7 @@ import { mergeExtraFormData } from '../../utils';
 import {
   datasetLabel as getDatasetLabel,
   datasetLabelLower,
-} from 'src/utils/semanticLayerLabels';
+} from 'src/features/semanticLayers/label';
 
 interface ColumnApiResponse {
   column_name?: string;

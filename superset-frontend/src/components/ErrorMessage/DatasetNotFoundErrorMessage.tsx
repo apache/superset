@@ -20,7 +20,7 @@ import { t } from '@apache-superset/core/translation';
 
 import type { ErrorMessageComponentProps } from './types';
 import { ErrorAlert } from './ErrorAlert';
-import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 export function DatasetNotFoundErrorMessage({
   error,

@@ -34,7 +34,7 @@ import {
   datasetLabel,
   datasetLabelLower,
   datasetsLabelLower,
-} from 'src/utils/semanticLayerLabels';
+} from 'src/features/semanticLayers/label';
 
 interface DatasetSelectProps {
   onChange: (value: { label: string | ReactNode; value: number }) => void;

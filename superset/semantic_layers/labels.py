@@ -23,7 +23,7 @@ When the SEMANTIC_LAYERS feature flag is enabled the UI broadens
 that semantic views and semantic layers feel like first-class
 citizens alongside traditional datasets and database connections.
 
-Mirror of superset-frontend/src/utils/semanticLayerLabels.ts.
+Mirror of superset-frontend/src/features/semanticLayers/label.ts.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ from flask_babel import lazy_gettext as _
 def _sl(legacy: str, semantic: str) -> str:
     """Return *semantic* when SEMANTIC_LAYERS is enabled, else *legacy*."""
     # Imported lazily to avoid a circular import at module load time
-    # (superset.utils.semantic_layer_labels is imported by superset.initialization,
+    # (superset.semantic_layers.labels is imported by superset.initialization,
     # which is itself imported during superset package initialization).
     from superset import feature_flag_manager  # pylint: disable=import-outside-toplevel
 

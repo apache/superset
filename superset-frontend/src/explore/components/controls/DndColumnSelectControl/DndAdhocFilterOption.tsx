@@ -23,7 +23,7 @@ import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilt
 import { OptionSortType } from 'src/explore/types';
 import { useGetTimeRangeLabel } from 'src/explore/components/controls/FilterControl/utils';
 import OptionWrapper from './OptionWrapper';
-import { datasetLabelLower } from 'src/utils/semanticLayerLabels';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 export interface DndAdhocFilterOptionProps {
   adhocFilter: AdhocFilter;

@@ -61,12 +61,12 @@ from superset.extensions import (
 )
 from superset.extensions.context import extension_context
 from superset.security import SupersetSecurityManager
+from superset.semantic_layers.labels import database_connections_menu_label
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.decorators import transaction
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
-from superset.utils.semantic_layer_labels import database_connections_menu_label
 
 if TYPE_CHECKING:
     from superset.app import SupersetApp

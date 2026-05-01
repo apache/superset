@@ -83,7 +83,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
-import { datasetLabel } from 'src/utils/semanticLayerLabels';
+import { datasetLabel } from 'src/features/semanticLayers/label';
 
 const FlexRowContainer = styled.div`
   align-items: center;

@@ -94,7 +94,7 @@ import {
   datasetsLabel,
   datasetsLabelLower,
   databaseLabel,
-} from 'src/utils/semanticLayerLabels';
+} from 'src/features/semanticLayers/label';
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';

@@ -35,7 +35,7 @@ import {
   MenuObjectProps,
   MenuData,
 } from 'src/types/bootstrapTypes';
-import { datasetsLabel } from 'src/utils/semanticLayerLabels';
+import { datasetsLabel } from 'src/features/semanticLayers/label';
 import RightMenu from './RightMenu';
 import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
