@@ -16853,4 +16853,3 @@ msgstr "© Атрибут шару"
 
 #~ msgid "success dark"
 #~ msgstr "успіх (темний)"
-
