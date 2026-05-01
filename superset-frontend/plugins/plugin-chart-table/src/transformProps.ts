@@ -130,11 +130,11 @@ const processComparisonTotals = (
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
         transformedTotals[`Main ${key}`] =
-          Number(transformedTotals[`Main ${key}`]?.toString() || '0') +
-          Number(totalRecord[key]?.toString() || '0');
+          parseFloat(transformedTotals[`Main ${key}`]?.toString() || '0') +
+          parseFloat(totalRecord[key]?.toString() || '0');
         transformedTotals[`# ${key}`] =
-          Number(transformedTotals[`# ${key}`]?.toString() || '0') +
-          Number(
+          parseFloat(transformedTotals[`# ${key}`]?.toString() || '0') +
+          parseFloat(
             totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
           );
         const { valueDifference, percentDifferenceNum } = calculateDifferences(
@@ -479,7 +479,7 @@ const getPageSize = (
     return pageSize || 0;
   }
   if (typeof pageSize === 'string') {
-    return Number(pageSize) || 0;
+    return parseFloat(pageSize) || 0;
   }
   // when pageSize not set, automatically add pagination if too many records
   return numRecords * numColumns > 5000 ? 200 : 0;
