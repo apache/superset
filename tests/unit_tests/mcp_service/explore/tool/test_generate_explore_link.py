@@ -19,6 +19,7 @@
 Comprehensive unit tests for MCP generate_explore_link tool
 """
 
+import importlib
 import logging
 from unittest.mock import Mock, patch
 
@@ -36,6 +37,14 @@ from superset.mcp_service.chart.schemas import (
     XYChartConfig,
 )
 from superset.mcp_service.common.error_schemas import DatasetContext
+
+# The package ``__init__.py`` re-exports the ``generate_explore_link`` tool
+# function under the same dotted path as the module, so mock.patch's string
+# lookup of ``...generate_explore_link.<attr>`` can resolve to the function
+# on some Python versions. Hold a direct module reference for ``patch.object``.
+generate_explore_link_module = importlib.import_module(
+    "superset.mcp_service.explore.tool.generate_explore_link"
+)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -60,9 +69,8 @@ def mock_auth():
 @pytest.fixture(autouse=True)
 def mock_dataset_access_granted():
     """Grant dataset access by default; tests that need a denial override this."""
-    with patch(
-        "superset.mcp_service.explore.tool.generate_explore_link.has_dataset_access",
-        return_value=True,
+    with patch.object(
+        generate_explore_link_module, "has_dataset_access", return_value=True
     ):
         yield
 
@@ -73,8 +81,9 @@ def mock_validation_passes():
     real validator. Individual tests that exercise validation override this."""
     from superset.mcp_service.chart.compile import CompileResult
 
-    with patch(
-        "superset.mcp_service.explore.tool.generate_explore_link.validate_and_compile",
+    with patch.object(
+        generate_explore_link_module,
+        "validate_and_compile",
         return_value=CompileResult(success=True),
     ):
         yield
@@ -958,9 +967,7 @@ class TestGenerateExploreLinkValidation:
         """
         return
 
-    @patch(
-        "superset.mcp_service.explore.tool.generate_explore_link.validate_and_compile"
-    )
+    @patch.object(generate_explore_link_module, "validate_and_compile")
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
@@ -1014,9 +1021,8 @@ class TestGenerateExploreLinkValidation:
             assert "sum_boys" in error["suggestions"]
             mock_create_form_data.assert_not_called()
 
-    @patch(
-        "superset.mcp_service.explore.tool.generate_explore_link.has_dataset_access",
-        return_value=False,
+    @patch.object(
+        generate_explore_link_module, "has_dataset_access", return_value=False
     )
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
