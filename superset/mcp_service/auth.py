@@ -633,16 +633,18 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             with _get_app_context_manager():
                 # Clear any stale thread-local SQLAlchemy session before user lookup.
-                # Thread pool workers reuse threads across requests; db.session is
-                # scoped by thread (not ContextVar), so a prior request's session may
-                # still be bound to a different tenant's DB engine. Removing it here
-                # ensures the next DB access creates a fresh session bound to the
-                # correct engine for the current request. The per-request context is
+                # Only needed in the request-context path (HTTP transport): thread pool
+                # workers reuse threads across requests, and db.session is scoped by
+                # thread (not ContextVar), so a prior request's session may still be
+                # bound to a different tenant's DB engine. The per-request context is
                 # correctly propagated via ContextVar — only the thread-local session
-                # binding is stale.
-                from superset.extensions import db
+                # binding is stale. In the no-request-context path,
+                # _get_app_context_manager() already pushes a fresh app context so the
+                # session is clean by construction.
+                if has_request_context():
+                    from superset.extensions import db
 
-                db.session.remove()
+                    db.session.remove()
                 user = _setup_user_context()
 
                 # No Flask context - this is a FastMCP internal operation
