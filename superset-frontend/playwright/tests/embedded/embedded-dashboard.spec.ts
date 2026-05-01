@@ -20,21 +20,11 @@
 import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
 import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
 import { readFileSync, existsSync } from 'fs';
-import { join, extname } from 'path';
+import { join } from 'path';
 import { apiEnableEmbedding, getGuestToken } from '../../helpers/api/embedded';
 import { getDashboardBySlug } from '../../helpers/api/dashboard';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
 import { EMBEDDED } from '../../utils/constants';
-
-/**
- * MIME types for the static file server
- */
-const MIME_TYPES: Record<string, string> = {
-  '.html': 'text/html',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
-};
 
 /**
  * Superset domain (Flask server) — set by CI or defaults to local dev
@@ -63,13 +53,15 @@ const EMBED_APP_DIR = join(__dirname, '../../embedded-app');
 
 /**
  * Create a minimal static file server for the embedded test app.
- * Serves HTML from embedded-app/ and the SDK bundle from superset-embedded-sdk/bundle/.
+ * Serves only a fixed allowlist of routes — the test app references just
+ * its index.html and the SDK bundle, so anything else is 404.
  */
+const INDEX_HTML_PATH = join(EMBED_APP_DIR, 'index.html');
+
 function createEmbedAppServer(): Server {
   return createServer((req: IncomingMessage, res: ServerResponse) => {
     const urlPath = req.url?.split('?')[0] || '/';
 
-    // Serve SDK bundle at /sdk/index.js
     if (urlPath === '/sdk/index.js') {
       if (!existsSync(SDK_BUNDLE_PATH)) {
         res.writeHead(404);
@@ -83,21 +75,14 @@ function createEmbedAppServer(): Server {
       return;
     }
 
-    // Serve static files from embedded-app/
-    const filePath = join(
-      EMBED_APP_DIR,
-      urlPath === '/' ? 'index.html' : urlPath,
-    );
-    if (!existsSync(filePath)) {
-      res.writeHead(404);
-      res.end('Not found');
+    if (urlPath === '/' || urlPath === '/index.html') {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(readFileSync(INDEX_HTML_PATH));
       return;
     }
 
-    const ext = extname(filePath);
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(readFileSync(filePath));
+    res.writeHead(404);
+    res.end('Not found');
   });
 }
 
