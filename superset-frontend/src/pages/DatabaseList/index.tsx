@@ -858,7 +858,7 @@ function DatabaseList({
     }
 
     if (!showSemanticLayers) {
-       baseFilters.push(
+      baseFilters.push(
         {
           Header: t('Expose in SQL Lab'),
           key: 'expose_in_sql_lab',

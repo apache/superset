@@ -1402,7 +1402,7 @@ test('getAxisType with forced categorical', () => {
 
 test('getAxisType treats numeric as category for bar charts', () => {
   expect(
-    getAxisType(
+    (getAxisType as (...args: unknown[]) => AxisType)(
       false,
       false,
       GenericDataType.Numeric,
@@ -1410,7 +1410,7 @@ test('getAxisType treats numeric as category for bar charts', () => {
     ),
   ).toEqual(AxisType.Category);
   expect(
-    getAxisType(
+    (getAxisType as (...args: unknown[]) => AxisType)(
       false,
       false,
       GenericDataType.Numeric,
