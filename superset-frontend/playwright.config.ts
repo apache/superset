@@ -95,6 +95,7 @@ export default defineConfig({
       testIgnore: [
         '**/tests/auth/**/*.spec.ts',
         '**/tests/sqllab/**/*.spec.ts',
+        '**/tests/embedded/**/*.spec.ts',
         ...(process.env.INCLUDE_EXPERIMENTAL ? [] : ['**/experimental/**']),
       ],
       use: {
@@ -130,6 +131,18 @@ export default defineConfig({
         browserName: 'chromium',
         testIdAttribute: 'data-test',
         // No storageState = clean browser with no cached cookies
+      },
+    },
+    {
+      // Embedded dashboard tests - validates the full embedding flow:
+      // external app -> SDK -> iframe -> guest token -> dashboard render
+      name: 'chromium-embedded',
+      testMatch: '**/tests/embedded/**/*.spec.ts',
+      use: {
+        browserName: 'chromium',
+        testIdAttribute: 'data-test',
+        // Uses admin auth for API calls to configure embedding and get guest tokens
+        storageState: 'playwright/.auth/user.json',
       },
     },
   ],
