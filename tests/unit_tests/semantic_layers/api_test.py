@@ -36,6 +36,7 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
     SemanticViewUpdateFailedError,
 )
+from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.api import SemanticLayerRestApi, SemanticViewRestApi
 
 SEMANTIC_LAYERS_APP = pytest.mark.parametrize(
@@ -2067,6 +2068,7 @@ def test_get_semantic_view_structure(
     assert result["metrics"][0]["type"] == "double"
     assert result["metrics"][0]["definition"] == "SIMPLE"
     assert result["metrics"][0]["description"] == "Order count"
+    mock_view.raise_for_access.assert_called_once()
 
 
 @SEMANTIC_LAYERS_APP
@@ -2151,6 +2153,29 @@ def test_get_semantic_view_structure_no_grain(
     result = response.json["result"]
     assert result["dimensions"][0]["grain"] is None
     assert result["metrics"] == []
+    mock_view.raise_for_access.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_semantic_view_structure_forbidden(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /<pk>/structure returns 403 when access is denied."""
+    mock_view = MagicMock()
+    access_error = MagicMock()
+    access_error.message = "Forbidden"
+    mock_view.raise_for_access.side_effect = SupersetSecurityException(access_error)
+
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    mock_db_session.query.return_value.filter_by.return_value.first.return_value = (
+        mock_view
+    )
+
+    response = client.get("/api/v1/semantic_view/1/structure")
+
+    assert response.status_code == 403
 
 
 def test_semantic_view_structure_flag_off_unwrapped() -> None:

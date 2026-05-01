@@ -171,28 +171,27 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     setPageIndex(0);
   };
 
-  const handleChangeConfirm = () => {
-    SupersetClient.get({
-      endpoint: `/api/v1/dataset/${confirmedDataset?.id}`,
-    })
-      .then(({ json }) => {
-        // eslint-disable-next-line no-param-reassign
-        json.result.type = 'table';
-        onDatasourceSave(json.result);
-        onChange(`${confirmedDataset?.id}__table`);
-      })
-      .catch(response => {
-        getClientErrorObject(response).then(
-          ({ error, message }: { error: any; message: string }) => {
-            const errorMessage = error
-              ? error.error || error.statusText || error
-              : message;
-            addDangerToast(errorMessage);
-          },
-        );
+  const handleChangeConfirm = async () => {
+    try {
+      const { json } = await SupersetClient.get({
+        endpoint: `/api/v1/dataset/${confirmedDataset?.id}`,
       });
-    onHide();
-    addSuccessToast(t('Successfully changed %s!', datasetLabelLower()));
+      // eslint-disable-next-line no-param-reassign
+      json.result.type = 'table';
+      onDatasourceSave(json.result);
+      onChange(`${confirmedDataset?.id}__table`);
+      onHide();
+      addSuccessToast(t('Successfully changed %s!', datasetLabelLower()));
+    } catch (response) {
+      getClientErrorObject(response).then(
+        ({ error, message }: { error: any; message: string }) => {
+          const errorMessage = error
+            ? error.error || error.statusText || error
+            : message;
+          addDangerToast(errorMessage);
+        },
+      );
+    }
   };
 
   const handlerCancelConfirm = () => {

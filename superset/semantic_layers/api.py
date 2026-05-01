@@ -58,6 +58,7 @@ from superset.commands.semantic_layer.update import (
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.semantic_layer import SemanticLayerDAO
 from superset.datasets.schemas import get_delete_ids_schema
+from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
@@ -220,6 +221,11 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
         view = db.session.query(SemanticView).filter_by(id=pk).first()
         if not view:
             return self.response_404()
+
+        try:
+            view.raise_for_access()
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
 
         try:
             dimensions = [

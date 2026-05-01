@@ -79,7 +79,13 @@ test('loads layers on open and adds selected semantic views', async () => {
       });
     }
     if (endpoint === '/api/v1/semantic_view/') {
-      return Promise.resolve({ json: {} });
+      return Promise.resolve({
+        json: {
+          result: {
+            created: [{ uuid: 'view-1', name: 'orders' }],
+          },
+        },
+      });
     }
     return Promise.reject(new Error(`Unexpected endpoint: ${endpoint}`));
   });
@@ -132,6 +138,68 @@ test('loads layers on open and adds selected semantic views', async () => {
   expect(props.addSuccessToast).toHaveBeenCalledWith(
     '1 semantic view(s) added',
   );
+  expect(props.onSuccess).toHaveBeenCalled();
+  expect(props.onHide).toHaveBeenCalled();
+});
+
+test('shows partial success feedback when only some semantic views are created', async () => {
+  mockedGet.mockResolvedValue({
+    json: {
+      result: [{ uuid: 'layer-1', name: 'Snowflake SL' }],
+    },
+  });
+
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint === '/api/v1/semantic_layer/layer-1/schema/runtime') {
+      return Promise.resolve({ json: { result: { properties: {} } } });
+    }
+    if (endpoint === '/api/v1/semantic_layer/layer-1/views') {
+      return Promise.resolve({
+        json: {
+          result: [
+            { name: 'orders', already_added: false },
+            { name: 'customers', already_added: false },
+          ],
+        },
+      });
+    }
+    if (endpoint === '/api/v1/semantic_view/') {
+      return Promise.resolve({
+        json: {
+          result: {
+            created: [{ uuid: 'view-1', name: 'orders' }],
+            errors: [{ name: 'customers', error: 'create failed' }],
+          },
+        },
+      });
+    }
+    return Promise.reject(new Error(`Unexpected endpoint: ${endpoint}`));
+  });
+
+  const props = createProps();
+  render(<AddSemanticViewModal {...props} />);
+
+  await selectOption('Semantic layer', 'Snowflake SL');
+  await waitFor(() => {
+    expect(
+      screen.getByRole('combobox', { name: 'Semantic views' }),
+    ).toBeInTheDocument();
+  });
+
+  await selectOption('Semantic views', 'orders');
+  await selectOption('Semantic views', 'customers');
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 2 view\(s\)/i }),
+  );
+
+  await waitFor(() => {
+    expect(props.addSuccessToast).toHaveBeenCalledWith(
+      '1 semantic view(s) added',
+    );
+    expect(props.addDangerToast).toHaveBeenCalledWith(
+      '1 semantic view(s) failed to add',
+    );
+  });
   expect(props.onSuccess).toHaveBeenCalled();
   expect(props.onHide).toHaveBeenCalled();
 });

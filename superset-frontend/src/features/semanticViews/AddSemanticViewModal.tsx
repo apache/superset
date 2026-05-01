@@ -401,14 +401,32 @@ export default function AddSemanticViewModal({
           configuration: runtimeData,
         }));
 
-      await SupersetClient.post({
+      const { json } = await SupersetClient.post({
         endpoint: '/api/v1/semantic_view/',
         jsonPayload: { views: viewsToCreate },
       });
 
-      addSuccessToast(t('%s semantic view(s) added', viewsToCreate.length));
-      onSuccess();
-      onHide();
+      const created = Array.isArray(json?.result?.created)
+        ? json.result.created
+        : [];
+      const errors = Array.isArray(json?.result?.errors)
+        ? json.result.errors
+        : [];
+
+      if (created.length > 0) {
+        addSuccessToast(t('%s semantic view(s) added', created.length));
+      }
+
+      if (errors.length > 0) {
+        addDangerToast(t('%s semantic view(s) failed to add', errors.length));
+      }
+
+      if (created.length > 0) {
+        onSuccess();
+        onHide();
+      } else if (errors.length === 0) {
+        addDangerToast(t('An error occurred while adding semantic views'));
+      }
     } catch {
       addDangerToast(t('An error occurred while adding semantic views'));
     } finally {

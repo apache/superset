@@ -175,6 +175,8 @@ export function setCompatibility(payload: {
   return { type: SET_COMPATIBILITY, ...payload };
 }
 
+let compatibilityRequestSeq = 0;
+
 /**
  * Fetch compatible metrics and dimensions for the current selection.
  *
@@ -192,6 +194,9 @@ export function fetchCompatibility(
   selectedDimensions: string[],
 ) {
   return async (dispatch: Dispatch) => {
+    compatibilityRequestSeq += 1;
+    const requestSeq = compatibilityRequestSeq;
+
     if (datasourceType !== 'semantic_view') {
       dispatch(
         setCompatibility({
@@ -219,6 +224,9 @@ export function fetchCompatibility(
           selected_dimensions: selectedDimensions,
         },
       });
+      if (requestSeq !== compatibilityRequestSeq) {
+        return;
+      }
       dispatch(
         setCompatibility({
           compatibleMetrics: json.result.compatible_metrics,
@@ -228,6 +236,9 @@ export function fetchCompatibility(
       );
     } catch {
       // On error fall back to no filtering so the user is never blocked.
+      if (requestSeq !== compatibilityRequestSeq) {
+        return;
+      }
       dispatch(
         setCompatibility({
           compatibleMetrics: null,
