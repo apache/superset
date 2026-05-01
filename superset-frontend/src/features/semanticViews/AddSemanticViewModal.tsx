@@ -418,10 +418,21 @@ export default function AddSemanticViewModal({
       }
 
       if (errors.length > 0) {
-        addDangerToast(t('%s semantic view(s) failed to add', errors.length));
+        const failedNames = errors
+          .map((error: { name?: string }) => error?.name)
+          .filter((name: string | undefined): name is string => !!name);
+        addDangerToast(
+          failedNames.length > 0
+            ? t(
+                '%s semantic view(s) failed to add: %s',
+                errors.length,
+                failedNames.join(', '),
+              )
+            : t('%s semantic view(s) failed to add', errors.length),
+        );
       }
 
-      if (created.length > 0) {
+      if (created.length > 0 && errors.length === 0) {
         onSuccess();
         onHide();
       } else if (errors.length === 0) {

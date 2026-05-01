@@ -197,11 +197,11 @@ test('shows partial success feedback when only some semantic views are created',
       '1 semantic view(s) added',
     );
     expect(props.addDangerToast).toHaveBeenCalledWith(
-      '1 semantic view(s) failed to add',
+      '1 semantic view(s) failed to add: customers',
     );
   });
-  expect(props.onSuccess).toHaveBeenCalled();
-  expect(props.onHide).toHaveBeenCalled();
+  expect(props.onSuccess).not.toHaveBeenCalled();
+  expect(props.onHide).not.toHaveBeenCalled();
 });
 
 test('shows toast when loading semantic layers fails', async () => {
