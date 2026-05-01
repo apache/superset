@@ -43,7 +43,7 @@
     "@ant-design/icons": "^6.2.2",
     "@docusaurus/core": "^3.10.0",
     "@docusaurus/faster": "^3.10.0",
-    "@docusaurus/plugin-client-redirects": "^3.10.0",
+    "@docusaurus/plugin-client-redirects": "^3.10.1",
     "@docusaurus/preset-classic": "3.10.0",
     "@docusaurus/theme-live-codeblock": "^3.10.0",
     "@docusaurus/theme-mermaid": "^3.10.0",
