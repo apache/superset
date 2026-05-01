@@ -48,7 +48,7 @@ const HandlebarsTemplateControl = (
           {props.label}
           <InfoTooltip
             iconStyle={{ marginLeft: theme.sizeUnit }}
-            tooltip={<a href="https://superset.apache.org/docs/using-superset/handlebars-chart" target="_blank" rel="noopener noreferrer">{t('See the Handlebars chart documentation for a list of available helpers.')}</a>}
+            tooltip={<span>{t('See ')} <a href="https://superset.apache.org/docs/using-superset/handlebars-chart" target="_blank" rel="noopener noreferrer">{t('the Handlebars chart documentation')}</a> {t('for a list of available helpers.')}</span>}
           />
         </div>
       </ControlHeader>
