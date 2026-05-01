@@ -910,7 +910,7 @@ msgid "Add CC Recipients"
 msgstr "Додати додаткових отримувачів"
 
 msgid "Add CSS template"
-msgstr "Додати шаблон CSS"
+msgstr "Додати шаблон стилю"
 
 msgid "Add Dashboard"
 msgstr "Додати звіт"
@@ -2369,16 +2369,16 @@ msgid "CSS applied to the chart"
 msgstr "CSS, який застосовано для цієї діаграми"
 
 msgid "CSS template"
-msgstr "Шаблон CSS"
+msgstr "Шаблон стилю"
 
 msgid "CSS template not found."
-msgstr "Шаблон CSS не знайдено."
+msgstr "Шаблон стилю не знайдено."
 
 msgid "CSS templates"
 msgstr "Шаблони стилю"
 
 msgid "CSS templates could not be deleted."
-msgstr "Шаблон CSS неможливо вилучити."
+msgstr "Шаблон стилю неможливо вилучити."
 
 msgid "CSV Export"
 msgstr "Експортувати CSV"
@@ -4557,10 +4557,10 @@ msgstr[3] "Вилучено %(num)d діаграму"
 #, python-format
 msgid "Deleted %(num)d css template"
 msgid_plural "Deleted %(num)d css templates"
-msgstr[0] "Вилучений %(num)d шаблон CSS"
-msgstr[1] "Вилучений %(num)d шаблони CSS"
-msgstr[2] "Вилучений %(num)d шаблонів CSS"
-msgstr[3] "Вилучений %(num)d шаблон CSS"
+msgstr[0] "Вилучений %(num)d шаблон стилю"
+msgstr[1] "Вилучений %(num)d шаблони стилю"
+msgstr[2] "Вилучений %(num)d шаблонів стилю"
+msgstr[3] "Вилучений %(num)d шаблон стилю"
 
 #, python-format
 msgid "Deleted %(num)d dashboard"
@@ -5159,7 +5159,7 @@ msgid "Edit %s in modal"
 msgstr "Редагувати %s в модальному вікні"
 
 msgid "Edit CSS template properties"
-msgstr "Редагувати властивості шаблону CSS"
+msgstr "Редагувати властивості шаблону стилю"
 
 msgid "Edit Dashboard"
 msgstr "Редагувати звіт"
