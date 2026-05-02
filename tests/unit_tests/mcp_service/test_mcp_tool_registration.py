@@ -21,7 +21,7 @@ import asyncio
 import logging
 from unittest.mock import MagicMock, patch
 
-from superset.mcp_service.app import init_fastmcp_server, mcp
+from superset.mcp_service.app import get_default_instructions, init_fastmcp_server, mcp
 
 
 def _run(coro):
@@ -199,3 +199,61 @@ def test_disabled_tools_read_from_flask_app_config() -> None:
 
     removed = {call.args[0] for call in mock_remove.call_args_list}
     assert "health_check" in removed
+
+
+# ---------------------------------------------------------------------------
+# get_default_instructions disabled_tools filtering tests
+# ---------------------------------------------------------------------------
+
+
+def test_disabled_tools_absent_from_instructions() -> None:
+    """Tools in disabled_tools must not appear as bullet lines in instructions."""
+    instructions = get_default_instructions(
+        disabled_tools={"execute_sql", "health_check"}
+    )
+
+    # The bullet-point entries for disabled tools must be gone
+    assert "- execute_sql:" not in instructions
+    assert "- health_check:" not in instructions
+    # Non-disabled tools must still be present
+    assert "- list_charts:" in instructions
+    assert "- list_dashboards:" in instructions
+
+
+def test_no_disabled_tools_returns_full_instructions() -> None:
+    """Passing no disabled_tools (or empty set) returns the full instructions."""
+    full = get_default_instructions()
+    also_full = get_default_instructions(disabled_tools=set())
+
+    assert "- execute_sql:" in full
+    assert "- health_check:" in full
+    assert full == also_full
+
+
+def test_instructions_generated_after_disabled_tools_removed() -> None:
+    """init_fastmcp_server generates instructions AFTER removing disabled tools,
+    so the instructions never advertise tools that clients cannot call."""
+    flask_app = _make_flask_app_mock({"execute_sql"})
+
+    captured: list[str] = []
+
+    def fake_get_instructions(
+        branding: str = "Apache Superset",
+        disabled_tools: set[str] | None = None,
+    ) -> str:
+        captured.append(str(disabled_tools))
+        return f"instructions for {branding}"
+
+    with (
+        patch("superset.mcp_service.flask_singleton.app", flask_app),
+        patch.object(mcp._local_provider, "remove_tool"),
+        patch(
+            "superset.mcp_service.app.get_default_instructions",
+            fake_get_instructions,
+        ),
+    ):
+        init_fastmcp_server()
+
+    # get_default_instructions must have been called with the disabled set
+    assert len(captured) == 1
+    assert "execute_sql" in captured[0]

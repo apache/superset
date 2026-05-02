@@ -172,3 +172,23 @@ def test_init_fastmcp_server_applies_middleware_to_global_instance():
 
             # Middleware should be added via add_middleware
             mock_mcp.add_middleware.assert_called_once_with(mock_mw)
+
+
+def test_get_mcp_config_includes_mcp_disabled_tools_key() -> None:
+    """get_mcp_config must include MCP_DISABLED_TOOLS in its defaults dict so the
+    key is available in flask_app.config for the standalone server startup path."""
+    from superset.mcp_service.mcp_config import get_mcp_config
+
+    config = get_mcp_config()
+    assert "MCP_DISABLED_TOOLS" in config
+    assert config["MCP_DISABLED_TOOLS"] == set()
+
+
+def test_get_mcp_config_respects_app_config_override() -> None:
+    """When app_config provides MCP_DISABLED_TOOLS, it takes precedence over the
+    module-level default."""
+    from superset.mcp_service.mcp_config import get_mcp_config
+
+    custom = {"execute_sql", "health_check"}
+    config = get_mcp_config({"MCP_DISABLED_TOOLS": custom})
+    assert config["MCP_DISABLED_TOOLS"] == custom

@@ -31,17 +31,26 @@ from fastmcp.server.middleware import Middleware
 logger = logging.getLogger(__name__)
 
 
-def get_default_instructions(branding: str = "Apache Superset") -> str:
+def get_default_instructions(
+    branding: str = "Apache Superset",
+    disabled_tools: set[str] | None = None,
+) -> str:
     """Get default instructions with configurable branding.
+
+    Tool bullet-point lines for any tool name in ``disabled_tools`` are
+    omitted so that LLM clients are never told to call a tool that has been
+    suppressed via ``MCP_DISABLED_TOOLS``.
 
     Args:
         branding: Product name to use in instructions
             (e.g., "ACME Analytics", "Apache Superset")
+        disabled_tools: Set of tool names to omit from the tool listing.
+            When ``None`` (default) all tools are included.
 
     Returns:
         Formatted instructions string with branding applied
     """
-    return f"""
+    instructions = f"""
 You are connected to the {branding} MCP (Model Context Protocol) service.
 This service provides programmatic access to {branding} dashboards, charts, datasets,
 SQL Lab, and instance metadata via a comprehensive set of tools.
@@ -326,6 +335,31 @@ or use the quickstart prompt for an interactive guide.
 When you first connect, call get_instance_info to learn the user's identity.
 Greet them by their first name (from current_user) and offer to help.
 """
+    if not disabled_tools:
+        return instructions
+
+    # Strip bullet-point lines for any disabled tool so the LLM is never told
+    # to call a tool that has been suppressed.  Bullet lines have the form:
+    #   "- tool_name: ..."
+    # including optional leading whitespace for multi-line continuations
+    # (those lines don't start with "- " so they're kept as-is).
+    filtered_lines = []
+    skip_continuation = False
+    for line in instructions.splitlines(keepends=True):
+        stripped = line.lstrip()
+        if stripped.startswith("- "):
+            tool_part = stripped[2:].split(":")[0].strip()
+            if tool_part in disabled_tools:
+                skip_continuation = True
+                continue
+            skip_continuation = False
+        elif skip_continuation and stripped and not stripped.startswith("- "):
+            # Indented continuation line of the previous disabled bullet — skip
+            continue
+        else:
+            skip_continuation = False
+        filtered_lines.append(line)
+    return "".join(filtered_lines)
 
 
 # For backwards compatibility, keep DEFAULT_INSTRUCTIONS pointing to default branding
@@ -612,10 +646,14 @@ def init_fastmcp_server(
     # Apply branding defaults if not explicitly provided
     if name is None:
         name = default_name
-    if instructions is None:
-        instructions = get_default_instructions(branding)
 
-    _remove_disabled_tools(flask_app.config.get("MCP_DISABLED_TOOLS", set()))
+    # Remove disabled tools BEFORE generating instructions so that the
+    # instructions never advertise tools that clients cannot actually call.
+    disabled_tools: set[str] = flask_app.config.get("MCP_DISABLED_TOOLS", set())
+    _remove_disabled_tools(disabled_tools)
+
+    if instructions is None:
+        instructions = get_default_instructions(branding, disabled_tools)
 
     # Configure the global mcp instance with provided settings.
     # Tools are already registered on this instance via @tool decorator imports above.
