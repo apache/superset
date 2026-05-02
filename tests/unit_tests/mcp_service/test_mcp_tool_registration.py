@@ -18,6 +18,10 @@
 """Test MCP app imports and tool/prompt registration."""
 
 import asyncio
+import logging
+from unittest.mock import MagicMock, patch
+
+from superset.mcp_service.app import init_fastmcp_server, mcp
 
 
 def _run(coro):
@@ -95,3 +99,103 @@ def test_mcp_packages_discoverable_by_setuptools():
         f"MCP sub-packages missing __init__.py (will be excluded from "
         f"setuptools distributions): {missing}"
     )
+
+
+# ---------------------------------------------------------------------------
+# MCP_DISABLED_TOOLS tests
+# ---------------------------------------------------------------------------
+
+
+def _make_flask_app_mock(disabled_tools: set[str]) -> MagicMock:
+    """Return a minimal Flask app mock with MCP_DISABLED_TOOLS configured."""
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: (
+        disabled_tools if key == "MCP_DISABLED_TOOLS" else default
+    )
+    return flask_app
+
+
+def test_disabled_tools_are_removed_from_mcp_server() -> None:
+    """Tools listed in MCP_DISABLED_TOOLS are removed before the server starts."""
+
+    flask_app = _make_flask_app_mock({"health_check", "list_charts"})
+
+    with (
+        patch(
+            "superset.mcp_service.app.flask_app",
+            flask_app,
+            create=True,
+        ),
+        patch(
+            "superset.mcp_service.flask_singleton.app",
+            flask_app,
+        ),
+        patch.object(mcp._local_provider, "remove_tool") as mock_remove,
+    ):
+        init_fastmcp_server()
+
+    removed = {call.args[0] for call in mock_remove.call_args_list}
+    assert "health_check" in removed
+    assert "list_charts" in removed
+
+
+def test_unknown_disabled_tool_logs_warning_not_raises(caplog) -> None:
+    """An unknown tool name in MCP_DISABLED_TOOLS logs a warning and does not crash."""
+
+    flask_app = _make_flask_app_mock({"nonexistent_tool_xyz"})
+
+    with (
+        patch(
+            "superset.mcp_service.flask_singleton.app",
+            flask_app,
+        ),
+        patch.object(
+            mcp._local_provider,
+            "remove_tool",
+            side_effect=KeyError("nonexistent_tool_xyz"),
+        ),
+        caplog.at_level(logging.WARNING, logger="superset.mcp_service.app"),
+    ):
+        # Must not raise
+        init_fastmcp_server()
+
+    assert "nonexistent_tool_xyz" in caplog.text
+    assert "MCP_DISABLED_TOOLS" in caplog.text
+
+
+def test_empty_disabled_tools_removes_nothing() -> None:
+    """An empty MCP_DISABLED_TOOLS set leaves all tools registered."""
+
+    flask_app = _make_flask_app_mock(set())
+
+    with (
+        patch(
+            "superset.mcp_service.flask_singleton.app",
+            flask_app,
+        ),
+        patch.object(mcp._local_provider, "remove_tool") as mock_remove,
+    ):
+        init_fastmcp_server()
+
+    mock_remove.assert_not_called()
+
+
+def test_disabled_tools_read_from_flask_app_config() -> None:
+    """MCP_DISABLED_TOOLS is read from flask_app.config, matching the standard
+    Superset pattern where users set overrides in superset_config.py, which
+    create_app() loads into Flask config before any command runs."""
+    from superset.mcp_service.app import init_fastmcp_server, mcp
+
+    flask_app = _make_flask_app_mock({"health_check"})
+
+    with (
+        patch(
+            "superset.mcp_service.flask_singleton.app",
+            flask_app,
+        ),
+        patch.object(mcp._local_provider, "remove_tool") as mock_remove,
+    ):
+        init_fastmcp_server()
+
+    removed = {call.args[0] for call in mock_remove.call_args_list}
+    assert "health_check" in removed

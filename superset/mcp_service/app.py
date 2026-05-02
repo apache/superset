@@ -554,6 +554,25 @@ from superset.mcp_service.system.tool import (  # noqa: F401, E402
 )
 
 
+def _remove_disabled_tools(disabled_tools: set[str]) -> None:
+    """Remove tools listed in MCP_DISABLED_TOOLS from the global MCP instance.
+
+    Disabled tools are removed before the server starts serving requests so they
+    are never advertised to AI clients during tool discovery.  Users configure
+    this via MCP_DISABLED_TOOLS in superset_config.py.
+    """
+    for tool_name in disabled_tools:
+        try:
+            mcp._local_provider.remove_tool(tool_name)
+            logger.info("Disabled MCP tool: %s (MCP_DISABLED_TOOLS)", tool_name)
+        except KeyError:
+            logger.warning(
+                "MCP_DISABLED_TOOLS: tool %r not found — "
+                "check the tool name is correct",
+                tool_name,
+            )
+
+
 def init_fastmcp_server(
     name: str | None = None,
     instructions: str | None = None,
@@ -595,6 +614,8 @@ def init_fastmcp_server(
         name = default_name
     if instructions is None:
         instructions = get_default_instructions(branding)
+
+    _remove_disabled_tools(flask_app.config.get("MCP_DISABLED_TOOLS", set()))
 
     # Configure the global mcp instance with provided settings.
     # Tools are already registered on this instance via @tool decorator imports above.
