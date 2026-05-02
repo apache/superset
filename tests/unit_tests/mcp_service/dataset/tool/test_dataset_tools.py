@@ -84,7 +84,7 @@ def create_mock_dataset(
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = f"[{database_name}].[{schema}]"
-    dataset.url = f"/tablemodelview/edit/{dataset_id}"
+    dataset.url = f"/explore/?datasource_type=table&datasource_id={dataset_id}"
     dataset.database = MagicMock()
     dataset.database.database_name = database_name
     dataset.sql = None
@@ -228,7 +228,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/1"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=1"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -336,7 +336,7 @@ async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[public]"
-    dataset.url = "/tablemodelview/edit/1"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=1"
     dataset.database = MagicMock()
     dataset.database.database_name = "test_db"
     dataset.sql = None
@@ -416,7 +416,7 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/2"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=2"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -519,7 +519,7 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/3"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=3"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -782,7 +782,7 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/1"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=1"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -879,7 +879,7 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/2"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=2"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -991,7 +991,7 @@ async def test_get_dataset_info_success(mock_info, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/1"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=1"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -1130,7 +1130,7 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/10"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=10"
     dataset.sql = None
     dataset.main_dttm_col = None
     dataset.offset = 0
@@ -1222,7 +1222,7 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/11"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=11"
     dataset.sql = None
     dataset.main_dttm_col = None
     dataset.offset = 0
@@ -1298,7 +1298,7 @@ async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/1"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=1"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None

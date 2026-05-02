@@ -135,7 +135,7 @@ class DatasetInfo(BaseModel):
     database_id: int | None = Field(None, description="Database ID")
     uuid: str | None = Field(None, description="Dataset UUID")
     schema_perm: str | None = Field(None, description="Schema permission string")
-    url: str | None = Field(None, description="Dataset URL")
+    url: str | None = Field(None, description="Explore view URL for this dataset")
     sql: str | None = Field(None, description="SQL for virtual datasets")
     main_dttm_col: str | None = Field(None, description="Main datetime column")
     offset: int | None = Field(None, description="Offset")
@@ -707,8 +707,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
             else None,
             schema_perm=getattr(dataset, "schema_perm", None),
             url=(
-                f"{get_superset_base_url()}/tablemodelview/edit/"
-                f"{getattr(dataset, 'id', None)}"
+                f"{get_superset_base_url()}/explore/"
+                f"?datasource_type=table&datasource_id={getattr(dataset, 'id', None)}"
                 if getattr(dataset, "id", None)
                 else None
             ),
