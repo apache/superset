@@ -479,7 +479,7 @@ const getPageSize = (
     return pageSize || 0;
   }
   if (typeof pageSize === 'string') {
-    return parseFloat(pageSize) || 0;
+    return Number(pageSize) || 0;
   }
   // when pageSize not set, automatically add pagination if too many records
   return numRecords * numColumns > 5000 ? 200 : 0;
