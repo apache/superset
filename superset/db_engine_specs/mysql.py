@@ -407,9 +407,7 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
 
                 mysql_module = MySQLdb
             except ImportError:
-                import importlib
-
-                mysql_module = importlib.import_module("pymysql")
+                mysql_module = __import__("pymysql")
 
             ft = mysql_module.constants.FIELD_TYPE
             cls.type_code_map = {
