@@ -15,7 +15,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 import glob
 import importlib.util
 import os
@@ -98,7 +97,6 @@ def install_npm_packages(
     )
     if result.returncode != 0:
         print(f"  npm install warning (will fall back to npx): {result.stderr}")
-        return None, None
     ext = ".cmd" if os.name == "nt" else ""
     po2json_bin = os.path.join(node_modules_bin, f"po2json{ext}")
     prettier_bin = os.path.join(node_modules_bin, f"prettier{ext}")
@@ -217,7 +215,7 @@ def _run_prettier(
     if prettier_bin:
         prettier_cmd = [prettier_bin, "--write", *json_files]
     else:
-        prettier_cmd = [npx_cmd, "prettier", "--write", *json_files]
+        prettier_cmd = [npx_cmd, "-y", "prettier", "--write", *json_files]
     result = run_command(prettier_cmd, timeout=300)
     if result.returncode != 0:
         print(f"  prettier warnings:\n{result.stderr}")
@@ -235,7 +233,6 @@ def compile_translations() -> None:
     if not all([node_cmd, npm_cmd, npx_cmd]):
         print("Missing system dependencies. Aborting.")
         sys.exit(1)
-
     root_dir = os.path.abspath(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
     )
@@ -244,16 +241,12 @@ def compile_translations() -> None:
         root_dir, "superset-frontend", "src", "translations"
     )
     node_modules_bin = os.path.join(root_dir, "node_modules", ".bin")
-
     if not os.path.exists(translations_dir):
         print(f"  Translations dir missing: {translations_dir}")
         sys.exit(1)
-
     if not _run_pybabel(translations_dir, root_dir):
         sys.exit(1)
-
     po_files = _sync_po_to_frontend(translations_dir, frontend_trans_dir)
-
     print(f"3. Installing npm tools once, shared across {MAX_WORKERS} workers...")
     po2json_bin, prettier_bin = install_npm_packages(
         npm_cmd,  # type: ignore[arg-type]
@@ -261,11 +254,10 @@ def compile_translations() -> None:
         root_dir,
     )
     po2json_cmd: list[str] = (
-        [po2json_bin] if po2json_bin else [npx_cmd, "po2json"]  # type: ignore[list-item]
+        [po2json_bin] if po2json_bin else [npx_cmd, "-y", "po2json"]  # type: ignore[list-item]
     )
     if po2json_bin is None:
         print("  Falling back to npx for po2json.")
-
     failures = _convert_po_files_parallel(
         po_files,
         po2json_cmd,
@@ -276,11 +268,9 @@ def compile_translations() -> None:
         prettier_bin,
         npx_cmd,  # type: ignore[arg-type]
     )
-
     if failures:
         print(f"\u274c Pipeline completed with {len(failures)} conversion failure(s).")
         sys.exit(1)
-
     print("\u2705 Pipeline completed successfully!")
 
 
