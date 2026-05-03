@@ -133,18 +133,20 @@ def test_df_to_sql_escapes_like_wildcards(mocker: MockerFixture) -> None:
     import pandas as pd
 
     from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.exceptions import SupersetException
     from superset.sql.parse import Table
 
     database = mocker.MagicMock()
-    # Simulate no existing tables so the upload proceeds
-    database.get_df.return_value = pd.DataFrame()
+    # Simulate an existing table so df_to_sql raises before reaching the upload path
+    database.get_df.return_value = pd.DataFrame({"name": ["sales_%_2024"]})
 
-    HiveEngineSpec.df_to_sql(
-        database=database,
-        table=Table("sales_%_2024", "my_schema"),
-        df=pd.DataFrame({"a": [1]}),
-        to_sql_kwargs={"if_exists": "fail"},
-    )
+    with pytest.raises(SupersetException, match="Table already exists"):
+        HiveEngineSpec.df_to_sql(
+            database=database,
+            table=Table("sales_%_2024", "my_schema"),
+            df=pd.DataFrame({"a": [1]}),
+            to_sql_kwargs={"if_exists": "fail"},
+        )
 
     database.get_df.assert_called_once()
     sql = database.get_df.call_args[0][0]
