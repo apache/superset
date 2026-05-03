@@ -496,7 +496,7 @@ test('should apply min-height to the top-level tab drop target so tabs can be dr
   (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
   (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
 
-  const { container } = render(<DashboardBuilder />, {
+  const { getByTestId } = render(<DashboardBuilder />, {
     useRedux: true,
     store: storeWithState({
       ...mockState,
@@ -507,33 +507,22 @@ test('should apply min-height to the top-level tab drop target so tabs can be dr
     useTheme: true,
   });
 
-  const headerWrapper = container.querySelector(
-    '[data-test="dashboard-header-wrapper"]',
-  );
-  expect(headerWrapper).toBeInTheDocument();
+  const headerWrapper = getByTestId('dashboard-header-wrapper');
 
   // The Droppable inside the header should have the empty-droptarget class
   // when there are no top-level tabs and edit mode is active. Without this
   // class (and its associated min-height CSS rule), the drop target has zero
   // height and users cannot drag tabs onto dashboards that already have
   // content.
-  const droptarget = headerWrapper!.querySelector('.empty-droptarget');
+  const droptarget = headerWrapper.querySelector('.empty-droptarget');
   expect(droptarget).toBeInTheDocument();
 
   // Verify the StyledHeader CSS defines min-height for .empty-droptarget.
-  // getComputedStyle doesn't work in jsdom for styled-components injected
-  // styles, so we check the CSSOM directly.
-  const allRules = Array.from(document.styleSheets).flatMap(sheet => {
-    try {
-      return Array.from(sheet.cssRules).map(rule => rule.cssText);
-    } catch {
-      return [];
-    }
-  });
-  const emptyDroptargetRule = allRules.find(
-    rule => rule.includes('.empty-droptarget') && rule.includes('min-height'),
+  expect(headerWrapper).toHaveStyleRule(
+    'min-height',
+    expect.stringMatching(/\S+/),
+    { target: '.empty-droptarget' },
   );
-  expect(emptyDroptargetRule).toBeDefined();
 });
 
 test('should maintain layout when switching between tabs', async () => {
