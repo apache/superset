@@ -18,19 +18,48 @@
 from __future__ import annotations
 
 import logging
+import re
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, Generic, List, Literal, Type, TypeVar
 
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel
+from sqlalchemy import func
 
-from superset.daos.base import BaseDAO
-from superset.mcp_service.constants import ModelType
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
+from superset.extensions import db
+from superset.mcp_service.constants import MAX_PAGE_SIZE, ModelType
 from superset.mcp_service.privacy import (
     filter_user_directory_columns,
+    SELF_REFERENCING_FILTER_COLUMNS,
     USER_DIRECTORY_FIELDS,
 )
+from superset.mcp_service.system.schemas import PaginationInfo
 from superset.mcp_service.utils import _is_uuid
+from superset.mcp_service.utils.permissions_utils import get_current_user
+from superset.mcp_service.utils.schema_utils import (
+    parse_json_or_list,
+    parse_json_or_passthrough,
+)
+from superset.utils import json
+
+
+def _slugify(value: str) -> str:
+    """Normalize a string to a slug-like form for comparison.
+
+    Lowercases, drops apostrophes so possessives collapse
+    ("World Bank's" → "worldbanks" territory), then collapses any
+    remaining non-alphanumerics to single hyphens and trims
+    leading/trailing hyphens. Mirrors how agents typically guess slugs
+    from a dashboard title (e.g. "World Bank's Data" → "world-banks-data").
+    """
+    lowered = value.lower()
+    # Drop apostrophes entirely so "bank's" collapses to "banks" rather than
+    # splitting into "bank-s". Covers straight and curly variants.
+    stripped = re.sub(r"['’]", "", lowered)
+    return re.sub(r"[^a-z0-9]+", "-", stripped).strip("-")
+
 
 # Type variables for generic model tools
 T = TypeVar("T")  # For model objects
@@ -63,12 +92,17 @@ class BaseCore(ABC):
         pass
 
     def _log_error(self, error: Exception, context: str = "") -> None:
-        """Log an error with context."""
+        """Log an error at DEBUG level for stack-trace context.
+
+        Callers must re-raise the exception after calling this method.
+        The GlobalErrorHandlerMiddleware is the single source of truth
+        for error classification and logging level.
+        """
         error_msg = f"Error in {self.__class__.__name__}"
         if context:
             error_msg += f" ({context})"
         error_msg += f": {str(error)}"
-        self.logger.error(error_msg, exc_info=True)
+        self.logger.debug(error_msg, exc_info=True)
 
     def _log_info(self, message: str) -> None:
         """Log an info message."""
@@ -148,8 +182,6 @@ class ModelListCore(BaseCore, Generic[L]):
         if not select_columns:
             return self.default_columns, list(self.default_columns)
 
-        from superset.mcp_service.utils.schema_utils import parse_json_or_list
-
         parsed_columns = parse_json_or_list(select_columns, param_name="select_columns")
         columns_to_load = filter_user_directory_columns(parsed_columns)
         if not columns_to_load:
@@ -174,6 +206,44 @@ class ModelListCore(BaseCore, Generic[L]):
                 f"Allowed columns: {', '.join(self._sortable_columns)}"
             )
 
+    @staticmethod
+    def _prepend_self_lookup_filters(
+        filters: Any,
+        created_by_me: bool,
+        owned_by_me: bool,
+        user: Any,
+    ) -> Any:
+        """Translate created_by_me/owned_by_me flags into ColumnOperator filters.
+
+        Validates authentication and injects the current user's ID in one step,
+        so no placeholder value ever reaches the DAO layer.
+
+        When both flags are set, a single combined OR filter is used so results
+        include items where the user is either the creator or an owner.
+        """
+        if not (created_by_me or owned_by_me):
+            return filters
+
+        if not user or not getattr(user, "is_authenticated", False):
+            raise ValueError("This operation requires an authenticated user")
+
+        user_id: int = user.id
+        extra: ColumnOperator
+        if created_by_me and owned_by_me:
+            extra = ColumnOperator(
+                col="created_by_fk_or_owner", opr="eq", value=user_id
+            )
+        elif created_by_me:
+            extra = ColumnOperator(col="created_by_fk", opr="eq", value=user_id)
+        else:
+            extra = ColumnOperator(col="owner", opr="eq", value=user_id)
+
+        if filters is None:
+            return [extra]
+        if isinstance(filters, list):
+            return [extra] + filters
+        return [extra, filters]
+
     def run_tool(
         self,
         filters: Any | None = None,
@@ -183,18 +253,18 @@ class ModelListCore(BaseCore, Generic[L]):
         order_direction: Literal["asc", "desc"] | None = "asc",
         page: int = 0,
         page_size: int = 10,
+        created_by_me: bool = False,
+        owned_by_me: bool = False,
     ) -> L:
-        from superset.mcp_service.constants import MAX_PAGE_SIZE
-
         # Clamp page_size to MAX_PAGE_SIZE as defense-in-depth
         page_size = min(page_size, MAX_PAGE_SIZE)
 
         # Parse filters using generic utility (accepts JSON string or object)
-        from superset.mcp_service.utils.schema_utils import (
-            parse_json_or_passthrough,
-        )
-
         filters = parse_json_or_passthrough(filters, param_name="filters")
+
+        filters = self._prepend_self_lookup_filters(
+            filters, created_by_me, owned_by_me, get_current_user()
+        )
 
         # Parse select_columns using generic utility (accepts JSON, list, or CSV)
         columns_requested, columns_to_load = self._get_columns_to_load(select_columns)
@@ -231,7 +301,6 @@ class ModelListCore(BaseCore, Generic[L]):
             if obj is not None:
                 item_objs.append(obj)
         total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
-        from superset.mcp_service.system.schemas import PaginationInfo
 
         # Report 1-based page in response to match the 1-based input convention
         # used by all list tool wrappers (list_charts, list_datasets, etc.)
@@ -266,7 +335,12 @@ class ModelListCore(BaseCore, Generic[L]):
             "columns_loaded": columns_to_load,
             "columns_available": self.all_columns,
             "sortable_columns": self.sortable_columns,
-            "filters_applied": filters if isinstance(filters, list) else [],
+            "filters_applied": [
+                f
+                for f in (filters if isinstance(filters, list) else [])
+                if (f.get("col") if isinstance(f, dict) else getattr(f, "col", None))
+                not in SELF_REFERENCING_FILTER_COLUMNS
+            ],
             "pagination": pagination_info,
             "timestamp": datetime.now(timezone.utc),
         }
@@ -296,6 +370,7 @@ class ModelGetInfoCore(BaseCore):
         supports_slug: bool = False,
         logger: logging.Logger | None = None,
         query_options: list[Any] | None = None,
+        title_column_name: str | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
@@ -304,6 +379,94 @@ class ModelGetInfoCore(BaseCore):
         self.serializer = serializer
         self.supports_slug = supports_slug
         self.query_options = query_options or []
+        # When set, enables a slugified-title fallback after slug lookup
+        # fails, so identifiers like "world-banks-data" still resolve to
+        # "World Bank's Data" when the dashboard's slug field is empty.
+        # Defaults to the DAO's `title_column` attribute when not overridden.
+        self.title_column_name = title_column_name or getattr(
+            dao_class, "title_column", None
+        )
+
+    def _base_filtered_query(self) -> Any:
+        """Build a query for this DAO's model with base_filter applied.
+
+        Ensures slug-like and title-based lookups respect RBAC — e.g.
+        DashboardAccessFilter excludes rows the current user is not
+        allowed to see. Mirrors DashboardDAO.get_by_id_or_slug.
+        """
+        model_class = self.dao_class.model_cls
+        query = db.session.query(model_class)
+
+        if (base_filter := getattr(self.dao_class, "base_filter", None)) is not None:
+            query = base_filter(
+                self.dao_class.id_column_name,
+                SQLAInterface(model_class, db.session),
+            ).apply(query, None)
+
+        if self.query_options:
+            query = query.options(*self.query_options)
+        return query
+
+    def _find_by_slugified_title(self, identifier: str) -> Any:
+        """Resolve a slug-like identifier by matching against slugified titles.
+
+        First narrows candidates with an ILIKE on the title column so the
+        DB does the heavy filtering — a slug like "world-banks-data" maps
+        to the pattern "%world%banks%data%". The ILIKE side strips
+        apostrophes from the title (via SQL REPLACE) so it matches the
+        same way `_slugify` does in Python — without that, "World Bank's
+        Data" wouldn't match "%banks%" because the raw title has "bank's".
+        Then confirms each candidate with `_slugify` to weed out
+        coincidental ILIKE matches (e.g. "Worldwide Bank Sandbox Data").
+
+        Orders by primary key so the returned row is deterministic when
+        multiple titles slugify to the same value. The caller can always
+        disambiguate by id or UUID; in the rare collision case we log a
+        warning and return the lowest-id match.
+        """
+        if not self.title_column_name:
+            return None
+        target = _slugify(identifier)
+        if not target:
+            return None
+
+        model_class = self.dao_class.model_cls
+        title_col = getattr(model_class, self.title_column_name, None)
+        if title_col is None:
+            return None
+
+        parts = [p for p in target.split("-") if p]
+        # parts is non-empty: target is non-empty and contains at least one
+        # alphanumeric run. The pattern preserves the agent's word order so
+        # we don't return rows whose titles only happen to share the same
+        # tokens shuffled.
+        pattern = "%" + "%".join(parts) + "%"
+        # Strip both straight and curly apostrophes from the title before
+        # comparing — matches `_slugify`'s Python-side handling.
+        normalized_title = func.replace(func.replace(title_col, "'", ""), "’", "")
+        id_col = getattr(model_class, self.dao_class.id_column_name)
+        candidates = (
+            self._base_filtered_query()
+            .filter(normalized_title.ilike(pattern))
+            .order_by(id_col)
+            .all()
+        )
+
+        matches = [
+            obj
+            for obj in candidates
+            if _slugify(getattr(obj, self.title_column_name, "") or "") == target
+        ]
+        if not matches:
+            return None
+        if len(matches) > 1:
+            ids = [getattr(m, "id", None) for m in matches]
+            self._log_warning(
+                f"Identifier '{identifier}' matched {len(matches)} rows by "
+                f"slugified title (ids={ids}); returning the first. Pass an "
+                "id or UUID to disambiguate."
+            )
+        return matches[0]
 
     def _find_object(self, identifier: int | str) -> Any:
         """Find object by identifier using appropriate method."""
@@ -335,15 +498,22 @@ class ModelGetInfoCore(BaseCore):
             if result:
                 return result
 
-            # Fallback to the existing id_or_slug_filter for complex cases
-            from superset.extensions import db
+            # Fallback to the existing id_or_slug_filter for complex cases.
+            # Apply base_filter so disallowed rows aren't exposed here.
             from superset.models.dashboard import id_or_slug_filter
 
-            model_class = self.dao_class.model_cls
-            query = db.session.query(model_class).filter(id_or_slug_filter(identifier))
-            if opts:
-                query = query.options(*opts)
-            return query.one_or_none()
+            slug_result = (
+                self._base_filtered_query()
+                .filter(id_or_slug_filter(identifier))
+                .one_or_none()
+            )
+            if slug_result is not None:
+                return slug_result
+
+            # Many dashboards have empty slugs, so slug lookup alone silently
+            # fails when agents pass a slug-like string derived from the
+            # dashboard title. Fall back to slugified-title matching.
+            return self._find_by_slugified_title(identifier)
 
         # If we get here, it's an invalid identifier
         return None
@@ -428,10 +598,6 @@ class InstanceInfoCore(BaseCore):
         self, base_counts: Dict[str, int]
     ) -> Dict[str, Dict[str, int]]:
         """Calculate time-based metrics for recent activity."""
-        from datetime import datetime, timedelta, timezone
-
-        from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-
         now = datetime.now(timezone.utc)
         time_metrics = {}
 
@@ -516,8 +682,6 @@ class InstanceInfoCore(BaseCore):
 
     def get_resource(self) -> str:
         """Resource interface for generating instance metadata as JSON."""
-        from superset.utils import json
-
         instance_info = self._generate_instance_info()
         return json.dumps(instance_info.model_dump(), indent=2)
 
@@ -530,8 +694,6 @@ class InstanceInfoCore(BaseCore):
             custom_metrics = self._calculate_custom_metrics(base_counts, time_metrics)
 
             # Combine all data with fallbacks for required fields
-            from datetime import datetime, timezone
-
             response_data = {
                 **base_counts,
                 **time_metrics,
