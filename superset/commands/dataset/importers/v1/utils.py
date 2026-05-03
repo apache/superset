@@ -57,6 +57,7 @@ class _ValidatingRedirectHandler(HTTPRedirectHandler):
         headers: Any,
         newurl: str,
     ) -> request.Request | None:
+        """Validate each redirect target before delegating to the parent handler."""
         validate_data_uri(newurl)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
