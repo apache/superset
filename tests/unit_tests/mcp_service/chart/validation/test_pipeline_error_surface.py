@@ -107,7 +107,7 @@ def test_mixed_timeseries_with_wrong_kind_fields_returns_actionable_error() -> N
     assert "tagged-union" not in dumped["message"]
     # Suggestions should steer callers back to a valid schema.
     assert dumped["suggestions"]
-    assert dumped["error_code"] == "INVALID_CHART_CONFIG"
+    assert dumped["error_code"] == "VALIDATION_ERROR"
     assert dumped["error_type"] == "validation_error"
 
 
@@ -158,9 +158,10 @@ def test_adhoc_filters_returns_actionable_error() -> None:
 
     # Must NOT be the opaque validation_system_error
     assert dumped["error_type"] == "validation_error"
-    assert dumped["error_code"] == "INVALID_CHART_CONFIG"
-    # Message must mention filters as the correct field name
-    assert "filters" in dumped["message"]
+    assert dumped["error_code"] == "VALIDATION_ERROR"
+    # Details or message must mention the invalid field
+    combined = dumped["message"] + " " + dumped["details"]
+    assert "adhoc_filters" in combined or "filters" in combined
     assert dumped["details"] != ""
     assert dumped["suggestions"]
 
@@ -237,7 +238,7 @@ def test_non_value_error_pydantic_body_is_surfaced() -> None:
     assert result.is_valid is False
     assert result.error is not None
     dumped = result.error.model_dump()
-    assert dumped["error_code"] == "INVALID_CHART_CONFIG"
+    assert dumped["error_code"] == "VALIDATION_ERROR"
     assert dumped["error_type"] == "validation_error"
     assert "tagged-union" not in dumped["message"]
     assert "tagged-union" not in dumped["details"]

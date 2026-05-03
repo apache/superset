@@ -372,6 +372,43 @@ def test_mcp_auth_hook_preserves_g_user_in_request_context(app) -> None:
     assert result == "middleware_user"
 
 
+def test_mcp_auth_hook_removes_stale_db_session_in_sync_wrapper(app) -> None:
+    """sync_wrapper calls db.session.remove() BEFORE get_user_from_request().
+
+    Thread pool workers reuse threads across requests; db.session is
+    thread-local and may be bound to a different tenant's DB engine from a
+    prior request. Removing it before user lookup ensures a fresh session is
+    created for the current request.
+
+    The ordering is critical: if remove() were called after user lookup,
+    the stale session binding would already have caused a mismatch error.
+    """
+    fresh_user = _make_mock_user("fresh")
+
+    def dummy_tool():
+        """Dummy tool."""
+        return g.user.username
+
+    wrapped = mcp_auth_hook(dummy_tool)
+
+    with app.test_request_context():
+        g.user = fresh_user
+        with patch("superset.extensions.db") as mock_db:
+
+            def _assert_remove_already_called() -> MagicMock:
+                """Verify remove() was called before user resolution runs."""
+                mock_db.session.remove.assert_called_once_with()
+                return fresh_user
+
+            with patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                side_effect=_assert_remove_already_called,
+            ):
+                result = wrapped()
+
+    assert result == "fresh"
+
+
 # -- default_user_resolver --
 
 
