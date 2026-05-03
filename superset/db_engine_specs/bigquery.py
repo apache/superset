@@ -885,9 +885,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     @staticmethod
     def _information_schema_ref(schema: str, catalog: str | None) -> str:
-        escaped_schema = schema.replace("\\", "\\\\").replace("`", "\\`")
+        escaped_schema = schema.replace("`", "``")
         if catalog:
-            escaped_catalog = catalog.replace("\\", "\\\\").replace("`", "\\`")
+            escaped_catalog = catalog.replace("`", "``")
             return f"`{escaped_catalog}.{escaped_schema}.INFORMATION_SCHEMA.TABLES`"
         return f"`{escaped_schema}.INFORMATION_SCHEMA.TABLES`"
 
