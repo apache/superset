@@ -390,6 +390,62 @@ class TestMapTableConfig:
         assert result["metrics"] == ["total_revenue", "avg_order_value"]
         assert "all_columns" not in result
 
+    def test_map_table_config_explicit_raw_mode(self) -> None:
+        """Test that explicit query_mode='raw' forces raw mode."""
+        config = TableChartConfig(
+            chart_type="table",
+            query_mode="raw",
+            columns=[
+                ColumnRef(name="product"),
+                ColumnRef(name="category"),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["viz_type"] == "table"
+        assert result["query_mode"] == "raw"
+        assert result["all_columns"] == ["product", "category"]
+        assert result["columns"] == ["product", "category"]
+        assert "metrics" not in result
+
+    def test_map_table_config_explicit_raw_mode_ignores_aggregates(self) -> None:
+        """Test that explicit query_mode='raw' ignores aggregate settings on columns."""
+        config = TableChartConfig(
+            chart_type="table",
+            query_mode="raw",
+            columns=[
+                ColumnRef(name="product"),
+                ColumnRef(name="sales", aggregate="SUM"),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["query_mode"] == "raw"
+        # Both columns treated as raw; aggregate setting on "sales" is ignored
+        assert result["all_columns"] == ["product", "sales"]
+        assert result["columns"] == ["product", "sales"]
+        assert "metrics" not in result
+
+    def test_map_table_config_explicit_aggregate_mode(self) -> None:
+        """Test that explicit query_mode='aggregate' uses inference logic."""
+        config = TableChartConfig(
+            chart_type="table",
+            query_mode="aggregate",
+            columns=[
+                ColumnRef(name="product"),
+                ColumnRef(name="revenue", aggregate="SUM"),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert result["query_mode"] == "aggregate"
+        assert len(result["metrics"]) == 1
+        assert result["metrics"][0]["aggregate"] == "SUM"
+        assert "product" in result["groupby"]
+
 
 class TestAddAdhocFilters:
     """Test _add_adhoc_filters helper function"""
@@ -769,6 +825,62 @@ class TestMapConfigToFormData:
         """Test mapping unsupported config type raises error"""
         with pytest.raises(ValueError, match="Unsupported config type"):
             map_config_to_form_data("invalid_config")  # type: ignore
+
+    @patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_map_xy_config_x_none_defaults_to_main_dttm_col(
+        self, mock_find_by_id: Any, mock_is_temporal: Any
+    ) -> None:
+        """When x is None, map_xy_config resolves it from dataset.main_dttm_col."""
+        mock_dataset = MagicMock()
+        mock_dataset.main_dttm_col = "order_date"
+        mock_find_by_id.return_value = mock_dataset
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=None,
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config, dataset_id=42)
+
+        assert result["x_axis"] == "order_date"
+        mock_find_by_id.assert_called_once_with(42)
+
+    def test_map_xy_config_x_none_no_dataset_id_raises(self) -> None:
+        """When x is None and no dataset_id, raise ValueError."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=None,
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+        )
+
+        with pytest.raises(ValueError, match="x-axis column is required"):
+            map_xy_config(config, dataset_id=None)
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_map_xy_config_x_none_no_main_dttm_col_raises(
+        self, mock_find_by_id: Any
+    ) -> None:
+        """When x is None and dataset has no main_dttm_col, raise ValueError."""
+        mock_dataset = MagicMock()
+        mock_dataset.main_dttm_col = None
+        mock_find_by_id.return_value = mock_dataset
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=None,
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+        )
+
+        with pytest.raises(ValueError, match="no primary datetime column"):
+            map_xy_config(config, dataset_id=42)
 
 
 class TestGenerateChartName:

@@ -104,23 +104,36 @@ describe('DataTablesPane', () => {
         ],
       },
     );
+    // @ts-expect-error
+    global.featureFlags = {
+      [FeatureFlag.GranularExportControls]: true,
+    };
     const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
     const props = createDataTablesPaneProps(456);
     render(<DataTablesPane {...props} />, {
       useRedux: true,
+      initialState: {
+        user: {
+          roles: {
+            gamma: [['can_copy_clipboard', 'Superset']],
+          },
+        },
+      },
     });
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('1 row')).toBeVisible();
 
-    userEvent.click(screen.getByLabelText('Copy'));
+    await userEvent.click(screen.getByLabelText('Copy'));
     expect(copyToClipboardSpy).toHaveBeenCalledTimes(1);
     const value = await copyToClipboardSpy.mock.calls[0][0]();
     expect(value).toBe('__timestamp\tgenre\n2009-01-01 00:00:00\tAction\n');
     copyToClipboardSpy.mockRestore();
+    // @ts-expect-error
+    global.featureFlags = {};
     fetchMock.clearHistory().removeRoutes();
   });
 
-  test('Should not allow copy data table content when canDownload=false', async () => {
+  test('Should not allow copy data table content without clipboard permission', async () => {
     fetchMock.post(
       'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
       {
@@ -135,16 +148,38 @@ describe('DataTablesPane', () => {
         ],
       },
     );
+    // @ts-expect-error
+    global.featureFlags = {
+      [FeatureFlag.GranularExportControls]: true,
+    };
+    const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
     const props = {
       ...createDataTablesPaneProps(456),
-      canDownload: false,
+      canDownload: true,
     };
     render(<DataTablesPane {...props} />, {
       useRedux: true,
+      initialState: {
+        user: {
+          roles: {
+            gamma: [['can_export_data', 'Superset']],
+          },
+        },
+      },
     });
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('1 row')).toBeVisible();
-    expect(screen.queryByLabelText('Copy')).not.toBeInTheDocument();
+    const copyButton = screen.getByLabelText('Copy');
+    expect(copyButton).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(copyButton);
+    expect(
+      await screen.findByText("You don't have permission to copy to clipboard"),
+    ).toBeInTheDocument();
+    await userEvent.click(copyButton);
+    expect(copyToClipboardSpy).not.toHaveBeenCalled();
+    copyToClipboardSpy.mockRestore();
+    // @ts-expect-error
+    global.featureFlags = {};
     fetchMock.clearHistory().removeRoutes();
   });
 

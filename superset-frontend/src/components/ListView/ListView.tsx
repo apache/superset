@@ -188,6 +188,7 @@ const ViewModeContainer = styled.div`
 const EmptyWrapper = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit * 40}px 0;
+    width: 100%;
 
     &.table {
       background: ${theme.colorBgContainer};

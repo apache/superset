@@ -18,7 +18,6 @@
  */
 
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import path from 'path';
 import { DatasetListPage } from '../../pages/DatasetListPage';
 import { ExplorePage } from '../../pages/ExplorePage';
 import {
@@ -31,6 +30,7 @@ import {
 import { Toast } from '../../components/core';
 import {
   apiDeleteDataset,
+  apiExportDatasets,
   apiGetDataset,
   apiPostVirtualDataset,
   getDatasetByName,
@@ -43,6 +43,7 @@ import {
   waitForPut,
 } from '../../helpers/api/intercepts';
 import {
+  expectDeleted,
   expectStatusOneOf,
   expectValidExportZip,
 } from '../../helpers/api/assertions';
@@ -135,17 +136,9 @@ test('should delete a dataset with confirmation', async ({
   await expect(datasetListPage.getDatasetRow(datasetName)).not.toBeVisible();
 
   // Verify via API that dataset no longer exists (404)
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetDataset(page, datasetId, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Dataset ${datasetId} should return 404` },
-    )
-    .toBe(404);
+  await expectDeleted(page, ENDPOINTS.DATASET, datasetId, {
+    label: `Dataset ${datasetId}`,
+  });
 });
 
 test('should duplicate a dataset with new name', async ({
@@ -420,34 +413,17 @@ test('should bulk delete multiple datasets', async ({
   await expect(datasetListPage.getDatasetRow(dataset2.name)).not.toBeVisible();
 
   // Verify via API that datasets no longer exist (404)
-  // Use polling with explicit timeout since deletes may be async
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetDataset(page, dataset1.id, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Dataset ${dataset1.id} should return 404` },
-    )
-    .toBe(404);
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetDataset(page, dataset2.id, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Dataset ${dataset2.id} should return 404` },
-    )
-    .toBe(404);
+  await expectDeleted(page, ENDPOINTS.DATASET, dataset1.id, {
+    label: `Dataset ${dataset1.id}`,
+  });
+  await expectDeleted(page, ENDPOINTS.DATASET, dataset2.id, {
+    label: `Dataset ${dataset2.id}`,
+  });
 });
 
-// Import test uses a fixed dataset name from the zip fixture.
+// Import test uses export-then-reimport approach (no static fixture needed).
 // Uses test.describe only because Playwright's serial mode API requires it -
-// this prevents race conditions when parallel workers import the same fixture.
+// this prevents race conditions when parallel workers import the same dataset.
 // (Deviation from "avoid describe" guideline is necessary for functional reasons)
 test.describe('import dataset', () => {
   test.describe.configure({ mode: 'serial' });
@@ -456,22 +432,33 @@ test.describe('import dataset', () => {
     datasetListPage,
     testAssets,
   }) => {
-    // Dataset name from fixture (test_netflix_1768502050965)
-    // Note: Fixture contains a Google Sheets dataset backed by shillelagh[gsheetsapi],
-    // which is a base dependency — import failure fails the test hard (no skip).
-    const importedDatasetName = 'test_netflix_1768502050965';
-    const fixturePath = path.resolve(
-      __dirname,
-      '../../fixtures/dataset_export.zip',
+    test.setTimeout(60_000);
+
+    // Create a dataset, export it via API, then delete it, then reimport via UI
+    const { id: datasetId, name: datasetName } = await createTestDataset(
+      page,
+      testAssets,
+      test.info(),
+      { prefix: 'test_import' },
     );
 
-    // Cleanup: Delete any existing dataset with the same name from previous runs
-    const existingDataset = await getDatasetByName(page, importedDatasetName);
-    if (existingDataset) {
-      await apiDeleteDataset(page, existingDataset.id, {
-        failOnStatusCode: false,
-      });
-    }
+    // Export the dataset via API to get a zip buffer
+    const exportResponse = await apiExportDatasets(page, [datasetId]);
+    expect(exportResponse.ok()).toBe(true);
+    const exportBuffer = await exportResponse.body();
+
+    // Delete the dataset so reimport creates it fresh
+    await apiDeleteDataset(page, datasetId);
+
+    // Verify it's gone
+    await expectDeleted(page, ENDPOINTS.DATASET, datasetId, {
+      label: `Dataset ${datasetId}`,
+    });
+
+    // Refresh to confirm dataset is no longer in the list
+    await datasetListPage.goto();
+    await datasetListPage.waitForTableLoad();
+    await expect(datasetListPage.getDatasetRow(datasetName)).not.toBeVisible();
 
     // Click the import button
     await datasetListPage.clickImportButton();
@@ -480,11 +467,10 @@ test.describe('import dataset', () => {
     const importModal = new ImportDatasetModal(page);
     await importModal.waitForReady();
 
-    // Upload the fixture zip file
-    await importModal.uploadFile(fixturePath);
+    // Upload the exported zip via buffer (no temp file needed)
+    await importModal.uploadFileBuffer(exportBuffer);
 
     // Set up response intercept to catch the import POST
-    // Use pathMatch to avoid false matches if URL lacks trailing slash
     let importResponsePromise = waitForPost(page, ENDPOINTS.DATASET_IMPORT, {
       pathMatch: true,
     });
@@ -496,35 +482,27 @@ test.describe('import dataset', () => {
     let importResponse = await importResponsePromise;
 
     // Handle overwrite confirmation if dataset already exists
-    // First response may be 409/422 indicating overwrite is required - this is expected
+    // First response may be 409/422 indicating overwrite is required
     const overwriteInput = importModal.getOverwriteInput();
     await overwriteInput
       .waitFor({ state: 'visible', timeout: 3000 })
       .catch(error => {
-        // Only ignore TimeoutError (input not visible); re-throw other errors
         if (!(error instanceof Error) || error.name !== 'TimeoutError') {
           throw error;
         }
       });
 
     if (await overwriteInput.isVisible()) {
-      // Set up new intercept for the actual import after overwrite confirmation
       importResponsePromise = waitForPost(page, ENDPOINTS.DATASET_IMPORT, {
         pathMatch: true,
       });
       await importModal.fillOverwriteConfirmation();
       await importModal.clickImport();
-      // Wait for the second (final) import response
       importResponse = await importResponsePromise;
     }
 
-    // Fail hard if dataset import fails.
-    // The fixture contains a gsheets dataset; shillelagh[gsheetsapi] is a base
-    // dependency (pyproject.toml), so the engine is always available in CI.
-    if (!importResponse.ok()) {
-      const errorBody = await importResponse.json().catch(() => ({}));
-      throw new Error(`Import failed: ${JSON.stringify(errorBody)}`);
-    }
+    // Verify import succeeded
+    expectStatusOneOf(importResponse, [200]);
 
     // Modal should close on success
     await importModal.waitForHidden({ timeout: TIMEOUT.FILE_IMPORT });
@@ -533,19 +511,19 @@ test.describe('import dataset', () => {
     const toast = new Toast(page);
     await expect(toast.getSuccess()).toBeVisible({ timeout: 10000 });
 
-    // Refresh the page to see the imported dataset
+    // Refresh to see the imported dataset
     await datasetListPage.goto();
     await datasetListPage.waitForTableLoad();
 
     // Verify dataset appears in list
-    await expect(
-      datasetListPage.getDatasetRow(importedDatasetName),
-    ).toBeVisible();
+    await expect(datasetListPage.getDatasetRow(datasetName)).toBeVisible();
 
-    // Get dataset ID for cleanup
-    const importedDataset = await getDatasetByName(page, importedDatasetName);
-    expect(importedDataset).not.toBeNull();
-    testAssets.trackDataset(importedDataset!.id);
+    // Track for cleanup: the dataset import API returns {"message": "OK"}
+    // with no ID, so look up the reimported dataset by name.
+    const reimported = await getDatasetByName(page, datasetName);
+    if (reimported) {
+      testAssets.trackDataset(reimported.id);
+    }
   });
 });
 

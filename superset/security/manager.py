@@ -361,6 +361,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "UserOAuthModelView",
         "UserOIDModelView",
         "UserRemoteUserModelView",
+        "UserSAMLModelView",
     }
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {

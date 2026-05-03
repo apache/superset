@@ -95,7 +95,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                 db.session.query(Database).filter_by(id=request.database_id).first()
             )
             if not database:
-                await ctx.error(
+                await ctx.warning(
                     "Database not found: database_id=%s" % request.database_id
                 )
                 return ExecuteSqlResponse(
@@ -105,7 +105,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                 )
 
             if not security_manager.can_access_database(database):
-                await ctx.error(
+                await ctx.warning(
                     "Access denied to database: %s" % database.database_name
                 )
                 return ExecuteSqlResponse(
@@ -153,7 +153,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         return response
 
     except OAuth2RedirectError as ex:
-        await ctx.error(
+        await ctx.warning(
             "Database requires OAuth authentication: database_id=%s"
             % request.database_id
         )
