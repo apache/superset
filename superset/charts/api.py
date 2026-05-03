@@ -30,7 +30,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import is_feature_enabled, security_manager
+from superset import is_feature_enabled
 from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
@@ -95,11 +95,13 @@ from superset.utils.screenshots import (
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    get_related_schema,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
     statsd_metrics,
 )
+from superset.views.error_handling import handle_api_exception
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -1026,6 +1028,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @expose("/related/<column_name>", methods=("GET",))
     @protect()
     @safe
+    @statsd_metrics
+    @parse_rison(get_related_schema)
+    @handle_api_exception
     def related(self, column_name: str, **kwargs: Any) -> Response:
         """Get related fields data, restricting owner lookup to users with write access.
         ---
