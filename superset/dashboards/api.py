@@ -19,7 +19,7 @@ import functools
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 import rison
@@ -2208,3 +2208,48 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 ).timestamp(),
             },
         )
+
+    @expose("/related/<column_name>", methods=("GET",))
+    @protect()
+    @safe
+    def related(self, column_name: str, **kwargs: Any) -> Response:
+        """Get related fields data, restricting owner lookup to users with write access.
+        ---
+        get:
+          summary: Get related fields data
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: column_name
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_related_schema'
+          responses:
+            200:
+              $ref: '#/components/responses/200'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if response := self.ensure_owners_write_access():
+            return response
+        return super().related(column_name, **kwargs)
+
+    def ensure_owners_write_access(self) -> Optional[Response]:
+        """Restrict the owners related field to users with write access."""
+        if request.view_args.get("column_name") == "owners" and not (
+            security_manager.can_access("can_write", self.class_permission_name)
+        ):
+            return self.response_403()
+        return None
