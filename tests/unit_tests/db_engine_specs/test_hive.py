@@ -99,3 +99,57 @@ SELECT * \nFROM my_schema.my_table
  LIMIT :param_1
     """.strip()
     )
+
+
+def test_get_view_names_escapes_schema(mocker: MockerFixture) -> None:
+    """
+    Test that ``get_view_names`` correctly escapes backticks in schema names
+    within the SHOW VIEWS statement.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    database = mocker.MagicMock()
+    inspector = mocker.MagicMock()
+
+    conn = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    cursor.fetchall.return_value = []
+    conn.__enter__ = mocker.MagicMock(return_value=conn)
+    conn.__exit__ = mocker.MagicMock(return_value=False)
+    conn.cursor.return_value = cursor
+    database.get_raw_connection.return_value = conn
+
+    HiveEngineSpec.get_view_names(database, inspector, schema="evil` UNION SELECT 1--")
+    cursor.execute.assert_called_once()
+    sql = cursor.execute.call_args[0][0]
+    assert "IN `evil`` UNION SELECT 1--`" in sql
+
+
+def test_partition_query_escapes_identifiers() -> None:
+    """
+    Test that ``_partition_query`` correctly backtick-quotes table and schema names
+    in the SHOW PARTITIONS statement.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.sql.parse import Table
+
+    result = HiveEngineSpec._partition_query(
+        table=Table("my_table", "my_schema"),
+        indexes=[],
+        database=None,  # type: ignore
+    )
+    assert result == "SHOW PARTITIONS `my_schema`.`my_table`"
+
+    result = HiveEngineSpec._partition_query(
+        table=Table("evil`tbl", "evil`schema"),
+        indexes=[],
+        database=None,  # type: ignore
+    )
+    assert result == "SHOW PARTITIONS `evil``schema`.`evil``tbl`"
+
+    result = HiveEngineSpec._partition_query(
+        table=Table("no_schema_tbl"),
+        indexes=[],
+        database=None,  # type: ignore
+    )
+    assert result == "SHOW PARTITIONS `no_schema_tbl`"

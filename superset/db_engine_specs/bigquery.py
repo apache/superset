@@ -900,10 +900,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             return set()
 
         # Construct the query to get materialized views from INFORMATION_SCHEMA
+        escaped_schema = schema.replace("\\", "\\\\").replace("`", "\\`")
         if catalog := database.get_default_catalog():
-            information_schema = f"`{catalog}.{schema}.INFORMATION_SCHEMA.TABLES`"
+            escaped_catalog = catalog.replace("\\", "\\\\").replace("`", "\\`")
+            information_schema = (
+                f"`{escaped_catalog}.{escaped_schema}.INFORMATION_SCHEMA.TABLES`"
+            )
         else:
-            information_schema = f"`{schema}.INFORMATION_SCHEMA.TABLES`"
+            information_schema = f"`{escaped_schema}.INFORMATION_SCHEMA.TABLES`"
 
         # Use string formatting for the table name since it's not user input
         # The catalog and schema are from trusted sources (database configuration)
@@ -947,10 +951,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
         # Construct the query to get regular views from INFORMATION_SCHEMA
         catalog = database.get_default_catalog()
+        escaped_schema = schema.replace("\\", "\\\\").replace("`", "\\`")
         if catalog:
-            information_schema = f"`{catalog}.{schema}.INFORMATION_SCHEMA.TABLES`"
+            escaped_catalog = catalog.replace("\\", "\\\\").replace("`", "\\`")
+            information_schema = (
+                f"`{escaped_catalog}.{escaped_schema}.INFORMATION_SCHEMA.TABLES`"
+            )
         else:
-            information_schema = f"`{schema}.INFORMATION_SCHEMA.TABLES`"
+            information_schema = f"`{escaped_schema}.INFORMATION_SCHEMA.TABLES`"
 
         # Use string formatting for the table name since it's not user input
         # The catalog and schema are from trusted sources (database configuration)
