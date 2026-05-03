@@ -49,7 +49,7 @@ def test_tool_search_config_defaults():
     assert "get_instance_info" in MCP_TOOL_SEARCH_CONFIG["always_visible"]
     assert MCP_TOOL_SEARCH_CONFIG["search_tool_name"] == "search_tools"
     assert MCP_TOOL_SEARCH_CONFIG["call_tool_name"] == "call_tool"
-    assert MCP_TOOL_SEARCH_CONFIG["include_schemas"] is False
+    assert MCP_TOOL_SEARCH_CONFIG["include_schemas"] is True
 
 
 def test_apply_bm25_transform():
