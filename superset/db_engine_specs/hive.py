@@ -206,14 +206,13 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         if to_sql_kwargs["if_exists"] == "fail":
             # Ensure table doesn't already exist.
+            escaped_table = table.table.replace("\\", "\\\\").replace("'", "\\'")
             if table.schema:
                 escaped_schema = table.schema.replace("`", "``")
-                escaped_table = table.table.replace("\\", "\\\\").replace("'", "\\'")
                 table_exists = not database.get_df(
                     f"SHOW TABLES IN `{escaped_schema}` LIKE '{escaped_table}'"
                 ).empty
             else:
-                escaped_table = table.table.replace("\\", "\\\\").replace("'", "\\'")
                 table_exists = not database.get_df(
                     f"SHOW TABLES LIKE '{escaped_table}'"
                 ).empty
@@ -501,12 +500,11 @@ class HiveEngineSpec(PrestoEngineSpec):
         order_by: list[tuple[str, bool]] | None = None,
         filters: dict[Any, Any] | None = None,
     ) -> str:
+        escaped_table = table.table.replace("`", "``")
         if table.schema:
             escaped_schema = table.schema.replace("`", "``")
-            escaped_table = table.table.replace("`", "``")
             full_table_name = f"`{escaped_schema}`.`{escaped_table}`"
         else:
-            escaped_table = table.table.replace("`", "``")
             full_table_name = f"`{escaped_table}`"
         return f"SHOW PARTITIONS {full_table_name}"
 
