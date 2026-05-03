@@ -16,6 +16,7 @@
 # under the License.
 import gzip
 import logging
+import os
 import re
 from typing import Any
 from urllib import request
@@ -117,8 +118,6 @@ def validate_data_uri(data_uri: str) -> None:
     :raises DatasetForbiddenDataURI: if the URI is not permitted
     """
     if data_uri.startswith("file://"):
-        import os
-
         from superset.examples.helpers import get_examples_folder
 
         # Strip the "file://" prefix to get the filesystem path.
