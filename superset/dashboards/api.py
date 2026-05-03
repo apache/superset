@@ -2131,7 +2131,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        DeleteEmbeddedDashboardCommand(dashboard).run()
+        try:
+            DeleteEmbeddedDashboardCommand(dashboard).run()
+        except DashboardForbiddenError:
+            return self.response_403()
         return self.response(200, message="OK")
 
     @expose("/<id_or_slug>/copy/", methods=("POST",))
