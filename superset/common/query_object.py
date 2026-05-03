@@ -22,7 +22,6 @@ from datetime import datetime
 from pprint import pformat
 from typing import Any, NamedTuple, TYPE_CHECKING
 
-from flask import g
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
@@ -38,6 +37,7 @@ from superset.extensions import event_logger
 from superset.sql.parse import sanitize_clause, transpile_to_dialect
 from superset.superset_typing import Column, Metric, OrderBy, QueryObjectDict
 from superset.utils import json, pandas_postprocessing
+from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
@@ -479,24 +479,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         # or if the CACHE_QUERY_BY_USER flag is on or per_user_caching is enabled on
         #  the database
         try:
-            database = self.datasource.database  # type: ignore
-            extra = json.loads(database.extra or "{}")
-            if (
-                (
-                    feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
-                    and database.impersonate_user
-                )
-                or feature_flag_manager.is_feature_enabled("CACHE_QUERY_BY_USER")
-                or extra.get("per_user_caching", False)
-            ):
-                if key := database.db_engine_spec.get_impersonation_key(
-                    getattr(g, "user", None)
-                ):
-                    logger.debug(
-                        "Adding impersonation key to QueryObject cache dict: %s", key
-                    )
-
-                    cache_dict["impersonation_key"] = key
+            add_impersonation_cache_key_if_needed(self.datasource.database, cache_dict)  # type: ignore
         except AttributeError:
             # datasource or database do not exist
             pass
