@@ -74,11 +74,15 @@ TABLES_WITH_PRE_EXISTING_UNIQUE: set[str] = {
     "report_schedule_user",
 }
 
-# Six tables whose FK columns are nullable today. Promoting an FK to a primary
-# key column makes it NOT NULL, so any existing NULL-FK rows would block the
-# PK-add. We delete them in pre-flight (a junction-table row with a NULL FK
-# is meaningless under SQLAlchemy ``secondary=`` semantics anyway).
+# Tables whose FK columns are nullable in their original create_table
+# migrations. ``dashboard_roles.dashboard_id`` (created in revision
+# e11ccdd12658) is nullable; ``report_schedule_user`` is the only association
+# table that was created with both FK columns ``NOT NULL``. The pre-flight
+# NULL-FK cleanup is a cheap no-op DELETE when run against tables whose FKs
+# are already NOT NULL, so we run it on every affected table to avoid drift
+# bugs from this set going stale.
 TABLES_WITH_NULLABLE_FKS: set[str] = {
+    "dashboard_roles",
     "dashboard_slices",
     "dashboard_user",
     "rls_filter_roles",
@@ -221,8 +225,12 @@ def upgrade() -> None:
     insp = inspect(conn)
 
     for t in AFFECTED_TABLES:
-        if t.name in TABLES_WITH_NULLABLE_FKS:
-            _delete_null_fk_rows(conn, t)
+        # Run NULL-FK cleanup unconditionally: it is a no-op DELETE on tables
+        # whose FK columns are already NOT NULL (cheap), and skipping it on a
+        # table whose FK was nullable would leave the PK-add to fail with a
+        # cryptic constraint violation. Cf. ``TABLES_WITH_NULLABLE_FKS`` above
+        # for documentation of which tables are known to have nullable FKs.
+        _delete_null_fk_rows(conn, t)
         _dedupe_by_min_id(conn, t)
         _assert_no_duplicates(conn, t)
 
