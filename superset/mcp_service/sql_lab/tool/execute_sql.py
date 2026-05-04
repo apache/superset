@@ -81,10 +81,31 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
     logger.info("Executing SQL query on database ID: %s", request.database_id)
 
     try:
+        # Import inside function to avoid initialization issues
+        from superset import is_feature_enabled
+
         # Use the ExecuteSqlCore to handle all the logic
         sql_tool = ExecuteSqlCore(use_command_mode=False, logger=logger)
         with event_logger.log_context(action="mcp.execute_sql.query_execution"):
             result = sql_tool.run_tool(request)
+
+        # Surface a warning when template_params is supplied but Jinja
+        # rendering is disabled — otherwise the params are silently dropped.
+        if (
+            request.template_params
+            and not is_feature_enabled("ENABLE_TEMPLATE_PROCESSING")
+            and isinstance(result, ExecuteSqlResponse)
+        ):
+            result.template_warning = (
+                "template_params was supplied but Jinja2 rendering is "
+                "disabled on this Superset instance "
+                "(ENABLE_TEMPLATE_PROCESSING feature flag is off). "
+                "Template variables in the SQL were NOT substituted; "
+                "the query was executed with literal '{{ var }}' placeholders."
+            )
+            await ctx.warning(
+                "template_params supplied but ENABLE_TEMPLATE_PROCESSING is off"
+            )
 
         # Log successful execution
         if hasattr(result, "data") and result.data:

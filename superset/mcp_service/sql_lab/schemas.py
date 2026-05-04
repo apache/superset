@@ -75,6 +75,14 @@ class ExecuteSqlRequest(BaseModel):
     parameters: dict[str, Any] | None = Field(
         None, description="Parameters for query substitution"
     )
+    template_params: dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Jinja2 template parameters for SQL rendering. Used when "
+            "ENABLE_TEMPLATE_PROCESSING is on; otherwise a warning is "
+            "surfaced and the query is executed with placeholders unrendered."
+        ),
+    )
 
     @field_validator("sql")
     @classmethod
@@ -171,6 +179,14 @@ class ExecuteSqlResponse(BaseModel):
             "The top-level rows/columns contain only the last "
             "data-bearing statement's results. "
             "Check each entry in the statements array for per-statement data."
+        ),
+    )
+    template_warning: str | None = Field(
+        None,
+        description=(
+            "Warning when template_params was supplied but Jinja2 rendering "
+            "is disabled on this Superset instance. The query was executed "
+            "with literal '{{ var }}' placeholders unrendered."
         ),
     )
 
