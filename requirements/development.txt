@@ -707,7 +707,7 @@ protobuf==4.25.8
     #   proto-plus
 psutil==6.1.0
     # via apache-superset
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.12
     # via apache-superset
 py-key-value-aio==0.4.4
     # via fastmcp

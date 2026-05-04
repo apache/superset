@@ -191,6 +191,14 @@ class ExecuteSqlResponse(BaseModel):
             "Check each entry in the statements array for per-statement data."
         ),
     )
+    template_warning: str | None = Field(
+        None,
+        description=(
+            "Warning when template_params was supplied but Jinja2 rendering "
+            "is disabled on this Superset instance. The query was executed "
+            "with literal '{{ var }}' placeholders unrendered."
+        ),
+    )
 
 
 class SaveSqlQueryRequest(BaseModel):
