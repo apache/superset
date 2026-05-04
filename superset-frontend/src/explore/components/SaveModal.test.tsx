@@ -265,7 +265,29 @@ test('disables overwrite option for non-owner', () => {
   expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
   expect(
     getByText(
-      'Must be a chart owner to overwrite the existing chart. Save as a new chart instead.',
+      'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('disables overwrite option for externally managed slice', () => {
+  const { getByRole, getByText } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          is_managed_externally: true,
+        },
+      },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+  expect(
+    getByText(
+      "This chart is managed externally and can't be overwritten in Superset.",
     ),
   ).toBeInTheDocument();
 });

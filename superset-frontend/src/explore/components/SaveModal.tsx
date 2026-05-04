@@ -599,10 +599,6 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
   renderSaveChartModal = () => {
     const info = this.info();
     const canOverwriteSlice = this.canOverwriteSlice();
-    const isChartOwner = this.props.slice?.owners?.includes(
-      this.props.user.userId,
-    );
-    const isExistingChartNonOwner = Boolean(this.props.slice && !isChartOwner);
     return (
       <Form data-test="save-modal-body" layout="vertical">
         <FormItem data-test="radio-group">
@@ -615,12 +611,16 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           >
             {t('Save (Overwrite)')}
           </Radio>
-          {isExistingChartNonOwner && (
+          {this.props.slice && !canOverwriteSlice && (
             <div>
               <Typography.Text type="secondary">
-                {t(
-                  'Must be a chart owner to overwrite the existing chart. Save as a new chart instead.',
-                )}
+                {this.props.slice.is_managed_externally
+                  ? t(
+                      "This chart is managed externally and can't be overwritten in Superset.",
+                    )
+                  : t(
+                      'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+                    )}
               </Typography.Text>
             </div>
           )}
