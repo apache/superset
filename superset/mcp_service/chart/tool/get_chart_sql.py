@@ -229,7 +229,9 @@ def _build_query_context_from_form_data(
         or (getattr(chart, "viz_type", "") if chart else "")
         or ""
     )
-    is_timeseries = viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
+    is_timeseries = (
+        viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
+    )
 
     # For echarts_timeseries_* and mixed_timeseries charts the temporal
     # column is stored in x_axis rather than groupby.  Prepend it so the

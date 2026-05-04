@@ -478,9 +478,18 @@ class TestExtractXAxisCol:
 
     def test_dict_x_axis(self):
         """Adhoc column dict x_axis returns column_name."""
-        assert _extract_x_axis_col(
-            {"x_axis": {"column_name": "ds", "label": "ds", "expressionType": "SIMPLE"}}
-        ) == "ds"
+        assert (
+            _extract_x_axis_col(
+                {
+                    "x_axis": {
+                        "column_name": "ds",
+                        "label": "ds",
+                        "expressionType": "SIMPLE",
+                    }
+                }
+            )
+            == "ds"
+        )
 
     def test_missing_x_axis_returns_none(self):
         """Missing x_axis key returns None."""
