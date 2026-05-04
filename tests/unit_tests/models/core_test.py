@@ -202,6 +202,11 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
 
 @pytest.mark.parametrize(
     "dttm,col,database,result",
+    # Make sure that dttm and result share the same timezone awareness.
+    # Either dttm and result are both timezone-naive.
+    # Or dttm and result are both timezone-aware, e.g. dttm is a datetime object with
+    # non-null tzinfo and result is a UNIX timestamp with epoch (sub-)seconds since
+    # 1970-01-01 00:00:00 UTC.
     [
         (
             datetime(2023, 1, 1, 1, 23, 45, 600000, timezone.utc),
