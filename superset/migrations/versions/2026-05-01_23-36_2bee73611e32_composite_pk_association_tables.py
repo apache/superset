@@ -74,13 +74,15 @@ TABLES_WITH_PRE_EXISTING_UNIQUE: set[str] = {
     "report_schedule_user",
 }
 
-# Tables whose FK columns are nullable in their original create_table
-# migrations. ``dashboard_roles.dashboard_id`` (created in revision
-# e11ccdd12658) is nullable; ``report_schedule_user`` is the only association
-# table that was created with both FK columns ``NOT NULL``. The pre-flight
-# NULL-FK cleanup is a cheap no-op DELETE when run against tables whose FKs
-# are already NOT NULL, so we run it on every affected table to avoid drift
-# bugs from this set going stale.
+# Documentation set: tables whose FK columns are nullable in their original
+# create_table migrations (``dashboard_roles.dashboard_id`` from revision
+# e11ccdd12658 is the most recent addition). ``report_schedule_user`` is the
+# only affected table created with both FK columns ``NOT NULL`` and is
+# intentionally absent here. This set is no longer consulted at runtime — the
+# upgrade now runs the NULL-FK cleanup on every affected table because the
+# DELETE is a cheap no-op when the columns are already NOT NULL, and that
+# eliminates the risk of bugs from this set going stale (the
+# ``dashboard_roles`` omission caught in PR review was exactly that bug).
 TABLES_WITH_NULLABLE_FKS: set[str] = {
     "dashboard_roles",
     "dashboard_slices",
@@ -95,7 +97,18 @@ TABLES_WITH_NULLABLE_FKS: set[str] = {
 def _check_no_external_fks_to_id(conn: Connection) -> None:
     """Raise ``RuntimeError`` if any foreign key in the database references one
     of the eight junction-table ``id`` columns. Uses SQLAlchemy's ``Inspector``
-    for dialect-agnostic introspection across PostgreSQL, MySQL, and SQLite."""
+    for dialect-agnostic introspection across PostgreSQL, MySQL, and SQLite.
+
+    Scope limitation: ``Inspector.get_table_names()`` returns tables in the
+    connection's default schema only. On PostgreSQL deployments where Superset
+    metadata lives in a non-default schema, or on multi-schema deployments
+    that allow cross-schema FKs, an external FK in another schema would not
+    be detected. This is acceptable for the standard single-schema
+    deployment that Superset documents; operators with multi-schema
+    metadata should run the equivalent inventory query against
+    ``information_schema.referential_constraints`` themselves before
+    applying.
+    """
     affected = {t.name for t in AFFECTED_TABLES}
     insp = inspect(conn)
     for table_name in insp.get_table_names():
@@ -115,10 +128,10 @@ def _check_no_external_fks_to_id(conn: Connection) -> None:
 def _delete_null_fk_rows(conn: Connection, t: AssociationTable) -> int:
     """Delete rows where ``t.fk1`` or ``t.fk2`` is NULL on ``t.name``.
 
-    Returns the deletion count. Called only on tables in
-    ``TABLES_WITH_NULLABLE_FKS``. Required because primary-key columns must be
+    Returns the deletion count. Required because primary-key columns must be
     NOT NULL; the PK-add downstream would fail with a cryptic constraint
-    violation if any NULL-FK rows survived.
+    violation if any NULL-FK rows survived. Run unconditionally on every
+    affected table — see ``TABLES_WITH_NULLABLE_FKS`` above for the rationale.
     """
     # Identifiers come from the AFFECTED_TABLES whitelist, not user input.
     sql = sa.text(
@@ -142,8 +155,22 @@ def _dedupe_by_min_id(conn: Connection, t: AssociationTable) -> int:
     portability — MySQL rejects ``DELETE FROM t WHERE id NOT IN (SELECT MIN(id)
     FROM t GROUP BY ...)`` with ERROR 1093 unless the inner SELECT is wrapped
     to force materialization.
+
+    Logs a sample (up to 10) of the discarded ``(fk1, fk2, id)`` tuples at
+    WARN before deletion, so operators can audit which rows are dropped — the
+    "keep ``MIN(id)``" policy preserves the original row, which is correct
+    in practice but discards any later, semantically-identical re-grants.
     """
     # Identifiers come from the AFFECTED_TABLES whitelist, not user input.
+    sample_sql = sa.text(
+        f"SELECT {t.fk1}, {t.fk2}, id FROM {t.name} WHERE id NOT IN ("  # noqa: S608
+        f" SELECT keep_id FROM ("
+        f"  SELECT MIN(id) AS keep_id FROM {t.name} "
+        f"GROUP BY {t.fk1}, {t.fk2}"
+        f" ) AS s"
+        f") LIMIT 10"
+    )
+    sample = list(conn.execute(sample_sql))
     sql = sa.text(
         f"DELETE FROM {t.name} WHERE id NOT IN ("  # noqa: S608
         f" SELECT keep_id FROM ("
@@ -155,7 +182,15 @@ def _dedupe_by_min_id(conn: Connection, t: AssociationTable) -> int:
     result = conn.execute(sql)
     n = result.rowcount or 0
     if n:
-        logger.warning("Deduped %d duplicate row(s) from %s", n, t.name)
+        logger.warning(
+            "Deduped %d duplicate row(s) from %s; sample of discarded "
+            "(%s, %s, id) tuples (up to 10): %s",
+            n,
+            t.name,
+            t.fk1,
+            t.fk2,
+            sample,
+        )
     return n
 
 
