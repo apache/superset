@@ -36,7 +36,6 @@ import {
   type OnClickHandler,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { IconType } from '@superset-ui/core/components/Icons/types';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
 import { Typography } from '@superset-ui/core/components/Typography';
 
@@ -149,7 +148,7 @@ export interface ButtonProps {
   'data-test'?: string;
   buttonStyle: 'primary' | 'secondary' | 'dashed' | 'link' | 'tertiary';
   loading?: boolean;
-  icon?: IconType;
+  icon?: ReactNode;
 }
 
 export interface SubMenuProps {
@@ -164,6 +163,7 @@ export interface SubMenuProps {
   color?: string;
   dropDownLinks?: Array<MenuObjectProps>;
   backgroundColor?: string;
+  children?: ReactNode;
 }
 
 const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
