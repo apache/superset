@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import itertools
+from copy import deepcopy
 from unittest.mock import MagicMock, patch  # noqa: F401
 
 import pytest
@@ -42,6 +43,7 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dashboard import DashboardDAO
+from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -50,6 +52,7 @@ from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
+    annotation_layer_config,
     chart_config,
     dashboard_config,
     dashboard_export,
@@ -929,3 +932,411 @@ class TestFavoriteDashboardCommand(SupersetTestCase):
 
                 with self.assertRaises(DashboardAccessDeniedError):  # noqa: PT027
                     DelFavoriteDashboardCommand(example_dashboard.uuid).run()
+
+
+class TestImportDashboardsAnnotationLayer(SupersetTestCase):
+    """Tests for annotation layer handling during dashboard import."""
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dashboard_native_annotation_resolved(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """NATIVE annotation UUID is resolved to local AnnotationLayer.id
+        when importing a dashboard."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        native_chart_config = deepcopy(chart_config)
+        native_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Native Layer",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": annotation_layer_config["uuid"],
+                "show": True,
+                "style": "solid",
+            }
+        ]
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(native_chart_config),
+            "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config),
+            "annotation_layers/imported_layer.yaml": yaml.safe_dump(
+                annotation_layer_config
+            ),
+        }
+        command = v1.ImportDashboardsCommand(contents, overwrite=True)
+        command.run()
+
+        chart = (
+            db.session.query(Slice).filter_by(uuid=native_chart_config["uuid"]).one()
+        )
+        ann_layer = (
+            db.session.query(AnnotationLayer)
+            .filter_by(uuid=annotation_layer_config["uuid"])
+            .one()
+        )
+        dashboard = (
+            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).one()
+        )
+
+        params = json.loads(chart.params)
+        layers = params["annotation_layers"]
+        assert len(layers) == 1
+        assert layers[0]["sourceType"] == "NATIVE"
+        assert layers[0]["value"] == ann_layer.id
+
+        db.session.delete(dashboard)
+        db.session.delete(chart)
+        db.session.query(Annotation).filter_by(layer_id=ann_layer.id).delete()
+        db.session.delete(ann_layer)
+        db.session.delete(
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        db.session.delete(
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dashboard_table_annotation_resolved(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """table annotation UUID is resolved to referenced Chart.id
+        when importing a dashboard."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        # referenced chart (annotation source)
+        ref_chart_config = deepcopy(chart_config)
+        ref_chart_config["uuid"] = "aaaaaaaa-5555-6666-7777-888888888888"
+        ref_chart_config["slice_name"] = "Dashboard Ref Chart"
+
+        # main chart with table annotation referencing ref chart
+        main_chart_config = deepcopy(chart_config)
+        main_chart_config["uuid"] = "bbbbbbbb-5555-6666-7777-888888888888"
+        main_chart_config["slice_name"] = "Dashboard Main Chart"
+        main_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Table Annotation",
+                "annotationType": "EVENT",
+                "sourceType": "table",
+                "value": ref_chart_config["uuid"],
+                "show": True,
+                "style": "solid",
+            }
+        ]
+
+        # dashboard referencing both charts
+        dash_config = deepcopy(dashboard_config)
+        dash_config["position"] = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+            "GRID_ID": {
+                "children": ["ROW-1"],
+                "id": "GRID_ID",
+                "parents": ["ROOT_ID"],
+                "type": "GRID",
+            },
+            "HEADER_ID": {
+                "id": "HEADER_ID",
+                "meta": {"text": "Test dash"},
+                "type": "HEADER",
+            },
+            "ROW-1": {
+                "children": ["CHART-1", "CHART-2"],
+                "id": "ROW-1",
+                "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+                "parents": ["ROOT_ID", "GRID_ID"],
+                "type": "ROW",
+            },
+            "CHART-1": {
+                "children": [],
+                "id": "CHART-1",
+                "meta": {
+                    "chartId": 1,
+                    "height": 50,
+                    "sliceName": "Dashboard Main Chart",
+                    "uuid": main_chart_config["uuid"],
+                    "width": 4,
+                },
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-1"],
+                "type": "CHART",
+            },
+            "CHART-2": {
+                "children": [],
+                "id": "CHART-2",
+                "meta": {
+                    "chartId": 2,
+                    "height": 50,
+                    "sliceName": "Dashboard Ref Chart",
+                    "uuid": ref_chart_config["uuid"],
+                    "width": 4,
+                },
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-1"],
+                "type": "CHART",
+            },
+        }
+        dash_config["metadata"] = {
+            "timed_refresh_immune_slices": [1],
+            "expanded_slices": {"1": True},
+            "refresh_frequency": 0,
+            "color_scheme": None,
+            "remote_id": 7,
+            "import_time": 1604342885,
+        }
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/ref_chart.yaml": yaml.safe_dump(ref_chart_config),
+            "charts/main_chart.yaml": yaml.safe_dump(main_chart_config),
+            "dashboards/imported_dashboard.yaml": yaml.safe_dump(dash_config),
+        }
+        command = v1.ImportDashboardsCommand(contents, overwrite=True)
+        command.run()
+
+        main_chart = (
+            db.session.query(Slice).filter_by(uuid=main_chart_config["uuid"]).one()
+        )
+        ref_chart = (
+            db.session.query(Slice).filter_by(uuid=ref_chart_config["uuid"]).one()
+        )
+        dashboard = (
+            db.session.query(Dashboard).filter_by(uuid=dash_config["uuid"]).one()
+        )
+
+        params = json.loads(main_chart.params)
+        layers = params["annotation_layers"]
+        assert len(layers) == 1
+        assert layers[0]["sourceType"] == "table"
+        assert layers[0]["value"] == ref_chart.id
+
+        db.session.delete(dashboard)
+        db.session.delete(main_chart)
+        db.session.delete(ref_chart)
+        db.session.delete(
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        db.session.delete(
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dashboard_formula_annotation_preserved(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """FORMULA annotations are kept unchanged during dashboard import."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        formula_chart_config = deepcopy(chart_config)
+        formula_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Formula",
+                "annotationType": "FORMULA",
+                "sourceType": "FORMULA",
+                "value": "sin(x)",
+                "show": True,
+                "style": "solid",
+            }
+        ]
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(formula_chart_config),
+            "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config),
+        }
+        command = v1.ImportDashboardsCommand(contents, overwrite=True)
+        command.run()
+
+        chart = (
+            db.session.query(Slice).filter_by(uuid=formula_chart_config["uuid"]).one()
+        )
+        dashboard = (
+            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).one()
+        )
+
+        params = json.loads(chart.params)
+        layers = params["annotation_layers"]
+        assert len(layers) == 1
+        assert layers[0]["sourceType"] == "FORMULA"
+        assert layers[0]["value"] == "sin(x)"
+
+        db.session.delete(dashboard)
+        db.session.delete(chart)
+        db.session.delete(
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        db.session.delete(
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_dashboard_mixed_annotations(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """NATIVE, table, and FORMULA annotations all resolve correctly
+        during dashboard import."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        ref_chart_config = deepcopy(chart_config)
+        ref_chart_config["uuid"] = "cccccccc-5555-6666-7777-888888888888"
+        ref_chart_config["slice_name"] = "Dashboard Mixed Ref"
+
+        mixed_chart_config = deepcopy(chart_config)
+        mixed_chart_config["uuid"] = "dddddddd-5555-6666-7777-888888888888"
+        mixed_chart_config["slice_name"] = "Dashboard Mixed Main"
+        mixed_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Native",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": annotation_layer_config["uuid"],
+                "show": True,
+                "style": "solid",
+            },
+            {
+                "name": "Table",
+                "annotationType": "EVENT",
+                "sourceType": "table",
+                "value": ref_chart_config["uuid"],
+                "show": True,
+                "style": "solid",
+            },
+            {
+                "name": "Formula",
+                "annotationType": "FORMULA",
+                "sourceType": "FORMULA",
+                "value": "cos(x)",
+                "show": True,
+                "style": "dashed",
+            },
+        ]
+
+        # dashboard referencing both charts
+        dash_config = deepcopy(dashboard_config)
+        dash_config["position"] = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+            "GRID_ID": {
+                "children": ["ROW-1"],
+                "id": "GRID_ID",
+                "parents": ["ROOT_ID"],
+                "type": "GRID",
+            },
+            "HEADER_ID": {
+                "id": "HEADER_ID",
+                "meta": {"text": "Test dash"},
+                "type": "HEADER",
+            },
+            "ROW-1": {
+                "children": ["CHART-1", "CHART-2"],
+                "id": "ROW-1",
+                "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+                "parents": ["ROOT_ID", "GRID_ID"],
+                "type": "ROW",
+            },
+            "CHART-1": {
+                "children": [],
+                "id": "CHART-1",
+                "meta": {
+                    "chartId": 1,
+                    "height": 50,
+                    "sliceName": "Dashboard Mixed Main",
+                    "uuid": mixed_chart_config["uuid"],
+                    "width": 4,
+                },
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-1"],
+                "type": "CHART",
+            },
+            "CHART-2": {
+                "children": [],
+                "id": "CHART-2",
+                "meta": {
+                    "chartId": 2,
+                    "height": 50,
+                    "sliceName": "Dashboard Mixed Ref",
+                    "uuid": ref_chart_config["uuid"],
+                    "width": 4,
+                },
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-1"],
+                "type": "CHART",
+            },
+        }
+        dash_config["metadata"] = {
+            "timed_refresh_immune_slices": [1],
+            "expanded_slices": {"1": True},
+            "refresh_frequency": 0,
+            "color_scheme": None,
+            "remote_id": 7,
+            "import_time": 1604342885,
+        }
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/ref_chart.yaml": yaml.safe_dump(ref_chart_config),
+            "charts/mixed_chart.yaml": yaml.safe_dump(mixed_chart_config),
+            "dashboards/imported_dashboard.yaml": yaml.safe_dump(dash_config),
+            "annotation_layers/imported_layer.yaml": yaml.safe_dump(
+                annotation_layer_config
+            ),
+        }
+        command = v1.ImportDashboardsCommand(contents, overwrite=True)
+        command.run()
+
+        main_chart = (
+            db.session.query(Slice).filter_by(uuid=mixed_chart_config["uuid"]).one()
+        )
+        ref_chart = (
+            db.session.query(Slice).filter_by(uuid=ref_chart_config["uuid"]).one()
+        )
+        ann_layer = (
+            db.session.query(AnnotationLayer)
+            .filter_by(uuid=annotation_layer_config["uuid"])
+            .one()
+        )
+        dashboard = (
+            db.session.query(Dashboard).filter_by(uuid=dash_config["uuid"]).one()
+        )
+
+        params = json.loads(main_chart.params)
+        layers = params["annotation_layers"]
+        assert len(layers) == 3
+        # NATIVE → annotation layer local ID
+        assert layers[0]["sourceType"] == "NATIVE"
+        assert layers[0]["value"] == ann_layer.id
+        # table → referenced chart local ID
+        assert layers[1]["sourceType"] == "table"
+        assert layers[1]["value"] == ref_chart.id
+        # FORMULA → unchanged
+        assert layers[2]["sourceType"] == "FORMULA"
+        assert layers[2]["value"] == "cos(x)"
+
+        db.session.delete(dashboard)
+        db.session.delete(main_chart)
+        db.session.delete(ref_chart)
+        db.session.query(Annotation).filter_by(layer_id=ann_layer.id).delete()
+        db.session.delete(ann_layer)
+        db.session.delete(
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        db.session.delete(
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        db.session.commit()
