@@ -41,11 +41,13 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
     ChartError,
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
 )
+from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -54,6 +56,22 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+GENERATE_CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = (
+    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
+    | frozenset({"cache_key", "database", "database_name", "schema"})
+)
+
+
+def _sanitize_generate_chart_form_data_for_llm_context(
+    form_data: dict[str, Any],
+) -> dict[str, Any]:
+    """Wrap generated-chart form_data before returning it to LLM clients."""
+    return sanitize_for_llm_context(
+        form_data,
+        field_path=("form_data",),
+        excluded_field_names=GENERATE_CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
+    )
 
 
 @dataclass
@@ -476,7 +494,11 @@ async def generate_chart(  # noqa: C901
                         {
                             "chart": None,
                             "error": error.model_dump(),
-                            "form_data": form_data,
+                            "form_data": (
+                                _sanitize_generate_chart_form_data_for_llm_context(
+                                    form_data
+                                )
+                            ),
                             "performance": {
                                 "query_duration_ms": execution_time,
                                 "cache_status": "error",
@@ -603,7 +625,11 @@ async def generate_chart(  # noqa: C901
                         {
                             "chart": None,
                             "error": error.model_dump(),
-                            "form_data": form_data,
+                            "form_data": (
+                                _sanitize_generate_chart_form_data_for_llm_context(
+                                    form_data
+                                )
+                            ),
                             "performance": {
                                 "query_duration_ms": execution_time,
                                 "cache_status": "error",
@@ -799,7 +825,7 @@ async def generate_chart(  # noqa: C901
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
             # Form data fields - REQUIRED for chatbot/external client rendering
-            "form_data": form_data,
+            "form_data": _sanitize_generate_chart_form_data_for_llm_context(form_data),
             "form_data_key": form_data_key,
             "api_endpoints": {
                 "data": f"{get_superset_base_url()}/api/v1/chart/{chart.id}/data/"

@@ -461,7 +461,7 @@ class TestGetInstanceInfoCurrentUserViaMCP:
 
 
 def test_chart_filter_rejects_created_by_fk() -> None:
-    """Test that ChartFilter rejects user-directory columns."""
+    """created_by_fk is not a valid ChartFilter column; use created_by_me instead."""
     with pytest.raises(ValidationError):
         ChartFilter(col="created_by_fk", opr="eq", value=42)
 
@@ -473,7 +473,7 @@ def test_chart_filter_rejects_invalid_column():
 
 
 def test_dashboard_filter_rejects_created_by_fk():
-    """Test that DashboardFilter rejects user-directory columns."""
+    """created_by_fk is not a valid DashboardFilter column; use created_by_me."""
     with pytest.raises(ValidationError):
         DashboardFilter(col="created_by_fk", opr="eq", value=42)
 
