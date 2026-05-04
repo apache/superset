@@ -256,3 +256,27 @@ def test_detect_column_format_query_has_no_is_not_null(
     assert "IS NOT NULL" not in captured_sql[0], (
         f"Query should not contain IS NOT NULL predicate, got: {captured_sql[0]}"
     )
+
+
+def test_detect_column_format_with_leading_null_samples(
+    mock_dataset: MagicMock, mock_column: MagicMock
+) -> None:
+    """Leading NULL values are ignored during format detection."""
+    sample_data = pd.DataFrame(
+        {
+            "date_column": [
+                None,
+                None,
+                "2023-01-01",
+                "2023-01-02",
+                "2023-01-03",
+            ]
+        }
+    )
+    mock_dataset.database.get_df.return_value = sample_data
+
+    detector = DatetimeFormatDetector(sample_size=5)
+    detected_format = detector.detect_column_format(mock_dataset, mock_column)
+
+    assert detected_format == "%Y-%m-%d"
+    mock_dataset.database.get_df.assert_called_once()
