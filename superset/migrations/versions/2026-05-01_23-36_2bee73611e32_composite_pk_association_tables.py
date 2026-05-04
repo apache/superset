@@ -120,9 +120,17 @@ def _check_no_external_fks_to_id(conn: Connection) -> None:
                     f"Cannot drop synthetic id from {fk['referred_table']}: "
                     f"external FK {fk.get('name', '<unnamed>')} on {table_name} "
                     f"references {fk['referred_table']}({fk['referred_columns']}). "
-                    f"Drop or migrate the referencing FK before applying this "
-                    f"migration."
+                    "Drop or migrate the referencing FK before applying this "
+                    "migration."
                 )
+
+
+def _table_clause(t: AssociationTable) -> sa.sql.expression.TableClause:
+    """Build a lightweight SQLAlchemy ``TableClause`` for ``t`` exposing the
+    columns the helper queries reference (``id``, ``fk1``, ``fk2``). Used so
+    that the dedupe / cleanup / assert SQL can be expressed via SQLAlchemy
+    core constructs rather than via string interpolation."""
+    return sa.table(t.name, sa.column("id"), sa.column(t.fk1), sa.column(t.fk2))
 
 
 def _delete_null_fk_rows(conn: Connection, t: AssociationTable) -> int:
@@ -133,11 +141,9 @@ def _delete_null_fk_rows(conn: Connection, t: AssociationTable) -> int:
     violation if any NULL-FK rows survived. Run unconditionally on every
     affected table — see ``TABLES_WITH_NULLABLE_FKS`` above for the rationale.
     """
-    # Identifiers come from the AFFECTED_TABLES whitelist, not user input.
-    sql = sa.text(
-        f"DELETE FROM {t.name} WHERE {t.fk1} IS NULL OR {t.fk2} IS NULL"  # noqa: S608
-    )
-    result = conn.execute(sql)
+    tbl = _table_clause(t)
+    stmt = sa.delete(tbl).where(sa.or_(tbl.c[t.fk1].is_(None), tbl.c[t.fk2].is_(None)))
+    result = conn.execute(stmt)
     n = result.rowcount or 0
     if n:
         logger.warning(
@@ -151,35 +157,35 @@ def _delete_null_fk_rows(conn: Connection, t: AssociationTable) -> int:
 def _dedupe_by_min_id(conn: Connection, t: AssociationTable) -> int:
     """Delete duplicate ``(t.fk1, t.fk2)`` rows from ``t.name`` keeping ``MIN(id)``.
 
-    Returns the deletion count. Uses the wrapped-subquery form for MySQL
-    portability — MySQL rejects ``DELETE FROM t WHERE id NOT IN (SELECT MIN(id)
-    FROM t GROUP BY ...)`` with ERROR 1093 unless the inner SELECT is wrapped
-    to force materialization.
+    Returns the deletion count. The ``NOT IN`` argument is wrapped in an
+    extra ``SELECT keep_id FROM (...) AS s`` derived table because MySQL
+    rejects ``DELETE FROM t WHERE id NOT IN (SELECT MIN(id) FROM t GROUP BY
+    ...)`` with ERROR 1093 unless the inner SELECT is materialized through
+    a derived table. SQLAlchemy's ``.subquery()`` produces that wrap.
 
     Logs a sample (up to 10) of the discarded ``(fk1, fk2, id)`` tuples at
-    WARN before deletion, so operators can audit which rows are dropped — the
-    "keep ``MIN(id)``" policy preserves the original row, which is correct
-    in practice but discards any later, semantically-identical re-grants.
+    WARN before deletion, so operators can audit which rows are dropped —
+    the "keep ``MIN(id)``" policy preserves the original row, which is
+    correct in practice but discards any later, semantically-identical
+    re-grants.
     """
-    # Identifiers come from the AFFECTED_TABLES whitelist, not user input.
-    sample_sql = sa.text(
-        f"SELECT {t.fk1}, {t.fk2}, id FROM {t.name} WHERE id NOT IN ("  # noqa: S608
-        f" SELECT keep_id FROM ("
-        f"  SELECT MIN(id) AS keep_id FROM {t.name} "
-        f"GROUP BY {t.fk1}, {t.fk2}"
-        f" ) AS s"
-        f") LIMIT 10"
+    tbl = _table_clause(t)
+
+    keep_min = (
+        sa.select(sa.func.min(tbl.c.id).label("keep_id"))
+        .group_by(tbl.c[t.fk1], tbl.c[t.fk2])
+        .subquery("keep_min")
     )
-    sample = list(conn.execute(sample_sql))
-    sql = sa.text(
-        f"DELETE FROM {t.name} WHERE id NOT IN ("  # noqa: S608
-        f" SELECT keep_id FROM ("
-        f"  SELECT MIN(id) AS keep_id FROM {t.name} "
-        f"GROUP BY {t.fk1}, {t.fk2}"
-        f" ) AS s"
-        f")"
+    keep_ids = sa.select(keep_min.c.keep_id)
+    discarded = tbl.c.id.notin_(keep_ids)
+
+    sample_stmt = (
+        sa.select(tbl.c[t.fk1], tbl.c[t.fk2], tbl.c.id).where(discarded).limit(10)
     )
-    result = conn.execute(sql)
+    sample = list(conn.execute(sample_stmt))
+
+    delete_stmt = sa.delete(tbl).where(discarded)
+    result = conn.execute(delete_stmt)
     n = result.rowcount or 0
     if n:
         logger.warning(
@@ -201,13 +207,16 @@ def _assert_no_duplicates(conn: Connection, t: AssociationTable) -> None:
     dedupe failures (e.g., a MySQL syntax issue) as an actionable error
     before the PK-add fires with a less-helpful constraint-violation message.
     """
-    # Identifiers come from the AFFECTED_TABLES whitelist, not user input.
-    sql = sa.text(
-        f"SELECT COUNT(*) FROM ("  # noqa: S608
-        f" SELECT 1 FROM {t.name} GROUP BY {t.fk1}, {t.fk2} HAVING COUNT(*) > 1"
-        f") AS s"
+    tbl = _table_clause(t)
+    duplicate_groups = (
+        sa.select(sa.literal(1))
+        .select_from(tbl)
+        .group_by(tbl.c[t.fk1], tbl.c[t.fk2])
+        .having(sa.func.count() > 1)
+        .subquery("duplicate_groups")
     )
-    if remaining := conn.scalar(sql) or 0:
+    count_stmt = sa.select(sa.func.count()).select_from(duplicate_groups)
+    if remaining := conn.scalar(count_stmt) or 0:
         raise RuntimeError(
             f"Dedupe failed for {t.name}: {remaining} duplicate "
             f"({t.fk1}, {t.fk2}) groups remain after _dedupe_by_min_id. "
