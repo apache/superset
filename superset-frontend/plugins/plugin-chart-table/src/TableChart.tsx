@@ -533,7 +533,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     // so that cross-filters work on the receiving chart
                     const resolvedCol = columnLabelToNameMap[col] ?? col;
                     const val = ensureIsArray(updatedFilters?.[col]);
-                    if (!val.length || val[0] === null || (val[0] instanceof DateWithFormatter && val[0].input === null))
+                    if (
+                      !val.length ||
+                      val[0] === null ||
+                      (val[0] instanceof DateWithFormatter &&
+                        val[0].input === null)
+                    )
                       return {
                         col: resolvedCol,
                         op: 'IS NULL' as const,
@@ -646,24 +651,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             // DateWithFormatter objects wrap nulls, so we must check both
             if (
               dataRecordValue == null ||
-              (dataRecordValue instanceof DateWithFormatter && dataRecordValue.input == null)
+              (dataRecordValue instanceof DateWithFormatter &&
+                dataRecordValue.input == null)
             ) {
               drillToDetailFilters.push({
                 col: col.key,
                 op: 'IS NULL' as any,
                 val: null,
               });
-
             } else if (col.dataType === GenericDataType.Temporal && timeGrain) {
               const startTime =
                 dataRecordValue instanceof Date
                   ? dataRecordValue
                   : new Date(dataRecordValue as string | number);
 
-              const [rangeStartTime, rangeEndTime] = getTimeRangeFromGranularity(
-                startTime,
-                timeGrain,
-              );
+              const [rangeStartTime, rangeEndTime] =
+                getTimeRangeFromGranularity(startTime, timeGrain);
               const timeRangeValue = `${rangeStartTime.toISOString()} : ${rangeEndTime.toISOString()}`;
 
               drillToDetailFilters.push({
@@ -696,7 +699,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 filters: [
                   {
                     col: cellPoint.key,
-                    op: (cellPoint.value == null || (cellPoint.value instanceof DateWithFormatter && cellPoint.value.input == null) ? 'IS NULL' : '==') as any,
+                    op: (cellPoint.value == null ||
+                    (cellPoint.value instanceof DateWithFormatter &&
+                      cellPoint.value.input == null)
+                      ? 'IS NULL'
+                      : '==') as any,
                     val: extractTextFromHTML(cellPoint.value),
                   },
                 ],

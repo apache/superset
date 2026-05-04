@@ -189,10 +189,11 @@ const MessageSpan = styled.span`
 class Chart extends PureComponent<ChartProps, {}> {
   static defaultProps = defaultProps;
 
-  renderStartTime: any;
+  renderStartTime: number;
 
   constructor(props: ChartProps) {
     super(props);
+    this.renderStartTime = Logger.getTimestamp();
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
   }

@@ -230,7 +230,9 @@ export default function getControlItemsMap({
                     <InfoTooltip
                       placement="top"
                       tooltip={
-                        controlItem.config.description as React.ReactNode
+                        typeof controlItem.config.description === 'function'
+                          ? (controlItem.config.description as Function)()
+                          : (controlItem.config.description as React.ReactNode)
                       }
                     />
                   )}
