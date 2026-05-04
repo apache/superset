@@ -249,13 +249,12 @@ def test_get_current_guest_user_if_guest_returns_none_for_regular_user() -> None
 
 
 def test_raise_for_access_non_guest_skips_allowlist_check() -> None:
-    """When is_guest_user() returns False the allowlist check is never reached."""
+    """Allowlist check is skipped when get_current_guest_user_if_guest returns None."""
     from superset.security.manager import SupersetSecurityManager
 
     sm = MagicMock(spec=SupersetSecurityManager)
-    sm.is_guest_user.return_value = False
+    sm.get_current_guest_user_if_guest.return_value = None
     datasource = _make_datasource(dataset_id=99)
 
-    # Should not raise — allowlist block is not entered for non-guests.
+    # Should not raise — allowlist block is not entered when there is no guest user.
     SupersetSecurityManager.raise_for_access(sm, datasource=datasource)
-    sm.get_current_guest_user_if_guest.assert_not_called()
