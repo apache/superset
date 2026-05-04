@@ -141,6 +141,21 @@ def _resolve_metrics_and_groupby(
     return _resolve_metrics(form_data, viz_type), _resolve_groupby(form_data)
 
 
+def _extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
+    """Return the x_axis column name from form_data, or None if not set.
+
+    ``x_axis`` may be stored as a plain column-name string or as an adhoc
+    column dict (``{"column_name": "...", ...}``).
+    """
+    x_axis = form_data.get("x_axis")
+    if isinstance(x_axis, str) and x_axis:
+        return x_axis
+    if isinstance(x_axis, dict):
+        col_name = x_axis.get("column_name")
+        return col_name if isinstance(col_name, str) and col_name else None
+    return None
+
+
 def _resolve_engine(
     datasource_id: Any,
     datasource_type: str,
@@ -209,22 +224,45 @@ def _build_query_context_from_form_data(
     merge_extra_filters(form_data)
     split_adhoc_filters_into_base_filters(form_data, engine)
 
-    # Build query dict with temporal and filter fields.
-    # QueryObjectFactory.create() accepts time_range as a top-level kwarg
-    # and converts it to from_dttm/to_dttm for the QueryObject.
-    query_dict: dict[str, Any] = {
-        "columns": groupby,
-        "metrics": metrics,
-    }
+    viz_type: str = (
+        form_data.get("viz_type")
+        or (getattr(chart, "viz_type", "") if chart else "")
+        or ""
+    )
+    is_timeseries = viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
 
-    if time_range := form_data.get("time_range"):
-        query_dict["time_range"] = time_range
+    # For echarts_timeseries_* and mixed_timeseries charts the temporal
+    # column is stored in x_axis rather than groupby.  Prepend it so the
+    # generated SQL includes the time axis.
+    x_axis_col: str | None = None
+    if is_timeseries:
+        x_axis_col = _extract_x_axis_col(form_data)
+        if x_axis_col and x_axis_col not in groupby:
+            groupby = [x_axis_col] + groupby
 
-    if filters := form_data.get("filters"):
-        query_dict["filters"] = filters
+    def _make_query_dict(cols: list[str], mets: list[Any]) -> dict[str, Any]:
+        """Build a single query entry for QueryContextFactory."""
+        qd: dict[str, Any] = {"columns": cols, "metrics": mets}
+        if time_range := form_data.get("time_range"):
+            qd["time_range"] = time_range
+        if filters := form_data.get("filters"):
+            qd["filters"] = filters
+        if (row_limit := form_data.get("row_limit")) is not None:
+            qd["row_limit"] = row_limit
+        return qd
 
-    if (row_limit := form_data.get("row_limit")) is not None:
-        query_dict["row_limit"] = row_limit
+    queries: list[dict[str, Any]] = [_make_query_dict(groupby, metrics)]
+
+    # mixed_timeseries exposes two independent query layers (primary and
+    # secondary).  Build the second query from metrics_b / groupby_b so
+    # that get_chart_sql returns SQL for both and neither is silently lost.
+    if viz_type == "mixed_timeseries":
+        metrics_b: list[Any] = list(form_data.get("metrics_b") or [])
+        raw_b = form_data.get("groupby_b") or []
+        groupby_b: list[str] = [raw_b] if isinstance(raw_b, str) else list(raw_b)
+        if x_axis_col and x_axis_col not in groupby_b:
+            groupby_b = [x_axis_col] + groupby_b
+        queries.append(_make_query_dict(groupby_b, metrics_b))
 
     # Ensure datasource fields satisfy DatasourceDict typing requirements.
     # datasource_id must be int | str; datasource_type must be str.
@@ -238,7 +276,7 @@ def _build_query_context_from_form_data(
 
     return factory.create(
         datasource={"id": resolved_id, "type": resolved_type_str},
-        queries=[query_dict],
+        queries=queries,
         form_data=form_data,
         result_type=ChartDataResultType.QUERY,
         force=False,
