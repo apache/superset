@@ -342,10 +342,6 @@ test('displays chart data correctly in table rows', async () => {
     within(chartRow).getByText(testChart.changed_on_delta_humanized),
   ).toBeInTheDocument();
 
-  // Check actions column within the specific row
-  const actionsContainer = chartRow.querySelector('.actions');
-  expect(actionsContainer).toBeInTheDocument();
-
   // Verify action buttons exist within the specific row
   expect(within(chartRow).getByTestId('delete')).toBeInTheDocument();
   expect(within(chartRow).getByTestId('upload')).toBeInTheDocument();

@@ -30,9 +30,9 @@ import {
 } from 'react';
 
 import { Global } from '@emotion/react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { usePrevious } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { useResizeDetector } from 'react-resize-detector';
 import { Badge, Icons, Button, Tooltip, Popover } from '..';
 import { DropdownContainerProps, DropdownItem, DropdownRef } from './types';
@@ -352,6 +352,7 @@ export const DropdownContainer = forwardRef(
               onOpenChange={visible => setPopoverVisible(visible)}
               placement="bottom"
               forceRender={forceRender}
+              fresh // This prop prevents caching and stale data for filter scoping.
             >
               <Tooltip title={dropdownTriggerTooltip}>
                 <Button

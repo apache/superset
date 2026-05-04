@@ -52,12 +52,12 @@ test('does nothing if feature flags are already initialized', () => {
 });
 
 test('returns false and raises console error if feature flags have not been initialized', () => {
-  const logging = jest.spyOn(uiCore.logging, 'error');
+  const logging = jest.spyOn(uiCore.utils.logging, 'error');
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });
   expect(isFeatureEnabled(FeatureFlag.DrillBy)).toEqual(false);
-  expect(uiCore.logging.error).toHaveBeenCalled();
+  expect(uiCore.utils.logging.error).toHaveBeenCalled();
   expect(logging).toHaveBeenCalledWith('Failed to query feature flag DRILL_BY');
 });
 
@@ -75,4 +75,17 @@ test('returns true for set feature flag', () => {
     },
   });
   expect(isFeatureEnabled(FeatureFlag.DrillBy)).toEqual(true);
+});
+
+test('GranularExportControls feature flag has expected string value', () => {
+  expect(FeatureFlag.GranularExportControls).toBe('GRANULAR_EXPORT_CONTROLS');
+});
+
+test('returns true for set GranularExportControls feature flag', () => {
+  Object.defineProperty(window, 'featureFlags', {
+    value: {
+      GRANULAR_EXPORT_CONTROLS: true,
+    },
+  });
+  expect(isFeatureEnabled(FeatureFlag.GranularExportControls)).toEqual(true);
 });

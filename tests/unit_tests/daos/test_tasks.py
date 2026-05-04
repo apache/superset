@@ -20,7 +20,7 @@ from uuid import UUID
 
 import pytest
 from sqlalchemy.orm.session import Session
-from superset_core.api.tasks import TaskProperties, TaskScope, TaskStatus
+from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
 
 from superset.commands.tasks.exceptions import TaskNotAbortableError
 from superset.models.tasks import Task

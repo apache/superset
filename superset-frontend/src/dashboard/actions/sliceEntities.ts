@@ -17,7 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
   SupersetClient,

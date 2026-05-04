@@ -27,8 +27,7 @@ test('Returns null if Selection object is null', () => {
 test('Returns selection text if Selection object is not null', () => {
   jest
     .spyOn(window, 'getSelection')
-    // @ts-expect-error
-    .mockImplementationOnce(() => ({ toString: () => 'test string' }));
+    .mockImplementationOnce(() => ({ toString: () => 'test string' }) as any);
   expect(getSelectedText()).toEqual('test string');
   jest.restoreAllMocks();
 });

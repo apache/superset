@@ -307,8 +307,8 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
     # that specify exact paths rather than using the base class's catch-all "$.*".
     encrypted_extra_sensitive_fields = {
-        "$.aws_iam.external_id",
-        "$.aws_iam.role_arn",
+        "$.aws_iam.external_id": "AWS IAM External ID",
+        "$.aws_iam.role_arn": "AWS IAM Role ARN",
     }
 
     @staticmethod
@@ -402,7 +402,10 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         if not cls.type_code_map:
             # only import and store if needed at least once
             # pylint: disable=import-outside-toplevel
-            import MySQLdb
+            try:
+                import MySQLdb
+            except ImportError:
+                import pymysql as MySQLdb  # type: ignore[import-untyped] # noqa: N812
 
             ft = MySQLdb.constants.FIELD_TYPE
             cls.type_code_map = {

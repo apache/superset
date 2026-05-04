@@ -26,7 +26,7 @@ import {
   SMART_DATE_ID,
   TimeFormats,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { getColorFormatters } from '@superset-ui/chart-controls';
 import { DateFormatter } from '../types';
 

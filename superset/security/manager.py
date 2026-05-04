@@ -26,7 +26,7 @@ from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.models.filters import BaseFilter
-from flask_appbuilder.security.sqla.apis import RoleApi, UserApi
+from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_group_role,
@@ -75,6 +75,7 @@ from superset.utils.core import (
     DatasourceName,
     DatasourceType,
     get_user_id,
+    get_username,
     RowLevelSecurityFilterType,
 )
 from superset.utils.filters import get_dataset_access_filters
@@ -110,9 +111,48 @@ class DatabaseCatalogSchema(NamedTuple):
     schema: str
 
 
+class _RLSFilterRow(NamedTuple):
+    id: int
+    group_key: Optional[str]
+    clause: str
+
+
+_RLSCacheKey = tuple[str, int | str]
+_RLSCache = dict[_RLSCacheKey, list[SqlaQuery]]
+
+
+def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
+    """Log an audit event via the configured event logger.
+
+    Delegates to the AbstractEventLogger interface so that every
+    configured implementation (DBEventLogger, S3EventLogger, etc.)
+    receives these security audit events.
+    """
+    from superset.extensions import (
+        event_logger,  # pylint: disable=import-outside-toplevel
+    )
+
+    user_id = get_user_id()
+    try:
+        event_logger.log(
+            user_id=user_id,
+            action=action,
+            dashboard_id=None,
+            duration_ms=None,
+            slice_id=None,
+            referrer=None,
+            curated_payload=None,
+            curated_form_data=None,
+            records=[payload],
+        )
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Failed to log audit event: %s", action, exc_info=True)
+
+
 class SupersetRoleApi(RoleApi):
     """
     Overriding the RoleApi to be able to delete roles with permissions
+    and to add audit logging for role CRUD operations.
     """
 
     def pre_delete(self, item: Model) -> None:
@@ -120,6 +160,15 @@ class SupersetRoleApi(RoleApi):
         Overriding this method to be able to delete items when they have constraints
         """
         item.permissions = []
+
+    def post_add(self, item: Model) -> None:
+        _log_audit_event("RoleCreated", {"role_name": item.name, "role_id": item.id})
+
+    def post_update(self, item: Model) -> None:
+        _log_audit_event("RoleUpdated", {"role_name": item.name, "role_id": item.id})
+
+    def post_delete(self, item: Model) -> None:
+        _log_audit_event("RoleDeleted", {"role_name": item.name, "role_id": item.id})
 
 
 class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -148,6 +197,7 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 class SupersetUserApi(UserApi):
     """
     Overriding the UserApi to be able to delete users and filter excluded users
+    and to add audit logging for user CRUD operations.
     """
 
     base_filters = [["username", ExcludeUsersFilter, lambda: []]]
@@ -172,6 +222,51 @@ class SupersetUserApi(UserApi):
         Overriding this method to be able to delete items when they have constraints
         """
         item.roles = []
+
+    def post_add(self, item: Model) -> None:
+        _log_audit_event(
+            "UserCreated",
+            {
+                "target_username": item.username,
+                "target_user_id": item.id,
+                "email": item.email,
+            },
+        )
+
+    def post_update(self, item: Model) -> None:
+        _log_audit_event(
+            "UserUpdated",
+            {
+                "target_username": item.username,
+                "target_user_id": item.id,
+                "email": item.email,
+                "active": item.active,
+            },
+        )
+
+    def post_delete(self, item: Model) -> None:
+        _log_audit_event(
+            "UserDeleted",
+            {
+                "target_username": item.username,
+                "target_user_id": item.id,
+            },
+        )
+
+
+class SupersetGroupApi(GroupApi):
+    """
+    Overriding the GroupApi to add audit logging for group CRUD operations.
+    """
+
+    def post_add(self, item: Model) -> None:
+        _log_audit_event("GroupCreated", {"group_name": item.name, "group_id": item.id})
+
+    def post_update(self, item: Model) -> None:
+        _log_audit_event("GroupUpdated", {"group_name": item.name, "group_id": item.id})
+
+    def post_delete(self, item: Model) -> None:
+        _log_audit_event("GroupDeleted", {"group_name": item.name, "group_id": item.id})
 
 
 # Limiting routes on FAB model views
@@ -248,10 +343,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
 ):
     userstatschartview = None
+    register_superset_auth_view = True
+    """Set to False in subclasses that provide their own auth view."""
+    register_superset_registeruser_view = True
+    """Set to False in subclasses that provide their own register user view."""
     READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
 
     role_api = SupersetRoleApi
     user_api = SupersetUserApi
+    group_api = SupersetGroupApi
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
@@ -261,6 +361,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "UserOAuthModelView",
         "UserOIDModelView",
         "UserRemoteUserModelView",
+        "UserSAMLModelView",
     }
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
@@ -268,6 +369,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Dataset",
         "Datasource",
     } | READ_ONLY_MODEL_VIEWS
+
+    GAMMA_EXCLUDED_PVMS = {
+        ("can_export_data", "Superset"),
+        ("can_export_image", "Superset"),
+    }
 
     ADMIN_ONLY_VIEW_MENUS = {
         "Access Requests",
@@ -385,6 +491,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     SQLLAB_EXTRA_PERMISSION_VIEWS = {
         ("can_csv", "Superset"),  # Deprecated permission remove on 3.0.0
+        ("can_export_data", "Superset"),
+        ("can_copy_clipboard", "Superset"),
         ("can_read", "Superset"),
         ("can_read", "Database"),
     }
@@ -413,6 +521,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_read", "Theme"),
         # Embedded dashboard support
         ("can_read", "EmbeddedDashboard"),
+        ("can_read", "CurrentUserRestApi"),
         # Datasource metadata for chart rendering
         ("can_get", "Datasource"),
         ("can_external_metadata", "Datasource"),
@@ -460,6 +569,27 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         lm = super().create_login_manager(app)
         lm.request_loader(self.request_loader)
         return lm
+
+    def on_user_login(self, user: Any) -> None:
+        _log_audit_event(
+            "UserLoggedIn",
+            {"username": user.username, "user_id": user.id},
+        )
+
+    def on_user_login_failed(self, user: Any) -> None:
+        _log_audit_event(
+            "UserLoginFailed",
+            {"username": user.username, "user_id": user.id},
+        )
+
+    def on_user_logout(self, user: Any) -> None:
+        _log_audit_event(
+            "UserLoggedOut",
+            {
+                "username": getattr(user, "username", None),
+                "user_id": getattr(user, "id", None),
+            },
+        )
 
     def request_loader(self, request: Request) -> Optional[User]:
         # pylint: disable=import-outside-toplevel
@@ -676,27 +806,62 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return False
 
-    def has_drill_by_access(
+    def _validate_child_in_parent_multilayer(
+        self, child_slice_id: int, parent_slice: "Slice"
+    ) -> bool:
+        """
+        Validate that a child slice ID is actually configured in the parent
+        multi-layer chart's deck_slices configuration.
+
+        This prevents attackers from forging a parent_slice_id to gain
+        unauthorized access to arbitrary charts.
+        """
+        try:
+            # Parse the parent chart's configuration
+            parent_form_data = json.loads(parent_slice.params or "{}")
+
+            # Check if this is actually a multi-layer deck.gl chart
+            if parent_form_data.get("viz_type") != "deck_multi":
+                return False
+
+            # Get the configured child slices
+            deck_slices = parent_form_data.get("deck_slices", [])
+
+            # Validate the child is in the parent's configuration
+            return child_slice_id in deck_slices
+        except (json.JSONDecodeError, TypeError):
+            return False
+
+    def has_drill_access(
         self,
         form_data: dict[str, Any],
         dashboard: "Dashboard",
         datasource: "BaseDatasource | Explorable",
     ) -> bool:
         """
-        Return True if the form_data is performing a supported drill by operation,
-        False otherwise.
+        Return True if the form_data is performing a supported drill operation
+        (Drill to Detail or Drill By), False otherwise.
 
         :param form_data: The form_data included in the request.
         :param dashboard: The dashboard the user is drilling from.
         :param datasource: The datasource being queried
-        :returns: Whether the user has drill by access.
+        :returns: Whether the user has drill access.
         """
 
         from superset.models.slice import Slice
 
+        # Drill to Detail: no slice/chart context, dataset must belong to the dashboard
+        if (
+            form_data.get("slice_id") is None
+            and form_data.get("chart_id") is None
+            and datasource in dashboard.datasources
+        ):
+            return True
+
+        # Drill By: slice_id is 0 (sentinel), chart_id identifies the source chart,
+        # and the requested groupby columns must be drillable
         return bool(
-            form_data.get("type") != "NATIVE_FILTER"
-            and form_data.get("slice_id") == 0
+            form_data.get("slice_id") == 0
             and (chart_id := form_data.get("chart_id"))
             and (
                 slc := self.session.query(Slice)
@@ -1184,6 +1349,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("all_database_access", "all_database_access")
         self.add_permission_view_menu("all_query_access", "all_query_access")
         self.add_permission_view_menu("can_csv", "Superset")
+        self.add_permission_view_menu("can_export_data", "Superset")
+        self.add_permission_view_menu("can_export_image", "Superset")
+        self.add_permission_view_menu("can_copy_clipboard", "Superset")
         self.add_permission_view_menu("can_share_dashboard", "Superset")
         self.add_permission_view_menu("can_share_chart", "Superset")
         self.add_permission_view_menu("can_sqllab", "Superset")
@@ -1465,6 +1633,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or self._is_admin_only(pvm)
             or self._is_alpha_only(pvm)
             or self._is_sql_lab_only(pvm)
+            or (pvm.permission.name, pvm.view_menu.name) in self.GAMMA_EXCLUDED_PVMS
         ) or self._is_accessible_to_all(pvm)
 
     def _is_sql_lab_only(self, pvm: PermissionView) -> bool:
@@ -2577,18 +2746,51 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             )
                         )
                         or (
-                            # Chart.
                             form_data.get("type") != "NATIVE_FILTER"
-                            and (slice_id := form_data.get("slice_id"))
                             and (
-                                slc := self.session.query(Slice)
-                                .filter(Slice.id == slice_id)
-                                .one_or_none()
+                                (
+                                    # Chart.
+                                    (slice_id := form_data.get("slice_id"))
+                                    and (
+                                        # Direct chart access (no parent)
+                                        (
+                                            form_data.get("parent_slice_id") is None
+                                            and (
+                                                slc := self.session.query(Slice)
+                                                .filter(Slice.id == slice_id)
+                                                .one_or_none()
+                                            )
+                                            and slc in dashboard_.slices
+                                            and slc.datasource == datasource
+                                        )
+                                        or
+                                        # Multi-layer chart child access (has parent)
+                                        (
+                                            (
+                                                parent_id := form_data.get(
+                                                    "parent_slice_id"
+                                                )
+                                            )
+                                            and (
+                                                parent_slc := self.session.query(Slice)
+                                                .filter(Slice.id == parent_id)
+                                                .one_or_none()
+                                            )
+                                            and parent_slc in dashboard_.slices
+                                            # Validate child is actually part of parent's config    # noqa: E501
+                                            and self._validate_child_in_parent_multilayer(  # noqa: E501
+                                                child_slice_id=slice_id,
+                                                parent_slice=parent_slc,
+                                            )
+                                        )
+                                    )
+                                )
+                                # D2D or Drill By
+                                or self.has_drill_access(
+                                    form_data, dashboard_, datasource
+                                )
                             )
-                            and slc in dashboard_.slices
-                            and slc.datasource == datasource
                         )
-                        or self.has_drill_by_access(form_data, dashboard_, datasource)
                     )
                     and self.can_access_dashboard(dashboard_)
                 )
@@ -2701,6 +2903,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not (hasattr(g, "user") and g.user is not None):
             return []
 
+        # Check request-scoped cache. Username is included in the key to stay
+        # safe if override_user() is called with different users in one request.
+        cache: _RLSCache = getattr(g, "_rls_filter_cache", {})
+        username = get_username()
+        if username is not None:
+            cache_key: _RLSCacheKey = (username, table.id)
+            if cache_key in cache:
+                return cache[cache_key]
+
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import (
             RLSFilterRoles,
@@ -2750,7 +2961,108 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
             )
         )
-        return query.all()
+        result = query.all()
+
+        # Store in request-scoped cache
+        if username is not None:
+            if not hasattr(g, "_rls_filter_cache"):
+                g._rls_filter_cache = {}
+            g._rls_filter_cache[(username, table.id)] = result
+
+        return result
+
+    def prefetch_rls_filters(self, table_ids: list[int | str]) -> None:
+        """
+        Batch-fetches RLS filters for multiple tables in a single query and
+        populates the request-scoped cache used by get_rls_filters().
+
+        :param table_ids: List of table IDs to prefetch filters for
+        """
+
+        if not (hasattr(g, "user") and g.user is not None):
+            return
+
+        username = get_username()
+        if username is None:
+            return
+
+        if not hasattr(g, "_rls_filter_cache"):
+            g._rls_filter_cache = {}
+
+        # Filter out already-cached table_ids
+        uncached_ids = [
+            tid for tid in table_ids if (username, tid) not in g._rls_filter_cache
+        ]
+        if not uncached_ids:
+            return
+
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import (
+            RLSFilterRoles,
+            RLSFilterTables,
+            RowLevelSecurityFilter,
+        )
+
+        user_roles = [role.id for role in self.get_user_roles(g.user)]
+        regular_filter_roles = (
+            self.session.query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
+            )
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+        )
+        base_filter_roles = (
+            self.session.query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
+            )
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+        )
+
+        # Batch query: get (table_id, filter) pairs for all uncached tables
+        filter_table_pairs = (
+            self.session.query(
+                RLSFilterTables.c.table_id,
+                RowLevelSecurityFilter.id,
+                RowLevelSecurityFilter.group_key,
+                RowLevelSecurityFilter.clause,
+            )
+            .join(
+                RowLevelSecurityFilter,
+                RowLevelSecurityFilter.id == RLSFilterTables.c.rls_filter_id,
+            )
+            .filter(RLSFilterTables.c.table_id.in_(uncached_ids))
+            .filter(
+                or_(
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.REGULAR,
+                        RowLevelSecurityFilter.id.in_(regular_filter_roles),
+                    ),
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.BASE,
+                        RowLevelSecurityFilter.id.notin_(base_filter_roles),
+                    ),
+                )
+            )
+            .all()
+        )
+
+        # Group results by table_id, storing as named tuples so callers
+        # can access .id, .group_key, .clause (matching get_rls_filters output)
+        grouped: dict[int | str, list[SqlaQuery]] = defaultdict(list)
+        for row in filter_table_pairs:
+            table_id = row[0]
+            grouped[table_id].append(
+                _RLSFilterRow(id=row[1], group_key=row[2], clause=row[3])
+            )
+
+        # Populate cache for all uncached table_ids (including those with no filters)
+        for tid in uncached_ids:
+            g._rls_filter_cache[(username, tid)] = grouped.get(tid, [])
 
     def get_rls_sorted(
         self, table: "BaseDatasource | Explorable"
@@ -2986,10 +3298,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def register_views(self) -> None:
         from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
 
-        self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
-        self.registeruser_view = self.appbuilder.add_view_no_menu(
-            SupersetRegisterUserView
-        )
+        if self.register_superset_auth_view:
+            self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
+        if self.register_superset_registeruser_view:
+            self.registeruser_view = self.appbuilder.add_view_no_menu(
+                SupersetRegisterUserView
+            )
 
         # Apply rate limiting to auth view if enabled
         # This needs to be done after the view is added, otherwise the blueprint

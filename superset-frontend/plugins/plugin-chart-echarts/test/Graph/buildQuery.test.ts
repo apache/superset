@@ -17,9 +17,11 @@
  * under the License.
  */
 import buildQuery from '../../src/Graph/buildQuery';
+import { DEFAULT_FORM_DATA } from '../../src/Graph/types';
 
 describe('Graph buildQuery', () => {
   const formData = {
+    ...DEFAULT_FORM_DATA,
     datasource: '5__table',
     granularity_sqla: 'ds',
     source: 'dummy_source',

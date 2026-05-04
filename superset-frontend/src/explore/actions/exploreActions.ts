@@ -19,7 +19,7 @@
 /* eslint camelcase: 0 */
 import rison from 'rison';
 import { Dataset } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient, QueryFormData } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
@@ -150,6 +150,19 @@ export function setForceQuery(force: boolean) {
   return {
     type: SET_FORCE_QUERY,
     force,
+  };
+}
+
+export const UPDATE_EXPLORE_CHART_STATE = 'UPDATE_EXPLORE_CHART_STATE';
+export function updateExploreChartState(
+  chartId: number,
+  chartState: Record<string, unknown>,
+) {
+  return {
+    type: UPDATE_EXPLORE_CHART_STATE,
+    chartId,
+    chartState,
+    lastModified: Date.now(),
   };
 }
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 
 export default styled.div`
   ${({ theme }) => css`
@@ -96,6 +96,11 @@ export default styled.div`
     /* Bootstrap-like striped table styles */
     table.table-striped tbody tr:nth-of-type(odd) {
       background-color: ${theme.colorBgLayout};
+    }
+
+    .dt-select-page-size .ant-select .ant-select-arrow {
+      color: ${theme.colorTextQuaternary};
+      z-index: 11;
     }
 
     /* Controls and metrics */

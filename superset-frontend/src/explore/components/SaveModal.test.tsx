@@ -317,6 +317,19 @@ test('set dataset name when chart source is query', () => {
   expect(getByTestId('new-dataset-name')).toHaveValue('test');
 });
 
+test('renders InfoTooltip icon next to Dataset Name label when datasource type is query', () => {
+  const { getByTestId, getByText } = setup({}, queryStore);
+
+  const datasetNameLabel = getByText('Dataset Name');
+  expect(datasetNameLabel).toBeInTheDocument();
+
+  const infoTooltip = getByTestId('info-tooltip-icon');
+  expect(infoTooltip).toBeInTheDocument();
+
+  const labelContainer = datasetNameLabel.parentElement;
+  expect(labelContainer).toContainElement(infoTooltip);
+});
+
 test('make sure slice_id in the URLSearchParams before the redirect', () => {
   const myProps = {
     ...defaultProps,
@@ -368,7 +381,7 @@ test('removes form_data_key from URL parameters after save', () => {
   // other parameters should remain
   expect(result.get('other_param')).toEqual('value');
   expect(result.get('slice_id')).toEqual('1');
-  expect(result.get('save_action')).toEqual('overwrite');
+  expect(result.has('save_action')).toBe(false);
 });
 
 test('dispatches removeChartState when saving and going to dashboard', async () => {

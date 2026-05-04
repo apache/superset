@@ -19,7 +19,7 @@ from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import pytest
-from superset_core.api.tasks import TaskScope, TaskStatus
+from superset_core.tasks.types import TaskScope, TaskStatus
 
 from superset import db
 from superset.commands.tasks.cancel import CancelTaskCommand

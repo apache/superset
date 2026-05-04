@@ -40,9 +40,13 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   SuperChart: ({
     postTransformProps = (x: JsonObject) => x,
+    isRefreshing = false,
     ...props
-  }: MockSuperChartProps) => (
-    <div data-test="mock-super-chart">
+  }: MockSuperChartProps & { isRefreshing?: boolean }) => (
+    <div
+      data-test="mock-super-chart"
+      data-is-refreshing={isRefreshing ? 'true' : 'false'}
+    >
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
   ),
@@ -159,7 +163,7 @@ test('should detect changes in matrixify properties', () => {
       ...requiredProps.formData,
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] },
       matrixify_dimension_y: { dimension: 'category', values: ['Tech'] },
       matrixify_charts_per_row: 3,
@@ -173,9 +177,9 @@ test('should detect changes in matrixify properties', () => {
 
   // Since we can't directly test shouldComponentUpdate, we verify the component
   // correctly identifies matrixify-related properties by checking the implementation
-  expect(
-    (initialProps.formData as JsonObject).matrixify_enable_vertical_layout,
-  ).toBe(true);
+  expect((initialProps.formData as JsonObject).matrixify_mode_rows).toBe(
+    'metrics',
+  );
   expect((initialProps.formData as JsonObject).matrixify_dimension_x).toEqual({
     dimension: 'country',
     values: ['USA'],
@@ -208,7 +212,8 @@ test('should identify matrixify property changes correctly', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] },
       matrixify_charts_per_row: 3,
     },
@@ -230,7 +235,8 @@ test('should identify matrixify property changes correctly', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
         values: ['USA', 'Canada'], // Changed
@@ -273,7 +279,8 @@ test('should handle matrixify-related form data changes', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true, // This is a significant change
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics', // This is a significant change
       regular_control: 'value1',
     },
   };
@@ -292,7 +299,8 @@ test('should detect matrixify property addition', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       // No matrixify_dimension_x initially
     },
     queriesResponse: [{ data: 'current' } as unknown as JsonObject],
@@ -313,7 +321,8 @@ test('should detect matrixify property addition', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] }, // Added
     },
   };
@@ -332,7 +341,8 @@ test('should detect nested matrixify property changes', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
         values: ['USA'],
@@ -357,7 +367,8 @@ test('should detect nested matrixify property changes', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
         values: ['USA'],
@@ -372,4 +383,66 @@ test('should detect nested matrixify property changes', () => {
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify(updatedProps.formData),
   );
+});
+
+test('renders chart during loading when suppressLoadingSpinner has valid data', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: true,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { getByTestId } = render(<ChartRenderer {...props} />);
+  expect(getByTestId('mock-super-chart')).toBeInTheDocument();
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-is-refreshing',
+    'true',
+  );
+});
+
+test('does not mark chart as refreshing when loading is not in progress', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'success' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: true,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { getByTestId } = render(<ChartRenderer {...props} />);
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-is-refreshing',
+    'false',
+  );
+});
+
+test('does not mark chart as refreshing when spinner suppression is disabled', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'success' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: false,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { getByTestId } = render(<ChartRenderer {...props} />);
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-is-refreshing',
+    'false',
+  );
+});
+
+test('does not render chart during loading when last data has errors', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: true,
+    queriesResponse: [{ error: 'bad' }],
+  };
+
+  const { queryByTestId } = render(<ChartRenderer {...props} />);
+  expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
 });

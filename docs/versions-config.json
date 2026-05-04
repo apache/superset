@@ -20,7 +20,22 @@
       }
     }
   },
-  "developer_portal": {
+  "admin_docs": {
+    "disabled": false,
+    "lastVersion": "current",
+    "includeCurrentVersion": true,
+    "onlyIncludeVersions": [
+      "current"
+    ],
+    "versions": {
+      "current": {
+        "label": "Next",
+        "path": "",
+        "banner": "none"
+      }
+    }
+  },
+  "developer_docs": {
     "disabled": false,
     "hideFromNav": false,
     "lastVersion": "current",

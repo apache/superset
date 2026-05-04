@@ -75,6 +75,7 @@ interface GetExploreUrlParams {
   requestParams?: Record<string, string>;
   allowDomainSharding?: boolean;
   method?: 'GET' | 'POST';
+  relative?: boolean;
 }
 
 interface BuildV1ChartDataPayloadParams {
@@ -153,9 +154,15 @@ export function getURIDirectory(
   includeAppRoot = true,
 ): string {
   // Building the directory part of the URI
-  const uri = ['full', 'json', 'csv', 'query', 'results', 'samples'].includes(
-    endpointType,
-  )
+  const uri = [
+    'full',
+    'json',
+    'csv',
+    'xlsx',
+    'query',
+    'results',
+    'samples',
+  ].includes(endpointType)
     ? '/superset/explore_json/'
     : '/explore/';
   return includeAppRoot ? ensureAppRoot(uri) : uri;
@@ -215,6 +222,7 @@ export function getExploreUrl({
   requestParams = {},
   allowDomainSharding = false,
   method = 'POST',
+  relative = false,
 }: GetExploreUrlParams): string | null {
   if (!formData.datasource) {
     return null;
@@ -224,10 +232,12 @@ export function getExploreUrl({
   // eslint-disable-next-line no-param-reassign
   delete formData.label_colors;
 
-  let uri = getChartDataUri({
-    path: '/',
-    allowDomainSharding,
-  });
+  let uri = relative
+    ? new URI('/')
+    : getChartDataUri({
+        path: '/',
+        allowDomainSharding,
+      });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }
@@ -255,6 +265,9 @@ export function getExploreUrl({
   }
   if (endpointType === 'csv') {
     search.csv = 'true';
+  }
+  if (endpointType === 'xlsx') {
+    search.xlsx = 'true';
   }
   if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = '1';
@@ -335,7 +348,8 @@ export const getLegacyEndpointType = ({
 }: {
   resultType: string;
   resultFormat: string;
-}): string => (resultFormat === 'csv' ? resultFormat : resultType);
+}): string =>
+  resultFormat === 'csv' || resultFormat === 'xlsx' ? resultFormat : resultType;
 
 export const exportChart = async ({
   formData,
@@ -353,7 +367,9 @@ export const exportChart = async ({
     url = getExploreUrl({
       formData,
       endpointType,
+      force,
       allowDomainSharding: false,
+      relative: true,
     });
     payload = formData;
   } else {
@@ -442,7 +458,8 @@ export const getSimpleSQLExpression = (
       isMulti && Array.isArray(comparator) ? comparator[0] : comparator;
     const comparatorArray = ensureIsArray(comparator);
     const isString =
-      firstValue !== undefined && Number.isNaN(Number(firstValue));
+      firstValue !== undefined &&
+      (typeof firstValue === 'boolean' || Number.isNaN(Number(firstValue)));
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
     if (comparatorArray.length > 0 && showComparator) {

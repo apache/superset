@@ -1,16 +1,16 @@
 {
-  "generated": "2026-01-31T10:47:01.730Z",
+  "generated": "2026-04-25T02:18:43.905Z",
   "statistics": {
-    "totalDatabases": 70,
-    "withDocumentation": 70,
-    "withConnectionString": 70,
+    "totalDatabases": 73,
+    "withDocumentation": 73,
+    "withConnectionString": 73,
     "withDrivers": 36,
-    "withAuthMethods": 4,
-    "supportsJoins": 66,
-    "supportsSubqueries": 67,
+    "withAuthMethods": 5,
+    "supportsJoins": 69,
+    "supportsSubqueries": 70,
     "supportsDynamicSchema": 15,
     "supportsCatalog": 9,
-    "averageScore": 32,
+    "averageScore": 31,
     "maxScore": 201,
     "byCategory": {
       "Other Databases": [
@@ -23,6 +23,7 @@
         "Amazon Athena",
         "Google BigQuery",
         "Databend",
+        "Google Datastore",
         "IBM Db2",
         "Denodo",
         "Dremio",
@@ -74,6 +75,7 @@
         "Apache Kylin",
         "Azure Synapse",
         "Ocient",
+        "Apache Phoenix",
         "Amazon Redshift",
         "RisingWave",
         "SingleStore",
@@ -151,12 +153,14 @@
         "Greenplum",
         "Apache Hive",
         "Apache Impala",
+        "Apache IoTDB",
         "Apache Kylin",
         "MariaDB",
         "MonetDB",
         "MySQL",
         "OceanBase",
         "Parseable",
+        "Apache Phoenix",
         "Apache Pinot",
         "PostgreSQL",
         "Presto",
@@ -174,10 +178,12 @@
       ],
       "Cloud - Google": [
         "Google BigQuery",
+        "Google Datastore",
         "Google Sheets"
       ],
       "Search & NoSQL": [
         "Couchbase",
+        "Google Datastore",
         "Amazon DynamoDB",
         "Elasticsearch",
         "MongoDB",
@@ -187,6 +193,7 @@
       "Time Series Databases": [
         "CrateDB",
         "Apache Druid",
+        "Apache IoTDB",
         "Apache Pinot",
         "TDengine"
       ],
@@ -197,7 +204,9 @@
         "Apache Druid",
         "Apache Hive",
         "Apache Impala",
+        "Apache IoTDB",
         "Apache Kylin",
+        "Apache Phoenix",
         "Apache Pinot",
         "Apache Solr",
         "Apache Spark SQL"
@@ -745,14 +754,14 @@
           "OPEN_SOURCE"
         ],
         "pypi_packages": [
-          "clickhouse-connect>=0.6.8"
+          "clickhouse-connect>=0.13.0"
         ],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
         "drivers": [
           {
             "name": "clickhouse-connect (Recommended)",
-            "pypi_package": "clickhouse-connect>=0.6.8",
+            "pypi_package": "clickhouse-connect>=0.13.0",
             "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
             "is_recommended": true,
             "notes": "Official ClickHouse Python driver with native protocol support."
@@ -775,7 +784,7 @@
             "connection_string": "clickhousedb://localhost/default"
           }
         ],
-        "install_instructions": "echo \"clickhouse-connect>=0.6.8\" >> ./docker/requirements-local.txt",
+        "install_instructions": "echo \"clickhouse-connect>=0.13.0\" >> ./docker/requirements-local.txt",
         "compatible_databases": [
           {
             "name": "ClickHouse Cloud",
@@ -788,7 +797,7 @@
               "HOSTED_OPEN_SOURCE"
             ],
             "pypi_packages": [
-              "clickhouse-connect>=0.6.8"
+              "clickhouse-connect>=0.13.0"
             ],
             "connection_string": "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true",
             "parameters": {
@@ -810,7 +819,7 @@
               "HOSTED_OPEN_SOURCE"
             ],
             "pypi_packages": [
-              "clickhouse-connect>=0.6.8"
+              "clickhouse-connect>=0.13.0"
             ],
             "connection_string": "clickhousedb://{username}:{password}@{host}/{database}?secure=true",
             "docs_url": "https://docs.altinity.com/"
@@ -1007,7 +1016,7 @@
       "documentation": {
         "description": "CrateDB is a distributed SQL database for machine data and IoT workloads.",
         "logo": "cratedb.svg",
-        "homepage_url": "https://crate.io/",
+        "homepage_url": "https://cratedb.com",
         "categories": [
           "TIME_SERIES",
           "OPEN_SOURCE"
@@ -1272,6 +1281,114 @@
             "connection_string": "databricks+connector://token:{access_token}@{host}:{port}/{database}",
             "is_recommended": false,
             "notes": "Legacy connector. Use Python Connector for new deployments."
+          }
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Google Datastore": {
+      "engine": "google_datastore",
+      "engine_name": "Google Datastore",
+      "module": "datastore",
+      "documentation": {
+        "description": "Google Cloud Datastore is a highly scalable NoSQL database for your applications.",
+        "logo": "datastore.png",
+        "homepage_url": "https://cloud.google.com/datastore/",
+        "categories": [
+          "CLOUD_GCP",
+          "SEARCH_NOSQL",
+          "PROPRIETARY"
+        ],
+        "pypi_packages": [
+          "python-datastore-sqlalchemy"
+        ],
+        "connection_string": "datastore://{project_id}/?database={database_id}",
+        "authentication_methods": [
+          {
+            "name": "Service Account JSON",
+            "description": "Upload service account credentials JSON or paste in Secure Extra",
+            "secure_extra": {
+              "credentials_info": {
+                "type": "service_account",
+                "project_id": "...",
+                "private_key_id": "...",
+                "private_key": "...",
+                "client_email": "...",
+                "client_id": "...",
+                "auth_uri": "...",
+                "token_uri": "..."
+              }
+            }
+          }
+        ],
+        "notes": "Create a Service Account via GCP console with access to datastore datasets.",
+        "docs_url": "https://github.com/splasky/Python-datastore-sqlalchemy",
+        "custom_errors": [
+          {
+            "regex_name": "CONNECTION_DATABASE_PERMISSIONS_REGEX",
+            "message_template": "Unable to connect. Verify that the following roles are set on the service account: \"Cloud Datastore Viewer\", \"Cloud Datastore User\", \"Cloud Datastore Creator\"",
+            "error_type": "CONNECTION_DATABASE_PERMISSIONS_ERROR",
+            "category": "Permissions",
+            "description": "Insufficient permissions",
+            "issue_codes": [
+              1017
+            ]
+          },
+          {
+            "regex_name": "TABLE_DOES_NOT_EXIST_REGEX",
+            "message_template": "The table \"%(table)s\" does not exist. A valid table must be used to run this query.",
+            "error_type": "TABLE_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Table not found",
+            "issue_codes": [
+              1003,
+              1005
+            ]
+          },
+          {
+            "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
+            "message_template": "We can't seem to resolve column \"%(column)s\" at line %(location)s.",
+            "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Column not found",
+            "issue_codes": [
+              1003,
+              1004
+            ]
+          },
+          {
+            "regex_name": "SCHEMA_DOES_NOT_EXIST_REGEX",
+            "message_template": "The schema \"%(schema)s\" does not exist. A valid schema must be used to run this query.",
+            "error_type": "SCHEMA_DOES_NOT_EXIST_ERROR",
+            "category": "Query",
+            "description": "Schema not found",
+            "issue_codes": [
+              1003,
+              1016
+            ]
+          },
+          {
+            "regex_name": "SYNTAX_ERROR_REGEX",
+            "message_template": "Please check your query for syntax errors at or near \"%(syntax_error)s\". Then, try running your query again.",
+            "error_type": "SYNTAX_ERROR",
+            "category": "Query",
+            "description": "SQL syntax error",
+            "issue_codes": [
+              1030
+            ]
           }
         ]
       },
@@ -2890,6 +3007,47 @@
       "query_cost_estimation": false,
       "sql_validation": false
     },
+    "Apache IoTDB": {
+      "engine": "apache_iotdb",
+      "engine_name": "Apache IoTDB",
+      "module": "iotdb",
+      "documentation": {
+        "description": "Apache IoTDB is a time series database designed for IoT data, with efficient storage and query capabilities for massive time series data.",
+        "logo": "apache-iotdb.svg",
+        "homepage_url": "https://iotdb.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "TIME_SERIES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "apache-iotdb"
+        ],
+        "connection_string": "iotdb://{username}:{password}@{hostname}:{port}",
+        "default_port": 6667,
+        "parameters": {
+          "username": "Database username (default: root)",
+          "password": "Database password (default: root)",
+          "hostname": "IP address or hostname",
+          "port": "Default 6667"
+        },
+        "notes": "The IoTDB SQLAlchemy dialect was written to integrate with Apache Superset. IoTDB uses a hierarchical data model, which is reorganized into a relational model for SQL queries."
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
     "Azure Data Explorer": {
       "engine": "azure_data_explorer",
       "engine_name": "Azure Data Explorer",
@@ -4039,6 +4197,41 @@
       "query_cost_estimation": false,
       "sql_validation": false
     },
+    "Apache Phoenix": {
+      "engine": "apache_phoenix",
+      "engine_name": "Apache Phoenix",
+      "module": "phoenix",
+      "documentation": {
+        "description": "Apache Phoenix is a relational database layer over Apache HBase, providing low-latency SQL queries over HBase data.",
+        "logo": "apache-phoenix.png",
+        "homepage_url": "https://phoenix.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "phoenixdb"
+        ],
+        "connection_string": "phoenix://{hostname}:{port}/",
+        "default_port": 8765,
+        "notes": "Phoenix provides a SQL interface to Apache HBase. The phoenixdb driver connects via the Phoenix Query Server and supports a subset of SQLAlchemy."
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
     "Apache Pinot": {
       "engine": "apache_pinot",
       "engine_name": "Apache Pinot",
@@ -4205,6 +4398,80 @@
             "docs_url": "https://www.yugabyte.com/",
             "categories": [
               "OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "Supabase",
+            "description": "Open-source Firebase alternative built on top of PostgreSQL, providing a full backend-as-a-service with a hosted Postgres database.",
+            "logo": "supabase.svg",
+            "homepage_url": "https://supabase.com/",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+            "connection_examples": [
+              {
+                "description": "Supabase project (connection pooler)",
+                "connection_string": "postgresql://{username}.{project_ref}:{password}@aws-0-{region}.pooler.supabase.com:6543/{database}"
+              }
+            ],
+            "parameters": {
+              "username": "Database user (default: postgres)",
+              "password": "Database password",
+              "host": "Supabase project host (from project settings)",
+              "port": "Default 5432 (direct) or 6543 (pooler)",
+              "database": "Database name (default: postgres)",
+              "project_ref": "Supabase project reference (from project settings)",
+              "region": "Supabase project region (e.g., us-east-1)"
+            },
+            "notes": "Find connection details in your Supabase project dashboard under Settings > Database. Use the connection pooler (port 6543) for better connection management.",
+            "docs_url": "https://supabase.com/docs/guides/database/connecting-to-postgres",
+            "categories": [
+              "HOSTED_OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "Google AlloyDB",
+            "description": "Google Cloud's PostgreSQL-compatible database service for demanding transactional and analytical workloads.",
+            "logo": "alloydb.png",
+            "homepage_url": "https://cloud.google.com/alloydb",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+            "parameters": {
+              "username": "Database user (default: postgres)",
+              "password": "Database password",
+              "host": "AlloyDB instance IP or Auth Proxy address",
+              "port": "Default 5432",
+              "database": "Database name"
+            },
+            "notes": "For public IP connections, use the AlloyDB Auth Proxy for secure access. Private IP connections can connect directly.",
+            "docs_url": "https://cloud.google.com/alloydb/docs",
+            "categories": [
+              "CLOUD_GCP",
+              "HOSTED_OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "Neon",
+            "description": "Serverless PostgreSQL with branching, scale-to-zero, and bottomless storage.",
+            "logo": "neon.png",
+            "homepage_url": "https://neon.tech/",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql://{username}:{password}@{host}/{database}?sslmode=require",
+            "parameters": {
+              "username": "Neon role name",
+              "password": "Neon role password",
+              "host": "Neon hostname (e.g., ep-cool-name-123456.us-east-2.aws.neon.tech)",
+              "database": "Database name (default: neondb)"
+            },
+            "notes": "SSL is required for all connections. Find connection details in the Neon console under Connection Details.",
+            "docs_url": "https://neon.tech/docs/connect/connect-from-any-app",
+            "categories": [
+              "HOSTED_OPEN_SOURCE"
             ]
           },
           {
@@ -4598,9 +4865,9 @@
             }
           },
           {
-            "name": "IAM Credentials (Serverless)",
-            "description": "Use IAM-based credentials for Redshift Serverless",
-            "requirements": "IAM role must have redshift-serverless:GetCredentials and redshift-serverless:GetWorkgroup permissions",
+            "name": "IAM Role (Serverless)",
+            "description": "Authenticate using the IAM role attached to the environment (EC2 instance profile, ECS task role, etc.). No credentials needed.",
+            "requirements": "The attached IAM role must have redshift-serverless:GetCredentials and redshift-serverless:GetWorkgroup permissions.",
             "connection_string": "redshift+redshift_connector://",
             "engine_parameters": {
               "connect_args": {
@@ -4610,6 +4877,26 @@
                 "serverless_work_group": "<redshift work group>",
                 "database": "<database>",
                 "user": "IAMR:<superset iam role name>"
+              }
+            }
+          },
+          {
+            "name": "IAM Access Key (Serverless)",
+            "description": "Authenticate using explicit AWS access key and secret. Suitable for local development or CI environments without an attached IAM role.",
+            "requirements": "The IAM user must have redshift-serverless:GetCredentials and redshift-serverless:GetWorkgroup permissions.",
+            "connection_string": "redshift+redshift_connector://",
+            "engine_parameters": {
+              "connect_args": {
+                "iam": true,
+                "is_serverless": true,
+                "serverless_acct_id": "<aws account number>",
+                "serverless_work_group": "<redshift work group>",
+                "database": "<database>",
+                "host": "<endpoint>",
+                "port": 5439,
+                "region": "<aws region>",
+                "access_key_id": "<aws access key id>",
+                "secret_access_key": "<aws secret access key>"
               }
             }
           }

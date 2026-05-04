@@ -18,7 +18,7 @@
  */
 
 import { FunctionComponent } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
 import { ErrorAlert } from 'src/components';

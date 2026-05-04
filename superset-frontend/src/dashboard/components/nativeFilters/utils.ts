@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocFilter,
   Behavior,
@@ -50,6 +50,7 @@ export const getFormData = ({
   groupby,
   defaultDataMask,
   controlValues,
+  time_grains,
   filterType,
   sortMetric,
   adhoc_filters,
@@ -67,6 +68,7 @@ export const getFormData = ({
   time_range?: string;
   sortMetric?: string | null;
   granularity_sqla?: string;
+  time_grains?: string[];
 }): Partial<QueryFormData> => {
   const otherProps: {
     datasource?: string;
@@ -84,9 +86,12 @@ export const getFormData = ({
   }
 
   const vizType = filterType;
+  const timeGrainsFormData =
+    time_grains && time_grains.length > 0 ? { time_grains } : {};
 
   return {
     ...controlValues,
+    ...timeGrainsFormData,
     ...otherProps,
     adhoc_filters: adhoc_filters ?? [],
     extra_filters: [],

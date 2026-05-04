@@ -247,6 +247,47 @@ function formatValueForOperator(
 }
 
 /**
+ * Format a date string to ISO format expected by Superset, preserving local timezone
+ */
+export function formatDateForSuperset(dateStr: string): string {
+  // AG Grid typically provides dates in format: "YYYY-MM-DD HH:MM:SS"
+  // Superset expects: "YYYY-MM-DDTHH:MM:SS" in local timezone (not UTC)
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) {
+    return dateStr; // Return as-is if invalid
+  }
+
+  // Format date in local timezone, not UTC
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  const formatted = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  return formatted;
+}
+
+/**
+ * Get the start of day (00:00:00) for a given date string
+ */
+export function getStartOfDay(dateStr: string): string {
+  const date = new Date(dateStr);
+  date.setHours(0, 0, 0, 0);
+  return formatDateForSuperset(date.toISOString());
+}
+
+/**
+ * Get the end of day (23:59:59) for a given date string
+ */
+export function getEndOfDay(dateStr: string): string {
+  const date = new Date(dateStr);
+  date.setHours(23, 59, 59, 999);
+  return formatDateForSuperset(date.toISOString());
+}
+
+/**
  * Convert a date filter to a WHERE clause
  * @param columnName - Column name
  * @param filter - AG Grid date filter
@@ -416,47 +457,6 @@ function compoundFilterToWhereClause(
 
   const result = `(${clause1} ${operator} ${clause2})`;
   return result;
-}
-
-/**
- * Format a date string to ISO format expected by Superset, preserving local timezone
- */
-export function formatDateForSuperset(dateStr: string): string {
-  // AG Grid typically provides dates in format: "YYYY-MM-DD HH:MM:SS"
-  // Superset expects: "YYYY-MM-DDTHH:MM:SS" in local timezone (not UTC)
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) {
-    return dateStr; // Return as-is if invalid
-  }
-
-  // Format date in local timezone, not UTC
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  const formatted = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-  return formatted;
-}
-
-/**
- * Get the start of day (00:00:00) for a given date string
- */
-export function getStartOfDay(dateStr: string): string {
-  const date = new Date(dateStr);
-  date.setHours(0, 0, 0, 0);
-  return formatDateForSuperset(date.toISOString());
-}
-
-/**
- * Get the end of day (23:59:59) for a given date string
- */
-export function getEndOfDay(dateStr: string): string {
-  const date = new Date(dateStr);
-  date.setHours(23, 59, 59, 999);
-  return formatDateForSuperset(date.toISOString());
 }
 
 // Converts date filters to TEMPORAL_RANGE format for Superset backend

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC } from 'react';
-import { styled, useTheme, css } from '@apache-superset/core/ui';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { Skeleton } from '../Skeleton';
 import { Card } from '../Card';
 import { CertifiedBadge } from '../CertifiedBadge';
@@ -95,10 +95,13 @@ const TitleLink = styled.span`
 const TitleRight = styled.span`
   ${({ theme }) => css`
     position: absolute;
-    right: -1px;
     font-weight: 400;
     bottom: ${theme.sizeUnit * 3}px;
     right: ${theme.sizeUnit * 2}px;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   `}
 `;
 const CoverFooter = styled.div`
@@ -244,7 +247,11 @@ function ListViewCard({
                     {title}
                   </TitleLink>
                 </Tooltip>
-                {titleRight && <TitleRight>{titleRight}</TitleRight>}
+                {titleRight && (
+                  <Tooltip title={titleRight}>
+                    <TitleRight>{titleRight}</TitleRight>
+                  </Tooltip>
+                )}
                 <div className="card-actions" data-test="card-actions">
                   {actions}
                 </div>

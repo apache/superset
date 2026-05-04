@@ -29,9 +29,15 @@ export const DEFAULT_METRICS_FOLDER_UUID =
 export const DEFAULT_COLUMNS_FOLDER_UUID =
   '83a7ae8f-2e8a-4f2b-a8cb-ebaebef95b9b';
 
+// Number of default folders (Metrics, Columns)
+export const DEFAULT_FOLDERS_COUNT = 2;
+
 // Drag & drop constants
 export const DRAG_INDENTATION_WIDTH = 64;
 export const MAX_DEPTH = 3;
+
+// Base row height for tree items
+export const ITEM_BASE_HEIGHT = 32;
 
 // Type definitions
 export type TreeItem = DatasourceFolder | DatasourceFolderItem;

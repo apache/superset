@@ -859,6 +859,64 @@ def test_get_oauth2_token(
     )
 
 
+def test_needs_oauth2_with_401_error(mocker: MockerFixture) -> None:
+    """
+    Test that needs_oauth2 returns True when Trino raises an HTTP 401 error.
+    """
+    from trino.exceptions import HttpError
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.trino.g")
+    g.user = mocker.MagicMock()
+
+    ex = HttpError("error 401: Unauthorized")
+    assert TrinoEngineSpec.needs_oauth2(ex) is True
+
+
+def test_needs_oauth2_without_401_error(mocker: MockerFixture) -> None:
+    """
+    Test that needs_oauth2 returns False when the error is not a 401.
+    """
+    from trino.exceptions import HttpError
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.trino.g")
+    g.user = mocker.MagicMock()
+
+    ex = HttpError("error 500: Internal Server Error")
+    assert TrinoEngineSpec.needs_oauth2(ex) is False
+
+
+def test_needs_oauth2_with_non_http_error(mocker: MockerFixture) -> None:
+    """
+    Test that needs_oauth2 returns False for non-HttpError exceptions.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.trino.g")
+    g.user = mocker.MagicMock()
+
+    ex = RuntimeError("error 401: something else")
+    assert TrinoEngineSpec.needs_oauth2(ex) is False
+
+
+def test_needs_oauth2_without_user(mocker: MockerFixture) -> None:
+    """
+    Test that needs_oauth2 returns False when there is no authenticated user.
+    """
+    from trino.exceptions import HttpError
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.trino.g")
+    del g.user
+
+    ex = HttpError("error 401: Unauthorized")
+    assert TrinoEngineSpec.needs_oauth2(ex) is False
+
+
 @pytest.mark.parametrize(
     "time_grain,expected_result",
     [

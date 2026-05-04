@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { logging as logger } from '@apache-superset/core';
+import { logging as logger } from '@apache-superset/core/utils';
 
 // We can codegen the enum definition based on a list of supported flags that we
 // check into source control. We're hardcoding the supported flags for now.
@@ -39,6 +39,7 @@ export enum FeatureFlag {
   DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
   DatasetFolders = 'DATASET_FOLDERS',
   DateRangeTimeshiftsEnabled = 'DATE_RANGE_TIMESHIFTS_ENABLED',
+  DisableEmbeddedSupersetLogout = 'DISABLE_EMBEDDED_SUPERSET_LOGOUT',
   /** @deprecated */
   DrillToDetail = 'DRILL_TO_DETAIL',
   DrillBy = 'DRILL_BY',
@@ -52,9 +53,11 @@ export enum FeatureFlag {
   EnableTemplateProcessing = 'ENABLE_TEMPLATE_PROCESSING',
   EscapeMarkdownHtml = 'ESCAPE_MARKDOWN_HTML',
   EstimateQueryCost = 'ESTIMATE_QUERY_COST',
+  FabApiKeyEnabled = 'FAB_API_KEY_ENABLED',
   FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
   GlobalTaskFramework = 'GLOBAL_TASK_FRAMEWORK',
+  GranularExportControls = 'GRANULAR_EXPORT_CONTROLS',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   Matrixify = 'MATRIXIFY',
   ScheduledQueries = 'SCHEDULED_QUERIES',

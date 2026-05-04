@@ -18,9 +18,9 @@
  */
 import { useMemo, useState, useCallback, ReactElement, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { QueryState, SupersetClient } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   createFetchRelated,
   createFetchDistinct,

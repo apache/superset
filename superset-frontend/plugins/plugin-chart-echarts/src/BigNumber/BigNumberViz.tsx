@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect, useRef, MouseEvent } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   getNumberFormatter,
   getTimeFormatter,
@@ -27,22 +27,13 @@ import {
   BinaryQueryObjectFilterClause,
   DTTM_ALIAS,
 } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
+import { PROPORTION } from './constants';
 import { EventHandlers } from '../types';
 
 const defaultNumberFormatter = getNumberFormatter();
-
-const PROPORTION = {
-  // text size: proportion of the chart container sans trendline
-  METRIC_NAME: 0.125,
-  KICKER: 0.1,
-  HEADER: 0.3,
-  SUBHEADER: 0.125,
-  // trendline size: proportion of the whole chart container
-  TRENDLINE: 0.3,
-};
 
 function BigNumberVis({
   className = '',

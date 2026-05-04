@@ -27,7 +27,7 @@ import fetchMock from 'fetch-mock';
 import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -64,6 +64,7 @@ const mockUser: UserWithPermissionsAndRoles = {
   userId: 1,
   username: 'admin',
   isAnonymous: false,
+  groups: [],
 };
 
 const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
@@ -77,6 +78,7 @@ const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
   userId: 1,
   username: 'admin',
   isAnonymous: false,
+  groups: [],
 };
 const history = createMemoryHistory();
 

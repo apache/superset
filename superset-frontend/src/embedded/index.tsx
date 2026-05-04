@@ -21,10 +21,15 @@ import 'src/public-path';
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import { t } from '@apache-superset/core';
+import { Global } from '@emotion/react';
+import { t } from '@apache-superset/core/translation';
 import { makeApi } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
-import { type SupersetThemeConfig, ThemeMode } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core/utils';
+import {
+  type SupersetThemeConfig,
+  ThemeMode,
+  css,
+} from '@apache-superset/core/theme';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
@@ -90,6 +95,16 @@ const EmbededLazyDashboardPage = () => {
 
 const EmbeddedRoute = () => (
   <EmbeddedContextProviders>
+    <Global
+      styles={css`
+        /* Apply box-sizing reset for embedded dashboards to fix layout issues */
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+        }
+      `}
+    />
     <Suspense fallback={<Loading />}>
       <ErrorBoundary>
         <EmbededLazyDashboardPage />

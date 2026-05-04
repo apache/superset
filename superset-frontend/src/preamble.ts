@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configure, LanguagePack } from '@apache-superset/core/ui';
-import { logging } from '@apache-superset/core';
+import { configure, LanguagePack } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import { makeApi, initFeatureFlags } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import setupClient from './setup/setupClient';

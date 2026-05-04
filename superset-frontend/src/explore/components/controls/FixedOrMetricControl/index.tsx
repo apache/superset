@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Component } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Collapse, Label } from '@superset-ui/core/components';
 import TextControl from 'src/explore/components/controls/TextControl';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';

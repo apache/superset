@@ -24,9 +24,9 @@ import {
   useRef,
   useCallback,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient, SupersetError } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import rison from 'rison';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -139,9 +139,11 @@ const LabelStyle = styled.div`
   }
 `;
 
-const SelectButton = styled(Button)<{ empty: boolean }>`
-  color: ${({ theme, empty }) =>
-    empty ? theme.colorTextPlaceholder : theme.colorTextBase};
+const SelectButton = styled(Button, {
+  shouldForwardProp: prop => prop !== '$empty',
+})<{ $empty: boolean }>`
+  color: ${({ theme, $empty }) =>
+    $empty ? theme.colorTextPlaceholder : theme.colorTextBase};
 `;
 
 export const SelectLabel = ({
@@ -304,7 +306,7 @@ export function DatabaseSelector({
       if (schemas.length === 1) {
         changeSchema(schemas[0]);
       } else if (
-        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
+        !schemas.some(schemaOption => schemaRef.current === schemaOption.value)
       ) {
         changeSchema(undefined);
       }
@@ -345,7 +347,7 @@ export function DatabaseSelector({
       } else if (catalogs.length === 1) {
         changeCatalog(catalogs[0]);
       } else if (
-        !catalogs.find(
+        !catalogs.some(
           catalogOption => catalogRef.current === catalogOption.value,
         )
       ) {
@@ -410,7 +412,7 @@ export function DatabaseSelector({
             buttonStyle="tertiary"
             disabled={sqlLabModeConfig.disabled}
             loading={sqlLabModeConfig.loading}
-            empty={!sqlLabModeConfig.displayValue}
+            $empty={!sqlLabModeConfig.displayValue}
           >
             {displayValue}
           </SelectButton>
@@ -515,17 +517,12 @@ export function DatabaseSelector({
 
   function renderSchemaSelect() {
     if (sqlLabMode) {
-      return renderSelectRow(
-        t('Select schema or type to search schemas'),
-        null,
-        null,
-        {
-          displayValue: currentSchema?.label,
-          disabled: !currentDb || readOnly,
-          loading: loadingSchemas,
-          icon: <Icons.RightOutlined />,
-        },
-      );
+      return renderSelectRow(t('Select schema'), null, null, {
+        displayValue: currentSchema?.label,
+        disabled: !currentDb || readOnly,
+        loading: loadingSchemas,
+        icon: <Icons.RightOutlined />,
+      });
     }
     const refreshIcon = !readOnly && (
       <RefreshLabel
@@ -539,13 +536,13 @@ export function DatabaseSelector({
         {renderSelectRow(
           t('Schema'),
           <Select
-            ariaLabel={t('Select schema or type to search schemas')}
+            ariaLabel={t('Select schema')}
             disabled={!currentDb || readOnly}
             labelInValue
             loading={loadingSchemas}
             name="select-schema"
             notFoundContent={t('No compatible schema found')}
-            placeholder={t('Select schema or type to search schemas')}
+            placeholder={t('Select schema')}
             onChange={item => changeSchema(item as SchemaOption)}
             options={schemaOptions}
             showSearch

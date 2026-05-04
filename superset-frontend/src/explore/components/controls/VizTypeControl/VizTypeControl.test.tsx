@@ -39,7 +39,7 @@ import {
   EchartsTimeseriesLineChartPlugin,
 } from '../../../../../plugins/plugin-chart-echarts/src';
 import TableChartPlugin from '../../../../../plugins/plugin-chart-table/src';
-import { MultiChartPlugin } from '../../../../../plugins/legacy-preset-chart-deckgl/src';
+import { MultiChartPlugin } from '../../../../../plugins/preset-chart-deckgl/src';
 import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
 // Mock scrollIntoView to avoid errors in test environment
@@ -131,7 +131,7 @@ describe('VizTypeControl', () => {
     expect(screen.getByLabelText('pie-chart')).toBeVisible();
     expect(screen.getByLabelText('bar-chart')).toBeVisible();
     expect(screen.getByLabelText('area-chart')).toBeVisible();
-    expect(screen.queryByLabelText('monitor')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Chart')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
     // Multi Chart should NOT appear when other charts are selected
     expect(screen.queryByLabelText('multiple')).not.toBeInTheDocument();
@@ -189,7 +189,7 @@ describe('VizTypeControl', () => {
     };
     await waitForRenderWrapper(props);
 
-    expect(screen.getByLabelText('monitor')).toBeVisible();
+    expect(screen.getByLabelText('Chart')).toBeVisible();
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
     ).toBeVisible();

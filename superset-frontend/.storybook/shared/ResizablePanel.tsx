@@ -23,7 +23,7 @@ import {
   ResizableBoxProps,
   ResizeCallbackData,
 } from 'react-resizable';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 
 import 'react-resizable/css/styles.css';
 

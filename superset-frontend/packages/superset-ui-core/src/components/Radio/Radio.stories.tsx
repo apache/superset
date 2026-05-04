@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { StoryObj } from '@storybook/react';
-import { css } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Space } from '../Space';
 import { Radio, type RadioProps, type RadioGroupWrapperProps } from '.';

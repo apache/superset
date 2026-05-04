@@ -368,7 +368,17 @@ export default function layoutReducer(
 ): DashboardLayout {
   if (action.type in actionHandlers) {
     const handler = actionHandlers[action.type];
-    return handler(state, action);
+    const nextState = handler(state, action);
+
+    // Update parents list after any layout change
+    if (nextState !== state && nextState[DASHBOARD_ROOT_ID]) {
+      updateComponentParentsList({
+        currentComponent: nextState[DASHBOARD_ROOT_ID],
+        layout: nextState,
+      });
+    }
+
+    return nextState;
   }
 
   return state;

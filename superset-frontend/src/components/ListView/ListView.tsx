@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
-import { styled, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
 import cx from 'classnames';
 import TableCollection from '@superset-ui/core/components/TableCollection';
@@ -187,6 +188,7 @@ const ViewModeContainer = styled.div`
 const EmptyWrapper = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit * 40}px 0;
+    width: 100%;
 
     &.table {
       background: ${theme.colorBgContainer};

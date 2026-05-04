@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useRef } from 'react';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { InputNumber } from '@superset-ui/core/components/Input';
 import ControlHeader, { ControlHeaderProps } from '../../ControlHeader';
 
@@ -71,6 +71,11 @@ export default function NumberControl({
     onChange?.(pendingValueRef.current);
   };
 
+  const handleStep = (val: number) => {
+    pendingValueRef.current = val;
+    onChange?.(val);
+  };
+
   return (
     <FullWidthDiv>
       <ControlHeader {...rest} />
@@ -82,6 +87,7 @@ export default function NumberControl({
         value={value}
         onChange={handleChange}
         onBlur={handleBlur}
+        onStep={handleStep}
         disabled={disabled}
         aria-label={rest.label}
       />

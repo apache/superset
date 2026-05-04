@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryMode } from '@superset-ui/core';
-import { configure } from '@apache-superset/core';
+import { configure } from '@apache-superset/core/translation';
 import extractQueryFields from '../../src/query/extractQueryFields';
 import { NUM_METRIC } from '../fixtures';
 

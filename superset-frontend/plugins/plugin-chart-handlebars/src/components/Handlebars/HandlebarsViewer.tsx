@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { SafeMarkdown } from '@superset-ui/core/components';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import Handlebars from 'handlebars';
@@ -87,7 +87,7 @@ Handlebars.registerHelper('dateFormat', function (context, block) {
 Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
   // calling without an argument
   if (obj2 === undefined)
-    throw Error('Please call with an object. Example: `stringify myObj`');
+    throw new Error('Please call with an object. Example: `stringify myObj`');
   return isPlainObject(obj) ? JSON.stringify(obj) : String(obj);
 });
 

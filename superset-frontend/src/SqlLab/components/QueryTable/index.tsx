@@ -27,9 +27,9 @@ import {
   TableView,
 } from '@superset-ui/core/components';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { QueryResponse, QueryState } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 
 import {

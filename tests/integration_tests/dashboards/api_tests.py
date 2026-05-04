@@ -25,7 +25,7 @@ from zipfile import is_zipfile, ZipFile
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
 import pytest
-import prison
+import rison
 import yaml
 
 from freezegun import freeze_time
@@ -569,6 +569,87 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(dashboard)
         db.session.commit()
 
+    def test_get_dashboard_with_columns(self):
+        """
+        Dashboard API: Test get dashboard with column selection via q param
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        params = rison.dumps({"columns": ["id", "dashboard_title"]})
+        uri = f"api/v1/dashboard/{dashboard.id}?q={params}"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert result["id"] == dashboard.id
+        assert result["dashboard_title"] == "title"
+        assert "thumbnail_url" not in result
+        assert "slug" not in result
+        assert "owners" not in result
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_invalid_rison_q(self):
+        """
+        Dashboard API: Test get dashboard with malformed rison returns 400
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}?q=(("
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 400
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_non_dict_q(self):
+        """
+        Dashboard API: Test get dashboard with non-dict rison returns full response
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}?q=a_string"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        # non-dict q is ignored, full response returned
+        assert "thumbnail_url" in data["result"]
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_columns_data_key_mapping(self):
+        """
+        Dashboard API: Test that data_key columns like changed_on_delta_humanized work
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        params = rison.dumps({"columns": ["id", "changed_on_delta_humanized"]})
+        uri = f"api/v1/dashboard/{dashboard.id}?q={params}"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert "id" in result
+        assert "changed_on_delta_humanized" in result
+        assert "dashboard_title" not in result
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
     @patch("superset.dashboards.schemas.security_manager.has_guest_access")
     @patch("superset.dashboards.schemas.security_manager.is_guest_user")
     def test_get_dashboard_as_guest(self, is_guest_user, has_guest_access):
@@ -607,7 +688,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/dashboard/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/dashboard/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -666,7 +747,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 "order_column": "changed_on_delta_humanized",
                 "order_direction": "desc",
             }
-            uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
 
             rv = self.get_assert_metric(uri, "get_list")
             assert rv.status_code == 200
@@ -692,7 +773,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         arguments = {
             "filters": [{"col": "dashboard_title", "opr": "sw", "value": "ti"}]
         }
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
 
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
@@ -704,7 +785,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 {"col": "owners", "opr": "rel_m_m", "value": [admin.id, gamma.id]}
             ]
         }
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -730,7 +811,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "columns": ["dashboard_title", "slug"],
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -743,7 +824,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         # Test slug filter with ilike
         arguments["filters"][0]["value"] = "slug2"
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -756,7 +837,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         self.logout()
         self.login(GAMMA_USERNAME)
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -786,7 +867,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "columns": ["dashboard_title"],
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -863,7 +944,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert users_favorite_ids
         arguments = [dash.id for dash in db.session.query(Dashboard.id).all()]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/favorite_status/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -889,7 +970,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.commit()
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        uri = f"api/v1/dashboard/favorite_status/?q={rison.dumps([dashboard.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -898,7 +979,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
         self.client.post(uri)
 
-        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        uri = f"api/v1/dashboard/favorite_status/?q={rison.dumps([dashboard.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -928,7 +1009,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
         self.client.post(uri)
 
-        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        uri = f"api/v1/dashboard/favorite_status/?q={rison.dumps([dashboard.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -937,7 +1018,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         uri = f"api/v1/dashboard/{dashboard.id}/favorites/"
         self.client.delete(uri)
 
-        uri = f"api/v1/dashboard/favorite_status/?q={prison.dumps([dashboard.id])}"
+        uri = f"api/v1/dashboard/favorite_status/?q={rison.dumps([dashboard.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -968,7 +1049,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "keys": ["none"],
             "columns": ["dashboard_title"],
         }
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         self.login(ADMIN_USERNAME)
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
@@ -994,7 +1075,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1016,7 +1097,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1048,7 +1129,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "page": 0,
             "page_size": 100,
         }
-        uri = f"api/v1/dashboard/?q={prison.dumps(query)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(query)}"
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1309,7 +1390,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             )
         self.login(ADMIN_USERNAME)
         argument = dashboard_ids
-        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -1349,7 +1430,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             assert result["uuid"] != ""
             assert result["allowed_domains"] == allowed_domains
         argument = dashboard_ids
-        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -1366,7 +1447,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         dashboard_ids = [1, "a"]
         self.login(ADMIN_USERNAME)
         argument = dashboard_ids
-        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(argument)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 400
 
@@ -1407,7 +1488,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         dashboard_ids = [1001, 1002]
         self.login(ADMIN_USERNAME)
         argument = dashboard_ids
-        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(argument)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 404
 
@@ -1430,7 +1511,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         dashboard_ids = [dashboard.id for dashboard in dashboards]
         dashboard_ids.append(dashboard_with_report.id)
-        uri = f"api/v1/dashboard/?q={prison.dumps(dashboard_ids)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(dashboard_ids)}"
         rv = self.client.delete(uri)
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
@@ -1471,7 +1552,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         self.login(ADMIN_USERNAME)
         argument = dashboard_ids
-        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(argument)}"
         rv = self.client.delete(uri)
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1548,7 +1629,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         # verify we can't delete not owned dashboards
         arguments = [dashboard.id for dashboard in dashboards]
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 403
         response = json.loads(rv.data.decode("utf-8"))
@@ -1557,7 +1638,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         # nothing is deleted in bulk with a list of owned and not owned dashboards
         arguments = [dashboard.id for dashboard in dashboards] + [owned_dashboard.id]
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 403
         response = json.loads(rv.data.decode("utf-8"))
@@ -2578,7 +2659,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         self.login(ADMIN_USERNAME)
         dashboards_ids = get_dashboards_ids(["world_health", "births"])
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(dashboards_ids)}"
 
         rv = self.get_assert_metric(uri, "export")
 
@@ -2592,7 +2673,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         self.login(ADMIN_USERNAME)
         argument = [1000]
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -2605,7 +2686,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         self.login(GAMMA_USERNAME)
         argument = [dashboard.id]
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
         db.session.delete(dashboard)
@@ -2616,7 +2697,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test dashboard export
         """
         dashboards_ids = get_dashboards_ids(["world_health", "births"])
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(dashboards_ids)}"
 
         self.login(ADMIN_USERNAME)
         rv = self.client.get(uri)
@@ -2632,7 +2713,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         self.login(ADMIN_USERNAME)
         argument = [1000]
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -2645,7 +2726,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         self.login(GAMMA_USERNAME)
         argument = [dashboard.id]
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -2949,7 +3030,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         self.login(ADMIN_USERNAME)
         argument = {"filter": "alpha"}
-        uri = f"api/v1/dashboard/related/roles?q={prison.dumps(argument)}"
+        uri = f"api/v1/dashboard/related/roles?q={rison.dumps(argument)}"
 
         rv = self.client.get(uri)
         assert rv.status_code == 200
@@ -3053,7 +3134,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -3074,7 +3155,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/dashboard/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))

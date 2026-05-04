@@ -54,6 +54,14 @@ from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
+# Default folder UUIDs matching the frontend constants.
+# Stored as strings so comparisons work whether obj["uuid"] is str or UUID.
+DEFAULT_METRICS_FOLDER_UUID = "255b537d-58c8-443d-9fc1-4e4dc75047e2"
+DEFAULT_COLUMNS_FOLDER_UUID = "83a7ae8f-2e8a-4f2b-a8cb-ebaebef95b9b"
+DEFAULT_FOLDER_UUIDS = frozenset(
+    {DEFAULT_METRICS_FOLDER_UUID, DEFAULT_COLUMNS_FOLDER_UUID}
+)
+
 
 class UpdateDatasetCommand(UpdateMixin, BaseCommand):
     def __init__(
@@ -320,11 +328,19 @@ def validate_folders(  # noqa: C901
                 raise ValidationError(f"Duplicate folder name: {name}")
             seen_fqns.add(fqn)
 
-            if name.lower() in {"metrics", "columns"}:
+            # Allow default folders (by UUID) to use reserved names
+            if (
+                name.lower() in {"metrics", "columns"}
+                and str(uuid) not in DEFAULT_FOLDER_UUIDS
+            ):
                 raise ValidationError(f"Folder cannot have name '{name}'")
 
-        # check if metric/column UUID exists
-        elif not name and uuid not in valid_uuids:
+        # check if metric/column UUID exists (skip default folders)
+        elif (
+            not name
+            and uuid not in valid_uuids
+            and str(uuid) not in DEFAULT_FOLDER_UUIDS
+        ):
             raise ValidationError(f"Invalid UUID: {uuid}")
 
         # traverse children

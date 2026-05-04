@@ -36,6 +36,7 @@ describe('layerUtil', () => {
   describe('createWfsLayer', () => {
     test('properly applies style', async () => {
       const colorToExpect = '#123456';
+      const fillColor = '#ff0000';
 
       const wfsLayerConf: WfsLayerConf = {
         title: 'osm:osm-fuel',
@@ -61,7 +62,7 @@ describe('layerUtil', () => {
                 },
                 {
                   kind: 'Fill',
-                  color: '#000000',
+                  color: fillColor,
                 },
               ],
             },
@@ -76,8 +77,8 @@ describe('layerUtil', () => {
       expect(style!.length).toEqual(3);
 
       // @ts-expect-error upgrade `ol` package for better type of StyleLike type.
-      const colorAtLayer = style![1].getImage().getFill().getColor();
-      expect(colorToExpect).toEqual(colorAtLayer);
+      const colorAtLayer = style![2].getFill().getColor();
+      expect(colorAtLayer).toEqual(fillColor);
     });
   });
 

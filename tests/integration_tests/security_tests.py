@@ -24,7 +24,7 @@ from unittest.mock import Mock, patch, call, ANY
 from typing import Any
 
 import jwt
-import prison
+import rison
 import pytest
 
 from flask import current_app, g
@@ -1293,7 +1293,7 @@ class TestRolePermission(SupersetTestCase):
             "page": 0,
             "page_size": -1,
         }
-        NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={prison.dumps(arguments)}"  # noqa: N806
+        NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={rison.dumps(arguments)}"  # noqa: N806
         self.login(GAMMA_USERNAME)
         databases_json = self.client.get(NEW_FLASK_GET_SQL_DBS_REQUEST).json
         assert databases_json["count"] == 1
@@ -1571,6 +1571,7 @@ class TestRolePermission(SupersetTestCase):
         sql_lab_set = get_perm_tuples("sql_lab")
         assert sql_lab_set == {
             ("can_activate", "TabStateView"),
+            ("can_copy_clipboard", "Superset"),
             ("can_csv", "Superset"),
             ("can_delete_query", "TabStateView"),
             ("can_delete", "TabStateView"),
@@ -1578,6 +1579,7 @@ class TestRolePermission(SupersetTestCase):
             ("can_execute_sql_query", "SQLLab"),
             ("can_export", "SavedQuery"),
             ("can_export_csv", "SQLLab"),
+            ("can_export_data", "Superset"),
             ("can_format_sql", "SQLLab"),
             ("can_get", "TabStateView"),
             ("can_get_results", "SQLLab"),
@@ -1662,6 +1664,7 @@ class TestRolePermission(SupersetTestCase):
             ["SupersetAuthView", "logout"],
             ["SupersetRegisterUserView", "register"],
             ["SupersetRegisterUserView", "activation"],
+            ["RedirectView", "redirect_warning"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
@@ -1892,16 +1895,19 @@ class TestSecurityManager(SupersetTestCase):
                         }
                     )
 
-                # Undefined dashboard chart.
-                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={"dashboardId": births.id},
-                            )
-                        }
-                    )
+                # Drill to Detail (no slice_id/chart_id): datasource on dashboard.
+                # Access is granted via DASHBOARD_RBAC — D2D is a valid operation
+                # for users who have dashboard access.
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={"dashboardId": births.id},
+                            slice_=None,
+                            queries=[],
+                        )
+                    }
+                )
 
                 # Ill-defined dashboard chart.
                 with self.assertRaises(SupersetSecurityException):  # noqa: PT027

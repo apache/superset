@@ -18,7 +18,7 @@
  */
 import { ReactNode, useCallback } from 'react';
 import { Divider, Form, Typography } from '@superset-ui/core/components';
-import { css } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
 import { recurseReactClone } from '../../utils';
 import Field from '../Field';
 

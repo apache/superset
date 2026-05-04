@@ -18,7 +18,7 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { isProbablyHTML, sanitizeHtml } from '@superset-ui/core';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Tooltip } from '@superset-ui/core/components';

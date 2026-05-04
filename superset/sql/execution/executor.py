@@ -69,6 +69,8 @@ from flask import current_app as app, g, has_app_context
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
@@ -77,7 +79,7 @@ from superset.sql.parse import SQLScript
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
-    from superset_core.api.types import (
+    from superset_core.queries.types import (
         AsyncQueryHandle,
         QueryOptions,
         QueryResult,
@@ -212,7 +214,7 @@ class SQLExecutor:
 
         See superset_core.api.models.Database.execute() for full documentation.
         """
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             QueryOptions as QueryOptionsType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -318,6 +320,10 @@ class SQLExecutor:
             )
         except SupersetSecurityException as ex:
             return self._create_error_result(QueryStatus.FAILED, str(ex), start_time)
+        except (OAuth2RedirectError, OAuth2Error):
+            # Let OAuth2 exceptions propagate so callers (MCP, API) can
+            # handle them with context-appropriate responses.
+            raise
         except Exception as ex:
             error_msg = self.database.db_engine_spec.extract_error_message(ex)
             return self._create_error_result(QueryStatus.FAILED, error_msg, start_time)
@@ -335,7 +341,7 @@ class SQLExecutor:
 
         See superset_core.api.models.Database.execute_async() for full documentation.
         """
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             QueryOptions as QueryOptionsType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -357,7 +363,7 @@ class SQLExecutor:
 
         # DRY RUN: Return transformed SQL as completed async handle
         if opts.dry_run:
-            from superset_core.api.types import StatementResult
+            from superset_core.queries.types import StatementResult
 
             original_sqls = [stmt.format() for stmt in original_script.statements]
             transformed_sqls = [stmt.format() for stmt in transformed_script.statements]
@@ -504,7 +510,7 @@ class SQLExecutor:
         :param query: Query model for progress tracking
         :returns: List of StatementResult objects
         """
-        from superset_core.api.types import StatementResult
+        from superset_core.queries.types import StatementResult
 
         # Get original statement strings
         original_sqls = [stmt.format() for stmt in original_script.statements]
@@ -601,7 +607,7 @@ class SQLExecutor:
             statements before the failure
         :returns: QueryResult with error status
         """
-        from superset_core.api.types import QueryResult as QueryResultType
+        from superset_core.queries.types import QueryResult as QueryResultType
 
         return QueryResultType(
             status=status,
@@ -787,7 +793,7 @@ class SQLExecutor:
         :param opts: Query options
         :returns: Cached QueryResult if found, None otherwise
         """
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             QueryResult as QueryResultType,
             QueryStatus,
             StatementResult,
@@ -827,7 +833,7 @@ class SQLExecutor:
         :param sql: SQL query (for cache key)
         :param opts: Query options
         """
-        from superset_core.api.types import QueryStatus
+        from superset_core.queries.types import QueryStatus
 
         if result.status != QueryStatus.SUCCESS:
             return
@@ -839,13 +845,22 @@ class SQLExecutor:
             or app.config.get("CACHE_DEFAULT_TIMEOUT", 300)
         )
 
-        # Serialize statement results for caching
+        # Serialize statement results for caching.
+        # Convert DataFrames to list-of-dicts so the cache backend
+        # does not need to pickle pandas objects (which can fail to
+        # deserialize correctly with some backends or pandas versions).
+        import pandas as pd
+
         cached_data = {
             "statements": [
                 {
                     "original_sql": stmt.original_sql,
                     "executed_sql": stmt.executed_sql,
-                    "data": stmt.data,
+                    "data": (
+                        stmt.data.to_dict(orient="records")
+                        if isinstance(stmt.data, pd.DataFrame)
+                        else stmt.data
+                    ),
                     "row_count": stmt.row_count,
                     "execution_time_ms": stmt.execution_time_ms,
                 }
@@ -916,7 +931,7 @@ class SQLExecutor:
         :param query_id: ID of the Query model
         :returns: AsyncQueryHandle with configured methods
         """
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             AsyncQueryHandle as AsyncQueryHandleType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -955,7 +970,7 @@ class SQLExecutor:
         :param cached_result: The cached QueryResult
         :returns: AsyncQueryHandle that returns the cached data
         """
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             AsyncQueryHandle as AsyncQueryHandleType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -986,7 +1001,7 @@ class SQLExecutor:
     @staticmethod
     def _get_async_query_status(query_id: int) -> Any:
         """Get the current status of an async query."""
-        from superset_core.api.types import QueryStatus as QueryStatusType
+        from superset_core.queries.types import QueryStatus as QueryStatusType
 
         from superset.models.sql_lab import Query as QueryModel
 
@@ -1008,7 +1023,7 @@ class SQLExecutor:
     def _get_async_query_result(query_id: int) -> Any:
         """Get the result of an async query."""
         import pandas as pd
-        from superset_core.api.types import (
+        from superset_core.queries.types import (
             QueryResult as QueryResultType,
             QueryStatus as QueryStatusType,
             StatementResult,

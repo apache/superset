@@ -165,14 +165,14 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 ## Contributor Guide
 
 Interested in contributing? Check out our
-[Developer Portal](https://superset.apache.org/developer_portal/)
+[Developer Docs](https://superset.apache.org/developer-docs/)
 to find resources around contributing along with a detailed guide on
 how to set up a development environment.
 
 ## Resources
 
 - [Superset "In the Wild"](https://github.com/apache/superset/blob/master/RESOURCES/INTHEWILD.md) - open a PR to add your org to the list!
-- [Feature Flags](/docs/configuration/feature-flags) - the status of Superset's Feature Flags.
+- [Feature Flags](/docs/6.0.0/configuration/feature-flags) - the status of Superset's Feature Flags.
 - [Standard Roles](https://github.com/apache/superset/blob/master/RESOURCES/STANDARD_ROLES.md) - How RBAC permissions map to roles.
 - [Superset Wiki](https://github.com/apache/superset/wiki) - Tons of additional community resources: best practices, community content and other information.
 - [Superset SIPs](https://github.com/orgs/apache/projects/170) - The status of Superset's SIPs (Superset Improvement Proposals) for both consensus and implementation status.

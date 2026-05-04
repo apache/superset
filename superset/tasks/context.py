@@ -23,7 +23,7 @@ import traceback
 from typing import Any, Callable, cast, TYPE_CHECKING, TypeVar
 
 from flask import current_app
-from superset_core.api.tasks import (
+from superset_core.tasks.types import (
     TaskContext as CoreTaskContext,
     TaskProperties,
     TaskStatus,

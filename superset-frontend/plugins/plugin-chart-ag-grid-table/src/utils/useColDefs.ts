@@ -20,7 +20,8 @@
 import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
 import { DataRecord, DataRecordValue } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import { useTheme } from '@apache-superset/core/theme';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import {
@@ -225,6 +226,7 @@ export const useColDefs = ({
   alignPositiveNegative,
   slice_id,
 }: UseColDefsProps) => {
+  const theme = useTheme();
   const getCommonColProps = useCallback(
     (
       col: InputColumn,
@@ -263,6 +265,7 @@ export const useColDefs = ({
       const isTextColumn =
         dataType === GenericDataType.String ||
         dataType === GenericDataType.Temporal;
+      const isBooleanColumn = dataType === GenericDataType.Boolean;
 
       const valueRange =
         !hasBasicColorFormatters &&
@@ -279,15 +282,30 @@ export const useColDefs = ({
         headerName: getHeaderLabel(col),
         valueFormatter: p => valueFormatter(p, col),
         valueGetter: p => valueGetter(p, col),
-        cellStyle: p =>
-          getCellStyle({
+        cellStyle: p => {
+          const cellSurfaceColor =
+            p.node?.rowPinned != null
+              ? theme.colorBgBase
+              : p.rowIndex % 2 === 0
+                ? theme.colorBgBase
+                : theme.colorFillQuaternary;
+          const hoverCellSurfaceColor =
+            p.node?.rowPinned != null
+              ? cellSurfaceColor
+              : theme.colorFillSecondary;
+          const cellStyleParams = {
             ...p,
             hasColumnColorFormatters,
             columnColorFormatters,
             hasBasicColorFormatters,
             basicColorFormatters,
             col,
-          }),
+            cellSurfaceColor,
+            hoverCellSurfaceColor,
+          } as Parameters<typeof getCellStyle>[0];
+
+          return getCellStyle(cellStyleParams);
+        },
         cellClass: p =>
           getCellClass({
             ...p,
@@ -325,18 +343,25 @@ export const useColDefs = ({
             'last',
           ],
         }),
-        cellRenderer: (p: CellRendererProps) =>
-          isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
-        cellRendererParams: {
-          allowRenderHtml: true,
-          columns,
-          hasBasicColorFormatters,
-          col,
-          basicColorFormatters,
-          valueRange,
-          alignPositiveNegative: alignPN || alignPositiveNegative,
-          colorPositiveNegative,
-        },
+        ...(isBooleanColumn
+          ? {
+              cellRenderer: 'agCheckboxCellRenderer',
+              cellRendererParams: { disabled: true },
+            }
+          : {
+              cellRenderer: (p: CellRendererProps) =>
+                isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
+              cellRendererParams: {
+                allowRenderHtml: true,
+                columns,
+                hasBasicColorFormatters,
+                col,
+                basicColorFormatters,
+                valueRange,
+                alignPositiveNegative: alignPN || alignPositiveNegative,
+                colorPositiveNegative,
+              },
+            }),
         context: {
           isMetric,
           isPercentMetric,
@@ -377,6 +402,9 @@ export const useColDefs = ({
       allowRearrangeColumns,
       serverPagination,
       alignPositiveNegative,
+      theme.colorBgBase,
+      theme.colorFillSecondary,
+      theme.colorFillQuaternary,
     ],
   );
 

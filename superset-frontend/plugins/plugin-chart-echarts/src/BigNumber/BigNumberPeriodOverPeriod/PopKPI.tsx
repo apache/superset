@@ -17,13 +17,13 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   fetchTimeRange,
   getTimeOffset,
 } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
 import {
   DEFAULT_DATE_PATTERN,

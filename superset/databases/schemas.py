@@ -59,6 +59,7 @@ from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import json
 from superset.utils.core import markdown, parse_ssl_cert
+from superset.utils.json import get_masked_fields
 
 database_schemas_query_schema = {
     "type": "object",
@@ -239,6 +240,15 @@ def encrypted_extra_validator(value: str | None) -> None:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
+
+
+def masked_encrypted_extra_validator(value: str) -> None:
+    """
+    Validate that `masked_encrypted_extra` is a valid non-empty JSON string
+    """
+    if value == "{}":
+        raise ValidationError([_("Field cannot be empty.")])
+    encrypted_extra_validator(value)
 
 
 def extra_validator(value: str) -> str:
@@ -874,6 +884,9 @@ class ImportV1DatabaseSchema(Schema):
     sqlalchemy_uri = fields.String(required=True)
     password = fields.String(allow_none=True)
     encrypted_extra = fields.String(allow_none=True, validate=encrypted_extra_validator)
+    masked_encrypted_extra = fields.String(
+        allow_none=False, validate=masked_encrypted_extra_validator
+    )
     cache_timeout = fields.Integer(allow_none=True)
     expose_in_sqllab = fields.Boolean()
     allow_run_async = fields.Boolean()
@@ -970,6 +983,55 @@ class ImportV1DatabaseSchema(Schema):
                     # are empty, SSHTunnelMissingCredentials was already raised
                     raise ValidationError(exception_messages)
         return
+
+    @validates_schema
+    def validate_masked_encrypted_extra(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        if "masked_encrypted_extra" not in data:
+            return
+
+        if "encrypted_extra" in data:
+            raise ValidationError(
+                "File contains both `encrypted_extra` and `masked_encrypted_extra`"
+            )
+
+        if db.session.query(Database).filter_by(uuid=data["uuid"]).first():
+            # Existing DB: sensitive values will be revealed from existing
+            # encrypted_extra in import_database()
+            return
+
+        masked_encrypted_extra = json.loads(data["masked_encrypted_extra"])
+
+        # Determine engine spec from sqlalchemy_uri to get sensitive fields
+        sqlalchemy_uri = data["sqlalchemy_uri"]
+        url = make_url_safe(sqlalchemy_uri)
+        backend = url.get_backend_name()
+        driver = url.get_driver_name()
+        db_engine_spec = get_engine_spec(backend, driver=driver)
+
+        # Check if any sensitive field is still masked
+        masked_fields = get_masked_fields(
+            masked_encrypted_extra,
+            db_engine_spec.encrypted_extra_sensitive_field_paths(),
+        )
+
+        if masked_fields:
+            encrypted_extra_fields = db_engine_spec.encrypted_extra_sensitive_fields
+            labels = (
+                encrypted_extra_fields
+                if isinstance(encrypted_extra_fields, dict)
+                else {}
+            )
+            raise ValidationError(
+                {
+                    "_schema": [
+                        f"Must provide value for masked_encrypted_extra field: {field}"
+                        + (f" ({labels[field]})" if field in labels else "")
+                        for field in masked_fields
+                    ]
+                }
+            )
 
 
 def encrypted_field_properties(self, field: Any, **_) -> dict[str, Any]:  # type: ignore
