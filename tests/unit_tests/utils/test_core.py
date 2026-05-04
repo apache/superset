@@ -39,6 +39,7 @@ from superset.utils.core import (
     get_stacktrace,
     get_user_agent,
     is_test,
+    markdown,
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
@@ -1688,3 +1689,160 @@ def test_sanitize_url_blocks_dangerous():
     """Test that dangerous URL schemes are blocked."""
     assert sanitize_url("javascript:alert('xss')") == ""
     assert sanitize_url("data:text/html,<script>alert(1)</script>") == ""
+
+
+def test_markdown_basic():
+    """Test basic markdown rendering."""
+    # Basic markdown should convert to HTML
+    result = markdown("**bold**")
+    assert "<strong>bold</strong>" in result
+
+
+def test_markdown_with_link():
+    """Test markdown links are preserved and include security attributes."""
+    result = markdown("[link](https://example.com)")
+    assert '<a href="https://example.com"' in result
+    # nh3 automatically adds rel="noopener noreferrer" to all links
+    assert 'rel="noopener noreferrer"' in result
+
+
+def test_markdown_target_blank_with_security():
+    """Test that target="_blank" links automatically get rel="noopener noreferrer" from nh3."""
+    raw = '<a href="https://example.com" target="_blank">Click here</a>'
+    result = markdown(raw)
+    assert 'target="_blank"' in result
+    # nh3.clean() automatically adds rel="noopener noreferrer" to all links
+    assert 'rel="noopener noreferrer"' in result
+
+
+def test_markdown_regular_link_has_security_attributes():
+    """Test that even regular links without target="_blank" get rel attribute for security."""
+    raw = '<a href="https://example.com">Click</a>'
+    result = markdown(raw)
+    # nh3 adds rel="noopener noreferrer" to ALL links for security
+    assert 'rel="noopener noreferrer"' in result
+
+
+def test_markdown_preserves_custom_rel_with_security():
+    """Test that links with custom rel attributes still get security attributes from nh3.
+    
+    Note: nh3 will override custom rel attributes with rel="noopener noreferrer"
+    to ensure security is never compromised. This is the expected behavior.
+    """
+    raw = '<a href="https://example.com" rel="external">Click</a>'
+    result = markdown(raw)
+    
+    # Link should be preserved
+    assert 'href="https://example.com"' in result
+    assert '>Click</a>' in result
+    
+    # nh3 always enforces rel="noopener noreferrer" for security
+    # even if a custom rel was provided
+    assert 'rel="noopener noreferrer"' in result
+
+
+def test_markdown_multiple_target_blank_links():
+    """Test that multiple target="_blank" links all get security attributes."""
+    raw = '''
+    <a href="https://example.com" target="_blank">Link 1</a>
+    <a href="https://example.com/other" target="_blank">Link 2</a>
+    '''
+    result = markdown(raw)
+    # Count occurrences of rel="noopener noreferrer"
+    count = result.count('rel="noopener noreferrer"')
+    assert count >= 2
+
+
+def test_markdown_mixed_links():
+    """Test mix of links with and without target="_blank"."""
+    raw = '''
+    <a href="https://example.com">Regular link</a>
+    <a href="https://example.com" target="_blank">External link</a>
+    '''
+    result = markdown(raw)
+    assert 'href="https://example.com">Regular' in result
+    assert 'target="_blank"' in result
+    # Both should have rel attribute for security
+    assert result.count('rel="noopener noreferrer"') >= 2
+
+
+def test_markdown_with_markup_wrap():
+    """Test markdown with Markup wrapping."""
+    result = markdown("**bold**", markup_wrap=True)
+    from markupsafe import Markup
+
+    assert isinstance(result, Markup)
+    assert "<strong>bold</strong>" in str(result)
+
+
+def test_markdown_sanitizes_dangerous_content():
+    """Test that dangerous content is sanitized."""
+    # Script tags should be removed
+    raw = '<div><script>alert("xss")</script>Content</div>'
+    result = markdown(raw)
+    assert "<script>" not in result
+    assert "alert" not in result
+
+
+def test_markdown_preserves_allowed_tags():
+    """Test that allowed HTML tags are preserved."""
+    raw = "<div><b>bold</b> <i>italic</i> <strong>strong</strong></div>"
+    result = markdown(raw)
+    assert "<b>bold</b>" in result
+    assert "<i>italic</i>" in result
+    assert "<strong>strong</strong>" in result
+
+
+def test_markdown_strips_disallowed_tags():
+    """Test that disallowed HTML tags are stripped but content preserved."""
+    raw = "<form><input type='text'></form>Content"
+    result = markdown(raw)
+    # Tags should be stripped but content preserved
+    assert "<form>" not in result
+    assert "<input" not in result
+    # Content after form should still be there
+    assert "Content" in result
+
+
+def test_markdown_preserves_img_attributes():
+    """Test that img src, alt, and title attributes are preserved."""
+    raw = '<img src="https://example.com/image.png" alt="test" title="image">'
+    result = markdown(raw)
+    assert 'src="https://example.com/image.png"' in result
+    assert 'alt="test"' in result
+    assert 'title="image"' in result
+
+
+def test_markdown_link_attributes():
+    """Test that link href, alt, and title attributes are preserved."""
+    raw = '<a href="https://example.com" alt="alt text" title="link title">Link</a>'
+    result = markdown(raw)
+    assert 'href="https://example.com"' in result
+    assert 'alt="alt text"' in result
+    assert 'title="link title"' in result
+
+
+def test_markdown_empty_input():
+    """Test markdown handles empty input gracefully."""
+    assert markdown("") == ""
+    assert markdown(None) == ""
+
+
+def test_markdown_prevents_tab_jacking():
+    """Test that target="_blank" links cannot be used for tab-jacking attacks.
+    
+    Tab-jacking is prevented by nh3.clean() automatically adding
+    rel="noopener noreferrer" to all links, which prevents the opened
+    page from accessing window.opener.
+    """
+    raw = '<a href="https://attacker.com" target="_blank">Click me</a>'
+    result = markdown(raw)
+    
+    # Link should have target="_blank" to open in new tab
+    assert 'target="_blank"' in result
+    
+    # Security attributes should prevent tab-jacking
+    assert 'rel="noopener noreferrer"' in result
+    
+    # noopener prevents window.opener access
+    # noreferrer prevents referrer information leak
