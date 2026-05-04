@@ -152,6 +152,7 @@ if (!window.parent || window.parent === window) {
 let displayedUnauthorizedToast = false;
 let root: Root | null = null;
 let started = false;
+let startInFlight = false;
 
 /**
  * If there is a problem with the guest token, we will start getting
@@ -177,6 +178,8 @@ function guestUnauthorizedHandler() {
 }
 
 function start() {
+  if (started || startInFlight) return undefined;
+  startInFlight = true;
   const getMeWithRole = makeApi<void, { result: UserWithPermissionsAndRoles }>({
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
@@ -195,15 +198,19 @@ function start() {
         root = createRoot(appMountPoint);
       }
       root.render(<EmbeddedApp />);
+      started = true;
+      startInFlight = false;
     },
     err => {
-      // something is most likely wrong with the guest token
+      // something is most likely wrong with the guest token; leave started
+      // false so a rehandshake with a valid token can retry.
       logging.error(err);
       showFailureMessage(
         t(
           'Something went wrong with embedded authentication. Check the dev console for details.',
         ),
       );
+      startInFlight = false;
     },
   );
 }
@@ -252,10 +259,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       'guestToken',
       ({ guestToken }: { guestToken: string }) => {
         setupGuestClient(guestToken);
-        if (!started) {
-          start();
-          started = true;
-        }
+        start();
       },
     );
 
