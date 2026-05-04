@@ -35,7 +35,7 @@ from superset.migrations.shared.utils import assign_uuids
 
 # revision identifiers, used by Alembic.
 revision = "884a2115ebd3"
-down_revision = "c233f5365c9e"
+down_revision = "a1b2c3d4e5f6"
 
 Base = declarative_base()
 
