@@ -970,9 +970,13 @@ async def test_list_datasets_simple_api_error(mock_list, mcp_server):
         assert "API request failed" in str(excinfo.value)
 
 
+@patch(
+    "superset.mcp_service.utils.url_utils.get_superset_base_url",
+    return_value="http://test-superset",
+)
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_get_dataset_info_success(mock_info, mcp_server):
+async def test_get_dataset_info_success(mock_info, mock_base_url, mcp_server):
     dataset = MagicMock()
     dataset.id = 1
     dataset.table_name = "Test DatasetInfo"
@@ -1030,6 +1034,10 @@ async def test_get_dataset_info_success(mock_info, mcp_server):
         assert data["id"] == 1
         assert data["table_name"] == "Test DatasetInfo"
         assert data["database_name"] == "examples"
+        assert (
+            data["url"]
+            == "http://test-superset/explore/?datasource_type=table&datasource_id=1"
+        )
         # Check that columns and metrics are included
         assert len(data["columns"]) == 1
         assert len(data["metrics"]) == 1
