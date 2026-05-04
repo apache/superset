@@ -35,7 +35,6 @@ from sqlalchemy import (
     String,
     Table,
     Text,
-    UniqueConstraint,
 )
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, subqueryload
@@ -93,37 +92,53 @@ sqla.event.listen(User, "after_insert", copy_dashboard)
 dashboard_slices = Table(
     "dashboard_slices",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
-    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
-    UniqueConstraint("dashboard_id", "slice_id"),
+    Column(
+        "dashboard_id",
+        Integer,
+        ForeignKey("dashboards.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "slice_id",
+        Integer,
+        ForeignKey("slices.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
 dashboard_user = Table(
     "dashboard_user",
     metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
-    Column("dashboard_id", Integer, ForeignKey("dashboards.id", ondelete="CASCADE")),
+    Column(
+        "user_id",
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "dashboard_id",
+        Integer,
+        ForeignKey("dashboards.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
 DashboardRoles = Table(
     "dashboard_roles",
     metadata,
-    Column("id", Integer, primary_key=True),
     Column(
         "dashboard_id",
         Integer,
         ForeignKey("dashboards.id", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
     Column(
         "role_id",
         Integer,
         ForeignKey("ab_role.id", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
 )
 
