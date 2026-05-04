@@ -17,6 +17,7 @@
  * under the License.
  */
 
+
 /* eslint-disable no-param-reassign */
 import { throttle } from 'lodash';
 import {
@@ -46,14 +47,17 @@ import FilterControls from './FilterControls/FilterControls';
 import CrossFiltersVertical from './CrossFilters/Vertical';
 import crossFiltersSelector from './CrossFilters/selectors';
 
+
 enum SectionType {
   Filters = 'filters',
   ChartCustomization = 'chartCustomization',
   CrossFilters = 'crossFilters',
 }
 
+
 const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.sizeUnit * 8}px;
+
 
   & .ant-tabs-top > .ant-tabs-nav {
     margin: 0;
@@ -62,6 +66,7 @@ const BarWrapper = styled.div<{ width: number }>`
     width: ${({ width }) => width}px; // arbitrary...
   }
 `;
+
 
 const Bar = styled.div<{ width: number }>`
   ${({ theme, width }) => `
@@ -87,6 +92,7 @@ const Bar = styled.div<{ width: number }>`
   `}
 `;
 
+
 const CollapsedBar = styled.div<{ offset: number }>`
   ${({ theme, offset }) => `
     position: absolute;
@@ -109,9 +115,11 @@ const CollapsedBar = styled.div<{ offset: number }>`
   `}
 `;
 
+
 const FilterBarEmptyStateContainer = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 8}px;
 `;
+
 
 const FilterControlsWrapper = styled.div`
   ${({ theme }) => `
@@ -120,10 +128,17 @@ const FilterControlsWrapper = styled.div`
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 4}px;
     padding-top: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
+  `}
+`;
+
+
+const ScrollableContent = styled.div`
+  ${({ theme }) => `
     // 108px padding to make room for buttons with position: absolute
     padding-bottom: ${theme.sizeUnit * 27}px;
   `}
 `;
+
 
 export const FilterBarScrollContext = createContext(false);
 const VerticalFilterBar: FC<VerticalBarProps> = ({
@@ -147,10 +162,12 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   const [isScrolling, setIsScrolling] = useState(false);
   const timeout = useRef<any>();
 
+
   const openFiltersBar = useCallback(
     () => toggleFiltersBar(true),
     [toggleFiltersBar],
   );
+
 
   const onScroll = useMemo(
     () =>
@@ -164,6 +181,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     [],
   );
 
+
   useEffect(() => {
     document.onscroll = onScroll;
     return () => {
@@ -171,10 +189,12 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     };
   }, [onScroll]);
 
+
   const tabPaneStyle = useMemo(
     () => ({ overflow: 'auto', height, overscrollBehavior: 'contain' }),
     [height],
   );
+
 
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
@@ -189,21 +209,26 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     verboseMaps,
   });
 
+
   // Determine available section types
   const availableSectionTypes = useMemo(() => {
     const types: SectionType[] = [];
+
 
     if (filterValues.length > 0) {
       types.push(SectionType.Filters);
     }
 
+
     if (chartCustomizationValues.length > 0) {
       types.push(SectionType.ChartCustomization);
     }
 
+
     if (selectedCrossFilters.length > 0) {
       types.push(SectionType.CrossFilters);
     }
+
 
     return types;
   }, [
@@ -212,11 +237,14 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     selectedCrossFilters.length,
   ]);
 
+
   const hasOnlyOneSectionType = availableSectionTypes.length === 1;
+
 
   const filterControls = useMemo(() => {
     const hasFiltersOrCustomizations =
       filterValues.length > 0 || chartCustomizationValues.length > 0;
+
 
     return hasFiltersOrCustomizations ? (
       <FilterControlsWrapper>
@@ -254,6 +282,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     chartCustomizationValues,
     hasOnlyOneSectionType,
   ]);
+
 
   return (
     <FilterBarScrollContext.Provider value={isScrolling}>
@@ -300,10 +329,10 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
             </div>
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
-              <>
-                <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
+              <ScrollableContent>
                 {filterControls}
-              </>
+                <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
+              </ScrollableContent>
             </div>
           )}
           {actions}
