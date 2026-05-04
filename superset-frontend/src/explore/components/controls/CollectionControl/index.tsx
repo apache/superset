@@ -211,8 +211,16 @@ function CollectionControl({
 
   const onChangeItem = useCallback(
     (i: number, itemValue: CollectionItem) => {
+      const oldItem = value[i];
+      const newItem = { ...oldItem, ...itemValue };
+      // Replacing the object would orphan the WeakMap-stored id and remount
+      // the row. Carry the generated id over to the new ref.
+      const generatedId = generatedIdsRef.current.get(oldItem);
+      if (generatedId) {
+        generatedIdsRef.current.set(newItem, generatedId);
+      }
       const newValue = [...value];
-      newValue[i] = { ...value[i], ...itemValue };
+      newValue[i] = newItem;
       onChange?.(newValue);
     },
     [value, onChange],
