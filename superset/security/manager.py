@@ -2803,21 +2803,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # to only those dataset IDs even if the chart/dashboard check above
             # would otherwise grant it.  Tokens without the ``datasets`` claim
             # retain the existing behaviour (all dashboard datasets accessible).
-            if self.is_guest_user():
-                guest_user = self.get_current_guest_user_if_guest()
-                if guest_user:
-                    allowed_datasets: Optional[list[int]] = guest_user.guest_token.get(
-                        "datasets"
-                    )
-                    if allowed_datasets is not None:
-                        if not isinstance(allowed_datasets, list):
-                            raise SupersetSecurityException(
-                                self.get_datasource_access_error_object(datasource)
-                            )
-                        if datasource.id not in allowed_datasets:
-                            raise SupersetSecurityException(
-                                self.get_datasource_access_error_object(datasource)
-                            )
+            if guest_user := self.get_current_guest_user_if_guest():
+                allowed_datasets: Optional[list[int]] = guest_user.guest_token.get(
+                    "datasets"
+                )
+                if allowed_datasets is not None:
+                    if not isinstance(allowed_datasets, list):
+                        raise SupersetSecurityException(
+                            self.get_datasource_access_error_object(datasource)
+                        )
+                    if datasource.id not in allowed_datasets:
+                        raise SupersetSecurityException(
+                            self.get_datasource_access_error_object(datasource)
+                        )
 
         if dashboard:
             if self.is_guest_user():
