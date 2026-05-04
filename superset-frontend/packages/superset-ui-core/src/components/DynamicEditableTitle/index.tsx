@@ -87,11 +87,15 @@ export const DynamicEditableTitle = memo(
 
     useEffect(() => {
       // Don't overwrite in-flight user input when the parent re-renders with a
-      // new title prop mid-edit. handleBlur already syncs currentTitle on commit.
+      // new title prop mid-edit. handleBlur already syncs currentTitle on commit;
+      // re-running this effect when isEditing flips would resync to a stale
+      // title prop, so isEditing is intentionally read via closure rather than
+      // listed as a dep.
       if (!isEditing) {
         setCurrentTitle(title);
       }
-    }, [title, isEditing]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [title]);
     useEffect(() => {
       if (isEditing) {
         // move cursor and scroll to the end
