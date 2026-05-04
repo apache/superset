@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/// <reference types="@emotion/jest" />
 import fetchMock from 'fetch-mock';
 import {
   fireEvent,
@@ -517,12 +516,11 @@ test('should apply min-height to the top-level tab drop target so tabs can be dr
   const droptarget = headerWrapper.querySelector('.empty-droptarget');
   expect(droptarget).toBeInTheDocument();
 
-  // Verify the StyledHeader CSS defines min-height for .empty-droptarget.
-  expect(headerWrapper).toHaveStyleRule(
-    'min-height',
-    expect.stringMatching(/\S+/),
-    { target: '.empty-droptarget' },
-  );
+  // Verify the StyledHeader CSS defines a non-zero min-height for
+  // .empty-droptarget (theme.sizeUnit * 4 = 16px with the default theme).
+  expect(headerWrapper).toHaveStyleRule('min-height', '16px', {
+    target: '.empty-droptarget',
+  });
 });
 
 test('should maintain layout when switching between tabs', async () => {
