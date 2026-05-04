@@ -41,8 +41,20 @@ AFFECTED_TABLES = [
         "ab_user",
         "report_schedule",
     ),
-    ("rls_filter_roles", "role_id", "rls_filter_id", "ab_role", "rls_filter"),
-    ("rls_filter_tables", "table_id", "rls_filter_id", "tables", "rls_filter"),
+    (
+        "rls_filter_roles",
+        "role_id",
+        "rls_filter_id",
+        "ab_role",
+        "row_level_security_filters",
+    ),
+    (
+        "rls_filter_tables",
+        "table_id",
+        "rls_filter_id",
+        "tables",
+        "row_level_security_filters",
+    ),
     ("slice_user", "user_id", "slice_id", "ab_user", "slices"),
     ("sqlatable_user", "user_id", "table_id", "ab_user", "tables"),
 ]
