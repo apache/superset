@@ -170,6 +170,32 @@ class TestValidateAndCompileChartTypeCoverage:
         assert result.error_obj is not None
         assert "not_a_real_temporal" in (result.error_obj.message or "")
 
+    def test_pie_with_sum_on_non_numeric_column_rejected(self):
+        """Tier-1 aggregation compatibility now runs for non-Table/XY too —
+        a pie ``metric={"name": "gender", "aggregate": "SUM"}`` would emit
+        ``SUM(gender)`` which the DB rejects, so the validator must catch it
+        before we hand back an explore URL."""
+        ds = _orm_dataset()
+        config = PieChartConfig(
+            dimension=ColumnRef(name="name"),
+            metric=ColumnRef(name="gender", aggregate="SUM"),
+        )
+        result = validate_and_compile(config, {}, ds, run_compile_check=False)
+        assert not result.success, "SUM on a TEXT column must reject"
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "INVALID_AGGREGATION"
+
+    def test_pivot_table_min_on_non_numeric_column_rejected(self):
+        ds = _orm_dataset()
+        config = PivotTableChartConfig(
+            rows=[ColumnRef(name="gender")],
+            metrics=[ColumnRef(name="name", aggregate="MIN")],
+        )
+        result = validate_and_compile(config, {}, ds, run_compile_check=False)
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "INVALID_AGGREGATION"
+
     def test_table_with_invalid_filter_column_rejected(self):
         ds = _orm_dataset()
         config = TableChartConfig(
@@ -180,6 +206,56 @@ class TestValidateAndCompileChartTypeCoverage:
         result = validate_and_compile(config, {}, ds, run_compile_check=False)
         assert not result.success
         assert result.error_obj is not None
+
+
+class TestSavedMetricNotMarked:
+    """A non-saved-metric ColumnRef whose name matches a saved metric is a
+    common LLM mistake (forgetting to set ``saved_metric=true``). The
+    validator should surface a tailored hint instead of letting the bad SQL
+    through."""
+
+    def test_table_metric_name_without_saved_metric_flag_rejected(self):
+        ds = _orm_dataset()
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="gender"),
+                # ``sum_boys`` is a saved metric on the dataset, but
+                # saved_metric=False (default) would render as
+                # ``SUM(sum_boys)`` ad-hoc SQL — broken.
+                ColumnRef(name="sum_boys", aggregate="SUM"),
+            ],
+        )
+        result = validate_and_compile(config, {}, ds, run_compile_check=False)
+        assert not result.success, (
+            "ref.name matches a saved metric but saved_metric=False -> reject"
+        )
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "SAVED_METRIC_NOT_MARKED"
+        # Suggestion should point the LLM at the right correction.
+        suggestions_text = " ".join(result.error_obj.suggestions or [])
+        assert "saved_metric" in suggestions_text
+        assert "sum_boys" in suggestions_text
+
+    def test_pie_metric_name_without_saved_metric_flag_rejected(self):
+        ds = _orm_dataset()
+        config = PieChartConfig(
+            dimension=ColumnRef(name="gender"),
+            metric=ColumnRef(name="sum_boys", aggregate="SUM"),
+        )
+        result = validate_and_compile(config, {}, ds, run_compile_check=False)
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "SAVED_METRIC_NOT_MARKED"
+
+    def test_explicit_saved_metric_passes(self):
+        ds = _orm_dataset()
+        config = PieChartConfig(
+            dimension=ColumnRef(name="gender"),
+            metric=ColumnRef(name="sum_boys", saved_metric=True),
+        )
+        result = validate_and_compile(config, {}, ds, run_compile_check=False)
+        assert result.success, result.error
 
 
 class TestAdhocFiltersFromFormData:
