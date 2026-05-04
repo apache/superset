@@ -31,7 +31,8 @@ const defaultProps = {
 };
 
 export interface LoadableRenderer<Props>
-  extends ComponentClass<Props & LoadableRendererProps>,
+  extends
+    ComponentClass<Props & LoadableRendererProps>,
     Loadable.LoadableComponent {}
 
 export default function createLoadableRenderer<

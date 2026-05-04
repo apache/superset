@@ -48,4 +48,5 @@ export interface DatabaseSelectorProps {
   schema?: string;
   readOnly?: boolean;
   sqlLabMode?: boolean;
+  onOpenModal?: () => void;
 }

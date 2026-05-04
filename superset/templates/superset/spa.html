@@ -24,25 +24,45 @@
       {% block title %}
         {% if title %}
           {{ title }}
+        {% else %}
+          {{ default_title | default('Superset') }}
         {% endif %}
       {% endblock %}
     </title>
 
-    {% block head_meta %}{% endblock %}
+    {% block head_meta %}
+      <link rel="manifest" href="{{ assets_prefix }}/static/assets/pwa-manifest.json?v=4">
+    {% endblock %}
 
     <style>
+      {% if entry == 'embedded' %}
+      html, body {
+        background: transparent !important;
+      }
+      {% else %}
       body {
-        background: #fff;
+        background: {{ theme_tokens.colorBgBase | default('#fff') }};
         color: #000;
       }
-
-      @media (prefers-color-scheme: dark) {
-        body {
-          background: #000;
-          color: #fff;
-        }
-      }
+      {% endif %}
     </style>
+
+    {% if dark_theme_bg and entry != 'embedded' %}
+    <script nonce="{{ macros.get_nonce() }}">
+      (function() {
+        try {
+          var mode = localStorage.getItem('superset-theme-mode');
+          var shouldBeDark = mode === 'dark' ||
+            (mode !== 'default' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (shouldBeDark) {
+            var s = document.createElement('style');
+            s.textContent = 'body{background:{{ dark_theme_bg }};color:#fff}';
+            document.head.appendChild(s);
+          }
+        } catch(e) {}
+      })();
+    </script>
+    {% endif %}
 
     {% block head_css %}
       {% for favicon in favicons %}
@@ -61,16 +81,29 @@
         as="style"
       />
 
-      {# Load custom fonts from configuration #}
-      {% if appbuilder.app.config.get('CUSTOM_FONT_URLS') %}
-        {% for font_url in appbuilder.app.config['CUSTOM_FONT_URLS'] %}
-          <link rel="stylesheet" href="{{ font_url }}" />
-        {% endfor %}
-      {% endif %}
-
     {% endblock %}
 
+    {{ css_bundle(assets_prefix, 'theme') }}
+    {% if entry %}
+      {{ css_bundle(assets_prefix, entry) }}
+    {% endif %}
+
     {{ js_bundle(assets_prefix, 'theme') }}
+
+    {% block head_js %}
+      {% include "head_custom_extra.html" %}
+      <script nonce="{{ macros.get_nonce() }}">
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker
+              .register('{{ assets_prefix }}/static/service-worker.js')
+              .catch(function(err) {
+                console.error('Service Worker registration failed:', err);
+              });
+          });
+        }
+      </script>
+    {% endblock %}
 
     <input
       type="hidden"
@@ -78,9 +111,6 @@
       id="csrf_token"
       value="{{ csrf_token() if csrf_token else '' }}"
     />
-    {% block head_js %}
-      {% include "head_custom_extra.html" %}
-    {% endblock %}
   </head>
 
   <body {% if standalone_mode %}class="standalone"{% endif %}>

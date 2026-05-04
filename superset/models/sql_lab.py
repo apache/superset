@@ -46,10 +46,14 @@ from sqlalchemy import (
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql.elements import ColumnElement, literal_column
-from superset_core.api.models import Query as CoreQuery, SavedQuery as CoreSavedQuery
+from superset_core.queries.models import (
+    Query as CoreQuery,
+    SavedQuery as CoreSavedQuery,
+)
 
 from superset import security_manager
 from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.explorables.base import TimeGrainDict
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -63,9 +67,10 @@ from superset.sql.parse import (
     Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.superset_typing import QueryData, QueryObjectDict
+from superset.superset_typing import ExplorableData, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
+    GenericDataType,
     get_column_name,
     LongText,
     MediumText,
@@ -239,7 +244,7 @@ class Query(
         return None
 
     @property
-    def data(self) -> QueryData:
+    def data(self) -> ExplorableData:
         """Returns query data for the frontend"""
         order_by_choices = []
         for col in self.columns:
@@ -335,6 +340,32 @@ class Query(
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         return []
 
+    def get_time_grains(self) -> list[TimeGrainDict]:
+        """
+        Get available time granularities from the database.
+
+        Delegates to the database's time grain definitions.
+        """
+        return [
+            {
+                "name": grain.name,
+                "function": grain.function,
+                "duration": grain.duration,
+            }
+            for grain in (self.database.grains() or [])
+        ]
+
+    def has_drill_by_columns(self, column_names: list[str]) -> bool:
+        """
+        Check if the specified columns support drill-by operations.
+
+        For Query objects, all columns are considered drillable since they
+        come from ad-hoc SQL queries without predefined metadata.
+        """
+        if not column_names:
+            return False
+        return set(column_names).issubset(set(self.column_names))
+
     @property
     def tracking_url(self) -> Optional[str]:
         """
@@ -369,13 +400,15 @@ class Query(
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> ColumnElement:
+    ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         """
         Turn an adhoc column into a sqlalchemy column.
         :param col: Adhoc column definition
         :param template_processor: template_processor instance
-        :returns: The metric defined as a sqlalchemy column
-        :rtype: sqlalchemy.sql.column
+        :returns: A tuple of (SQLAlchemy column, generic column type). The
+            generic type is resolved from query result column metadata when
+            the adhoc label matches a known column; otherwise ``None``.
+        :rtype: tuple[sqlalchemy.sql.ColumnElement, Optional[GenericDataType]]
         """
         label = get_column_name(col)
         expression = self._process_sql_expression(
@@ -386,7 +419,9 @@ class Query(
             template_processor=template_processor,
         )
         sqla_column = literal_column(expression)
-        return self.make_sqla_column_compatible(sqla_column, label)
+        col_meta = next((c for c in self.columns if c.column_name == label), None)
+        generic_type = col_meta.type_generic if col_meta else None
+        return self.make_sqla_column_compatible(sqla_column, label), generic_type
 
 
 class SavedQuery(
@@ -510,7 +545,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
 
     # latest query that was run
     latest_query_id = Column(
-        Integer, ForeignKey("query.client_id", ondelete="SET NULL")
+        String(11), ForeignKey("query.client_id", ondelete="SET NULL")
     )
     latest_query = relationship("Query")
 

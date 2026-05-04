@@ -190,8 +190,9 @@ class TestDatabaseModel(SupersetTestCase):
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
 
-        # assert virtual dataset
-        assert "SELECT\n  'user_abc' AS user,\n  'xyz_P1D' AS time_grain" in query
+        # assert virtual dataset (SQL is not reformatted when no RLS applies)
+        assert "'user_abc' as user" in query
+        assert "'xyz_P1D' as time_grain" in query
         # assert dataset calculated column
         assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert adhoc column
@@ -520,7 +521,8 @@ class TestDatabaseModel(SupersetTestCase):
         sqlaq = table.get_sqla_query(**query_obj)
         assert sqlaq.labels_expected == ["user", "COUNT_DISTINCT(user)"]
         sql = table.database.compile_sqla_query(sqlaq.sqla_query)
-        assert "COUNT_DISTINCT_user__00db1" in sql
+        # SHA-256 hash of "COUNT_DISTINCT(user)" starts with "01c94"
+        assert "COUNT_DISTINCT_user__01c94" in sql
         db.session.delete(table)
         db.session.delete(database)
         db.session.commit()

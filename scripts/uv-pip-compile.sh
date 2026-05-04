@@ -19,6 +19,23 @@
 
 set -e
 
+# If not already running in Docker, run this script inside Docker
+if [ -z "$RUNNING_IN_DOCKER" ]; then
+  # Extract "current" Python version from CI config (single source of truth)
+  PYTHON_VERSION=$(grep -A 1 'if.*"current"' .github/actions/setup-backend/action.yml | grep 'PYTHON_VERSION=' | sed 's/.*PYTHON_VERSION=\([0-9.]*\).*/\1/')
+
+  echo "Running in Docker (Python ${PYTHON_VERSION} on Linux)..."
+
+  docker run --rm \
+    -v "$(pwd)":/app \
+    -w /app \
+    -e RUNNING_IN_DOCKER=1 \
+    python:${PYTHON_VERSION}-slim \
+    bash -c "pip install uv && ./scripts/uv-pip-compile.sh $*"
+
+  exit $?
+fi
+
 ADDITIONAL_ARGS="$@"
 
 # Generate the requirements/base.txt file

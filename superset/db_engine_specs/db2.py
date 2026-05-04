@@ -20,7 +20,7 @@ from typing import Optional, Union
 from sqlalchemy.engine.reflection import Inspector
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.core import Database
 from superset.sql.parse import LimitMethod, Table
 
@@ -31,6 +31,61 @@ class Db2EngineSpec(BaseEngineSpec):
     engine = "db2"
     engine_aliases = {"ibm_db_sa"}
     engine_name = "IBM Db2"
+
+    metadata = {
+        "description": (
+            "IBM Db2 is a family of data management products for enterprise workloads, "
+            "available on-premises, in containers, and across cloud platforms."
+        ),
+        "logo": "ibm-db2.svg",
+        "homepage_url": "https://www.ibm.com/db2",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["ibm_db_sa"],
+        "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
+        "default_port": 50000,
+        "drivers": [
+            {
+                "name": "ibm_db_sa (with LIMIT)",
+                "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
+                "is_recommended": True,
+            },
+            {
+                "name": "ibm_db_sa (without LIMIT syntax)",
+                "connection_string": "ibm_db_sa://{username}:{password}@{hostname}:{port}/{database}",
+                "is_recommended": False,
+                "notes": (
+                    "Use for older DB2 versions without LIMIT [n] syntax. "
+                    "Recommended for SQL Lab."
+                ),
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "IBM Db2 for i (AS/400)",
+                "description": (
+                    "Db2 for i is a fully integrated database engine on IBM i (AS/400) "
+                    "systems. Uses a different SQLAlchemy driver optimized for IBM i."
+                ),
+                "logo": "ibm-db2.svg",
+                "homepage_url": "https://www.ibm.com/products/db2-for-i",
+                "pypi_packages": ["sqlalchemy-ibmi"],
+                "connection_string": "ibmi://{username}:{password}@{host}/{database}",
+                "parameters": {
+                    "username": "IBM i username",
+                    "password": "IBM i password",
+                    "host": "IBM i system host",
+                    "database": "Library/schema name",
+                },
+                "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
+                "categories": [DatabaseCategory.PROPRIETARY],
+            },
+        ],
+        "docs_url": "https://github.com/ibmdb/python-ibmdbsa",
+    }
+
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30

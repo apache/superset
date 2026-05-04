@@ -38,7 +38,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
-from superset_core.api.models import Chart as CoreChart
+from superset_core.common.models import Chart as CoreChart
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
@@ -142,15 +142,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def cls_model(self) -> type[SqlaTable]:
-        # pylint: disable=import-outside-toplevel
-        from superset.daos.datasource import DatasourceDAO
-
-        return DatasourceDAO.sources[self.datasource_type]
-
-    @property
     def datasource(self) -> SqlaTable | None:
-        return self.get_datasource
+        return self.table
 
     def clone(self) -> Slice:
         return Slice(
@@ -164,15 +157,6 @@ class Slice(  # pylint: disable=too-many-public-methods
             cache_timeout=self.cache_timeout,
         )
 
-    # pylint: disable=using-constant-test
-    @datasource.getter  # type: ignore
-    def get_datasource(self) -> SqlaTable | None:
-        return (
-            db.session.query(self.cls_model)
-            .filter_by(id=self.datasource_id)
-            .one_or_none()
-        )
-
     @renders("datasource_name")
     def datasource_link(self) -> Markup | None:
         datasource = self.datasource
@@ -180,10 +164,13 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @renders("datasource_url")
     def datasource_url(self) -> str | None:
+        # Use getattr to guard against datasource types that don't have explore_url
+        # (e.g. Query objects), which would otherwise raise AttributeError and cause
+        # the entire chart list response to fail.
         if self.table:
-            return self.table.explore_url
+            return getattr(self.table, "explore_url", None)
         datasource = self.datasource
-        return datasource.explore_url if datasource else None
+        return getattr(datasource, "explore_url", None) if datasource else None
 
     def datasource_name_text(self) -> str | None:
         if self.table:
@@ -200,8 +187,6 @@ class Slice(  # pylint: disable=too-many-public-methods
     def datasource_edit_url(self) -> str | None:
         datasource = self.datasource
         return datasource.url if datasource else None
-
-    # pylint: enable=using-constant-test
 
     @property
     def viz(self) -> BaseViz | None:
@@ -292,7 +277,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         if self.query_context:
             try:
                 return self.get_query_context_factory().create(
-                    **json.loads(self.query_context)
+                    **{**json.loads(self.query_context), "current_slice": self}
                 )
             except json.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)
@@ -377,7 +362,10 @@ def id_or_uuid_filter(id_or_uuid: str | int) -> BinaryExpression:
 
 
 def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:
-    src_class = target.cls_model
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.datasource import DatasourceDAO
+
+    src_class = DatasourceDAO.sources[target.datasource_type]
     if id_ := target.datasource_id:
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:

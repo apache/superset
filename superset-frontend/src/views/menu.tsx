@@ -22,17 +22,20 @@ import 'src/public-path';
 // eg, backend rendered views
 import { Provider } from 'react-redux';
 import ReactDOM from 'react-dom';
-import { Route, BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { CacheProvider } from '@emotion/react';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import createCache from '@emotion/cache';
-import { ThemeProvider, theme } from '@apache-superset/core/ui';
+import { ThemeProvider } from '@apache-superset/core/theme';
+import { theme } from '@apache-superset/core/theme';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { setupStore } from './store';
-import { i18nLoadJob } from '../preamble';
+import { I18nLoadJob } from '../preamble';
+import querystring from 'query-string';
 
-await i18nLoadJob;
+await I18nLoadJob;
 
 // Disable connecting to redux debugger so that the React app injected
 // Below the menu like SqlLab or Explore can connect its redux store to the debugger
@@ -45,14 +48,17 @@ const emotionCache = createCache({
 });
 
 const app = (
-  // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
       <Provider store={store}>
         <BrowserRouter>
           <QueryParamProvider
-            ReactRouterRoute={Route}
-            stringifyOptions={{ encode: false }}
+            adapter={ReactRouter5Adapter}
+            options={{
+              searchStringToObject: querystring.parse,
+              objectToSearchString: (object: Record<string, any>) =>
+                querystring.stringify(object, { encode: false }),
+            }}
           >
             <Menu data={menu} />
           </QueryParamProvider>

@@ -20,7 +20,7 @@
 import { forwardRef, RefObject, MouseEvent } from 'react';
 import { Button } from '@superset-ui/core/components';
 import { ErrorAlert } from 'src/components';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 
 interface ControlPanelAlertProps {
   title: string;

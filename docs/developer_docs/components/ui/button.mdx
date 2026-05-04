@@ -1,0 +1,142 @@
+---
+title: Button
+sidebar_label: Button
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls, ComponentGallery } from '../../../src/components/StorybookWrapper';
+
+# Button
+
+The Button component from Superset's UI library.
+
+## All Variants
+
+<ComponentGallery
+  component="Button"
+  sizes={["xsmall","small","default"]}
+  styles={["primary","secondary","dashed","danger","link"]}
+  sizeProp="buttonSize"
+  styleProp="buttonStyle"
+/>
+
+## Live Example
+
+<StoryWithControls
+  component="Button"
+  props={{
+  buttonStyle: "default",
+  buttonSize: "default",
+  children: "Button!"
+}}
+  controls={[
+  {
+    name: "buttonStyle",
+    label: "Button Style",
+    type: "select",
+    options: [
+      "primary",
+      "secondary",
+      "dashed",
+      "danger",
+      "link"
+    ],
+    description: "The style variant of the button."
+  },
+  {
+    name: "buttonSize",
+    label: "Button Size",
+    type: "select",
+    options: [
+      "xsmall",
+      "small",
+      "default"
+    ],
+    description: "The size of the button."
+  },
+  {
+    name: "children",
+    label: "Children",
+    type: "text",
+    description: "The button text or content."
+  },
+  {
+    name: "target",
+    label: "Target",
+    type: "select"
+  },
+  {
+    name: "href",
+    label: "Href",
+    type: "select"
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean",
+    description: "Whether the button is disabled."
+  },
+  {
+    name: "loading",
+    label: "Loading",
+    type: "boolean",
+    description: "Whether to show loading spinner."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Button
+      buttonStyle="default"
+      buttonSize="default"
+    >
+      Button!
+    </Button>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `buttonStyle` | `string` | `"default"` | The style variant of the button. |
+| `buttonSize` | `string` | `"default"` | The size of the button. |
+| `children` | `string` | `"Button!"` | The button text or content. |
+
+## Import
+
+```tsx
+import { Button } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Button/Button.stories.tsx).
+:::

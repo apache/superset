@@ -1145,12 +1145,15 @@ class TestBaseDeckGLViz(SupersetTestCase):
         }
 
         datasource = self.get_datasource_mock()
+        # SHA-256 filterOptionName hashes with default HASH_ALGORITHM
         expected_results = {
             "latlong_key": [
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "c7f171cf3204bcbf456acfeac5cd9afd",
+                    "filterOptionName": (
+                        "980dd3068274177120307d9182ea8e8ee1b7824d34fbc21c529441f5d3279f7f"
+                    ),
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lat",
@@ -1158,7 +1161,9 @@ class TestBaseDeckGLViz(SupersetTestCase):
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "52634073fbb8ae0a3aa59ad48abac55e",
+                    "filterOptionName": (
+                        "e368c259da27e5ec6a854772d9bff2c2af8dd5762352cef4ff6afc5bd8b6b9ea"
+                    ),
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lon",
@@ -1168,7 +1173,9 @@ class TestBaseDeckGLViz(SupersetTestCase):
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "cae5c925c140593743da08499e6fb207",
+                    "filterOptionName": (
+                        "6ea33b70ab781033af421240019d3e3ad782928a3ad2999538f1f4b2a52305e2"
+                    ),
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "lonlat",
@@ -1178,7 +1185,9 @@ class TestBaseDeckGLViz(SupersetTestCase):
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
-                    "filterOptionName": "d84f55222d8e414e888fa5f990b341d2",
+                    "filterOptionName": (
+                        "48bbd94cd6afb1885d8550e2928bc01a2d3bc7d1f4f1d0929b10d6f4021b7f14"
+                    ),
                     "comparator": "",
                     "operator": "IS NOT NULL",
                     "subject": "geo",

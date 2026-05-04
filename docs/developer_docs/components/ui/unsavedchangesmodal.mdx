@@ -1,0 +1,126 @@
+---
+title: UnsavedChangesModal
+sidebar_label: UnsavedChangesModal
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# UnsavedChangesModal
+
+The UnsavedChangesModal component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="UnsavedChangesModal"
+  props={{
+  showModal: false,
+  title: "Unsaved Changes"
+}}
+  controls={[
+  {
+    name: "showModal",
+    label: "Show Modal",
+    type: "boolean",
+    description: "Whether the modal is visible."
+  },
+  {
+    name: "title",
+    label: "Title",
+    type: "text",
+    description: "Title text displayed in the modal header."
+  }
+]}
+  triggerProp="showModal"
+  onHideProp="onHide,handleSave,onConfirmNavigation"
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  const [show, setShow] = React.useState(false);
+  return (
+    <div>
+      <Button onClick={() => setShow(true)}>
+        Navigate Away (Unsaved Changes)
+      </Button>
+      <UnsavedChangesModal
+        showModal={show}
+        onHide={() => setShow(false)}
+        handleSave={() => { alert('Saved!'); setShow(false); }}
+        onConfirmNavigation={() => { alert('Discarded changes'); setShow(false); }}
+        title="Unsaved Changes"
+      >
+        If you don&apos;t save, changes will be lost.
+      </UnsavedChangesModal>
+    </div>
+  );
+}
+```
+
+## Custom Title
+
+```tsx live
+function CustomTitle() {
+  const [show, setShow] = React.useState(false);
+  return (
+    <div>
+      <Button onClick={() => setShow(true)}>
+        Close Without Saving
+      </Button>
+      <UnsavedChangesModal
+        showModal={show}
+        onHide={() => setShow(false)}
+        handleSave={() => setShow(false)}
+        onConfirmNavigation={() => setShow(false)}
+        title="You have unsaved dashboard changes"
+      >
+        Your dashboard layout and filter changes have not been saved.
+        Do you want to save before leaving?
+      </UnsavedChangesModal>
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showModal` | `boolean` | `false` | Whether the modal is visible. |
+| `title` | `string` | `"Unsaved Changes"` | Title text displayed in the modal header. |
+
+## Import
+
+```tsx
+import { UnsavedChangesModal } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/UnsavedChangesModal/UnsavedChangesModal.stories.tsx).
+:::

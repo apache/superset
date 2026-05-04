@@ -36,7 +36,7 @@
  * under the License.
  */
 import { ReactElement } from 'react';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import {
   IconNameType,
   Icons,
@@ -68,8 +68,9 @@ export function ActionsBar({ actions }: ActionsBarProps) {
         const IconComponent = Icons[icon as IconNameType];
         return (
           <ActionButton
-            key={tooltip ? undefined : index}
-            icon={<IconComponent />}
+            key={rest.label ?? index}
+            icon={<IconComponent iconSize="l" />}
+            tooltip={tooltip}
             {...rest}
           />
         );

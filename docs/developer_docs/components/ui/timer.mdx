@@ -1,0 +1,172 @@
+---
+title: Timer
+sidebar_label: Timer
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Timer
+
+A live elapsed-time display that counts up from a given start time. Used to show query and dashboard load durations. Requires a startTime timestamp to function.
+
+## Live Example
+
+<StoryWithControls
+  component="Timer"
+  props={{
+  isRunning: true,
+  status: "success",
+  startTime: 1737936000000
+}}
+  controls={[
+  {
+    name: "isRunning",
+    label: "Is Running",
+    type: "boolean",
+    description: "Whether the timer is actively counting. Toggle to start/stop."
+  },
+  {
+    name: "status",
+    label: "Status",
+    type: "select",
+    options: [
+      "success",
+      "warning",
+      "danger",
+      "info",
+      "default",
+      "primary",
+      "secondary"
+    ],
+    description: "Visual status of the timer badge."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  const [isRunning, setIsRunning] = React.useState(true);
+  const [startTime] = React.useState(Date.now());
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <Timer
+        startTime={startTime}
+        isRunning={isRunning}
+        status="success"
+      />
+      <Button onClick={() => setIsRunning(r => !r)}>
+        {isRunning ? 'Stop' : 'Start'}
+      </Button>
+    </div>
+  );
+}
+```
+
+## Status Variants
+
+```tsx live
+function StatusVariants() {
+  const [startTime] = React.useState(Date.now());
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {['success', 'warning', 'danger', 'info', 'default', 'primary', 'secondary'].map(status => (
+        <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ width: 80 }}>{status}</span>
+          <Timer startTime={startTime} isRunning status={status} />
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+## Completed Timer
+
+```tsx live
+function CompletedTimer() {
+  const start = Date.now() - 5230;
+  const end = Date.now();
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <Timer
+        startTime={start}
+        endTime={end}
+        isRunning={false}
+        status="success"
+      />
+      <span style={{ color: '#999' }}>Query completed in ~5.2 seconds</span>
+    </div>
+  );
+}
+```
+
+## Start and Stop
+
+```tsx live
+function StartStop() {
+  const [isRunning, setIsRunning] = React.useState(false);
+  const [startTime, setStartTime] = React.useState(null);
+  const handleToggle = () => {
+    if (!isRunning && !startTime) {
+      setStartTime(Date.now());
+    }
+    setIsRunning(r => !r);
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <Timer
+        startTime={startTime}
+        isRunning={isRunning}
+        status={isRunning ? 'warning' : 'success'}
+      />
+      <Button onClick={handleToggle}>
+        {isRunning ? 'Pause' : startTime ? 'Resume' : 'Start'}
+      </Button>
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `isRunning` | `boolean` | `true` | Whether the timer is actively counting. Toggle to start/stop. |
+| `status` | `string` | `"success"` | Visual status of the timer badge. |
+| `startTime` | `number` | `1737936000000` | - |
+
+## Import
+
+```tsx
+import { Timer } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Timer/Timer.stories.tsx).
+:::

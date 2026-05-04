@@ -33,7 +33,7 @@ const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
 >;
 const CONTEXT_MENU_TEST_ID = 'chart-context-menu';
 
-// @ts-ignore
+// @ts-expect-error
 global.featureFlags = {
   [FeatureFlag.DrillToDetail]: true,
   [FeatureFlag.DrillBy]: true,

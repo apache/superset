@@ -20,7 +20,8 @@
 import { useCallback, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { SaveFilterChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
+import { saveChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
+import { SaveChangesType } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
 import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
 interface UseFilterConfigModalProps {
@@ -33,7 +34,7 @@ interface UseFilterConfigModalReturn {
   isFilterConfigModalOpen: boolean;
   openFilterConfigModal: () => void;
   closeFilterConfigModal: () => void;
-  handleFilterSave: (filterChanges: SaveFilterChangesType) => Promise<void>;
+  handleSave: (changes: SaveChangesType) => Promise<void>;
   FilterConfigModalComponent: JSX.Element | null;
 }
 
@@ -53,10 +54,26 @@ export const useFilterConfigModal = ({
     setIsFilterConfigModalOpen(false);
   }, []);
 
-  const handleFilterSave = useCallback(
-    async (filterChanges: SaveFilterChangesType) => {
-      dispatch(await setFilterConfiguration(filterChanges));
-      closeFilterConfigModal();
+  const handleSave = useCallback(
+    async (changes: SaveChangesType) => {
+      try {
+        if (changes.filterChanges) {
+          dispatch(setFilterConfiguration(changes.filterChanges));
+        }
+        if (changes.customizationChanges) {
+          dispatch(
+            saveChartCustomization(
+              changes.customizationChanges.modified,
+              changes.customizationChanges.deleted,
+              changes.customizationChanges.reordered,
+              true,
+            ),
+          );
+        }
+        closeFilterConfigModal();
+      } catch (error) {
+        // Error toast already shown in action, prevent modal close
+      }
     },
     [dispatch, closeFilterConfigModal],
   );
@@ -64,7 +81,7 @@ export const useFilterConfigModal = ({
   const FilterConfigModalComponent = isFilterConfigModalOpen ? (
     <FiltersConfigModal
       isOpen={isFilterConfigModalOpen}
-      onSave={handleFilterSave}
+      onSave={handleSave}
       onCancel={closeFilterConfigModal}
       key={`filters-for-${dashboardId}`}
       createNewOnOpen={createNewOnOpen}
@@ -76,7 +93,7 @@ export const useFilterConfigModal = ({
     isFilterConfigModalOpen,
     openFilterConfigModal,
     closeFilterConfigModal,
-    handleFilterSave,
+    handleSave,
     FilterConfigModalComponent,
   };
 };

@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import copy
+import dataclasses
 import logging
 from typing import Any, cast, TYPE_CHECKING
 
@@ -26,7 +27,11 @@ from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.charts.schemas import ChartDataQueryContextSchema
-from superset.exceptions import SupersetVizException
+from superset.exceptions import (
+    SupersetErrorException,
+    SupersetErrorsException,
+    SupersetVizException,
+)
 from superset.extensions import (
     async_query_manager,
     cache_manager,
@@ -104,9 +109,15 @@ def load_chart_data_into_cache(
             logger.warning("A timeout occurred while loading chart data, error: %s", ex)
             raise
         except Exception as ex:
-            # TODO: QueryContext should support SIP-40 style errors
-            error = str(ex.message if hasattr(ex, "message") else ex)
-            errors = [{"message": error}]
+            # Extract SIP-40 style errors when available
+            if isinstance(ex, SupersetErrorException):
+                errors = [dataclasses.asdict(ex.error)]
+            elif isinstance(ex, SupersetErrorsException):
+                errors = [dataclasses.asdict(error) for error in ex.errors]
+            else:
+                # Fallback for non-Superset exceptions
+                error = str(ex.message if hasattr(ex, "message") else ex)
+                errors = [{"message": error}]
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_ERROR, errors=errors
             )

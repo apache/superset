@@ -18,8 +18,9 @@
  */
 import { useState, useEffect, FC } from 'react';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
-import { t, SupersetClient } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import {
   FormLabel,
   AsyncSelect,
@@ -124,15 +125,16 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
         <div className="bulk-tag-text">
           {t('You are adding tags to %s %ss', selected.length, resourceName)}
         </div>
-        <FormLabel>{t('tags')}</FormLabel>
+        <FormLabel>{t('Tags')}</FormLabel>
         <AsyncSelect
           ariaLabel="tags"
-          // @ts-ignore
+          // @ts-expect-error
           value={tags}
           options={loadTags}
           onHide={onHide}
-          // @ts-ignore
+          // @ts-expect-error
           onChange={tags => setTags(tags)}
+          getPopupContainer={() => document.body}
           placeholder={t('Select Tags')}
           mode="multiple"
         />

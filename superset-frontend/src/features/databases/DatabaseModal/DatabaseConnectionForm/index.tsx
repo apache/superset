@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme } from '@apache-superset/core/ui';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { Form } from '@superset-ui/core/components';
 import { FormFieldOrder, FORM_FIELD_MAP } from './constants';
 import { formScrollableStyles, validatedFormStyles } from '../styles';
@@ -55,7 +55,6 @@ const DatabaseConnectionForm = ({
   return (
     <Form>
       <div
-        // @ts-ignore
         css={(theme: SupersetTheme) => [
           formScrollableStyles,
           validatedFormStyles(theme),
@@ -67,7 +66,7 @@ const DatabaseConnectionForm = ({
               Object.keys(parameters.properties).includes(key) ||
               key === 'database_name',
           ).map(field =>
-            // @ts-ignore TODO: fix ComponentClass for SSHTunnelSwitchComponent not having call signature.
+            // @ts-expect-error TODO: fix ComponentClass for SSHTunnelSwitchComponent not having call signature.
             FORM_FIELD_MAP[field]({
               required: parameters.required?.includes(field),
               changeMethods: {

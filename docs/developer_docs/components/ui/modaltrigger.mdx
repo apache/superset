@@ -1,0 +1,192 @@
+---
+title: ModalTrigger
+sidebar_label: ModalTrigger
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# ModalTrigger
+
+A component that renders a trigger element which opens a modal when clicked. Useful for actions that need confirmation or additional input.
+
+## Live Example
+
+<StoryWithControls
+  component="ModalTrigger"
+  props={{
+  isButton: true,
+  modalTitle: "Modal Title",
+  modalBody: "This is the modal body content.",
+  tooltip: "Click to open modal",
+  width: "600px",
+  maxWidth: "1000px",
+  responsive: true,
+  draggable: false,
+  resizable: false,
+  triggerNode: "Click to Open Modal"
+}}
+  controls={[
+  {
+    name: "isButton",
+    label: "Is Button",
+    type: "boolean",
+    description: "Whether to wrap the trigger in a button element."
+  },
+  {
+    name: "modalTitle",
+    label: "Modal Title",
+    type: "text",
+    description: "Title displayed in the modal header."
+  },
+  {
+    name: "modalBody",
+    label: "Modal Body",
+    type: "text",
+    description: "Content displayed in the modal body."
+  },
+  {
+    name: "tooltip",
+    label: "Tooltip",
+    type: "text",
+    description: "Tooltip text shown on hover over the trigger."
+  },
+  {
+    name: "width",
+    label: "Width",
+    type: "text",
+    description: "Width of the modal (e.g., \"600px\", \"80%\")."
+  },
+  {
+    name: "maxWidth",
+    label: "Max Width",
+    type: "text",
+    description: "Maximum width of the modal."
+  },
+  {
+    name: "responsive",
+    label: "Responsive",
+    type: "boolean",
+    description: "Whether the modal should be responsive."
+  },
+  {
+    name: "draggable",
+    label: "Draggable",
+    type: "boolean",
+    description: "Whether the modal can be dragged by its header."
+  },
+  {
+    name: "resizable",
+    label: "Resizable",
+    type: "boolean",
+    description: "Whether the modal can be resized by dragging corners."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <ModalTrigger
+      isButton
+      triggerNode={<span>Click to Open</span>}
+      modalTitle="Example Modal"
+      modalBody={<p>This is the modal content. You can put any React elements here.</p>}
+      width="500px"
+      responsive
+    />
+  );
+}
+```
+
+## With Custom Trigger
+
+```tsx live
+function CustomTrigger() {
+  return (
+    <ModalTrigger
+      triggerNode={
+        <Button buttonStyle="primary">
+          <Icons.PlusOutlined /> Add New Item
+        </Button>
+      }
+      modalTitle="Add New Item"
+      modalBody={
+        <div>
+          <p>Fill out the form to add a new item.</p>
+          <Input placeholder="Item name" />
+        </div>
+      }
+      width="400px"
+    />
+  );
+}
+```
+
+## Draggable & Resizable
+
+```tsx live
+function DraggableModal() {
+  return (
+    <ModalTrigger
+      isButton
+      triggerNode={<span>Open Draggable Modal</span>}
+      modalTitle="Draggable & Resizable"
+      modalBody={<p>Try dragging the header or resizing from the corners!</p>}
+      draggable
+      resizable
+      width="500px"
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `isButton` | `boolean` | `true` | Whether to wrap the trigger in a button element. |
+| `modalTitle` | `string` | `"Modal Title"` | Title displayed in the modal header. |
+| `modalBody` | `string` | `"This is the modal body content."` | Content displayed in the modal body. |
+| `tooltip` | `string` | `"Click to open modal"` | Tooltip text shown on hover over the trigger. |
+| `width` | `string` | `"600px"` | Width of the modal (e.g., "600px", "80%"). |
+| `maxWidth` | `string` | `"1000px"` | Maximum width of the modal. |
+| `responsive` | `boolean` | `true` | Whether the modal should be responsive. |
+| `draggable` | `boolean` | `false` | Whether the modal can be dragged by its header. |
+| `resizable` | `boolean` | `false` | Whether the modal can be resized by dragging corners. |
+| `triggerNode` | `string` | `"Click to Open Modal"` | The clickable element that opens the modal when clicked. |
+
+## Import
+
+```tsx
+import { ModalTrigger } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/ModalTrigger/ModalTrigger.stories.tsx).
+:::

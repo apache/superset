@@ -25,13 +25,13 @@ import { WORLD_HEALTH_DASHBOARD } from 'cypress/utils/urls';
 import { WORLD_HEALTH_CHARTS } from './utils';
 import { isLegacyResponse } from '../../utils/vizPlugins';
 
-describe.skip('Dashboard top-level controls', () => {
+describe('Dashboard top-level controls', () => {
   beforeEach(() => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
   });
 
-  // flaky test
-  it('should allow chart level refresh', () => {
+  // flaky test - query completes before assertion
+  it.skip('should allow chart level refresh', () => {
     const mapSpec = WORLD_HEALTH_CHARTS.find(
       ({ viz }) => viz === 'world_map',
     ) as ChartSpec;

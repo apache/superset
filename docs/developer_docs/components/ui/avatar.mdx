@@ -1,0 +1,140 @@
+---
+title: Avatar
+sidebar_label: Avatar
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Avatar
+
+The Avatar component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="Avatar"
+  props={{
+  children: "AB",
+  alt: "",
+  gap: 4,
+  shape: "circle",
+  size: "default",
+  src: "",
+  draggable: false
+}}
+  controls={[
+  {
+    name: "children",
+    label: "Children",
+    type: "text",
+    description: "Text or initials to display inside the avatar."
+  },
+  {
+    name: "alt",
+    label: "Alt",
+    type: "text"
+  },
+  {
+    name: "gap",
+    label: "Gap",
+    type: "number",
+    description: "Letter spacing inside the avatar."
+  },
+  {
+    name: "shape",
+    label: "Shape",
+    type: "select",
+    options: [
+      "circle",
+      "square"
+    ],
+    description: "The shape of the avatar."
+  },
+  {
+    name: "size",
+    label: "Size",
+    type: "select",
+    options: [
+      "small",
+      "default",
+      "large"
+    ],
+    description: "The size of the avatar."
+  },
+  {
+    name: "src",
+    label: "Src",
+    type: "text",
+    description: "Image URL for the avatar. If provided, overrides children."
+  },
+  {
+    name: "draggable",
+    label: "Draggable",
+    type: "boolean"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Avatar
+      alt=""
+      gap={4}
+      shape="circle"
+      size="default"
+      src=""
+    >
+      AB
+    </Avatar>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `string` | `"AB"` | Text or initials to display inside the avatar. |
+| `alt` | `string` | `""` | - |
+| `gap` | `number` | `4` | Letter spacing inside the avatar. |
+| `shape` | `string` | `"circle"` | The shape of the avatar. |
+| `size` | `string` | `"default"` | The size of the avatar. |
+| `src` | `string` | `""` | Image URL for the avatar. If provided, overrides children. |
+| `draggable` | `boolean` | `false` | - |
+
+## Import
+
+```tsx
+import { Avatar } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Avatar/Avatar.stories.tsx).
+:::

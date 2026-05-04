@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DataRecord, TimeseriesDataRecord } from '@superset-ui/core';
-import { SupersetTheme } from '@apache-superset/core/ui';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { RenderFunction } from 'ol/layer/Layer';
 import { Extent } from 'ol/extent';
 import Source from 'ol/source/Source';

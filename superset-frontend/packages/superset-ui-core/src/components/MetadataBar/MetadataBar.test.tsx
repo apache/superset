@@ -19,7 +19,7 @@
 import { render, screen, userEvent, within } from '@superset-ui/core/spec';
 import * as resizeDetector from 'react-resize-detector';
 import { hexToRgb } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import MetadataBar, {
   MIN_NUMBER_ITEMS,
   MAX_NUMBER_ITEMS,

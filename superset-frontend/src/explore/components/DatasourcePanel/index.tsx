@@ -17,8 +17,10 @@
  * under the License.
  */
 import { useContext, useMemo, useState } from 'react';
-import { DatasourceType, Metric, QueryFormData, t } from '@superset-ui/core';
-import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { DatasourceType, Metric, QueryFormData } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 
 import { ControlConfig } from '@superset-ui/chart-controls';
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -325,7 +327,7 @@ export default function DataSourcePanel({
           formData={formData}
         />
       )}
-      {/* @ts-ignore */}
+      {/* @ts-expect-error */}
       <Control {...datasourceControl} name="datasource" actions={actions} />
       {datasource.id != null && mainBody}
     </DatasourceContainer>

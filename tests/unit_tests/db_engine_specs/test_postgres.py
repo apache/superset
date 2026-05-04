@@ -17,6 +17,7 @@
 
 from datetime import datetime
 from typing import Any, Optional
+from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -25,7 +26,10 @@ from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
-from superset.db_engine_specs.postgres import PostgresEngineSpec as spec  # noqa: N813
+from superset.db_engine_specs.postgres import (
+    _check_not_redshift,
+    PostgresEngineSpec as spec,  # noqa: N813
+)
 from superset.exceptions import SupersetSecurityException
 from superset.sql.parse import Table
 from superset.utils.core import GenericDataType
@@ -252,7 +256,7 @@ def test_select_star(mocker: MockerFixture) -> None:
     Test the ``select_star`` method.
     """
     database = mocker.MagicMock()
-    engine = mocker.MagicMock()
+    dialect = mocker.MagicMock()
 
     def quote_table(table: Table, dialect: Dialect) -> str:
         return ".".join(
@@ -264,7 +268,7 @@ def test_select_star(mocker: MockerFixture) -> None:
     spec.select_star(
         database=database,
         table=Table("my_table", "my_schema", "my_catalog"),
-        engine=engine,
+        dialect=dialect,
         limit=100,
         show_cols=False,
         indent=True,
@@ -280,3 +284,82 @@ SELECT * \nFROM my_schema.my_table
  LIMIT :param_1
     """.strip()
     )
+
+
+class TestRedshiftDetection:
+    """
+    Tests for detecting Redshift connections via the PostgreSQL dialect.
+    """
+
+    def test_check_not_redshift_detects_redshift(self) -> None:
+        """
+        Pool connect event raises for a Redshift version string.
+        """
+        cursor = MagicMock()
+        cursor.fetchone.return_value = (
+            "PostgreSQL 8.0.2 on i686-pc-linux-gnu, compiled by GCC gcc (GCC) "
+            "3.4.2 20041017 (Red Hat 3.4.2-6.fc3), Redshift 1.0.77467",
+        )
+        dbapi_conn = MagicMock()
+        dbapi_conn.cursor.return_value = cursor
+
+        with pytest.raises(ValueError, match="Redshift"):
+            _check_not_redshift(dbapi_conn, None)
+
+    def test_check_not_redshift_allows_postgres(self) -> None:
+        """
+        Pool connect event allows a regular PostgreSQL version string.
+        """
+        cursor = MagicMock()
+        cursor.fetchone.return_value = (
+            "PostgreSQL 15.2 on x86_64-pc-linux-gnu, compiled by gcc",
+        )
+        dbapi_conn = MagicMock()
+        dbapi_conn.cursor.return_value = cursor
+
+        _check_not_redshift(dbapi_conn, None)  # should not raise
+
+    def test_check_not_redshift_fails_open(self) -> None:
+        """
+        If SELECT version() errors, the connection is still allowed.
+        """
+        cursor = MagicMock()
+        cursor.execute.side_effect = Exception("permission denied")
+        dbapi_conn = MagicMock()
+        dbapi_conn.cursor.return_value = cursor
+
+        _check_not_redshift(dbapi_conn, None)  # should not raise
+
+    def test_mutate_db_sets_flag(self) -> None:
+        """
+        mutate_db_for_connection_test sets the check flag.
+        """
+        database = MagicMock()
+        spec.mutate_db_for_connection_test(database)
+        assert database._check_redshift_version is True
+
+    def test_pool_event_injected_when_flag_set(self, mocker: MockerFixture) -> None:
+        """
+        Pool event is added during test_connection.
+        """
+        database = mocker.MagicMock(
+            encrypted_extra=None,
+            _check_redshift_version=True,
+        )
+        params: dict[str, Any] = {}
+        spec.update_params_from_encrypted_extra(database, params)
+
+        assert "pool_events" in params
+        fns = [fn for fn, _ in params["pool_events"]]
+        assert _check_not_redshift in fns
+
+    def test_pool_event_not_injected_without_flag(self, mocker: MockerFixture) -> None:
+        """
+        Pool event is NOT added during normal operation.
+        """
+        database = mocker.MagicMock(encrypted_extra=None)
+        database._check_redshift_version = False
+        params: dict[str, Any] = {}
+        spec.update_params_from_encrypted_extra(database, params)
+
+        assert "pool_events" not in params

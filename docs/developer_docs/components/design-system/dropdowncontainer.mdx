@@ -1,0 +1,167 @@
+---
+title: DropdownContainer
+sidebar_label: DropdownContainer
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# DropdownContainer
+
+DropdownContainer arranges items horizontally and moves overflowing items into a dropdown popover. Resize the container to see the overflow behavior.
+
+## Live Example
+
+<StoryWithControls
+  component="DropdownContainer"
+  props={{
+  style: {
+    maxWidth: 360
+  },
+  items: [
+    {
+      id: "item-0",
+      element: {
+        component: "Tag",
+        props: {
+          children: "Region",
+          color: "blue"
+        }
+      }
+    },
+    {
+      id: "item-1",
+      element: {
+        component: "Tag",
+        props: {
+          children: "Category",
+          color: "blue"
+        }
+      }
+    },
+    {
+      id: "item-2",
+      element: {
+        component: "Tag",
+        props: {
+          children: "Date Range",
+          color: "blue"
+        }
+      }
+    },
+    {
+      id: "item-3",
+      element: {
+        component: "Tag",
+        props: {
+          children: "Status",
+          color: "blue"
+        }
+      }
+    },
+    {
+      id: "item-4",
+      element: {
+        component: "Tag",
+        props: {
+          children: "Owner",
+          color: "blue"
+        }
+      }
+    },
+    {
+      id: "item-5",
+      element: {
+        component: "Tag",
+        props: {
+          children: "Priority",
+          color: "blue"
+        }
+      }
+    }
+  ]
+}}
+  controls={[]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  const items = Array.from({ length: 6 }, (_, i) => ({
+    id: 'item-' + i,
+    element: React.createElement('div', {
+      style: {
+        minWidth: 120,
+        padding: '4px 12px',
+        background: '#e6f4ff',
+        border: '1px solid #91caff',
+        borderRadius: 4,
+      },
+    }, 'Filter ' + (i + 1)),
+  }));
+  return (
+    <div style={{ width: 400, resize: 'horizontal', overflow: 'auto', border: '1px solid #e8e8e8', padding: 16 }}>
+      <DropdownContainer items={items} />
+      <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+        Drag the right edge to resize and see items overflow into a dropdown
+      </div>
+    </div>
+  );
+}
+```
+
+## With Select Filters
+
+```tsx live
+function SelectFilters() {
+  const items = ['Region', 'Category', 'Date Range', 'Status', 'Owner'].map(
+    (label, i) => ({
+      id: 'filter-' + i,
+      element: React.createElement('div', {
+        style: { minWidth: 150, padding: '4px 12px', background: '#f5f5f5', border: '1px solid #d9d9d9', borderRadius: 4 },
+      }, label + ': All'),
+    })
+  );
+  return (
+    <div style={{ width: 500, resize: 'horizontal', overflow: 'auto', border: '1px solid #e8e8e8', padding: 16 }}>
+      <DropdownContainer items={items} />
+    </div>
+  );
+}
+```
+
+
+
+## Import
+
+```tsx
+import { DropdownContainer } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/DropdownContainer/DropdownContainer.stories.tsx).
+:::

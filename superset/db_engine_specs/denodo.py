@@ -20,7 +20,11 @@ from typing import Any, Optional
 
 from sqlalchemy.types import Date, DateTime
 
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    DatabaseCategory,
+)
 from superset.errors import SupersetErrorType
 
 
@@ -59,6 +63,36 @@ class DenodoEngineSpec(BaseEngineSpec, BasicParametersMixin):
         "denodo://user:password@host:port/dbname[?key=value&key=value...]"
     )
     encryption_parameters = {"sslmode": "require"}
+
+    metadata = {
+        "description": (
+            "Denodo is a data virtualization platform for logical data management."
+        ),
+        "logo": "denodo.png",
+        "homepage_url": "https://www.denodo.com/",
+        "categories": [DatabaseCategory.QUERY_ENGINES, DatabaseCategory.PROPRIETARY],
+        "pypi_packages": ["psycopg2"],
+        "connection_string": "denodo://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 9996,
+        "parameters": {
+            "username": "Denodo username",
+            "password": "Denodo password",
+            "host": "Denodo VDP server hostname",
+            "port": "ODBC port (default 9996)",
+            "database": "Virtual database name",
+        },
+        "drivers": [
+            {
+                "name": "psycopg2",
+                "pypi_package": "psycopg2",
+                "connection_string": (
+                    "denodo://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "is_recommended": True,
+                "notes": "Uses PostgreSQL wire protocol.",
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",

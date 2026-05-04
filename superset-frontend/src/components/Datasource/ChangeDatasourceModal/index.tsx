@@ -25,8 +25,10 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { SupersetClient, t, getClientErrorObject } from '@superset-ui/core';
-import { styled, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import {
   Button,
   Constants,

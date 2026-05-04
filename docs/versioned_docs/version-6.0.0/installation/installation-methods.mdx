@@ -9,11 +9,11 @@ import useBaseUrl from "@docusaurus/useBaseUrl";
 
 # Installation Methods
 
-How should you install Superset? Here's a comparison of the different options. It will help if you've first read the [Architecture](/docs/installation/architecture.mdx) page to understand Superset's different components.
+How should you install Superset? Here's a comparison of the different options. It will help if you've first read the [Architecture](/docs/6.0.0/installation/architecture page to understand Superset's different components.
 
 The fundamental trade-off is between you needing to do more of the detail work yourself vs. using a more complex deployment route that handles those details.
 
-## [Docker Compose](/docs/installation/docker-compose.mdx)
+## [Docker Compose](/docs/6.0.0/installation/docker-compose
 
 **Summary:** This takes advantage of containerization while remaining simpler than Kubernetes. This is the best way to try out Superset; it's also useful for developing & contributing back to Superset.
 
@@ -27,9 +27,9 @@ You will need to back up your metadata DB. That could mean backing up the servic
 
 You will also need to extend the Superset docker image. The default `lean` images do not contain drivers needed to access your metadata database (Postgres or MySQL), nor to access your data warehouse, nor the headless browser needed for Alerts & Reports. You could run a `-dev` image while demoing Superset, which has some of this, but you'll still need to install the driver for your data warehouse. The `-dev` images run as root, which is not recommended for production.
 
-Ideally you will build your own image of Superset that extends `lean`, adding what your deployment needs. See [Building your own production Docker image](/docs/installation/docker-builds/#building-your-own-production-docker-image).
+Ideally you will build your own image of Superset that extends `lean`, adding what your deployment needs. See [Building your own production Docker image](/docs/6.0.0/installation/docker-builds/#building-your-own-production-docker-image).
 
-## [Kubernetes (K8s)](/docs/installation/kubernetes.mdx)
+## [Kubernetes (K8s)](/docs/6.0.0/installation/kubernetes
 
 **Summary:** This is the best-practice way to deploy a production instance of Superset, but has the steepest skill requirement - someone who knows Kubernetes.
 
@@ -41,7 +41,7 @@ A K8s deployment can scale up and down based on usage and deploy rolling updates
 
 You will need to build your own Docker image, and back up your metadata DB, both as described in Docker Compose above. You'll also need to customize your Helm chart values and deploy and maintain your Kubernetes cluster.
 
-## [PyPI (Python)](/docs/installation/pypi.mdx)
+## [PyPI (Python)](/docs/6.0.0/installation/pypi
 
 **Summary:** This is the only method that requires no knowledge of containers. It requires the most hands-on work to deploy, connect, and maintain each component.
 

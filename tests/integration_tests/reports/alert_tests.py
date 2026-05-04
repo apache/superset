@@ -131,7 +131,9 @@ def test_execute_query_mutate_query_enabled(
         database=mock_database,
         validator_config_json='{"op": "==", "threshold": 1}',
     )
-    AlertCommand(report_schedule=report_schedule, execution_id=uuid.uuid4()).run()
+    triggered, message = AlertCommand(
+        report_schedule=report_schedule, execution_id=uuid.uuid4()
+    ).run()
 
     mock_mutate_call.assert_called_once_with(mock_limited_sql.return_value)
     mock_get_df.assert_called_once_with(sql=mock_mutate_call.return_value)
@@ -166,7 +168,9 @@ def test_execute_query_mutate_query_disabled(
         database=mock_database,
         validator_config_json='{"op": "==", "threshold": 1}',
     )
-    AlertCommand(report_schedule=report_schedule, execution_id=uuid.uuid4()).run()
+    triggered, message = AlertCommand(
+        report_schedule=report_schedule, execution_id=uuid.uuid4()
+    ).run()
 
     mock_database.mutate_sql_based_on_config.assert_not_called()
     mock_database.get_df.assert_called_once_with(

@@ -1,0 +1,110 @@
+---
+title: DatePicker
+sidebar_label: DatePicker
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# DatePicker
+
+The DatePicker component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="DatePicker"
+  props={{
+  placeholder: "Select date",
+  showNow: true,
+  allowClear: false,
+  autoFocus: true,
+  disabled: false,
+  format: "YYYY-MM-DD hh:mm a",
+  inputReadOnly: false,
+  picker: "date",
+  placement: "bottomLeft",
+  size: "middle",
+  showTime: {
+    format: "hh:mm a",
+    needConfirm: false
+  }
+}}
+  controls={[
+  {
+    name: "placeholder",
+    label: "Placeholder",
+    type: "text"
+  },
+  {
+    name: "showNow",
+    label: "Show Now",
+    type: "boolean",
+    description: "Show \"Now\" button to select current date and time."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <DatePicker
+      placeholder="Select date"
+      format="YYYY-MM-DD hh:mm a"
+      showNow
+      showTime={{ format: 'hh:mm a', needConfirm: false }}
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `placeholder` | `string` | `"Select date"` | - |
+| `showNow` | `boolean` | `true` | Show "Now" button to select current date and time. |
+| `allowClear` | `boolean` | `false` | - |
+| `autoFocus` | `boolean` | `true` | - |
+| `disabled` | `boolean` | `false` | - |
+| `format` | `string` | `"YYYY-MM-DD hh:mm a"` | - |
+| `inputReadOnly` | `boolean` | `false` | - |
+| `picker` | `string` | `"date"` | - |
+| `placement` | `string` | `"bottomLeft"` | - |
+| `size` | `string` | `"middle"` | - |
+| `showTime` | `any` | `{"format":"hh:mm a","needConfirm":false}` | - |
+
+## Import
+
+```tsx
+import { DatePicker } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/DatePicker/DatePicker.stories.tsx).
+:::

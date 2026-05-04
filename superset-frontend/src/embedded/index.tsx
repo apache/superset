@@ -21,8 +21,15 @@ import 'src/public-path';
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import { makeApi, t, logging } from '@superset-ui/core';
-import { type SupersetThemeConfig, ThemeMode } from '@apache-superset/core/ui';
+import { Global } from '@emotion/react';
+import { t } from '@apache-superset/core/translation';
+import { makeApi } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
+import {
+  type SupersetThemeConfig,
+  ThemeMode,
+  css,
+} from '@apache-superset/core/theme';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
@@ -41,7 +48,7 @@ import {
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
-import { i18nLoadJob } from '../preamble';
+import { I18nLoadJob } from '../preamble';
 
 setupPlugins();
 setupCodeOverrides({ embedded: true });
@@ -89,6 +96,16 @@ const EmbededLazyDashboardPage = () => {
 
 const EmbeddedRoute = () => (
   <EmbeddedContextProviders>
+    <Global
+      styles={css`
+        /* Apply box-sizing reset for embedded dashboards to fix layout issues */
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+        }
+      `}
+    />
     <Suspense fallback={<Loading />}>
       <ErrorBoundary>
         <EmbededLazyDashboardPage />
@@ -163,30 +180,28 @@ function start() {
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
   });
-  return i18nLoadJob
-    .then(() => getMeWithRole())
-    .then(
-      ({ result }) => {
-        // fill in some missing bootstrap data
-        // (because at pageload, we don't have any auth yet)
-        // this allows the frontend's permissions checks to work.
-        bootstrapData.user = result;
-        store.dispatch({
-          type: USER_LOADED,
-          user: result,
-        });
-        ReactDOM.render(<EmbeddedApp />, appMountPoint);
-      },
-      err => {
-        // something is most likely wrong with the guest token
-        logging.error(err);
-        showFailureMessage(
-          t(
-            'Something went wrong with embedded authentication. Check the dev console for details.',
-          ),
-        );
-      },
-    );
+  return I18nLoadJob.then(() => getMeWithRole()).then(
+    ({ result }) => {
+      // fill in some missing bootstrap data
+      // (because at pageload, we don't have any auth yet)
+      // this allows the frontend's permissions checks to work.
+      bootstrapData.user = result;
+      store.dispatch({
+        type: USER_LOADED,
+        user: result,
+      });
+      ReactDOM.render(<EmbeddedApp />, appMountPoint);
+    },
+    err => {
+      // something is most likely wrong with the guest token
+      logging.error(err);
+      showFailureMessage(
+        t(
+          'Something went wrong with embedded authentication. Check the dev console for details.',
+        ),
+      );
+    },
+  );
 }
 
 /**
@@ -250,6 +265,10 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
     Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
     Switchboard.defineMethod('getChartStates', embeddedApi.getChartStates);
+    Switchboard.defineMethod(
+      'getChartDataPayloads',
+      embeddedApi.getChartDataPayloads,
+    );
     Switchboard.defineMethod(
       'setThemeConfig',
       (payload: { themeConfig: SupersetThemeConfig }) => {

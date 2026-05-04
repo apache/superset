@@ -1,0 +1,253 @@
+---
+title: Slider
+sidebar_label: Slider
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Slider
+
+A slider input for selecting a value or range from a continuous or stepped interval. Supports single value, range, vertical orientation, marks, and tooltip display.
+
+## Live Example
+
+<StoryWithControls
+  component="Slider"
+  props={{
+  min: 0,
+  max: 100,
+  defaultValue: 70,
+  step: 1,
+  disabled: false,
+  reverse: false,
+  vertical: false,
+  keyboard: true,
+  dots: false,
+  included: true
+}}
+  controls={[
+  {
+    name: "min",
+    label: "Min",
+    type: "number",
+    description: "Minimum value of the slider."
+  },
+  {
+    name: "max",
+    label: "Max",
+    type: "number",
+    description: "Maximum value of the slider."
+  },
+  {
+    name: "defaultValue",
+    label: "Default Value",
+    type: "number",
+    description: "Initial value of the slider."
+  },
+  {
+    name: "step",
+    label: "Step",
+    type: "number",
+    description: "Step increment between values. Use null for marks-only mode."
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean",
+    description: "Whether the slider is disabled."
+  },
+  {
+    name: "reverse",
+    label: "Reverse",
+    type: "boolean",
+    description: "Whether to reverse the slider direction."
+  },
+  {
+    name: "vertical",
+    label: "Vertical",
+    type: "boolean",
+    description: "Whether to display the slider vertically."
+  },
+  {
+    name: "keyboard",
+    label: "Keyboard",
+    type: "boolean",
+    description: "Whether keyboard arrow keys can control the slider."
+  },
+  {
+    name: "dots",
+    label: "Dots",
+    type: "boolean",
+    description: "Whether to show dots at each step mark."
+  },
+  {
+    name: "included",
+    label: "Included",
+    type: "boolean",
+    description: "Whether to highlight the filled portion of the track."
+  },
+  {
+    name: "tooltipOpen",
+    label: "Tooltip Open",
+    type: "boolean",
+    description: "Whether the value tooltip is always visible."
+  },
+  {
+    name: "tooltipPosition",
+    label: "Tooltip Position",
+    type: "select",
+    options: [
+      "top",
+      "left",
+      "bottom",
+      "right",
+      "topLeft",
+      "topRight",
+      "bottomLeft",
+      "bottomRight",
+      "leftTop",
+      "leftBottom",
+      "rightTop",
+      "rightBottom"
+    ],
+    description: "Position of the value tooltip relative to the handle."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <div style={{ width: 400, padding: '20px 0' }}>
+      <Slider
+        min={0}
+        max={100}
+        defaultValue={70}
+        step={1}
+      />
+    </div>
+  );
+}
+```
+
+## Range Slider
+
+```tsx live
+function RangeSliderDemo() {
+  return (
+    <div style={{ width: 400, padding: '20px 0' }}>
+      <h4>Basic Range</h4>
+      <Slider range defaultValue={[20, 70]} min={0} max={100} />
+      <br />
+      <h4>Draggable Track</h4>
+      <Slider range={{ draggableTrack: true }} defaultValue={[30, 60]} min={0} max={100} />
+    </div>
+  );
+}
+```
+
+## With Marks
+
+```tsx live
+function MarksDemo() {
+  return (
+    <div style={{ width: 400, padding: '20px 0' }}>
+      <Slider
+        min={0}
+        max={100}
+        defaultValue={37}
+        marks={{
+          0: '0°C',
+          25: '25°C',
+          50: '50°C',
+          75: '75°C',
+          100: '100°C',
+        }}
+      />
+    </div>
+  );
+}
+```
+
+## Stepped and Dots
+
+```tsx live
+function SteppedDemo() {
+  return (
+    <div style={{ width: 400, padding: '20px 0' }}>
+      <h4>Step = 10 with Dots</h4>
+      <Slider min={0} max={100} defaultValue={30} step={10} dots />
+      <br />
+      <h4>Step = 25</h4>
+      <Slider min={0} max={100} defaultValue={50} step={25} dots
+        marks={{ 0: '0', 25: '25', 50: '50', 75: '75', 100: '100' }} />
+    </div>
+  );
+}
+```
+
+## Vertical Slider
+
+```tsx live
+function VerticalDemo() {
+  return (
+    <div style={{ height: 300, display: 'flex', gap: 40, padding: '0 40px' }}>
+      <Slider vertical defaultValue={30} />
+      <Slider vertical range defaultValue={[20, 60]} />
+      <Slider vertical defaultValue={50} dots step={10}
+        marks={{ 0: '0', 50: '50', 100: '100' }} />
+    </div>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `min` | `number` | `0` | Minimum value of the slider. |
+| `max` | `number` | `100` | Maximum value of the slider. |
+| `defaultValue` | `number` | `70` | Initial value of the slider. |
+| `step` | `number` | `1` | Step increment between values. Use null for marks-only mode. |
+| `disabled` | `boolean` | `false` | Whether the slider is disabled. |
+| `reverse` | `boolean` | `false` | Whether to reverse the slider direction. |
+| `vertical` | `boolean` | `false` | Whether to display the slider vertically. |
+| `keyboard` | `boolean` | `true` | Whether keyboard arrow keys can control the slider. |
+| `dots` | `boolean` | `false` | Whether to show dots at each step mark. |
+| `included` | `boolean` | `true` | Whether to highlight the filled portion of the track. |
+
+## Import
+
+```tsx
+import { Slider } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Slider/Slider.stories.tsx).
+:::

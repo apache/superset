@@ -37,22 +37,10 @@ class CacheControlMixin(BaseModel):
     - Dashboard Cache: Caches rendered dashboard components
     """
 
-    use_cache: bool = Field(
-        default=True,
-        description=(
-            "Whether to use Superset's cache layers. When True, will serve from "
-            "cache if available (query results, metadata, form data). When False, "
-            "will bypass cache and fetch fresh data."
-        ),
-    )
+    use_cache: bool = Field(default=True, description="Use cache if available")
 
     force_refresh: bool = Field(
-        default=False,
-        description=(
-            "Whether to force refresh cached data. When True, will invalidate "
-            "existing cache entries and fetch fresh data, then update the cache. "
-            "Overrides use_cache=True if both are specified."
-        ),
+        default=False, description="Invalidate cache and fetch fresh data"
     )
 
 
@@ -65,12 +53,7 @@ class QueryCacheControl(CacheControlMixin):
     """
 
     cache_timeout: int | None = Field(
-        default=None,
-        description=(
-            "Override the default cache timeout in seconds for this query. "
-            "If not specified, uses dataset-level or global cache settings. "
-            "Set to 0 to disable caching for this specific query."
-        ),
+        default=None, description="Cache timeout override in seconds (0 to disable)"
     )
 
 
@@ -83,11 +66,7 @@ class MetadataCacheControl(CacheControlMixin):
     """
 
     refresh_metadata: bool = Field(
-        default=False,
-        description=(
-            "Whether to refresh metadata cache for datasets, tables, and columns. "
-            "Useful when database schema has changed and you need fresh metadata."
-        ),
+        default=False, description="Refresh metadata cache for schema changes"
     )
 
 
@@ -100,11 +79,7 @@ class FormDataCacheControl(CacheControlMixin):
     """
 
     cache_form_data: bool = Field(
-        default=True,
-        description=(
-            "Whether to cache the form data configuration for future use. "
-            "When False, generates temporary configurations that are not cached."
-        ),
+        default=True, description="Cache form data for future use"
     )
 
 

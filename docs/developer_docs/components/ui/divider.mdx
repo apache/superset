@@ -1,0 +1,144 @@
+---
+title: Divider
+sidebar_label: Divider
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Divider
+
+The Divider component from Superset's UI library.
+
+## Live Example
+
+<StoryWithControls
+  component="Divider"
+  props={{
+  dashed: false,
+  variant: "solid",
+  orientation: "center",
+  orientationMargin: "",
+  plain: true,
+  type: "horizontal"
+}}
+  controls={[
+  {
+    name: "dashed",
+    label: "Dashed",
+    type: "boolean",
+    description: "Whether line is dashed (deprecated, use variant)."
+  },
+  {
+    name: "variant",
+    label: "Variant",
+    type: "select",
+    options: [
+      "dashed",
+      "dotted",
+      "solid"
+    ],
+    description: "Line style of the divider."
+  },
+  {
+    name: "orientation",
+    label: "Orientation",
+    type: "select",
+    options: [
+      "left",
+      "right",
+      "center"
+    ],
+    description: "Position of title inside divider."
+  },
+  {
+    name: "orientationMargin",
+    label: "Orientation Margin",
+    type: "text",
+    description: "Margin from divider edge to title."
+  },
+  {
+    name: "plain",
+    label: "Plain",
+    type: "boolean",
+    description: "Use plain style without bold title."
+  },
+  {
+    name: "type",
+    label: "Type",
+    type: "select",
+    options: [
+      "horizontal",
+      "vertical"
+    ],
+    description: "Direction of the divider."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <>
+      <p>Horizontal divider with title (orientationMargin applies here):</p>
+      <Divider orientation="left" orientationMargin={0}>Left Title</Divider>
+      <Divider orientation="right" orientationMargin={50}>Right Title</Divider>
+      <Divider>Center Title</Divider>
+      <p>Vertical divider (use container gap for spacing):</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <span>Link</span>
+        <Divider type="vertical" />
+        <span>Link</span>
+        <Divider type="vertical" />
+        <span>Link</span>
+      </div>
+    </>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `dashed` | `boolean` | `false` | Whether line is dashed (deprecated, use variant). |
+| `variant` | `string` | `"solid"` | Line style of the divider. |
+| `orientation` | `string` | `"center"` | Position of title inside divider. |
+| `orientationMargin` | `string` | `""` | Margin from divider edge to title. |
+| `plain` | `boolean` | `true` | Use plain style without bold title. |
+| `type` | `string` | `"horizontal"` | Direction of the divider. |
+
+## Import
+
+```tsx
+import { Divider } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Divider/Divider.stories.tsx).
+:::

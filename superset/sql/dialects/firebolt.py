@@ -58,6 +58,8 @@ class Firebolt(Dialect):
         Custom generator for Firebolt.
         """
 
+        STAR_EXCEPT = "EXCLUDE"
+
         TYPE_MAPPING = {
             **generator.Generator.TYPE_MAPPING,
             exp.DataType.Type.VARBINARY: "BYTEA",

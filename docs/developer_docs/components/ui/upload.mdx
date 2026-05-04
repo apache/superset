@@ -1,0 +1,136 @@
+---
+title: Upload
+sidebar_label: Upload
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Upload
+
+Upload component for file selection and uploading. Supports drag-and-drop, multiple files, and different list display styles.
+
+## Live Example
+
+<StoryWithControls
+  component="Upload"
+  props={{
+  multiple: false,
+  disabled: false,
+  listType: "text",
+  showUploadList: true
+}}
+  controls={[
+  {
+    name: "multiple",
+    label: "Multiple",
+    type: "boolean",
+    description: "Support multiple file selection."
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean",
+    description: "Disable the upload button."
+  },
+  {
+    name: "listType",
+    label: "List Type",
+    type: "select",
+    options: [
+      "text",
+      "picture",
+      "picture-card",
+      "picture-circle"
+    ],
+    description: "Built-in style for the file list display."
+  },
+  {
+    name: "showUploadList",
+    label: "Show Upload List",
+    type: "boolean",
+    description: "Whether to show the upload file list."
+  }
+]}
+  sampleChildren={[{"component":"Button","props":{"children":"Click to Upload"}}]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Upload>
+      <Button>Click to Upload</Button>
+    </Upload>
+  );
+}
+```
+
+## Picture Card Style
+
+```tsx live
+function PictureCard() {
+  return (
+    <Upload listType="picture-card">
+      + Upload
+    </Upload>
+  );
+}
+```
+
+## Drag and Drop
+
+```tsx live
+function DragDrop() {
+  return (
+    <Upload.Dragger>
+      <p style={{ fontSize: 48, color: '#999', margin: 0 }}>+</p>
+      <p>Click or drag file to this area to upload</p>
+      <p style={{ color: '#999' }}>Support for single or bulk upload.</p>
+    </Upload.Dragger>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `multiple` | `boolean` | `false` | Support multiple file selection. |
+| `disabled` | `boolean` | `false` | Disable the upload button. |
+| `listType` | `string` | `"text"` | Built-in style for the file list display. |
+| `showUploadList` | `boolean` | `true` | Whether to show the upload file list. |
+
+## Import
+
+```tsx
+import { Upload } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Upload/Upload.stories.tsx).
+:::

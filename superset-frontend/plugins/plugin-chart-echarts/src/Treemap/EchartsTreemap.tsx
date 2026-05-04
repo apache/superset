@@ -106,7 +106,7 @@ export default function EchartsTreemap({
         setDataMask(dataMask);
       }
     },
-    [emitCrossFilters, getCrossFilterDataMask, setDataMask],
+    [emitCrossFilters, getCrossFilterDataMask, setDataMask, groupby.length],
   );
 
   const eventHandlers: EventHandlers = {
@@ -163,6 +163,7 @@ export default function EchartsTreemap({
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
+      vizType={formData.vizType}
     />
   );
 }

@@ -24,37 +24,26 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator, PositiveInt
+import humanize
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+    model_validator,
+    PositiveInt,
+)
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     TagInfo,
-    UserInfo,
 )
 from superset.utils import json
-
-
-class GetDatasetAvailableFiltersRequest(BaseModel):
-    """
-    Request schema for get_dataset_available_filters tool.
-
-    Currently has no parameters but provides consistent API for future extensibility.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True,
-    )
-
-
-class DatasetAvailableFilters(BaseModel):
-    column_operators: Dict[str, List[str]] = Field(
-        ...,
-        description="Available filter operators for each column: mapping from column "
-        "name to list of supported operators",
-    )
 
 
 class DatasetFilter(ColumnOperator):
@@ -68,17 +57,16 @@ class DatasetFilter(ColumnOperator):
     col: Literal[
         "table_name",
         "schema",
-        "owner",
-        "favorite",
+        "database_name",
     ] = Field(
         ...,
-        description="Column to filter on. See get_dataset_available_filters for "
-        "allowed values.",
+        description="Column to filter on. Use get_schema(model_type='dataset') for "
+        "available filter columns.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
-        description="Operator to use. See get_dataset_available_filters for "
-        "allowed values.",
+        description="Operator to use. Use get_schema(model_type='dataset') for "
+        "available operators.",
     )
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
@@ -96,7 +84,11 @@ class TableColumnInfo(BaseModel):
 
 
 class SqlMetricInfo(BaseModel):
-    metric_name: str = Field(..., description="Metric name")
+    metric_name: str = Field(
+        ...,
+        description="Saved metric name. In chart configs, reference as "
+        '{"name": "<metric_name>", "saved_metric": true}.',
+    )
     verbose_name: str | None = Field(None, description="Verbose name")
     expression: str | None = Field(None, description="SQL expression")
     description: str | None = Field(None, description="Metric description")
@@ -109,22 +101,23 @@ class DatasetInfo(BaseModel):
     schema_name: str | None = Field(None, description="Schema name", alias="schema")
     database_name: str | None = Field(None, description="Database name")
     description: str | None = Field(None, description="Dataset description")
-    changed_by: str | None = Field(None, description="Last modifier (username)")
+    certified_by: str | None = Field(
+        None, description="Name of the person or team who certified this dataset"
+    )
+    certification_details: str | None = Field(
+        None, description="Certification details or reason"
+    )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
     changed_on_humanized: str | None = Field(
         None, description="Humanized modification time"
     )
-    created_by: str | None = Field(None, description="Dataset creator (username)")
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
     )
     tags: List[TagInfo] = Field(default_factory=list, description="Dataset tags")
-    owners: List[UserInfo] = Field(
-        default_factory=list, description="DatasetInfo owners"
-    )
     is_virtual: bool | None = Field(
         None, description="Whether the dataset is virtual (uses SQL)"
     )
@@ -145,7 +138,9 @@ class DatasetInfo(BaseModel):
         default_factory=list, description="Columns in the dataset"
     )
     metrics: List[SqlMetricInfo] = Field(
-        default_factory=list, description="Metrics in the dataset"
+        default_factory=list,
+        description="Saved metrics (pre-defined aggregations). "
+        "NOT columns — use saved_metric=true in chart configs.",
     )
     is_favorite: bool | None = Field(
         None, description="Whether this dataset is favorited by the current user"
@@ -155,6 +150,33 @@ class DatasetInfo(BaseModel):
         ser_json_timedelta="iso8601",
         populate_by_name=True,  # Allow both 'schema' (alias) and 'schema_name' (field)
     )
+
+    @model_serializer(mode="wrap")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Filter fields based on serialization context.
+
+        If context contains 'select_columns', only include those fields.
+        Otherwise, include all fields (default behavior).
+        """
+        # Get full serialization
+        data = filter_user_directory_fields(serializer(self))
+
+        # Normalize alias: Pydantic serializes as 'schema_name' (field name)
+        # but the DAO column and API convention is 'schema'
+        if "schema_name" in data:
+            data["schema"] = data.pop("schema_name")
+
+        # Check if we have a context with select_columns
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                requested_fields = set(select_columns)
+
+                # Filter to only requested fields
+                return {k: v for k, v in data.items() if k in requested_fields}
+
+        # No filtering - return all fields
+        return data
 
 
 class DatasetList(BaseModel):
@@ -166,8 +188,22 @@ class DatasetList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    columns_requested: List[str] | None = None
-    columns_loaded: List[str] | None = None
+    columns_requested: List[str] = Field(
+        default_factory=list,
+        description="Requested columns for the response",
+    )
+    columns_loaded: List[str] = Field(
+        default_factory=list,
+        description="Columns that were actually loaded for each dataset",
+    )
+    columns_available: List[str] = Field(
+        default_factory=list,
+        description="All columns available for selection via select_columns parameter",
+    )
+    sortable_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns that can be used with order_column parameter",
+    )
     filters_applied: List[DatasetFilter] = Field(
         default_factory=list,
         description="List of advanced filter dicts applied to the query.",
@@ -192,19 +228,7 @@ class ListDatasetsRequest(MetadataCacheControl):
     select_columns: Annotated[
         List[str],
         Field(
-            default_factory=lambda: [
-                "id",
-                "table_name",
-                "schema",
-                "database_name",
-                "changed_by_name",
-                "changed_on",
-                "created_by_name",
-                "created_on",
-                "metrics",
-                "columns",
-                "uuid",
-            ],
+            default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
         ),
@@ -231,7 +255,13 @@ class ListDatasetsRequest(MetadataCacheControl):
         Field(default=1, description="Page number for pagination (1-based)"),
     ]
     page_size: Annotated[
-        PositiveInt, Field(default=10, description="Number of items per page")
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+        ),
     ]
 
     @model_validator(mode="after")
@@ -256,9 +286,13 @@ class DatasetError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatasetError":
         """Create a standardized DatasetError with timestamp."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        return cls(error=error, error_type=error_type, timestamp=datetime.now())
+        return cls(
+            error=error,
+            error_type=error_type,
+            timestamp=datetime.now(timezone.utc),
+        )
 
 
 class GetDatasetInfoRequest(MetadataCacheControl):
@@ -270,9 +304,109 @@ class GetDatasetInfoRequest(MetadataCacheControl):
     ]
 
 
+class CreateVirtualDatasetRequest(BaseModel):
+    """Request schema for create_virtual_dataset."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    database_id: int = Field(
+        ...,
+        description="ID of the database connection to use. "
+        "Use list_databases to find valid IDs.",
+    )
+    sql: str = Field(
+        ...,
+        description="SQL query to save as a virtual dataset. "
+        "Can be a JOIN, CTE, aggregation, or any valid SELECT.",
+    )
+    dataset_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=250,
+        description="Name for the new virtual dataset.",
+    )
+    schema_name: str | None = Field(
+        None,
+        alias="schema",
+        description="Schema to associate with the dataset (optional).",
+    )
+    catalog: str | None = Field(
+        None,
+        description="Catalog to associate with the dataset (optional).",
+    )
+    description: str | None = Field(
+        None,
+        description="Human-readable description of the dataset (optional).",
+    )
+
+    @field_validator("sql")
+    @classmethod
+    def sql_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("sql must not be empty")
+        return v.strip()
+
+    @field_validator("dataset_name")
+    @classmethod
+    def dataset_name_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("dataset_name must not be empty")
+        return v.strip()
+
+
+class CreateVirtualDatasetResponse(BaseModel):
+    """Response schema for create_virtual_dataset."""
+
+    id: int | None = Field(
+        None,
+        description="Dataset ID. Pass this as dataset_id to generate_chart "
+        "or generate_explore_link. None if creation failed.",
+    )
+    dataset_name: str = Field(..., description="Name of the created dataset.")
+    sql: str = Field(..., description="SQL query stored in the dataset.")
+    database_id: int = Field(..., description="Database ID used.")
+    columns: List[str] = Field(
+        default_factory=list,
+        description="Column names available for charting. "
+        "Use these when building chart configs.",
+    )
+    url: str | None = Field(
+        None,
+        description="URL to view/edit the dataset in Superset. None if failed.",
+    )
+    error: str | None = Field(
+        None,
+        description="Error message if creation failed, otherwise null.",
+    )
+
+
+def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
+    """Parse a field that may be stored as a JSON string into a dict."""
+    value = getattr(obj, field_name, None)
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, dict):
+                return parsed
+        except (ValueError, TypeError):
+            pass
+        return None
+    return value
+
+
+def _humanize_timestamp(dt: datetime | None) -> str | None:
+    """Convert a datetime to a humanized string like '2 hours ago'."""
+    if dt is None:
+        return None
+    return humanize.naturaltime(datetime.now() - dt)
+
+
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if not dataset:
         return None
+
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
+
     params = getattr(dataset, "params", None)
     if isinstance(params, str):
         try:
@@ -309,25 +443,17 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         if getattr(dataset, "database", None)
         else None,
         description=getattr(dataset, "description", None),
-        changed_by=getattr(dataset, "changed_by_name", None)
-        or (str(dataset.changed_by) if getattr(dataset, "changed_by", None) else None),
+        certified_by=getattr(dataset, "certified_by", None),
+        certification_details=getattr(dataset, "certification_details", None),
         changed_on=getattr(dataset, "changed_on", None),
-        changed_on_humanized=getattr(dataset, "changed_on_humanized", None),
-        created_by=getattr(dataset, "created_by_name", None)
-        or (str(dataset.created_by) if getattr(dataset, "created_by", None) else None),
+        changed_on_humanized=_humanize_timestamp(getattr(dataset, "changed_on", None)),
         created_on=getattr(dataset, "created_on", None),
-        created_on_humanized=getattr(dataset, "created_on_humanized", None),
+        created_on_humanized=_humanize_timestamp(getattr(dataset, "created_on", None)),
         tags=[
             TagInfo.model_validate(tag, from_attributes=True)
             for tag in getattr(dataset, "tags", [])
         ]
         if getattr(dataset, "tags", None)
-        else [],
-        owners=[
-            UserInfo.model_validate(owner, from_attributes=True)
-            for owner in getattr(dataset, "owners", [])
-        ]
-        if getattr(dataset, "owners", None)
         else [],
         is_virtual=getattr(dataset, "is_virtual", None),
         database_id=getattr(dataset, "database_id", None),
@@ -335,14 +461,19 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         if getattr(dataset, "uuid", None)
         else None,
         schema_perm=getattr(dataset, "schema_perm", None),
-        url=getattr(dataset, "url", None),
+        url=(
+            f"{get_superset_base_url()}/tablemodelview/edit/"
+            f"{getattr(dataset, 'id', None)}"
+            if getattr(dataset, "id", None)
+            else None
+        ),
         sql=getattr(dataset, "sql", None),
         main_dttm_col=getattr(dataset, "main_dttm_col", None),
         offset=getattr(dataset, "offset", None),
         cache_timeout=getattr(dataset, "cache_timeout", None),
         params=params,
-        template_params=getattr(dataset, "template_params", None),
-        extra=getattr(dataset, "extra", None),
+        template_params=_parse_json_field(dataset, "template_params"),
+        extra=_parse_json_field(dataset, "extra"),
         columns=columns,
         metrics=metrics,
         is_favorite=getattr(dataset, "is_favorite", None),

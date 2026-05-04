@@ -18,7 +18,7 @@
  */
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react-hooks';
-import { ThemeProvider, supersetTheme } from '@apache-superset/core/ui';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import { useConfirmModal } from '.';
 
 const renderWithTheme = (component: React.ReactElement) =>

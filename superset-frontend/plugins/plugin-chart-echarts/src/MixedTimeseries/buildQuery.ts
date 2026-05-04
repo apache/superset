@@ -75,9 +75,9 @@ export default function buildQuery(formData: QueryFormData) {
         time_offsets: isTimeComparison(fd, queryObject) ? fd.time_compare : [],
         post_processing: [
           pivotOperatorInRuntime,
+          resampleOperator(fd, queryObject),
           rollingWindowOperator(fd, queryObject),
           timeCompareOperator(fd, queryObject),
-          resampleOperator(fd, queryObject),
           renameOperator(fd, queryObject),
           flattenOperator(fd, queryObject),
         ],

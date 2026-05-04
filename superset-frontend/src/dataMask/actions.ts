@@ -50,16 +50,19 @@ export interface SetDataMaskForFilterChangesComplete {
   type: typeof SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE;
   filterChanges: SaveFilterChangesType;
   filters?: Filters;
+  isCustomizationChanges?: boolean;
 }
 
 export function setDataMaskForFilterChangesComplete(
   filterChanges: SaveFilterChangesType,
   filters?: Filters,
+  isCustomizationChanges?: boolean,
 ): SetDataMaskForFilterChangesComplete {
   return {
     type: SET_DATA_MASK_FOR_FILTER_CHANGES_COMPLETE,
     filterChanges,
     filters,
+    isCustomizationChanges,
   };
 }
 

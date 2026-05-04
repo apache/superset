@@ -34,9 +34,14 @@ test('works with an onClick handler', () => {
   expect(mockAction).toHaveBeenCalled();
 });
 
+test('renders with monospace prop', () => {
+  const { getByText } = render(<Label monospace>monospace text</Label>);
+  expect(getByText('monospace text')).toBeInTheDocument();
+});
+
 // test stories from the storybook!
 test('renders all the storybook gallery variants', () => {
-  // @ts-ignore: Suppress TypeScript error for LabelGallery usage
+  // @ts-expect-error: Suppress TypeScript error for LabelGallery usage
   const { container } = render(<LabelGallery />);
   const nonInteractiveLabelCount = 4;
   const renderedLabelCount = options.length * 2 + nonInteractiveLabelCount;

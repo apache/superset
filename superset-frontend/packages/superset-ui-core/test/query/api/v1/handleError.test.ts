@@ -45,19 +45,19 @@ async function testHandleError(
 }
 
 describe('handleError()', () => {
-  it('should throw error directly', async () => {
+  test('should throw error directly', async () => {
     expect.assertions(3);
     const input = new SupersetApiError({ message: 'timeout' });
     const output = await testHandleError(input, 'timeout');
     expect(input).toBe(output);
   });
 
-  it('should handle error string', async () => {
+  test('should handle error string', async () => {
     expect.assertions(2);
     await testHandleError('STOP', 'STOP');
   });
 
-  it('should handle HTTP error', async () => {
+  test('should handle HTTP error', async () => {
     expect.assertions(2);
     const mockResponse = new Response('Ha?', {
       status: 404,
@@ -66,7 +66,7 @@ describe('handleError()', () => {
     await testHandleError(mockResponse, '404 NOT FOUND');
   });
 
-  it('should handle HTTP error with status < 400', async () => {
+  test('should handle HTTP error with status < 400', async () => {
     expect.assertions(2);
     const mockResponse = new Response('Ha haha?', {
       status: 302,
@@ -75,7 +75,7 @@ describe('handleError()', () => {
     await testHandleError(mockResponse, '302 Found');
   });
 
-  it('should use message from HTTP error', async () => {
+  test('should use message from HTTP error', async () => {
     expect.assertions(2);
     const mockResponse = new Response('{ "message": "BAD BAD" }', {
       status: 500,
@@ -84,7 +84,7 @@ describe('handleError()', () => {
     await testHandleError(mockResponse, 'BAD BAD');
   });
 
-  it('should handle response of single error', async () => {
+  test('should handle response of single error', async () => {
     expect.assertions(2);
     const mockResponse = new Response(
       '{ "error": "BAD BAD", "link": "https://superset.apache.org" }',
@@ -99,7 +99,7 @@ describe('handleError()', () => {
     });
   });
 
-  it('should handle single error object', async () => {
+  test('should handle single error object', async () => {
     expect.assertions(2);
     const mockError = {
       error: {
@@ -113,7 +113,7 @@ describe('handleError()', () => {
     });
   });
 
-  it('should process multi errors in HTTP json', async () => {
+  test('should process multi errors in HTTP json', async () => {
     expect.assertions(2);
     const mockResponse = new Response(
       '{ "errors": [{ "error_type": "NOT OK" }] }',
@@ -125,7 +125,7 @@ describe('handleError()', () => {
     await testHandleError(mockResponse, 'NOT OK');
   });
 
-  it('should handle invalid multi errors', async () => {
+  test('should handle invalid multi errors', async () => {
     expect.assertions(4);
     const mockResponse1 = new Response('{ "errors": [] }', {
       status: 403,
@@ -139,7 +139,7 @@ describe('handleError()', () => {
     await testHandleError(mockResponse2, '400 Bad Request');
   });
 
-  it('should fallback to statusText', async () => {
+  test('should fallback to statusText', async () => {
     expect.assertions(2);
     const mockResponse = new Response('{ "failed": "random ramble" }', {
       status: 403,
@@ -148,7 +148,7 @@ describe('handleError()', () => {
     await testHandleError(mockResponse, '403 Access Denied');
   });
 
-  it('should handle regular JS error', async () => {
+  test('should handle regular JS error', async () => {
     expect.assertions(4);
     await testHandleError(new Error('What?'), 'What?');
     const emptyError = new Error();
@@ -156,12 +156,12 @@ describe('handleError()', () => {
     await testHandleError(emptyError, 'Unknown Error');
   });
 
-  it('should handle { error: ... }', async () => {
+  test('should handle { error: ... }', async () => {
     expect.assertions(2);
     await testHandleError({ error: 'Hmm' }, 'Hmm');
   });
 
-  it('should throw unknown error', async () => {
+  test('should throw unknown error', async () => {
     expect.assertions(4);
     await testHandleError(
       Promise.resolve('Some random things') as never,

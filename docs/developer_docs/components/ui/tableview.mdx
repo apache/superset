@@ -1,0 +1,294 @@
+---
+title: TableView
+sidebar_label: TableView
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# TableView
+
+A data table component with sorting, pagination, text wrapping, and empty state support. Built on react-table.
+
+## Live Example
+
+<StoryWithControls
+  component="TableView"
+  props={{
+  accessor: "summary",
+  Header: "Summary",
+  sortable: true,
+  id: 456,
+  age: 10,
+  name: "John Smith",
+  summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam id porta neque, a vehicula orci. Maecenas rhoncus elit sit amet purus convallis placerat in at nunc. Nulla nec viverra augue.",
+  noDataText: "No data here",
+  pageSize: 2,
+  showRowCount: true,
+  withPagination: true,
+  scrollTopOnPagination: false,
+  columns: [
+    {
+      accessor: "id",
+      Header: "ID",
+      sortable: true,
+      id: "id"
+    },
+    {
+      accessor: "age",
+      Header: "Age",
+      id: "age"
+    },
+    {
+      accessor: "name",
+      Header: "Name",
+      id: "name"
+    },
+    {
+      accessor: "summary",
+      Header: "Summary",
+      id: "summary"
+    }
+  ],
+  data: [
+    {
+      id: 123,
+      age: 27,
+      name: "Emily",
+      summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+    },
+    {
+      id: 321,
+      age: 10,
+      name: "Kate",
+      summary: "Nam id porta neque, a vehicula orci."
+    },
+    {
+      id: 456,
+      age: 10,
+      name: "John Smith",
+      summary: "Maecenas rhoncus elit sit amet purus convallis placerat."
+    }
+  ]
+}}
+  controls={[
+  {
+    name: "accessor",
+    label: "Accessor",
+    type: "text"
+  },
+  {
+    name: "Header",
+    label: "Header",
+    type: "text"
+  },
+  {
+    name: "sortable",
+    label: "Sortable",
+    type: "boolean"
+  },
+  {
+    name: "id",
+    label: "ID",
+    type: "number"
+  },
+  {
+    name: "age",
+    label: "Age",
+    type: "number"
+  },
+  {
+    name: "name",
+    label: "Name",
+    type: "text"
+  },
+  {
+    name: "summary",
+    label: "Summary",
+    type: "text"
+  },
+  {
+    name: "noDataText",
+    label: "No Data Text",
+    type: "text",
+    description: "Text displayed when the table has no data."
+  },
+  {
+    name: "pageSize",
+    label: "Page Size",
+    type: "number",
+    description: "Number of rows displayed per page."
+  },
+  {
+    name: "showRowCount",
+    label: "Show Row Count",
+    type: "boolean",
+    description: "Whether to display the total row count alongside pagination."
+  },
+  {
+    name: "withPagination",
+    label: "With Pagination",
+    type: "boolean",
+    description: "Whether to show pagination controls below the table."
+  },
+  {
+    name: "scrollTopOnPagination",
+    label: "Scroll Top On Pagination",
+    type: "boolean",
+    description: "Whether to scroll to the top of the table when changing pages."
+  },
+  {
+    name: "emptyWrapperType",
+    label: "Empty Wrapper Type",
+    type: "select",
+    description: "Style of the empty state wrapper."
+  },
+  {
+    name: "initialPageIndex",
+    label: "Initial Page Index",
+    type: "number",
+    description: "Initial page to display (zero-based)."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <TableView
+      columns={[
+        { accessor: 'id', Header: 'ID', sortable: true, id: 'id' },
+        { accessor: 'age', Header: 'Age', id: 'age' },
+        { accessor: 'name', Header: 'Name', id: 'name' },
+        { accessor: 'summary', Header: 'Summary', id: 'summary' },
+      ]}
+      data={[
+        { id: 123, age: 27, name: 'Emily', summary: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.' },
+        { id: 321, age: 10, name: 'Kate', summary: 'Nam id porta neque, a vehicula orci.' },
+        { id: 456, age: 10, name: 'John Smith', summary: 'Maecenas rhoncus elit sit amet purus convallis placerat.' },
+      ]}
+      initialSortBy={[{ id: 'name', desc: true }]}
+      pageSize={2}
+      withPagination
+      showRowCount
+    />
+  );
+}
+```
+
+## Without Pagination
+
+```tsx live
+function NoPaginationDemo() {
+  return (
+    <TableView
+      columns={[
+        { accessor: 'name', Header: 'Name', id: 'name' },
+        { accessor: 'email', Header: 'Email', id: 'email' },
+        { accessor: 'status', Header: 'Status', id: 'status' },
+      ]}
+      data={[
+        { name: 'Alice', email: 'alice@example.com', status: 'Active' },
+        { name: 'Bob', email: 'bob@example.com', status: 'Inactive' },
+        { name: 'Charlie', email: 'charlie@example.com', status: 'Active' },
+      ]}
+      withPagination={false}
+    />
+  );
+}
+```
+
+## Empty State
+
+```tsx live
+function EmptyDemo() {
+  return (
+    <TableView
+      columns={[
+        { accessor: 'name', Header: 'Name', id: 'name' },
+        { accessor: 'value', Header: 'Value', id: 'value' },
+      ]}
+      data={[]}
+      noDataText="No results found"
+    />
+  );
+}
+```
+
+## With Sorting
+
+```tsx live
+function SortingDemo() {
+  return (
+    <TableView
+      columns={[
+        { accessor: 'id', Header: 'ID', id: 'id', sortable: true },
+        { accessor: 'name', Header: 'Name', id: 'name', sortable: true },
+        { accessor: 'score', Header: 'Score', id: 'score', sortable: true },
+      ]}
+      data={[
+        { id: 1, name: 'Dashboard A', score: 95 },
+        { id: 2, name: 'Dashboard B', score: 72 },
+        { id: 3, name: 'Dashboard C', score: 88 },
+        { id: 4, name: 'Dashboard D', score: 64 },
+      ]}
+      initialSortBy={[{ id: 'score', desc: true }]}
+      withPagination={false}
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `accessor` | `string` | `"summary"` | - |
+| `Header` | `string` | `"Summary"` | - |
+| `sortable` | `boolean` | `true` | - |
+| `id` | `number` | `456` | - |
+| `age` | `number` | `10` | - |
+| `name` | `string` | `"John Smith"` | - |
+| `summary` | `string` | `"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam id porta neque, a vehicula orci. Maecenas rhoncus elit sit amet purus convallis placerat in at nunc. Nulla nec viverra augue."` | - |
+| `noDataText` | `string` | `"No data here"` | Text displayed when the table has no data. |
+| `pageSize` | `number` | `2` | Number of rows displayed per page. |
+| `showRowCount` | `boolean` | `true` | Whether to display the total row count alongside pagination. |
+| `withPagination` | `boolean` | `true` | Whether to show pagination controls below the table. |
+| `scrollTopOnPagination` | `boolean` | `false` | Whether to scroll to the top of the table when changing pages. |
+| `columns` | `any` | `[{"accessor":"id","Header":"ID","sortable":true,"id":"id"},{"accessor":"age","Header":"Age","id":"age"},{"accessor":"name","Header":"Name","id":"name"},{"accessor":"summary","Header":"Summary","id":"summary"}]` | - |
+| `data` | `any` | `[{"id":123,"age":27,"name":"Emily","summary":"Lorem ipsum dolor sit amet, consectetur adipiscing elit."},{"id":321,"age":10,"name":"Kate","summary":"Nam id porta neque, a vehicula orci."},{"id":456,"age":10,"name":"John Smith","summary":"Maecenas rhoncus elit sit amet purus convallis placerat."}]` | - |
+
+## Import
+
+```tsx
+import { TableView } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/TableView/TableView.stories.tsx).
+:::

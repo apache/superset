@@ -53,9 +53,9 @@ class TestUpdateChartPreview:
         )
         assert table_request.form_data_key == "abc123def456"
         assert table_request.dataset_id == 1
-        assert table_request.config.chart_type == "table"
-        assert len(table_request.config.columns) == 2
-        assert table_request.config.columns[0].name == "region"
+        assert table_request.config["chart_type"] == "table"
+        assert len(table_request.config["columns"]) == 2
+        assert table_request.config["columns"][0]["name"] == "region"
 
         # XY chart preview update
         xy_config = XYChartConfig(
@@ -73,9 +73,9 @@ class TestUpdateChartPreview:
         )
         assert xy_request.form_data_key == "xyz789ghi012"
         assert xy_request.dataset_id == "2"
-        assert xy_request.config.chart_type == "xy"
-        assert xy_request.config.x.name == "date"
-        assert xy_request.config.kind == "line"
+        assert xy_request.config["chart_type"] == "xy"
+        assert xy_request.config["x"]["name"] == "date"
+        assert xy_request.config["kind"] == "line"
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_dataset_id_types(self):
@@ -158,7 +158,7 @@ class TestUpdateChartPreview:
             request = UpdateChartPreviewRequest(
                 form_data_key="abc123", dataset_id=1, config=config
             )
-            assert request.config.kind == chart_type
+            assert request.config["kind"] == chart_type
 
         # Test multiple Y columns
         multi_y_config = XYChartConfig(
@@ -174,8 +174,8 @@ class TestUpdateChartPreview:
         request = UpdateChartPreviewRequest(
             form_data_key="abc123", dataset_id=1, config=multi_y_config
         )
-        assert len(request.config.y) == 3
-        assert request.config.y[1].aggregate == "AVG"
+        assert len(request.config["y"]) == 3
+        assert request.config["y"][1]["aggregate"] == "AVG"
 
         # Test filter operators
         operators = ["=", "!=", ">", ">=", "<", "<="]
@@ -188,7 +188,7 @@ class TestUpdateChartPreview:
         request = UpdateChartPreviewRequest(
             form_data_key="abc123", dataset_id=1, config=table_config
         )
-        assert len(request.config.filters) == 6
+        assert len(request.config["filters"]) == 6
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_response_structure(self):
@@ -251,10 +251,10 @@ class TestUpdateChartPreview:
         request = UpdateChartPreviewRequest(
             form_data_key="abc123", dataset_id=1, config=config
         )
-        assert request.config.x_axis.title == "Date"
-        assert request.config.x_axis.format == "smart_date"
-        assert request.config.y_axis.title == "Sales Amount"
-        assert request.config.y_axis.format == "$,.2f"
+        assert request.config["x_axis"]["title"] == "Date"
+        assert request.config["x_axis"]["format"] == "smart_date"
+        assert request.config["y_axis"]["title"] == "Sales Amount"
+        assert request.config["y_axis"]["format"] == "$,.2f"
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_legend_configurations(self):
@@ -270,8 +270,8 @@ class TestUpdateChartPreview:
             request = UpdateChartPreviewRequest(
                 form_data_key="abc123", dataset_id=1, config=config
             )
-            assert request.config.legend.position == pos
-            assert request.config.legend.show is True
+            assert request.config["legend"]["position"] == pos
+            assert request.config["legend"]["show"] is True
 
         # Hidden legend
         config = XYChartConfig(
@@ -283,7 +283,7 @@ class TestUpdateChartPreview:
         request = UpdateChartPreviewRequest(
             form_data_key="abc123", dataset_id=1, config=config
         )
-        assert request.config.legend.show is False
+        assert request.config["legend"]["show"] is False
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_aggregation_functions(self):
@@ -297,7 +297,7 @@ class TestUpdateChartPreview:
             request = UpdateChartPreviewRequest(
                 form_data_key="abc123", dataset_id=1, config=config
             )
-            assert request.config.columns[0].aggregate == agg
+            assert request.config["columns"][0]["aggregate"] == agg
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_error_responses(self):
@@ -347,10 +347,10 @@ class TestUpdateChartPreview:
         request = UpdateChartPreviewRequest(
             form_data_key="abc123", dataset_id=1, config=config
         )
-        assert len(request.config.filters) == 3
-        assert request.config.filters[0].column == "region"
-        assert request.config.filters[1].op == ">="
-        assert request.config.filters[2].value == "2024-01-01"
+        assert len(request.config["filters"]) == 3
+        assert request.config["filters"][0]["column"] == "region"
+        assert request.config["filters"][1]["op"] == ">="
+        assert request.config["filters"][2]["value"] == "2024-01-01"
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_form_data_key_handling(self):
@@ -447,12 +447,12 @@ class TestUpdateChartPreview:
         request = UpdateChartPreviewRequest(
             form_data_key="abc123", dataset_id=1, config=config
         )
-        assert len(request.config.y) == 4
-        assert request.config.y[0].name == "revenue"
-        assert request.config.y[1].name == "cost"
-        assert request.config.y[2].name == "profit"
-        assert request.config.y[3].name == "orders"
-        assert request.config.y[3].aggregate == "COUNT"
+        assert len(request.config["y"]) == 4
+        assert request.config["y"][0]["name"] == "revenue"
+        assert request.config["y"][1]["name"] == "cost"
+        assert request.config["y"][2]["name"] == "profit"
+        assert request.config["y"][3]["name"] == "orders"
+        assert request.config["y"][3]["aggregate"] == "COUNT"
 
     @pytest.mark.asyncio
     async def test_update_chart_preview_table_sorting(self):
@@ -470,5 +470,5 @@ class TestUpdateChartPreview:
         request = UpdateChartPreviewRequest(
             form_data_key="abc123", dataset_id=1, config=config
         )
-        assert request.config.sort_by == ["sales", "profit"]
-        assert len(request.config.columns) == 3
+        assert request.config["sort_by"] == ["sales", "profit"]
+        assert len(request.config["columns"]) == 3

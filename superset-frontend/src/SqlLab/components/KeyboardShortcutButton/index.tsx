@@ -17,8 +17,8 @@
  * under the License.
  */
 import { FC } from 'react';
-import { t } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, css } from '@apache-superset/core/theme';
 import { ModalTrigger } from '@superset-ui/core/components';
 import { detectOS } from 'src/utils/common';
 

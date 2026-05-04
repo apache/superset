@@ -17,6 +17,7 @@
 
 import copy
 
+import yaml
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import select
@@ -100,6 +101,119 @@ def test_import_adds_dashboard_charts(mocker: MockerFixture, session: Session) -
 
     assert len(chart_ids) == expected_number_of_charts
     assert len(dashboard_ids) == expected_number_of_dashboards
+
+
+def test_import_assets_imports_tags(mocker: MockerFixture, session: Session) -> None:
+    """
+    Test that tags on charts and dashboards are imported when importing assets
+    via ``ImportAssetsCommand`` (the code path used by the CLI ``sync native``
+    command). Previously tags were silently dropped for the CLI path.
+    """
+    from superset import db, security_manager
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.extensions import feature_flag_manager
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tags.models import Tag, TaggedObject
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(feature_flag_manager, "is_feature_enabled", return_value=True)
+
+    engine = db.session.get_bind()
+    Slice.metadata.create_all(engine)  # pylint: disable=no-member
+    Tag.metadata.create_all(engine)  # pylint: disable=no-member
+
+    charts_with_tags = copy.deepcopy(charts_config_1)
+    for chart_config in charts_with_tags.values():
+        chart_config["tags"] = ["chart_tag"]
+
+    dashboards_with_tags = copy.deepcopy(dashboards_config_1)
+    for dashboard_config in dashboards_with_tags.values():
+        dashboard_config["tags"] = ["dashboard_tag"]
+
+    configs = {
+        **copy.deepcopy(databases_config),
+        **copy.deepcopy(datasets_config),
+        **charts_with_tags,
+        **dashboards_with_tags,
+    }
+    contents = {
+        "tags.yaml": yaml.dump(
+            {
+                "tags": [
+                    {"tag_name": "chart_tag", "description": "Tag for charts"},
+                    {
+                        "tag_name": "dashboard_tag",
+                        "description": "Tag for dashboards",
+                    },
+                ]
+            }
+        )
+    }
+
+    ImportAssetsCommand._import(configs, contents=contents)
+
+    chart_uuids = {config["uuid"] for config in charts_with_tags.values()}
+    imported_charts = db.session.query(Slice).filter(Slice.uuid.in_(chart_uuids)).all()
+    assert len(imported_charts) == len(chart_uuids)
+    for chart in imported_charts:
+        assocs = (
+            db.session.query(TaggedObject)
+            .filter_by(object_id=chart.id, object_type="chart")
+            .all()
+        )
+        assert len(assocs) == 1
+        assert assocs[0].tag.name == "chart_tag"
+
+    dashboard_uuids = {config["uuid"] for config in dashboards_with_tags.values()}
+    imported_dashboards = (
+        db.session.query(Dashboard).filter(Dashboard.uuid.in_(dashboard_uuids)).all()
+    )
+    assert len(imported_dashboards) == len(dashboard_uuids)
+    for dashboard in imported_dashboards:
+        assocs = (
+            db.session.query(TaggedObject)
+            .filter_by(object_id=dashboard.id, object_type="dashboard")
+            .all()
+        )
+        assert len(assocs) == 1
+        assert assocs[0].tag.name == "dashboard_tag"
+
+
+def test_import_assets_skips_tags_when_feature_disabled(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Test that tag import is skipped when the ``TAGGING_SYSTEM`` feature flag
+    is disabled, even when the configs include tags.
+    """
+    from superset import db, security_manager
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.extensions import feature_flag_manager
+    from superset.models.slice import Slice
+    from superset.tags.models import Tag, TaggedObject
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(feature_flag_manager, "is_feature_enabled", return_value=False)
+
+    engine = db.session.get_bind()
+    Slice.metadata.create_all(engine)  # pylint: disable=no-member
+    Tag.metadata.create_all(engine)  # pylint: disable=no-member
+
+    charts_with_tags = copy.deepcopy(charts_config_1)
+    for chart_config in charts_with_tags.values():
+        chart_config["tags"] = ["chart_tag"]
+
+    configs = {
+        **copy.deepcopy(databases_config),
+        **copy.deepcopy(datasets_config),
+        **charts_with_tags,
+        **copy.deepcopy(dashboards_config_1),
+    }
+
+    ImportAssetsCommand._import(configs)
+
+    assert db.session.query(TaggedObject).count() == 0
 
 
 def test_import_removes_dashboard_charts(

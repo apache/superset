@@ -57,7 +57,7 @@ describe('QueryAutoRefresh', () => {
   });
 
   afterEach(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     cleanup();
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
@@ -72,13 +72,13 @@ describe('QueryAutoRefresh', () => {
   });
 
   test('isQueryRunning returns false for invalid query', () => {
-    // @ts-ignore
+    // @ts-expect-error
     expect(isQueryRunning(null)).toBe(false);
-    // @ts-ignore
+    // @ts-expect-error
     expect(isQueryRunning(undefined)).toBe(false);
-    // @ts-ignore
+    // @ts-expect-error
     expect(isQueryRunning('I Should Be An Object')).toBe(false);
-    // @ts-ignore
+    // @ts-expect-error
     expect(isQueryRunning({ state: { badFormat: true } })).toBe(false);
   });
 
@@ -91,20 +91,19 @@ describe('QueryAutoRefresh', () => {
   });
 
   test('shouldCheckForQueries is false for invalid inputs', () => {
-    // @ts-ignore
+    // @ts-expect-error
     expect(shouldCheckForQueries(null)).toBe(false);
-    // @ts-ignore
+    // @ts-expect-error
     expect(shouldCheckForQueries(undefined)).toBe(false);
     expect(
-      // @ts-ignore
       shouldCheckForQueries({
-        // @ts-ignore
+        // @ts-expect-error
         '1234': null,
-        // @ts-ignore
+        // @ts-expect-error
         '23425': 'hello world',
-        // @ts-ignore
+        // @ts-expect-error
         '345': [],
-        // @ts-ignore
+        // @ts-expect-error
         '57346': undefined,
       }),
     ).toBe(false);
@@ -162,7 +161,7 @@ describe('QueryAutoRefresh', () => {
     expect(
       store.getActions().filter(({ type }) => type === REFRESH_QUERIES),
     ).toHaveLength(0);
-    expect(fetchMock.calls(refreshApi)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(refreshApi)).toHaveLength(1);
   });
 
   test('Does not fail and attempts to refresh with mixed valid/invalid queries', async () => {
@@ -174,7 +173,7 @@ describe('QueryAutoRefresh', () => {
 
     render(
       <QueryAutoRefresh
-        // @ts-ignore
+        // @ts-expect-error
         queries={{ ...runningQueries, g324t: null }}
         queriesLastUpdate={queriesLastUpdate}
       />,
@@ -217,7 +216,7 @@ describe('QueryAutoRefresh', () => {
       ),
     );
 
-    expect(fetchMock.calls(refreshApi)).toHaveLength(0);
+    expect(fetchMock.callHistory.calls(refreshApi)).toHaveLength(0);
   });
 
   test('logs the failed error for async queries', async () => {

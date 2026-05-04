@@ -42,17 +42,17 @@ from tests.unit_tests.db_engine_specs.utils import (
         (
             "TIMESTAMP",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000, tzinfo=pytz.UTC),
-            "TIMESTAMP '2022-01-01 01:23:45.600000+00:00'",
+            "TIMESTAMP '2022-01-01 01:23:45.600+00:00'",
         ),
     ],
 )
@@ -314,7 +314,7 @@ def test_select_star(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.presto import PrestoEngineSpec as spec  # noqa: N813
 
     database = mocker.MagicMock()
-    engine = mocker.MagicMock()
+    dialect = mocker.MagicMock()
 
     def quote_table(table: Table, dialect: Dialect) -> str:
         return ".".join(
@@ -326,7 +326,7 @@ def test_select_star(mocker: MockerFixture) -> None:
     spec.select_star(
         database=database,
         table=Table("my_table", "my_schema", "my_catalog"),
-        engine=engine,
+        dialect=dialect,
         limit=100,
         show_cols=False,
         indent=True,

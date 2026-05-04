@@ -23,22 +23,25 @@ import {
   Form,
   Collapse,
   CollapseLabelInModal,
-  JsonEditor,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
 import rison from 'rison';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
   getCategoricalSchemeRegistry,
   SupersetClient,
-  t,
   getClientErrorObject,
 } from '@superset-ui/core';
 
 import withToasts from 'src/components/MessageToasts/withToasts';
+import {
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+} from 'src/features/owners/OwnerSelectLabel';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import {
   applyColors,
@@ -50,8 +53,10 @@ import {
   setColorScheme,
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
+import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
+import { validateRefreshFrequency } from '../RefreshFrequency';
 import {
   BasicInfoSection,
   AccessSection,
@@ -80,6 +85,7 @@ type Owners = {
   full_name?: string;
   first_name?: string;
   last_name?: string;
+  email?: string;
 }[];
 type DashboardInfo = {
   id: number;
@@ -128,19 +134,27 @@ const PropertiesModal = ({
   const [customCss, setCustomCss] = useState('');
   const [refreshFrequency, setRefreshFrequency] = useState(0);
   const [selectedThemeId, setSelectedThemeId] = useState<number | null>(null);
+  const [showChartTimestamps, setShowChartTimestamps] = useState(false);
   const [themes, setThemes] = useState<
     Array<{
       id: number;
       theme_name: string;
+      json_data?: string;
     }>
   >([]);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
   const originalDashboardMetadata = useRef<Record<string, any>>({});
+  const originalCss = useRef<string | null>(null);
+  const cssDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
     let errorText = error || statusText || t('An error has occurred');
-    if (typeof message === 'object' && 'json_metadata' in message) {
+    if (
+      typeof message === 'object' &&
+      'json_metadata' in message &&
+      typeof (message as { json_metadata: unknown }).json_metadata === 'string'
+    ) {
       errorText = (message as { json_metadata: string }).json_metadata;
     } else if (typeof message === 'string') {
       errorText = message;
@@ -150,7 +164,7 @@ const PropertiesModal = ({
       }
     }
 
-    addDangerToast(errorText);
+    addDangerToast(String(errorText));
   };
 
   const handleDashboardData = useCallback(
@@ -184,6 +198,9 @@ const PropertiesModal = ({
       setOwners(owners);
       setRoles(roles);
       setCustomCss(css || '');
+      if (originalCss.current === null) {
+        originalCss.current = css || '';
+      }
       setCurrentColorScheme(metadata?.color_scheme);
       setSelectedThemeId(theme?.id || null);
 
@@ -192,10 +209,12 @@ const PropertiesModal = ({
         'shared_label_colors',
         'map_label_colors',
         'color_scheme_domain',
+        'show_chart_timestamps',
       ]);
 
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
       setRefreshFrequency(metadata?.refresh_frequency || 0);
+      setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
       originalDashboardMetadata.current = metadata;
     },
     [form],
@@ -234,10 +253,16 @@ const PropertiesModal = ({
     }
   };
 
-  const handleOnChangeOwners = (owners: { value: number; label: string }[]) => {
-    const parsedOwners: Owners = ensureIsArray(owners).map(o => ({
+  const handleOnChangeOwners = (
+    owners: { value: number; label: string }[],
+    options: Record<string, unknown>[],
+  ) => {
+    const parsedOwners: Owners = ensureIsArray(owners).map((o, i) => ({
       id: o.value,
-      full_name: o.label,
+      full_name:
+        (options?.[i]?.[OWNER_TEXT_LABEL_PROP] as string) ||
+        (typeof o.label === 'string' ? o.label : ''),
+      email: (options?.[i]?.[OWNER_EMAIL_PROP] as string) || '',
     }));
     setOwners(parsedOwners);
   };
@@ -250,7 +275,19 @@ const PropertiesModal = ({
     setRoles(parsedRoles);
   };
 
-  const handleOnCancel = () => onHide();
+  const handleOnCancel = () => {
+    if (cssDebounceTimer.current) {
+      clearTimeout(cssDebounceTimer.current);
+      cssDebounceTimer.current = null;
+    }
+    if (originalCss.current !== null) {
+      dispatch(dashboardInfoChanged({ css: originalCss.current }));
+      dispatch(
+        setColorScheme(originalDashboardMetadata.current.color_scheme ?? ''),
+      );
+    }
+    onHide();
+  };
 
   const onColorSchemeChange = (
     colorScheme = '',
@@ -320,11 +357,13 @@ const PropertiesModal = ({
         : false;
     const jsonMetadataObj = getJsonMetadata();
     jsonMetadataObj.refresh_frequency = refreshFrequency;
+    jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
       ...originalDashboardMetadata.current,
       label_colors: customLabelColors,
       color_scheme: updatedColorScheme,
+      show_chart_timestamps: showChartTimestamps,
     };
 
     originalDashboardMetadata.current = updatedDashboardMetadata;
@@ -365,7 +404,9 @@ const PropertiesModal = ({
       colorNamespace,
       certifiedBy,
       certificationDetails,
-      themeId: selectedThemeId,
+      theme: selectedThemeId
+        ? themes.find(t => t.id === selectedThemeId)
+        : null,
       css: customCss,
       ...moreOnSubmitProps,
     };
@@ -406,6 +447,14 @@ const PropertiesModal = ({
     }
   };
 
+  // Must be defined before the data-loading effect so it runs first when show
+  // becomes true, ensuring handleDashboardData sees null and captures original CSS
+  useEffect(() => {
+    if (show) {
+      originalCss.current = null;
+    }
+  }, [show]);
+
   useEffect(() => {
     if (show) {
       // Reset loading state when modal opens
@@ -421,7 +470,7 @@ const PropertiesModal = ({
 
       // Fetch themes (excluding system themes)
       const themeQuery = rison.encode({
-        columns: ['id', 'theme_name', 'is_system'],
+        columns: ['id', 'theme_name', 'is_system', 'json_data'],
         filters: [
           {
             col: 'is_system',
@@ -441,8 +490,6 @@ const PropertiesModal = ({
           );
         });
     }
-
-    JsonEditor.preload();
   }, [
     currentDashboardInfo,
     fetchDashboardDetails,
@@ -498,7 +545,7 @@ const PropertiesModal = ({
 
   // Section handlers for extracted components
   const handleThemeChange = (value: any) => setSelectedThemeId(value || null);
-  const handleRefreshFrequencyChange = (value: any) =>
+  const handleRefreshFrequencyChange = (value: number) =>
     setRefreshFrequency(value);
 
   // Helper function for styling section
@@ -538,23 +585,10 @@ const PropertiesModal = ({
         key: 'refresh',
         name: t('Refresh settings'),
         validator: () => {
-          const errors = [];
           const refreshLimit =
             dashboardInfo?.common?.conf
               ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
-          if (
-            refreshLimit &&
-            refreshFrequency > 0 &&
-            refreshFrequency < refreshLimit
-          ) {
-            errors.push(
-              t(
-                'Refresh frequency must be at least %s seconds',
-                refreshLimit / 1000,
-              ),
-            );
-          }
-          return errors;
+          return validateRefreshFrequency(refreshFrequency, refreshLimit);
         },
       },
       {
@@ -587,6 +621,32 @@ const PropertiesModal = ({
   });
 
   const isDataReady = !isLoading && dashboardInfo;
+
+  // Debounced live CSS preview so changes are reflected on the dashboard
+  // without clicking Apply. Called only on user edits, not on data load.
+  const handleCustomCssChange = useCallback(
+    (css: string) => {
+      setCustomCss(css);
+      if (cssDebounceTimer.current) {
+        clearTimeout(cssDebounceTimer.current);
+        cssDebounceTimer.current = null;
+      }
+      cssDebounceTimer.current = setTimeout(() => {
+        dispatch(dashboardInfoChanged({ css }));
+      }, 500);
+    },
+    [dispatch],
+  );
+
+  useEffect(
+    () => () => {
+      if (cssDebounceTimer.current) {
+        clearTimeout(cssDebounceTimer.current);
+        cssDebounceTimer.current = null;
+      }
+    },
+    [],
+  );
 
   // Validate basic section when title changes or data loads
   useEffect(() => {
@@ -711,9 +771,11 @@ const PropertiesModal = ({
                   colorScheme={colorScheme}
                   customCss={customCss}
                   hasCustomLabelsColor={hasCustomLabelsColor}
+                  showChartTimestamps={showChartTimestamps}
                   onThemeChange={handleThemeChange}
                   onColorSchemeChange={onColorSchemeChange}
-                  onCustomCssChange={setCustomCss}
+                  onCustomCssChange={handleCustomCssChange}
+                  onShowChartTimestampsChange={setShowChartTimestamps}
                   addDangerToast={addDangerToast}
                 />
               ),
