@@ -289,6 +289,20 @@ def upgrade() -> None:
         # temp-table index-name collision; on SQLite, the auto-detect picks
         # ``recreate=True`` because PK changes need it.
         if t.name in TABLES_WITH_PRE_EXISTING_UNIQUE:
+            # MySQL ERROR 1826: foreign-key constraint names are unique
+            # per-database, not per-table. ``recreate="always"`` builds
+            # ``_alembic_tmp_<table>`` with the original FK names from
+            # ``copy_from``, but the original table still holds those
+            # names until it's dropped, which fails on MySQL with
+            # ``Duplicate foreign key constraint name``. PostgreSQL and
+            # SQLite scope FK names per-table, so the recreate path
+            # works there as-is. Drop the original FKs by name first
+            # on MySQL; ``copy_from`` re-creates them on the rebuilt
+            # table with their original names.
+            if conn.dialect.name == "mysql":
+                for fk in insp.get_foreign_keys(t.name):
+                    if fk_name := fk.get("name"):
+                        op.drop_constraint(fk_name, t.name, type_="foreignkey")
             with op.batch_alter_table(
                 t.name,
                 recreate="always",
