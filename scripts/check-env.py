@@ -16,11 +16,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import importlib
 import platform
+import shlex
+import subprocess
 import sys
-
-subprocess = importlib.import_module("subprocess")
 from typing import Callable, Optional, Set, Tuple
 
 import click
@@ -49,11 +48,11 @@ class Requirement:
 
     def get_version(self) -> Optional[str]:
         try:
-            version = getattr(subprocess, "check_output")(self.command.split()).decode().strip()
+            version = subprocess.check_output(shlex.split(self.command)).decode().strip()
             if self.version_post_process:
                 version = self.version_post_process(version)
             return version.split()[-1]
-        except subprocess.CalledProcessError:
+        except (subprocess.CalledProcessError, FileNotFoundError):
             return None
 
     def check_version(self) -> str:
@@ -103,9 +102,8 @@ def get_cpu_info() -> str:
 def get_docker_platform() -> str:
     try:
         output = (
-            subprocess.check_output(  # noqa: S602
-                "docker info --format '{{.OperatingSystem}}'",  # noqa: S607
-                shell=True,  # noqa: S607
+            subprocess.check_output(
+                ["docker", "info", "--format", "{{.OperatingSystem}}"]
             )
             .decode()
             .strip()
@@ -113,7 +111,7 @@ def get_docker_platform() -> str:
         if "Docker Desktop" in output:
             return f"Docker Platform: {output} ({platform.system()})"
         return f"Docker Platform: {output}"
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return "Docker Platform: ❌ Not Detected"
 
 
