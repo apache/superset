@@ -488,19 +488,7 @@ def error_msg_from_exception(ex: Exception) -> str:
 
 
 def markdown(raw: str, markup_wrap: bool | None = False) -> str:
-    """Render raw Markdown to safe HTML.
-
-    Automatically sanitizes content to prevent XSS attacks and applies security
-    attributes to links (including rel="noopener noreferrer" on all links to
-    prevent tab-jacking attacks).
-
-    Args:
-        raw: Raw Markdown content
-        markup_wrap: If True, wrap output in Markup for safe rendering
-
-    Returns:
-        Sanitized HTML string
-    """
+    """Render Markdown to sanitized HTML."""
     safe_markdown_tags = {
         "h1",
         "h2",
@@ -541,8 +529,7 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
         ],
     )
     # pylint: disable=no-member
-    # nh3.clean() automatically adds rel="noopener noreferrer" to all links
-    # for security, preventing tab-jacking attacks
+    # nh3 preserves supported link attributes and enforces a safe rel value.
     safe = nh3.clean(safe, tags=safe_markdown_tags, attributes=safe_markdown_attrs)
     if markup_wrap:
         safe = Markup(safe)
