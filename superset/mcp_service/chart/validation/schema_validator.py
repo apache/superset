@@ -526,6 +526,38 @@ class SchemaValidator:
         return True, None
 
     @staticmethod
+    def _format_single_error(err: Dict[str, Any]) -> tuple[str, str]:
+        """Return (detail_message, optional_suggestion) for one pydantic error."""
+        loc_parts = [str(p) for p in err.get("loc", [])]
+        loc = " -> ".join(loc_parts)
+        msg = err.get("msg", "Validation failed")
+        err_type = err.get("type", "")
+        ctx = err.get("ctx", {}) or {}
+        field = loc_parts[-1] if loc_parts else "field"
+
+        if err_type == "string_pattern_mismatch":
+            return (
+                f"'{field}' value contains disallowed characters. "
+                "Column names must not contain HTML, script tags, or SQL "
+                "injection patterns. Use the exact column name from your dataset.",
+                "Use get_dataset_info to find exact column names",
+            )
+        if err_type == "literal_error":
+            expected = ctx.get("expected", "")
+            return f"'{field}' has an invalid value. Expected one of: {expected}", ""
+        if err_type == "missing":
+            return (
+                f"Required field '{field}' is missing",
+                "Check the chart_type examples in the tool description",
+            )
+        if err_type == "value_error":
+            return (
+                f"{loc}: {msg}",
+                "Use get_dataset_info to verify column names and types",
+            )
+        return f"{loc}: {msg}", ""
+
+    @staticmethod
     def _enhance_validation_error(
         error: PydanticValidationError, request_data: Dict[str, Any]
     ) -> ChartGenerationError:
@@ -609,22 +641,29 @@ class SchemaValidator:
                         error_code="BIG_NUMBER_VALIDATION_ERROR",
                     )
 
-        # Default enhanced error
+        # Default enhanced error: build actionable per-field messages
         error_details = []
-        for err in errors[:3]:  # Show first 3 errors
-            loc = " -> ".join(str(location) for location in err.get("loc", []))
-            msg = err.get("msg", "Validation failed")
-            error_details.append(f"{loc}: {msg}")
+        extra_suggestions: list[str] = []
+        for err in errors[:5]:  # Surface up to 5 errors
+            detail, suggestion = SchemaValidator._format_single_error(err)
+            error_details.append(detail)
+            if suggestion:
+                extra_suggestions.append(suggestion)
 
         return ChartGenerationError(
             error_type="validation_error",
             message="Chart configuration validation failed",
             details="; ".join(error_details),
-            suggestions=[
-                "Check that all required fields are present",
-                "Ensure field types match the schema",
-                "Use get_dataset_info to verify column names",
-                "Refer to the API documentation for field requirements",
-            ],
+            suggestions=list(
+                dict.fromkeys(
+                    [
+                        "Check that all required fields are present",
+                        "Ensure field types match the schema",
+                        "Use get_dataset_info to verify column names",
+                        "Refer to the API documentation for field requirements",
+                    ]
+                    + extra_suggestions
+                )
+            ),
             error_code="VALIDATION_ERROR",
         )

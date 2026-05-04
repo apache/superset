@@ -669,7 +669,10 @@ class ColumnRef(BaseModel):
         ...,
         min_length=1,
         max_length=255,
-        pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+        # No regex pattern: sanitize_name() already blocks XSS/SQL injection;
+        # many valid column names (digit-prefixed, locale chars, etc.) would
+        # be rejected by a strict pattern while posing no security risk.
+        # Use get_dataset_info to find exact column names.
         validation_alias=AliasChoices("name", "column_name"),
     )
     label: str | None = Field(None, max_length=500)
@@ -743,7 +746,10 @@ class FilterConfig(BaseModel):
         ...,
         min_length=1,
         max_length=255,
-        pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+        # No regex pattern: sanitize_name() already blocks XSS/SQL injection;
+        # many valid column names (digit-prefixed, locale chars, etc.) would
+        # be rejected by a strict pattern while posing no security risk.
+        # Use get_dataset_info to find exact column names.
         validation_alias=AliasChoices("column", "col"),
     )
     op: Literal[
@@ -1082,7 +1088,10 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         ),
         min_length=1,
         max_length=255,
-        pattern=r"^[a-zA-Z0-9_][a-zA-Z0-9_\s\-\.]*$",
+        # No regex pattern: sanitize_name() already blocks XSS/SQL injection;
+        # many valid column names (digit-prefixed, locale chars, etc.) would
+        # be rejected by a strict pattern while posing no security risk.
+        # Use get_dataset_info to find exact column names.
     )
     time_grain: TimeGrain | None = Field(
         None,

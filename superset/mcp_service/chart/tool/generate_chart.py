@@ -200,6 +200,86 @@ async def generate_chart(  # noqa: C901
     }
     ```
 
+
+    Example usage for Pie chart:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "pie",
+            "dimension": {"name": "product_category"},
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "donut": false
+        }
+    }
+    ```
+
+    Example usage for Big Number (no trendline):
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "big_number",
+            "metric": {"name": "total_sales", "aggregate": "SUM"}
+        }
+    }
+    ```
+
+    Example usage for Big Number with trendline:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "big_number",
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "temporal_column": "order_date",
+            "time_grain": "P1M",
+            "show_trendline": true
+        }
+    }
+    ```
+
+    Example usage for Pivot Table:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "pivot_table",
+            "rows": [{"name": "region"}],
+            "columns": [{"name": "product_category"}],
+            "metrics": [{"name": "revenue", "aggregate": "SUM"}]
+        }
+    }
+    ```
+
+    Example usage for Mixed Timeseries:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "mixed_timeseries",
+            "x": {"name": "order_date"},
+            "y": [{"name": "revenue", "aggregate": "SUM"}],
+            "primary_kind": "line",
+            "y_secondary": [{"name": "order_count", "aggregate": "COUNT"}],
+            "secondary_kind": "bar"
+        }
+    }
+    ```
+
+    Example usage for Handlebars:
+    ```json
+    {
+        "dataset_id": 123,
+        "config": {
+            "chart_type": "handlebars",
+            "handlebars_template": "{{#each data}}{{this.name}}{{/each}}",
+            "groupby": [{"name": "product"}],
+            "metrics": [{"name": "revenue", "aggregate": "SUM"}]
+        }
+    }
+    ```
+
     Example usage for Table chart:
     ```json
     {
