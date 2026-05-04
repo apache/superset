@@ -608,9 +608,7 @@ const AsyncSelect = forwardRef(
           popupRender={popupRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
-          getPopupContainer={
-            getPopupContainer || (triggerNode => triggerNode.parentNode)
-          }
+          getPopupContainer={getPopupContainer}
           headerPosition={headerPosition}
           labelInValue
           maxTagCount={maxTagCount}

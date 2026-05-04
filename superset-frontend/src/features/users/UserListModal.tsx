@@ -203,9 +203,7 @@ function UserListModal({
                 value: role.id,
                 label: role.name,
               }))}
-              getPopupContainer={trigger =>
-                trigger.closest('.ant-modal-content')
-              }
+              getPopupContainer={() => document.body}
             />
           </FormItem>
           <FormItem
