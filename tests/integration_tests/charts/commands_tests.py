@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import time
-from datetime import datetime
 from copy import deepcopy
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
