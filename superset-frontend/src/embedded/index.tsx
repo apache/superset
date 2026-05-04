@@ -19,7 +19,7 @@
 import 'src/public-path';
 
 import { lazy, Suspense } from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, type Root } from 'react-dom/client';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { Global } from '@emotion/react';
 import { t } from '@apache-superset/core/translation';
@@ -150,6 +150,8 @@ if (!window.parent || window.parent === window) {
 // }
 
 let displayedUnauthorizedToast = false;
+let root: Root | null = null;
+let started = false;
 
 /**
  * If there is a problem with the guest token, we will start getting
@@ -189,7 +191,10 @@ function start() {
         type: USER_LOADED,
         user: result,
       });
-      createRoot(appMountPoint).render(<EmbeddedApp />);
+      if (!root) {
+        root = createRoot(appMountPoint);
+      }
+      root.render(<EmbeddedApp />);
     },
     err => {
       // something is most likely wrong with the guest token
@@ -242,8 +247,6 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       name: 'superset',
       debug: debugMode,
     });
-
-    let started = false;
 
     Switchboard.defineMethod(
       'guestToken',
@@ -322,7 +325,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
   }
 });
 
-// Clean up theme controller on page unload
+// Clean up theme controller and unmount React root on page unload
 window.addEventListener('beforeunload', () => {
   try {
     const controller = getThemeController();
@@ -332,6 +335,10 @@ window.addEventListener('beforeunload', () => {
     }
   } catch (error) {
     logging.warn('Failed to destroy theme controller:', error);
+  }
+  if (root) {
+    root.unmount();
+    root = null;
   }
 });
 
