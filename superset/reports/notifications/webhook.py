@@ -95,13 +95,13 @@ class WebhookNotification(BaseNotification):
         return files
 
     def _validate_webhook_url(self, url: str) -> None:
+        parsed = urlparse(url)
         if current_app.config["ALERT_REPORTS_WEBHOOK_HTTPS_ONLY"]:
-            if urlparse(url).scheme.lower() != "https":
+            if parsed.scheme.lower() != "https":
                 raise NotificationParamException(
                     "Webhook failed: HTTPS is required by config for webhook URLs."
                 )
-        hostname = urlparse(url).hostname
-        if hostname and not is_safe_host(hostname):
+        if parsed.hostname and not is_safe_host(parsed.hostname):
             raise NotificationParamException("Webhook URL target host is not allowed.")
 
     @backoff.on_exception(
