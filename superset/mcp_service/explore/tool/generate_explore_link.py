@@ -35,7 +35,6 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
-    parse_chart_config,
 )
 
 
@@ -90,7 +89,7 @@ async def generate_explore_link(
     """
     await ctx.info(
         "Generating explore link for dataset_id=%s, chart_type=%s"
-        % (request.dataset_id, request.config.get("chart_type", "unknown"))
+        % (request.dataset_id, request.config.chart_type)
     )
     await ctx.debug(
         "Configuration details: use_cache=%s, force_refresh=%s, cache_form_data=%s"
@@ -98,22 +97,8 @@ async def generate_explore_link(
     )
 
     try:
-        # Parse the raw config dict into a typed ChartConfig
-        try:
-            config = parse_chart_config(request.config)
-        except (ValueError, TypeError) as e:
-            from superset.mcp_service.utils.error_sanitization import (
-                _sanitize_validation_error,
-            )
-
-            sanitized = _sanitize_validation_error(e)
-            await ctx.error(f"Invalid chart configuration: {sanitized}")
-            return {
-                "url": "",
-                "form_data": {},
-                "form_data_key": None,
-                "error": f"Invalid chart configuration: {sanitized}",
-            }
+        # config is already a typed ChartConfig (validated by Pydantic)
+        config = request.config
 
         await ctx.report_progress(1, 4, "Validating dataset exists")
         with event_logger.log_context(action="mcp.generate_explore_link.dataset_check"):
@@ -133,7 +118,7 @@ async def generate_explore_link(
                 dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
 
             if not dataset:
-                await ctx.error(
+                await ctx.warning(
                     "Dataset not found: dataset_id=%s" % (request.dataset_id,)
                 )
                 return {
@@ -211,7 +196,7 @@ async def generate_explore_link(
             "Explore link generation failed for dataset_id=%s, chart_type=%s: %s: %s"
             % (
                 request.dataset_id,
-                request.config.get("chart_type", "unknown"),
+                request.config.chart_type,
                 type(e).__name__,
                 str(e),
             )

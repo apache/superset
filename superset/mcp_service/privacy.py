@@ -44,6 +44,13 @@ USER_DIRECTORY_FIELDS = frozenset(
     }
 )
 
+# User-directory columns that are valid as filter inputs even though they are
+# hidden from response payloads and select-column surfaces.  The system injects
+# the correct value server-side, so callers never need to supply user IDs.
+SELF_REFERENCING_FILTER_COLUMNS = frozenset(
+    {"created_by_fk", "owner", "created_by_fk_or_owner"}
+)
+
 DATA_MODEL_METADATA_ACCESS_ATTR = "_requires_data_model_metadata_access"
 DATA_MODEL_METADATA_ERROR_TYPE = "DataModelMetadataRestricted"
 DATA_MODEL_METADATA_PRIVACY_SCOPE = "data_model"
@@ -122,6 +129,30 @@ def user_can_view_data_model_metadata() -> bool:
         )
     except Exception:  # noqa: BLE001
         return False
+
+
+def inject_current_user_for_self_referencing_filters(filters: Any, user: Any) -> Any:
+    """Replace the value of any self-referencing filter with the current user's ID.
+
+    Callers specify the column and operator; the system fills in the value.
+    This prevents enumeration of other users' content.
+    """
+    if not filters:
+        return filters
+    filter_list = filters if isinstance(filters, list) else [filters]
+    result = []
+    for f in filter_list:
+        col = f.get("col") if isinstance(f, dict) else getattr(f, "col", None)
+        if col in SELF_REFERENCING_FILTER_COLUMNS:
+            if not user or not getattr(user, "is_authenticated", False):
+                raise ValueError("This operation requires an authenticated user")
+            f = (
+                {**f, "value": user.id}
+                if isinstance(f, dict)
+                else f.model_copy(update={"value": user.id})
+            )
+        result.append(f)
+    return result
 
 
 def filter_user_directory_fields(data: dict[str, Any]) -> dict[str, Any]:
