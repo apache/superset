@@ -24,9 +24,13 @@ import os
 import subprocess
 import sys
 
+# On Windows, npm global binaries are installed as .cmd scripts and cannot
+# be resolved by subprocess unless shell=True is used.
+_SHELL = os.name == "nt"
+
 
 def run_command(command: list[str]) -> int:
-    result = subprocess.run(command, text=True)  # noqa: S603
+    result = subprocess.run(command, text=True, shell=_SHELL)  # noqa: S603
     return result.returncode
 
 
