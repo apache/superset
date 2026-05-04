@@ -19,7 +19,7 @@
 import 'src/public-path';
 
 import { lazy, Suspense } from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { Global } from '@emotion/react';
 import { t } from '@apache-superset/core/translation';
@@ -189,7 +189,7 @@ function start() {
         type: USER_LOADED,
         user: result,
       });
-      ReactDOM.render(<EmbeddedApp />, appMountPoint);
+      createRoot(appMountPoint).render(<EmbeddedApp />);
     },
     err => {
       // something is most likely wrong with the guest token

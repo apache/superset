@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  act,
   render,
   screen,
   waitFor,
@@ -120,11 +119,9 @@ describe('DatasourceModal', () => {
         onDatasourceSave as unknown as typeof mockedProps.onDatasourceSave,
     });
     const saveButton = screen.getByTestId('datasource-modal-save');
-    await act(async () => {
-      fireEvent.click(saveButton);
-      const okButton = await screen.findByRole('button', { name: 'OK' });
-      okButton.click();
-    });
+    fireEvent.click(saveButton);
+    const okButton = await screen.findByRole('button', { name: 'OK' });
+    fireEvent.click(okButton);
     await waitFor(() => {
       expect(onDatasourceSave).toHaveBeenCalled();
     });
@@ -135,18 +132,14 @@ describe('DatasourceModal', () => {
       .spyOn(SupersetClient, 'put')
       .mockRejectedValue(new Error('Something went wrong'));
 
-    await act(async () => {
-      const saveButton = screen.getByTestId('datasource-modal-save');
-      fireEvent.click(saveButton);
-      const okButton = await screen.findByRole('button', { name: 'OK' });
-      okButton.click();
-    });
+    const saveButton = screen.getByTestId('datasource-modal-save');
+    fireEvent.click(saveButton);
+    const okButton = await screen.findByRole('button', { name: 'OK' });
+    fireEvent.click(okButton);
 
-    await act(async () => {
-      const errorElements = await screen.findAllByText('Error saving dataset');
-      const errorDiv = errorElements.find(el => el.closest('div'));
-      expect(errorDiv).toBeInTheDocument();
-    });
+    const errorElements = await screen.findAllByText('Error saving dataset');
+    const errorDiv = errorElements.find(el => el.closest('div'));
+    expect(errorDiv).toBeInTheDocument();
     putSpy.mockRestore();
   });
 
