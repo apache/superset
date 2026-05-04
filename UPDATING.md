@@ -470,6 +470,53 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
   }
   ```
 
+### Composite primary keys on many-to-many association tables
+
+The eight M:N association tables listed below have been changed from a synthetic surrogate `id INTEGER PRIMARY KEY` to a composite `PRIMARY KEY (fk1, fk2)` on the two foreign-key columns. The `id` column is dropped, and the two tables that previously carried a redundant `UNIQUE (fk1, fk2)` constraint have that constraint removed (it is now subsumed by the composite primary key).
+
+**Affected tables and their composite-PK column pairs:**
+
+| Table | Composite PK |
+|---|---|
+| `dashboard_roles` | `(dashboard_id, role_id)` |
+| `dashboard_slices` | `(dashboard_id, slice_id)` |
+| `dashboard_user` | `(user_id, dashboard_id)` |
+| `report_schedule_user` | `(user_id, report_schedule_id)` |
+| `rls_filter_roles` | `(role_id, rls_filter_id)` |
+| `rls_filter_tables` | `(table_id, rls_filter_id)` |
+| `slice_user` | `(user_id, slice_id)` |
+| `sqlatable_user` | `(user_id, table_id)` |
+
+**Impact on external readers:** Any BI tool, custom report, backup script, or external integration that references these tables by their old surrogate `id` column (e.g., `SELECT id FROM dashboard_slices WHERE …`, `WHERE dashboard_slices.id IN (…)`) will break. Update such queries to project or filter on the FK pair (`dashboard_id, slice_id`) instead. The FK columns themselves are unchanged.
+
+**Pre-flight inventory queries.** Before applying the upgrade, operators are encouraged to run the queries below against their database to assess what the migration will change. Two classes of pre-existing data are not preserved by the migration: duplicate `(fk1, fk2)` rows (the migration keeps `MIN(id)` and deletes the rest) and rows with `NULL` in either FK column (the migration deletes them, since FK columns are promoted to `NOT NULL` for the composite PK). Compliance- or audit-sensitive operators should also `\copy` (Postgres) or `SELECT … INTO OUTFILE` (MySQL) the affected rows for their own records before upgrading.
+
+```sql
+-- Duplicate (fk1, fk2) pairs (the migration will keep MIN(id) per group, delete the rest)
+SELECT dashboard_id, role_id, COUNT(*) FROM dashboard_roles GROUP BY dashboard_id, role_id HAVING COUNT(*) > 1;
+SELECT dashboard_id, slice_id, COUNT(*) FROM dashboard_slices GROUP BY dashboard_id, slice_id HAVING COUNT(*) > 1;
+SELECT user_id, dashboard_id, COUNT(*) FROM dashboard_user GROUP BY user_id, dashboard_id HAVING COUNT(*) > 1;
+SELECT user_id, report_schedule_id, COUNT(*) FROM report_schedule_user GROUP BY user_id, report_schedule_id HAVING COUNT(*) > 1;
+SELECT role_id, rls_filter_id, COUNT(*) FROM rls_filter_roles GROUP BY role_id, rls_filter_id HAVING COUNT(*) > 1;
+SELECT table_id, rls_filter_id, COUNT(*) FROM rls_filter_tables GROUP BY table_id, rls_filter_id HAVING COUNT(*) > 1;
+SELECT user_id, slice_id, COUNT(*) FROM slice_user GROUP BY user_id, slice_id HAVING COUNT(*) > 1;
+SELECT user_id, table_id, COUNT(*) FROM sqlatable_user GROUP BY user_id, table_id HAVING COUNT(*) > 1;
+
+-- Rows with a NULL in either FK (the migration will delete these)
+SELECT COUNT(*) FROM dashboard_roles WHERE dashboard_id IS NULL OR role_id IS NULL;
+SELECT COUNT(*) FROM dashboard_slices WHERE dashboard_id IS NULL OR slice_id IS NULL;
+SELECT COUNT(*) FROM dashboard_user WHERE user_id IS NULL OR dashboard_id IS NULL;
+SELECT COUNT(*) FROM report_schedule_user WHERE user_id IS NULL OR report_schedule_id IS NULL;
+SELECT COUNT(*) FROM rls_filter_roles WHERE role_id IS NULL OR rls_filter_id IS NULL;
+SELECT COUNT(*) FROM rls_filter_tables WHERE table_id IS NULL OR rls_filter_id IS NULL;
+SELECT COUNT(*) FROM slice_user WHERE user_id IS NULL OR slice_id IS NULL;
+SELECT COUNT(*) FROM sqlatable_user WHERE user_id IS NULL OR table_id IS NULL;
+```
+
+**Restoring an old `pg_dump` (or equivalent) against the new schema.** A dump taken before the migration includes `INSERT` statements that populate the now-removed `id` column. Restoring such a dump against the post-migration schema will fail. The supported workaround is to dump only the schema and reference data, then re-create the M:N associations from application data after restore — for example with `pg_dump --exclude-table-data` (or per-table `--exclude-table-data=dashboard_slices` etc.) for the eight junction tables, restore the rest, then run a one-shot script that re-INSERTs `(fk1, fk2)` pairs derived from your application export. Operators who need to restore an old dump verbatim should restore against a pre-migration Superset and then re-run the upgrade.
+
+**Intentional downgrade asymmetry.** The migration's `downgrade()` restores the surrogate `id` column and (for `dashboard_slices` and `report_schedule_user`) the original `UNIQUE (fk1, fk2)` constraint, but it does **not** restore the original `NULL`-allowed state on the FK columns — they remain `NOT NULL`. This is intentional: under SQLAlchemy's `secondary=` semantics, a `NULL` in either FK column of a junction table is meaningless (it cannot participate in either side of the relationship). Operators downgrading are not expected to need this restored. The asymmetry is documented for completeness so that round-trip schema diffs are not mistaken for migration bugs.
+
 ## 6.0.0
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
 - [34871](https://github.com/apache/superset/pull/34871): Fixed Jest test hanging issue from Ant Design v5 upgrade. MessageChannel is now mocked in test environment to prevent rc-overflow from causing Jest to hang. Test environment only - no production impact.
