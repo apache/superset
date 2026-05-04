@@ -86,8 +86,12 @@ export const DynamicEditableTitle = memo(
     });
 
     useEffect(() => {
-      setCurrentTitle(title);
-    }, [title]);
+      // Don't overwrite in-flight user input when the parent re-renders with a
+      // new title prop mid-edit. handleBlur already syncs currentTitle on commit.
+      if (!isEditing) {
+        setCurrentTitle(title);
+      }
+    }, [title, isEditing]);
     useEffect(() => {
       if (isEditing) {
         // move cursor and scroll to the end

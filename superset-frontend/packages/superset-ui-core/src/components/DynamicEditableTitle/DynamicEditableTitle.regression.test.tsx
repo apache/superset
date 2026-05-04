@@ -70,11 +70,21 @@ test('a change event that arrives before isEditing flips is not dropped', () => 
 });
 
 test('prop changes mid-edit do not clobber unsaved typing', async () => {
-  const { rerender } = render(<Harness initialTitle="Foo" />);
+  // Rerender DynamicEditableTitle directly with a changed title prop so the
+  // sync effect actually runs. Going through Harness would not exercise the
+  // bug because Harness owns its own state and only reads initialTitle once.
+  const onSave = jest.fn();
+  const props = {
+    placeholder: 'placeholder',
+    canEdit: true,
+    label: 'Title',
+    onSave,
+  };
+  const { rerender } = render(<DynamicEditableTitle {...props} title="Foo" />);
   const input = screen.getByRole('textbox') as HTMLInputElement;
   userEvent.click(input);
   await userEvent.type(input, 'X', { delay: 1 });
   expect(input.value).toBe('FooX');
-  rerender(<Harness initialTitle="Foo" />);
+  rerender(<DynamicEditableTitle {...props} title="Bar" />);
   expect(input.value).toBe('FooX');
 });
