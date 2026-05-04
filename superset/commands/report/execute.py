@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 from uuid import UUID
@@ -196,7 +197,7 @@ class BaseReportState:
             db.session.commit()  # pylint: disable=consider-using-transaction
         except StaleDataError as ex:
             # Report schedule was modified or deleted by another process
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning(
                 "Report schedule (execution %s) was modified or deleted "
                 "during execution. This can occur when a report is deleted "
@@ -280,6 +281,7 @@ class BaseReportState:
                         )
                     urls = self._get_tabs_urls(
                         anchor_list,
+                        dashboard_state=dashboard_state,
                         native_filter_params=native_filter_params,
                         user_friendly=user_friendly,
                     )
@@ -291,12 +293,12 @@ class BaseReportState:
             # overwriting — dashboard_state may already have urlParams
             # (e.g. standalone=true) that must be preserved.
             state: DashboardPermalinkState = {**dashboard_state}
-            existing_params: list[tuple[str, str]] = state.get("urlParams") or []
-            merged_params: list[list[str]] = [
+            existing_params: list[Sequence[str]] = state.get("urlParams") or []
+            merged_params: list[Sequence[str]] = [
                 list(p) for p in existing_params if p[0] != "native_filters"
             ]
             merged_params.append(["native_filters", native_filter_params or ""])
-            state["urlParams"] = merged_params  # type: ignore[typeddict-item]
+            state["urlParams"] = merged_params
             return [
                 self._get_tab_url(
                     state,
@@ -310,13 +312,20 @@ class BaseReportState:
         if filter_warnings:
             self._filter_warnings.extend(filter_warnings)
         if native_filter_params and native_filter_params != "()":
+            # Preserve any urlParams from extra.dashboard (e.g. standalone=true)
+            # set via API even when ALERT_REPORT_TABS is off — same merge
+            # semantics as the protected branch above.
+            fallback_state = self._report_schedule.extra.get("dashboard") or {}
+            fallback_existing: list[Sequence[str]] = (
+                fallback_state.get("urlParams") or []
+            )
+            fallback_merged: list[Sequence[str]] = [
+                list(p) for p in fallback_existing if p[0] != "native_filters"
+            ]
+            fallback_merged.append(["native_filters", native_filter_params])
             return [
                 self._get_tab_url(
-                    {
-                        "urlParams": [
-                            ["native_filters", native_filter_params]  # type: ignore
-                        ],
-                    },
+                    {"urlParams": fallback_merged},
                     user_friendly=user_friendly,
                 )
             ]
@@ -356,21 +365,33 @@ class BaseReportState:
     def _get_tabs_urls(
         self,
         tab_anchors: list[str],
+        dashboard_state: Optional[DashboardPermalinkState] = None,
         native_filter_params: Optional[str] = None,
         user_friendly: bool = False,
     ) -> list[str]:
         """
-        Get multple tabs urls
+        Get multiple tabs urls.
+
+        Each per-tab permalink merges the report's ``native_filters`` into
+        the original ``dashboard_state.urlParams`` (deduping any prior
+        ``native_filters`` entry), so params like ``standalone=true`` are
+        preserved — matching the precedence rules of the single-tab branch
+        in :meth:`get_dashboard_urls`.
         """
+        base_state: DashboardPermalinkState = dashboard_state or {}
+        existing_params: list[Sequence[str]] = base_state.get("urlParams") or []
+        merged_params: list[Sequence[str]] = [
+            list(p) for p in existing_params if p[0] != "native_filters"
+        ]
+        merged_params.append(["native_filters", native_filter_params or ""])
+
         return [
             self._get_tab_url(
                 {
                     "anchor": tab_anchor,
                     "dataMask": None,
                     "activeTabs": None,
-                    "urlParams": [
-                        ["native_filters", native_filter_params]  # type: ignore
-                    ],
+                    "urlParams": merged_params,
                 },
                 user_friendly=user_friendly,
             )
