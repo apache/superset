@@ -212,6 +212,8 @@ class HiveEngineSpec(PrestoEngineSpec):
                 .replace("%", "\\%")
                 .replace("_", "\\_")
             )
+            # Hive LIKE uses backslash as the escape character. Python needs \\\\
+            # to produce the two-character SQL literal \\ (a single backslash).
             escape_clause = " ESCAPE '\\\\'"
             if table.schema:
                 escaped_schema = table.schema.replace("`", "``")
