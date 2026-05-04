@@ -778,3 +778,85 @@ class TestGenerateChartRequestChartNameSanitization:
         assert len(req.sanitization_warnings) == 1
         assert "chart_name" in req.sanitization_warnings[0]
         assert "injected" not in req.sanitization_warnings[0]
+
+
+class TestColumnRefNameRelaxedPattern:
+    """ColumnRef.name no longer enforces a strict regex pattern.
+
+    Many valid database column names were previously rejected:
+    - Names starting with a digit (e.g. "1Q_revenue")
+    - Names with locale-specific characters
+    The field_validator sanitize_name() still blocks XSS and SQL injection.
+    """
+
+    def test_digit_prefixed_name_accepted(self) -> None:
+        """Column names starting with a digit must now be accepted."""
+        col = ColumnRef(name="1Q_revenue")
+        assert col.name == "1Q_revenue"
+
+    def test_name_with_hyphen_accepted(self) -> None:
+        col = ColumnRef(name="order-date")
+        assert col.name == "order-date"
+
+    def test_name_with_dot_accepted(self) -> None:
+        col = ColumnRef(name="schema.column")
+        assert col.name == "schema.column"
+
+    def test_name_with_spaces_accepted(self) -> None:
+        col = ColumnRef(name="Total Revenue")
+        assert col.name == "Total Revenue"
+
+    def test_xss_attempt_blocked(self) -> None:
+        """sanitize_name() still blocks XSS even without the regex."""
+        with pytest.raises(ValidationError):
+            ColumnRef(name="<script>alert(1)</script>")
+
+    def test_sql_keyword_blocked(self) -> None:
+        """check_sql_keywords=True still blocks pure SQL statements."""
+        with pytest.raises(ValidationError):
+            ColumnRef(name="1; DROP TABLE users; --")
+
+    def test_empty_name_blocked(self) -> None:
+        with pytest.raises(ValidationError):
+            ColumnRef(name="")
+
+    def test_table_chart_with_digit_prefixed_column(self) -> None:
+        """End-to-end: digit-prefixed column passes through GenerateChartRequest."""
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config={
+                "chart_type": "table",
+                "columns": [
+                    {"name": "1Q_revenue"},
+                    {"name": "product_name"},
+                ],
+            },
+        )
+        assert req.config.chart_type == "table"
+
+    def test_xy_chart_with_hyphenated_column(self) -> None:
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config={
+                "chart_type": "xy",
+                "x": {"name": "order-date"},
+                "y": [{"name": "1Q-revenue", "aggregate": "SUM"}],
+            },
+        )
+        assert req.config.chart_type == "xy"
+
+
+class TestFilterConfigColumnRelaxedPattern:
+    """FilterConfig.column no longer enforces a strict regex pattern."""
+
+    def test_digit_prefixed_filter_column_accepted(self) -> None:
+        from superset.mcp_service.chart.schemas import FilterConfig
+
+        f = FilterConfig(column="1Q_flag", op="=", value="active")
+        assert f.column == "1Q_flag"
+
+    def test_hyphenated_filter_column_accepted(self) -> None:
+        from superset.mcp_service.chart.schemas import FilterConfig
+
+        f = FilterConfig(column="order-status", op="=", value="shipped")
+        assert f.column == "order-status"
