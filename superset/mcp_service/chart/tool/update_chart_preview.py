@@ -51,9 +51,16 @@ from superset.utils import json as utils_json
 
 logger = logging.getLogger(__name__)
 
+INVALID_FORM_DATA_KEY_WARNING = (
+    "Previous cached chart state could not be loaded from the previous "
+    "form_data_key. The preview was generated from the supplied "
+    "configuration only; the previous form_data_key may be invalid or "
+    "expired."
+)
 
-def _get_old_adhoc_filters(form_data_key: str) -> list[Dict[str, Any]] | None:
-    """Retrieve adhoc_filters from the previously cached form_data."""
+
+def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
+    """Retrieve the previously cached form_data."""
     from superset.commands.exceptions import CommandException
     from superset.commands.explore.form_data.get import GetFormDataCommand
     from superset.commands.explore.form_data.parameters import CommandParameters
@@ -65,11 +72,9 @@ def _get_old_adhoc_filters(form_data_key: str) -> list[Dict[str, Any]] | None:
             if isinstance(cached_data, str):
                 cached_data = utils_json.loads(cached_data)
             if isinstance(cached_data, dict):
-                adhoc_filters = cached_data.get("adhoc_filters")
-                if adhoc_filters:
-                    return adhoc_filters
+                return cached_data
     except (KeyError, ValueError, TypeError, CommandException):
-        logger.debug("Could not retrieve old form_data for filter preservation")
+        logger.debug("Could not retrieve previous form_data from cache")
     return None
 
 
@@ -113,11 +118,18 @@ def update_chart_preview(
                 config, dataset_id=request.dataset_id
             )
             new_form_data.pop("_mcp_warnings", None)
+            warnings: list[str] = []
+            previous_form_data: dict[str, Any] | None = None
+
+            if request.form_data_key:
+                previous_form_data = _get_previous_form_data(request.form_data_key)
+                if previous_form_data is None:
+                    warnings.append(INVALID_FORM_DATA_KEY_WARNING)
 
             # Preserve adhoc filters from the previous cached form_data
             # when the new config doesn't explicitly specify filters
-            if getattr(config, "filters", None) is None and request.form_data_key:
-                old_adhoc_filters = _get_old_adhoc_filters(request.form_data_key)
+            if getattr(config, "filters", None) is None and previous_form_data:
+                old_adhoc_filters = previous_form_data.get("adhoc_filters")
                 if old_adhoc_filters:
                     new_form_data["adhoc_filters"] = old_adhoc_filters
 
@@ -183,6 +195,7 @@ def update_chart_preview(
             "explore_url": explore_url,
             "form_data_key": new_form_data_key,
             "previous_form_data_key": request.form_data_key,  # For reference
+            "warnings": warnings,
             "api_endpoints": {},  # No API endpoints for unsaved charts
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,
