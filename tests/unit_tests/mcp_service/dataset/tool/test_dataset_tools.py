@@ -1200,6 +1200,156 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
         assert data["metrics"][1]["metric_name"] == "count_orders"
 
 
+def _build_full_dataset_mock(dataset_id: int = 1) -> MagicMock:
+    """Build a richly-populated dataset mock for response-size tests."""
+    dataset = MagicMock()
+    dataset.id = dataset_id
+    dataset.table_name = "wide_table"
+    dataset.schema = "main"
+    dataset.database = MagicMock()
+    dataset.database.database_name = "examples"
+    dataset.description = "long description " * 20
+    dataset.certified_by = "team-data"
+    dataset.certification_details = "certified via review " * 10
+    dataset.changed_by_name = "admin"
+    dataset.changed_on = None
+    dataset.changed_on_humanized = None
+    dataset.created_by_name = "admin"
+    dataset.created_on = None
+    dataset.created_on_humanized = None
+    dataset.tags = []
+    dataset.owners = []
+    dataset.is_virtual = False
+    dataset.database_id = 1
+    dataset.uuid = "00000000-0000-0000-0000-000000000001"
+    dataset.schema_perm = "[examples].[main]"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=1"
+    dataset.sql = None
+    dataset.main_dttm_col = None
+    dataset.offset = 0
+    dataset.cache_timeout = 0
+    dataset.params = {"key_" + str(i): "value_" * 20 for i in range(20)}
+    dataset.template_params = {"tparam": "x" * 200}
+    dataset.extra = {"certification": {"details": "y" * 500}}
+    dataset.columns = [
+        MagicMock(
+            column_name=f"col_{i}",
+            verbose_name=f"Verbose Column {i}",
+            type="VARCHAR",
+            is_dttm=False,
+            groupby=True,
+            filterable=True,
+            description="long column description " * 30,
+        )
+        for i in range(50)
+    ]
+    dataset.metrics = [
+        MagicMock(
+            metric_name="count",
+            verbose_name="Count",
+            expression="COUNT(*)",
+            description="row count",
+            d3format=None,
+        ),
+    ]
+    return dataset
+
+
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dataset_info_default_omits_verbose_fields(
+    mock_info, mcp_server
+) -> None:
+    """Default response excludes verbose top-level fields and per-column
+    fields to keep payload size small for wide datasets.
+
+    Regression test for SC-105681: 80KB+ responses caused eval timeouts.
+    """
+    mock_info.return_value = _build_full_dataset_mock(dataset_id=1)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dataset_info", {"request": {"identifier": 1}}
+        )
+        data = json.loads(result.content[0].text)
+
+    # Top-level: lean defaults are present
+    assert data["id"] == 1
+    assert data["table_name"] == "wide_table"
+    assert "columns" in data
+    assert "metrics" in data
+    # Top-level: verbose fields are excluded by default
+    assert "params" not in data
+    assert "template_params" not in data
+    assert "extra" not in data
+    assert "tags" not in data
+    assert "certification_details" not in data
+    assert "certified_by" not in data
+    assert "schema_perm" not in data
+
+    # Per-column: lean defaults only
+    assert len(data["columns"]) == 50
+    first = data["columns"][0]
+    assert first["column_name"] == "col_0"
+    assert first["type"] == "VARCHAR"
+    assert "is_dttm" in first
+    # description, verbose_name, groupby, filterable excluded by default
+    assert "description" not in first
+    assert "verbose_name" not in first
+    assert "groupby" not in first
+    assert "filterable" not in first
+
+
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dataset_info_respects_select_columns(mock_info, mcp_server) -> None:
+    """Explicit select_columns trims the response to requested fields."""
+    mock_info.return_value = _build_full_dataset_mock(dataset_id=2)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dataset_info",
+            {
+                "request": {
+                    "identifier": 2,
+                    "select_columns": ["id", "table_name", "columns"],
+                }
+            },
+        )
+        data = json.loads(result.content[0].text)
+
+    assert set(data.keys()) == {"id", "table_name", "columns"}
+    assert data["id"] == 2
+    assert "metrics" not in data
+    assert "description" not in data
+
+
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dataset_info_respects_column_fields(mock_info, mcp_server) -> None:
+    """Explicit column_fields opts in to verbose per-column fields."""
+    mock_info.return_value = _build_full_dataset_mock(dataset_id=3)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dataset_info",
+            {
+                "request": {
+                    "identifier": 3,
+                    "select_columns": ["id", "columns"],
+                    "column_fields": ["column_name", "description"],
+                }
+            },
+        )
+        data = json.loads(result.content[0].text)
+
+    assert set(data.keys()) == {"id", "columns"}
+    first = data["columns"][0]
+    # column_name is always preserved; description was opted in
+    assert first["column_name"] == "col_0"
+    assert "description" in first
+    # type was not in column_fields, so excluded
+    assert "type" not in first
+    assert "verbose_name" not in first
+
+
 @patch("superset.daos.dataset.DatasetDAO.list")
 @pytest.mark.asyncio
 async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server):

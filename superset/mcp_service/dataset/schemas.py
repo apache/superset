@@ -93,6 +93,29 @@ class TableColumnInfo(BaseModel):
     filterable: bool | None = Field(None, description="Is filterable")
     description: str | None = Field(None, description="Column description")
 
+    @model_serializer(mode="wrap")
+    def _filter_column_fields_by_context(
+        self, serializer: Any, info: Any
+    ) -> Dict[str, Any]:
+        """Filter column fields based on serialization context.
+
+        If context contains 'column_fields', only include those fields.
+        Otherwise, include all fields. This trims wide datasets so a
+        50-column dataset doesn't ship 50 long descriptions when the
+        caller only needs column_name + type.
+        """
+        data = serializer(self)
+
+        if info.context and isinstance(info.context, dict):
+            column_fields = info.context.get("column_fields")
+            if column_fields:
+                requested = set(column_fields)
+                # Always preserve column_name as the only required field
+                requested.add("column_name")
+                return {k: v for k, v in data.items() if k in requested}
+
+        return data
+
 
 class SqlMetricInfo(BaseModel):
     metric_name: str = Field(
@@ -311,6 +334,29 @@ class DatasetError(BaseModel):
         )
 
 
+DEFAULT_GET_DATASET_INFO_COLUMNS: List[str] = [
+    "id",
+    "table_name",
+    "schema",
+    "database_name",
+    "database_id",
+    "uuid",
+    "is_virtual",
+    "description",
+    "main_dttm_col",
+    "sql",
+    "url",
+    "columns",
+    "metrics",
+]
+
+DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS: List[str] = [
+    "column_name",
+    "type",
+    "is_dttm",
+]
+
+
 class GetDatasetInfoRequest(MetadataCacheControl):
     """Request schema for get_dataset_info with support for ID or UUID."""
 
@@ -318,6 +364,49 @@ class GetDatasetInfoRequest(MetadataCacheControl):
         int | str,
         Field(description="Dataset identifier - can be numeric ID or UUID string"),
     ]
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: list(DEFAULT_GET_DATASET_INFO_COLUMNS),
+            description=(
+                "Top-level fields to include in the response. Defaults to a lean "
+                "set that excludes verbose fields like params, template_params, "
+                "extra, tags, certification_details. Pass an explicit list to "
+                "override (e.g. ['id','table_name','columns'] for minimal output)."
+            ),
+        ),
+    ]
+    column_fields: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS),
+            description=(
+                "Per-column fields to include for entries in 'columns'. Defaults "
+                "to ['column_name','type','is_dttm']. Pass a wider list to "
+                "include 'verbose_name','groupby','filterable','description' "
+                "when needed. Trimming per-column fields keeps responses small "
+                "for wide datasets."
+            ),
+        ),
+    ]
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def _parse_select_columns(cls, value: Any) -> Any:
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        if value is None:
+            return list(DEFAULT_GET_DATASET_INFO_COLUMNS)
+        return parse_json_or_list(value, "select_columns")
+
+    @field_validator("column_fields", mode="before")
+    @classmethod
+    def _parse_column_fields(cls, value: Any) -> Any:
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        if value is None:
+            return list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+        return parse_json_or_list(value, "column_fields")
 
 
 class CreateVirtualDatasetRequest(BaseModel):

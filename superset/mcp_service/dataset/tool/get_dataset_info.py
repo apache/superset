@@ -24,6 +24,7 @@ about a specific dataset.
 
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from fastmcp import Context
 from sqlalchemy.orm import joinedload, subqueryload
@@ -58,7 +59,7 @@ logger = logging.getLogger(__name__)
 @requires_data_model_metadata_access
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
-) -> DatasetInfo | DatasetError:
+) -> dict[str, Any] | DatasetError:
     """Get dataset metadata by ID or UUID.
 
     Returns columns, metrics, and schema details.
@@ -67,6 +68,12 @@ async def get_dataset_info(
     - Use numeric ID (e.g., 123) or UUID string (e.g., "a1b2c3d4-...")
     - DO NOT use schema.table_name format (e.g., "public.customers")
     - To find a dataset ID, use the list_datasets tool first
+
+    Response size control (use these to keep responses small):
+    - select_columns: top-level fields to include (default: lean set)
+    - column_fields: per-column fields for entries in 'columns' (default:
+      column_name, type, is_dttm). Pass a wider list to opt in to
+      verbose_name, groupby, filterable, description.
 
     IMPORTANT - Saved Metrics vs Columns:
     The response includes both 'columns' (raw database columns) and 'metrics'
@@ -144,12 +151,24 @@ async def get_dataset_info(
                     len(result.metrics) if result.metrics else 0,
                 )
             )
-        else:
-            await ctx.warning(
-                "Dataset retrieval failed: error_type=%s, error=%s"
-                % (result.error_type, result.error)
+            await ctx.debug(
+                "Filtering response: select_columns=%s, column_fields=%s"
+                % (request.select_columns, request.column_fields)
             )
+            with event_logger.log_context(action="mcp.get_dataset_info.serialization"):
+                return result.model_dump(
+                    mode="json",
+                    by_alias=True,
+                    context={
+                        "select_columns": request.select_columns,
+                        "column_fields": request.column_fields,
+                    },
+                )
 
+        await ctx.warning(
+            "Dataset retrieval failed: error_type=%s, error=%s"
+            % (result.error_type, result.error)
+        )
         return result
 
     except Exception as e:
