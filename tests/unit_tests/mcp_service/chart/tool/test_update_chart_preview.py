@@ -481,6 +481,53 @@ class TestUpdateChartPreview:
         assert request.config.sort_by == ["sales", "profit"]
         assert len(request.config.columns) == 3
 
+    @patch("superset.commands.explore.form_data.get.GetFormDataCommand")
+    def test_get_previous_form_data_parses_json_cache_hit(
+        self,
+        mock_get_form_data_command,
+    ) -> None:
+        """Previous form_data lookup parses JSON strings from the cache."""
+        cached_adhoc_filters = [
+            {
+                "clause": "WHERE",
+                "comparator": "North",
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "region",
+            }
+        ]
+        mock_get_form_data_command.return_value.run.return_value = (
+            '{"adhoc_filters": ['
+            '{"clause": "WHERE", "comparator": "North", '
+            '"expressionType": "SIMPLE", "operator": "==", "subject": "region"}'
+            '], "viz_type": "table"}'
+        )
+
+        result = update_chart_preview_module._get_previous_form_data("valid_key_12345")
+
+        assert result == {
+            "adhoc_filters": cached_adhoc_filters,
+            "viz_type": "table",
+        }
+        command_params = mock_get_form_data_command.call_args.args[0]
+        assert command_params.key == "valid_key_12345"
+
+    @patch("superset.commands.explore.form_data.get.GetFormDataCommand")
+    def test_get_previous_form_data_returns_none_for_cache_failure(
+        self,
+        mock_get_form_data_command,
+    ) -> None:
+        """Previous form_data lookup treats command failures as cache misses."""
+        mock_get_form_data_command.return_value.run.side_effect = (
+            update_chart_preview_module.CommandException("cache read failed")
+        )
+
+        result = update_chart_preview_module._get_previous_form_data(
+            "missing_key_12345"
+        )
+
+        assert result is None
+
     @patch.object(update_chart_preview_module, "analyze_chart_semantics")
     @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
     @patch.object(update_chart_preview_module, "generate_explore_link")
@@ -494,7 +541,7 @@ class TestUpdateChartPreview:
         mock_generate_explore_link,
         mock_analyze_chart_capabilities,
         mock_analyze_chart_semantics,
-    ):
+    ) -> None:
         """Invalid previous form_data_key is warning-only for preview updates."""
         mock_user = Mock()
         mock_user.id = 1
@@ -547,7 +594,7 @@ class TestUpdateChartPreview:
         mock_generate_explore_link,
         mock_analyze_chart_capabilities,
         mock_analyze_chart_semantics,
-    ):
+    ) -> None:
         """Valid previous form_data preserves filters without a cache warning."""
         mock_user = Mock()
         mock_user.id = 1
