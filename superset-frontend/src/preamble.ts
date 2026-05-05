@@ -43,15 +43,9 @@ let initPromise: Promise<void> | null = null;
 
 const LANGUAGE_PACK_REQUEST_TIMEOUT_MS = 5000;
 
-let i18nLoadResolve: (value?: unknown) => void;
-
-export const I18nLoadJob = new Promise(resolve => {
-  i18nLoadResolve = resolve;
-});
-
 export default function initPreamble(): Promise<void> {
   if (initPromise) {
-    return initPromise.then(() => i18nLoadResolve());
+    return initPromise;
   }
 
   initPromise = (async () => {

@@ -20,10 +20,8 @@ import 'src/public-path';
 
 import ReactDOM from 'react-dom';
 import App from './App';
-import { default as initPreamble, I18nLoadJob } from 'src/preamble';
+import initPreamble from 'src/preamble';
 import { logging } from '@apache-superset/core/utils';
-
-await I18nLoadJob;
 
 const appMountPoint = document.getElementById('app');
 
