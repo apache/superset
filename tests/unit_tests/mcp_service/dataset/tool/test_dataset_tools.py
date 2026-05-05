@@ -1946,6 +1946,106 @@ def _make_mock_virtual_dataset(
 # --- Schema tests ---
 
 
+def test_table_column_info_no_context_returns_all_fields() -> None:
+    """TableColumnInfo serializer returns all fields when no context is set."""
+    from superset.mcp_service.dataset.schemas import TableColumnInfo
+
+    col = TableColumnInfo(
+        column_name="id",
+        verbose_name="ID",
+        type="INT",
+        is_dttm=False,
+        groupby=True,
+        filterable=True,
+        description="Primary key",
+    )
+    data = col.model_dump()
+    assert data["column_name"] == "id"
+    assert data["verbose_name"] == "ID"
+    assert data["description"] == "Primary key"
+    assert data["groupby"] is True
+
+
+def test_table_column_info_empty_context_returns_all_fields() -> None:
+    """TableColumnInfo serializer returns all fields when context lacks
+    column_fields."""
+    from superset.mcp_service.dataset.schemas import TableColumnInfo
+
+    col = TableColumnInfo(column_name="id", type="INT", description="x")
+    data = col.model_dump(context={"unrelated_key": "value"})
+    assert data["description"] == "x"
+    assert data["type"] == "INT"
+
+
+def test_table_column_info_filters_by_context() -> None:
+    """TableColumnInfo serializer keeps only requested fields, plus
+    column_name."""
+    from superset.mcp_service.dataset.schemas import TableColumnInfo
+
+    col = TableColumnInfo(
+        column_name="id",
+        verbose_name="ID",
+        type="INT",
+        description="Primary key",
+    )
+    data = col.model_dump(context={"column_fields": ["type"]})
+    assert set(data.keys()) == {"column_name", "type"}
+    assert data["column_name"] == "id"
+
+
+def test_get_dataset_info_request_default_select_columns() -> None:
+    """Default select_columns and column_fields are populated."""
+    from superset.mcp_service.dataset.schemas import (
+        DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
+        DEFAULT_GET_DATASET_INFO_COLUMNS,
+        GetDatasetInfoRequest,
+    )
+
+    req = GetDatasetInfoRequest(identifier=1)
+    assert req.select_columns == DEFAULT_GET_DATASET_INFO_COLUMNS
+    assert req.column_fields == DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS
+
+
+def test_get_dataset_info_request_explicit_columns_override_defaults() -> None:
+    """Explicit lists override the defaults."""
+    from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+    req = GetDatasetInfoRequest(
+        identifier="abc-uuid",
+        select_columns=["id", "table_name"],
+        column_fields=["column_name", "type"],
+    )
+    assert req.select_columns == ["id", "table_name"]
+    assert req.column_fields == ["column_name", "type"]
+
+
+def test_get_dataset_info_request_empty_lists_use_defaults() -> None:
+    """Empty lists coerce to lean defaults so callers cannot accidentally
+    disable size reduction."""
+    from superset.mcp_service.dataset.schemas import (
+        DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
+        DEFAULT_GET_DATASET_INFO_COLUMNS,
+        GetDatasetInfoRequest,
+    )
+
+    req = GetDatasetInfoRequest(identifier=1, select_columns=[], column_fields=[])
+    assert req.select_columns == DEFAULT_GET_DATASET_INFO_COLUMNS
+    assert req.column_fields == DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS
+
+
+def test_get_dataset_info_request_accepts_json_string_lists() -> None:
+    """Field validators parse JSON-encoded lists for both fields."""
+    from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+    req = GetDatasetInfoRequest(
+        identifier=1,
+        select_columns='["id", "columns"]',
+        column_fields='["column_name", "is_dttm"]',
+    )
+    assert req.select_columns == ["id", "columns"]
+    assert req.column_fields == ["column_name", "is_dttm"]
+
+
 def test_create_virtual_dataset_request_valid() -> None:
     req = CreateVirtualDatasetRequest(
         database_id=1,
