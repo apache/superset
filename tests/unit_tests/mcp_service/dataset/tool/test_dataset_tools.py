@@ -1350,6 +1350,43 @@ async def test_get_dataset_info_respects_column_fields(mock_info, mcp_server) ->
     assert "verbose_name" not in first
 
 
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dataset_info_empty_lists_fall_back_to_defaults(
+    mock_info, mcp_server
+) -> None:
+    """Empty select_columns / column_fields fall back to lean defaults.
+
+    Without this, a caller passing column_fields=[] would silently
+    re-enable verbose per-column fields and reintroduce oversized
+    responses. Regression test for the review on apache/superset#39898.
+    """
+    mock_info.return_value = _build_full_dataset_mock(dataset_id=4)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dataset_info",
+            {
+                "request": {
+                    "identifier": 4,
+                    "select_columns": [],
+                    "column_fields": [],
+                }
+            },
+        )
+        data = json.loads(result.content[0].text)
+
+    # Defaults applied for select_columns: verbose top-level fields excluded
+    assert "params" not in data
+    assert "extra" not in data
+    assert "tags" not in data
+    # Defaults applied for column_fields: only lean per-column fields
+    first = data["columns"][0]
+    assert first["column_name"] == "col_0"
+    assert "description" not in first
+    assert "verbose_name" not in first
+    assert "groupby" not in first
+
+
 @patch("superset.daos.dataset.DatasetDAO.list")
 @pytest.mark.asyncio
 async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server):
