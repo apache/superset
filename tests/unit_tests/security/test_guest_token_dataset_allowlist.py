@@ -86,7 +86,6 @@ def test_create_guest_access_token_without_datasets_omits_claim() -> None:
             sm, user={}, resources=[], rls=[], datasets=None
         )
 
-    _, call_kwargs = sm.pyjwt_for_guest_token.encode.call_args
     claims = sm.pyjwt_for_guest_token.encode.call_args[0][0]
     assert "datasets" not in claims
 
