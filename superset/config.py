@@ -433,8 +433,10 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "cs": {"flag": "cz", "name": "Czech"},
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
+    "lv": {"flag": "lv", "name": "Latvian"},
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
@@ -571,6 +573,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
+    # Enable semantic layers and show semantic views alongside datasets
+    # @lifecycle: development
+    "SEMANTIC_LAYERS": False,
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
