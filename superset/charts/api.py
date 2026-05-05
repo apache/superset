@@ -35,6 +35,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDeletedStateFilter,
     ChartFavoriteFilter,
     ChartFilter,
     ChartHasCreatedByFilter,
@@ -109,7 +110,6 @@ logger = logging.getLogger(__name__)
 
 class ChartRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Slice)
-    allow_include_deleted_list = True
 
     resource_name = "chart"
     allow_browser_login = True
@@ -224,6 +224,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "id": [
             ChartFavoriteFilter,
             ChartCertifiedFilter,
+            ChartDeletedStateFilter,
             ChartOwnedCreatedFavoredByMeFilter,
         ],
         "slice_name": [ChartAllTextFilter],

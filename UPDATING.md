@@ -53,27 +53,25 @@ DELETE API endpoints for charts, dashboards, and datasets now perform **soft del
 - External tooling that queries the database directly (bypassing the API) may see "deleted" rows that are still present with `deleted_at IS NOT NULL`
 - The import/export pipeline uses `skip_visibility_filter` to handle soft-deleted rows during re-import
 
-### Aggregated soft-deleted items listing
+### Listing soft-deleted items per entity
 
-A new `GET /api/v1/deleted/` endpoint returns the union of soft-deleted charts, dashboards, and datasets the caller is authorised to see, in a single paginated response. Powers the frontend "Archive" view.
+The chart, dashboard, and dataset list endpoints accept a rison filter that surfaces soft-deleted rows. Use it as part of the standard `q=(filters:!((...)))` envelope.
 
-**Query parameters** (passed via a rison-encoded `q=(...)` envelope, matching every other Superset list endpoint):
+| Entity | Filter `opr` |
+|---|---|
+| `/api/v1/chart/` | `chart_deleted_state` |
+| `/api/v1/dashboard/` | `dashboard_deleted_state` |
+| `/api/v1/dataset/` | `dataset_deleted_state` |
 
-- `types` — rison list; subset of `!(chart,dashboard,dataset)` (default: all three)
-- `search` — case-insensitive substring match on the normalised `name` field
-- `deleted_from`, `deleted_to` — inclusive ISO-8601 bounds on `deleted_at`
-- `order_column` — `deleted_at` (default), `deleted_by`, `type`, or `name`
-- `order_direction` — `asc` or `desc` (default: `desc` for `deleted_at`, `asc` otherwise)
-- `page` — zero-based page index (default `0`)
-- `page_size` — rows per page (default `25`, maximum `100`)
+Values:
 
-Example: `GET /api/v1/deleted/?q=(types:!(chart),order_column:name,order_direction:asc,page:0,page_size:25)`
+- `include` — return live rows plus soft-deleted rows
+- `only` — return only soft-deleted rows
+- absent / any other value — default behaviour (live rows only)
 
-**Response shape** (full details in `specs/sc-103157-soft-deletes/contracts/rest-api.md`):
+Example: `GET /api/v1/chart/?q=(filters:!((col:id,opr:chart_deleted_state,value:only)),order_column:changed_on,order_direction:desc,page:0,page_size:25)`
 
-Each row carries `type`, `id`, `uuid`, `name` (normalised from `slice_name` / `dashboard_title` / `table_name`), `deleted_at`, and `deleted_by` (user object joined from `AuditMixinNullable.changed_by_fk`). Response includes a top-level `count` reflecting the total matching rows across all pages after filters and authorisation.
-
-**Authorisation**: authenticated callers only; row-level access mirrors the corresponding active list endpoints — only the soft-delete visibility filter is bypassed, not the base security filter. A user with no accessible rows gets a `200` with empty `result` and `count: 0`, not `403`.
+When the filter is applied, list responses augment each row with a `deleted_at` ISO-8601 timestamp (null for live rows). Row-level access mirrors the standard list endpoints — only the soft-delete visibility filter is bypassed.
 
 ### Deck.gl MapBox viewport and opacity controls are functional
 

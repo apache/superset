@@ -79,13 +79,14 @@ class TestDatasetSoftDelete(SupersetTestCase):
             db.session.commit()
 
     def test_soft_deleted_dataset_included_in_list_when_requested(self):
-        """GET /api/v1/dataset/?include_deleted=true includes deleted datasets."""
+        """GET /api/v1/dataset/ with dataset_deleted_state=include returns deleted datasets."""  # noqa: E501
         dataset_id = self._get_example_dataset_id()
         self.login(ADMIN_USERNAME)
 
         self.client.delete(f"/api/v1/dataset/{dataset_id}")
 
-        rv = self.client.get("/api/v1/dataset/?include_deleted=true")
+        rison_query = "(filters:!((col:id,opr:dataset_deleted_state,value:include)))"
+        rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
         assert rv.status_code == 200
 
         data = json.loads(rv.data)
@@ -101,6 +102,38 @@ class TestDatasetSoftDelete(SupersetTestCase):
             db.session.query(SqlaTable)
             .execution_options(**{SKIP_VISIBILITY_FILTER: True})
             .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+        )
+        if row:
+            row.restore()
+            db.session.commit()
+
+    def test_only_filter_returns_only_soft_deleted_datasets(self):
+        """dataset_deleted_state=only excludes live rows and returns only deleted ones."""  # noqa: E501
+        ids = [
+            row.id
+            for row in db.session.query(SqlaTable).limit(2).all()
+        ]
+        assert len(ids) >= 2, "Need at least two example datasets for this test"
+        live_id, deleted_id = ids[0], ids[1]
+        self.login(ADMIN_USERNAME)
+
+        self.client.delete(f"/api/v1/dataset/{deleted_id}")
+
+        rison_query = "(filters:!((col:id,opr:dataset_deleted_state,value:only)))"
+        rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data)
+        returned_ids = {row["id"] for row in data["result"]}
+        assert deleted_id in returned_ids
+        assert live_id not in returned_ids
+
+        # Cleanup
+        row = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            .filter(SqlaTable.id == deleted_id)
             .one_or_none()
         )
         if row:

@@ -90,14 +90,15 @@ class TestDashboardSoftDelete(SupersetTestCase):
         _hard_delete_dashboard(dashboard_id)
 
     def test_soft_deleted_dashboard_included_in_list_when_requested(self):
-        """GET /api/v1/dashboard/?include_deleted=true includes deleted dashboards."""
+        """GET /api/v1/dashboard/ with dashboard_deleted_state=include returns deleted dashboards."""  # noqa: E501
         dashboard = self._create_dashboard("sd_list_with_deleted")
         dashboard_id = dashboard.id
         self.login(ADMIN_USERNAME)
 
         self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
 
-        rv = self.client.get("/api/v1/dashboard/?include_deleted=true")
+        rison_query = "(filters:!((col:id,opr:dashboard_deleted_state,value:include)))"
+        rv = self.client.get(f"/api/v1/dashboard/?q={rison_query}")
         assert rv.status_code == 200
 
         data = json.loads(rv.data)
@@ -110,6 +111,29 @@ class TestDashboardSoftDelete(SupersetTestCase):
 
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
+
+    def test_only_filter_returns_only_soft_deleted_dashboards(self):
+        """dashboard_deleted_state=only excludes live rows and returns only deleted ones."""  # noqa: E501
+        live_dashboard = self._create_dashboard("only_live_dash")
+        deleted_dashboard = self._create_dashboard("only_deleted_dash")
+        live_id = live_dashboard.id
+        deleted_id = deleted_dashboard.id
+        self.login(ADMIN_USERNAME)
+
+        self.client.delete(f"/api/v1/dashboard/{deleted_id}")
+
+        rison_query = "(filters:!((col:id,opr:dashboard_deleted_state,value:only)))"
+        rv = self.client.get(f"/api/v1/dashboard/?q={rison_query}")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data)
+        returned_ids = {row["id"] for row in data["result"]}
+        assert deleted_id in returned_ids
+        assert live_id not in returned_ids
+
+        # Cleanup
+        _hard_delete_dashboard(live_id)
+        _hard_delete_dashboard(deleted_id)
 
 
 class TestDashboardRestore(SupersetTestCase):

@@ -95,7 +95,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         _hard_delete_chart(chart_id)
 
     def test_soft_deleted_chart_included_in_list_when_requested(self):
-        """GET /api/v1/chart/?include_deleted=true includes deleted charts."""
+        """GET /api/v1/chart/ with chart_deleted_state=include returns deleted charts."""
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("listed_with_deleted", [admin_id], 1)
         chart_id = chart.id
@@ -103,7 +103,8 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
 
         self.client.delete(f"/api/v1/chart/{chart_id}")
 
-        rv = self.client.get("/api/v1/chart/?include_deleted=true")
+        rison_query = "(filters:!((col:id,opr:chart_deleted_state,value:include)))"
+        rv = self.client.get(f"/api/v1/chart/?q={rison_query}")
         assert rv.status_code == 200
 
         data = json.loads(rv.data)
@@ -116,6 +117,30 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
 
         # Cleanup
         _hard_delete_chart(chart_id)
+
+    def test_only_filter_returns_only_soft_deleted_charts(self):
+        """chart_deleted_state=only excludes live rows and returns only deleted ones."""
+        admin_id = self.get_user("admin").id
+        live_chart = self.insert_chart("only_live", [admin_id], 1)
+        deleted_chart = self.insert_chart("only_deleted", [admin_id], 1)
+        live_id = live_chart.id
+        deleted_id = deleted_chart.id
+        self.login(ADMIN_USERNAME)
+
+        self.client.delete(f"/api/v1/chart/{deleted_id}")
+
+        rison_query = "(filters:!((col:id,opr:chart_deleted_state,value:only)))"
+        rv = self.client.get(f"/api/v1/chart/?q={rison_query}")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data)
+        returned_ids = {row["id"] for row in data["result"]}
+        assert deleted_id in returned_ids
+        assert live_id not in returned_ids
+
+        # Cleanup
+        _hard_delete_chart(live_id)
+        _hard_delete_chart(deleted_id)
 
     def test_delete_already_soft_deleted_chart_returns_404(self):
         """DELETE on an already soft-deleted chart returns 404 (FR-008)."""
