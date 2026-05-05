@@ -32,6 +32,9 @@ import {
 } from '../types';
 import getCellClass from './getCellClass';
 import filterValueGetter from './filterValueGetter';
+import htmlTextFilterValueGetter, {
+  htmlTextComparator,
+} from './htmlTextFilterValueGetter';
 import dateFilterComparator from './dateFilterComparator';
 import DateWithFormatter from './DateWithFormatter';
 import { getAggFunc } from './getAggFunc';
@@ -316,6 +319,13 @@ export const useColDefs = ({
         filter,
         ...(isPercentMetric && {
           filterValueGetter,
+        }),
+        ...(dataType === GenericDataType.String && {
+          // HTML cells (e.g. anchor markup) are rendered by TextCellRenderer
+          // via dangerouslySetInnerHTML; without these the set-filter dropdown
+          // shows raw markup and sort orders by raw HTML lexically.
+          filterValueGetter: htmlTextFilterValueGetter,
+          comparator: htmlTextComparator,
         }),
         ...(dataType === GenericDataType.Temporal && {
           // Use dateFilterValueGetter so AG Grid correctly identifies null dates for blank filter
