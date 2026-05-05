@@ -36,12 +36,23 @@ from pydantic import (
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.common.cache_schemas import MetadataCacheControl
+from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
+from superset.mcp_service.common.cache_schemas import (
+    CacheStatus,
+    CreatedByMeMixin,
+    MetadataCacheControl,
+    OwnedByMeMixin,
+    QueryCacheControl,
+)
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     TagInfo,
+)
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
 )
 from superset.utils import json
 
@@ -124,7 +135,7 @@ class DatasetInfo(BaseModel):
     database_id: int | None = Field(None, description="Database ID")
     uuid: str | None = Field(None, description="Dataset UUID")
     schema_perm: str | None = Field(None, description="Schema permission string")
-    url: str | None = Field(None, description="Dataset URL")
+    url: str | None = Field(None, description="Explore view URL for this dataset")
     sql: str | None = Field(None, description="SQL for virtual datasets")
     main_dttm_col: str | None = Field(None, description="Main datetime column")
     offset: int | None = Field(None, description="Offset")
@@ -213,7 +224,7 @@ class DatasetList(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListDatasetsRequest(MetadataCacheControl):
+class ListDatasetsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_datasets with clear, unambiguous types."""
 
     filters: Annotated[
@@ -266,8 +277,7 @@ class ListDatasetsRequest(MetadataCacheControl):
 
     @model_validator(mode="after")
     def validate_search_and_filters(self) -> "ListDatasetsRequest":
-        """Prevent using both search and filters simultaneously to avoid query
-        conflicts."""
+        """Prevent using both search and filters simultaneously."""
         if self.search and self.filters:
             raise ValueError(
                 "Cannot use both 'search' and 'filters' parameters simultaneously. "
@@ -282,6 +292,12 @@ class DatasetError(BaseModel):
     error_type: str = Field(..., description="Type of error")
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str) -> str:
+        """Wrap error text before it is exposed to LLM context."""
+        return sanitize_for_llm_context(value, field_path=("error",))
 
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatasetError":
@@ -380,6 +396,146 @@ class CreateVirtualDatasetResponse(BaseModel):
     )
 
 
+VALID_FILTER_OPS = Literal[
+    "==",
+    "!=",
+    ">",
+    "<",
+    ">=",
+    "<=",
+    "LIKE",
+    "NOT LIKE",
+    "ILIKE",
+    "NOT ILIKE",
+    "IN",
+    "NOT IN",
+    "IS NULL",
+    "IS NOT NULL",
+    "IS TRUE",
+    "IS FALSE",
+    "TEMPORAL_RANGE",
+]
+
+
+class QueryDatasetFilter(BaseModel):
+    """A single filter condition for dataset queries."""
+
+    col: str = Field(..., description="Column name to filter on")
+    op: VALID_FILTER_OPS = Field(
+        ...,
+        description=(
+            'Filter operator. Use "==" for equals, "!=" for not equals, '
+            '"IN" / "NOT IN" for membership, "IS NULL" / "IS NOT NULL", '
+            '"LIKE" for pattern matching, "TEMPORAL_RANGE" for time filters.'
+        ),
+    )
+    val: Any = Field(
+        default=None,
+        description="Filter value (omit for IS NULL/IS NOT NULL)",
+    )
+
+
+class QueryDatasetRequest(QueryCacheControl):
+    """Request schema for query_dataset tool."""
+
+    dataset_id: int | str = Field(
+        ...,
+        description="Dataset identifier — numeric ID or UUID string.",
+    )
+    metrics: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Saved metric names to compute (e.g. ['count', 'avg_revenue']). "
+            "Use get_dataset_info to discover available metrics."
+        ),
+    )
+    columns: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Column/dimension names for GROUP BY or SELECT "
+            "(e.g. ['category', 'region']). "
+            "Use get_dataset_info to discover available columns."
+        ),
+    )
+    filters: List[QueryDatasetFilter] = Field(
+        default_factory=list,
+        description=(
+            'Filter conditions (e.g. [{"col": "status", "op": "==", "val": "active"}]).'
+        ),
+    )
+    time_range: str | None = Field(
+        default=None,
+        description=(
+            "Time range filter (e.g. 'Last 7 days', 'Last month', "
+            "'2024-01-01 : 2024-12-31'). Requires a temporal column "
+            "on the dataset."
+        ),
+    )
+    time_column: str | None = Field(
+        default=None,
+        description=(
+            "Temporal column to apply time_range to. "
+            "Defaults to the dataset's main datetime column."
+        ),
+    )
+    order_by: List[str] | None = Field(
+        default=None,
+        description="Column or metric names to sort results by.",
+    )
+    order_desc: bool = Field(
+        default=True,
+        description="Sort descending (True) or ascending (False).",
+    )
+    row_limit: int = Field(
+        default=1000,
+        ge=1,
+        le=50000,
+        description="Maximum number of rows to return (default 1000, max 50000).",
+    )
+
+    @model_validator(mode="after")
+    def validate_metrics_or_columns(self) -> "QueryDatasetRequest":
+        """At least one of metrics or columns must be provided."""
+        if not self.metrics and not self.columns:
+            raise ValueError(
+                "At least one of 'metrics' or 'columns' must be provided. "
+                "Use get_dataset_info to discover available metrics and columns."
+            )
+        return self
+
+
+class QueryDatasetResponse(BaseModel):
+    """Response schema for query_dataset tool."""
+
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+    dataset_id: int = Field(..., description="Dataset ID")
+    dataset_name: str = Field(..., description="Dataset name")
+    columns: List[DataColumn] = Field(
+        default_factory=list, description="Column metadata for returned data"
+    )
+    data: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Query result rows"
+    )
+    row_count: int = Field(0, description="Number of rows returned")
+    total_rows: int | None = Field(
+        None, description="Total row count from the query engine"
+    )
+    summary: str = Field("", description="Human-readable summary of the results")
+    performance: PerformanceMetadata | None = Field(
+        None, description="Query performance metadata"
+    )
+    cache_status: CacheStatus | None = Field(
+        None, description="Cache hit/miss information"
+    )
+    applied_filters: List[QueryDatasetFilter] = Field(
+        default_factory=list, description="Filters that were applied to the query"
+    )
+    warnings: List[str] = Field(
+        default_factory=list, description="Any warnings encountered during execution"
+    )
+
+
 def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
     """Parse a field that may be stored as a JSON string into a dict."""
     value = getattr(obj, field_name, None)
@@ -399,6 +555,90 @@ def _humanize_timestamp(dt: datetime | None) -> str | None:
     if dt is None:
         return None
     return humanize.naturaltime(datetime.now() - dt)
+
+
+def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> DatasetInfo:
+    """Wrap dataset read-path descriptive fields before LLM exposure."""
+    payload = dataset_info.model_dump(mode="python")
+
+    for field_name in ("description", "certified_by", "certification_details", "sql"):
+        payload[field_name] = sanitize_for_llm_context(
+            payload.get(field_name),
+            field_path=(field_name,),
+        )
+
+    for field_name in ("table_name", "schema_name", "database_name", "schema_perm"):
+        payload[field_name] = escape_llm_context_delimiters(payload.get(field_name))
+
+    payload["extra"] = sanitize_for_llm_context(
+        payload.get("extra"),
+        field_path=("extra",),
+        excluded_field_names=frozenset(),
+    )
+
+    for field_name in ("params", "template_params"):
+        payload[field_name] = sanitize_for_llm_context(
+            payload.get(field_name),
+            field_path=(field_name,),
+            excluded_field_names=frozenset(),
+        )
+
+    payload["columns"] = [
+        {
+            **column,
+            "column_name": escape_llm_context_delimiters(
+                column.get("column_name"),
+            ),
+            "description": sanitize_for_llm_context(
+                column.get("description"),
+                field_path=("columns", str(index), "description"),
+            ),
+            "verbose_name": sanitize_for_llm_context(
+                column.get("verbose_name"),
+                field_path=("columns", str(index), "verbose_name"),
+            ),
+        }
+        for index, column in enumerate(payload.get("columns", []))
+    ]
+
+    payload["metrics"] = [
+        {
+            **metric,
+            "metric_name": escape_llm_context_delimiters(
+                metric.get("metric_name"),
+            ),
+            "expression": sanitize_for_llm_context(
+                metric.get("expression"),
+                field_path=("metrics", str(index), "expression"),
+            ),
+            "description": sanitize_for_llm_context(
+                metric.get("description"),
+                field_path=("metrics", str(index), "description"),
+            ),
+            "verbose_name": sanitize_for_llm_context(
+                metric.get("verbose_name"),
+                field_path=("metrics", str(index), "verbose_name"),
+            ),
+        }
+        for index, metric in enumerate(payload.get("metrics", []))
+    ]
+
+    payload["tags"] = [
+        {
+            **tag,
+            "name": sanitize_for_llm_context(
+                tag.get("name"),
+                field_path=("tags", str(index), "name"),
+            ),
+            "description": sanitize_for_llm_context(
+                tag.get("description"),
+                field_path=("tags", str(index), "description"),
+            ),
+        }
+        for index, tag in enumerate(payload.get("tags", []))
+    ]
+
+    return DatasetInfo.model_validate(payload)
 
 
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
@@ -435,46 +675,52 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         )
         for metric in getattr(dataset, "metrics", [])
     ]
-    return DatasetInfo(
-        id=getattr(dataset, "id", None),
-        table_name=getattr(dataset, "table_name", None),
-        schema_name=getattr(dataset, "schema", None),
-        database_name=getattr(dataset.database, "database_name", None)
-        if getattr(dataset, "database", None)
-        else None,
-        description=getattr(dataset, "description", None),
-        certified_by=getattr(dataset, "certified_by", None),
-        certification_details=getattr(dataset, "certification_details", None),
-        changed_on=getattr(dataset, "changed_on", None),
-        changed_on_humanized=_humanize_timestamp(getattr(dataset, "changed_on", None)),
-        created_on=getattr(dataset, "created_on", None),
-        created_on_humanized=_humanize_timestamp(getattr(dataset, "created_on", None)),
-        tags=[
-            TagInfo.model_validate(tag, from_attributes=True)
-            for tag in getattr(dataset, "tags", [])
-        ]
-        if getattr(dataset, "tags", None)
-        else [],
-        is_virtual=getattr(dataset, "is_virtual", None),
-        database_id=getattr(dataset, "database_id", None),
-        uuid=str(getattr(dataset, "uuid", ""))
-        if getattr(dataset, "uuid", None)
-        else None,
-        schema_perm=getattr(dataset, "schema_perm", None),
-        url=(
-            f"{get_superset_base_url()}/tablemodelview/edit/"
-            f"{getattr(dataset, 'id', None)}"
-            if getattr(dataset, "id", None)
-            else None
-        ),
-        sql=getattr(dataset, "sql", None),
-        main_dttm_col=getattr(dataset, "main_dttm_col", None),
-        offset=getattr(dataset, "offset", None),
-        cache_timeout=getattr(dataset, "cache_timeout", None),
-        params=params,
-        template_params=_parse_json_field(dataset, "template_params"),
-        extra=_parse_json_field(dataset, "extra"),
-        columns=columns,
-        metrics=metrics,
-        is_favorite=getattr(dataset, "is_favorite", None),
+    return _sanitize_dataset_info_for_llm_context(
+        DatasetInfo(
+            id=getattr(dataset, "id", None),
+            table_name=getattr(dataset, "table_name", None),
+            schema_name=getattr(dataset, "schema", None),
+            database_name=getattr(dataset.database, "database_name", None)
+            if getattr(dataset, "database", None)
+            else None,
+            description=getattr(dataset, "description", None),
+            certified_by=getattr(dataset, "certified_by", None),
+            certification_details=getattr(dataset, "certification_details", None),
+            changed_on=getattr(dataset, "changed_on", None),
+            changed_on_humanized=_humanize_timestamp(
+                getattr(dataset, "changed_on", None)
+            ),
+            created_on=getattr(dataset, "created_on", None),
+            created_on_humanized=_humanize_timestamp(
+                getattr(dataset, "created_on", None)
+            ),
+            tags=[
+                TagInfo.model_validate(tag, from_attributes=True)
+                for tag in getattr(dataset, "tags", [])
+            ]
+            if getattr(dataset, "tags", None)
+            else [],
+            is_virtual=getattr(dataset, "is_virtual", None),
+            database_id=getattr(dataset, "database_id", None),
+            uuid=str(getattr(dataset, "uuid", ""))
+            if getattr(dataset, "uuid", None)
+            else None,
+            schema_perm=getattr(dataset, "schema_perm", None),
+            url=(
+                f"{get_superset_base_url()}/explore/"
+                f"?datasource_type=table&datasource_id={getattr(dataset, 'id', None)}"
+                if getattr(dataset, "id", None)
+                else None
+            ),
+            sql=getattr(dataset, "sql", None),
+            main_dttm_col=getattr(dataset, "main_dttm_col", None),
+            offset=getattr(dataset, "offset", None),
+            cache_timeout=getattr(dataset, "cache_timeout", None),
+            params=params,
+            template_params=_parse_json_field(dataset, "template_params"),
+            extra=_parse_json_field(dataset, "extra"),
+            columns=columns,
+            metrics=metrics,
+            is_favorite=getattr(dataset, "is_favorite", None),
+        )
     )

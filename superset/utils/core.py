@@ -488,6 +488,7 @@ def error_msg_from_exception(ex: Exception) -> str:
 
 
 def markdown(raw: str, markup_wrap: bool | None = False) -> str:
+    """Render Markdown to sanitized HTML."""
     safe_markdown_tags = {
         "h1",
         "h2",
@@ -517,7 +518,7 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
     }
     safe_markdown_attrs = {
         "img": {"src", "alt", "title"},
-        "a": {"href", "alt", "title"},
+        "a": {"href", "alt", "title", "target"},
     }
     safe = md.markdown(
         raw or "",
@@ -528,6 +529,7 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
         ],
     )
     # pylint: disable=no-member
+    # nh3 preserves supported link attributes and enforces a safe rel value.
     safe = nh3.clean(safe, tags=safe_markdown_tags, attributes=safe_markdown_attrs)
     if markup_wrap:
         safe = Markup(safe)
