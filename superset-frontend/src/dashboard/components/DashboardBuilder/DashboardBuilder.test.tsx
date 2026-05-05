@@ -24,6 +24,7 @@ import {
   screen,
 } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   OPEN_FILTER_BAR_WIDTH,
   CLOSED_FILTER_BAR_WIDTH,
@@ -517,10 +518,15 @@ test('should apply min-height to the top-level tab drop target so tabs can be dr
   expect(droptarget).toBeInTheDocument();
 
   // Verify the StyledHeader CSS defines a non-zero min-height for
-  // .empty-droptarget (theme.sizeUnit * 4 = 16px with the default theme).
-  expect(headerWrapper).toHaveStyleRule('min-height', '16px', {
-    target: '.empty-droptarget',
-  });
+  // .empty-droptarget, derived from theme.sizeUnit * 4 to stay in sync
+  // with the source rule in DashboardBuilder.tsx.
+  expect(headerWrapper).toHaveStyleRule(
+    'min-height',
+    `${supersetTheme.sizeUnit * 4}px`,
+    {
+      target: '.empty-droptarget',
+    },
+  );
 });
 
 test('should maintain layout when switching between tabs', async () => {
