@@ -459,6 +459,28 @@ for warning in validation_result.warnings:
 - `warnings`: List of warnings (e.g., "virtual dataset may be deleted")
 - `error`: Error message if validation failed
 
+### 11. Compile Check for Chart Creation
+
+When creating, saving, or previewing charts, run schema validation (Tier 1)
+and optionally a compile check (Tier 2) before persisting or caching.
+``validate_and_compile`` glues both together; tools with tight SLAs
+(``generate_explore_link``, ``update_chart_preview``) opt out of Tier 2.
+
+```python
+from superset.mcp_service.chart.compile import validate_and_compile
+
+result = validate_and_compile(
+    config, form_data, dataset, run_compile_check=True
+)
+if not result.success:
+    # ``result.error_obj`` is a ``ChartGenerationError`` with fuzzy-match
+    # suggestions ("did you mean sum_boys?") so the LLM can self-correct.
+    ...
+```
+
+The lower-level ``_compile_chart(form_data, dataset_id)`` is still exported
+for callers that have already done their own schema validation.
+
 ## Testing Conventions
 
 ### Unit Tests
