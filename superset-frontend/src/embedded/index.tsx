@@ -18,7 +18,7 @@
  */
 import 'src/public-path';
 
-import { lazy, Suspense } from 'react';
+import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { Global } from '@emotion/react';
@@ -196,7 +196,11 @@ function start() {
       if (!root) {
         root = createRoot(appMountPoint);
       }
-      root.render(<EmbeddedApp />);
+      root.render(
+        <StrictMode>
+          <EmbeddedApp />
+        </StrictMode>,
+      );
     },
     err => {
       // something is most likely wrong with the guest token; reset the guard
