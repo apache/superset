@@ -781,7 +781,9 @@ class FilterConfig(BaseModel):
         """Sanitize filter column name to prevent injection attacks."""
         # sanitize_user_input raises ValueError when allow_empty=False (default)
         # so the return value is guaranteed to be a non-None str
-        return sanitize_user_input(v, "Filter column", max_length=255)  # type: ignore[return-value]
+        return sanitize_user_input(  # type: ignore[return-value]
+            v, "Filter column", max_length=255, check_sql_keywords=True
+        )
 
     @field_validator("value")
     @classmethod
@@ -1088,11 +1090,19 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         ),
         min_length=1,
         max_length=255,
-        # No regex pattern: sanitize_name() already blocks XSS/SQL injection;
-        # many valid column names (digit-prefixed, locale chars, etc.) would
-        # be rejected by a strict pattern while posing no security risk.
-        # Use get_dataset_info to find exact column names.
+        # No regex pattern — see field description above.
     )
+
+    @field_validator("temporal_column")
+    @classmethod
+    def sanitize_temporal_column(cls, v: str | None) -> str | None:
+        """Sanitize temporal column name to prevent XSS and SQL injection."""
+        if v is None:
+            return None
+        return sanitize_user_input(  # type: ignore[return-value]
+            v, "Temporal column", max_length=255, check_sql_keywords=True
+        )
+
     time_grain: TimeGrain | None = Field(
         None,
         description=(

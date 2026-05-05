@@ -532,7 +532,6 @@ class SchemaValidator:
         loc = " -> ".join(loc_parts)
         msg = err.get("msg", "Validation failed")
         err_type = err.get("type", "")
-        ctx = err.get("ctx", {}) or {}
         field = loc_parts[-1] if loc_parts else "field"
 
         if err_type == "string_pattern_mismatch":
@@ -543,8 +542,9 @@ class SchemaValidator:
                 "Use get_dataset_info to find exact column names",
             )
         if err_type == "literal_error":
-            expected = ctx.get("expected", "")
-            return f"'{field}' has an invalid value. Expected one of: {expected}", ""
+            # Preserve the pydantic message ("Input should be ...") which is
+            # already human-readable; just prefix with the field name for context.
+            return f"'{field}': {msg}", ""
         if err_type == "missing":
             return (
                 f"Required field '{field}' is missing",

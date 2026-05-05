@@ -806,10 +806,17 @@ class TestColumnRefNameRelaxedPattern:
         col = ColumnRef(name="Total Revenue")
         assert col.name == "Total Revenue"
 
-    def test_xss_attempt_blocked(self) -> None:
-        """sanitize_name() still blocks XSS even without the regex."""
+    def test_xss_tags_are_stripped(self) -> None:
+        """sanitize_name() strips HTML tags via nh3 rather than rejecting them.
+        The dangerous payload is neutralized; the safe text content is preserved."""
+        col = ColumnRef(name="<script>alert(1)</script>")
+        assert "<script>" not in col.name
+        assert "alert(1)" in col.name
+
+    def test_event_handler_injection_blocked(self) -> None:
+        """sanitize_name() rejects event-handler injection patterns (on...=)."""
         with pytest.raises(ValidationError):
-            ColumnRef(name="<script>alert(1)</script>")
+            ColumnRef(name="col onclick=alert(1)")
 
     def test_sql_keyword_blocked(self) -> None:
         """check_sql_keywords=True still blocks pure SQL statements."""
@@ -860,3 +867,10 @@ class TestFilterConfigColumnRelaxedPattern:
 
         f = FilterConfig(column="order-status", op="=", value="shipped")
         assert f.column == "order-status"
+
+    def test_sql_injection_in_filter_column_blocked(self) -> None:
+        """FilterConfig.sanitize_column uses check_sql_keywords=True."""
+        from superset.mcp_service.chart.schemas import FilterConfig
+
+        with pytest.raises(ValidationError):
+            FilterConfig(column="col; DROP TABLE users; --", op="=", value="x")
