@@ -1099,7 +1099,7 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         """Sanitize temporal column name to prevent XSS and SQL injection."""
         if v is None:
             return None
-        return sanitize_user_input(  # type: ignore[return-value]
+        return sanitize_user_input(
             v, "Temporal column", max_length=255, check_sql_keywords=True
         )
 
