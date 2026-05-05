@@ -30,6 +30,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -38,6 +39,7 @@ from superset.mcp_service.chart.chart_utils import (
     generate_explore_link,
     map_config_to_form_data,
 )
+from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     PerformanceMetadata,
@@ -88,7 +90,7 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
         destructiveHint=True,
     ),
 )
-def update_chart_preview(
+def update_chart_preview(  # noqa: C901
     request: UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:
     """Update cached chart preview without saving.
@@ -132,6 +134,61 @@ def update_chart_preview(
                 old_adhoc_filters = previous_form_data.get("adhoc_filters")
                 if old_adhoc_filters:
                     new_form_data["adhoc_filters"] = old_adhoc_filters
+
+            # Tier-1 schema validation against the dataset (no DB roundtrip).
+            # Runs AFTER the filter merge so filter columns are also validated.
+            from superset.daos.dataset import DatasetDAO
+
+            if isinstance(request.dataset_id, int) or (
+                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+            ):
+                dataset = DatasetDAO.find_by_id(int(request.dataset_id))
+            else:
+                dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
+
+            if dataset is None or not has_dataset_access(dataset):
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "DatasetNotAccessible",
+                        "message": (
+                            f"Dataset not found: {request.dataset_id}. "
+                            "Use list_datasets to find valid dataset IDs."
+                        ),
+                        "details": (
+                            f"Dataset {request.dataset_id} is missing or inaccessible."
+                        ),
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+
+            compile_result = validate_and_compile(
+                config, new_form_data, dataset, run_compile_check=False
+            )
+            if not compile_result.success:
+                logger.warning(
+                    "update_chart_preview validation failed: %s",
+                    compile_result.error,
+                )
+                if compile_result.error_obj is not None:
+                    error_payload = compile_result.error_obj.model_dump()
+                else:
+                    error_payload = {
+                        "error_type": "validation_error",
+                        "message": "Chart preview validation failed",
+                        "details": compile_result.error or "",
+                        "error_code": compile_result.error_code,
+                        "suggestions": [],
+                    }
+                return {
+                    "chart": None,
+                    "error": error_payload,
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
 
             # Generate new explore link with updated form_data
             explore_url = generate_explore_link(request.dataset_id, new_form_data)
