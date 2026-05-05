@@ -36,7 +36,6 @@ import {
   MenuData,
 } from 'src/types/bootstrapTypes';
 import RightMenu from './RightMenu';
-import * as SupersetCore from '@superset-ui/core';
 import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
 interface MenuProps {
@@ -218,13 +217,13 @@ export function Menu({
     const path = location.pathname;
     switch (true) {
       case path.startsWith(Paths.Dashboard):
-        setActiveTabs([SupersetCore.t('Dashboards')]);
+        setActiveTabs([t('Dashboards')]);
         break;
       case path.startsWith(Paths.Chart) || path.startsWith(Paths.Explore):
-        setActiveTabs([SupersetCore.t('Charts')]);
+        setActiveTabs([t('Charts')]);
         break;
       case path.startsWith(Paths.Datasets):
-        setActiveTabs([SupersetCore.t('Datasets')]);
+        setActiveTabs([t('Datasets')]);
         break;
       case path.startsWith(Paths.SqlLab) || path.startsWith(Paths.SavedQueries):
         setActiveTabs(['SQL']);
@@ -266,7 +265,7 @@ export function Menu({
       if (typeof child === 'string' && child === '-' && label !== 'Data') {
         childItems.push({ type: 'divider', key: `divider-${index1}` });
       } else if (typeof child !== 'string') {
-        Object.assign(child, { label: SupersetCore.t(child.label) });
+        Object.assign(child, { label: t(child.label) });
         childItems.push({
           key: `${child.label}`,
           label: child.isFrontendRoute ? (
@@ -367,7 +366,7 @@ export function Menu({
             items={menu.map(item => {
               const props = {
                 ...item,
-                label: SupersetCore.t(item.label),
+                label: t(item.label),
                 isFrontendRoute: isFrontendRoute(item.url),
                 childs: item.childs?.map(c => {
                   if (typeof c === 'string') {
@@ -422,16 +421,16 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
     const children: (MenuObjectProps | string)[] = [];
     const newItem = {
       ...item,
-      label: SupersetCore.t(item.label),
+      label: t(item.label),
     };
 
     // Filter childs
     if (item.childs) {
       item.childs.forEach((child: MenuObjectChildProps | string) => {
         if (typeof child === 'string') {
-          children.push(SupersetCore.t(child));
+          children.push(t(child));
         } else if ((child as MenuObjectChildProps).label) {
-          Object.assign(child, { label: SupersetCore.t(child.label) });
+          Object.assign(child, { label: t(child.label) });
           children.push(child);
         }
       });
