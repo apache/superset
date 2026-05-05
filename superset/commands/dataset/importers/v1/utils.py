@@ -20,7 +20,7 @@ import os
 import re
 from typing import Any
 from urllib import request
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from urllib.request import HTTPRedirectHandler
 
 import pandas as pd
@@ -59,7 +59,10 @@ class _ValidatingRedirectHandler(HTTPRedirectHandler):
         newurl: str,
     ) -> request.Request | None:
         """Validate each redirect target before delegating to the parent handler."""
-        validate_data_uri(newurl)
+        # Resolve relative redirects against the originating request URL so that
+        # validate_data_uri receives a fully-qualified URL in all cases.
+        absolute_url = urljoin(req.full_url, newurl)
+        validate_data_uri(absolute_url)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 

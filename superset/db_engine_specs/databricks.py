@@ -396,7 +396,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         if not is_safe_host(host):  # type: ignore
             errors.append(
                 SupersetError(
-                    message="The hostname provided can't be resolved.",
+                    message="The hostname provided can't be resolved or is not allowed.",
                     error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
                     level=ErrorLevel.ERROR,
                     extra={"invalid": ["host"]},
