@@ -262,7 +262,7 @@ export function Menu({
 
     const childItems: MenuItem[] = [];
     childs?.forEach((child: MenuObjectChildProps | string, index1: number) => {
-      if (typeof child === 'string' && child === '-' && label !== 'Data') {
+      if (typeof child === 'string' && child === '-' && label !== t('Data')) {
         childItems.push({ type: 'divider', key: `divider-${index1}` });
       } else if (typeof child !== 'string') {
         Object.assign(child, { label: t(child.label) });
