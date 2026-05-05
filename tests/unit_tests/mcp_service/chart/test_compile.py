@@ -185,16 +185,32 @@ class TestValidateAndCompileChartTypeCoverage:
         assert result.error_obj is not None
         assert result.error_obj.error_code == "INVALID_AGGREGATION"
 
-    def test_pivot_table_min_on_non_numeric_column_rejected(self):
+    def test_pivot_table_sum_on_non_numeric_column_rejected(self):
+        ds = _orm_dataset()
+        config = PivotTableChartConfig(
+            rows=[ColumnRef(name="gender")],
+            metrics=[ColumnRef(name="name", aggregate="SUM")],
+        )
+        result = validate_and_compile(config, {}, ds, run_compile_check=False)
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "INVALID_AGGREGATION"
+
+    def test_pivot_table_min_on_non_numeric_column_passes(self):
+        """MIN and MAX are not numeric-only (valid on dates/text in SQL).
+
+        They are left to the Tier-2 compile check rather than being rejected
+        by Tier-1 schema validation.
+        """
         ds = _orm_dataset()
         config = PivotTableChartConfig(
             rows=[ColumnRef(name="gender")],
             metrics=[ColumnRef(name="name", aggregate="MIN")],
         )
         result = validate_and_compile(config, {}, ds, run_compile_check=False)
-        assert not result.success
-        assert result.error_obj is not None
-        assert result.error_obj.error_code == "INVALID_AGGREGATION"
+        assert result.success, (
+            "MIN on a text column should not be rejected by Tier-1 validation"
+        )
 
     def test_table_with_invalid_filter_column_rejected(self):
         ds = _orm_dataset()
@@ -319,6 +335,60 @@ class TestAdhocFiltersFromFormData:
         }
         result = validate_and_compile(config, form_data, ds, run_compile_check=False)
         assert result.success
+
+    def test_where_filter_with_metric_name_rejected(self):
+        """A saved-metric name used as a WHERE filter subject must be rejected.
+
+        WHERE filters need a physical column; metric names are only valid in
+        HAVING clauses where Superset can resolve them.
+        """
+        ds = _orm_dataset()
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="gender")]
+        )
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": "WHERE",
+                    "subject": "sum_boys",  # saved metric, not a physical column
+                    "operator": ">",
+                    "comparator": "0",
+                }
+            ]
+        }
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+        assert not result.success, (
+            "A saved-metric name used in a WHERE filter must not pass Tier-1"
+        )
+        assert result.error_obj is not None
+        assert "sum_boys" in (result.error_obj.message or "")
+
+    def test_having_filter_with_metric_name_passes(self):
+        """A saved-metric name used in a HAVING filter must be accepted.
+
+        HAVING filters are aggregate-level conditions; Superset resolves metric
+        names there so they are valid references.
+        """
+        ds = _orm_dataset()
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="gender")]
+        )
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": "HAVING",
+                    "subject": "sum_boys",  # saved metric — valid in HAVING
+                    "operator": ">",
+                    "comparator": "0",
+                }
+            ]
+        }
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+        assert result.success, (
+            "A saved-metric name in a HAVING filter should pass Tier-1 validation"
+        )
 
 
 class TestValidateAndCompileTier2:

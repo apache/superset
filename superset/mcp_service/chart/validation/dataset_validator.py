@@ -608,8 +608,12 @@ class DatasetValidator:
                     break
 
             if col_info:
-                # Check numeric aggregates on non-numeric columns
-                numeric_aggs = ["SUM", "AVG", "MIN", "MAX", "STDDEV", "VAR", "MEDIAN"]
+                # Check numeric aggregates on non-numeric columns.
+                # MIN and MAX are intentionally excluded: they work on dates
+                # and text in most SQL engines, so restricting them here would
+                # produce false-positive errors.  Leave those to the Tier-2
+                # compile check.
+                numeric_aggs = ["SUM", "AVG", "STDDEV", "VAR", "MEDIAN"]
                 if (
                     col_ref.aggregate in numeric_aggs
                     and not col_info.get("is_numeric", False)

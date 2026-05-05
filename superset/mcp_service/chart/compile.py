@@ -203,6 +203,22 @@ def _compile_chart(
         )
 
 
+def _adhoc_filter_column_valid(
+    column: str, clause: str, dataset_context: DatasetContext
+) -> bool:
+    """Return True if *column* is a valid reference for this filter clause.
+
+    WHERE filters must reference a physical column; HAVING filters may also
+    reference a saved metric because Superset resolves metric names there.
+    """
+    if clause == "HAVING":
+        return DatasetValidator._column_exists(column, dataset_context)
+    return any(
+        col["name"].lower() == column.lower()
+        for col in dataset_context.available_columns
+    )
+
+
 def _validate_adhoc_filter_columns(
     form_data: Dict[str, Any], dataset_context: DatasetContext
 ) -> ChartGenerationError | None:
@@ -228,7 +244,8 @@ def _validate_adhoc_filter_columns(
         column = f.get("subject") or f.get("col")
         if not column or not isinstance(column, str):
             continue
-        if not DatasetValidator._column_exists(column, dataset_context):
+        clause = f.get("clause", "WHERE").upper()
+        if not _adhoc_filter_column_valid(column, clause, dataset_context):
             invalid.append(column)
 
     if not invalid:
