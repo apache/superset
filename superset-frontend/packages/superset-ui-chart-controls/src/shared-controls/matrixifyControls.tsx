@@ -19,7 +19,7 @@
  */
 
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { SharedControlConfig } from '../types';
+import { ControlStateMapping, SharedControlConfig } from '../types';
 import { dndAdhocMetricControl } from './dndControls';
 import { defineSavedMetrics } from '../utils';
 
@@ -28,9 +28,12 @@ import { defineSavedMetrics } from '../utils';
  * Controls for transforming charts into matrix/grid layouts
  */
 
-// Utility function to check if matrixify controls should be visible
+// Utility function to check if matrixify controls should be visible.
+// Controls both visibility callbacks and validator injection via mapStateToProps.
+// The matrixify_enable guard prevents hidden validators from firing on
+// pre-revamp charts with stale matrixify_mode defaults (fix for #38519).
 const isMatrixifyVisible = (
-  controls: any,
+  controls: ControlStateMapping | undefined,
   axis: 'rows' | 'columns',
   mode?: 'metrics' | 'dimensions',
   selectionMode?: 'members' | 'topn' | 'all',

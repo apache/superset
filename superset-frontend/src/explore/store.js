@@ -21,13 +21,44 @@ import { getChartControlPanelRegistry, VizType } from '@superset-ui/core';
 import { getAllControlsState, getFormDataFromControls } from './controlUtils';
 import { controls } from './controls';
 
-function handleDeprecatedControls(formData) {
+export function handleDeprecatedControls(formData) {
   // Reaffectation / handling of deprecated controls
   /* eslint-disable no-param-reassign */
 
   // y_axis_zero was a boolean forcing 0 to be part of the Y Axis
   if (formData.y_axis_zero) {
     formData.y_axis_bounds = [0, null];
+  }
+
+  // #38519: migrate pre-revamp matrixify controls to the new single-toggle
+  // system. Before the revamp, per-axis enable flags
+  // (matrixify_enable_vertical_layout / matrixify_enable_horizontal_layout)
+  // gated visibility, and matrixify_mode_rows/columns defaulted to
+  // non-disabled values ('dimensions'/'metrics'). The revamp replaced those
+  // with a single matrixify_enable toggle and mode default 'disabled'.
+  //
+  // Charts that actually used matrixify pre-revamp have the old per-axis
+  // flags set to true — we must preserve their modes and set
+  // matrixify_enable: true. Charts that never used matrixify (or predate it)
+  // need stale mode defaults reset to 'disabled' because 4 downstream UI
+  // consumers (ExploreChartPanel, ChartContextMenu, DrillBySubmenu,
+  // ChartRenderer) infer "matrixify is active" from mode values alone.
+  if (!('matrixify_enable' in formData)) {
+    const hadVerticalLayout =
+      formData.matrixify_enable_vertical_layout === true;
+    const hadHorizontalLayout =
+      formData.matrixify_enable_horizontal_layout === true;
+
+    if (hadVerticalLayout || hadHorizontalLayout) {
+      // Pre-revamp chart that genuinely used matrixify — migrate to new flag
+      formData.matrixify_enable = true;
+      if (!hadVerticalLayout) formData.matrixify_mode_rows = 'disabled';
+      if (!hadHorizontalLayout) formData.matrixify_mode_columns = 'disabled';
+    } else {
+      // Never used matrixify — reset stale defaults
+      formData.matrixify_mode_rows = 'disabled';
+      formData.matrixify_mode_columns = 'disabled';
+    }
   }
 }
 
@@ -61,24 +92,30 @@ export function getControlsState(state, inputFormData) {
 }
 
 export function applyDefaultFormData(inputFormData) {
-  const datasourceType = inputFormData.datasource.split('__')[1];
-  const vizType = inputFormData.viz_type;
+  // Normalize deprecated controls before building control state — ensures
+  // stale matrixify modes are cleaned on the dashboard hydration path too,
+  // not just the explore path (getControlsState).
+  const cleanedFormData = { ...inputFormData };
+  handleDeprecatedControls(cleanedFormData);
+
+  const datasourceType = cleanedFormData.datasource?.split('__')[1] ?? '';
+  const vizType = cleanedFormData.viz_type;
   const controlsState = getAllControlsState(
     vizType,
     datasourceType,
     null,
-    inputFormData,
+    cleanedFormData,
   );
   const controlFormData = getFormDataFromControls(controlsState);
 
   const formData = {};
   Object.keys(controlsState)
-    .concat(Object.keys(inputFormData))
+    .concat(Object.keys(cleanedFormData))
     .forEach(controlName => {
-      if (inputFormData[controlName] === undefined) {
+      if (cleanedFormData[controlName] === undefined) {
         formData[controlName] = controlFormData[controlName];
       } else {
-        formData[controlName] = inputFormData[controlName];
+        formData[controlName] = cleanedFormData[controlName];
       }
     });
 
