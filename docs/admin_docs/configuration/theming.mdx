@@ -84,6 +84,35 @@ THEME_DARK = {
 # - OS preference detection is automatically enabled
 ```
 
+### App Branding
+
+The application name shown in the browser title bar and navigation can be
+set via the `brandAppName` theme token:
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "brandAppName": "Acme Analytics",
+        # ... other tokens
+    }
+}
+```
+
+Or in the theme CRUD UI JSON editor:
+
+```json
+{
+  "token": {
+    "brandAppName": "Acme Analytics"
+  }
+}
+```
+
+The existing `APP_NAME` Python config key continues to work for backward compatibility.
+`brandAppName` takes precedence when both are set, and allows different themes to carry different brand names.
+Email and alert/report notification subjects are driven by backend settings such as
+`EMAIL_REPORTS_SUBJECT_PREFIX` and `APP_NAME`, not by this theme token.
+
 ### Migration from Configuration to UI
 
 When `ENABLE_UI_THEME_ADMINISTRATION = True`:
@@ -312,11 +341,25 @@ Available chart types for `echartsOptionsOverridesByChartType`:
 - `echarts_heatmap` - Heatmaps
 - `echarts_mixed_timeseries` - Mixed time series
 
+### Array Property Overrides
+
+Array properties (such as color palettes) are fully supported in overrides. Arrays are **replaced entirely** rather than merged, so specify the complete array:
+
+```python
+THEME_DEFAULT = {
+    "token": { ... },
+    "echartsOptionsOverrides": {
+        # Replace the default color palette for all ECharts visualizations
+        "color": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+    }
+}
+```
+
 ### Best Practices
 
 1. **Start with global overrides** for consistent styling across all charts
 2. **Use chart-specific overrides** for unique requirements per visualization type
-3. **Test thoroughly** as overrides use deep merge - nested objects are combined, but arrays are completely replaced
+3. **Test thoroughly** as overrides use deep merge for objects, but arrays are completely replaced — always specify the full array value
 4. **Document your overrides** to help team members understand custom styling
 5. **Consider performance** - complex overrides may impact chart rendering speed
 
