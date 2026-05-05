@@ -19,6 +19,9 @@
 Unit tests for update_chart_preview MCP tool
 """
 
+import importlib
+from unittest.mock import Mock, patch
+
 import pytest
 
 from superset.mcp_service.chart.schemas import (
@@ -29,6 +32,10 @@ from superset.mcp_service.chart.schemas import (
     TableChartConfig,
     UpdateChartPreviewRequest,
     XYChartConfig,
+)
+
+update_chart_preview_module = importlib.import_module(
+    "superset.mcp_service.chart.tool.update_chart_preview"
 )
 
 
@@ -218,6 +225,7 @@ class TestUpdateChartPreview:
             "explore_url",
             "form_data_key",
             "previous_form_data_key",
+            "warnings",
             "api_endpoints",
             "performance",
             "accessibility",
@@ -472,3 +480,165 @@ class TestUpdateChartPreview:
         )
         assert request.config.sort_by == ["sales", "profit"]
         assert len(request.config.columns) == 3
+
+    @patch("superset.commands.explore.form_data.get.GetFormDataCommand")
+    def test_get_previous_form_data_parses_json_cache_hit(
+        self,
+        mock_get_form_data_command,
+    ) -> None:
+        """Previous form_data lookup parses JSON strings from the cache."""
+        cached_adhoc_filters = [
+            {
+                "clause": "WHERE",
+                "comparator": "North",
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "region",
+            }
+        ]
+        mock_get_form_data_command.return_value.run.return_value = (
+            '{"adhoc_filters": ['
+            '{"clause": "WHERE", "comparator": "North", '
+            '"expressionType": "SIMPLE", "operator": "==", "subject": "region"}'
+            '], "viz_type": "table"}'
+        )
+
+        result = update_chart_preview_module._get_previous_form_data("valid_key_12345")
+
+        assert result == {
+            "adhoc_filters": cached_adhoc_filters,
+            "viz_type": "table",
+        }
+        command_params = mock_get_form_data_command.call_args.args[0]
+        assert command_params.key == "valid_key_12345"
+
+    @patch("superset.commands.explore.form_data.get.GetFormDataCommand")
+    def test_get_previous_form_data_returns_none_for_cache_failure(
+        self,
+        mock_get_form_data_command,
+    ) -> None:
+        """Previous form_data lookup treats command failures as cache misses."""
+        mock_get_form_data_command.return_value.run.side_effect = (
+            update_chart_preview_module.CommandException("cache read failed")
+        )
+
+        result = update_chart_preview_module._get_previous_form_data(
+            "missing_key_12345"
+        )
+
+        assert result is None
+
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    @pytest.mark.asyncio
+    async def test_warns_when_previous_form_data_key_is_missing(
+        self,
+        mock_get_user_from_request,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+    ) -> None:
+        """Invalid previous form_data_key is warning-only for preview updates."""
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_get_user_from_request.return_value = mock_user
+        mock_get_previous_form_data.return_value = None
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_preview_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+
+        request = UpdateChartPreviewRequest(
+            form_data_key="nonexistent_key_12345",
+            dataset_id=3,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[
+                    ColumnRef(name="country", label="Country"),
+                    ColumnRef(name="sales", label="Sales", aggregate="SUM"),
+                ],
+                sort_by=["sales"],
+            ),
+            generate_preview=True,
+            preview_formats=["table"],
+        )
+
+        result = update_chart_preview_module.update_chart_preview(
+            request=request, ctx=Mock()
+        )
+
+        assert result["success"] is True
+        assert result["error"] is None
+        assert result["previous_form_data_key"] == "nonexistent_key_12345"
+        assert result["form_data_key"] == "new_preview_key"
+        assert result["warnings"] == [
+            update_chart_preview_module.INVALID_FORM_DATA_KEY_WARNING
+        ]
+        mock_get_previous_form_data.assert_called_once_with("nonexistent_key_12345")
+
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    @pytest.mark.asyncio
+    async def test_preserves_previous_adhoc_filters_without_warning(
+        self,
+        mock_get_user_from_request,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+    ) -> None:
+        """Valid previous form_data preserves filters without a cache warning."""
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_get_user_from_request.return_value = mock_user
+        cached_adhoc_filters = [
+            {
+                "clause": "WHERE",
+                "comparator": "North",
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "region",
+            }
+        ]
+        mock_get_previous_form_data.return_value = {
+            "adhoc_filters": cached_adhoc_filters
+        }
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_preview_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+
+        request = UpdateChartPreviewRequest(
+            form_data_key="valid_key_12345",
+            dataset_id=3,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[
+                    ColumnRef(name="country", label="Country"),
+                    ColumnRef(name="sales", label="Sales", aggregate="SUM"),
+                ],
+                sort_by=["sales"],
+            ),
+            generate_preview=True,
+            preview_formats=["table"],
+        )
+
+        result = update_chart_preview_module.update_chart_preview(
+            request=request, ctx=Mock()
+        )
+
+        generated_form_data = mock_generate_explore_link.call_args.args[1]
+        assert generated_form_data["adhoc_filters"] == cached_adhoc_filters
+        assert result["success"] is True
+        assert result["error"] is None
+        assert result["warnings"] == []
+        mock_get_previous_form_data.assert_called_once_with("valid_key_12345")
