@@ -1065,13 +1065,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if response := self.ensure_owners_write_access():
+        if response := self.ensure_owners_write_access(column_name):
             return response
         return super().related(column_name, **kwargs)
 
-    def ensure_owners_write_access(self) -> Optional[Response]:
+    def ensure_owners_write_access(self, column_name: str) -> Optional[Response]:
         """Restrict the owners related field to users with write access."""
-        if request.view_args.get("column_name") == "owners" and not (
+        if column_name == "owners" and not (
             security_manager.can_access("can_write", self.class_permission_name)
         ):
             return self.response_403()

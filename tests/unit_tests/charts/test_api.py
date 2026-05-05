@@ -17,7 +17,6 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from flask import current_app, request as flask_request
 
 from superset.charts.api import ChartRestApi
 
@@ -37,13 +36,11 @@ def test_ensure_owners_write_access_blocks_read_only_users(
     api = _make_api()
     api.response_403 = MagicMock(return_value="forbidden")
 
-    with current_app.test_request_context(f"/api/v1/chart/related/{column_name}"):
-        flask_request.view_args = {"column_name": column_name}
-        with patch(
-            "superset.charts.api.security_manager.can_access",
-            return_value=False,
-        ) as mock_can_access:
-            result = api.ensure_owners_write_access()
+    with patch(
+        "superset.charts.api.security_manager.can_access",
+        return_value=False,
+    ) as mock_can_access:
+        result = api.ensure_owners_write_access(column_name)
 
     mock_can_access.assert_called_once_with("can_write", "Chart")
     assert result == "forbidden"
@@ -53,13 +50,11 @@ def test_ensure_owners_write_access_allows_write_users() -> None:
     """Users with write access receive None (request proceeds normally)."""
     api = _make_api()
 
-    with current_app.test_request_context("/api/v1/chart/related/owners"):
-        flask_request.view_args = {"column_name": "owners"}
-        with patch(
-            "superset.charts.api.security_manager.can_access",
-            return_value=True,
-        ):
-            result = api.ensure_owners_write_access()
+    with patch(
+        "superset.charts.api.security_manager.can_access",
+        return_value=True,
+    ):
+        result = api.ensure_owners_write_access("owners")
 
     assert result is None
 
@@ -71,12 +66,10 @@ def test_ensure_owners_write_access_skips_non_owners_fields(
     """Non-owners related fields bypass the write-access check entirely."""
     api = _make_api()
 
-    with current_app.test_request_context(f"/api/v1/chart/related/{column_name}"):
-        flask_request.view_args = {"column_name": column_name}
-        with patch(
-            "superset.charts.api.security_manager.can_access",
-        ) as mock_can_access:
-            result = api.ensure_owners_write_access()
+    with patch(
+        "superset.charts.api.security_manager.can_access",
+    ) as mock_can_access:
+        result = api.ensure_owners_write_access(column_name)
 
     mock_can_access.assert_not_called()
     assert result is None
