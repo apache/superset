@@ -229,6 +229,105 @@ class TestExecuteSql:
             assert "{{ table }}" in data["statements"][0]["original_sql"]
             assert "orders" in data["statements"][0]["executed_sql"]
 
+    @patch("superset.is_feature_enabled")
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_template_warning_when_flag_disabled(
+        self, mock_db, mock_security_manager, mock_is_feature_enabled, mcp_server
+    ):
+        """Warn when template_params is set but ENABLE_TEMPLATE_PROCESSING is off."""
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[],
+            columns=["id"],
+            original_sql="SELECT * FROM users WHERE id = '{{ user_id }}'",
+            executed_sql="SELECT * FROM users WHERE id = '{{ user_id }}'",
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+        mock_is_feature_enabled.return_value = False
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT * FROM users WHERE id = '{{ user_id }}'",
+            "template_params": {"user_id": "42"},
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+
+            assert data["success"] is True
+            assert data["template_warning"] is not None
+            assert "ENABLE_TEMPLATE_PROCESSING" in data["template_warning"]
+            mock_is_feature_enabled.assert_called_with("ENABLE_TEMPLATE_PROCESSING")
+
+    @patch("superset.is_feature_enabled")
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_no_template_warning_when_flag_enabled(
+        self, mock_db, mock_security_manager, mock_is_feature_enabled, mcp_server
+    ):
+        """No warning when ENABLE_TEMPLATE_PROCESSING is on."""
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[{"id": 42}],
+            columns=["id"],
+            original_sql="SELECT * FROM users WHERE id = '42'",
+            executed_sql="SELECT * FROM users WHERE id = '42'",
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+        mock_is_feature_enabled.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT * FROM users WHERE id = '{{ user_id }}'",
+            "template_params": {"user_id": "42"},
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+
+            assert data["success"] is True
+            assert data["template_warning"] is None
+
+    @patch("superset.is_feature_enabled")
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_no_template_warning_without_template_params(
+        self, mock_db, mock_security_manager, mock_is_feature_enabled, mcp_server
+    ):
+        """No warning when template_params is not supplied, even with flag off."""
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[{"id": 1}],
+            columns=["id"],
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+        mock_is_feature_enabled.return_value = False
+
+        request = {"database_id": 1, "sql": "SELECT id FROM users"}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+
+            assert data["success"] is True
+            assert data["template_warning"] is None
+            mock_is_feature_enabled.assert_not_called()
+
     @patch("superset.security_manager")
     @patch("superset.db")
     @pytest.mark.asyncio
