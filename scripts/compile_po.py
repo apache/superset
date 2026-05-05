@@ -30,7 +30,7 @@ _SHELL = os.name == "nt"
 
 
 def run_command(command: list[str]) -> int:
-    result = subprocess.run(command, text=True, shell=_SHELL)  # noqa: S603
+    result = subprocess.run(command, text=True, shell=_SHELL, check=False)  # noqa: S603
     return result.returncode
 
 
