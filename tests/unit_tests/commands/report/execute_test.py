@@ -768,14 +768,18 @@ def test_get_dashboard_urls_flag_off_preserves_url_params(
     mocker: MockerFixture,
     app,
 ) -> None:
-    """When ALERT_REPORT_TABS is disabled, the fall-through path must still
-    honor any urlParams set in extra.dashboard (e.g. via API) — same merge
-    semantics as the protected branch."""
+    """The post-``if``-block fall-through in ``get_dashboard_urls`` must
+    honor any urlParams set in ``extra.dashboard`` (e.g. via API) — same
+    merge semantics as the protected branch.
+
+    Reachability: only when ``dashboard_state`` is falsy OR
+    ``ALERT_REPORT_TABS=False``. The flag-on / no-anchor case lands in
+    the single-tab merge at L290-306, not here.
+    """
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
-    mock_report_schedule.force_screenshot = False
     native_filter_rison = "(NATIVE_FILTER-abc:!(val1))"
     mock_report_schedule.extra = {
         "dashboard": {
