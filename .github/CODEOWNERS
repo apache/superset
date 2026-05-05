@@ -36,6 +36,10 @@
 **/*.geojson @villebro @rusackas
 /superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
 
+# Notify translation maintainers of changes to translations
+
+/superset/translations/ @sfirke
+
 # Notify PMC members of changes to extension-related files
 
 /docs/developer_portal/extensions/ @michael-s-molina @villebro @rusackas

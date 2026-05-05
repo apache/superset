@@ -36,6 +36,8 @@ import {
   SMART_DATE_ID,
   getTimeFormatterForGranularity,
 } from '@superset-ui/core';
+import { CellProps, Column, HeaderProps } from 'react-table';
+import DataTable from '../src/DataTable/DataTable';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
@@ -1935,6 +1937,25 @@ describe('plugin-chart-table', () => {
         expect(clearCall![0].extraFormData.filters).toEqual([]);
       });
 
+      test('page size selector arrow stays above resize handles (#39305)', () => {
+        // .resize-handle elements in dashboard ResizableContainer sit at
+        // z-index: 10 — the page size arrow must stack above them or it
+        // gets covered on dashboard charts.
+        const { container } = render(
+          ProviderWrapper({
+            children: (
+              <TableChart {...transformProps(testData.basic)} sticky={false} />
+            ),
+          }),
+        );
+
+        const arrow = container.querySelector(
+          '.dt-select-page-size .ant-select .ant-select-arrow',
+        );
+        expect(arrow).not.toBeNull();
+        expect(getComputedStyle(arrow as HTMLElement).zIndex).toBe('11');
+      });
+
       test('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,
@@ -1978,6 +1999,222 @@ describe('plugin-chart-table', () => {
             String(totalAfterFilter),
           );
           expect(totalCellAfter).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text across temporal table rerenders', async () => {
+        const formDataWithSearch = {
+          ...testData.basic.formData,
+          include_search: true,
+          server_pagination: false,
+        };
+
+        const renderChart = () => {
+          const props = transformProps({
+            ...testData.basic,
+            formData: formDataWithSearch,
+          });
+          props.includeSearch = true;
+
+          return (
+            <ProviderWrapper>
+              <TableChart {...props} sticky={false} />
+            </ProviderWrapper>
+          );
+        };
+
+        const { rerender } = render(renderChart());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderChart());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text when rerendered with empty data', async () => {
+        const formDataWithSearch = {
+          ...testData.basic.formData,
+          include_search: true,
+          server_pagination: false,
+        };
+
+        const renderChart = (data = testData.basic.queriesData[0].data) => {
+          const props = transformProps({
+            ...testData.basic,
+            formData: formDataWithSearch,
+            queriesData: [
+              {
+                ...testData.basic.queriesData[0],
+                data,
+              },
+            ],
+          });
+          props.includeSearch = true;
+
+          return (
+            <ProviderWrapper>
+              <TableChart {...props} sticky={false} />
+            </ProviderWrapper>
+          );
+        };
+
+        const { rerender } = render(renderChart());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderChart([]));
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByLabelText('Search 0 records')).toHaveValue(
+            'Michael',
+          );
+        });
+      });
+
+      test('preserves client-side search text for function accessor columns', async () => {
+        type DataRow = {
+          city: string;
+          firstName: string;
+        };
+
+        const makeColumns = (): Column<DataRow>[] => [
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>First name</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            id: 'firstName',
+            accessor: ((row: DataRow) => row.firstName) as never,
+          },
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>City</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            id: 'city',
+            accessor: ((row: DataRow) => row.city) as never,
+          },
+        ];
+
+        const data: DataRow[] = [
+          { firstName: 'Michael', city: 'Paris' },
+          { firstName: 'Jordan', city: 'London' },
+        ];
+
+        const renderDataTable = () => (
+          <ProviderWrapper>
+            <DataTable<DataRow>
+              columns={makeColumns()}
+              data={data}
+              rowCount={data.length}
+              serverPagination={false}
+              serverPaginationData={{}}
+              onServerPaginationChange={jest.fn()}
+              handleSortByChange={jest.fn()}
+              sortByFromParent={[]}
+              onSearchColChange={jest.fn()}
+              searchOptions={[]}
+              sticky={false}
+            />
+          </ProviderWrapper>
+        );
+
+        const { rerender } = render(renderDataTable());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderDataTable());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+      });
+
+      test('preserves client-side search text for string accessor columns without ids', async () => {
+        type DataRow = {
+          city: string;
+          firstName: string;
+        };
+
+        const makeColumns = (): Column<DataRow>[] => [
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>First name</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            accessor: 'firstName',
+          },
+          {
+            Header: ({ column }: HeaderProps<DataRow>) => (
+              <th data-column-name={column.id}>City</th>
+            ),
+            Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
+            accessor: 'city',
+          },
+        ];
+
+        const data: DataRow[] = [
+          { firstName: 'Michael', city: 'Paris' },
+          { firstName: 'Jordan', city: 'London' },
+        ];
+
+        const renderDataTable = () => (
+          <ProviderWrapper>
+            <DataTable<DataRow>
+              columns={makeColumns()}
+              data={data}
+              rowCount={data.length}
+              serverPagination={false}
+              serverPaginationData={{}}
+              onServerPaginationChange={jest.fn()}
+              handleSortByChange={jest.fn()}
+              sortByFromParent={[]}
+              onSearchColChange={jest.fn()}
+              searchOptions={[]}
+              sticky={false}
+            />
+          </ProviderWrapper>
+        );
+
+        const { rerender } = render(renderDataTable());
+
+        const searchInput = screen.getByRole('textbox');
+        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+
+        await waitFor(() => {
+          expect(searchInput).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
+        });
+
+        rerender(renderDataTable());
+
+        await waitFor(() => {
+          expect(screen.getByRole('textbox')).toHaveValue('Michael');
+          expect(screen.getByText('Michael')).toBeInTheDocument();
         });
       });
     });
@@ -2121,5 +2358,78 @@ describe('plugin-chart-table', () => {
       expect(filters[0].col).toBe('name');
       expect(filters[0].val).toEqual(['Michael']);
     });
+  });
+});
+
+/**
+ * DRILL-TO-DETAIL FIX VERIFICATION (#23847)
+ */
+describe('Drill-to-Detail Temporal Range Logic', () => {
+  const renderChartAndOpenContextMenu = (
+    timeGrain?: TimeGranularity,
+    timestampValue?: string | number | null,
+  ) => {
+    const onContextMenu = jest.fn();
+    const data = cloneDeep(testData.basic);
+
+    if (timestampValue !== undefined) {
+      data.queriesData[0].data[0].__timestamp = timestampValue;
+    }
+
+    const props = transformProps({
+      ...data,
+      rawFormData: {
+        ...data.rawFormData,
+        ...(timeGrain ? { time_grain_sqla: timeGrain } : {}),
+      },
+      hooks: { onAddFilter: jest.fn(), onContextMenu, setDataMask: jest.fn() },
+    });
+    render(<TableChart {...props} sticky={false} />);
+
+    const tbody = screen.getAllByRole('rowgroup')[1];
+    fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
+
+    const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
+    return drillToDetail.find((f: any) => f.col === '__timestamp');
+  };
+
+  test('uses TEMPORAL_RANGE for monthly grain', () => {
+    const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH);
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toContain(
+      '2020-01-01T12:34:56.000Z : 2020-02-01T00:00:00.000Z',
+    );
+  });
+
+  test('uses the full bucket for week ending sunday grain', () => {
+    const filter = renderChartAndOpenContextMenu(
+      TimeGranularity.WEEK_ENDING_SUNDAY,
+      '2020-01-05T00:00:00',
+    );
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toBe(
+      '2019-12-30T00:00:00.000Z : 2020-01-06T00:00:00.000Z',
+    );
+  });
+
+  test('uses the full bucket for week ending saturday grain', () => {
+    const filter = renderChartAndOpenContextMenu(
+      TimeGranularity.WEEK_ENDING_SATURDAY,
+      '2020-01-04T00:00:00',
+    );
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toBe(
+      '2019-12-29T00:00:00.000Z : 2020-01-05T00:00:00.000Z',
+    );
+  });
+
+  test('correctly handles NULL values by emitting IS NULL instead of 1970 timestamp', () => {
+    const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH, null);
+
+    expect(filter.op).toBe('IS NULL');
+    expect(filter.val).toBeNull();
   });
 });

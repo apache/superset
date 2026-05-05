@@ -107,7 +107,7 @@ test('accepts an edited metric from an AdhocMetricEditPopover', async () => {
   userEvent.click(metricLabel);
 
   await screen.findByText('aggregate');
-  selectOption('AVG', 'Select aggregate options');
+  await selectOption('AVG', 'Select aggregate options');
 
   await screen.findByText('AVG(value)');
 
