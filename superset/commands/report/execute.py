@@ -293,12 +293,9 @@ class BaseReportState:
             # overwriting — dashboard_state may already have urlParams
             # (e.g. standalone=true) that must be preserved.
             state: DashboardPermalinkState = {**dashboard_state}
-            existing_params: list[Sequence[str]] = state.get("urlParams") or []
-            merged_params: list[Sequence[str]] = [
-                list(p) for p in existing_params if p[0] != "native_filters"
-            ]
-            merged_params.append(["native_filters", native_filter_params or ""])
-            state["urlParams"] = merged_params
+            state["urlParams"] = self._merge_native_filters_into_url_params(
+                state.get("urlParams"), native_filter_params
+            )
             return [
                 self._get_tab_url(
                     state,
@@ -316,16 +313,14 @@ class BaseReportState:
             # set via API even when ALERT_REPORT_TABS is off — same merge
             # semantics as the protected branch above.
             fallback_state = self._report_schedule.extra.get("dashboard") or {}
-            fallback_existing: list[Sequence[str]] = (
-                fallback_state.get("urlParams") or []
-            )
-            fallback_merged: list[Sequence[str]] = [
-                list(p) for p in fallback_existing if p[0] != "native_filters"
-            ]
-            fallback_merged.append(["native_filters", native_filter_params])
             return [
                 self._get_tab_url(
-                    {"urlParams": fallback_merged},
+                    {
+                        "urlParams": self._merge_native_filters_into_url_params(
+                            fallback_state.get("urlParams"),
+                            native_filter_params,
+                        )
+                    },
                     user_friendly=user_friendly,
                 )
             ]
@@ -362,6 +357,23 @@ class BaseReportState:
             user_friendly=user_friendly,
         )
 
+    @staticmethod
+    def _merge_native_filters_into_url_params(
+        existing: Optional[Sequence[Sequence[str]]],
+        native_filter_params: Optional[str],
+    ) -> list[Sequence[str]]:
+        """
+        Merge the report's ``native_filters`` into a permalink's existing
+        ``urlParams``, deduping any prior ``native_filters`` entry so the
+        report's value wins. All other params (e.g. ``standalone=true``)
+        survive in their original order.
+        """
+        merged: list[Sequence[str]] = [
+            list(p) for p in (existing or []) if p[0] != "native_filters"
+        ]
+        merged.append(["native_filters", native_filter_params or ""])
+        return merged
+
     def _get_tabs_urls(
         self,
         tab_anchors: list[str],
@@ -379,11 +391,9 @@ class BaseReportState:
         in :meth:`get_dashboard_urls`.
         """
         base_state: DashboardPermalinkState = dashboard_state or {}
-        existing_params: list[Sequence[str]] = base_state.get("urlParams") or []
-        merged_params: list[Sequence[str]] = [
-            list(p) for p in existing_params if p[0] != "native_filters"
-        ]
-        merged_params.append(["native_filters", native_filter_params or ""])
+        merged_params = self._merge_native_filters_into_url_params(
+            base_state.get("urlParams"), native_filter_params
+        )
 
         return [
             self._get_tab_url(
