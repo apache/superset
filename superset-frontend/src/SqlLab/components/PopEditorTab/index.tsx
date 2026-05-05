@@ -39,7 +39,9 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 
 const SQL_LAB_URL = '/sqllab';
 
-const PopEditorTab: React.FC = ({ children }) => {
+const PopEditorTab: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [queryEditorId, setQueryEditorId] = useState<string>();
   const { requestedQuery } = useLocationState();

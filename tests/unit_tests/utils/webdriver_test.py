@@ -642,6 +642,114 @@ class TestWebDriverPlaywrightErrorHandling:
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver.app")
+    def test_uses_wait_for_function_to_detect_spinners(
+        self, mock_app, mock_sync_playwright
+    ):
+        """wait_for_function polls for spinner absence rather than snapshotting."""
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = {
+            "WEBDRIVER_OPTION_ARGS": [],
+            "WEBDRIVER_WINDOW": {"pixel_density": 1},
+            "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+            "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+            "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+            "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+            "SCREENSHOT_TILED_ENABLED": False,
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 60,
+            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
+            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
+        }
+
+        mock_playwright_instance = MagicMock()
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_element = MagicMock()
+
+        mock_sync_playwright.return_value.__enter__.return_value = (
+            mock_playwright_instance
+        )
+        mock_playwright_instance.chromium.launch.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+        mock_page.locator.return_value = mock_element
+        mock_element.screenshot.return_value = b"screenshot"
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            driver = WebDriverPlaywright("chrome")
+            driver.get_screenshot("http://example.com", "test-element", mock_user)
+
+        mock_page.wait_for_function.assert_called_once_with(
+            "() => document.querySelectorAll('.loading').length === 0",
+            timeout=60 * 1000,
+        )
+        # Guard against reintroducing the old snapshot-based approach
+        loading_locator_calls = [
+            c for c in mock_page.locator.call_args_list if c.args == (".loading",)
+        ]
+        assert loading_locator_calls == []
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver.sync_playwright")
+    @patch("superset.utils.webdriver.logger")
+    @patch("superset.utils.webdriver.app")
+    def test_spinner_timeout_logs_warning_and_raises(
+        self, mock_app, mock_logger, mock_sync_playwright
+    ):
+        """Spinner timeout is logged as a warning and re-raised."""
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+        mock_app.config = {
+            "WEBDRIVER_OPTION_ARGS": [],
+            "WEBDRIVER_WINDOW": {"pixel_density": 1},
+            "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+            "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+            "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+            "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+            "SCREENSHOT_TILED_ENABLED": False,
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 60,
+            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE": 10,
+            "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE": 10,
+        }
+
+        mock_playwright_instance = MagicMock()
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_element = MagicMock()
+
+        mock_sync_playwright.return_value.__enter__.return_value = (
+            mock_playwright_instance
+        )
+        mock_playwright_instance.chromium.launch.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+        mock_page.locator.return_value = mock_element
+
+        timeout = PlaywrightTimeout()
+        mock_page.wait_for_function.side_effect = timeout
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            driver = WebDriverPlaywright("chrome")
+            with pytest.raises(PlaywrightTimeout) as exc_info:
+                driver.get_screenshot("http://example.com", "test-element", mock_user)
+
+        assert exc_info.value is timeout
+        mock_logger.warning.assert_any_call(
+            "Timed out waiting for charts to load at url %s",
+            "http://example.com",
+        )
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver.sync_playwright")
     @patch("superset.utils.webdriver.logger")
     def test_get_screenshot_raises_on_element_wait_timeout(
         self, mock_logger, mock_sync_playwright

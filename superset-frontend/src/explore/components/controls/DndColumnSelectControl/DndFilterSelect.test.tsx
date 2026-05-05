@@ -69,7 +69,7 @@ const baseFormData = {
 };
 
 const mockStore = configureStore([thunk]);
-const store = mockStore({});
+const store = mockStore({ explore: {} });
 
 function setup({
   value = undefined,

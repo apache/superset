@@ -433,10 +433,12 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "cs": {"flag": "cz", "name": "Czech"},
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
+    "lv": {"flag": "lv", "name": "Latvian"},
     "nl": {"flag": "nl", "name": "Dutch"},
-    "uk": {"flag": "uk", "name": "Ukranian"},
+    "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
 }
 # Turning off i18n by default as translation in most languages are
@@ -571,6 +573,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
+    # Enable semantic layers and show semantic views alongside datasets
+    # @lifecycle: development
+    "SEMANTIC_LAYERS": False,
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
@@ -2068,6 +2073,15 @@ DEFAULT_RELATIVE_END_TIME = "today"
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
+    # SQLite-based engines (SQLite, GSheets, Shillelagh) can use the
+    # SQLiteSQLValidator, but it requires the optional syntaqlite package:
+    #
+    #   pip install "apache-superset[sqlite]"
+    #
+    # Once installed, enable validation by uncommenting the lines below:
+    # "sqlite": "SQLiteSQLValidator",
+    # "gsheets": "SQLiteSQLValidator",
+    # "shillelagh": "SQLiteSQLValidator",
 }
 
 # A list of preferred databases, in order. These databases will be

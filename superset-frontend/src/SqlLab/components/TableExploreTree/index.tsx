@@ -24,6 +24,7 @@ import {
   type ChangeEvent,
   useMemo,
 } from 'react';
+import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -41,6 +42,11 @@ import {
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { addTable, removeTables } from 'src/SqlLab/actions/sqlLab';
+import {
+  getItem,
+  setItem,
+  LocalStorageKeys,
+} from 'src/utils/localStorageHelpers';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import TreeNodeRenderer from './TreeNodeRenderer';
@@ -126,6 +132,36 @@ const StyledTreeContainer = styled.div`
 
 const ROW_HEIGHT = 28;
 
+const getPinnedSchemasStorageKey = (
+  dbId: number | undefined,
+  catalog: string | null | undefined,
+): string => `${dbId ?? ''}:${catalog ?? ''}`;
+
+const getPinnedSchemasFromStorage = (
+  dbId: number | undefined,
+  catalog: string | null | undefined,
+): Set<string> => {
+  if (!dbId) return new Set();
+  const stored = getItem(LocalStorageKeys.SqllabPinnedSchemas, {});
+  const key = getPinnedSchemasStorageKey(dbId, catalog);
+  const schemas = stored[key];
+  return Array.isArray(schemas) ? new Set<string>(schemas) : new Set();
+};
+
+const savePinnedSchemasToStorage = (
+  dbId: number | undefined,
+  catalog: string | null | undefined,
+  schemas: Set<string>,
+) => {
+  if (!dbId) return;
+  const stored = getItem(LocalStorageKeys.SqllabPinnedSchemas, {});
+  const key = getPinnedSchemasStorageKey(dbId, catalog);
+  setItem(LocalStorageKeys.SqllabPinnedSchemas, {
+    ...stored,
+    [key]: [...schemas],
+  });
+};
+
 const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -161,6 +197,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     selectStarMap,
     handleToggle,
     handleRefreshTables,
+    refreshTableSchema,
     errorPayload,
   } = useTreeData({
     dbId,
@@ -199,7 +236,85 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
     },
     [dispatch, tables, editorId, dbId],
   );
+  const [pinnedSchemas, setPinnedSchemas] = useState<Set<string>>(() =>
+    getPinnedSchemasFromStorage(dbId, catalog),
+  );
+
+  const previousDbIdRef = useRef<number | undefined>(dbId);
+  const previousCatalogRef = useRef<string | null | undefined>(catalog);
+
+  // Single effect handles both loading and persisting pinned schemas.
+  // Using refs to detect source changes avoids the race condition where the
+  // persist branch would run with stale pinnedSchemas right after a dbId/catalog
+  // change, corrupting the new source's stored pins.
+  useEffect(() => {
+    const dbChanged = previousDbIdRef.current !== dbId;
+    const catalogChanged = previousCatalogRef.current !== catalog;
+
+    if (dbChanged || catalogChanged) {
+      previousDbIdRef.current = dbId;
+      previousCatalogRef.current = catalog;
+      setPinnedSchemas(getPinnedSchemasFromStorage(dbId, catalog));
+      return;
+    }
+
+    savePinnedSchemasToStorage(dbId, catalog, pinnedSchemas);
+  }, [dbId, catalog, pinnedSchemas]);
+
+  const handlePinSchema = useCallback((schemaName: string) => {
+    setPinnedSchemas(prev => new Set([...prev, schemaName]));
+  }, []);
+
+  const handleUnpinSchema = useCallback((schemaName: string) => {
+    setPinnedSchemas(prev => {
+      const next = new Set(prev);
+      next.delete(schemaName);
+      return next;
+    });
+  }, []);
+
+  const sortedTreeData = useMemo(() => {
+    if (pinnedSchemas.size === 0) return treeData;
+    const pinned = treeData.filter(node => pinnedSchemas.has(node.name));
+    const rest = treeData.filter(node => !pinnedSchemas.has(node.name));
+    return [...pinned, ...rest];
+  }, [treeData, pinnedSchemas]);
+
+  const [sortedTables, setSortedTables] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setSortedTables({});
+  }, [dbId, catalog]);
+
+  const toggleSortColumns = useCallback((tableId: string) => {
+    setSortedTables(prev => ({ ...prev, [tableId]: !prev[tableId] }));
+  }, []);
+
+  const displayTreeData = useMemo(() => {
+    const activeSorted = Object.keys(sortedTables).filter(
+      id => sortedTables[id],
+    );
+    if (activeSorted.length === 0) return sortedTreeData;
+
+    const sortedSet = new Set(activeSorted);
+    return sortedTreeData.map(schemaNode => ({
+      ...schemaNode,
+      children: schemaNode.children?.map(tableNode => {
+        if (tableNode.type !== 'table' || !sortedSet.has(tableNode.id)) {
+          return tableNode;
+        }
+        const { children } = tableNode;
+        if (!children || children.length <= 1) return tableNode;
+        return {
+          ...tableNode,
+          children: [...children].sort((a, b) => a.name.localeCompare(b.name)),
+        };
+      }),
+    }));
+  }, [sortedTreeData, sortedTables]);
+
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounceValue(searchTerm);
   const handleSearchChange = useCallback(
     ({ target }: ChangeEvent<HTMLInputElement>) => setSearchTerm(target.value),
     [],
@@ -257,9 +372,9 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
 
   // Check if any nodes match the search term
   const hasMatchingNodes = useMemo(() => {
-    if (!searchTerm) return true;
+    if (!debouncedSearchTerm) return true;
 
-    const lowerTerm = searchTerm.toLowerCase();
+    const lowerTerm = debouncedSearchTerm.toLowerCase();
 
     const checkNode = (node: TreeNodeData): boolean => {
       if (node.type === 'empty') return false;
@@ -270,8 +385,8 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
       return false;
     };
 
-    return treeData.some(node => checkNode(node));
-  }, [searchTerm, treeData]);
+    return displayTreeData.some(node => checkNode(node));
+  }, [debouncedSearchTerm, displayTreeData]);
 
   // Node renderer for react-arborist
   const renderNode = useCallback(
@@ -280,25 +395,37 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         {...props}
         manuallyOpenedNodes={manuallyOpenedNodes}
         loadingNodes={loadingNodes}
-        searchTerm={searchTerm}
+        searchTerm={debouncedSearchTerm}
         catalog={catalog}
         pinnedTableKeys={pinnedTableKeys}
+        pinnedSchemas={pinnedSchemas}
         selectStarMap={selectStarMap}
         handleRefreshTables={handleRefreshTables}
         handlePinTable={handlePinTable}
         handleUnpinTable={handleUnpinTable}
+        handlePinSchema={handlePinSchema}
+        handleUnpinSchema={handleUnpinSchema}
+        refreshTableSchema={refreshTableSchema}
+        sortedTables={sortedTables}
+        toggleSortColumns={toggleSortColumns}
       />
     ),
     [
       catalog,
       pinnedTableKeys,
+      pinnedSchemas,
       selectStarMap,
       handleRefreshTables,
       handlePinTable,
       handleUnpinTable,
+      handlePinSchema,
+      handleUnpinSchema,
+      refreshTableSchema,
+      sortedTables,
+      toggleSortColumns,
       loadingNodes,
       manuallyOpenedNodes,
-      searchTerm,
+      debouncedSearchTerm,
     ],
   );
 
@@ -357,7 +484,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
               return <Skeleton active />;
             }
 
-            if (searchTerm && !hasMatchingNodes) {
+            if (debouncedSearchTerm && !hasMatchingNodes) {
               return (
                 <Empty
                   description={t('No matching results found')}
@@ -369,12 +496,12 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
             return (
               <Tree<TreeNodeData>
                 ref={treeRef}
-                data={treeData}
+                data={displayTreeData}
                 width="100%"
                 height={height || 500}
                 rowHeight={ROW_HEIGHT}
                 indent={16}
-                searchTerm={searchTerm}
+                searchTerm={debouncedSearchTerm}
                 searchMatch={searchMatch}
                 disableDrag
                 disableDrop
@@ -400,7 +527,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
                   // react-arborist marks all schemas as open (isOpen=true) even before any
                   // user interaction. Using treeRef in that case would treat every first
                   // click as a close action, so fall back to manuallyOpenedNodes instead.
-                  const wasOpen = searchTerm
+                  const wasOpen = debouncedSearchTerm
                     ? (treeRef.current?.get(id)?.isOpen ??
                       manuallyOpenedNodes[id] ??
                       false)

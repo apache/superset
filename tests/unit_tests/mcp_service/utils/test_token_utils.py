@@ -220,6 +220,8 @@ class TestGenerateSizeReductionSuggestions:
             token_limit=25000,
         )
         assert any("filter" in s.lower() for s in suggestions)
+        assert not any("owner" in s.lower() for s in suggestions)
+        assert any("non-user attributes" in s for s in suggestions)
 
     def test_tool_specific_suggestions_execute_sql(self) -> None:
         """Should provide SQL-specific suggestions for execute_sql."""

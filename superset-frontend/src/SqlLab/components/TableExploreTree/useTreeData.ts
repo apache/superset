@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useMemo, useReducer, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import {
   Table,
@@ -26,6 +27,7 @@ import {
   useLazyTableMetadataQuery,
   useLazyTableExtendedMetadataQuery,
 } from 'src/hooks/apiResources';
+import { addDangerToast } from 'src/SqlLab/actions/sqlLab';
 import type { TreeNodeData } from './types';
 import { SupersetError } from '@superset-ui/core';
 
@@ -42,6 +44,7 @@ interface TreeDataState {
 type TreeDataAction =
   | { type: 'SET_TABLE_DATA'; key: string; data: { options: Table[] } }
   | { type: 'SET_TABLE_SCHEMA_DATA'; key: string; data: TableMetaData }
+  | { type: 'CLEAR_TABLE_SCHEMA_DATA'; key: string }
   | { type: 'SET_LOADING_NODE'; nodeId: string; loading: boolean }
   | { type: 'SET_ERROR'; errorPayload: SupersetError | null };
 
@@ -71,6 +74,10 @@ function treeDataReducer(
           [action.key]: action.data,
         },
       };
+    case 'CLEAR_TABLE_SCHEMA_DATA': {
+      const { [action.key]: _, ...rest } = state.tableSchemaData;
+      return { ...state, tableSchemaData: rest };
+    }
     case 'SET_LOADING_NODE':
       return {
         ...state,
@@ -108,6 +115,7 @@ interface UseTreeDataResult {
     catalog: string | null | undefined;
     schema: string;
   }) => void;
+  refreshTableSchema: (id: string) => void;
   errorPayload: SupersetError | null;
 }
 
@@ -122,6 +130,7 @@ const useTreeData = ({
   catalog,
   pinnedTables,
 }: UseTreeDataParams): UseTreeDataResult => {
+  const reduxDispatch = useDispatch();
   // Schema data from API
   const {
     currentData: schemaData,
@@ -137,6 +146,64 @@ const useTreeData = ({
   const [state, dispatch] = useReducer(treeDataReducer, initialState);
   const { tableData, tableSchemaData, loadingNodes, errorPayload } = state;
 
+  // Shared helper: fetch table metadata + extended metadata and store in state.
+  // preferCacheValue=true on initial open (use cached data if available),
+  // preferCacheValue=false on explicit refresh (bypass cache).
+  const fetchAndStoreTableSchema = useCallback(
+    (id: string, preferCacheValue: boolean) => {
+      if (loadingNodes[id]) return;
+
+      const parts = id.split(':');
+      const [, databaseId, schema, table] = parts;
+      const parsedDbId = Number(databaseId);
+      const tableKey = `${parsedDbId}:${schema}:${table}`;
+
+      dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
+
+      // .unwrap() causes RTK Query to reject on error so .catch() fires.
+      // Without it RTK Query resolves with { error } instead of rejecting.
+      Promise.all([
+        fetchTableMetadata(
+          { dbId: parsedDbId, catalog, schema, table },
+          preferCacheValue,
+        ).unwrap(),
+        fetchTableExtendedMetadata(
+          { dbId: parsedDbId, catalog, schema, table },
+          preferCacheValue,
+        ).unwrap(),
+      ])
+        .then(([tableMetadata, tableExtendedMetadata]) => {
+          if (tableMetadata) {
+            dispatch({
+              type: 'SET_TABLE_SCHEMA_DATA',
+              key: tableKey,
+              data: { ...tableMetadata, ...tableExtendedMetadata },
+            });
+          }
+        })
+        .catch(() => {
+          reduxDispatch(
+            addDangerToast(
+              t(
+                'An error occurred while fetching table metadata for %s',
+                table,
+              ),
+            ),
+          );
+        })
+        .finally(() => {
+          dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: false });
+        });
+    },
+    [
+      catalog,
+      fetchTableExtendedMetadata,
+      fetchTableMetadata,
+      loadingNodes,
+      reduxDispatch,
+    ],
+  );
+
   // Handle async loading when node is toggled open
   const handleToggle = useCallback(
     async (id: string, isOpen: boolean) => {
@@ -150,20 +217,14 @@ const useTreeData = ({
       if (identifier === 'schema') {
         const schemaKey = `${parsedDbId}:${schema}`;
         if (!tableData?.[schemaKey]) {
-          // Set loading state
           dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
 
-          // Fetch tables asynchronously
           fetchLazyTables(
-            {
-              dbId: parsedDbId,
-              catalog,
-              schema,
-              forceRefresh: false,
-            },
+            { dbId: parsedDbId, catalog, schema, forceRefresh: false },
             true,
           )
-            .then(({ data }) => {
+            .unwrap()
+            .then(data => {
               if (data) {
                 dispatch({ type: 'SET_TABLE_DATA', key: schemaKey, data });
               }
@@ -191,59 +252,14 @@ const useTreeData = ({
         if (pinnedTables[tableKey]) return;
 
         if (!tableSchemaData[tableKey]) {
-          // Set loading state
-          dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
-
-          // Fetch metadata asynchronously
-          Promise.all([
-            fetchTableMetadata(
-              {
-                dbId: parsedDbId,
-                catalog,
-                schema,
-                table,
-              },
-              true,
-            ),
-            fetchTableExtendedMetadata(
-              {
-                dbId: parsedDbId,
-                catalog,
-                schema,
-                table,
-              },
-              true,
-            ),
-          ])
-            .then(
-              ([{ data: tableMetadata }, { data: tableExtendedMetadata }]) => {
-                if (tableMetadata) {
-                  dispatch({
-                    type: 'SET_TABLE_SCHEMA_DATA',
-                    key: tableKey,
-                    data: {
-                      ...tableMetadata,
-                      ...tableExtendedMetadata,
-                    },
-                  });
-                }
-              },
-            )
-            .finally(() => {
-              dispatch({
-                type: 'SET_LOADING_NODE',
-                nodeId: id,
-                loading: false,
-              });
-            });
+          fetchAndStoreTableSchema(id, true);
         }
       }
     },
     [
       catalog,
+      fetchAndStoreTableSchema,
       fetchLazyTables,
-      fetchTableExtendedMetadata,
-      fetchTableMetadata,
       pinnedTables,
       tableData,
       tableSchemaData,
@@ -287,6 +303,13 @@ const useTreeData = ({
         });
     },
     [fetchLazyTables],
+  );
+
+  const refreshTableSchema = useCallback(
+    (id: string) => {
+      fetchAndStoreTableSchema(id, false);
+    },
+    [fetchAndStoreTableSchema],
   );
 
   // Build tree data
@@ -378,6 +401,7 @@ const useTreeData = ({
     selectStarMap,
     handleToggle,
     handleRefreshTables,
+    refreshTableSchema,
     errorPayload,
   };
 };

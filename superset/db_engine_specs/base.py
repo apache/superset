@@ -62,7 +62,11 @@ from superset import db
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    OAuth2TokenRefreshError,
+)
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
     BaseSQLStatement,
@@ -586,7 +590,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Driver-specific params to be included in the `get_oauth2_token` request body
     oauth2_additional_token_request_params: dict[str, Any] = {}
     # Driver-specific exception that should be mapped to OAuth2RedirectError
-    oauth2_exception = OAuth2RedirectError
+    oauth2_exception: type[Exception] | tuple[type[Exception], ...] = (
+        OAuth2RedirectError
+    )
 
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
@@ -828,6 +834,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if config["request_content_type"] == "data"
             else requests.post(uri, json=req_body, timeout=timeout)
         )
+        if response.status_code in (400, 401, 403):
+            raise OAuth2TokenRefreshError(response.text)
         response.raise_for_status()
         return response.json()
 

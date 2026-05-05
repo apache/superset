@@ -917,7 +917,7 @@ export class TableRenderer extends Component<
               allowRenderHtml,
             )}
             <span
-              role="columnheader"
+              role="button"
               tabIndex={0}
               // Prevents event bubbling to avoid conflict with column header click handlers
               // Ensures sort operation executes without triggering cross-filtration

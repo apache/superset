@@ -97,10 +97,10 @@ describe('getAggFunc', () => {
 });
 
 describe('commonLayerProps', () => {
-  const mockSetTooltip = jest.fn();
+  const mockSetTooltip = jest.fn() as any;
   const mockSetTooltipContent = jest.fn(
     () => (o: JsonObject) => `Tooltip for ${o}`,
-  );
+  ) as any;
   const mockOnSelect = jest.fn();
 
   test('returns correct props when js_tooltip is provided', () => {
