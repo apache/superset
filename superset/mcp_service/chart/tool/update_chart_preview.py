@@ -52,9 +52,10 @@ from superset.utils import json as utils_json
 logger = logging.getLogger(__name__)
 
 INVALID_FORM_DATA_KEY_WARNING = (
-    "Previous cached chart state could not be loaded from form_data_key. "
-    "The preview was generated from the supplied configuration only; the "
-    "previous form_data_key may be invalid or expired."
+    "Previous cached chart state could not be loaded from the previous "
+    "form_data_key. The preview was generated from the supplied "
+    "configuration only; the previous form_data_key may be invalid or "
+    "expired."
 )
 
 
