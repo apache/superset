@@ -62,7 +62,7 @@ class BaseReportScheduleCommand(BaseCommand):
             exceptions.append(ChartNotFoundValidationError())
         else:
             try:
-                security_manager.raise_for_access(viz=chart)
+                security_manager.raise_for_access(chart=chart)
             except SupersetSecurityException as ex:
                 raise ReportScheduleForbiddenError() from ex
         self._properties["chart"] = chart
