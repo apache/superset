@@ -52,6 +52,8 @@ export function setDatasource(datasource: Datasource, key: string) {
   };
 }
 
+const inFlightDatasourceKeys = new Set<string>();
+
 export function fetchDatasourceMetadata(key: string) {
   return (dispatch: Dispatch, getState: () => RootState) => {
     const { datasources } = getState();
@@ -61,8 +63,21 @@ export function fetchDatasourceMetadata(key: string) {
       return dispatch(setDatasource(datasource, key));
     }
 
+    if (inFlightDatasourceKeys.has(key)) {
+      return undefined;
+    }
+
+    inFlightDatasourceKeys.add(key);
     return SupersetClient.get({
       endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${key}`,
-    }).then(({ json }) => dispatch(setDatasource(json as Datasource, key)));
+    })
+      .then(({ json }) => {
+        inFlightDatasourceKeys.delete(key);
+        return dispatch(setDatasource(json as Datasource, key));
+      })
+      .catch((err: unknown) => {
+        inFlightDatasourceKeys.delete(key);
+        throw err;
+      });
   };
 }
