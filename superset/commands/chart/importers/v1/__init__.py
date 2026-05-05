@@ -28,7 +28,10 @@ from superset.commands.annotation_layer.importers.v1.utils import (
     import_annotation_layer,
 )
 from superset.commands.chart.exceptions import ChartImportError
-from superset.commands.chart.importers.v1.utils import import_chart
+from superset.commands.chart.importers.v1.utils import (
+    import_chart,
+    topological_sort_charts,
+)
 from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
@@ -124,7 +127,6 @@ class ImportChartsCommand(ImportModelsCommand):
         # categorize chart configs: referenced charts first, then dependents
         referenced_chart_configs: list[dict[str, Any]] = []
         dependent_chart_configs: list[dict[str, Any]] = []
-        deck_multi_configs: list[dict[str, Any]] = []
         # import charts with the correct parent ref
         for file_name, config in configs.items():
             if file_name.startswith("charts/") and config["dataset_uuid"] in datasets:
@@ -144,25 +146,18 @@ class ImportChartsCommand(ImportModelsCommand):
                 # pass annotation resolution maps via config
                 config["_annotation_layer_ids"] = annotation_layer_ids
 
-                # Handle deck_multi charts later to ensure their dependencies are met
-                if config["viz_type"] == "deck_multi" and config["params"].get(
-                    "deck_uuids"
-                ):
-                    deck_multi_configs.append(config)
-                elif config.get("uuid") in referenced_chart_uuids:
+                if config.get("uuid") in referenced_chart_uuids:
                     referenced_chart_configs.append(config)
                 else:
                     dependent_chart_configs.append(config)
+
+        # topologically sort referenced charts for multi-level deps (A→B→C)
+        referenced_chart_configs = topological_sort_charts(referenced_chart_configs)
 
         # import referenced charts first, then charts that depend on them
         imported_chart_ids: dict[str, int] = {}
         for config in referenced_chart_configs + dependent_chart_configs:
             config["_chart_ids"] = imported_chart_ids
-            ImportChartsCommand._import_chart_with_tags(
-                config, overwrite, contents, imported_chart_ids
-            )
-
-        for config in deck_multi_configs:
             ImportChartsCommand._import_chart_with_tags(
                 config, overwrite, contents, imported_chart_ids
             )

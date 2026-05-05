@@ -87,6 +87,25 @@ class ExportChartsCommand(ExportModelsCommand):
                 payload["params"].get("annotation_layers", [])
             )
 
+        # Also replace annotation IDs with UUIDs in query_context
+        if payload.get("query_context"):
+            try:
+                query_context = json.loads(payload["query_context"])
+                for query in query_context.get("queries", []):
+                    ExportChartsCommand._replace_annotation_layer_uuids(
+                        query.get("annotation_layers", [])
+                    )
+                form_data = query_context.get("form_data", {})
+                ExportChartsCommand._replace_annotation_layer_uuids(
+                    form_data.get("annotation_layers", [])
+                )
+                payload["query_context"] = json.dumps(query_context)
+            except json.JSONDecodeError:
+                logger.info(
+                    "Unable to decode `query_context` field: %s",
+                    payload["query_context"],
+                )
+
         file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 

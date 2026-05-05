@@ -57,6 +57,11 @@ class ImportAnnotationLayersCommand(BaseCommand):
                 # found right version, but file is invalid
                 logger.exception("Error running import command")
                 raise
+            except Exception:
+                # validation succeeded but something went wrong
+                logger.exception("Error running import command")
+                raise
+        raise CommandInvalidError("Could not find a valid command to import file")
 
     def validate(self) -> None:
         pass

@@ -1024,6 +1024,71 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
         ann_keys = [k for k in contents if k.startswith("annotation_layers/")]
         assert len(ann_keys) == 0
 
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_chart_query_context_annotation_uuid_replacement(self, mock_g):
+        """Test that annotation IDs in query_context are replaced with UUIDs."""
+        mock_g.user = security_manager.find_user("admin")
+
+        ann_layer = AnnotationLayer(name="QC Test Layer")
+        db.session.add(ann_layer)
+        db.session.commit()
+
+        charts = (
+            db.session.query(Slice)
+            .filter(Slice.slice_name.in_(["Energy Sankey", "Heatmap"]))
+            .all()
+        )
+        main_chart = next(c for c in charts if c.slice_name == "Energy Sankey")
+        ref_chart = next(c for c in charts if c.slice_name == "Heatmap")
+
+        annotations = [
+            {
+                "name": "Native",
+                "sourceType": "NATIVE",
+                "value": ann_layer.id,
+                "show": True,
+            },
+            {
+                "name": "Table",
+                "sourceType": "table",
+                "value": ref_chart.id,
+                "show": True,
+            },
+        ]
+
+        original_params = json.loads(main_chart.params or "{}")
+        original_params["annotation_layers"] = deepcopy(annotations)
+        main_chart.params = json.dumps(original_params)
+
+        query_context = {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [{"annotation_layers": deepcopy(annotations)}],
+            "form_data": {"annotation_layers": deepcopy(annotations)},
+        }
+        main_chart.query_context = json.dumps(query_context)
+        db.session.commit()
+
+        command = ExportChartsCommand([main_chart.id])
+        contents = dict(command.run())
+
+        chart_yaml = yaml.safe_load(contents["charts/Energy_Sankey.yaml"]())
+
+        # Verify query_context annotations have UUIDs
+        exported_qc = json.loads(chart_yaml["query_context"])
+        qc_query_layers = exported_qc["queries"][0]["annotation_layers"]
+        assert qc_query_layers[0]["value"] == str(ann_layer.uuid)
+        assert qc_query_layers[1]["value"] == str(ref_chart.uuid)
+
+        qc_form_layers = exported_qc["form_data"]["annotation_layers"]
+        assert qc_form_layers[0]["value"] == str(ann_layer.uuid)
+        assert qc_form_layers[1]["value"] == str(ref_chart.uuid)
+
+        # Clean up
+        db.session.query(Annotation).filter_by(layer_id=ann_layer.id).delete()
+        db.session.delete(ann_layer)
+        db.session.commit()
+
 
 class TestImportChartsAnnotationLayers(SupersetTestCase):
     """Tests for annotation layer handling during chart import."""
@@ -1338,6 +1403,89 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
 
         db.session.delete(main_chart)
         db.session.delete(ref_chart)
+        db.session.query(Annotation).filter_by(layer_id=ann_layer.id).delete()
+        db.session.delete(ann_layer)
+        db.session.delete(
+            db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
+        )
+        db.session.delete(
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_query_context_annotation_resolved(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """Annotation UUIDs in query_context are resolved to IDs on import."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+
+        ann_uuid = annotation_layer_config["uuid"]
+        qc_chart_config = deepcopy(chart_config)
+        qc_chart_config["params"]["annotation_layers"] = [
+            {
+                "name": "Native",
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "value": ann_uuid,
+                "show": True,
+                "style": "solid",
+            }
+        ]
+        query_context = {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [
+                {
+                    "annotation_layers": [
+                        {
+                            "name": "Native",
+                            "sourceType": "NATIVE",
+                            "value": ann_uuid,
+                        }
+                    ]
+                }
+            ],
+            "form_data": {
+                "annotation_layers": [
+                    {
+                        "name": "Native",
+                        "sourceType": "NATIVE",
+                        "value": ann_uuid,
+                    }
+                ]
+            },
+        }
+        qc_chart_config["query_context"] = json.dumps(query_context)
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(qc_chart_config),
+            "annotation_layers/imported_layer.yaml": yaml.safe_dump(
+                annotation_layer_config
+            ),
+        }
+        command = ImportChartsCommand(contents, overwrite=True)
+        command.run()
+
+        chart = db.session.query(Slice).filter_by(uuid=qc_chart_config["uuid"]).one()
+        ann_layer = db.session.query(AnnotationLayer).filter_by(uuid=ann_uuid).one()
+
+        # Verify params resolved
+        params = json.loads(chart.params)
+        assert params["annotation_layers"][0]["value"] == ann_layer.id
+
+        # Verify query_context resolved
+        imported_qc = json.loads(chart.query_context)
+        assert (
+            imported_qc["queries"][0]["annotation_layers"][0]["value"] == ann_layer.id
+        )
+        assert imported_qc["form_data"]["annotation_layers"][0]["value"] == ann_layer.id
+
+        db.session.delete(chart)
         db.session.query(Annotation).filter_by(layer_id=ann_layer.id).delete()
         db.session.delete(ann_layer)
         db.session.delete(

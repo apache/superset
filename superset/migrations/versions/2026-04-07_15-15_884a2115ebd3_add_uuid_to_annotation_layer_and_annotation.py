@@ -95,10 +95,26 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("annotation") as batch_op:
-        batch_op.drop_constraint("uq_annotation_uuid", type_="unique")
-        batch_op.drop_column("uuid")
+    try:
+        with op.batch_alter_table("annotation") as batch_op:
+            batch_op.drop_constraint("uq_annotation_uuid", type_="unique")
+    except OperationalError:
+        pass
 
-    with op.batch_alter_table("annotation_layer") as batch_op:
-        batch_op.drop_constraint("uq_annotation_layer_uuid", type_="unique")
-        batch_op.drop_column("uuid")
+    try:
+        with op.batch_alter_table("annotation") as batch_op:
+            batch_op.drop_column("uuid")
+    except OperationalError:
+        pass
+
+    try:
+        with op.batch_alter_table("annotation_layer") as batch_op:
+            batch_op.drop_constraint("uq_annotation_layer_uuid", type_="unique")
+    except OperationalError:
+        pass
+
+    try:
+        with op.batch_alter_table("annotation_layer") as batch_op:
+            batch_op.drop_column("uuid")
+    except OperationalError:
+        pass

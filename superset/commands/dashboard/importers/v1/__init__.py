@@ -30,7 +30,10 @@ from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.annotation_layer.importers.v1.utils import (
     import_annotation_layer,
 )
-from superset.commands.chart.importers.v1.utils import import_chart
+from superset.commands.chart.importers.v1.utils import (
+    import_chart,
+    topological_sort_charts,
+)
 from superset.commands.dashboard.exceptions import DashboardImportError
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
@@ -176,6 +179,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     referenced_chart_configs.append(config)
                 else:
                     dependent_chart_configs.append(config)
+
+        # topologically sort referenced charts for multi-level deps (A→B→C)
+        referenced_chart_configs = topological_sort_charts(referenced_chart_configs)
 
         # import referenced charts first, then charts that depend on them
         for config in referenced_chart_configs + dependent_chart_configs:
