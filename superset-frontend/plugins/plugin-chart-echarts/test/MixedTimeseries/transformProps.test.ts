@@ -133,6 +133,9 @@ const formData: EchartsMixedTimeseriesFormData = {
   forecastInterval: 0,
   forecastSeasonalityDaily: 0,
   legendSort: null,
+
+  truncateMetric: false,
+  truncateMetricB: false,
 };
 
 const defaultQueryRows = [
@@ -155,6 +158,11 @@ test('should transform chart props for viz with showQueryIdentifiers=false', () 
     defaultQueriesData: queriesData,
     formData: { ...formData, showQueryIdentifiers: false },
     queriesData,
+    datasource: {
+      verboseMap: { sum__num: 'sum__num' },
+      columnFormats: {},
+      currencyFormats: {},
+    },
   });
   const transformed = transformProps(chartProps);
 
@@ -197,6 +205,11 @@ test('should transform chart props for viz with showQueryIdentifiers=true', () =
     defaultQueriesData: queriesData,
     formData: { ...formData, showQueryIdentifiers: true },
     queriesData,
+    datasource: {
+      verboseMap: { sum__num: 'sum__num' },
+      columnFormats: {},
+      currencyFormats: {},
+    },
   });
   const transformed = transformProps(chartProps);
 
@@ -244,6 +257,11 @@ describe('legend sorting', () => {
         showQueryIdentifiers: true,
       },
       queriesData,
+      datasource: {
+        verboseMap: { sum__num: 'sum__num' },
+        columnFormats: {},
+        currencyFormats: {},
+      },
     });
 
   test('sort legend by data', () => {
@@ -302,6 +320,11 @@ test('legend margin: top orientation sets grid.top correctly', () => {
       showLegend: true,
     },
     queriesData,
+    datasource: {
+      verboseMap: { sum__num: 'sum__num' },
+      columnFormats: {},
+      currencyFormats: {},
+    },
   });
   const transformed = transformProps(chartProps);
 
@@ -322,6 +345,11 @@ test('legend margin: bottom orientation sets grid.bottom correctly', () => {
       legendOrientation: LegendOrientation.Bottom,
     },
     queriesData,
+    datasource: {
+      verboseMap: { sum__num: 'sum__num' },
+      columnFormats: {},
+      currencyFormats: {},
+    },
   });
   const transformed = transformProps(chartProps);
 
@@ -342,6 +370,11 @@ test('legend margin: left orientation sets grid.left correctly', () => {
       legendOrientation: LegendOrientation.Left,
     },
     queriesData,
+    datasource: {
+      verboseMap: { sum__num: 'sum__num' },
+      columnFormats: {},
+      currencyFormats: {},
+    },
   });
   const transformed = transformProps(chartProps);
 
@@ -362,6 +395,11 @@ test('legend margin: right orientation sets grid.right correctly', () => {
       legendOrientation: LegendOrientation.Right,
     },
     queriesData,
+    datasource: {
+      verboseMap: { sum__num: 'sum__num' },
+      columnFormats: {},
+      currencyFormats: {},
+    },
   });
   const transformed = transformProps(chartProps);
 
@@ -482,6 +520,7 @@ test('should add a formula annotation when X-axis column has dataset-level label
     datasource: {
       verboseMap: {
         [timeColumnName]: timeColumnLabel,
+        sum__num: 'sum__num',
       },
       columnFormats: {},
       currencyFormats: {},
@@ -496,3 +535,98 @@ test('should add a formula annotation when X-axis column has dataset-level label
   expect(Array.isArray(formulaSeries?.data)).toBe(true);
   expect((formulaSeries!.data as unknown[]).length).toBeGreaterThan(0);
 });
+
+describe('truncateMetric behavior', () => {
+  const getChartProps = (overrides = {}) =>
+    createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: queriesData,
+      formData: {
+        ...formData,
+        ...overrides,
+      },
+      queriesData,
+      datasource: {
+        verboseMap: { sum__num: 'sum__num' },
+        columnFormats: {},
+        currencyFormats: {},
+      },
+    });
+
+  test('should show only group‑by values when truncateMetric=true and groupby exists (both queries truncated)', () => {
+    const chartProps = getChartProps({
+      truncateMetric: true,
+      truncateMetricB: true, // also truncate Query B to avoid full names
+      groupby: ['gender'],
+      groupbyB: ['gender'],
+      showQueryIdentifiers: false,
+    });
+    const transformed = transformProps(chartProps);
+    const series = transformed.echartOptions.series as any[];
+
+    // No series should contain the metric name
+    expect(series.map(s => s.name)).not.toContain('sum__num, boy');
+    expect(series.map(s => s.name)).not.toContain('sum__num, girl');
+    // All series should be truncated to group‑by values
+    expect(series.map(s => s.name)).toContain('boy');
+    expect(series.map(s => s.name)).toContain('girl');
+  });
+
+  test('should keep full name when truncateMetric=true but no groupby', () => {
+    const chartProps = getChartProps({
+      truncateMetric: true,
+      groupby: [],               // no groupby for Query A
+      groupbyB: ['gender'],      // Query B still has groupby
+      showQueryIdentifiers: false,
+    });
+    const transformed = transformProps(chartProps);
+    const series = transformed.echartOptions.series as any[];
+    const seriesNames = series.map(s => s.name);
+
+    // Query A (no groupby) should show metric name only
+    expect(seriesNames).toContain('sum__num');
+    // Query B (with groupby) should show full names
+    expect(seriesNames).toContain('sum__num, boy');
+    expect(seriesNames).toContain('sum__num, girl');
+    // No truncated names from Query A because no groupby
+    expect(seriesNames).not.toContain('boy');
+    expect(seriesNames).not.toContain('girl');
+  });
+
+  test('should show full name when truncateMetric=false', () => {
+    const chartProps = getChartProps({
+      truncateMetric: false,
+      groupby: ['gender'],
+      groupbyB: ['gender'],
+      showQueryIdentifiers: false,
+    });
+    const transformed = transformProps(chartProps);
+    const series = transformed.echartOptions.series as any[];
+
+    expect(series.map(s => s.name)).toContain('sum__num, boy');
+    expect(series.map(s => s.name)).toContain('sum__num, girl');
+  });
+
+  test('truncateMetricB should work independently for Query B', () => {
+    const chartProps = getChartProps({
+      truncateMetricB: true,      // only Query B truncated
+      groupby: ['gender'],
+      groupbyB: ['gender'],
+      showQueryIdentifiers: false,
+    });
+    const transformed = transformProps(chartProps);
+    const series = transformed.echartOptions.series as any[];
+    const seriesNames = series.map(s => s.name);
+
+    // Query A remains full
+    expect(seriesNames).toContain('sum__num, boy');
+    expect(seriesNames).toContain('sum__num, girl');
+    // Query B is truncated
+    expect(seriesNames).toContain('boy');
+    expect(seriesNames).toContain('girl');
+  });
+});
+
