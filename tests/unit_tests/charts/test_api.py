@@ -22,7 +22,11 @@ from superset.charts.api import ChartRestApi
 
 
 def _make_api() -> ChartRestApi:
-    """Create a minimally initialized chart API instance for unit tests."""
+    """Create a minimally-initialized ChartRestApi for unit tests.
+
+    Bypasses ``__init__`` to avoid Flask app-context requirements while still
+    setting the attributes exercised by the access-check helpers under test.
+    """
     api = ChartRestApi.__new__(ChartRestApi)
     api.class_permission_name = "Chart"
     return api
