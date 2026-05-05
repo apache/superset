@@ -310,10 +310,23 @@ def upgrade() -> None:
             ) as batch_op:
                 batch_op.drop_column("id")
                 batch_op.create_primary_key(f"pk_{t.name}", [t.fk1, t.fk2])
+                # SQLite quirk: composite PRIMARY KEY does not promote the
+                # constituent columns to NOT NULL (only ``INTEGER PRIMARY
+                # KEY`` does). PostgreSQL and MySQL implicitly promote the
+                # PK columns to NOT NULL when the constraint is added,
+                # so the explicit ``alter_column`` is a no-op on those
+                # backends but enforces the post-upgrade contract on
+                # SQLite. Without it, ``INSERT (NULL, 5)`` would succeed
+                # on SQLite despite the columns being part of the PK.
+                batch_op.alter_column(t.fk1, existing_type=sa.Integer, nullable=False)
+                batch_op.alter_column(t.fk2, existing_type=sa.Integer, nullable=False)
         else:
             with op.batch_alter_table(t.name) as batch_op:
                 batch_op.drop_column("id")
                 batch_op.create_primary_key(f"pk_{t.name}", [t.fk1, t.fk2])
+                # See comment above re: SQLite composite-PK NOT NULL quirk.
+                batch_op.alter_column(t.fk1, existing_type=sa.Integer, nullable=False)
+                batch_op.alter_column(t.fk2, existing_type=sa.Integer, nullable=False)
 
 
 def downgrade() -> None:
