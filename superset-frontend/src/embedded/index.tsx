@@ -48,7 +48,6 @@ import {
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
-import { I18nLoadJob } from '../preamble';
 
 setupPlugins();
 setupCodeOverrides({ embedded: true });
@@ -180,7 +179,7 @@ function start() {
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
   });
-  return I18nLoadJob.then(() => getMeWithRole()).then(
+  return getMeWithRole().then(
     ({ result }) => {
       // fill in some missing bootstrap data
       // (because at pageload, we don't have any auth yet)

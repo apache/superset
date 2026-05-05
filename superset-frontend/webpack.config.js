@@ -331,9 +331,6 @@ function createSwcLoader(syntax = 'typescript', tsx = true) {
 }
 
 const config = {
-  experiments: {
-    topLevelAwait: true,
-  },
   entry: {
     preamble: PREAMBLE,
     // In dev mode, theme is included in preamble to avoid separate chunk HMR issues
