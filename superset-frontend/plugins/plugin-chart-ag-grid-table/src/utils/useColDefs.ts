@@ -322,8 +322,15 @@ export const useColDefs = ({
         }),
         ...(dataType === GenericDataType.String && {
           // HTML cells (e.g. anchor markup) are rendered by TextCellRenderer
-          // via dangerouslySetInnerHTML; without these the set-filter dropdown
-          // shows raw markup and sort orders by raw HTML lexically.
+          // via dangerouslySetInnerHTML; without these the filter and sort
+          // operate on raw HTML so the URL inside the markup dictates order
+          // and the "Contains" filter matches against the raw HTML string.
+          //
+          // Scope: client-side only. When `serverPagination` is enabled, a
+          // later spread overrides `comparator` with `() => 0` so sorting is
+          // delegated to the server; the database does not know to extract
+          // visible text from HTML, so server-paginated tables with HTML
+          // columns are out of scope for this fix.
           filterValueGetter: htmlTextFilterValueGetter,
           comparator: htmlTextComparator,
         }),

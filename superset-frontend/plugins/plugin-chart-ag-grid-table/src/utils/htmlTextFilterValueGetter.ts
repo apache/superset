@@ -37,6 +37,13 @@ const htmlTextFilterValueGetter = (params: ValueGetterParams) => {
   return raw;
 };
 
+/**
+ * Comparator that mirrors AG Grid's default string comparator (codepoint
+ * order, nulls first), but extracts visible text from HTML values first
+ * so HTML cells sort by their displayed label. Plain (non-HTML) values
+ * pass through unchanged, preserving default ordering — e.g. 'Z' still
+ * sorts before 'a' as it does under the default comparator.
+ */
 export const htmlTextComparator = (a: unknown, b: unknown): number => {
   const toText = (v: unknown) =>
     typeof v === 'string' && isProbablyHTML(v) ? stripHtmlToText(v) : v;
@@ -46,7 +53,8 @@ export const htmlTextComparator = (a: unknown, b: unknown): number => {
   if (aT == null) return -1;
   if (bT == null) return 1;
   if (typeof aT === 'number' && typeof bT === 'number') return aT - bT;
-  return String(aT).localeCompare(String(bT));
+  if (aT === bT) return 0;
+  return aT < bT ? -1 : 1;
 };
 
 export default htmlTextFilterValueGetter;

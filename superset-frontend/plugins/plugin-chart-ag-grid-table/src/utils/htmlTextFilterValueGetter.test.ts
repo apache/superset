@@ -72,3 +72,12 @@ test('htmlTextComparator handles nulls and numbers', () => {
   expect(htmlTextComparator(1, 2)).toBeLessThan(0);
   expect(htmlTextComparator(2, 1)).toBeGreaterThan(0);
 });
+
+test('htmlTextComparator preserves default codepoint ordering for plain strings', () => {
+  // AG Grid's default string comparator orders by codepoint, so 'Z' (90)
+  // sorts before 'a' (97). A locale-aware comparator would flip this —
+  // verify we match the default so plain string columns are unaffected.
+  expect(htmlTextComparator('Z', 'a')).toBeLessThan(0);
+  expect(htmlTextComparator('a', 'Z')).toBeGreaterThan(0);
+  expect(htmlTextComparator('apple', 'banana')).toBeLessThan(0);
+});
