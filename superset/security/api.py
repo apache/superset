@@ -86,6 +86,7 @@ class GuestTokenCreateSchema(PermissiveSchema):
     datasets = fields.List(
         fields.Integer(),
         load_default=None,
+        allow_none=True,
         metadata={
             "description": (
                 "Optional allowlist of dataset IDs the guest may access. "
