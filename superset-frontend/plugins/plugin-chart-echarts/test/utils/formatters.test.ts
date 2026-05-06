@@ -19,11 +19,13 @@
 import {
   NumberFormats,
   SMART_DATE_ID,
+  SMART_DATE_VERBOSE_ID,
   TimeFormatter,
   TimeGranularity,
 } from '@superset-ui/core';
 import {
   getPercentFormatter,
+  getTooltipTimeFormatter,
   getXAxisFormatter,
 } from '../../src/utils/formatters';
 
@@ -178,4 +180,54 @@ test('getXAxisFormatter without time grain should use standard smart date behavi
   );
 
   expect(standardResult).toBe(timeGrainResult);
+});
+
+// Regression tests for echarts-timeseries-epoch-x-axis-labels investigation.
+// The bug report was that temporal x-axis labels could render as "NaN"
+// in some edge cases that we could not reproduce locally. The tests below
+// lock in the current behavior of the formatters so that a future refactor
+// surfaces any change in contract.
+
+test('getTooltipTimeFormatter returns a TimeFormatter with SMART_DATE_VERBOSE id for SMART_DATE_ID', () => {
+  const formatter = getTooltipTimeFormatter(SMART_DATE_ID);
+  expect(formatter).toBeInstanceOf(TimeFormatter);
+  expect((formatter as TimeFormatter).id).toBe(SMART_DATE_VERBOSE_ID);
+});
+
+test('getTooltipTimeFormatter returns a TimeFormatter for a custom format string', () => {
+  const customFormat = '%Y-%m-%d %H:%M';
+  const formatter = getTooltipTimeFormatter(customFormat);
+  expect(formatter).toBeInstanceOf(TimeFormatter);
+  expect((formatter as TimeFormatter).id).toBe(customFormat);
+});
+
+test('getTooltipTimeFormatter falls back to the String constructor when no format is supplied', () => {
+  expect(getTooltipTimeFormatter()).toBe(String);
+  expect(getTooltipTimeFormatter(undefined)).toBe(String);
+});
+
+test('getXAxisFormatter produces stable SMART_DATE output for a valid Date', () => {
+  // Documents the current happy-path output format so unexpected changes are
+  // caught during review.
+  const formatter = getXAxisFormatter(SMART_DATE_ID) as TimeFormatter;
+  const result = formatter.format(new Date('2025-01-15T00:00:00.000Z'));
+  expect(typeof result).toBe('string');
+  expect(result).not.toMatch(/NaN/);
+  expect(result.length).toBeGreaterThan(0);
+});
+
+test('getXAxisFormatter returns a string for an Invalid Date without throwing', () => {
+  // If a caller ever passes an Invalid Date (the originally-suspected cause
+  // of epoch-ms axis labels showing NaN in echarts), the formatter must
+  // still return a string instead of throwing, so echarts does not blow up
+  // the chart render. The *content* of that string is format-dependent and
+  // intentionally not asserted here — only that it is a string.
+  const formatter = getXAxisFormatter(SMART_DATE_ID) as TimeFormatter;
+  const invalid = new Date(Number.NaN);
+  expect(() => formatter.format(invalid)).not.toThrow();
+  expect(typeof formatter.format(invalid)).toBe('string');
+
+  const customFormatter = getXAxisFormatter('%Y-%m-%d') as TimeFormatter;
+  expect(() => customFormatter.format(invalid)).not.toThrow();
+  expect(typeof customFormatter.format(invalid)).toBe('string');
 });

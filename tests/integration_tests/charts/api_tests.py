@@ -626,7 +626,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == {
             "message": {
                 "datasource_type": [
-                    "Must be one of: table, dataset, query, saved_query, view."
+                    "Must be one of: table, dataset, query, saved_query, view, "
+                    "semantic_view."
                 ]
             }
         }
@@ -981,7 +982,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == {
             "message": {
                 "datasource_type": [
-                    "Must be one of: table, dataset, query, saved_query, view."
+                    "Must be one of: table, dataset, query, saved_query, view, "
+                    "semantic_view."
                 ]
             }
         }
