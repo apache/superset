@@ -30,6 +30,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -38,6 +39,7 @@ from superset.mcp_service.chart.chart_utils import (
     generate_explore_link,
     map_config_to_form_data,
 )
+from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     PerformanceMetadata,
@@ -51,9 +53,16 @@ from superset.utils import json as utils_json
 
 logger = logging.getLogger(__name__)
 
+INVALID_FORM_DATA_KEY_WARNING = (
+    "Previous cached chart state could not be loaded from the previous "
+    "form_data_key. The preview was generated from the supplied "
+    "configuration only; the previous form_data_key may be invalid or "
+    "expired."
+)
 
-def _get_old_adhoc_filters(form_data_key: str) -> list[Dict[str, Any]] | None:
-    """Retrieve adhoc_filters from the previously cached form_data."""
+
+def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
+    """Retrieve the previously cached form_data."""
     from superset.commands.exceptions import CommandException
     from superset.commands.explore.form_data.get import GetFormDataCommand
     from superset.commands.explore.form_data.parameters import CommandParameters
@@ -65,11 +74,9 @@ def _get_old_adhoc_filters(form_data_key: str) -> list[Dict[str, Any]] | None:
             if isinstance(cached_data, str):
                 cached_data = utils_json.loads(cached_data)
             if isinstance(cached_data, dict):
-                adhoc_filters = cached_data.get("adhoc_filters")
-                if adhoc_filters:
-                    return adhoc_filters
+                return cached_data
     except (KeyError, ValueError, TypeError, CommandException):
-        logger.debug("Could not retrieve old form_data for filter preservation")
+        logger.debug("Could not retrieve previous form_data from cache")
     return None
 
 
@@ -83,7 +90,7 @@ def _get_old_adhoc_filters(form_data_key: str) -> list[Dict[str, Any]] | None:
         destructiveHint=True,
     ),
 )
-def update_chart_preview(
+def update_chart_preview(  # noqa: C901
     request: UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:
     """Update cached chart preview without saving.
@@ -113,13 +120,75 @@ def update_chart_preview(
                 config, dataset_id=request.dataset_id
             )
             new_form_data.pop("_mcp_warnings", None)
+            warnings: list[str] = []
+            previous_form_data: dict[str, Any] | None = None
+
+            if request.form_data_key:
+                previous_form_data = _get_previous_form_data(request.form_data_key)
+                if previous_form_data is None:
+                    warnings.append(INVALID_FORM_DATA_KEY_WARNING)
 
             # Preserve adhoc filters from the previous cached form_data
             # when the new config doesn't explicitly specify filters
-            if getattr(config, "filters", None) is None and request.form_data_key:
-                old_adhoc_filters = _get_old_adhoc_filters(request.form_data_key)
+            if getattr(config, "filters", None) is None and previous_form_data:
+                old_adhoc_filters = previous_form_data.get("adhoc_filters")
                 if old_adhoc_filters:
                     new_form_data["adhoc_filters"] = old_adhoc_filters
+
+            # Tier-1 schema validation against the dataset (no DB roundtrip).
+            # Runs AFTER the filter merge so filter columns are also validated.
+            from superset.daos.dataset import DatasetDAO
+
+            if isinstance(request.dataset_id, int) or (
+                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+            ):
+                dataset = DatasetDAO.find_by_id(int(request.dataset_id))
+            else:
+                dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
+
+            if dataset is None or not has_dataset_access(dataset):
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "DatasetNotAccessible",
+                        "message": (
+                            f"Dataset not found: {request.dataset_id}. "
+                            "Use list_datasets to find valid dataset IDs."
+                        ),
+                        "details": (
+                            f"Dataset {request.dataset_id} is missing or inaccessible."
+                        ),
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+
+            compile_result = validate_and_compile(
+                config, new_form_data, dataset, run_compile_check=False
+            )
+            if not compile_result.success:
+                logger.warning(
+                    "update_chart_preview validation failed: %s",
+                    compile_result.error,
+                )
+                if compile_result.error_obj is not None:
+                    error_payload = compile_result.error_obj.model_dump()
+                else:
+                    error_payload = {
+                        "error_type": "validation_error",
+                        "message": "Chart preview validation failed",
+                        "details": compile_result.error or "",
+                        "error_code": compile_result.error_code,
+                        "suggestions": [],
+                    }
+                return {
+                    "chart": None,
+                    "error": error_payload,
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
 
             # Generate new explore link with updated form_data
             explore_url = generate_explore_link(request.dataset_id, new_form_data)
@@ -183,6 +252,7 @@ def update_chart_preview(
             "explore_url": explore_url,
             "form_data_key": new_form_data_key,
             "previous_form_data_key": request.form_data_key,  # For reference
+            "warnings": warnings,
             "api_endpoints": {},  # No API endpoints for unsaved charts
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,

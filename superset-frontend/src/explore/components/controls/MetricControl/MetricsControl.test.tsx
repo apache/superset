@@ -62,7 +62,10 @@ function setup(overrides: Record<string, unknown> = {}) {
     ...defaultProps,
     ...overrides,
   };
-  const result = render(<MetricsControl {...props} />, { useDnd: true });
+  const result = render(<MetricsControl {...props} />, {
+    useDnd: true,
+    useRedux: true,
+  });
   return { onChange, ...result };
 }
 
@@ -166,7 +169,7 @@ test('does not remove custom SQL metric if savedMetrics changes', async () => {
       ]}
       datasource={undefined}
     />,
-    { useDnd: true },
+    { useDnd: true, useRedux: true },
   );
 
   expect(screen.getByText('old label')).toBeInTheDocument();
