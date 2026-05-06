@@ -85,11 +85,14 @@ const FilterControl = ({
           {name}
         </FilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
-        <DescriptionToolTip
-          description={t(
-            'When typing or pasting filter values, commas will separate values into multiple entries. To include a comma within a value, wrap it in double quotes: "San Francisco, CA"',
+        {filter.filterType === 'filter_select' &&
+          filter.controlValues?.multiSelect && (
+            <DescriptionToolTip
+              description={t(
+                'When typing or pasting filter values, commas will separate values into multiple entries. To include a comma within a value, wrap it in double quotes: "San Francisco, CA"',
+              )}
+            />
           )}
-        />
         {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
         )}
@@ -107,6 +110,7 @@ const FilterControl = ({
       isRequired,
       filter.description,
       filter.filterType,
+      filter.controlValues?.multiSelect,
       icon,
     ],
   );

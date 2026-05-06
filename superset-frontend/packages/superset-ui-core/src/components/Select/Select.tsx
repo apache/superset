@@ -195,6 +195,8 @@ const Select = forwardRef(
 
     const mappedMode = isSingleMode ? undefined : 'multiple';
 
+    // TODO(antd): drop manual comma tokenization once
+    // https://github.com/ant-design/ant-design/issues/57820 ships.
     const antdTokenSeparators = useMemo(
       () => tokenSeparators.filter(sep => sep !== ','),
       [tokenSeparators],
