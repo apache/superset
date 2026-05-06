@@ -353,29 +353,32 @@ def map_config_to_form_data(
     | BigNumberChartConfig,
     dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
-    """Map chart config to Superset form_data."""
-    if isinstance(config, TableChartConfig):
-        return map_table_config(config)
-    elif isinstance(config, XYChartConfig):
-        return map_xy_config(config, dataset_id=dataset_id)
-    elif isinstance(config, PieChartConfig):
-        return map_pie_config(config)
-    elif isinstance(config, PivotTableChartConfig):
-        return map_pivot_table_config(config)
-    elif isinstance(config, MixedTimeseriesChartConfig):
-        return map_mixed_timeseries_config(config, dataset_id=dataset_id)
-    elif isinstance(config, HandlebarsChartConfig):
-        return map_handlebars_config(config)
-    elif isinstance(config, BigNumberChartConfig):
-        if config.show_trendline and config.temporal_column:
-            if not is_column_truly_temporal(config.temporal_column, dataset_id):
-                raise ValueError(
-                    f"Big Number trendline requires a temporal SQL column; "
-                    f"'{config.temporal_column}' is not temporal."
-                )
-        return map_big_number_config(config)
-    else:
-        raise ValueError(f"Unsupported config type: {type(config)}")
+    """Map chart config to Superset form_data via the plugin registry.
+
+    The previous if/elif chain across all 7 chart types has been replaced by a
+    single registry lookup. Cross-field constraints (e.g. BigNumber trendline
+    temporal check) are now owned by each plugin's post_map_validate() method
+    rather than being baked into this dispatcher.
+    """
+    from superset.mcp_service.chart.registry import get_registry
+
+    chart_type = getattr(config, "chart_type", None)
+    plugin = get_registry().get(chart_type) if chart_type else None
+
+    if plugin is None:
+        raise ValueError(
+            f"Unsupported config type: {type(config)} (chart_type={chart_type!r})"
+        )
+
+    form_data = plugin.to_form_data(config, dataset_id=dataset_id)
+
+    # Run post-map validation (e.g. BigNumber trendline temporal type check).
+    # Raise ValueError to preserve backward-compatible error handling in callers.
+    error = plugin.post_map_validate(config, form_data, dataset_id=dataset_id)
+    if error is not None:
+        raise ValueError(error.message)
+
+    return form_data
 
 
 def _add_adhoc_filters(
