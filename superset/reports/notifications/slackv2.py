@@ -77,7 +77,18 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             return ("pdf", [self._content.pdf])
         return (None, [])
 
-    @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
+    # Retry on NotificationUnprocessableException (the wrapper that send()
+    # raises for transient Slack failures: SlackApiError, connection errors,
+    # and the SlackClientError catch-all). Retrying on SlackApiError directly
+    # would never fire because the try/except below converts it before the
+    # decorator can see it. Mirrors the pattern in webhook.py.
+    @backoff.on_exception(
+        backoff.expo,
+        NotificationUnprocessableException,
+        factor=10,
+        base=2,
+        max_tries=5,
+    )
     @statsd_gauge("reports.slack.send")
     def send(self) -> None:
         global_logs_context = getattr(g, "logs_context", {}) or {}

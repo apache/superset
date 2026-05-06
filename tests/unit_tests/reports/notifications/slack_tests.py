@@ -41,6 +41,20 @@ from superset.reports.notifications.slackv2 import SlackV2Notification
 from superset.utils.core import HeaderDataType
 
 
+@pytest.fixture(autouse=True)
+def _skip_backoff_sleep():
+    """Make any @backoff.on_exception retries instant.
+
+    SlackV2Notification.send() retries up to 5 times with `backoff.expo(factor=10,
+    base=2)` — that's ~150s of real sleep on a persistently-failing send. We
+    don't care about the wall-clock waits in unit tests; patching `time.sleep`
+    inside backoff's sync runner keeps the assertion semantics (call_count,
+    raised exception type) without the wait.
+    """
+    with patch("backoff._sync.time.sleep"):
+        yield
+
+
 @pytest.fixture
 def mock_header_data() -> HeaderDataType:
     return {
@@ -715,24 +729,18 @@ def test_v2_send_maps_slack_sdk_exceptions(
 
 @patch("superset.reports.notifications.slackv2.g")
 @patch("superset.reports.notifications.slackv2.get_slack_client")
-def test_v2_send_backoff_decorator_does_not_retry_swallowed_slack_api_errors(
+def test_v2_send_retries_on_transient_slack_api_error(
     slack_client_mock: MagicMock,
     flask_global_mock: MagicMock,
     mock_header_data,
 ) -> None:
-    """Locks in current behavior of the @backoff.on_exception(SlackApiError, ...)
-    decorator on `send()`.
+    """`@backoff.on_exception(NotificationUnprocessableException, max_tries=5)`
+    retries the wrapped exception that send() actually raises.
 
-    The decorator targets SlackApiError, but `send()` itself catches every
-    SlackApiError and re-raises it as a NotificationUnprocessableException
-    before the decorator sees it. Backoff only retries on the configured
-    exception type, so in practice no retries occur and exactly one Slack call
-    is attempted before the NotificationUnprocessableException propagates.
-
-    If the surrounding `except` clauses are ever changed to let SlackApiError
-    escape (or backoff is reconfigured to retry on NotificationUnprocessable),
-    this assertion will start failing — at which point the retry budget should
-    be reviewed and this test updated.
+    A persistent Slack rate-limit (or any other transient failure that maps to
+    NotificationUnprocessableException) results in exactly max_tries=5 send
+    attempts before the final exception propagates. This mirrors the existing
+    pattern in webhook.py.
     """
     flask_global_mock.logs_context = {}
     slack_client_mock.return_value.chat_postMessage.side_effect = SlackApiError(
@@ -742,10 +750,33 @@ def test_v2_send_backoff_decorator_does_not_retry_swallowed_slack_api_errors(
     content = _make_content(mock_header_data)
     notification = _make_v2_notification(content, target="C12345")
 
-    with (
-        patch("backoff._sync.time.sleep"),
-        pytest.raises(NotificationUnprocessableException),
-    ):
+    with pytest.raises(NotificationUnprocessableException):
+        notification.send()
+
+    assert slack_client_mock.return_value.chat_postMessage.call_count == 5
+
+
+@patch("superset.reports.notifications.slackv2.g")
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+def test_v2_send_does_not_retry_param_errors(
+    slack_client_mock: MagicMock,
+    flask_global_mock: MagicMock,
+    mock_header_data,
+) -> None:
+    """Non-transient errors (config / auth / malformed) are NOT retried — only
+    NotificationUnprocessableException triggers backoff. A
+    NotificationParamException-class failure (BotUserAccessError → 422) hits
+    the API exactly once and surfaces immediately.
+    """
+    flask_global_mock.logs_context = {}
+    slack_client_mock.return_value.chat_postMessage.side_effect = BotUserAccessError(
+        "bot user blocked"
+    )
+
+    content = _make_content(mock_header_data)
+    notification = _make_v2_notification(content, target="C12345")
+
+    with pytest.raises(NotificationParamException):
         notification.send()
 
     assert slack_client_mock.return_value.chat_postMessage.call_count == 1
