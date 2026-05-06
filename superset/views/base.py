@@ -64,6 +64,7 @@ from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
     is_valid_theme,
 )
+from superset.translations.utils import get_language_pack
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.version import get_version_metadata
@@ -441,34 +442,6 @@ def _get_frontend_config_value(key: str) -> Any:
     return val
 
 
-def _load_language_pack(language: str | None) -> dict[str, Any] | None:
-    """Read the Jed language pack for ``language`` off disk.
-
-    Returns ``None`` for English, when the JSON file is missing, or when
-    it can't be parsed. The result is injected into the bootstrap payload
-    so the frontend can configure the translator synchronously before any
-    code-split chunk evaluates a module-level ``const X = t('...')``
-    (see upstream issue #35330).
-    """
-    if not language or language == "en":
-        return None
-    pack_path = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "translations",
-        language,
-        "LC_MESSAGES",
-        "messages.json",
-    )
-    if not os.path.isfile(pack_path):
-        return None
-    try:
-        with open(pack_path, encoding="utf-8") as fp:
-            return cast(dict[str, Any], json.loads(fp.read()))
-    except (OSError, ValueError):
-        return None
-
-
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: str | None
@@ -550,20 +523,11 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
             )
         frontend_config["AUTH_PROVIDERS"] = saml_providers
 
-    # Inject the Jed language pack into the bootstrap payload so the
-    # frontend can configure the translator synchronously, before any
-    # code-split chunk evaluates a module-level `const X = t('...')`.
-    # Without this, strings captured in module-scope constants render in
-    # English even when the locale is set and the async language_pack
-    # endpoint returns a valid pack (upstream issue #35330).
-    language_pack = _load_language_pack(language)
-
     bootstrap_data = {
         "application_root": app.config["APPLICATION_ROOT"],
         "static_assets_prefix": app.config["STATIC_ASSETS_PREFIX"],
         "conf": frontend_config,
         "locale": language,
-        "language_pack": language_pack,
         "d3_format": app.config.get("D3_FORMAT"),
         "d3_time_format": app.config.get("D3_TIME_FORMAT"),
         "currencies": app.config.get("CURRENCIES"),
@@ -587,7 +551,22 @@ def common_bootstrap_payload() -> dict[str, Any]:
     locale = get_locale()
     # Convert locale to string for proper cache key hashing
     locale_str = str(locale) if locale else None
-    return cached_common_bootstrap_data(utils.get_user_id(), locale_str)
+    payload = dict(cached_common_bootstrap_data(utils.get_user_id(), locale_str))
+    # Inject the Jed language pack outside the per-user memoize so the cached
+    # payload stays small and the pack is shared across users for the same
+    # locale. The frontend uses it to configure the translator synchronously,
+    # before any code-split chunk evaluates a module-level `const X = t('...')`
+    # (upstream issue #35330).
+    language = payload.get("locale")
+    if language and language != "en":
+        # `get_language_pack` falls back to an empty English pack on miss;
+        # treat empty as "no pack" so the frontend can fall through to the
+        # async fetch instead of configuring with an empty translator.
+        pack = get_language_pack(language) or None
+    else:
+        pack = None
+    payload["language_pack"] = pack
+    return payload
 
 
 def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
