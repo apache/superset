@@ -91,8 +91,24 @@ async def list_charts(
     Returns chart metadata including id, name, viz_type, URL, and last
     modified time.
 
-    Sortable columns for order_column: id, slice_name, viz_type, description,
-    changed_on, created_on
+    **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
+    Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
+    keyword arguments — they will be rejected. Use the ``request`` wrapper::
+
+        # Correct usage
+        list_charts(request={"search": "revenue", "page": 1, "page_size": 10})
+        list_charts(request={"filters": [{"col": "slice_name", "opr": "ct", "value": "sales"}]})
+        list_charts()  # no arguments returns first page with defaults
+
+        # Wrong — causes pydantic validation errors
+        list_charts(search="revenue", page=1)  # DO NOT DO THIS
+
+    Valid filter columns for ``filters[].col``:
+        ``slice_name``, ``viz_type``, ``datasource_name``
+
+    Sortable columns for ``order_column``:
+        ``id``, ``slice_name``, ``viz_type``, ``description``,
+        ``changed_on``, ``created_on``
     """
     request = request or _DEFAULT_LIST_CHARTS_REQUEST.model_copy(deep=True)
     await ctx.info(

@@ -2080,3 +2080,63 @@ class TestListDatasetsOwnedByMe:
         request = ListDatasetsRequest(owned_by_me=True, created_by_me=True)
         assert request.owned_by_me is True
         assert request.created_by_me is True
+
+
+class TestListDatasetsRequestWrapper:
+    """
+    Tests verifying that list_datasets requires a ``request`` wrapper object.
+
+    LLMs sometimes pass parameters like ``search``, ``page``, or ``page_size``
+    as flat top-level kwargs instead of nesting them inside a ``request``
+    object.  These tests confirm the correct call shape and that the schema
+    rejects invalid filter column names (e.g. ``created_by_fk``).
+    """
+
+    def test_request_wrapper_with_search(self):
+        """Parameters passed inside request= are accepted."""
+        request = ListDatasetsRequest(search="sales", page=1, page_size=10)
+        assert request.search == "sales"
+        assert request.page == 1
+        assert request.page_size == 10
+
+    def test_request_wrapper_defaults(self):
+        """No-arg constructor produces valid defaults."""
+        request = ListDatasetsRequest()
+        assert request.search is None
+        assert request.page == 1
+        assert request.filters == []
+
+    def test_dataset_filter_valid_col(self):
+        """Valid col values are accepted by DatasetFilter."""
+        for col in ("table_name", "schema", "database_name"):
+            f = DatasetFilter(col=col, opr="ct", value="test")
+            assert f.col == col
+
+    def test_dataset_filter_invalid_col_raises(self):
+        """Column names not in the Literal are rejected with a validation error.
+
+        This guards against LLMs passing ``created_by_fk`` or similar
+        internal column names that are not exposed as filter fields.
+        """
+        from pydantic import ValidationError
+
+        for bad_col in ("created_by_fk", "id", "database_id", "owner"):
+            with pytest.raises(ValidationError):
+                DatasetFilter(col=bad_col, opr="eq", value="1")
+
+    @pytest.mark.asyncio
+    async def test_flat_kwargs_rejected(self, mcp_server):
+        """Passing search/page/page_size as top-level kwargs raises a ToolError.
+
+        This is the exact failure pattern reported in story #105712: LLMs call
+        ``list_datasets(search=..., page=..., page_size=...)`` instead of
+        ``list_datasets(request={...})``.
+        """
+        from fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError):
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "list_datasets",
+                    {"search": "sales", "page": 1, "page_size": 10},
+                )

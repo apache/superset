@@ -85,8 +85,24 @@ async def list_dashboards(
     including title, slug, URL, and last modified time. Use select_columns to
     request additional fields.
 
-    Sortable columns for order_column: id, dashboard_title, slug, published,
-    changed_on, created_on
+    **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
+    Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
+    keyword arguments — they will be rejected. Use the ``request`` wrapper::
+
+        # Correct usage
+        list_dashboards(request={"search": "sales", "page": 1, "page_size": 10})
+        list_dashboards(request={"filters": [{"col": "dashboard_title", "opr": "ct", "value": "exec"}]})
+        list_dashboards()  # no arguments returns first page with defaults
+
+        # Wrong — causes pydantic validation errors
+        list_dashboards(search="sales", page=1)  # DO NOT DO THIS
+
+    Valid filter columns for ``filters[].col``:
+        ``dashboard_title``, ``published``, ``favorite``
+
+    Sortable columns for ``order_column``:
+        ``id``, ``dashboard_title``, ``slug``, ``published``,
+        ``changed_on``, ``created_on``
     """
     request = request or _DEFAULT_LIST_DASHBOARDS_REQUEST.model_copy(deep=True)
     await ctx.info(
