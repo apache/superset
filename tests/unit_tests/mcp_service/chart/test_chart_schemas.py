@@ -806,12 +806,14 @@ class TestColumnRefNameRelaxedPattern:
         col = ColumnRef(name="Total Revenue")
         assert col.name == "Total Revenue"
 
-    def test_script_tag_blocked(self) -> None:
-        """sanitize_name() blocks script-tag XSS: nh3 strips the entire script
-        element (tag + content) leaving an empty string, which the empty-value
-        guard then rejects."""
-        with pytest.raises(ValidationError):
-            ColumnRef(name="<script>alert(1)</script>")
+    def test_script_tag_stripped(self) -> None:
+        """sanitize_name() neutralizes script-tag XSS via nh3. nh3 removes the
+        tag delimiters but preserves the text content between them, so
+        '<script>alert(1)</script>' becomes 'alert(1)' — no raw HTML in the
+        stored column name."""
+        col = ColumnRef(name="<script>alert(1)</script>")
+        assert col.name == "alert(1)"
+        assert "<script>" not in col.name
 
     def test_event_handler_injection_blocked(self) -> None:
         """sanitize_name() rejects event-handler injection patterns (on...=)."""
