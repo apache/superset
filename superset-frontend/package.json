@@ -196,7 +196,7 @@
     "memoize-one": "^5.2.1",
     "mousetrap": "^1.6.5",
     "mustache": "^4.2.0",
-    "nanoid": "^5.1.9",
+    "nanoid": "^5.1.11",
     "ol": "^10.9.0",
     "pretty-ms": "^9.3.0",
     "query-string": "9.3.1",
