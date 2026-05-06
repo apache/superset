@@ -19,6 +19,7 @@
 Comprehensive unit tests for MCP generate_explore_link tool
 """
 
+import importlib
 import logging
 from unittest.mock import Mock, patch
 
@@ -36,6 +37,14 @@ from superset.mcp_service.chart.schemas import (
     XYChartConfig,
 )
 from superset.mcp_service.common.error_schemas import DatasetContext
+
+# The package ``__init__.py`` re-exports the ``generate_explore_link`` tool
+# function under the same dotted path as the module, so mock.patch's string
+# lookup of ``...generate_explore_link.<attr>`` can resolve to the function
+# on some Python versions. Hold a direct module reference for ``patch.object``.
+generate_explore_link_module = importlib.import_module(
+    "superset.mcp_service.explore.tool.generate_explore_link"
+)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -55,6 +64,29 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def mock_dataset_access_granted():
+    """Grant dataset access by default; tests that need a denial override this."""
+    with patch.object(
+        generate_explore_link_module, "has_dataset_access", return_value=True
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def mock_validation_passes():
+    """Skip Tier-1 dataset validation by default so Mock datasets don't trip the
+    real validator. Individual tests that exercise validation override this."""
+    from superset.mcp_service.chart.compile import CompileResult
+
+    with patch.object(
+        generate_explore_link_module,
+        "validate_and_compile",
+        return_value=CompileResult(success=True),
+    ):
+        yield
 
 
 @pytest.fixture(autouse=True)
@@ -922,3 +954,102 @@ class TestGenerateExploreLinkColumnNormalization:
             assert result.data["error"] is None
             # original names should pass through unchanged
             assert result.data["form_data"]["x_axis"] == "orderdate"
+
+
+class TestGenerateExploreLinkValidation:
+    """Tier-1 validation gate (DatasetValidator) and dataset access checks."""
+
+    @pytest.fixture(autouse=True)
+    def mock_validation_passes(self):
+        """Override the module-level autouse patch so each test in this class
+        can stub ``validate_and_compile`` itself. The fixture name MUST match
+        the module-level fixture for pytest's override-by-name to take effect.
+        """
+        return
+
+    @patch.object(generate_explore_link_module, "validate_and_compile")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch(
+        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
+    )
+    @pytest.mark.asyncio
+    async def test_validation_failure_returns_structured_error(
+        self,
+        mock_create_form_data,
+        mock_find_dataset,
+        mock_validate,
+        mcp_server,
+    ):
+        """Non-existent column → structured ChartGenerationError with suggestions,
+        and MCPCreateFormDataCommand must NOT be called (no cache write)."""
+        from superset.mcp_service.chart.compile import CompileResult
+        from superset.mcp_service.common.error_schemas import ChartGenerationError
+
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_validate.return_value = CompileResult(
+            success=False,
+            error="Column 'num_boys' does not exist in dataset",
+            error_code="CHART_VALIDATION_FAILED",
+            tier="validation",
+            error_obj=ChartGenerationError(
+                error_type="invalid_column",
+                message="Column 'num_boys' does not exist in dataset",
+                details="Available columns: ds, gender, name, num, sum_boys",
+                suggestions=["sum_boys"],
+                error_code="CHART_VALIDATION_FAILED",
+            ),
+        )
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="num_boys", aggregate="SUM")],
+            kind="line",
+        )
+        request = GenerateExploreLinkRequest(dataset_id="3", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["url"] == ""
+            assert result.data["form_data_key"] is None
+            error = result.data["error"]
+            assert isinstance(error, dict)
+            assert error["error_code"] == "CHART_VALIDATION_FAILED"
+            assert "sum_boys" in error["suggestions"]
+            mock_create_form_data.assert_not_called()
+
+    @patch.object(
+        generate_explore_link_module, "has_dataset_access", return_value=False
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch(
+        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
+    )
+    @pytest.mark.asyncio
+    async def test_dataset_access_denied_short_circuits(
+        self,
+        mock_create_form_data,
+        mock_find_dataset,
+        unused_access_mock,
+        mcp_server,
+    ):
+        """has_dataset_access=False blocks the tool before any cache write."""
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="region")]
+        )
+        request = GenerateExploreLinkRequest(dataset_id="3", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["url"] == ""
+            # Surface as "not found" rather than leaking that the dataset exists.
+            assert "Dataset not found" in result.data["error"]
+            mock_create_form_data.assert_not_called()

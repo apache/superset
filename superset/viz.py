@@ -51,6 +51,7 @@ from superset.exceptions import (
     NullValueException,
     QueryObjectValidationError,
     SpatialException,
+    SupersetErrorException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
@@ -612,6 +613,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 )
                 self.errors.append(error)
                 self.status = QueryStatus.FAILED
+            except SupersetErrorException:
+                # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+                # so the global Flask error handler serializes them.
+                raise
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
 
