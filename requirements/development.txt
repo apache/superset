@@ -442,6 +442,7 @@ isodate==0.7.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
 isort==6.0.1
     # via pylint
 itsdangerous==2.2.0
@@ -715,6 +716,7 @@ pyarrow==20.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
     #   db-dtypes
     #   pandas-gbq
 pyasn1==0.6.3
@@ -866,6 +868,8 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
+regex==2026.4.4
+    # via tiktoken
 requests==2.33.0
     # via
     #   -c requirements/base-constraint.txt
@@ -878,6 +882,7 @@ requests==2.33.0
     #   requests-cache
     #   requests-oauthlib
     #   shillelagh
+    #   tiktoken
     #   trino
 requests-cache==1.2.1
     # via
@@ -1003,6 +1008,8 @@ tabulate==0.9.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+tiktoken==0.12.0
+    # via apache-superset
 tomli-w==1.2.0
     # via apache-superset-extensions-cli
 tomlkit==0.13.3
