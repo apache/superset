@@ -141,7 +141,7 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
         background-color ${theme.motionDurationMid} ease-in-out,
         border-color ${theme.motionDurationMid} ease-in-out;
       border: ${statusConfig.needsBorder
-        ? `1px solid ${theme.colorBorder}`
+        ? `1px solid ${theme.colorTextSecondary}`
         : 'none'};
       box-shadow: ${statusConfig.needsBorder
         ? 'none'
