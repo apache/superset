@@ -22,7 +22,7 @@ Pydantic schemas for chart-related responses
 from __future__ import annotations
 
 import difflib
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 import humanize
@@ -50,7 +50,7 @@ from superset.mcp_service.common.cache_schemas import (
     OwnedByMeMixin,
     QueryCacheControl,
 )
-from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.common.error_schemas import ChartGenerationError, MCPBaseError
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
@@ -183,16 +183,8 @@ class ChartInfo(BaseModel):
         return data
 
 
-class ChartError(BaseModel):
-    error: str = Field(..., description="Error message")
-    error_type: str = Field(..., description="Type of error")
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        description="Error timestamp",
-    )
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-    @field_validator("error")
+class ChartError(MCPBaseError):
+    @field_validator("message")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str) -> str:
         """Wrap error text before it is exposed to LLM context."""
