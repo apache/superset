@@ -15,9 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import pytest
+import warnings
 
-from superset.utils.slack import get_channels_with_search, SlackChannelTypes
+import pytest
+from slack_sdk.errors import SlackApiError
+
+from superset.utils import slack as slack_module
+from superset.utils.slack import (
+    get_channels_with_search,
+    should_use_v2_api,
+    SlackChannelTypes,
+)
 
 
 class MockResponse:
@@ -216,3 +224,91 @@ The server responded with: missing scope: channels:read"""
             {"name": "general", "id": "C12345"},
             {"name": "random", "id": "C67890"},
         ]
+
+
+# ---------------------------------------------------------------------------
+# should_use_v2_api: drives the v1→v2 auto-upgrade decision and emits
+# DeprecationWarning + logger.warning for both no-flag and missing-scope cases.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _reset_v1_warning_flags():
+    """Each test sees a fresh process-level warning state."""
+    slack_module._v1_flag_off_warning_emitted = False
+    slack_module._v1_scope_missing_warning_emitted = False
+    yield
+    slack_module._v1_flag_off_warning_emitted = False
+    slack_module._v1_scope_missing_warning_emitted = False
+
+
+class TestShouldUseV2Api:
+    def test_returns_true_when_flag_on_and_scopes_present(self, mocker):
+        mocker.patch(
+            "superset.utils.slack.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        )
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.return_value = {
+            "channels": [{"id": "C1", "name": "general"}]
+        }
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            assert should_use_v2_api() is True
+            assert not any(issubclass(w.category, DeprecationWarning) for w in caught)
+
+    def test_returns_false_when_flag_off_and_emits_deprecation_once(self, mocker):
+        mocker.patch(
+            "superset.utils.slack.feature_flag_manager.is_feature_enabled",
+            return_value=False,
+        )
+        logger_mock = mocker.patch("superset.utils.slack.logger")
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            assert should_use_v2_api() is False
+            assert should_use_v2_api() is False  # second call: no new warning
+            assert should_use_v2_api() is False  # third call: no new warning
+
+        deprecation_warnings = [
+            w for w in caught if issubclass(w.category, DeprecationWarning)
+        ]
+        # Exactly one DeprecationWarning across three calls.
+        assert len(deprecation_warnings) == 1
+        assert "deprecated" in str(deprecation_warnings[0].message).lower()
+        # logger.warning fires only once for the same reason.
+        assert logger_mock.warning.call_count == 1
+        assert (
+            "ALERT_REPORT_SLACK_V2 is disabled" in logger_mock.warning.call_args.args[0]
+        )
+
+    def test_returns_false_when_scope_missing_and_emits_deprecation_once(self, mocker):
+        mocker.patch(
+            "superset.utils.slack.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        )
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.side_effect = SlackApiError(
+            message="missing_scope", response={"ok": False}
+        )
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+        logger_mock = mocker.patch("superset.utils.slack.logger")
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            assert should_use_v2_api() is False
+            assert should_use_v2_api() is False
+            assert should_use_v2_api() is False
+
+        deprecation_warnings = [
+            w for w in caught if issubclass(w.category, DeprecationWarning)
+        ]
+        # DeprecationWarning emitted exactly once across multiple calls.
+        assert len(deprecation_warnings) == 1
+        # The user-visible scope-missing log fires every time, since operators
+        # need to see the actionable message in their report-execution logs.
+        assert logger_mock.warning.call_count == 3
+        for c in logger_mock.warning.call_args_list:
+            assert "channels:read" in c.args[0]
