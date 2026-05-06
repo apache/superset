@@ -4351,7 +4351,6 @@ msgstr "Значение по умолчанию"
 msgid "Default color"
 msgstr "Цвет по умолчанию"
 
-#, python-format
 msgid "Default datetime column"
 msgstr "Столбец даты/времени по умолчанию"
 
