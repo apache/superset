@@ -57,10 +57,12 @@ def test_line_chart_with_null_values_does_not_raise() -> None:
 
 def test_horizontal_bar_chart_nan_rows_are_skipped() -> None:
     """NaN rows must be silently skipped; valid rows render normally."""
+    # Use labels longer than 8 chars to force horizontal layout, where full
+    # label text is preserved (vertical layout truncates to 3 chars).
     data = [
-        {"label": "Alpha", "amount": 50.0},
-        {"label": "Beta", "amount": float("nan")},
-        {"label": "Gamma", "amount": 150.0},
+        {"label": "Alpha Category", "amount": 50.0},
+        {"label": "Beta Category", "amount": float("nan")},
+        {"label": "Gamma Category", "amount": 150.0},
     ]
     result = generate_ascii_chart(data, "bar")
     # Valid labels should appear in output; NaN row should not crash
