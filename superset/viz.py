@@ -51,6 +51,7 @@ from superset.exceptions import (
     NullValueException,
     QueryObjectValidationError,
     SpatialException,
+    SupersetErrorException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
@@ -65,6 +66,7 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, csv, json
 from superset.utils.cache import set_and_log_cache
+from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     apply_max_row_limit,
     DateColumn,
@@ -472,6 +474,16 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
         cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
+
+        # Add an impersonation key to cache if impersonation is enabled on the db
+        # or if the CACHE_QUERY_BY_USER flag is on or per_user_caching is enabled on
+        #  the database
+        try:
+            add_impersonation_cache_key_if_needed(self.datasource.database, cache_dict)
+        except AttributeError:
+            # datasource or database do not exist
+            pass
+
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hash_from_str(json_data)
 
@@ -601,6 +613,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 )
                 self.errors.append(error)
                 self.status = QueryStatus.FAILED
+            except SupersetErrorException:
+                # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+                # so the global Flask error handler serializes them.
+                raise
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
 
@@ -1519,6 +1535,29 @@ class MapboxViz(BaseViz):
             "tooltip": self.form_data.get("rich_tooltip"),
             "color": self.form_data.get("mapbox_color"),
         }
+
+
+class MapLibreViz(MapboxViz):
+    """Rich maps made with MapLibre"""
+
+    viz_type = "point_cluster_map"
+    verbose_name = _("Point Cluster Map")
+    credits = '<a href="https://maplibre.org/">MapLibre GL JS</a>'
+
+    @deprecated(deprecated_in="3.0")
+    def query_obj(self) -> QueryObjectDict:
+        self.form_data["mapbox_label"] = self.form_data.get("map_label")
+        return super().query_obj()
+
+    @deprecated(deprecated_in="3.0")
+    def get_data(self, df: pd.DataFrame) -> VizData:
+        self.form_data["mapbox_label"] = self.form_data.get("map_label")
+        self.form_data["mapbox_style"] = self.form_data.get("map_style")
+        self.form_data["mapbox_color"] = self.form_data.get("map_color")
+        data = super().get_data(df)
+        if data:
+            data.pop("mapboxApiKey", None)
+        return data
 
 
 class DeckGLMultiLayer(BaseViz):

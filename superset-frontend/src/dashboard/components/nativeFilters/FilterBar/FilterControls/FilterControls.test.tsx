@@ -384,6 +384,19 @@ test('FilterControls should handle empty filters list', () => {
   expect(container).toBeInTheDocument();
 });
 
+test('does not render "Filters out of scope" when all filters are in scope', () => {
+  const state = getDefaultState(FilterBarOrientation.Vertical);
+
+  const { useSelector } = jest.requireMock('react-redux');
+  useSelector.mockImplementation((selector: (s: typeof state) => unknown) =>
+    selector(state),
+  );
+
+  setupWithFilters(state);
+
+  expect(screen.queryByText(/Filters out of scope/)).not.toBeInTheDocument();
+});
+
 test('FilterControls overflowedByIndex updates when filters change scope', () => {
   const state = getDefaultState(FilterBarOrientation.Vertical);
 

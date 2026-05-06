@@ -29,14 +29,20 @@ import '@fontsource/ibm-plex-mono/600.css';
 /* eslint-enable import/extensions */
 
 import { css, useTheme, Global } from '@emotion/react';
+import { useThemeMode } from './utils/themeUtils';
 
 export const GlobalStyles = () => {
   const theme = useTheme();
+  const isDark = useThemeMode();
   return (
     <Global
       key={`global-${theme.colorLink}`}
       styles={css`
         // SPA
+        html {
+          color-scheme: ${isDark ? 'dark' : 'light'};
+        }
+
         html,
         body,
         #app {

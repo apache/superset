@@ -19,7 +19,7 @@
 import logging
 from typing import Any, Optional
 
-import prison
+import rison
 from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -227,9 +227,9 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                     warnings.append(filter_warning)
                 params = {**params, **filter_config}
         # hack(hughhh): workaround for escaping prison not handling quotes right
-        rison = prison.dumps(params)
-        rison = rison.replace("'", "%27")
-        return rison, warnings
+        decoded = rison.dumps(params)
+        decoded = decoded.replace("'", "%27")
+        return decoded, warnings
 
     def _generate_native_filter(
         self,
@@ -245,8 +245,22 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
             A tuple of (filter_config, warning_message). If the filter type is
             unrecognized, returns an empty dict and a warning message.
         """
+        # Filter types that require at least one value
+        requires_values = (
+            "filter_time",
+            "filter_timegrain",
+            "filter_timecolumn",
+            "filter_range",
+        )
+        if filter_type in requires_values and not values:
+            warning_msg = (
+                f"Skipping {filter_type} with empty filterValues "
+                f"(filter_id: {native_filter_id})"
+            )
+            logger.warning(warning_msg)
+            return {}, warning_msg
+
         if filter_type == "filter_time":
-            # For select filters, we need to use the "IN" operator
             return (
                 {
                     native_filter_id or "": {

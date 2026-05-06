@@ -53,7 +53,7 @@ const StyledDatasourceModal = styled(Modal)`
   padding-bottom: 0;
 
   && .ant-modal-content {
-    max-height: none;
+    max-height: ${MODAL_HEIGHT_VH}vh;
     margin-top: 0;
     margin-bottom: 0;
     min-height: 500px;
@@ -377,6 +377,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       resizable
       resizableConfig={{
         defaultSize: { width: 'auto', height: `${MODAL_HEIGHT_VH}vh` },
+        maxHeight: `${MODAL_HEIGHT_VH}vh`,
       }}
       draggable
     >

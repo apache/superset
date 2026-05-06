@@ -22,7 +22,13 @@ from typing import Any, Callable, cast
 
 from flask import request, Response
 from flask_appbuilder import Model, ModelRestApi
-from flask_appbuilder.api import BaseApi, expose, protect, rison, safe
+from flask_appbuilder.api import (
+    BaseApi,
+    expose,
+    protect,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -534,7 +540,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_related_schema)
+    @parse_rison(get_related_schema)
     @handle_api_exception
     def related(self, column_name: str, **kwargs: Any) -> FlaskResponse:
         """Get related fields data.
@@ -613,7 +619,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_related_schema)
+    @parse_rison(get_related_schema)
     @handle_api_exception
     def distinct(self, column_name: str, **kwargs: Any) -> FlaskResponse:
         """Get distinct values from field data.

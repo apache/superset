@@ -17,7 +17,13 @@
  * under the License.
  */
 
-import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { testWithId } from 'src/utils/testUtils';
 import { Preset, makeApi } from '@superset-ui/core';
@@ -387,6 +393,15 @@ test('FilterBar apply button is disabled after creating a filter', async () => {
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
   userEvent.click(screen.getByLabelText('setting'));
   userEvent.click(screen.getByText('Add or edit filters and controls'));
+
+  // First add a filter via the dropdown (modal now shows empty state by default)
+  const dropdownButton = screen.getByTestId('new-item-dropdown-button');
+  fireEvent.mouseEnter(dropdownButton);
+  const addFilterMenuItem = await screen.findByRole('menuitem', {
+    name: /add filter/i,
+  });
+  fireEvent.click(addFilterMenuItem);
+
   userEvent.click(screen.getByText('Value'));
   userEvent.click(screen.getByText('Time range'));
   userEvent.type(

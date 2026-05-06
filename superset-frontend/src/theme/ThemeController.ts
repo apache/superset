@@ -111,7 +111,7 @@ export class ThemeController {
     defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
     onChange = undefined,
     initialMode = undefined,
-  }: ThemeControllerOptions = {}) {
+  }: ThemeControllerOptions & { initialMode?: ThemeMode } = {}) {
     this.storage = storage;
     this.modeStorageKey = modeStorageKey;
     this.initialMode = initialMode;

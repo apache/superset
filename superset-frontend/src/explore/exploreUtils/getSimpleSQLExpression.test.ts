@@ -70,3 +70,15 @@ test('Should return correct string when subject and operator are valid values', 
     ]),
   ).toBe("subject operator 'comparator', 'comparator-2'");
 });
+
+test('Should handle boolean false comparator as a string value', () => {
+  expect(getSimpleSQLExpression(params.subject, params.operator, false)).toBe(
+    "subject operator 'FALSE'",
+  );
+});
+
+test('Should handle boolean true comparator as a string value', () => {
+  expect(getSimpleSQLExpression(params.subject, params.operator, true)).toBe(
+    "subject operator 'TRUE'",
+  );
+});

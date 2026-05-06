@@ -29,13 +29,29 @@ import {
 } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import DrillByModal, { DrillByModalProps } from './DrillByModal';
+
+setupAGGridModules();
 
 // Mock the isEmbedded function
 jest.mock('src/dashboard/util/isEmbedded', () => ({
   isEmbedded: jest.fn(() => false),
 }));
+
+jest.mock('src/explore/exploreUtils', () => {
+  const actual = jest.requireActual('src/explore/exploreUtils');
+  return {
+    ...actual,
+    exportChart: jest.fn(),
+  };
+});
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { exportChart: exportChartMock } = jest.requireMock(
+  'src/explore/exploreUtils',
+) as { exportChart: jest.Mock };
 
 const CHART_DATA_ENDPOINT = 'glob:*/api/v1/chart/data*';
 const FORM_DATA_KEY_ENDPOINT = 'glob:*/api/v1/explore/form_data';
@@ -406,16 +422,9 @@ describe('Table view with pagination', () => {
     await waitFor(() => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
-
-    // Check that pagination is rendered (there's also a breadcrumb list)
-    const lists = screen.getAllByRole('list');
-    const paginationList = lists.find(list =>
-      list.className?.includes('pagination'),
-    );
-    expect(paginationList).toBeInTheDocument();
   });
 
-  test('should handle pagination in table view', async () => {
+  test('should render data in table view', async () => {
     await renderModal({
       column: { column_name: 'state', verbose_name: null },
       drillByConfig: {
@@ -432,19 +441,9 @@ describe('Table view with pagination', () => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
 
-    // Check that first page data is shown
-    expect(screen.getByText('State0')).toBeInTheDocument();
-
-    // Check pagination controls exist
-    const nextPageButton = screen.getByTitle('Next Page');
-    expect(nextPageButton).toBeInTheDocument();
-
-    // Click next page
-    userEvent.click(nextPageButton);
-
-    // Verify page changed (State0 should not be visible on page 2)
+    // Check that data is rendered in the grid
     await waitFor(() => {
-      expect(screen.queryByText('State0')).not.toBeInTheDocument();
+      expect(screen.getByText('State0')).toBeInTheDocument();
     });
   });
 
@@ -542,11 +541,12 @@ describe('Table view with pagination', () => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
 
-    // Should show empty state
-    expect(screen.getByText('No data')).toBeInTheDocument();
+    // ag-grid shows its own empty overlay when there are no rows
+    const tableContainer = screen.getByTestId('drill-by-results-table');
+    expect(tableContainer).toBeInTheDocument();
   });
 
-  test('should handle sorting in table view', async () => {
+  test('should render grid in table view', async () => {
     await renderModal({
       column: { column_name: 'state', verbose_name: null },
       drillByConfig: {
@@ -563,16 +563,69 @@ describe('Table view with pagination', () => {
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
 
-    // Find sortable column header
-    const sortableHeaders = screen.getAllByTestId('sort-header');
-    expect(sortableHeaders.length).toBeGreaterThan(0);
-
-    // Click to sort
-    userEvent.click(sortableHeaders[0]);
-
     // Table should still be rendered without crashes
-    await waitFor(() => {
-      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+    expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+  });
+
+  test('CSV download calls exportChart with drilledFormData', async () => {
+    exportChartMock.mockClear();
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
     });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText('Export to CSV'));
+
+    expect(exportChartMock).toHaveBeenCalledTimes(1);
+    expect(exportChartMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resultFormat: 'csv',
+        resultType: 'full',
+        formData: expect.objectContaining({ slice_id: 0 }),
+      }),
+    );
+  });
+
+  test('XLSX download calls exportChart with xlsx format', async () => {
+    exportChartMock.mockClear();
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    userEvent.click(tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText('Export to Excel'));
+
+    expect(exportChartMock).toHaveBeenCalledTimes(1);
+    expect(exportChartMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resultFormat: 'xlsx',
+        resultType: 'full',
+        formData: expect.objectContaining({ slice_id: 0 }),
+      }),
+    );
   });
 });
