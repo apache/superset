@@ -179,19 +179,20 @@ test('hydrates sliceName from preview form data before saved slice name', () => 
   }));
   const previewSliceName = 'RENAMED - Bug Evidence';
   const savedSliceName = 'Most Populated Countries';
-
-  // @ts-expect-error we only need the fields consumed by hydrateExplore
-  hydrateExplore({
+  const previewInitialData = {
     ...exploreInitialData,
     form_data: {
       ...exploreInitialData.form_data,
       slice_name: previewSliceName,
     },
     slice: {
-      ...exploreInitialData.slice,
+      ...exploreInitialData.slice!,
       slice_name: savedSliceName,
     },
-  })(dispatch, getState);
+  };
+
+  // @ts-expect-error we only need the fields consumed by hydrateExplore
+  hydrateExplore(previewInitialData)(dispatch, getState);
 
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
