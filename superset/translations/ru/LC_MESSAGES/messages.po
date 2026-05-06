@@ -1593,7 +1593,7 @@ msgid "An error occurred while loading the SQL"
 msgstr "Произошла ошибка при загрузке SQL"
 
 msgid "An error occurred while overwriting the dataset"
-msgstr "Произошла ошибка при перезаписи источника данных"
+msgstr "Произошла ошибка при перезаписи датасета"
 
 msgid "An error occurred while parsing the key."
 msgstr "Произошла ошибка при парсинге ключа"
