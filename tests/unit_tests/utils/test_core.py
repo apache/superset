@@ -1830,7 +1830,7 @@ def test_sanitize_cookie_token_rejects_invalid(token: Optional[str]) -> None:
     assert sanitize_cookie_token(token) is None
 
 
-def test_extract_dataframe_dtypes_with_duplicate_columns():
+def test_extract_dataframe_dtypes_with_duplicate_columns() -> None:
     """extract_dataframe_dtypes should not crash on duplicate column names."""
     df = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "a"])
     result = extract_dataframe_dtypes(df)
