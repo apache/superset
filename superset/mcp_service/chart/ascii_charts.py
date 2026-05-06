@@ -79,7 +79,11 @@ def _generate_ascii_bar_chart(data: list[Any], width: int, height: int) -> str:
             label_val = None
 
             for _key, val in row.items():
-                if isinstance(val, (int, float)) and numeric_val is None:
+                if (
+                    isinstance(val, (int, float))
+                    and not _is_nan_value(val)
+                    and numeric_val is None
+                ):
                     numeric_val = val
                 elif isinstance(val, str) and label_val is None:
                     label_val = val
@@ -121,7 +125,10 @@ def _generate_horizontal_bar_chart(
         # Calculate bar length
         if max_val > min_val:
             normalized = (value - min_val) / (max_val - min_val)
-            bar_length = max(1, int(normalized * max_bar_width))
+            if _is_nan_value(normalized):
+                bar_length = 0
+            else:
+                bar_length = max(1, int(normalized * max_bar_width))
         else:
             bar_length = 1
 
@@ -164,7 +171,10 @@ def _generate_vertical_bar_chart(  # noqa: C901
     for col, value in enumerate(values):
         if max_val > min_val:
             normalized = (value - min_val) / (max_val - min_val)
-            bar_height = max(1, int(normalized * chart_height))
+            if _is_nan_value(normalized):
+                bar_height = 0
+            else:
+                bar_height = max(1, int(normalized * chart_height))
         else:
             bar_height = 1
 
@@ -274,7 +284,11 @@ def _extract_time_series_data(data: list[Any]) -> tuple[list[float], list[str]]:
             label_val = None
 
             for key, val in row.items():
-                if isinstance(val, (int, float)) and numeric_val is None:
+                if (
+                    isinstance(val, (int, float))
+                    and not _is_nan_value(val)
+                    and numeric_val is None
+                ):
                     numeric_val = val
                 elif isinstance(val, str) and label_val is None:
                     # Use the key name if it looks like a date/time field
