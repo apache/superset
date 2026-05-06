@@ -251,7 +251,7 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Получено строк: %(rows)d"
 
-#, no-python-format
+#, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
