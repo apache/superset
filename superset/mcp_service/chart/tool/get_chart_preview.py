@@ -1141,10 +1141,11 @@ async def _get_chart_preview_internal(  # noqa: C901
                 chart = find_chart_by_identifier(request.identifier)
 
                 # Eagerly refresh all attributes while the session is still
-                # active.  Without this, a commit or expiry inside
-                # validate_chart_dataset() can leave the Slice object detached,
-                # causing DetachedInstanceError when strategy classes access
-                # lazy attributes later.
+                # active.  SQLAlchemy expires object attributes after any
+                # commit; if a downstream operation commits before the strategy
+                # classes access chart attributes, a DetachedInstanceError will
+                # be raised.  Calling refresh() here ensures all column values
+                # are loaded into the object's __dict__ upfront.
                 if chart is not None:
                     db.session.refresh(chart)
 
@@ -1381,14 +1382,13 @@ async def _get_chart_preview_internal(  # noqa: C901
 
     except SQLAlchemyError as e:
         # Catch DetachedInstanceError and other SQLAlchemy errors that can
-        # surface when the ORM session expires mid-request (e.g. after a
-        # commit inside validate_chart_dataset).
+        # surface when the ORM session expires or commits mid-request.
         await ctx.error(
             "Chart preview failed due to database session error: "
             "identifier=%s, error_type=%s, error=%s"
             % (request.identifier, type(e).__name__, str(e))
         )
-        logger.error("SQLAlchemy error in get_chart_preview: %s", e)
+        logger.exception("SQLAlchemy error in get_chart_preview: %s", e)
         return ChartError(
             error="Database session error while generating chart preview. "
             "Please retry the request.",

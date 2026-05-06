@@ -600,11 +600,11 @@ Market Share
 class TestDetachedInstanceError:
     """Tests that DetachedInstanceError is handled gracefully.
 
-    When the SQLAlchemy session expires mid-request (e.g. after a commit
-    inside validate_chart_dataset), accessing lazy attributes of a Slice
-    object raises DetachedInstanceError.  The tool must:
-    1. Call db.session.refresh() immediately after loading the chart so the
-       object stays bound to the session before any downstream operations.
+    When the SQLAlchemy session commits mid-request, ORM objects expire and
+    become detached.  Accessing lazy attributes on a detached Slice raises
+    DetachedInstanceError.  The tool must:
+    1. Call db.session.refresh() immediately after loading the chart so all
+       column values are loaded upfront before any downstream operation.
     2. Catch SQLAlchemyError (the base class) and return a ChartError
        instead of propagating the exception.
     """
@@ -615,6 +615,9 @@ class TestDetachedInstanceError:
         import importlib
         from contextlib import nullcontext
         from unittest.mock import MagicMock, patch
+
+        from superset.mcp_service.chart.schemas import URLPreview
+        from superset.utils import json
 
         get_chart_preview_module = importlib.import_module(
             "superset.mcp_service.chart.tool.get_chart_preview"
@@ -632,6 +635,12 @@ class TestDetachedInstanceError:
 
         def _fake_refresh(obj: object) -> None:
             refresh_calls.append(obj)
+
+        url_preview = URLPreview(
+            preview_url="http://localhost/explore/?slice_id=42",
+            width=800,
+            height=600,
+        )
 
         with (
             patch.object(
@@ -654,19 +663,11 @@ class TestDetachedInstanceError:
                 "log_context",
                 return_value=nullcontext(),
             ),
-            # Short-circuit preview generation so the test stays fast
+            # Return a real URLPreview so Pydantic model validation succeeds
             patch.object(
                 get_chart_preview_module.PreviewFormatGenerator,
                 "generate",
-                return_value=MagicMock(
-                    __class__=get_chart_preview_module.URLPreview,
-                    spec=get_chart_preview_module.URLPreview,
-                    type="url",
-                    preview_url="http://localhost/explore/?slice_id=42",
-                    width=800,
-                    height=600,
-                    supports_interaction=True,
-                ),
+                return_value=url_preview,
             ),
             patch(
                 "superset.mcp_service.utils.url_utils.get_superset_base_url",
@@ -684,7 +685,7 @@ class TestDetachedInstanceError:
                     "superset.mcp_service.auth.check_tool_permission", return_value=True
                 ):
                     async with Client(mcp) as client:
-                        await client.call_tool(
+                        response = await client.call_tool(
                             "get_chart_preview",
                             {
                                 "request": GetChartPreviewRequest(
@@ -692,6 +693,13 @@ class TestDetachedInstanceError:
                                 ).model_dump()
                             },
                         )
+
+        data = json.loads(response.content[0].text)
+        # The tool should succeed — not return a ChartError
+        assert "error_type" not in data, (
+            f"Expected ChartPreview but got ChartError: {data.get('error')}"
+        )
+        assert data.get("chart_id") == 42
 
         assert len(refresh_calls) == 1, (
             "db.session.refresh() should be called once after loading the chart"
