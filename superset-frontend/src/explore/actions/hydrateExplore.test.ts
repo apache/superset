@@ -168,6 +168,43 @@ test('creates hydrate action with existing state', () => {
   );
 });
 
+test('hydrates sliceName from preview form data before saved slice name', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+  const previewSliceName = 'RENAMED - Bug Evidence';
+  const savedSliceName = 'Most Populated Countries';
+
+  // @ts-expect-error we only need the fields consumed by hydrateExplore
+  hydrateExplore({
+    ...exploreInitialData,
+    form_data: {
+      ...exploreInitialData.form_data,
+      slice_name: previewSliceName,
+    },
+    slice: {
+      ...exploreInitialData.slice,
+      slice_name: savedSliceName,
+    },
+  })(dispatch, getState);
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: HYDRATE_EXPLORE,
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          sliceName: previewSliceName,
+        }),
+      }),
+    }),
+  );
+});
+
 test('uses configured default time range if not set', () => {
   const dispatch = jest.fn();
   const getState = jest.fn(() => ({

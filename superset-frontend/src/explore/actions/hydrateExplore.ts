@@ -77,6 +77,8 @@ export const hydrateExplore =
     const fallbackSlice = sliceId ? sliceEntities?.slices?.[sliceId] : null;
     const initialSlice = slice ?? fallbackSlice;
     const initialFormData = form_data ?? initialSlice?.form_data;
+    const initialSliceName =
+      initialFormData.slice_name ?? initialSlice?.slice_name;
     if (!initialFormData.viz_type) {
       const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
       initialFormData.viz_type =
@@ -183,6 +185,7 @@ export const hydrateExplore =
       // because `bootstrapData.controls` is undefined.
       controls: initialControls,
       form_data: initialFormData,
+      sliceName: initialSliceName,
       slice: initialSlice,
       controlsTransferred: explore.controlsTransferred,
       standalone: getUrlParam(URL_PARAMS.standalone),
