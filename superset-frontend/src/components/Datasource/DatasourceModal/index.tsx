@@ -114,14 +114,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
-      database_id: datasource.database?.id,
+      database_id: datasource.database?.id ?? null,
       sql: datasource.sql,
       filter_select_enabled: datasource.filter_select_enabled,
       fetch_values_predicate: datasource.fetch_values_predicate,
       schema:
-        datasource.tableSelector?.schema ||
-        datasource.databaseSelector?.schema ||
-        datasource.schema,
+        datasource.tableSelector?.schema ??
+        datasource.databaseSelector?.schema ??
+        datasource.schema ?? null,
       description: datasource.description,
       main_dttm_col: datasource.main_dttm_col,
       currency_code_column: datasource.currency_code_column ?? null,
