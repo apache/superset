@@ -509,7 +509,11 @@ class TestExtractXAxisCol:
 
 
 class TestBuildQueryContextTimeseriesAndMixed:
-    """Tests for x_axis and mixed_timeseries fixes in _build_query_context_from_form_data."""
+    """Tests for x_axis and mixed_timeseries query-context fixes.
+
+    Covers both bugs after #39636: x_axis dropped for echarts_timeseries_*
+    and only one query rendered for mixed_timeseries.
+    """
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")

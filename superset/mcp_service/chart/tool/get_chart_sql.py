@@ -177,6 +177,39 @@ def _resolve_engine(
         return "base"
 
 
+def _build_single_query_dict(
+    form_data: dict[str, Any],
+    columns: list[str],
+    metrics: list[Any],
+) -> dict[str, Any]:
+    """Build one query entry for QueryContextFactory from form_data fields."""
+    qd: dict[str, Any] = {"columns": columns, "metrics": metrics}
+    if time_range := form_data.get("time_range"):
+        qd["time_range"] = time_range
+    if filters := form_data.get("filters"):
+        qd["filters"] = filters
+    if (row_limit := form_data.get("row_limit")) is not None:
+        qd["row_limit"] = row_limit
+    return qd
+
+
+def _build_mixed_timeseries_secondary(
+    form_data: dict[str, Any],
+    x_axis_col: str | None,
+) -> dict[str, Any]:
+    """Build the secondary query dict for the ``mixed_timeseries`` viz type.
+
+    ``mixed_timeseries`` has two independent series layers; the secondary
+    layer uses ``metrics_b`` / ``groupby_b`` instead of the primary fields.
+    """
+    metrics_b: list[Any] = list(form_data.get("metrics_b") or [])
+    raw_b = form_data.get("groupby_b") or []
+    groupby_b: list[str] = [raw_b] if isinstance(raw_b, str) else list(raw_b)
+    if x_axis_col and x_axis_col not in groupby_b:
+        groupby_b = [x_axis_col] + groupby_b
+    return _build_single_query_dict(form_data, groupby_b, metrics_b)
+
+
 def _build_query_context_from_form_data(
     form_data: dict[str, Any],
     chart: "Slice | None" = None,
@@ -242,29 +275,15 @@ def _build_query_context_from_form_data(
         if x_axis_col and x_axis_col not in groupby:
             groupby = [x_axis_col] + groupby
 
-    def _make_query_dict(cols: list[str], mets: list[Any]) -> dict[str, Any]:
-        """Build a single query entry for QueryContextFactory."""
-        qd: dict[str, Any] = {"columns": cols, "metrics": mets}
-        if time_range := form_data.get("time_range"):
-            qd["time_range"] = time_range
-        if filters := form_data.get("filters"):
-            qd["filters"] = filters
-        if (row_limit := form_data.get("row_limit")) is not None:
-            qd["row_limit"] = row_limit
-        return qd
-
-    queries: list[dict[str, Any]] = [_make_query_dict(groupby, metrics)]
+    queries: list[dict[str, Any]] = [
+        _build_single_query_dict(form_data, groupby, metrics)
+    ]
 
     # mixed_timeseries exposes two independent query layers (primary and
     # secondary).  Build the second query from metrics_b / groupby_b so
     # that get_chart_sql returns SQL for both and neither is silently lost.
     if viz_type == "mixed_timeseries":
-        metrics_b: list[Any] = list(form_data.get("metrics_b") or [])
-        raw_b = form_data.get("groupby_b") or []
-        groupby_b: list[str] = [raw_b] if isinstance(raw_b, str) else list(raw_b)
-        if x_axis_col and x_axis_col not in groupby_b:
-            groupby_b = [x_axis_col] + groupby_b
-        queries.append(_make_query_dict(groupby_b, metrics_b))
+        queries.append(_build_mixed_timeseries_secondary(form_data, x_axis_col))
 
     # Ensure datasource fields satisfy DatasourceDict typing requirements.
     # datasource_id must be int | str; datasource_type must be str.
