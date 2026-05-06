@@ -69,6 +69,7 @@ from superset.daos.datasource import DatasourceDAO
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.exceptions import (
     CacheLoadError,
+    SupersetErrorException,
     SupersetException,
     SupersetSecurityException,
 )
@@ -267,6 +268,10 @@ class Superset(BaseSupersetView):
             )
 
             return self.generate_json(viz_obj, response_type)
+        except SupersetErrorException:
+            # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+            # so the global Flask error handler serializes them.
+            raise
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
@@ -291,7 +296,7 @@ class Superset(BaseSupersetView):
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
     @deprecated(eol_version="5.0.0")
-    def explore_json(
+    def explore_json(  # noqa: C901
         self, datasource_type: str | None = None, datasource_id: int | None = None
     ) -> FlaskResponse:
         """Serves all request that GET or POST form_data
@@ -378,6 +383,10 @@ class Superset(BaseSupersetView):
             )
 
             return self.generate_json(viz_obj, response_type)
+        except SupersetErrorException:
+            # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+            # so the global Flask error handler serializes them.
+            raise
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
