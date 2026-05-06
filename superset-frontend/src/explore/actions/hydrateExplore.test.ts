@@ -21,6 +21,10 @@ import { VizType } from '@superset-ui/core';
 import { hydrateExplore, HYDRATE_EXPLORE } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
 
+afterEach(() => {
+  window.history.pushState({}, '', '/');
+});
+
 test('creates hydrate action from initial data', () => {
   const dispatch = jest.fn();
   const getState = jest.fn(() => ({
@@ -169,6 +173,8 @@ test('creates hydrate action with existing state', () => {
 });
 
 test('hydrates sliceName from preview form data before saved slice name', () => {
+  window.history.pushState({}, '', '/explore/?form_data_key=preview-key');
+
   const dispatch = jest.fn();
   const getState = jest.fn(() => ({
     user: {},
@@ -200,6 +206,44 @@ test('hydrates sliceName from preview form data before saved slice name', () => 
       data: expect.objectContaining({
         explore: expect.objectContaining({
           sliceName: previewSliceName,
+        }),
+      }),
+    }),
+  );
+});
+
+test('hydrates sliceName from saved slice when regular form data has stale name', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+  const staleFormDataSliceName = 'Stale Params Name';
+  const savedSliceName = 'Current Saved Name';
+  const savedChartInitialData = {
+    ...exploreInitialData,
+    form_data: {
+      ...exploreInitialData.form_data,
+      slice_name: staleFormDataSliceName,
+    },
+    slice: {
+      ...exploreInitialData.slice!,
+      slice_name: savedSliceName,
+    },
+  };
+
+  // @ts-expect-error we only need the fields consumed by hydrateExplore
+  hydrateExplore(savedChartInitialData)(dispatch, getState);
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: HYDRATE_EXPLORE,
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          sliceName: savedSliceName,
         }),
       }),
     }),
