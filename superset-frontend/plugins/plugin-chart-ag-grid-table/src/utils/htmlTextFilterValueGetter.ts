@@ -19,9 +19,19 @@
 import { isProbablyHTML, sanitizeHtml } from '@superset-ui/core';
 import { ValueGetterParams } from '@superset-ui/core/components/ThemedAgGridReact';
 
+// Cache extracted text by raw HTML string. Sort comparators run O(n log n)
+// times against the same set of cell values, so reparsing on every call is
+// a measurable cost on large tables. Bounded by the number of unique HTML
+// values in the dataset.
+const htmlTextCache = new Map<string, string>();
+
 const stripHtmlToText = (html: string): string => {
+  const cached = htmlTextCache.get(html);
+  if (cached !== undefined) return cached;
   const doc = new DOMParser().parseFromString(sanitizeHtml(html), 'text/html');
-  return (doc.body.textContent || '').trim();
+  const text = (doc.body.textContent || '').trim();
+  htmlTextCache.set(html, text);
+  return text;
 };
 
 /**
