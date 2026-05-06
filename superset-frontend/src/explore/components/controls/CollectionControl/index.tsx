@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { IconTooltip, List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core/translation';
@@ -185,8 +185,22 @@ function CollectionControl({
     }),
   );
 
+  // Two items can collide when keyAccessor returns falsy and the index
+  // fallback is used — breaking dnd-kit reordering and React reconciliation.
+  // Assign a stable nanoid per item ref when no key is available.
+  const generatedIdsRef = useRef<WeakMap<CollectionItem, string>>(new WeakMap());
   const itemIds = useMemo(
-    () => value.map((item, i) => keyAccessor(item) || String(i)),
+    () =>
+      value.map(item => {
+        const accessed = keyAccessor(item);
+        if (accessed) return accessed;
+        let id = generatedIdsRef.current.get(item);
+        if (!id) {
+          id = nanoid(11);
+          generatedIdsRef.current.set(item, id);
+        }
+        return id;
+      }),
     [value, keyAccessor],
   );
 
@@ -197,8 +211,16 @@ function CollectionControl({
 
   const onChangeItem = useCallback(
     (i: number, itemValue: CollectionItem) => {
+      const oldItem = value[i];
+      const newItem = { ...oldItem, ...itemValue };
+      // Replacing the object would orphan the WeakMap-stored id and remount
+      // the row. Carry the generated id over to the new ref.
+      const generatedId = generatedIdsRef.current.get(oldItem);
+      if (generatedId) {
+        generatedIdsRef.current.set(newItem, generatedId);
+      }
       const newValue = [...value];
-      newValue[i] = { ...value[i], ...itemValue };
+      newValue[i] = newItem;
       onChange?.(newValue);
     },
     [value, onChange],

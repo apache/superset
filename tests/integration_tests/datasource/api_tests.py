@@ -204,3 +204,55 @@ class TestDatasourceApi(SupersetTestCase):
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
             assert response["result"] == []
+
+    @patch("superset.datasource.api.security_manager.can_access")
+    @patch("superset.datasource.api.GetCombinedDatasourceListCommand.run")
+    def test_combined_list_invalid_order_column(
+        self,
+        run_mock,
+        can_access_mock,
+    ):
+        security_manager.add_permission_view_menu("can_combined_list", "Datasource")
+        perm = security_manager.find_permission_view_menu(
+            "can_combined_list", "Datasource"
+        )
+        admin_role = security_manager.find_role("Admin")
+        security_manager.add_permission_role(admin_role, perm)
+        can_access_mock.side_effect = [True, True]
+        run_mock.side_effect = ValueError("Invalid order column: invalid")
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.get(
+            "api/v1/datasource/?q=(order_column:invalid,order_direction:desc,page:0,page_size:25)"
+        )
+
+        assert rv.status_code == 400
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["message"] == "Invalid order column: invalid"
+
+    @patch("superset.datasource.api.security_manager.can_access")
+    @patch("superset.datasource.api.GetCombinedDatasourceListCommand.run")
+    def test_combined_list_semantic_layers_off(
+        self,
+        run_mock,
+        can_access_mock,
+    ):
+        security_manager.add_permission_view_menu("can_combined_list", "Datasource")
+        perm = security_manager.find_permission_view_menu(
+            "can_combined_list", "Datasource"
+        )
+        admin_role = security_manager.find_role("Admin")
+        security_manager.add_permission_role(admin_role, perm)
+        can_access_mock.return_value = True
+        run_mock.return_value = {"count": 1, "result": []}
+        self.login(ADMIN_USERNAME)
+
+        with patch("superset.datasource.api.is_feature_enabled", return_value=False):
+            rv = self.client.get(
+                "api/v1/datasource/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"
+            )
+
+        assert rv.status_code == 200
+        run_mock.assert_called_once()
+        _, kwargs = run_mock.call_args
+        assert kwargs == {}
