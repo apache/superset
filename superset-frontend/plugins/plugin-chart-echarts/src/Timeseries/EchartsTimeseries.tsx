@@ -73,6 +73,11 @@ export default function EchartsTimeseries({
 
   const hasDimensions = ensureIsArray(groupby).length > 0;
 
+  // Determine if X-axis can be used for cross-filtering (categorical axis without dimensions)
+  // Cross-filter using X-axis value when no dimensions are set (issue #25334)
+  const canCrossFilterByXAxis =
+    !hasDimensions && xAxis.type === AxisType.Category;
+
   const getModelInfo = (target: ViewRootGroup, globalModel: GlobalModel) => {
     let el = target;
     let model: ComponentModel | null = null;
@@ -130,6 +135,43 @@ export default function EchartsTimeseries({
     [groupby, labelMap, selectedValues],
   );
 
+  // Cross-filter using X-axis value when no dimensions are set (issue #25334)
+  const getXAxisCrossFilterDataMask = useCallback(
+    (xAxisValue: string | number) => {
+      const stringValue = String(xAxisValue);
+      const selected: string[] = Object.values(selectedValues);
+      let values: string[];
+      if (selected.includes(stringValue)) {
+        values = selected.filter(v => v !== stringValue);
+      } else {
+        values = [stringValue];
+      }
+      return {
+        dataMask: {
+          extraFormData: {
+            filters:
+              values.length === 0
+                ? []
+                : [
+                    {
+                      col: xAxis.label,
+                      op: 'IN' as const,
+                      val: values,
+                    },
+                  ],
+          },
+          filterState: {
+            label: values.length ? values : undefined,
+            value: values.length ? values : null,
+            selectedValues: values.length ? values : null,
+          },
+        },
+        isCurrentValueSelected: selected.includes(stringValue),
+      };
+    },
+    [selectedValues, xAxis.label],
+  );
+
   const handleChange = useCallback(
     (value: string) => {
       if (!emitCrossFilters) {
@@ -140,9 +182,21 @@ export default function EchartsTimeseries({
     [emitCrossFilters, setDataMask, getCrossFilterDataMask],
   );
 
+  // Handle cross-filter using X-axis value when no dimensions (issue #25334)
+  const handleXAxisChange = useCallback(
+    (xAxisValue: string | number) => {
+      if (!emitCrossFilters) {
+        return;
+      }
+      setDataMask(getXAxisCrossFilterDataMask(xAxisValue).dataMask);
+    },
+    [emitCrossFilters, setDataMask, getXAxisCrossFilterDataMask],
+  );
+
   const eventHandlers: EventHandlers = {
     click: props => {
-      if (!hasDimensions) {
+      // Allow cross-filter by dimensions OR by categorical X-axis (issue #25334)
+      if (!hasDimensions && !canCrossFilterByXAxis) {
         return;
       }
       if (clickTimer.current) {
@@ -150,8 +204,14 @@ export default function EchartsTimeseries({
       }
       // Ensure that double-click events do not trigger single click event. So we put it in the timer.
       clickTimer.current = setTimeout(() => {
-        const { seriesName: name } = props;
-        handleChange(name);
+        if (hasDimensions) {
+          // Cross-filter by dimension (original behavior)
+          const { seriesName: name } = props;
+          handleChange(name);
+        } else if (canCrossFilterByXAxis && props.data?.[0] != null) {
+          // Cross-filter by X-axis value when no dimensions (issue #25334)
+          handleXAxisChange(props.data[0]);
+        }
       }, TIMER_DURATION);
     },
     mouseout: () => {
@@ -228,12 +288,18 @@ export default function EchartsTimeseries({
           });
         });
 
+        // Provide cross-filter for dimensions OR categorical X-axis (issue #25334)
+        let crossFilter;
+        if (hasDimensions) {
+          crossFilter = getCrossFilterDataMask(seriesName);
+        } else if (canCrossFilterByXAxis && data?.[0] != null) {
+          crossFilter = getXAxisCrossFilterDataMask(data[0]);
+        }
+
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,
           drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
-          crossFilter: hasDimensions
-            ? getCrossFilterDataMask(seriesName)
-            : undefined,
+          crossFilter,
         });
       }
     },
