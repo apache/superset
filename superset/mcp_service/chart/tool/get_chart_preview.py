@@ -28,7 +28,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.mcp_service.chart.ascii_charts import (
     generate_ascii_chart,
     generate_ascii_table,
@@ -1140,6 +1140,14 @@ async def _get_chart_preview_internal(  # noqa: C901
                     )
                 chart = find_chart_by_identifier(request.identifier)
 
+                # Eagerly refresh all attributes while the session is still
+                # active.  Without this, a commit or expiry inside
+                # validate_chart_dataset() can leave the Slice object detached,
+                # causing DetachedInstanceError when strategy classes access
+                # lazy attributes later.
+                if chart is not None:
+                    db.session.refresh(chart)
+
                 # If not found and looks like a form_data_key, try transient
                 if (
                     not chart
@@ -1371,6 +1379,21 @@ async def _get_chart_preview_internal(  # noqa: C901
 
         return _sanitize_chart_preview_for_llm_context(result)
 
+    except SQLAlchemyError as e:
+        # Catch DetachedInstanceError and other SQLAlchemy errors that can
+        # surface when the ORM session expires mid-request (e.g. after a
+        # commit inside validate_chart_dataset).
+        await ctx.error(
+            "Chart preview failed due to database session error: "
+            "identifier=%s, error_type=%s, error=%s"
+            % (request.identifier, type(e).__name__, str(e))
+        )
+        logger.error("SQLAlchemy error in get_chart_preview: %s", e)
+        return ChartError(
+            error="Database session error while generating chart preview. "
+            "Please retry the request.",
+            error_type="InternalError",
+        )
     except (
         CommandException,
         SupersetException,
