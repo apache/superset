@@ -168,7 +168,7 @@ class TestResponseSizeGuardMiddleware:
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
             patch(
-                "superset.mcp_service.utils.token_utils.estimate_response_tokens",
+                "superset.mcp_service.middleware.estimate_response_tokens",
                 return_value=850,
             ),
             patch("superset.mcp_service.middleware.logger") as mock_logger,
