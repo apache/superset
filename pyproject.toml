@@ -114,7 +114,7 @@ dependencies = [
 
 [project.optional-dependencies]
 
-athena = ["pyathena[pandas]>=2, <3"]
+athena = ["pyathena[pandas]>=2, <4"]
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
 bigquery = [
     "pandas-gbq>=0.19.1",
