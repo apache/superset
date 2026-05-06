@@ -1978,11 +1978,13 @@ def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
     "load_birth_names_dashboard_with_slices",
     "create_report_slack_chart",
 )
+@patch("superset.commands.report.execute.get_channels_with_search")
 @patch("superset.utils.slack.WebClient")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_token_callable_chart_report(
     screenshot_mock,
     slack_client_mock_class,
+    get_channels_with_search_mock,
     create_report_slack_chart,
 ):
     """
@@ -1993,9 +1995,20 @@ def test_slack_token_callable_chart_report(
     channel_name = notification_targets[0]
     channel_id = "channel_id"
     slack_client_mock_class.return_value = Mock()
+    # should_use_v2_api() probes via conversations_list(); a non-erroring return
+    # is enough — it doesn't read the response body. The v2 upgrade then resolves
+    # channel names through get_channels_with_search, which we mock directly.
     slack_client_mock_class.return_value.conversations_list.return_value = {
         "channels": [{"id": channel_id, "name": channel_name}]
     }
+    get_channels_with_search_mock.return_value = [
+        {
+            "id": channel_id,
+            "name": channel_name,
+            "is_member": True,
+            "is_private": False,
+        }
+    ]
 
     slack_token_mock = Mock(return_value="cool_code")
     with patch.dict("flask.current_app.config", {"SLACK_API_TOKEN": slack_token_mock}):
