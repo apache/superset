@@ -19,19 +19,26 @@
 import { isProbablyHTML, sanitizeHtml } from '@superset-ui/core';
 import { ValueGetterParams } from '@superset-ui/core/components/ThemedAgGridReact';
 
-// Cache extracted text by raw HTML string. Sort comparators run O(n log n)
-// times against the same set of cell values, so reparsing on every call is
-// a measurable cost on large tables. Bounded by the number of unique HTML
-// values in the dataset.
-const htmlTextCache = new Map<string, string>();
-
 const stripHtmlToText = (html: string): string => {
-  const cached = htmlTextCache.get(html);
-  if (cached !== undefined) return cached;
   const doc = new DOMParser().parseFromString(sanitizeHtml(html), 'text/html');
-  const text = (doc.body.textContent || '').trim();
-  htmlTextCache.set(html, text);
-  return text;
+  return (doc.body.textContent || '').trim();
+};
+
+// Cache the comparator-ready form per raw string. Both the HTML-detection
+// step (`isProbablyHTML`, which itself invokes DOMParser for HTML-looking
+// values) and the extraction step (`stripHtmlToText`, also DOMParser) are
+// expensive; sort runs `O(n log n)` comparator calls against the same set
+// of cell values. Memoizing the combined detection + extraction means each
+// unique cell value pays the cost once per session. Module-level scope;
+// bounded by the count of unique string cell values seen.
+const comparableTextCache = new Map<string, string>();
+
+const toComparableText = (raw: string): string => {
+  const cached = comparableTextCache.get(raw);
+  if (cached !== undefined) return cached;
+  const normalized = isProbablyHTML(raw) ? stripHtmlToText(raw) : raw;
+  comparableTextCache.set(raw, normalized);
+  return normalized;
 };
 
 /**
@@ -41,10 +48,7 @@ const stripHtmlToText = (html: string): string => {
  */
 const htmlTextFilterValueGetter = (params: ValueGetterParams) => {
   const raw = params.data?.[params.colDef.field as string];
-  if (typeof raw === 'string' && isProbablyHTML(raw)) {
-    return stripHtmlToText(raw);
-  }
-  return raw;
+  return typeof raw === 'string' ? toComparableText(raw) : raw;
 };
 
 /**
@@ -56,7 +60,7 @@ const htmlTextFilterValueGetter = (params: ValueGetterParams) => {
  */
 export const htmlTextComparator = (a: unknown, b: unknown): number => {
   const toText = (v: unknown) =>
-    typeof v === 'string' && isProbablyHTML(v) ? stripHtmlToText(v) : v;
+    typeof v === 'string' ? toComparableText(v) : v;
   const aT = toText(a);
   const bT = toText(b);
   if (aT == null && bT == null) return 0;
