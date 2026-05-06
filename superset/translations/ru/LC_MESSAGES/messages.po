@@ -16110,7 +16110,6 @@ msgstr "ожидается целое число"
 msgid "is false"
 msgstr "ложно"
 
-#, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
 " Lab tabs using this database open. Are you sure you want to continue? "
