@@ -87,4 +87,29 @@ test('prop changes mid-edit do not clobber unsaved typing', async () => {
   expect(input.value).toBe('FooX');
   rerender(<DynamicEditableTitle {...props} title="Bar" />);
   expect(input.value).toBe('FooX');
+  // Locks in commit semantics: blur after a real edit must persist the
+  // user's typed value, even when a competing parent-driven title arrived
+  // mid-edit.
+  fireEvent.blur(input);
+  expect(onSave).toHaveBeenCalledWith('FooX');
+});
+
+test('passive focus then parent-driven title change then blur does not revert', () => {
+  // Phantom-revert scenario: user clicks the input but does not type, the
+  // parent autosaves a new title from elsewhere, then the user blurs. The
+  // component must NOT call onSave with the stale local value, otherwise it
+  // would silently overwrite the parent's update.
+  const onSave = jest.fn();
+  const props = {
+    placeholder: 'placeholder',
+    canEdit: true,
+    label: 'Title',
+    onSave,
+  };
+  const { rerender } = render(<DynamicEditableTitle {...props} title="Foo" />);
+  const input = screen.getByRole('textbox') as HTMLInputElement;
+  userEvent.click(input);
+  rerender(<DynamicEditableTitle {...props} title="Bar" />);
+  fireEvent.blur(input);
+  expect(onSave).not.toHaveBeenCalled();
 });

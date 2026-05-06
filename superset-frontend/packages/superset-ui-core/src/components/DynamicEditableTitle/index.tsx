@@ -81,6 +81,11 @@ export const DynamicEditableTitle = memo(
 
     const sizerRef = useRef<HTMLSpanElement>(null);
     const inputRef = useRef<InputRef>(null);
+    // Tracks whether the user has actually typed since entering edit mode.
+    // Gates onSave so that passive focus (click without typing) followed by a
+    // parent-driven title change and blur does not silently revert the
+    // parent's update with our stale currentTitle.
+    const dirtyRef = useRef(false);
     const { width: containerWidth, ref: containerRef } = useResizeDetector({
       refreshMode: 'debounce',
     });
@@ -146,10 +151,19 @@ export const DynamicEditableTitle = memo(
         return;
       }
       const formattedTitle = currentTitle.trim();
-      setCurrentTitle(formattedTitle);
-      if (title !== formattedTitle) {
+      // Only commit when the user actually typed. Passive focus must not
+      // overwrite a parent-driven title change that landed mid-edit.
+      if (dirtyRef.current && title !== formattedTitle) {
+        setCurrentTitle(formattedTitle);
         onSave(formattedTitle);
+      } else if (!dirtyRef.current) {
+        // Drop any stale local state and resync to the latest title prop so a
+        // subsequent edit starts from the current parent value.
+        setCurrentTitle(title);
+      } else {
+        setCurrentTitle(formattedTitle);
       }
+      dirtyRef.current = false;
       setIsEditing(false);
     }, [canEdit, currentTitle, onSave, title]);
 
@@ -166,6 +180,7 @@ export const DynamicEditableTitle = memo(
         if (!isEditing) {
           setIsEditing(true);
         }
+        dirtyRef.current = true;
         setCurrentTitle(ev.target.value);
       },
       [canEdit, isEditing],
