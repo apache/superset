@@ -29,6 +29,7 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
@@ -48,7 +49,7 @@ import {
   SunburstChart,
   CustomChart,
 } from 'echarts/charts';
-import { SVGRenderer } from 'echarts/renderers';
+import { CanvasRenderer, SVGRenderer } from 'echarts/renderers';
 import {
   TooltipComponent,
   TitleComponent,
@@ -85,6 +86,7 @@ const Styles = styled.div<EchartsStylesProps>`
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- This is ECharts' use function, not a React hook
 use([
+  CanvasRenderer,
   SVGRenderer,
   BarChart,
   BoxplotChart,
@@ -179,12 +181,18 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        // WCAG 1.4.5: use SVG renderer so chart text remains real text
-        // (scales and recolors via theme) instead of being rasterized into
-        // a canvas bitmap that breaks text resize and contrast adjustments.
+        // WCAG 1.4.5: when ACCESSIBLE_CHART_RENDERING is enabled, use the
+        // SVG renderer so chart text stays as real text (scalable, recolors
+        // with theme tokens) instead of being rasterized into a canvas
+        // bitmap. Default stays on canvas because SVG can be slower for
+        // very large series; deployments that prioritise a11y opt in via
+        // the feature flag.
+        const renderer = isFeatureEnabled(FeatureFlag.AccessibleChartRendering)
+          ? 'svg'
+          : 'canvas';
         chartRef.current = init(divRef.current, null, {
           locale,
-          renderer: 'svg',
+          renderer,
         });
       }
       // did mount

@@ -544,6 +544,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # These features are considered unfinished and should only be used
     # on development environments.
     # -----------------------------------------------------------------
+    # Render ECharts visualizations with the SVG renderer instead of canvas.
+    # Required for WCAG 1.4.4 (Resize Text) and 1.4.5 (Images of Text) because
+    # SVG keeps chart text as real text — scalable, recolorable through theme
+    # tokens, and inspectable by assistive tech. Default is off because SVG
+    # has higher overhead than canvas on dashboards with very large series;
+    # deployments that prioritise accessibility should opt in.
+    # @lifecycle: production
+    "ACCESSIBLE_CHART_RENDERING": False,
     # Enables Table V2 (AG Grid) viz plugin
     # @lifecycle: development
     "AG_GRID_TABLE_ENABLED": False,
