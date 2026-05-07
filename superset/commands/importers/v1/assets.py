@@ -223,26 +223,51 @@ class ImportAssetsCommand(BaseCommand):
         "queries/": SavedQuery,
     }
 
+    def _bundle_entries_by_prefix(self) -> dict[str, list[tuple[str, str]]]:
+        """Group ``(file_name, uuid)`` pairs from the bundle by asset prefix."""
+        bundle_by_prefix: dict[str, list[tuple[str, str]]] = {
+            prefix: [] for prefix in self._MODEL_BY_PREFIX
+        }
+        for file_name, config in self._configs.items():
+            uuid = config.get("uuid")
+            if not uuid:
+                continue
+            for prefix in bundle_by_prefix:
+                if file_name.startswith(prefix):
+                    bundle_by_prefix[prefix].append((file_name, str(uuid)))
+                    break
+        return bundle_by_prefix
+
     def _prevent_overwrite_existing_assets(
         self, exceptions: list[ValidationError]
     ) -> None:
         """
         When ``overwrite`` is ``False``, raise a clear validation error for any
         asset in the bundle whose UUID already exists in the database.
+
+        Only the UUIDs present in the import bundle are queried (per prefix),
+        so the cost scales with the bundle size rather than with the total
+        number of stored assets.
         """
         if self.overwrite:
             return
 
-        for prefix, model_cls in self._MODEL_BY_PREFIX.items():
+        for prefix, entries in self._bundle_entries_by_prefix().items():
+            if not entries:
+                continue
+            model_cls = self._MODEL_BY_PREFIX[prefix]
+            incoming_uuids = [uuid for _, uuid in entries]
             existing_uuids = {
-                str(uuid) for (uuid,) in db.session.query(model_cls.uuid).all()
+                str(uuid)
+                for (uuid,) in db.session.query(model_cls.uuid)
+                .filter(model_cls.uuid.in_(incoming_uuids))
+                .all()
             }
-            for file_name, config in self._configs.items():
-                if (
-                    file_name.startswith(prefix)
-                    and config.get("uuid") in existing_uuids
-                ):
-                    model_name = model_cls.__name__
+            if not existing_uuids:
+                continue
+            model_name = model_cls.__name__
+            for file_name, uuid in entries:
+                if uuid in existing_uuids:
                     exceptions.append(
                         ValidationError(
                             {

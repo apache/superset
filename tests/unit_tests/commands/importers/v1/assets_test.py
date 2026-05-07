@@ -490,6 +490,59 @@ def test_prevent_overwrite_partial_conflict(
     assert flagged_files == set(databases_config) | set(datasets_config)
 
 
+def test_prevent_overwrite_queries_only_bundle_uuids(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The validation must scope its UUID lookup to the UUIDs present in the
+    import bundle (one ``WHERE uuid IN (...)`` query per prefix that has
+    incoming entries) and skip prefixes with no entries entirely. Otherwise
+    every import with ``overwrite=false`` would scan all asset tables in
+    full, regardless of bundle size.
+    """
+    from superset import db, security_manager
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.models.sql_lab import SavedQuery
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    engine = db.session.get_bind()
+    Slice.metadata.create_all(engine)  # pylint: disable=no-member
+    SavedQuery.metadata.create_all(engine)  # pylint: disable=no-member
+
+    # bundle only contains a database — no datasets/charts/dashboards/queries
+    bundle = copy.deepcopy(databases_config)
+
+    spy = mocker.spy(db.session, "query")
+
+    command = ImportAssetsCommand({}, overwrite=False)
+    command._configs = bundle
+    exceptions: list[ValidationError] = []
+    command._prevent_overwrite_existing_assets(exceptions)
+
+    # exactly one UUID query — for the only prefix with bundle entries — and
+    # it targets the Database UUID column. Empty-bundle prefixes (datasets/
+    # charts/dashboards/queries) must not be queried at all, otherwise this
+    # validation degrades to a full-table scan per asset type.
+    queried_columns = [
+        call.args[0]
+        for call in spy.call_args_list
+        if call.args and getattr(call.args[0], "key", None) == "uuid"
+    ]
+    assert len(queried_columns) == 1
+    assert queried_columns[0].class_ is Database
+
+    queried_models = {col.class_ for col in queried_columns}
+    for model_cls in (SqlaTable, Slice, Dashboard, SavedQuery):
+        assert model_cls not in queried_models
+
+    # no row matches in an empty table, so no validation errors are raised
+    assert exceptions == []
+
+
 def test_import_removes_dashboard_charts(
     mocker: MockerFixture, session: Session
 ) -> None:
