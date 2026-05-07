@@ -179,7 +179,7 @@ def _resolve_engine(
 
 def _build_single_query_dict(
     form_data: dict[str, Any],
-    columns: list[str],
+    columns: list[Any],
     metrics: list[Any],
 ) -> dict[str, Any]:
     """Build one query entry for QueryContextFactory from form_data fields."""
@@ -201,13 +201,18 @@ def _build_mixed_timeseries_secondary(
 
     ``mixed_timeseries`` has two independent series layers; the secondary
     layer uses ``metrics_b`` / ``groupby_b`` instead of the primary fields.
+    If ``time_range_b`` is set it overrides the primary ``time_range`` for
+    the secondary query.
     """
     metrics_b: list[Any] = list(form_data.get("metrics_b") or [])
     raw_b = form_data.get("groupby_b") or []
-    groupby_b: list[str] = [raw_b] if isinstance(raw_b, str) else list(raw_b)
+    groupby_b: list[Any] = [raw_b] if isinstance(raw_b, str) else list(raw_b)
     if x_axis_col and x_axis_col not in groupby_b:
         groupby_b = [x_axis_col] + groupby_b
-    return _build_single_query_dict(form_data, groupby_b, metrics_b)
+    qd = _build_single_query_dict(form_data, groupby_b, metrics_b)
+    if time_range_b := form_data.get("time_range_b"):
+        qd["time_range"] = time_range_b
+    return qd
 
 
 def _build_query_context_from_form_data(

@@ -507,12 +507,27 @@ class TestExtractXAxisCol:
         """Adhoc column dict without column_name returns None."""
         assert _extract_x_axis_col({"x_axis": {"label": "ds"}}) is None
 
+    def test_sql_expression_x_axis_returns_none(self):
+        """SQL expression adhoc columns have no column_name; returns None."""
+        assert (
+            _extract_x_axis_col(
+                {
+                    "x_axis": {
+                        "expressionType": "SQL",
+                        "sqlExpression": "DATE_TRUNC('day', created_at)",
+                        "label": "day",
+                    }
+                }
+            )
+            is None
+        )
+
 
 class TestBuildQueryContextTimeseriesAndMixed:
-    """Tests for x_axis and mixed_timeseries query-context fixes.
+    """Regression tests for x_axis and mixed_timeseries query-context fixes.
 
-    Covers both bugs after #39636: x_axis dropped for echarts_timeseries_*
-    and only one query rendered for mixed_timeseries.
+    Guards against two bugs: x_axis column dropped for echarts_timeseries_*
+    charts, and only one query rendered for mixed_timeseries charts.
     """
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
@@ -738,6 +753,42 @@ class TestBuildQueryContextTimeseriesAndMixed:
         queries = mock_factory.create.call_args[1]["queries"]
         assert len(queries) == 2
         assert queries[1]["metrics"] == []
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_mixed_timeseries_time_range_b_overrides_secondary(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """time_range_b overrides the primary time_range for the secondary query."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["sum__revenue"],
+            "groupby": [],
+            "metrics_b": ["count"],
+            "groupby_b": [],
+            "time_range": "Last 30 days",
+            "time_range_b": "Last 7 days",
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert len(queries) == 2
+        assert queries[0]["time_range"] == "Last 30 days"
+        assert queries[1]["time_range"] == "Last 7 days"
 
 
 class TestResolveDatasourceName:
