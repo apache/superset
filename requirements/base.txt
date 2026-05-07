@@ -106,8 +106,9 @@ et-xmlfile==2.0.0
     # via openpyxl
 filelock==3.20.3
     # via -r requirements/base.in
-flask==2.3.3
+flask==3.1.3
     # via
+    #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
     #   flask-babel
@@ -183,7 +184,9 @@ idna==3.10
     #   trio
     #   url-normalize
 isodate==0.7.2
-    # via apache-superset (pyproject.toml)
+    # via
+    #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 itsdangerous==2.2.0
     # via
     #   flask
@@ -206,7 +209,7 @@ kombu==5.5.3
     # via celery
 limits==5.1.0
     # via flask-limiter
-mako==1.3.11
+mako==1.3.12
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -217,6 +220,7 @@ markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
     # via
+    #   flask
     #   jinja2
     #   mako
     #   werkzeug
@@ -296,6 +300,7 @@ pyarrow==20.0.0
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 pyasn1==0.6.3
     # via
     #   pyasn1-modules
