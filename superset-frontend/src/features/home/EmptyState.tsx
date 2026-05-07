@@ -23,7 +23,6 @@ import {
 import { TableTab } from 'src/views/CRUD/types';
 import { styled, t } from '@superset-ui/core';
 import { navigateTo } from 'src/utils/navigationUtils';
-import { makeUrl } from 'src/utils/pathUtils';
 import { WelcomeTable } from './types';
 
 const EmptyContainer = styled.div`
@@ -58,7 +57,9 @@ const REDIRECTS = {
   create: {
     [WelcomeTable.Charts]: '/chart/add',
     [WelcomeTable.Dashboards]: '/dashboard/new',
-    [WelcomeTable.SavedQueries]: makeUrl('/sqllab?new=true'),
+    // navigateTo() applies the application root internally; keep this
+    // relative so the prefix isn't added twice.
+    [WelcomeTable.SavedQueries]: '/sqllab?new=true',
   },
   viewAll: {
     [WelcomeTable.Charts]: '/chart/list',
