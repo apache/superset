@@ -809,9 +809,7 @@ const config: ControlPanelConfig = {
                 );
                 const colnames = hasQueryColumns
                   ? queryColnames
-                  : datasourceColumns.map(
-                      (col: ColumnMeta) => col.column_name,
-                    );
+                  : datasourceColumns.map((col: ColumnMeta) => col.column_name);
                 const coltypes = hasQueryColumns
                   ? queryColtypes
                   : datasourceColumns.map(

@@ -25,6 +25,7 @@ import {
   ControlPanelState,
   ControlState,
   ColorSchemeEnum,
+  ObjectFormattingEnum,
 } from '@superset-ui/chart-controls';
 import config from '../src/controlPanel';
 
@@ -302,6 +303,28 @@ test('columnOptions returns empty when both queriesResponse and datasource have 
 
   expect(result.columnOptions).toEqual([]);
   expect(result.allColumns).toEqual([]);
+});
+
+test('allColumns includes ENTIRE_ROW when falling back to datasource columns', () => {
+  const controlConfig = findConditionalFormattingControl();
+  expect(controlConfig).toBeTruthy();
+
+  const datasourceColumns = [
+    { column_name: 'revenue', type_generic: GenericDataType.Numeric },
+  ];
+  const explore = createMockExplore(undefined, datasourceColumns);
+  const chart = { chartStatus: 'success' as const, queriesResponse: null };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    chart,
+  );
+
+  expect(result.allColumns).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ value: ObjectFormattingEnum.ENTIRE_ROW }),
+    ]),
+  );
 });
 
 test('columnOptions defaults type_generic to String when missing from datasource columns', () => {
