@@ -30,6 +30,11 @@ class TableChartPlugin(BaseChartPlugin):
     """Plugin for table chart type."""
 
     chart_type = "table"
+    display_name = "Table"
+    native_viz_types = {
+        "table": "Table",
+        "ag-grid-table": "Interactive Table",
+    }
 
     def pre_validate(
         self,

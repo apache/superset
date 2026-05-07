@@ -354,10 +354,14 @@ Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
 
 Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
-- pie, big_number, big_number_total, funnel, gauge_chart
-- echarts_timeseries_line, echarts_timeseries_bar, echarts_timeseries_area
-- pivot_table_v2, heatmap_v2, sankey_v2, sunburst_v2, treemap_v2
-- word_cloud, world_map, box_plot, bubble, mixed_timeseries
+Each chart returned by list_charts / get_chart_info includes a
+chart_type_display_name field with a human-readable name. Use that name
+when referring to chart types — do NOT expose raw viz_type identifiers.
+Common display names: Line Chart, Bar Chart, Area Chart, Scatter Plot,
+Pie Chart, Table, Interactive Table, Pivot Table, Big Number,
+Big Number with Trendline, Mixed Timeseries Chart, Custom Template Chart,
+Funnel Chart, Gauge Chart, Heatmap, Sankey Chart, Sunburst, Treemap,
+Word Cloud, World Map, Box Plot, Bubble Chart.
 
 Query Examples:
 - List all tables:

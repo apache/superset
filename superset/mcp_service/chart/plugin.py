@@ -46,6 +46,15 @@ class ChartTypePlugin(Protocol):
     #: Discriminator value matching ChartConfig's chart_type field.
     chart_type: str
 
+    #: Human-readable name shown to users (e.g. "Line / Bar / Area / Scatter").
+    display_name: str
+
+    #: Maps every Superset-internal viz_type this plugin can produce to a
+    #: user-facing display name, e.g. {"echarts_timeseries_line": "Line Chart"}.
+    #: Used by the registry to resolve display names for existing charts without
+    #: needing a separate JSON mapping file.
+    native_viz_types: dict[str, str]
+
     def pre_validate(
         self,
         config: dict[str, Any],
@@ -148,6 +157,8 @@ class BaseChartPlugin:
     """
 
     chart_type: str = ""
+    display_name: str = ""
+    native_viz_types: dict[str, str] = {}
 
     def pre_validate(
         self,

@@ -30,6 +30,10 @@ class PieChartPlugin(BaseChartPlugin):
     """Plugin for pie chart type."""
 
     chart_type = "pie"
+    display_name = "Pie / Donut Chart"
+    native_viz_types = {
+        "pie": "Pie Chart",
+    }
 
     def pre_validate(
         self,

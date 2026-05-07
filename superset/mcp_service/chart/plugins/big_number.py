@@ -30,6 +30,11 @@ class BigNumberChartPlugin(BaseChartPlugin):
     """Plugin for big_number chart type."""
 
     chart_type = "big_number"
+    display_name = "Big Number"
+    native_viz_types = {
+        "big_number": "Big Number with Trendline",
+        "big_number_total": "Big Number",
+    }
 
     def pre_validate(
         self,

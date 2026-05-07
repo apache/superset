@@ -102,7 +102,14 @@ class ChartInfo(BaseModel):
 
     id: int | None = Field(None, description="Chart ID")
     slice_name: str | None = Field(None, description="Chart name")
-    viz_type: str | None = Field(None, description="Visualization type")
+    viz_type: str | None = Field(None, description="Visualization type (internal ID)")
+    chart_type_display_name: str | None = Field(
+        None,
+        description=(
+            "User-friendly chart type name (e.g. 'Line Chart', 'Pivot Table'). "
+            "Use this field when referring to chart types — never expose viz_type."
+        ),
+    )
     datasource_name: str | None = Field(None, description="Datasource name")
     datasource_type: str | None = Field(None, description="Datasource type")
     url: str | None = Field(None, description="Chart explore page URL")
@@ -561,11 +568,20 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     # Extract structured filter information
     filters_info = extract_filters_from_form_data(chart_form_data)
 
+    _viz_type = getattr(chart, "viz_type", None)
+    try:
+        from superset.mcp_service.chart.registry import display_name_for_viz_type
+
+        _display_name = display_name_for_viz_type(_viz_type) if _viz_type else None
+    except Exception:
+        _display_name = None
+
     return sanitize_chart_info_for_llm_context(
         ChartInfo(
             id=chart_id,
             slice_name=getattr(chart, "slice_name", None),
-            viz_type=getattr(chart, "viz_type", None),
+            viz_type=_viz_type,
+            chart_type_display_name=_display_name,
             datasource_name=getattr(chart, "datasource_name", None),
             datasource_type=getattr(chart, "datasource_type", None),
             url=chart_url,

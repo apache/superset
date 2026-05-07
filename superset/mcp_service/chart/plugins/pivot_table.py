@@ -30,6 +30,10 @@ class PivotTableChartPlugin(BaseChartPlugin):
     """Plugin for pivot_table chart type."""
 
     chart_type = "pivot_table"
+    display_name = "Pivot Table"
+    native_viz_types = {
+        "pivot_table_v2": "Pivot Table",
+    }
 
     def pre_validate(
         self,

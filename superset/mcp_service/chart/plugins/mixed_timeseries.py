@@ -30,6 +30,10 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
     """Plugin for mixed_timeseries chart type."""
 
     chart_type = "mixed_timeseries"
+    display_name = "Mixed Timeseries"
+    native_viz_types = {
+        "mixed_timeseries": "Mixed Timeseries Chart",
+    }
 
     def pre_validate(
         self,

@@ -30,6 +30,10 @@ class HandlebarsChartPlugin(BaseChartPlugin):
     """Plugin for handlebars chart type (custom HTML template charts)."""
 
     chart_type = "handlebars"
+    display_name = "Handlebars (Custom Template)"
+    native_viz_types = {
+        "handlebars": "Custom Template Chart",
+    }
 
     def pre_validate(
         self,

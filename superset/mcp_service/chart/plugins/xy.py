@@ -30,6 +30,13 @@ class XYChartPlugin(BaseChartPlugin):
     """Plugin for xy chart type (line, bar, area, scatter)."""
 
     chart_type = "xy"
+    display_name = "Line / Bar / Area / Scatter Chart"
+    native_viz_types = {
+        "echarts_timeseries_line": "Line Chart",
+        "echarts_timeseries_bar": "Bar Chart",
+        "echarts_area": "Area Chart",
+        "echarts_timeseries_scatter": "Scatter Plot",
+    }
 
     def pre_validate(
         self,

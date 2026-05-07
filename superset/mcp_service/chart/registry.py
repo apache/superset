@@ -72,6 +72,25 @@ def is_registered(chart_type: str) -> bool:
     return chart_type in _REGISTRY
 
 
+def display_name_for_viz_type(viz_type: str) -> str | None:
+    """Return the user-facing display name for a Superset-internal viz_type.
+
+    Searches every registered plugin's ``native_viz_types`` mapping.
+    Returns None if no plugin recognises the viz_type.
+
+    Example::
+
+        display_name_for_viz_type("echarts_timeseries_line")  # "Line Chart"
+        display_name_for_viz_type("pivot_table_v2")           # "Pivot Table"
+        display_name_for_viz_type("unknown_type")             # None
+    """
+    for plugin in _REGISTRY.values():
+        name = plugin.native_viz_types.get(viz_type)
+        if name is not None:
+            return name
+    return None
+
+
 def get_registry() -> "_RegistryProxy":
     """Return a proxy object for registry access (convenience wrapper)."""
     return _RegistryProxy()
@@ -88,3 +107,6 @@ class _RegistryProxy:
 
     def is_registered(self, chart_type: str) -> bool:
         return chart_type in _REGISTRY
+
+    def display_name_for_viz_type(self, viz_type: str) -> str | None:
+        return display_name_for_viz_type(viz_type)
