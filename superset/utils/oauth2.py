@@ -79,9 +79,9 @@ def generate_code_challenge(code_verifier: str) -> str:
 @backoff.on_exception(
     backoff.expo,
     AcquireDistributedLockFailedException,
-    factor=10,
+    factor=0.1,
     base=2,
-    max_tries=5,
+    max_tries=8,
     raise_on_giveup=False,
     giveup_log_level=logging.DEBUG,
 )
@@ -143,14 +143,17 @@ def refresh_oauth2_token(
                 config,
                 token.refresh_token,
             )
-        except db_engine_spec.oauth2_exception:
+        except db_engine_spec.oauth2_exception as ex:
             # OAuth token is no longer valid, delete it and start OAuth2 dance
             logger.warning(
-                "OAuth2 token refresh failed for user=%s db=%s, deleting invalid token",
+                "OAuth2 token refresh failed for user=%s db=%s, "
+                "deleting token. Error: %s",
                 user_id,
                 database_id,
+                ex,
             )
             db.session.delete(token)
+            db.session.flush()
             raise
         except Exception:
             # non-OAuth related failure, log the exception

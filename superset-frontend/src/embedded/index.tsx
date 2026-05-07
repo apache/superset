@@ -19,7 +19,7 @@
 import 'src/public-path';
 
 import { lazy, Suspense } from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot, type Root } from 'react-dom/client';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { Global } from '@emotion/react';
 import { t } from '@apache-superset/core/translation';
@@ -150,6 +150,8 @@ if (!window.parent || window.parent === window) {
 // }
 
 let displayedUnauthorizedToast = false;
+let root: Root | null = null;
+let started = false;
 
 /**
  * If there is a problem with the guest token, we will start getting
@@ -175,6 +177,8 @@ function guestUnauthorizedHandler() {
 }
 
 function start() {
+  if (started) return undefined;
+  started = true;
   const getMeWithRole = makeApi<void, { result: UserWithPermissionsAndRoles }>({
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
@@ -189,16 +193,21 @@ function start() {
         type: USER_LOADED,
         user: result,
       });
-      ReactDOM.render(<EmbeddedApp />, appMountPoint);
+      if (!root) {
+        root = createRoot(appMountPoint);
+      }
+      root.render(<EmbeddedApp />);
     },
     err => {
-      // something is most likely wrong with the guest token
+      // something is most likely wrong with the guest token; reset the guard
+      // so a rehandshake with a valid token can retry.
       logging.error(err);
       showFailureMessage(
         t(
           'Something went wrong with embedded authentication. Check the dev console for details.',
         ),
       );
+      started = false;
     },
   );
 }
@@ -243,16 +252,11 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       debug: debugMode,
     });
 
-    let started = false;
-
     Switchboard.defineMethod(
       'guestToken',
       ({ guestToken }: { guestToken: string }) => {
         setupGuestClient(guestToken);
-        if (!started) {
-          start();
-          started = true;
-        }
+        start();
       },
     );
 
@@ -322,7 +326,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
   }
 });
 
-// Clean up theme controller on page unload
+// Clean up theme controller and unmount React root on page unload
 window.addEventListener('beforeunload', () => {
   try {
     const controller = getThemeController();
@@ -332,6 +336,10 @@ window.addEventListener('beforeunload', () => {
     }
   } catch (error) {
     logging.warn('Failed to destroy theme controller:', error);
+  }
+  if (root) {
+    root.unmount();
+    root = null;
   }
 });
 

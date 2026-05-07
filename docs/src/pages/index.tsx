@@ -28,6 +28,7 @@ import databaseData from '../data/databases.json';
 import BlurredSection from '../components/BlurredSection';
 import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
 import type { DatabaseData } from '../components/databases/types';
+import GetStartedSplitButton from '../components/GetStartedSplitButton';
 import '../styles/main.css';
 
 // Build database list from databases.json (databases with logos)
@@ -188,20 +189,6 @@ const StyledTitleContainer = styled('div')`
         }
       }
     }
-  }
-`;
-
-const StyledButton = styled(Link)`
-  border-radius: 10px;
-  font-size: 20px;
-  font-weight: bold;
-  width: 170px;
-  padding: 10px 0;
-  margin: 15px auto 0;
-  ${mq[1]} {
-    font-size: 19px;
-    width: 175px;
-    padding: 10px 0;
   }
 `;
 
@@ -717,9 +704,10 @@ export default function Home(): JSX.Element {
               </span>
             </div>
             <img src="/img/community/line.png" alt="line" />
-            <StyledButton className="default-button-theme" href="/docs/intro">
-              Get Started
-            </StyledButton>
+            <GetStartedSplitButton
+              variant="hero"
+              rootClassName="default-button-theme get-started-split"
+            />
           </div>
           <StyledScreenshotContainer>
             <img

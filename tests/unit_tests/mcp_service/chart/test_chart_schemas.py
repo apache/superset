@@ -25,7 +25,6 @@ from pydantic import ValidationError
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
     GenerateChartRequest,
-    parse_chart_config,
     TableChartConfig,
     XYChartConfig,
 )
@@ -162,6 +161,7 @@ class TestXYChartConfig:
                 ),  # Label: "COUNT(product_line)"
             ],
         )
+        assert config.x is not None
         assert config.x.name == "product_line"
         assert config.y[0].aggregate == "COUNT"
 
@@ -234,6 +234,7 @@ class TestXYChartConfig:
                 ColumnRef(name="sales", aggregate="SUM"),
             ],
         )
+        assert config.x is not None
         assert config.x.name == "product_line"
         assert len(config.y) == 2
 
@@ -249,6 +250,7 @@ class TestXYChartConfig:
             ],
             kind="line",
         )
+        assert config.x is not None
         assert config.x.name == "order_date"
         assert config.kind == "line"
 
@@ -263,6 +265,7 @@ class TestXYChartConfig:
             ],
             kind="line",
         )
+        assert config.x is not None
         assert config.x.label == "Order Date"
 
     def test_area_chart_configuration(self) -> None:
@@ -667,46 +670,111 @@ class TestColumnRefSavedMetric:
             )
 
 
-class TestParseChartConfig:
-    """Tests for parse_chart_config and config coercion."""
+class TestChartConfigValidation:
+    """Tests for ChartConfig discriminated union validation via Pydantic."""
 
-    def test_parse_valid_xy_config(self) -> None:
-        config = parse_chart_config(
-            {"chart_type": "xy", "x": {"name": "date"}, "y": [{"name": "v"}]}
+    def test_valid_xy_config_via_request(self) -> None:
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config={"chart_type": "xy", "x": {"name": "date"}, "y": [{"name": "v"}]},
         )
-        assert config.chart_type == "xy"
-        assert config.x.name == "date"
-        assert len(config.y) == 1
-        assert config.y[0].name == "v"
+        assert req.config.chart_type == "xy"
+        assert req.config.x is not None
+        assert req.config.x.name == "date"
+        assert len(req.config.y) == 1
+        assert req.config.y[0].name == "v"
 
-    def test_parse_valid_table_config(self) -> None:
-        config = parse_chart_config(
-            {"chart_type": "table", "columns": [{"name": "col1"}]}
+    def test_valid_table_config_via_request(self) -> None:
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config={"chart_type": "table", "columns": [{"name": "col1"}]},
         )
-        assert config.chart_type == "table"
-        assert len(config.columns) == 1
-        assert config.columns[0].name == "col1"
+        assert req.config.chart_type == "table"
+        assert len(req.config.columns) == 1
+        assert req.config.columns[0].name == "col1"
 
-    def test_parse_missing_chart_type_raises(self) -> None:
-        with pytest.raises(ValueError, match="chart://configs"):
-            parse_chart_config({"x": {"name": "date"}, "y": [{"name": "v"}]})
+    def test_missing_chart_type_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            GenerateChartRequest(
+                dataset_id=1,
+                config={"x": {"name": "date"}, "y": [{"name": "v"}]},
+            )
 
-    def test_parse_unknown_chart_type_raises(self) -> None:
-        with pytest.raises(ValueError, match="chart://configs"):
-            parse_chart_config({"chart_type": "nonexistent", "x": {"name": "d"}})
+    def test_unknown_chart_type_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            GenerateChartRequest(
+                dataset_id=1,
+                config={"chart_type": "nonexistent", "x": {"name": "d"}},
+            )
 
-    def test_coerce_json_string_config(self) -> None:
-        raw = '{"chart_type": "table", "columns": [{"name": "c"}]}'
-        req = GenerateChartRequest(dataset_id=1, config=raw)
-        assert isinstance(req.config, dict)
-        assert req.config["chart_type"] == "table"
-
-    def test_coerce_typed_config_object(self) -> None:
+    def test_typed_config_object_accepted(self) -> None:
         typed = TableChartConfig(chart_type="table", columns=[ColumnRef(name="c")])
         req = GenerateChartRequest(dataset_id=1, config=typed)
-        assert isinstance(req.config, dict)
-        assert req.config["chart_type"] == "table"
+        assert req.config.chart_type == "table"
 
-    def test_coerce_invalid_json_string_raises(self) -> None:
+    def test_invalid_config_raises(self) -> None:
         with pytest.raises(ValidationError):
             GenerateChartRequest(dataset_id=1, config="not valid json")
+
+
+class TestGenerateChartRequestChartNameSanitization:
+    """XSS / sanitization behavior for the chart_name field."""
+
+    def _config(self) -> dict[str, object]:
+        return {
+            "chart_type": "table",
+            "columns": [{"name": "a"}],
+        }
+
+    def test_plain_chart_name_passes_without_warning(self) -> None:
+        req = GenerateChartRequest(
+            dataset_id=1, config=self._config(), chart_name="Sales Report"
+        )
+        assert req.chart_name == "Sales Report"
+        assert req.sanitization_warnings == []
+
+    def test_chart_name_script_only_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            GenerateChartRequest(
+                dataset_id=1,
+                config=self._config(),
+                chart_name="<script>alert(1)</script>",
+            )
+
+    def test_chart_name_partial_strip_emits_warning(self) -> None:
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config=self._config(),
+            chart_name="Q1 <b>Report</b>",
+        )
+        assert req.chart_name == "Q1 Report"
+        assert len(req.sanitization_warnings) == 1
+        assert "chart_name" in req.sanitization_warnings[0]
+
+    def test_chart_name_omitted_does_not_warn(self) -> None:
+        req = GenerateChartRequest(dataset_id=1, config=self._config())
+        assert req.chart_name is None
+        assert req.sanitization_warnings == []
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only; client input is dropped."""
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config=self._config(),
+            chart_name="Plain Name",
+            sanitization_warnings=["<script>fake notice</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+    def test_client_warnings_discarded_even_when_server_also_warns(self) -> None:
+        """Client-supplied warnings must not survive, even when the server
+        appends one of its own during the same request."""
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config=self._config(),
+            chart_name="Q1 <b>Report</b>",
+            sanitization_warnings=["injected attacker text"],
+        )
+        assert len(req.sanitization_warnings) == 1
+        assert "chart_name" in req.sanitization_warnings[0]
+        assert "injected" not in req.sanitization_warnings[0]

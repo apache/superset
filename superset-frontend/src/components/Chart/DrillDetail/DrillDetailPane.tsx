@@ -33,6 +33,7 @@ import {
   ensureIsArray,
   JsonObject,
   QueryFormData,
+  SupersetClient,
 } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -47,12 +48,17 @@ import Table, {
   TableSize,
 } from '@superset-ui/core/components/Table';
 import { RootState } from 'src/dashboard/types';
+import { usePermissions } from 'src/hooks/usePermissions';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { ensureAppRoot } from 'src/utils/pathUtils';
+import { safeStringify } from 'src/utils/safeStringify';
 import HeaderWithRadioGroup from '@superset-ui/core/components/Table/header-renderers/HeaderWithRadioGroup';
 import { useDatasetMetadataBar } from 'src/features/datasets/metadataBar/useDatasetMetadataBar';
 import { Dataset } from '../types';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 const PAGE_SIZE = 50;
 
@@ -107,6 +113,13 @@ export default function DrillDetailPane({
     (state: { common: { conf: JsonObject } }) =>
       state.common.conf.SAMPLES_ROW_LIMIT,
   );
+
+  const ROW_LIMIT = useSelector(
+    (state: { common: { conf: JsonObject } }) => state.common.conf.ROW_LIMIT,
+  );
+
+  const { canDownload } = usePermissions();
+  const { addDangerToast } = useToasts();
 
   // Extract datasource ID/type from string ID
   const [datasourceId, datasourceType] = useMemo(
@@ -207,6 +220,64 @@ export default function DrillDetailPane({
     setPageIndex(0);
   }, []);
 
+  const handleDownload = useCallback(
+    (exportType: 'csv' | 'xlsx') => {
+      const drillPayload = getDrillPayload(formData, filters);
+      if (!drillPayload) {
+        addDangerToast(t('Unable to generate download payload'));
+        return;
+      }
+      const payload: JsonObject = {
+        datasource: {
+          id: parseInt(datasourceId, 10),
+          type: datasourceType,
+        },
+        queries: [
+          {
+            ...drillPayload,
+            columns: [],
+            metrics: [],
+            orderby: [],
+            row_limit: ROW_LIMIT,
+            row_offset: 0,
+          },
+        ],
+        result_type: 'drill_detail',
+        result_format: exportType,
+        force: false,
+      };
+      if (dashboardId) {
+        payload.form_data = { dashboardId };
+      }
+      SupersetClient.postForm(ensureAppRoot('/api/v1/chart/data'), {
+        form_data: safeStringify(payload),
+      }).catch(error => {
+        addDangerToast(
+          t('Failed to generate download: %s', error.message || error),
+        );
+      });
+    },
+    [
+      formData,
+      filters,
+      datasourceId,
+      datasourceType,
+      ROW_LIMIT,
+      dashboardId,
+      addDangerToast,
+    ],
+  );
+
+  const handleDownloadCSV = useCallback(
+    () => handleDownload('csv'),
+    [handleDownload],
+  );
+
+  const handleDownloadXLSX = useCallback(
+    () => handleDownload('xlsx'),
+    [handleDownload],
+  );
+
   // Clear cache and reset page index if filters change
   useEffect(() => {
     setResponseError('');
@@ -303,7 +374,7 @@ export default function DrillDetailPane({
     tableContent = <Loading />;
   } else if (resultsPage?.total === 0) {
     // Render empty state if no results are returned for page
-    const title = t('No rows were returned for this dataset');
+    const title = t('No rows were returned for this %s', datasetLabelLower());
     tableContent = <EmptyState image="document.svg" title={title} />;
   } else {
     // Render table if at least one page has successfully loaded
@@ -338,6 +409,11 @@ export default function DrillDetailPane({
           totalCount={resultsPage?.total}
           loading={isLoading}
           onReload={handleReload}
+          canDownload={canDownload}
+          onDownloadCSV={handleDownloadCSV}
+          onDownloadXLSX={handleDownloadXLSX}
+          data={data}
+          columnNames={resultsPage?.colNames}
         />
       )}
       {tableContent}
