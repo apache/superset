@@ -1287,15 +1287,9 @@ def generate_chart_name(
 ) -> str:
     """Generate a descriptive chart name following a standard format.
 
-    Format conventions (by chart type):
-      Aggregated (bar/scatter with group_by): [Metric] by [Dimension]
-      Time-series (line/area, no group_by):   [Metric] Over Time
-      Table (no aggregates):                  [Dataset] Records
-      Table (with aggregates):                [Metric] Summary
-      Pie:                                    [Dimension] by [Metric]
-      Pivot Table:                            Pivot Table – [Row1, Row2]
-      Mixed Timeseries:                       [Primary] + [Secondary]
-    An en-dash followed by context (filters / time grain) is appended
+    Delegates to each plugin's ``generate_name()`` method.
+    See each plugin's ``generate_name`` for chart-type-specific format conventions.
+    An en-dash followed by context (filters / time grain) is appended by the plugin
     when such information is available.
     """
     from superset.mcp_service.chart.registry import get_registry

@@ -22,12 +22,14 @@ Validates that referenced columns exist in the dataset schema.
 
 import difflib
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, TypeVar
 
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     ColumnRef,
 )
+
+_C = TypeVar("_C", bound=ChartConfig)
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
     ColumnSuggestion,
@@ -355,10 +357,10 @@ class DatasetValidator:
 
     @staticmethod
     def normalize_column_names(
-        config: ChartConfig,
+        config: _C,
         dataset_id: int | str,
         dataset_context: DatasetContext | None = None,
-    ) -> ChartConfig:
+    ) -> _C:
         """
         Normalize column names in config to match the canonical dataset column names.
 

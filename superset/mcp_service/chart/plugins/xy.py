@@ -130,7 +130,7 @@ class XYChartPlugin(BaseChartPlugin):
 
         what = _xy_chart_what(config)
         context = _xy_chart_context(config)
-        return f"{what} \u2013 {context}" if context else what
+        return self._with_context(what, context)
 
     def resolve_viz_type(self, config: Any) -> str:
         kind = getattr(config, "kind", "line")
@@ -168,7 +168,7 @@ class XYChartPlugin(BaseChartPlugin):
                 CardinalityValidator,
             )
 
-            chart_kind = config.kind if hasattr(config, "kind") else "default"
+            chart_kind = config.kind
             group_by_col = config.group_by[0].name if config.group_by else None
             if config.x is not None:
                 _ok, card_info = CardinalityValidator.check_cardinality(

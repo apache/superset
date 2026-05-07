@@ -58,12 +58,12 @@ class TestRuntimeValidatorNonBlocking:
             x_axis=AxisConfig(format="$,.2f"),  # Currency format for date - mismatch
         )
 
-        # Mock the format validator to return warnings
+        # Mock the plugin runtime dispatcher to return format warnings
         with patch(
             "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-            "_validate_format_compatibility"
-        ) as mock_format:
-            mock_format.return_value = [
+            "_validate_plugin_runtime"
+        ) as mock_plugin:
+            mock_plugin.return_value = [
                 "Currency format '$,.2f' may not display dates correctly"
             ]
 
@@ -87,15 +87,14 @@ class TestRuntimeValidatorNonBlocking:
             kind="bar",
         )
 
-        # Mock the cardinality validator to return warnings
+        # Mock the plugin runtime dispatcher to return cardinality warnings
         with patch(
             "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-            "_validate_cardinality"
-        ) as mock_cardinality:
-            mock_cardinality.return_value = (
-                ["High cardinality detected: 10000+ unique values"],
-                ["Consider using aggregation or filtering"],
-            )
+            "_validate_plugin_runtime"
+        ) as mock_plugin:
+            mock_plugin.return_value = [
+                "High cardinality detected: 10000+ unique values"
+            ]
 
             is_valid, warnings_metadata = RuntimeValidator.validate_runtime_issues(
                 config, 1
@@ -148,26 +147,21 @@ class TestRuntimeValidatorNonBlocking:
             x_axis=AxisConfig(format="smart_date"),  # Wrong format for user_id
         )
 
-        # Mock all validators to return warnings
+        # Mock plugin runtime and chart type validators to return warnings
         with (
             patch(
                 "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_format_compatibility"
-            ) as mock_format,
-            patch(
-                "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_cardinality"
-            ) as mock_cardinality,
+                "_validate_plugin_runtime"
+            ) as mock_plugin,
             patch(
                 "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
                 "_validate_chart_type"
             ) as mock_type,
         ):
-            mock_format.return_value = ["Format mismatch warning"]
-            mock_cardinality.return_value = (
-                ["High cardinality warning"],
-                ["Cardinality suggestion"],
-            )
+            mock_plugin.return_value = [
+                "Format mismatch warning",
+                "High cardinality warning",
+            ]
             mock_type.return_value = (
                 ["Chart type warning"],
                 ["Chart type suggestion"],
@@ -197,13 +191,13 @@ class TestRuntimeValidatorNonBlocking:
         with (
             patch(
                 "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_format_compatibility"
-            ) as mock_format,
+                "_validate_plugin_runtime"
+            ) as mock_plugin,
             patch(
                 "superset.mcp_service.chart.validation.runtime.logger"
             ) as mock_logger,
         ):
-            mock_format.return_value = ["Test warning message"]
+            mock_plugin.return_value = ["Test warning message"]
 
             is_valid, warnings_metadata = RuntimeValidator.validate_runtime_issues(
                 config, 1
@@ -217,7 +211,7 @@ class TestRuntimeValidatorNonBlocking:
             assert "warnings" in warnings_metadata
 
     def test_validate_table_chart_skips_xy_validations(self):
-        """Test that table charts skip XY-specific validations."""
+        """Test that table charts produce no XY-specific runtime warnings."""
         config = TableChartConfig(
             chart_type="table",
             columns=[
@@ -226,29 +220,16 @@ class TestRuntimeValidatorNonBlocking:
             ],
         )
 
-        # These should not be called for table charts
-        with (
-            patch(
-                "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_format_compatibility"
-            ) as mock_format,
-            patch(
-                "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_cardinality"
-            ) as mock_cardinality,
-            patch(
-                "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
-                "_validate_chart_type"
-            ) as mock_chart_type,
-        ):
-            # Mock chart type validator to return no warnings
+        # Plugin runtime dispatches to TableChartPlugin which returns no warnings.
+        # Chart type suggester is also stubbed to return no warnings.
+        with patch(
+            "superset.mcp_service.chart.validation.runtime.RuntimeValidator."
+            "_validate_chart_type"
+        ) as mock_chart_type:
             mock_chart_type.return_value = ([], [])
 
             is_valid, error = RuntimeValidator.validate_runtime_issues(config, 1)
 
-            # Format and cardinality validation should not be called for table charts
-            mock_format.assert_not_called()
-            mock_cardinality.assert_not_called()
             assert is_valid is True
             assert error is None
 

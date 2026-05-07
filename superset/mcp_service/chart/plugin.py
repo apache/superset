@@ -38,9 +38,9 @@ class ChartTypePlugin(Protocol):
     """
     Protocol that every chart-type plugin must satisfy.
 
-    Implementing all five methods in a single class guarantees that adding a
+    Implementing all eight methods in a single class guarantees that adding a
     new chart type requires only one new file — the plugin — rather than edits
-    across four separate files.
+    across multiple separate files.
     """
 
     #: Discriminator value matching ChartConfig's chart_type field.
@@ -236,3 +236,8 @@ class BaseChartPlugin:
 
     def resolve_viz_type(self, config: Any) -> str:
         return "unknown"
+
+    @staticmethod
+    def _with_context(what: str, context: str | None) -> str:
+        """Combine a 'what' label and optional context with an en-dash."""
+        return f"{what} – {context}" if context else what

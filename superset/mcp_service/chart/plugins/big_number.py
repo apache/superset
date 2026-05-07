@@ -184,7 +184,7 @@ class BigNumberChartPlugin(BaseChartPlugin):
 
         what = _big_number_chart_what(config)
         context = _summarize_filters(getattr(config, "filters", None))
-        return f"{what} \u2013 {context}" if context else what
+        return self._with_context(what, context)
 
     def resolve_viz_type(self, config: Any) -> str:
         show_trendline = getattr(config, "show_trendline", False)

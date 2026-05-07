@@ -45,10 +45,26 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _REGISTRY: dict[str, "ChartTypePlugin"] = {}
+_plugins_loaded = False
+
+
+def _ensure_plugins_loaded() -> None:
+    """Lazily import the plugins package to populate _REGISTRY.
+
+    Called before every registry lookup so the registry is always populated,
+    even when callers (tests, chart_utils, validators) import this module
+    directly without first importing app.py.
+    """
+    global _plugins_loaded
+    if not _plugins_loaded:
+        _plugins_loaded = True
+        import superset.mcp_service.chart.plugins  # noqa: F401
 
 
 def register(plugin: "ChartTypePlugin") -> None:
     """Register a chart type plugin in the global registry."""
+    if not plugin.chart_type:
+        raise ValueError(f"{type(plugin).__name__} must define a non-empty chart_type")
     if plugin.chart_type in _REGISTRY:
         logger.warning(
             "Overwriting existing plugin for chart_type=%r", plugin.chart_type
@@ -59,16 +75,19 @@ def register(plugin: "ChartTypePlugin") -> None:
 
 def get(chart_type: str) -> "ChartTypePlugin | None":
     """Return the plugin for a given chart_type, or None if not registered."""
+    _ensure_plugins_loaded()
     return _REGISTRY.get(chart_type)
 
 
 def all_types() -> list[str]:
     """Return all registered chart type strings in insertion order."""
+    _ensure_plugins_loaded()
     return list(_REGISTRY.keys())
 
 
 def is_registered(chart_type: str) -> bool:
     """Return True if chart_type has a registered plugin."""
+    _ensure_plugins_loaded()
     return chart_type in _REGISTRY
 
 
@@ -84,6 +103,7 @@ def display_name_for_viz_type(viz_type: str) -> str | None:
         display_name_for_viz_type("pivot_table_v2")           # "Pivot Table"
         display_name_for_viz_type("unknown_type")             # None
     """
+    _ensure_plugins_loaded()
     for plugin in _REGISTRY.values():
         name = plugin.native_viz_types.get(viz_type)
         if name is not None:
@@ -100,13 +120,13 @@ class _RegistryProxy:
     """Thin proxy exposing registry functions as instance methods."""
 
     def get(self, chart_type: str) -> "ChartTypePlugin | None":
-        return _REGISTRY.get(chart_type)
+        return get(chart_type)
 
     def all_types(self) -> list[str]:
-        return list(_REGISTRY.keys())
+        return all_types()
 
     def is_registered(self, chart_type: str) -> bool:
-        return chart_type in _REGISTRY
+        return is_registered(chart_type)
 
     def display_name_for_viz_type(self, viz_type: str) -> str | None:
         return display_name_for_viz_type(viz_type)

@@ -97,7 +97,7 @@ class TableChartPlugin(BaseChartPlugin):
 
         what = _table_chart_what(config, dataset_name)
         context = _summarize_filters(config.filters)
-        return f"{what} \u2013 {context}" if context else what
+        return self._with_context(what, context)
 
     def resolve_viz_type(self, config: Any) -> str:
         return getattr(config, "viz_type", "table")

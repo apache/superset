@@ -93,7 +93,7 @@ class TestBigNumberChartConfig:
             "chart_type": "big_number",
             "metric": {"name": "total_sales", "saved_metric": True},
         }
-        is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
+        is_valid, error = SchemaValidator._pre_validate_chart_type("big_number", data)
         assert is_valid is True
         assert error is None
 
