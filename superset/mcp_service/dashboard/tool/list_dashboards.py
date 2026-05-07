@@ -91,7 +91,7 @@ async def list_dashboards(
 
         # Correct usage
         list_dashboards(request={"search": "sales", "page": 1, "page_size": 10})
-        list_dashboards(request={"filters": [{"col": "dashboard_title", "opr": "ct", "value": "exec"}]})
+        list_dashboards(request={"filters": [{"col": "dashboard_title", "opr": "sw", "value": "exec"}]})
         list_dashboards()  # no arguments returns first page with defaults
 
         # Wrong — causes pydantic validation errors

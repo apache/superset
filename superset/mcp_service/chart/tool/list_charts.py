@@ -97,7 +97,7 @@ async def list_charts(
 
         # Correct usage
         list_charts(request={"search": "revenue", "page": 1, "page_size": 10})
-        list_charts(request={"filters": [{"col": "slice_name", "opr": "ct", "value": "sales"}]})
+        list_charts(request={"filters": [{"col": "slice_name", "opr": "sw", "value": "sales"}]})
         list_charts()  # no arguments returns first page with defaults
 
         # Wrong — causes pydantic validation errors

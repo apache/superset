@@ -102,7 +102,7 @@ async def list_datasets(
 
         # Correct usage
         list_datasets(request={"search": "sales", "page": 1, "page_size": 10})
-        list_datasets(request={"filters": [{"col": "table_name", "opr": "ct", "value": "orders"}]})
+        list_datasets(request={"filters": [{"col": "table_name", "opr": "sw", "value": "orders"}]})
         list_datasets()  # no arguments returns first page with defaults
 
         # Wrong — causes pydantic validation errors
