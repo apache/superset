@@ -3,8 +3,8 @@ name: Continuous Security Scanner
 on:
   push:
     branches:
-      - '**' 
-  workflow_dispatch: 
+      - '**'
+  workflow_dispatch:
 
 jobs:
   scan_and_remediate:
@@ -12,34 +12,32 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-          
+
       - name: Install pip-audit
         run: pip install pip-audit
-        
+
       - name: Run Security Scan
         id: security_scan
-        
+
         run: |
           echo "Scanning requirements/base.txt for vulnerabilities..."
           pip-audit -r requirements/base.txt > audit_output.txt 2>&1 || echo "VULN_FOUND=true" >> $GITHUB_ENV
           cat audit_output.txt
-        
+
       - name: Trigger Devin Orchestrator
         if: env.VULN_FOUND == 'true'
         env:
           RAW_URL: ${{ secrets.ORCHESTRATOR_URL }}
         run: |
           echo "Vulnerabilities detected! Pinging Devin Orchestrator..."
-          
 
           CLEAN_URL=$(echo "$RAW_URL" | tr -d '"' | tr -d "'" | tr -d '[' | tr -d ']' | tr -d '\r' | tr -d ' ')
-          
-          
+
           jq -n \
             --arg ev "automated_scan_failure" \
             --arg repo "https://github.com/${{ github.repository }}" \
@@ -48,11 +46,10 @@ jobs:
 
           echo "Sending payload to: ${CLEAN_URL}/webhook"
 
-          
           curl -g -X POST "${CLEAN_URL}/webhook" \
             -H "Content-Type: application/json" \
             -d @payload.json
-          
+
       - name: Fail the Pipeline
         if: env.VULN_FOUND == 'true'
         run: |
