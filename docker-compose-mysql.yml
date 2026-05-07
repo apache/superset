@@ -1,0 +1,93 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# Compose override that swaps the default Postgres metadata DB for MySQL 8.
+# Useful for evaluating dialect-specific behaviour (e.g., DDL-migration
+# cost on a deployment whose production metadata DB is MySQL).
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose-mysql.yml up
+#   docker compose -f docker-compose.yml -f docker-compose-mysql.yml down
+#
+# To switch back to Postgres, just drop the second `-f` flag — the MySQL
+# data lives in a separate volume (`db_home_mysql`) so neither side is
+# corrupted by switching dialects.
+#
+# Notes:
+#   - Mirrors the connection settings used by CI's `test-mysql` shard:
+#     dialect ``mysql+mysqldb``, charset utf8mb4 with binary_prefix.
+#   - Host port 13306 (configurable via DATABASE_PORT_MYSQL) to avoid
+#     colliding with a native MySQL install on 3306.
+#   - The Postgres-specific init scripts under
+#     docker/docker-entrypoint-initdb.d/ are not mounted (they are
+#     postgres-only); examples / cypress fixtures still load via
+#     `superset-init`'s post-startup steps.
+
+# Shared environment override applied to every Superset-side service that
+# connects to the metadata DB. ``environment:`` takes precedence over the
+# values inherited from the env_file in docker-compose.yml.
+x-mysql-env: &mysql-env
+  DATABASE_DIALECT: mysql+mysqldb
+  DATABASE_HOST: db
+  DATABASE_PORT: "3306"
+  DATABASE_DB: superset
+  DATABASE_USER: superset
+  DATABASE_PASSWORD: superset
+  SQLALCHEMY_DATABASE_URI: "mysql+mysqldb://superset:superset@db:3306/superset?charset=utf8mb4&binary_prefix=true"
+
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: superset
+      MYSQL_USER: superset
+      MYSQL_PASSWORD: superset
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "127.0.0.1:${DATABASE_PORT_MYSQL:-13306}:3306"
+    volumes:
+      - db_home_mysql:/var/lib/mysql
+    command:
+      - --default-authentication-plugin=caching_sha2_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  superset:
+    environment: *mysql-env
+
+  superset-init:
+    environment: *mysql-env
+
+  superset-worker:
+    environment: *mysql-env
+
+  superset-worker-beat:
+    environment: *mysql-env
+
+  superset-node:
+    environment: *mysql-env
+
+  superset-tests-worker:
+    environment: *mysql-env
+
+volumes:
+  db_home_mysql:
