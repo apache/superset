@@ -18,7 +18,7 @@
 import logging
 import re
 from re import Pattern
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from urllib import parse
 
 from flask_babel import gettext as __
@@ -28,6 +28,7 @@ from sqlalchemy.sql.type_api import TypeEngine
 
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
+from superset.models.core import Database
 from superset.utils.core import GenericDataType
 
 # Regular expressions to catch custom errors
@@ -201,3 +202,49 @@ class StarRocksEngineSpec(MySQLEngineSpec):
             return None
 
         return parse.unquote(database.split(".")[1])
+
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Impersonate the given user.
+
+        User impersonation is actually achieved via `get_prequeries`, so this method
+        needs to ensure that the username is not added to the URL when user
+        impersonation is enabled (the behavior of the base class).
+        """
+        return url, engine_kwargs
+
+    @classmethod
+    def get_prequeries(
+        cls,
+        database: Database,
+        catalog: Union[str, None] = None,
+        schema: Union[str, None] = None,
+    ) -> list[str]:
+        """
+        Return pre-session queries.
+
+        These are currently used as an alternative to ``adjust_engine_params`` for
+        databases where the selected schema cannot be specified in the SQLAlchemy URI or
+        connection arguments.
+
+        For example, in order to specify a default schema in RDS we need to run a query
+        at the beginning of the session:
+
+            sql> set search_path = my_schema;
+
+        """
+        if database.impersonate_user:
+            username = database.get_effective_user(database.url_object)
+
+            if username:
+                return [f'EXECUTE AS "{username}" WITH NO REVERT;']
+
+        return []

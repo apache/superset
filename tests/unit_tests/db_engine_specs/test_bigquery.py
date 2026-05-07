@@ -27,7 +27,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
 
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
@@ -149,7 +149,7 @@ def test_select_star(mocker: MockerFixture) -> None:
 
     # mock the database so we can compile the query
     database = mocker.MagicMock()
-    database.compile_sqla_query = lambda query: str(
+    database.compile_sqla_query = lambda query, catalog, schema: str(
         query.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
     )
 
@@ -344,11 +344,11 @@ def test_parse_error_message() -> None:
     (job ID: ddf30b05-44e8-4fbf-aa29-40bfccaed886)
                                                 -----Query Job SQL Follows-----
     |    .    |    .    |    .    |\n   1:select * from case_detail_all_suites\n   2:LIMIT 1001\n    |    .    |    .    |    .    |
-    """
+    """  # noqa: E501
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    message = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).\n\n(job ID: ddf30b05-44e8-4fbf-aa29-40bfccaed886)\n\n     -----Query Job SQL Follows-----     \n\n    |    .    |    .    |    .    |\n   1:select * from case_detail_all_suites\n   2:LIMIT 1001\n    |    .    |    .    |    .    |'
-    expected_result = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
+    message = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).\n\n(job ID: ddf30b05-44e8-4fbf-aa29-40bfccaed886)\n\n     -----Query Job SQL Follows-----     \n\n    |    .    |    .    |    .    |\n   1:select * from case_detail_all_suites\n   2:LIMIT 1001\n    |    .    |    .    |    .    |'  # noqa: E501
+    expected_result = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'  # noqa: E501
     assert (
         str(BigQueryEngineSpec.parse_error_exception(Exception(message)))
         == expected_result
@@ -362,12 +362,12 @@ def test_parse_error_raises_exception() -> None:
     Example errors:
     400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]
     bigquery error: 400 Table \"case_detail_all_suites\" must be qualified with a dataset (e.g. dataset.table).
-    """
+    """  # noqa: E501
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    message = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
+    message = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'  # noqa: E501
     message_2 = "6"
-    expected_result = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
+    expected_result = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'  # noqa: E501
     assert (
         str(BigQueryEngineSpec.parse_error_exception(Exception(message)))
         == expected_result
@@ -393,7 +393,9 @@ def test_convert_dttm(
     """
     DB Eng Specs (bigquery): Test conversion to date time
     """
-    from superset.db_engine_specs.bigquery import BigQueryEngineSpec as spec
+    from superset.db_engine_specs.bigquery import (
+        BigQueryEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 

@@ -18,22 +18,17 @@
  */
 
 import { t } from '@superset-ui/core';
-import { SupersetTheme } from '../../style';
+import { SupersetTheme } from '../..';
 import { FallbackPropsWithDimension } from './SuperChart';
 
 export type Props = FallbackPropsWithDimension;
 
-export default function FallbackComponent({
-  componentStack,
-  error,
-  height,
-  width,
-}: Props) {
+export default function FallbackComponent({ error, height, width }: Props) {
   return (
     <div
       css={(theme: SupersetTheme) => ({
-        backgroundColor: theme.colors.grayscale.dark2,
-        color: theme.colors.grayscale.light5,
+        backgroundColor: theme.colorBgContainer,
+        color: theme.colorText,
         overflow: 'auto',
         padding: 32,
       })}
@@ -45,16 +40,6 @@ export default function FallbackComponent({
         </div>
         <code>{error ? error.toString() : 'Unknown Error'}</code>
       </div>
-      {componentStack && (
-        <div>
-          <b>{t('Stack Trace:')}</b>
-          <code>
-            {componentStack.split('\n').map((row: string) => (
-              <div key={row}>{row}</div>
-            ))}
-          </code>
-        </div>
-      )}
     </div>
   );
 }

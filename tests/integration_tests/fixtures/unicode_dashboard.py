@@ -55,7 +55,7 @@ def load_unicode_data():
             engine.execute("DROP TABLE IF EXISTS unicode_test")
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_unicode_dashboard_with_slice(load_unicode_data):
     slice_name = "Unicode Cloud"
     with app.app_context():
@@ -64,7 +64,7 @@ def load_unicode_dashboard_with_slice(load_unicode_data):
         _cleanup(dash, slice_name)
 
 
-@pytest.fixture()
+@pytest.fixture
 def load_unicode_dashboard_with_position(load_unicode_data):
     slice_name = "Unicode Cloud"
     position = "{}"

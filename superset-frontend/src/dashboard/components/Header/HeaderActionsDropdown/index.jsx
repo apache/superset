@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
 import { connect } from 'react-redux';
 import { t } from '@superset-ui/core';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import DownloadMenuItems from 'src/dashboard/components/menu/DownloadMenuItems';

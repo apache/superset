@@ -19,8 +19,12 @@
 import { PureComponent } from 'react';
 import rison from 'rison';
 import PropTypes from 'prop-types';
-import { CompactPicker } from 'react-color';
-import Button from 'src/components/Button';
+import {
+  Button,
+  AsyncSelect,
+  EmptyState,
+  ColorPicker,
+} from '@superset-ui/core/components';
 import {
   t,
   SupersetClient,
@@ -31,14 +35,13 @@ import {
   styled,
   getColumnLabel,
   withTheme,
+  VizType,
 } from '@superset-ui/core';
 import SelectControl from 'src/explore/components/controls/SelectControl';
-import { AsyncSelect } from 'src/components';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
-import PopoverSection from 'src/components/PopoverSection';
+import PopoverSection from '@superset-ui/core/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { EmptyStateSmall } from 'src/components/EmptyState';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -111,8 +114,9 @@ const NotFoundContentWrapper = styled.div`
 
 const NotFoundContent = () => (
   <NotFoundContentWrapper>
-    <EmptyStateSmall
+    <EmptyState
       title={t('No annotation layers')}
+      size="small"
       description={
         <span>
           {t('Add an annotation layer')}{' '}
@@ -245,7 +249,7 @@ class AnnotationLayer extends PureComponent {
         chartMetadata.canBeAnnotationType(annotationType),
       )
       .map(({ key, value: chartMetadata }) => ({
-        value: key,
+        value: key === VizType.Line ? 'line' : key,
         label: chartMetadata.name,
       }));
     // Prepend native source if applicable
@@ -836,23 +840,38 @@ class AnnotationLayer extends PureComponent {
           value={opacity}
           onChange={value => this.setState({ opacity: value })}
         />
-        <div>
-          <ControlHeader label={t('Color')} />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <CompactPicker
-              color={color}
-              colors={colorScheme}
-              onChangeComplete={v => this.setState({ color: v.hex })}
-            />
-            <Button
-              style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}
-              buttonStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
-              buttonSize="xsmall"
-              onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
-            >
-              {t('Automatic Color')}
-            </Button>
-          </div>
+        <div
+          style={{
+            marginTop: this.props.theme.sizeUnit * 2,
+            marginBottom: this.props.theme.sizeUnit * 2,
+          }}
+        >
+          <CheckboxControl
+            name="annotation-layer-automatic-color"
+            label={t('Use automatic color')}
+            value={color === AUTOMATIC_COLOR}
+            onChange={useAutomatic => {
+              if (useAutomatic) {
+                this.setState({ color: AUTOMATIC_COLOR });
+              } else {
+                // Set to first theme color or black as fallback
+                this.setState({ color: colorScheme[0] || '#000000' });
+              }
+            }}
+          />
+          {color !== AUTOMATIC_COLOR && (
+            <div style={{ marginTop: this.props.theme.sizeUnit * 2 }}>
+              <ControlHeader label={t('Color')} />
+              <ColorPicker
+                value={color}
+                presets={[{ label: 'Theme colors', colors: colorScheme }]}
+                onChangeComplete={colorValue =>
+                  this.setState({ color: colorValue.toHexString() })
+                }
+                showText
+              />
+            </div>
+          )}
         </div>
         <TextControl
           name="annotation-layer-stroke-width"
@@ -900,7 +919,7 @@ class AnnotationLayer extends PureComponent {
     return (
       <>
         {this.props.error && (
-          <span style={{ color: this.props.theme.colors.error.base }}>
+          <span style={{ color: this.props.theme.colorError }}>
             ERROR: {this.props.error}
           </span>
         )}
@@ -966,11 +985,19 @@ class AnnotationLayer extends PureComponent {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           {isNew ? (
-            <Button buttonSize="small" onClick={() => this.props.close()}>
+            <Button
+              buttonSize="small"
+              buttonStyle="secondary"
+              onClick={() => this.props.close()}
+            >
               {t('Cancel')}
             </Button>
           ) : (
-            <Button buttonSize="small" onClick={this.deleteAnnotation}>
+            <Button
+              buttonSize="small"
+              buttonStyle="secondary"
+              onClick={this.deleteAnnotation}
+            >
               {t('Remove')}
             </Button>
           )}

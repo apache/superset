@@ -17,9 +17,8 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { Row, Col } from 'src/components';
-import Button from 'src/components/Button';
-import Tabs from 'src/components/Tabs';
+import { Button, Row, Col } from '@superset-ui/core/components';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { legacyValidateInteger, styled, t } from '@superset-ui/core';
 import ControlHeader from '../../ControlHeader';
 import TextControl from '../TextControl';
@@ -37,12 +36,12 @@ enum ContourTypes {
 }
 
 const ContourActionsContainer = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const StyledRow = styled(Row)`
   width: 100%;
-  gap: ${({ theme }) => theme.gridUnit * 2}px;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const isIsoband = (contour: ContourType) => {
@@ -198,7 +197,9 @@ const ContourPopoverControl = ({
 
   const containsErrors = () => {
     const keys = Object.keys(validationErrors);
-    return keys.some(key => validationErrors[key].length > 0);
+    return keys.some(
+      key => validationErrors[key as keyof ErrorMapType].length > 0,
+    );
   };
 
   const handleSave = () => {
@@ -212,122 +213,125 @@ const ContourPopoverControl = ({
     }
   };
 
+  const tabItems = [
+    {
+      key: ContourTypes.Isoline,
+      label: t('Isoline'),
+      children: (
+        <div key={ContourTypes.Isoline} className="isoline-popover-section">
+          <StyledRow>
+            <Col flex="1">
+              <ControlHeader
+                name="isoline-threshold"
+                label={t('Threshold')}
+                description={t(
+                  'Defines the value that determines the boundary between different regions or levels in the data ',
+                )}
+                validationErrors={validationErrors.lowerThreshold}
+                hovered
+              />
+              <TextControl
+                value={contour.lowerThreshold}
+                onChange={updateLowerThreshold}
+              />
+            </Col>
+          </StyledRow>
+          <StyledRow>
+            <Col flex="1">
+              <ControlHeader
+                name="isoline-stroke-width"
+                label={t('Stroke Width')}
+                description={t('The width of the Isoline in pixels')}
+                validationErrors={validationErrors.strokeWidth}
+                hovered
+              />
+              <TextControl
+                value={contour.strokeWidth || ''}
+                onChange={updateStrokeWidth}
+              />
+            </Col>
+            <Col flex="1">
+              <ControlHeader
+                name="isoline-color"
+                label={t('Color')}
+                description={t('The color of the isoline')}
+                validationErrors={validationErrors.color}
+                hovered
+              />
+              <ColorPickerControl
+                value={typeof contour === 'object' ? contour?.color : undefined}
+                onChange={updateColor}
+              />
+            </Col>
+          </StyledRow>
+        </div>
+      ),
+    },
+    {
+      key: ContourTypes.Isoband,
+      label: t('Isoband'),
+      children: (
+        <div key={ContourTypes.Isoband} className="isoline-popover-section">
+          <StyledRow>
+            <Col flex="1">
+              <ControlHeader
+                name="isoband-threshold-lower"
+                label={t('Lower Threshold')}
+                description={t(
+                  'The lower limit of the threshold range of the Isoband',
+                )}
+                validationErrors={validationErrors.lowerThreshold}
+                hovered
+              />
+              <TextControl
+                value={contour.lowerThreshold || ''}
+                onChange={updateLowerThreshold}
+              />
+            </Col>
+            <Col flex="1">
+              <ControlHeader
+                name="isoband-threshold-upper"
+                label={t('Upper Threshold')}
+                description={t(
+                  'The upper limit of the threshold range of the Isoband',
+                )}
+                validationErrors={validationErrors.upperThreshold}
+                hovered
+              />
+              <TextControl
+                value={contour.upperThreshold || ''}
+                onChange={updateUpperThreshold}
+              />
+            </Col>
+          </StyledRow>
+          <StyledRow>
+            <Col flex="1">
+              <ControlHeader
+                name="isoband-color"
+                label={t('Color')}
+                description={t('The color of the isoband')}
+                validationErrors={validationErrors.color}
+                hovered
+              />
+              <ColorPickerControl
+                value={contour?.color}
+                onChange={updateColor}
+              />
+            </Col>
+          </StyledRow>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
       <Tabs
         id="contour-edit-tabs"
         onChange={onTabChange}
         defaultActiveKey={getTabKey(initialValue)}
-      >
-        <Tabs.TabPane
-          className="adhoc-filter-edit-tab"
-          key={ContourTypes.Isoline}
-          tab={t('Isoline')}
-        >
-          <div key={ContourTypes.Isoline} className="isoline-popover-section">
-            <StyledRow>
-              <Col flex="1">
-                <ControlHeader
-                  name="isoline-threshold"
-                  label={t('Threshold')}
-                  description={t(
-                    'Defines the value that determines the boundary between different regions or levels in the data ',
-                  )}
-                  validationErrors={validationErrors.lowerThreshold}
-                  hovered
-                />
-                <TextControl
-                  value={contour.lowerThreshold}
-                  onChange={updateLowerThreshold}
-                />
-              </Col>
-            </StyledRow>
-            <StyledRow>
-              <Col flex="1">
-                <ControlHeader
-                  name="isoline-stroke-width"
-                  label={t('Stroke Width')}
-                  description={t('The width of the Isoline in pixels')}
-                  validationErrors={validationErrors.strokeWidth}
-                  hovered
-                />
-                <TextControl
-                  value={contour.strokeWidth || ''}
-                  onChange={updateStrokeWidth}
-                />
-              </Col>
-              <Col flex="1">
-                <ControlHeader
-                  name="isoline-color"
-                  label={t('Color')}
-                  description={t('The color of the isoline')}
-                  validationErrors={validationErrors.color}
-                  hovered
-                />
-                <ColorPickerControl
-                  value={typeof contour === 'object' && contour?.color}
-                  onChange={updateColor}
-                />
-              </Col>
-            </StyledRow>
-          </div>
-        </Tabs.TabPane>
-        <Tabs.TabPane
-          className="adhoc-filter-edit-tab"
-          key={ContourTypes.Isoband}
-          tab={t('Isoband')}
-        >
-          <div key={ContourTypes.Isoband} className="isoline-popover-section">
-            <StyledRow>
-              <Col flex="1">
-                <ControlHeader
-                  name="isoband-threshold-lower"
-                  label={t('Lower Threshold')}
-                  description={t(
-                    'The lower limit of the threshold range of the Isoband',
-                  )}
-                  validationErrors={validationErrors.lowerThreshold}
-                  hovered
-                />
-                <TextControl
-                  value={contour.lowerThreshold || ''}
-                  onChange={updateLowerThreshold}
-                />
-              </Col>
-              <Col flex="1">
-                <ControlHeader
-                  name="isoband-threshold-upper"
-                  label={t('Upper Threshold')}
-                  description={t(
-                    'The upper limit of the threshold range of the Isoband',
-                  )}
-                  validationErrors={validationErrors.upperThreshold}
-                  hovered
-                />
-                <TextControl
-                  value={contour.upperThreshold || ''}
-                  onChange={updateUpperThreshold}
-                />
-              </Col>
-            </StyledRow>
-            <StyledRow>
-              <Col flex="1">
-                <ControlHeader
-                  name="isoband-color"
-                  label={t('Color')}
-                  description={t('The color of the isoband')}
-                  validationErrors={validationErrors.color}
-                  hovered
-                />
-                <ColorPickerControl
-                  value={contour?.color}
-                  onChange={updateColor}
-                />
-              </Col>
-            </StyledRow>
-          </div>
-        </Tabs.TabPane>
-      </Tabs>
+        items={tabItems}
+      />
       <ContourActionsContainer>
         <Button buttonSize="small" onClick={onClose} cta>
           {t('Close')}
@@ -337,7 +341,6 @@ const ContourPopoverControl = ({
           disabled={!isComplete || containsErrors()}
           buttonStyle="primary"
           buttonSize="small"
-          className="m-r-5"
           onClick={handleSave}
           cta
         >

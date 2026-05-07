@@ -60,12 +60,11 @@ def test_database_filter_full_db_access(mocker: MockerFixture) -> None:
     """
     from superset.models.core import Database
 
-    current_app = mocker.patch("superset.databases.filters.current_app")
-    current_app.config = {"EXTRA_DYNAMIC_QUERY_FILTERS": False}
+    mocker.patch("flask.current_app.config", {"EXTRA_DYNAMIC_QUERY_FILTERS": False})
     mocker.patch.object(security_manager, "can_access_all_databases", return_value=True)
 
     engine = create_engine("sqlite://")
-    Session = sessionmaker(bind=engine)
+    Session = sessionmaker(bind=engine)  # noqa: N806
     session = Session()
     query = session.query(Database)
 
@@ -81,8 +80,7 @@ def test_database_filter(mocker: MockerFixture) -> None:
     """
     from superset.models.core import Database
 
-    current_app = mocker.patch("superset.databases.filters.current_app")
-    current_app.config = {"EXTRA_DYNAMIC_QUERY_FILTERS": False}
+    mocker.patch("flask.current_app.config", {"EXTRA_DYNAMIC_QUERY_FILTERS": False})
     mocker.patch.object(
         security_manager,
         "can_access_all_databases",
@@ -108,7 +106,7 @@ def test_database_filter(mocker: MockerFixture) -> None:
     )
 
     engine = create_engine("sqlite://")
-    Session = sessionmaker(bind=engine)
+    Session = sessionmaker(bind=engine)  # noqa: N806
     session = Session()
     query = session.query(Database)
 
@@ -124,5 +122,5 @@ def test_database_filter(mocker: MockerFixture) -> None:
         str(compiled_query)
         == f"""SELECT dbs.uuid, dbs.created_on, dbs.changed_on, dbs.id, dbs.verbose_name, dbs.database_name, dbs.sqlalchemy_uri, dbs.password, dbs.cache_timeout, dbs.select_as_create_table_as, dbs.expose_in_sqllab, dbs.configuration_method, dbs.allow_run_async, dbs.allow_file_upload, dbs.allow_ctas, dbs.allow_cvas, dbs.allow_dml, dbs.force_ctas_schema, dbs.extra, dbs.encrypted_extra, dbs.impersonate_user, dbs.server_cert, dbs.is_managed_externally, dbs.external_url, dbs.created_by_fk, dbs.changed_by_fk{space}
 FROM dbs{space}
-WHERE '[' || dbs.database_name || '].(id:' || CAST(dbs.id AS VARCHAR) || ')' IN ('[my_db].(id:42)', '[my_other_db].(id:43)') OR dbs.database_name IN ('my_db', 'my_other_db', 'third_db')"""
+WHERE '[' || dbs.database_name || '].(id:' || CAST(dbs.id AS VARCHAR) || ')' IN ('[my_db].(id:42)', '[my_other_db].(id:43)') OR dbs.database_name IN ('my_db', 'my_other_db', 'third_db')"""  # noqa: S608, E501
     )

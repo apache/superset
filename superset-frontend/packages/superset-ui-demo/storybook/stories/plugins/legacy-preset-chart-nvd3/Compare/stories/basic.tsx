@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
@@ -33,7 +33,7 @@ export const basic = () => (
       colorScheme: 'd3Category10',
       contribution: false,
       leftMargin: 'auto',
-      vizType: 'compare',
+      vizType: VizType.Compare,
       xAxisFormat: 'smart_date',
       xAxisLabel: '',
       xAxisShowminmax: false,

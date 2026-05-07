@@ -19,10 +19,10 @@
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
-import DatasetNotFoundErrorMessage from './DatasetNotFoundErrorMessage';
+import { DatasetNotFoundErrorMessage } from './DatasetNotFoundErrorMessage';
 
 jest.mock(
-  'src/components/Icons/Icon',
+  '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
       <span role="img" aria-label={fileName.replace('_', '-')} />

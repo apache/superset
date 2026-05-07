@@ -87,9 +87,6 @@ format: py-format js-format
 py-format: pre-commit
 	pre-commit run black --all-files
 
-py-lint: pre-commit
-	pylint -j 0 superset
-
 js-format:
 	cd superset-frontend; npm run prettier
 

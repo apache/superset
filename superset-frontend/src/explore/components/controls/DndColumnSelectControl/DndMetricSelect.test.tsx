@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import {
+  fireEvent,
   render,
   screen,
   within,
-  fireEvent,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
@@ -334,7 +334,7 @@ test('cannot drop a duplicated item', () => {
   const { getByTestId } = render(
     <>
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_a' }}
+        value={{ metric_name: 'metric_a', uuid: '1' }}
         type={DndItemType.Metric}
       />
       <DndMetricSelect {...defaultProps} value={metricValues} multi />
@@ -362,7 +362,7 @@ test('can drop a saved metric when disallow_adhoc_metrics', () => {
   const { getByTestId } = render(
     <>
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_a' }}
+        value={{ metric_name: 'metric_a', uuid: '1' }}
         type={DndItemType.Metric}
       />
       <DndMetricSelect
@@ -395,15 +395,15 @@ test('cannot drop non-saved metrics when disallow_adhoc_metrics', () => {
   const { getByTestId, getAllByTestId } = render(
     <>
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_a' }}
+        value={{ metric_name: 'metric_a', uuid: '1' }}
         type={DndItemType.Metric}
       />
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_c' }}
+        value={{ metric_name: 'metric_c', uuid: '2' }}
         type={DndItemType.Metric}
       />
       <DatasourcePanelDragOption
-        value={{ column_name: 'column_1' }}
+        value={{ column_name: 'column_1', uuid: '3' }}
         type={DndItemType.Column}
       />
       <DndMetricSelect

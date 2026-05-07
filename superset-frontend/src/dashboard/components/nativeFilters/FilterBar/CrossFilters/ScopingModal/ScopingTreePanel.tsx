@@ -26,7 +26,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import { Select } from 'src/components';
+import { Select, Tooltip, Alert } from '@superset-ui/core/components';
 import { noOp } from 'src/utils/common';
 import ScopingTree from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/ScopingTree';
 import {
@@ -36,10 +36,8 @@ import {
   RootState,
 } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import { SelectOptionsType } from 'src/components/Select/types';
-import Icons from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
-import Alert from 'src/components/Alert';
+import type { SelectOptionsType } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { NEW_CHART_SCOPING_ID } from './constants';
 
 interface ScopingTreePanelProps {
@@ -52,9 +50,9 @@ interface ScopingTreePanelProps {
 
 const InfoText = styled.div`
   ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.s}px;
-    color: ${theme.colors.grayscale.base};
-    margin-bottom: ${theme.gridUnit * 7}px;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextSecondary};
+    margin-bottom: ${theme.sizeUnit * 7}px;
   `}
 `;
 
@@ -98,27 +96,26 @@ const ChartSelect = ({
   return (
     <div
       css={css`
-        margin-bottom: ${theme.gridUnit * 6}px;
+        margin-bottom: ${theme.sizeUnit * 6}px;
       `}
     >
       <div
         css={css`
           display: flex;
           align-items: center;
-          margin-bottom: ${theme.gridUnit}px;
+          margin-bottom: ${theme.sizeUnit}px;
         `}
       >
         <InfoText
           css={css`
-            color: ${theme.colors.grayscale.dark1};
-            margin-right: ${theme.gridUnit}px;
+            color: ${theme.colorText};
+            margin-right: ${theme.sizeUnit}px;
             margin-bottom: 0;
           `}
         >{`${t('Chart')} *`}</InfoText>
         <Tooltip title={t('Tooltip')} placement="top">
           <Icons.InfoCircleOutlined
             iconSize="xs"
-            iconColor={theme.colors.grayscale.base}
             css={css`
               & > span {
                 line-height: 0;
@@ -163,7 +160,7 @@ export const ScopingTreePanel = ({
           message={
             <span
               css={css`
-                font-weight: ${theme.typography.weights.bold};
+                font-weight: ${theme.fontWeightStrong};
               `}
             >
               {t('Cross-filtering is not enabled in this dashboard')}
@@ -172,7 +169,7 @@ export const ScopingTreePanel = ({
           type="info"
           closable={false}
           css={css`
-            margin-bottom: ${theme.gridUnit * 6}px;
+            margin-bottom: ${theme.sizeUnit * 6}px;
           `}
         />
       )}

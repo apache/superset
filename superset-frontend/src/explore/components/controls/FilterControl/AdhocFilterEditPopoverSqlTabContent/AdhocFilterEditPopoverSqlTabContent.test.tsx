@@ -16,14 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, selectOption } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  cleanup,
+  render,
+  screen,
+  selectOption,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { IAceEditorProps } from 'react-ace';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 import AdhocFilterEditPopoverSqlTabContent from '.';
 
-jest.mock('src/components/AsyncAceEditor', () => ({
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
+
+jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
   SQLEditor: ({ value, onChange }: IAceEditorProps) => (
     <textarea
       defaultValue={value}
@@ -49,12 +61,13 @@ test('calls onChange when the SQL clause changes', async () => {
     />,
   );
   await selectOption(Clauses.Having);
+  await new Promise(resolve => setTimeout(resolve, 0));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({ clause: Clauses.Having }),
   );
 });
 
-test('calls onChange when the SQL expression changes', () => {
+test('calls onChange when the SQL expression changes', async () => {
   const onChange = jest.fn();
   const input = 'value < 20';
   render(
@@ -68,7 +81,8 @@ test('calls onChange when the SQL expression changes', () => {
   const sqlEditor = screen.getByRole('textbox');
   expect(sqlEditor).toBeInTheDocument();
   userEvent.clear(sqlEditor);
-  userEvent.paste(sqlEditor, input);
+  await userEvent.paste(sqlEditor, input);
+  await new Promise(resolve => setTimeout(resolve, 0));
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({ sqlExpression: input }),
   );

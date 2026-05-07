@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactWrapper } from 'enzyme';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { act } from 'react-dom/test-utils';
-
+import { render } from 'spec/helpers/testing-library';
 import withAsyncVerification, {
   ControlPropsWithExtras,
   WithAsyncVerificationOptions,
@@ -41,7 +38,9 @@ const defaultProps = {
   multi: true,
   needAsyncVerification: true,
   actions: { setControlValue: mockSetControlValue },
-  onChange: () => {},
+  onChange: (p0: string[]) => {
+    console.log('onChange called with:', p0);
+  },
   columns: [
     { type: 'VARCHAR(255)', column_name: 'source' },
     { type: 'VARCHAR(255)', column_name: 'target' },
@@ -79,64 +78,49 @@ async function setup({
     verify: verifier,
     onChange,
   });
-  type Wrapper = ReactWrapper<typeof props & ExtraControlProps>;
-  let wrapper: Wrapper | undefined;
-  await act(async () => {
-    wrapper = mount(<VerifiedControl {...props} />);
-  });
-  return { props, wrapper: wrapper as Wrapper, onChange, verifier };
+  const utils = render(<VerifiedControl {...props} />);
+  return { props, ...utils, verifier, VerifiedControl };
 }
 
 describe('VerifiedMetricsControl', () => {
-  it('should calls verify correctly', async () => {
-    expect.assertions(5);
-    const { wrapper, verifier, props } = await setup();
+  it('should call verify correctly', async () => {
+    expect.assertions(3);
+    const { verifier, props, rerender, VerifiedControl } = await setup();
 
-    expect(wrapper.find(MetricsControl).length).toBe(1);
-
-    expect(verifier).toBeCalledTimes(1);
-    expect(verifier).toBeCalledWith(
+    expect(verifier).toHaveBeenCalledTimes(1);
+    expect(verifier).toHaveBeenCalledWith(
       expect.objectContaining({ savedMetrics: props.savedMetrics }),
     );
 
-    // should call verifier with new props when props are updated.
-    await act(async () => {
-      wrapper.setProps({ validMetric: ['abc'] });
-    });
+    // should call verifier with new props when props are updated
+    rerender(<VerifiedControl {...props} validMetric={['abc']} />);
 
-    expect(verifier).toBeCalledTimes(2);
-    expect(verifier).toBeCalledWith(
+    expect(verifier).toHaveBeenCalledWith(
       expect.objectContaining({ validMetric: ['abc'] }),
     );
   });
 
   it('should trigger onChange event', async () => {
-    expect.assertions(3);
+    expect.assertions(2);
     const mockOnChange = jest.fn();
-    const { wrapper } = await setup({
-      // should allow specify baseControl with control component name
+    const { verifier, props } = await setup({
       baseControl: 'MetricsControl',
       onChange: mockOnChange,
+      extraProps: {
+        onChange: (value: any) => {
+          // Simulate the MetricsControl onChange
+          mockOnChange(value, props);
+        },
+      },
     });
 
-    const child = wrapper.find(MetricsControl);
-    child.props().onChange?.(['abc']);
+    // Wait for the initial verification to complete
+    await verifier;
 
-    expect(child.length).toBe(1);
-    expect(mockOnChange).toBeCalledTimes(1);
-    expect(mockOnChange).toBeCalledWith(['abc'], {
-      actions: defaultProps.actions,
-      columns: defaultProps.columns,
-      datasourceType: defaultProps.datasourceType,
-      label: defaultProps.label,
-      multi: defaultProps.multi,
-      name: defaultProps.name,
-      // in real life, `onChange` should have been called with the updated
-      // props (both savedMetrics and value should have been updated), but
-      // because of the limitation of enzyme (it cannot get props updated from
-      // useEffect hooks), we are not able to check that here.
-      savedMetrics: defaultProps.savedMetrics,
-      value: undefined,
-    });
+    // Call the onChange from props
+    props.onChange(['sum__value']);
+
+    expect(mockOnChange).toHaveBeenCalledTimes(1);
+    expect(mockOnChange).toHaveBeenCalledWith(['sum__value'], props);
   });
 });

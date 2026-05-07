@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, ReactElement } from 'react';
+import { useState, useEffect, ReactElement, useCallback } from 'react';
 
 import {
   ensureIsArray,
@@ -25,15 +25,22 @@ import {
   getChartMetadataRegistry,
   getClientErrorObject,
 } from '@superset-ui/core';
-import Loading from 'src/components/Loading';
-import { EmptyStateMedium } from 'src/components/EmptyState';
+import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls } from './DataTableControls';
 
 const Error = styled.pre`
-  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
+  margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
+`;
+
+const StyledDiv = styled.div`
+  ${() => `
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    `}
 `;
 
 const cache = new WeakMap();
@@ -44,7 +51,7 @@ export const useResultsPane = ({
   queryForce,
   ownState,
   errorMessage,
-  actions,
+  setForceQuery,
   isVisible,
   dataSize = 50,
   canDownload,
@@ -57,6 +64,9 @@ export const useResultsPane = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
   const queryCount = metadata?.queryObjectCount ?? 1;
+  const isQueryCountDynamic = metadata?.dynamicQueryObjectCount;
+
+  const noOpInputChange = useCallback(() => {}, []);
 
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
@@ -64,8 +74,8 @@ export const useResultsPane = ({
     if (isRequest && cache.has(queryFormData)) {
       setResultResp(ensureIsArray(cache.get(queryFormData)));
       setResponseError('');
-      if (queryForce && actions) {
-        actions.setForceQuery(false);
+      if (queryForce) {
+        setForceQuery?.(false);
       }
       setIsLoading(false);
     }
@@ -82,8 +92,8 @@ export const useResultsPane = ({
           setResultResp(ensureIsArray(json.result));
           setResponseError('');
           cache.set(queryFormData, json.result);
-          if (queryForce && actions) {
-            actions.setForceQuery(false);
+          if (queryForce) {
+            setForceQuery?.(false);
           }
         })
         .catch(response => {
@@ -110,7 +120,7 @@ export const useResultsPane = ({
   if (errorMessage) {
     const title = t('Run a query to display results');
     return Array(queryCount).fill(
-      <EmptyStateMedium image="document.svg" title={title} />,
+      <EmptyState image="document.svg" title={title} size="small" />,
     );
   }
 
@@ -123,7 +133,7 @@ export const useResultsPane = ({
           columnTypes={[]}
           rowcount={0}
           datasourceId={queryFormData.datasource}
-          onInputChange={() => {}}
+          onInputChange={noOpInputChange}
           isLoading={false}
           canDownload={canDownload}
         />
@@ -136,12 +146,15 @@ export const useResultsPane = ({
   if (resultResp.length === 0) {
     const title = t('No results were returned for this query');
     return Array(queryCount).fill(
-      <EmptyStateMedium image="document.svg" title={title} />,
+      <EmptyState image="document.svg" title={title} size="small" />,
     );
   }
-  return resultResp
-    .slice(0, queryCount)
-    .map((result, idx) => (
+  const resultRespToDisplay = isQueryCountDynamic
+    ? resultResp
+    : resultResp.slice(0, queryCount);
+
+  return resultRespToDisplay.map((result, idx) => (
+    <StyledDiv key={idx}>
       <SingleQueryResultPane
         data={result.data}
         colnames={result.colnames}
@@ -149,9 +162,9 @@ export const useResultsPane = ({
         rowcount={result.rowcount}
         dataSize={dataSize}
         datasourceId={queryFormData.datasource}
-        key={idx}
         isVisible={isVisible}
         canDownload={canDownload}
       />
-    ));
+    </StyledDiv>
+  ));
 };

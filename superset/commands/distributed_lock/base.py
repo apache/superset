@@ -17,16 +17,16 @@
 
 import logging
 import uuid
-from typing import Any
+from typing import Any, Union
 
-from flask import current_app
+from flask import current_app as app
 
 from superset.commands.base import BaseCommand
 from superset.distributed_lock.utils import get_key
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 
 logger = logging.getLogger(__name__)
-stats_logger = current_app.config["STATS_LOGGER"]
+stats_logger = app.config["STATS_LOGGER"]
 
 
 class BaseDistributedLockCommand(BaseCommand):
@@ -34,7 +34,7 @@ class BaseDistributedLockCommand(BaseCommand):
     codec = JsonKeyValueCodec()
     resource = KeyValueResource.LOCK
 
-    def __init__(self, namespace: str, params: dict[str, Any] | None = None):
+    def __init__(self, namespace: str, params: Union[dict[str, Any], None] = None):
         self.key = get_key(namespace, **(params or {}))
 
     def validate(self) -> None:

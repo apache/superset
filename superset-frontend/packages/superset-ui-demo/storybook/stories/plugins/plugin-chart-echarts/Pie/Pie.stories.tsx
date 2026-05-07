@@ -17,7 +17,11 @@
  * under the License.
  */
 
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
+import {
+  SuperChart,
+  VizType,
+  getChartTransformPropsRegistry,
+} from '@superset-ui/core';
 import {
   EchartsPieChartPlugin,
   PieTransformProps,
@@ -25,12 +29,9 @@ import {
 import { weekday, population, sales } from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsPieChartPlugin().configure({ key: 'echarts-pie' }).register();
+new EchartsPieChartPlugin().configure({ key: VizType.Pie }).register();
 
-getChartTransformPropsRegistry().registerValue(
-  'echarts-pie',
-  PieTransformProps,
-);
+getChartTransformPropsRegistry().registerValue(VizType.Pie, PieTransformProps);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Pie',
@@ -60,7 +61,7 @@ export const WeekdayPie = (
   { width, height }: { width: number; height: number },
 ) => (
   <SuperChart
-    chartType="echarts-pie"
+    chartType={VizType.Pie}
     width={width}
     height={height}
     queriesData={[{ data: weekday }]}
@@ -138,7 +139,7 @@ export const PopulationPie = (
   { width, height }: { width: number; height: number },
 ) => (
   <SuperChart
-    chartType="echarts-pie"
+    chartType={VizType.Pie}
     width={width}
     height={height}
     queriesData={[{ data: population }]}
@@ -218,7 +219,7 @@ export const SalesPie = (
   { width, height }: { width: number; height: number },
 ) => (
   <SuperChart
-    chartType="echarts-pie"
+    chartType={VizType.Pie}
     width={width}
     height={height}
     queriesData={[{ data: sales }]}

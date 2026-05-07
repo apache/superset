@@ -29,7 +29,7 @@ from tests.integration_tests.dashboards.consts import DEFAULT_DASHBOARD_SLUG_TO_
 
 logger = logging.getLogger(__name__)
 
-session = appbuilder.get_session
+session = appbuilder.session
 
 
 def get_mock_positions(dashboard: Dashboard) -> dict[str, Any]:
@@ -98,7 +98,7 @@ def random_slug():
 
 def get_random_string(length):
     letters = string.ascii_lowercase
-    result_str = "".join(random.choice(letters) for i in range(length))
+    result_str = "".join(random.choice(letters) for i in range(length))  # noqa: S311
     print("Random string of length", length, "is:", result_str)
     return result_str
 

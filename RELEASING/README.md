@@ -123,10 +123,10 @@ SUPERSET_RC=1
 SUPERSET_GITHUB_BRANCH=1.5
 SUPERSET_PGP_FULLNAME=villebro@apache.org
 SUPERSET_VERSION_RC=1.5.1rc1
-SUPERSET_RELEASE=apache-superset-1.5.1
-SUPERSET_RELEASE_RC=apache-superset-1.5.1rc1
-SUPERSET_RELEASE_TARBALL=apache-superset-1.5.1-source.tar.gz
-SUPERSET_RELEASE_RC_TARBALL=apache-superset-1.5.1rc1-source.tar.gz
+SUPERSET_RELEASE=apache_superset-1.5.1
+SUPERSET_RELEASE_RC=apache_superset-1.5.1rc1
+SUPERSET_RELEASE_TARBALL=apache_superset-1.5.1-source.tar.gz
+SUPERSET_RELEASE_RC_TARBALL=apache_superset-1.5.1rc1-source.tar.gz
 SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-1.5.1
 -------------------------------
 ```
@@ -380,7 +380,7 @@ Official instructions:
 https://www.apache.org/info/verification.html
 
 We now have a handy script for anyone validating a release to use. The core of it is in this very folder, `verify_release.py`. Just make sure you have all three release files in the same directory (`{some version}.tar.gz`, `{some version}.tar.gz.asc` and `{some version}tar.gz.sha512`). Then you can pass this script the path to the `.gz` file like so:
-`python verify_release.py ~/path/tp/apache-superset-{version/candidate}-source.tar.gz`
+`python verify_release.py ~/path/tp/apache_superset-{version/candidate}-source.tar.gz`
 
 If all goes well, you will see this result in your terminal:
 
@@ -437,7 +437,7 @@ cd ${SUPERSET_RELEASE_RC}
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements/base.txt
-pip install twine
+pip install build twine
 ```
 
 Create the distribution
@@ -452,7 +452,10 @@ cd ../
 
 
 # Compile translations for the backend
-./scripts/translations/generate_po_files.sh
+./scripts/translations/generate_mo_files.sh
+
+# update build version number
+sed -i '' "s/version_string = .*/version_string = \"$SUPERSET_VERSION\"/" setup.py
 
 # build the python distribution
 python setup.py sdist
@@ -466,7 +469,7 @@ an account first if you don't have one, and reference your username
 while requesting access to push packages.
 
 ```bash
-twine upload dist/apache-superset-${SUPERSET_VERSION}.tar.gz
+twine upload dist/*
 ```
 
 Set your username to `__token__`

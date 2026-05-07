@@ -95,7 +95,7 @@ class ReportScheduleEitherChartOrDashboardError(ValidationError):
         )
 
 
-class ReportScheduleFrequencyNotAllowed(ValidationError):
+class ReportScheduleFrequencyNotAllowed(ValidationError):  # noqa: N818
     """
     Marshmallow validation error for report schedule configured to run more
     frequently than allowed
@@ -140,7 +140,7 @@ class DashboardNotSavedValidationError(ValidationError):
     def __init__(self) -> None:
         super().__init__(
             _(
-                "Please save your dashboard first, then try creating a new email report."
+                "Please save your dashboard first, then try creating a new email report."  # noqa: E501
             ),
             field_name="dashboard",
         )
@@ -309,3 +309,18 @@ class ReportScheduleForbiddenError(ForbiddenError):
 
 class ReportSchedulePruneLogError(CommandException):
     message = _("An error occurred while pruning logs ")
+
+
+class ReportScheduleUserEmailNotFoundError(ValidationError):
+    """
+    Validation error when user email is required but not found
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _(
+                "Unable to create report: User email address is required but not "
+                "found. Please ensure your user profile has a valid email address."
+            ),
+            field_name="recipients",
+        )

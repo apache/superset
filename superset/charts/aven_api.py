@@ -8,7 +8,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset import event_logger, is_feature_enabled
-from superset.charts.post_processing import apply_post_process
+from superset.charts.client_processing import apply_client_processing
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -129,7 +129,7 @@ class AvenRestApi(BaseSupersetModelRestApi):
                 # force the result format to be JSON
                 query["result_format"] = ChartDataResultFormat.JSON
 
-            result = apply_post_process(result, form_data, chart.datasource)
+            result = apply_client_processing(result, form_data, chart.datasource)
 
             chart_data = result["queries"][0]["data"]
 
@@ -259,7 +259,7 @@ class AvenRestApi(BaseSupersetModelRestApi):
                     # force the result format to be JSON
                     query["result_format"] = ChartDataResultFormat.JSON
 
-                result = apply_post_process(result, form_data, chart.datasource)
+                result = apply_client_processing(result, form_data, chart.datasource)
 
                 chart_data = result["queries"][0]["data"]
 

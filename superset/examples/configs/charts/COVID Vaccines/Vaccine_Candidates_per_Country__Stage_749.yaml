@@ -15,30 +15,29 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Vaccine Candidates per Country & Stage
-viz_type: heatmap
+viz_type: heatmap_v2
 params:
   adhoc_filters: []
-  all_columns_x: clinical_stage
-  all_columns_y: country_name
+  x_axis: clinical_stage
+  groupby: country_name
   bottom_margin: auto
-  canvas_image_rendering: pixelated
   datasource: 14__table
   left_margin: auto
   linear_color_scheme: schemeYlOrBr
   metric: count
-  normalize_across: heatmap
+  normalize_across: heatmap_v2
   row_limit: 10000
   show_legend: true
-  show_perc: true
+  show_percentage: true
   sort_x_axis: alpha_asc
   sort_y_axis: alpha_asc
   time_range: No filter
   url_params: {}
-  viz_type: heatmap
+  viz_type: heatmap_v2
   xscale_interval: null
-  y_axis_bounds:
-  - null
-  - null
+  value_bounds:
+    - null
+    - null
   y_axis_format: SMART_NUMBER
   yscale_interval: null
 cache_timeout: null

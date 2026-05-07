@@ -56,21 +56,50 @@ const Styles = styled.div<PivotTableStylesProps>`
 `;
 
 const PivotTableWrapper = styled.div`
-  height: 100%;
-  max-width: inherit;
-  overflow: auto;
+  ${({ theme }) => `
+    height: 100%;
+    max-width: inherit;
+    overflow: auto;
+
+    /* Chrome/Safari/Edge webkit scrollbar styling */
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: ${theme.colorFillQuaternary};
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: ${theme.colorFillSecondary};
+      border-radius: ${theme.borderRadiusSM}px;
+
+      &:hover {
+        background: ${theme.colorFillTertiary};
+      }
+    }
+
+    &::-webkit-scrollbar-corner {
+      background: ${theme.colorFillQuaternary};
+    }
+
+    /* Firefox scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: ${theme.colorFillSecondary} ${theme.colorFillQuaternary};
+  `}
 `;
 
 const METRIC_KEY = t('Metric');
 const vals = ['value'];
 
 const StyledPlusSquareOutlined = styled(PlusSquareOutlined)`
-  stroke: ${({ theme }) => theme.colors.grayscale.light2};
+  stroke: ${({ theme }) => theme.colorBorderSecondary};
   stroke-width: 16px;
 `;
 
 const StyledMinusSquareOutlined = styled(MinusSquareOutlined)`
-  stroke: ${({ theme }) => theme.colors.grayscale.light2};
+  stroke: ${({ theme }) => theme.colorBorderSecondary};
   stroke-width: 16px;
 `;
 
@@ -155,6 +184,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     dateFormatters,
     onContextMenu,
     timeGrainSqla,
+    allowRenderHtml,
   } = props;
 
   const theme = useTheme();
@@ -538,7 +568,7 @@ export default function PivotTableChart(props: PivotTableProps) {
   );
 
   return (
-    <Styles height={height} width={width} margin={theme.gridUnit * 4}>
+    <Styles height={height} width={width} margin={theme.sizeUnit * 4}>
       <PivotTableWrapper>
         <PivotTable
           data={unpivotedData}
@@ -556,6 +586,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           subtotalOptions={subtotalOptions}
           namesMapping={verboseMap}
           onContextMenu={handleContextMenu}
+          allowRenderHtml={allowRenderHtml}
         />
       </PivotTableWrapper>
     </Styles>

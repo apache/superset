@@ -16,15 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, ComponentType, ChangeEventHandler } from 'react';
+import {
+  memo,
+  ComponentType,
+  ChangeEventHandler,
+  useRef,
+  useEffect,
+  Ref,
+} from 'react';
 import { Row, FilterValue } from 'react-table';
+import { Input, type InputRef, Space } from '@superset-ui/core/components';
 import useAsyncState from '../utils/useAsyncState';
 
 export interface SearchInputProps {
   count: number;
   value: string;
   onChange: ChangeEventHandler<HTMLInputElement>;
+  onBlur?: () => void;
+  inputRef?: Ref<InputRef>;
 }
+
+const isSearchFocused = new Map();
 
 export interface GlobalFilterProps<D extends object> {
   preGlobalFilteredRows: Row<D>[];
@@ -33,19 +45,31 @@ export interface GlobalFilterProps<D extends object> {
   filterValue: string;
   setGlobalFilter: (filterValue: FilterValue) => void;
   searchInput?: ComponentType<SearchInputProps>;
+  id?: string;
+  serverPagination: boolean;
+  rowCount: number;
 }
 
-function DefaultSearchInput({ count, value, onChange }: SearchInputProps) {
+function DefaultSearchInput({
+  count,
+  value,
+  onChange,
+  onBlur,
+  inputRef,
+}: SearchInputProps) {
   return (
-    <span className="dt-global-filter">
-      Search{' '}
-      <input
-        className="form-control input-sm"
+    <Space direction="horizontal" size={4} className="dt-global-filter">
+      Search
+      <Input
+        size="small"
+        ref={inputRef}
         placeholder={`${count} records...`}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
+        className="form-control input-sm"
       />
-    </span>
+    </Space>
   );
 }
 
@@ -56,8 +80,13 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
   filterValue = '',
   searchInput,
   setGlobalFilter,
+  id = '',
+  serverPagination,
+  rowCount,
 }: GlobalFilterProps<D>) {
-  const count = preGlobalFilteredRows.length;
+  const count = serverPagination ? rowCount : preGlobalFilteredRows.length;
+  const inputRef = useRef<InputRef>(null);
+
   const [value, setValue] = useAsyncState(
     filterValue,
     (newValue: string) => {
@@ -66,17 +95,37 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
     200,
   );
 
+  // Preserve focus during server-side filtering to maintain a better user experience
+  useEffect(() => {
+    if (
+      serverPagination &&
+      isSearchFocused.get(id) &&
+      document.activeElement !== inputRef.current
+    ) {
+      inputRef.current?.focus();
+    }
+  }, [value, serverPagination]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const target = e.target as HTMLInputElement;
+    e.preventDefault();
+    isSearchFocused.set(id, true);
+    setValue(target.value);
+  };
+
+  const handleBlur = () => {
+    isSearchFocused.set(id, false);
+  };
+
   const SearchInput = searchInput || DefaultSearchInput;
 
   return (
     <SearchInput
       count={count}
       value={value}
-      onChange={e => {
-        const target = e.target as HTMLInputElement;
-        e.preventDefault();
-        setValue(target.value);
-      }}
+      inputRef={inputRef}
+      onChange={handleChange}
+      onBlur={handleBlur}
     />
   );
 });

@@ -17,9 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from './InfoTooltipWithTrigger';
-import { Tooltip } from './Tooltip';
+import { t, css } from '@superset-ui/core';
+import { InfoTooltip, Tooltip, Icons } from '@superset-ui/core/components';
 
 type ValidationError = string;
 
@@ -39,7 +38,7 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
 };
 
-export default function ControlHeader({
+export function ControlHeader({
   name,
   description,
   label,
@@ -60,7 +59,7 @@ export default function ControlHeader({
         <span>
           {description && (
             <span>
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 label={t('description')}
                 tooltip={description}
                 placement="top"
@@ -70,11 +69,11 @@ export default function ControlHeader({
           )}
           {renderTrigger && (
             <span>
-              <InfoTooltipWithTrigger
+              <InfoTooltip
                 label={t('bolt')}
                 tooltip={t('Changing this control takes effect instantly')}
                 placement="top"
-                icon="bolt"
+                type="notice"
               />{' '}
             </span>
           )}
@@ -88,31 +87,40 @@ export default function ControlHeader({
     return null;
   }
   const labelClass = validationErrors.length > 0 ? 'text-danger' : '';
+
   return (
     <div className="ControlHeader" data-test={`${name}-header`}>
       <div className="pull-left">
         <label className="control-label" htmlFor={name}>
-          {leftNode && <span>{leftNode}</span>}
+          {leftNode && <>{leftNode}</>}
           <span
-            role="button"
-            tabIndex={0}
-            onClick={onClick}
+            role={onClick ? 'button' : undefined}
+            {...(onClick ? { onClick, tabIndex: 0 } : {})}
             className={labelClass}
-            style={{ cursor: onClick ? 'pointer' : '' }}
           >
             {label}
           </span>{' '}
           {warning && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>
-                <i className="fa fa-exclamation-circle text-warning" />
+                <Icons.InfoCircleOutlined
+                  iconSize="m"
+                  css={theme => css`
+                    color: ${theme.colorError};
+                  `}
+                />
               </Tooltip>{' '}
             </span>
           )}
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
-                <i className="fa fa-exclamation-circle text-danger" />
+                <Icons.InfoCircleOutlined
+                  iconSize="m"
+                  css={theme => css`
+                    color: ${theme.colorError};
+                  `}
+                />{' '}
               </Tooltip>{' '}
             </span>
           )}
@@ -123,16 +131,17 @@ export default function ControlHeader({
                 placement="top"
                 title={validationErrors.join(' ')}
               >
-                <i className="fa fa-exclamation-circle text-danger" />
+                <Icons.InfoCircleOutlined
+                  iconSize="m"
+                  css={theme => css`
+                    color: ${theme.colorError};
+                  `}
+                />{' '}
               </Tooltip>{' '}
             </span>
           )}
           {renderOptionalIcons()}
-          {required && (
-            <span className="text-danger m-l-4">
-              <strong>*</strong>
-            </span>
-          )}
+          {required && <strong> *</strong>}
         </label>
       </div>
       {rightNode && <div className="pull-right">{rightNode}</div>}

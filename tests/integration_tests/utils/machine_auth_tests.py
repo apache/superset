@@ -25,7 +25,7 @@ class MachineAuthProviderTests(SupersetTestCase):
     def test_get_auth_cookies(self):
         user = self.get_user("admin")
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
-        self.assertIsNotNone(auth_cookies["session"])
+        assert auth_cookies["session"] is not None
 
     @patch("superset.utils.machine_auth.MachineAuthProvider.get_auth_cookies")
     def test_auth_driver_user(self, get_auth_cookies):

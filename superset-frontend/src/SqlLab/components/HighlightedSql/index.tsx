@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { t } from '@superset-ui/core';
-import ModalTrigger from 'src/components/ModalTrigger';
-
-SyntaxHighlighter.registerLanguage('sql', sql);
+import { ModalTrigger } from '@superset-ui/core/components';
+import CodeSyntaxHighlighter from '@superset-ui/core/components/CodeSyntaxHighlighter';
 
 export interface HighlightedSqlProps {
   sql: string;
@@ -52,20 +48,17 @@ const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
     lines.push('{...}');
   }
   return lines
-    .map(line => {
-      if (line.length > maxWidth) {
-        return `${line.slice(0, maxWidth)}{...}`;
-      }
-      return line;
-    })
+    .map(line =>
+      line.length > maxWidth ? `${line.slice(0, maxWidth)}{...}` : line,
+    )
     .join('\n');
 };
 
 function TriggerNode({ shrink, sql, maxLines, maxWidth }: TriggerNodeProps) {
   return (
-    <SyntaxHighlighter language="sql" style={github}>
+    <CodeSyntaxHighlighter language="sql">
       {shrink ? shrinkSql(sql, maxLines, maxWidth) : sql}
-    </SyntaxHighlighter>
+    </CodeSyntaxHighlighter>
   );
 }
 
@@ -73,15 +66,11 @@ function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
   return (
     <div>
       <h4>{t('Source SQL')}</h4>
-      <SyntaxHighlighter language="sql" style={github}>
-        {sql}
-      </SyntaxHighlighter>
+      <CodeSyntaxHighlighter language="sql">{sql}</CodeSyntaxHighlighter>
       {rawSql && rawSql !== sql && (
         <div>
           <h4>{t('Executed SQL')}</h4>
-          <SyntaxHighlighter language="sql" style={github}>
-            {rawSql}
-          </SyntaxHighlighter>
+          <CodeSyntaxHighlighter language="sql">{rawSql}</CodeSyntaxHighlighter>
         </div>
       )}
     </div>

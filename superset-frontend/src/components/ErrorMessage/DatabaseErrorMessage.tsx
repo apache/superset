@@ -19,9 +19,9 @@
 import { ReactNode } from 'react';
 import { t, tn } from '@superset-ui/core';
 
-import { ErrorMessageComponentProps } from './types';
-import IssueCode from './IssueCode';
-import ErrorAlert from './ErrorAlert';
+import type { ErrorMessageComponentProps } from './types';
+import { IssueCode } from './IssueCode';
+import { ErrorAlert } from './ErrorAlert';
 
 interface DatabaseErrorExtra {
   owners?: string[];
@@ -32,14 +32,17 @@ interface DatabaseErrorExtra {
   engine_name: string | null;
 }
 
-function DatabaseErrorMessage({
+export function DatabaseErrorMessage({
   error,
-  source = 'dashboard',
-  subtitle,
+  source,
 }: ErrorMessageComponentProps<DatabaseErrorExtra | null>) {
   const { extra, level, message } = error;
 
-  const isVisualization = ['dashboard', 'explore'].includes(source);
+  const isVisualization = ['dashboard', 'explore'].includes(source || '');
+  const [firstLine, ...remainingLines] = message.split('\n');
+  const alertMessage = firstLine;
+  const alertDescription =
+    remainingLines.length > 0 ? remainingLines.join('\n') : null;
 
   const body = extra && (
     <>
@@ -75,25 +78,13 @@ function DatabaseErrorMessage({
     </>
   );
 
-  const copyText = extra?.issue_codes
-    ? t('%(message)s\nThis may be triggered by: \n%(issues)s', {
-        message,
-        issues: extra.issue_codes
-          .map(issueCode => issueCode.message)
-          .join('\n'),
-      })
-    : message;
-
   return (
     <ErrorAlert
-      title={t('%s Error', extra?.engine_name || t('DB engine'))}
-      subtitle={subtitle}
-      level={level}
-      source={source}
-      copyText={copyText}
-      body={body}
+      errorType={t('%s Error', extra?.engine_name || t('DB engine'))}
+      message={alertMessage}
+      description={alertDescription}
+      type={level}
+      descriptionDetails={body}
     />
   );
 }
-
-export default DatabaseErrorMessage;

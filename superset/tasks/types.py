@@ -14,18 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import NamedTuple
+
 from superset.utils.backports import StrEnum
+
+
+class FixedExecutor(NamedTuple):
+    username: str
 
 
 class ExecutorType(StrEnum):
     """
-    Which user should scheduled tasks be executed as. Used as follows:
+    Which user should async tasks be executed as. Used as follows:
     For Alerts & Reports: the "model" refers to the AlertSchedule object
     For Thumbnails: The "model" refers to the Slice or Dashboard object
     """
 
-    # See the THUMBNAIL_SELENIUM_USER config parameter
-    SELENIUM = "selenium"
+    # A fixed user account. Note that for assigning a fixed user you should use the
+    # FixedExecutor class.
+    FIXED_USER = "fixed_user"
     # The creator of the model
     CREATOR = "creator"
     # The creator of the model, if found in the owners list
@@ -41,3 +48,10 @@ class ExecutorType(StrEnum):
     # user. If the modifier is not found, returns the creator if found in the owners
     # list. Finally, if neither are present, returns the first user in the owners list.
     OWNER = "owner"
+
+
+Executor = FixedExecutor | ExecutorType
+
+
+# Alias type to represent the executor that was chosen from a list of Executors
+ChosenExecutor = tuple[ExecutorType, str]

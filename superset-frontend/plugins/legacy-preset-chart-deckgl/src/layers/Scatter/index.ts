@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import example from './images/example.png';
 import transformProps from '../../transformProps';
@@ -41,6 +41,7 @@ const metadata = new ChartMetadata({
     t('Intensity'),
     t('Density'),
   ],
+  behaviors: [Behavior.InteractiveChart],
 });
 
 export default class ScatterChartPlugin extends ChartPlugin {

@@ -17,18 +17,29 @@
  * under the License.
  */
 import { useState } from 'react';
-import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
-import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
+import { styled, t } from '@superset-ui/core';
 import {
   Comparator,
   MultipleValueComparators,
 } from '@superset-ui/chart-controls';
-import { Form, FormItem, FormProps } from 'src/components/Form';
-import Select from 'src/components/Select/Select';
-import { Col, Row } from 'src/components';
-import { InputNumber } from 'src/components/Input';
-import Button from 'src/components/Button';
+import {
+  Select,
+  Button,
+  Form,
+  FormItem,
+  InputNumber,
+  Col,
+  Row,
+  type FormProps,
+} from '@superset-ui/core/components';
 import { ConditionalFormattingConfig } from './types';
+
+// TODO: tangled redefinition that aligns with @superset-ui/plugin-chart-table
+// used to be imported but main app shouldn't depend on plugins...
+export enum ColorSchemeEnum {
+  'Green' = 'Green',
+  'Red' = 'Red',
+}
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
@@ -39,13 +50,11 @@ const JustifyEnd = styled.div`
   justify-content: flex-end;
 `;
 
-const colorSchemeOptions = (theme: SupersetTheme) => [
-  { value: theme.colors.success.light1, label: t('success') },
-  { value: theme.colors.alert.light1, label: t('alert') },
-  { value: theme.colors.error.light1, label: t('error') },
-  { value: theme.colors.success.dark1, label: t('success dark') },
-  { value: theme.colors.alert.dark1, label: t('alert dark') },
-  { value: theme.colors.error.dark1, label: t('error dark') },
+// Use theme token names instead of hex values to support theme switching
+const colorSchemeOptions = () => [
+  { value: 'colorSuccessBg', label: t('success') },
+  { value: 'colorWarningBg', label: t('alert') },
+  { value: 'colorErrorBg', label: t('error') },
 ];
 
 const operatorOptions = [
@@ -197,8 +206,7 @@ export const FormattingPopoverContent = ({
   columns: { label: string; value: string }[];
   extraColorChoices?: { label: string; value: string }[];
 }) => {
-  const theme = useTheme();
-  const colorScheme = colorSchemeOptions(theme);
+  const colorScheme = colorSchemeOptions();
   const [showOperatorFields, setShowOperatorFields] = useState(
     config === undefined ||
       (config?.colorScheme !== ColorSchemeEnum.Green &&

@@ -17,13 +17,11 @@
  * under the License.
  */
 
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { NativeFilterScope, styled, t } from '@superset-ui/core';
-import { Radio } from 'src/components/Radio';
-import { AntdForm, Typography } from 'src/components';
-import { ScopingType } from './types';
+import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { NativeFilterScope, styled } from '@superset-ui/core';
+import { FormItem } from '@superset-ui/core/components';
 import ScopingTree from './ScopingTree';
-import { getDefaultScopeValue, isScopingAll } from './utils';
+import { getDefaultScopeValue } from './utils';
 
 type FilterScopeProps = {
   pathToFormValue?: string[];
@@ -31,7 +29,6 @@ type FilterScopeProps = {
   formFilterScope?: NativeFilterScope;
   forceUpdate: Function;
   filterScope?: NativeFilterScope;
-  formScopingType?: ScopingType;
   chartId?: number;
   initiallyExcludedCharts?: number[];
 };
@@ -40,18 +37,17 @@ const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
   & > * {
-    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   }
-  padding: 0px ${({ theme }) => theme.gridUnit * 4}px;
+  padding: 0px ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const CleanFormItem = styled(AntdForm.Item)`
+const CleanFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
 
 const FilterScope: FC<FilterScopeProps> = ({
   pathToFormValue = [],
-  formScopingType,
   formFilterScope,
   forceUpdate,
   filterScope,
@@ -63,25 +59,14 @@ const FilterScope: FC<FilterScopeProps> = ({
     () => filterScope || getDefaultScopeValue(chartId, initiallyExcludedCharts),
     [chartId, filterScope, initiallyExcludedCharts],
   );
-  const lastSpecificScope = useRef(initialFilterScope);
-  const initialScopingType = useMemo(
-    () =>
-      isScopingAll(initialFilterScope, chartId)
-        ? ScopingType.All
-        : ScopingType.Specific,
-    [chartId, initialFilterScope],
-  );
   const [hasScopeBeenModified, setHasScopeBeenModified] = useState(false);
 
   const onUpdateFormValues = useCallback(
     (formValues: any) => {
-      if (formScopingType === ScopingType.Specific) {
-        lastSpecificScope.current = formValues.scope;
-      }
       updateFormValues(formValues);
       setHasScopeBeenModified(true);
     },
-    [formScopingType, updateFormValues],
+    [updateFormValues],
   );
 
   const updateScopes = useCallback(
@@ -98,49 +83,20 @@ const FilterScope: FC<FilterScopeProps> = ({
   useEffect(() => {
     const updatedFormValues = {
       scope: initialFilterScope,
-      scoping: initialScopingType,
     };
     updateScopes(updatedFormValues);
-  }, [initialFilterScope, initialScopingType, updateScopes]);
+  }, [initialFilterScope, updateScopes]);
 
   return (
     <Wrapper>
-      <CleanFormItem
-        name={[...pathToFormValue, 'scoping']}
-        initialValue={initialScopingType}
-      >
-        <Radio.Group
-          onChange={({ target: { value } }) => {
-            const scope =
-              value === ScopingType.All
-                ? getDefaultScopeValue(chartId)
-                : lastSpecificScope.current;
-            updateFormValues({ scope });
-            setHasScopeBeenModified(true);
-            forceUpdate();
-          }}
-        >
-          <Radio value={ScopingType.All}>{t('Apply to all panels')}</Radio>
-          <Radio value={ScopingType.Specific}>
-            {t('Apply to specific panels')}
-          </Radio>
-        </Radio.Group>
-      </CleanFormItem>
-      <Typography.Text type="secondary">
-        {(formScopingType ?? initialScopingType) === ScopingType.Specific
-          ? t('Only selected panels will be affected by this filter')
-          : t('All panels with this column will be affected by this filter')}
-      </Typography.Text>
-      {(formScopingType ?? initialScopingType) === ScopingType.Specific && (
-        <ScopingTree
-          updateFormValues={onUpdateFormValues}
-          initialScope={initialFilterScope}
-          formScope={formFilterScope}
-          forceUpdate={forceUpdate}
-          chartId={chartId}
-          initiallyExcludedCharts={initiallyExcludedCharts}
-        />
-      )}
+      <ScopingTree
+        updateFormValues={onUpdateFormValues}
+        initialScope={initialFilterScope}
+        formScope={formFilterScope}
+        forceUpdate={forceUpdate}
+        chartId={chartId}
+        initiallyExcludedCharts={initiallyExcludedCharts}
+      />
       <CleanFormItem
         name={[...pathToFormValue, 'scope']}
         hidden

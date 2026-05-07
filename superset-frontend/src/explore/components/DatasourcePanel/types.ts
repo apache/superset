@@ -35,3 +35,59 @@ export function isDatasourcePanelDndItem(
 export function isSavedMetric(item: any): item is Metric {
   return item?.metric_name;
 }
+
+export type DatasourcePanelColumn = {
+  uuid: string;
+  id?: number;
+  is_dttm?: boolean | null;
+  description?: string | null;
+  expression?: string | null;
+  is_certified?: number | null;
+  column_name?: string | null;
+  name?: string | null;
+  type?: string;
+};
+
+export type DatasourceFolder = {
+  uuid: string;
+  type: 'folder';
+  name: string;
+  description?: string;
+  children?: (
+    | DatasourceFolder
+    | { type: 'metric'; uuid: string; name: string }
+    | { type: 'column'; uuid: string; name: string }
+  )[];
+};
+
+export type MetricItem = Metric & {
+  type: 'metric';
+};
+
+export type ColumnItem = DatasourcePanelColumn & {
+  type: 'column';
+};
+
+export type FolderItem = MetricItem | ColumnItem;
+
+export interface Folder {
+  id: string;
+  name: string;
+  description?: string;
+  isCollapsed: boolean;
+  items: FolderItem[];
+  subFolders?: Folder[];
+  parentId?: string;
+  totalItems: number;
+  showingItems: number; // items shown after filtering
+}
+
+export interface FlattenedItem {
+  type: 'header' | 'item' | 'divider' | 'subtitle';
+  folderId: string;
+  depth: number;
+  item?: FolderItem;
+  height: number;
+  totalItems?: number;
+  showingItems?: number;
+}

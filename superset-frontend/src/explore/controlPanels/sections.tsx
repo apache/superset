@@ -99,7 +99,8 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
       ['metrics'],
       ['adhoc_filters'],
       ['groupby'],
-      ['limit', 'timeseries_limit_metric'],
+      ['limit', 'group_others_when_limit_reached'],
+      ['timeseries_limit_metric'],
       ['order_desc'],
       [
         {

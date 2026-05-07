@@ -33,8 +33,8 @@ export enum ResourceStatus {
 export type Resource<T> = LoadingState | CompleteState<T> | ErrorState;
 
 // Trying out something a little different: a separate type per status.
-// This should let Typescript know whether a Resource has a result or error.
-// It's possible that I'm expecting too much from Typescript here.
+// This should let TypeScript know whether a Resource has a result or error.
+// It's possible that I'm expecting too much from TypeScript here.
 // If this ends up causing problems, we can change the type to:
 //
 // export type Resource<T> = {

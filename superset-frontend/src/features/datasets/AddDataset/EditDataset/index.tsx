@@ -18,18 +18,18 @@
  */
 import { styled, t } from '@superset-ui/core';
 import useGetDatasetRelatedCounts from 'src/features/datasets/hooks/useGetDatasetRelatedCounts';
-import Badge from 'src/components/Badge';
-import Tabs from 'src/components/Tabs';
+import { Badge } from '@superset-ui/core/components';
+import Tabs from '@superset-ui/core/components/Tabs';
 import UsageTab from './UsageTab';
 
 const StyledTabs = styled(Tabs)`
   ${({ theme }) => `
-  margin-top: ${theme.gridUnit * 8.5}px;
-  padding-left: ${theme.gridUnit * 4}px;
-  padding-right: ${theme.gridUnit * 4}px;
+  margin-top: ${theme.sizeUnit * 8.5}px;
+  padding-left: ${theme.sizeUnit * 4}px;
+  padding-right: ${theme.sizeUnit * 4}px;
 
   .ant-tabs-top > .ant-tabs-nav::before {
-    width: ${theme.gridUnit * 50}px;
+    width: ${theme.sizeUnit * 50}px;
   }
   `}
 `;
@@ -37,8 +37,8 @@ const StyledTabs = styled(Tabs)`
 const TabStyles = styled.div`
   ${({ theme }) => `
   .ant-badge {
-    width: ${theme.gridUnit * 8}px;
-    margin-left: ${theme.gridUnit * 2.5}px;
+    width: ${theme.sizeUnit * 8}px;
+    margin-left: ${theme.sizeUnit * 2.5}px;
   }
   `}
 `;
@@ -53,6 +53,12 @@ const TRANSLATIONS = {
   METRICS_TEXT: t('Metrics'),
 };
 
+const TABS_KEYS = {
+  COLUMNS: 'COLUMNS',
+  METRICS: 'METRICS',
+  USAGE: 'USAGE',
+};
+
 const EditPage = ({ id }: EditPageProps) => {
   const { usageCount } = useGetDatasetRelatedCounts(id);
 
@@ -63,15 +69,25 @@ const EditPage = ({ id }: EditPageProps) => {
     </TabStyles>
   );
 
-  return (
-    <StyledTabs moreIcon={null} fullWidth={false}>
-      <Tabs.TabPane tab={TRANSLATIONS.COLUMNS_TEXT} key="1" />
-      <Tabs.TabPane tab={TRANSLATIONS.METRICS_TEXT} key="2" />
-      <Tabs.TabPane tab={usageTab} key="3">
-        <UsageTab datasetId={id} />
-      </Tabs.TabPane>
-    </StyledTabs>
-  );
+  const items = [
+    {
+      key: TABS_KEYS.COLUMNS,
+      label: TRANSLATIONS.COLUMNS_TEXT,
+      children: null,
+    },
+    {
+      key: TABS_KEYS.METRICS,
+      label: TRANSLATIONS.METRICS_TEXT,
+      children: null,
+    },
+    {
+      key: TABS_KEYS.USAGE,
+      label: usageTab,
+      children: <UsageTab datasetId={id} />,
+    },
+  ];
+
+  return <StyledTabs moreIcon={null} items={items} />;
 };
 
 export default EditPage;

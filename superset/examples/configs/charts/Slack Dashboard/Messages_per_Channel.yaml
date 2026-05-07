@@ -15,18 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Messages per Channel
-viz_type: area
+viz_type: echarts_area
 params:
   adhoc_filters:
-  - clause: WHERE
-    comparator: github-notifications
-    expressionType: SIMPLE
-    filterOptionName: filter_7ud3u2eujnw_1pmeehxvw0b
-    isExtra: false
-    isNew: false
-    operator: '!='
-    sqlExpression: null
-    subject: name
+    - clause: WHERE
+      comparator: github-notifications
+      expressionType: SIMPLE
+      filterOptionName: filter_7ud3u2eujnw_1pmeehxvw0b
+      isExtra: false
+      isNew: false
+      operator: "!="
+      sqlExpression: null
+      subject: name
   annotation_layers: []
   bottom_margin: auto
   color_scheme: supersetColors
@@ -34,44 +34,44 @@ params:
   datasource: 56__table
   granularity_sqla: ts
   groupby:
-  - name
+    - name
   label_colors:
-    '0': '#1FA8C9'
-    '1': '#454E7C'
-    announcements: '#A868B7'
-    apache-releases: '#666666'
-    beginners: '#666666'
-    commits: '#E04355'
-    community-feedback: '#EFA1AA'
-    contributing: '#8FD3E4'
-    cypress-tests: '#FDE380'
-    dashboard-filters: '#FCC700'
-    dashboard-level-access: '#D1C6BC'
-    dashboards: '#3CCCCB'
-    design: '#1FA8C9'
-    developers: '#9EE5E5'
-    embedded-dashboards: '#ACE1C4'
-    feature-requests: '#454E7C'
-    general: '#3CCCCB'
-    github-notifications: '#E04355'
-    globalnav_search: '#A1A6BD'
-    graduation: '#A1A6BD'
-    helm-k8-deployment: '#FEC0A1'
-    introductions: '#5AC189'
-    jobs: '#FF7F44'
-    localization: '#5AC189'
-    newsletter: '#FF7F44'
-    product_feedback: '#D3B3DA'
-    pull-requests: '#A38F79'
-    superset-champions: '#FCC700'
-    superset_prod_reports: '#A868B7'
-    superset_stage_alerts: '#A38F79'
-    support: '#8FD3E4'
-    visualization_plugins: '#B2B2B2'
+    "0": "#1FA8C9"
+    "1": "#454E7C"
+    announcements: "#A868B7"
+    apache-releases: "#666666"
+    beginners: "#666666"
+    commits: "#E04355"
+    community-feedback: "#EFA1AA"
+    contributing: "#8FD3E4"
+    cypress-tests: "#FDE380"
+    dashboard-filters: "#FCC700"
+    dashboard-level-access: "#D1C6BC"
+    dashboards: "#3CCCCB"
+    design: "#1FA8C9"
+    developers: "#9EE5E5"
+    embedded-dashboards: "#ACE1C4"
+    feature-requests: "#454E7C"
+    general: "#3CCCCB"
+    github-notifications: "#E04355"
+    globalnav_search: "#A1A6BD"
+    graduation: "#A1A6BD"
+    helm-k8-deployment: "#FEC0A1"
+    introductions: "#5AC189"
+    jobs: "#FF7F44"
+    localization: "#5AC189"
+    newsletter: "#FF7F44"
+    product_feedback: "#D3B3DA"
+    pull-requests: "#A38F79"
+    superset-champions: "#FCC700"
+    superset_prod_reports: "#A868B7"
+    superset_stage_alerts: "#A38F79"
+    support: "#8FD3E4"
+    visualization_plugins: "#B2B2B2"
   limit: 10
   line_interpolation: linear
   metrics:
-  - count
+    - count
   min_periods: 0
   order_desc: true
   queryFields:
@@ -89,13 +89,13 @@ params:
   time_grain_sqla: P1D
   time_range: No filter
   url_params: {}
-  viz_type: area
+  viz_type: echarts_area
   x_axis_format: smart_date
   x_axis_showminmax: true
   x_ticks_layout: auto
   y_axis_bounds:
-  - 0
-  - null
+    - 0
+    - null
   y_axis_format: SMART_NUMBER
   y_log_scale: false
 cache_timeout: null

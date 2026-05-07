@@ -58,8 +58,8 @@ export default function DatasetLayout({
         {leftPanel && (
           <ResizableSidebar
             id="dataset"
-            initialWidth={theme.gridUnit * 80}
-            minWidth={theme.gridUnit * 80}
+            initialWidth={theme.sizeUnit * 80}
+            minWidth={theme.sizeUnit * 80}
             enable
           >
             {adjustedWidth => (

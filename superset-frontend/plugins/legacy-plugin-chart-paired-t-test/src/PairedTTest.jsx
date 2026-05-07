@@ -46,8 +46,8 @@ const StyledDiv = styled.div`
     }
 
     .paired-ttest-table .scrollbar-content {
-      padding-left: ${theme.gridUnit}px;
-      padding-right: ${theme.gridUnit}px;
+      padding-left: ${theme.sizeUnit}px;
+      padding-right: ${theme.sizeUnit}px;
       margin-bottom: 0;
     }
 
@@ -56,7 +56,7 @@ const StyledDiv = styled.div`
     }
 
     .paired-ttest-table h1 {
-      margin-left: ${theme.gridUnit}px;
+      margin-left: ${theme.sizeUnit}px;
     }
 
     .reactable-data tr {
@@ -70,47 +70,47 @@ const StyledDiv = styled.div`
     }
 
     .reactable-data tr:hover {
-      background-color: ${theme.colors.grayscale.light3};
+      background-color: ${theme.colorFillTertiary};
     }
 
     .reactable-data tr .false {
-      color: ${theme.colors.error.base};
+      color: ${theme.colorError};
     }
 
     .reactable-data tr .true {
-      color: ${theme.colors.success.base};
+      color: ${theme.colorSuccess};
     }
 
     .reactable-data tr .control {
-      color: ${theme.colors.primary.base};
+      color: ${theme.colorPrimary};
     }
 
     .reactable-data tr .invalid {
-      color: ${theme.colors.warning.base};
+      color: ${theme.colorWarning};
     }
 
     .reactable-data .control td {
-      background-color: ${theme.colors.grayscale.light3};
+      background-color: ${theme.colorFillTertiary};
     }
 
     .reactable-header-sortable:hover,
     .reactable-header-sortable:focus,
     .reactable-header-sort-asc,
     .reactable-header-sort-desc {
-      background-color: ${theme.colors.grayscale.light3};
+      background-color: ${theme.colorFillTertiary};
       position: relative;
     }
 
     .reactable-header-sort-asc:after {
       content: '\\25bc';
       position: absolute;
-      right: ${theme.gridUnit * 3}px;
+      right: ${theme.sizeUnit * 3}px;
     }
 
     .reactable-header-sort-desc:after {
       content: '\\25b2';
       position: absolute;
-      right: ${theme.gridUnit * 3}px;
+      right: ${theme.sizeUnit * 3}px;
     }
   `}
 `;

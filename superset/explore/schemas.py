@@ -25,7 +25,6 @@ class DatasetSchema(Schema):
         }
     )
     column_formats = fields.Dict(metadata={"description": "Column formats."})
-    currency_formats = fields.Dict(metadata={"description": "Currency formats."})
     columns = fields.List(fields.Dict(), metadata={"description": "Columns metadata."})
     database = fields.Dict(
         metadata={"description": "Database associated with the dataset."}
@@ -106,7 +105,7 @@ class DatasetSchema(Schema):
 class SliceSchema(Schema):
     cache_timeout = fields.Integer(
         metadata={
-            "description": "Duration (in seconds) of the caching timeout for this chart."
+            "description": "Duration (in seconds) of the caching timeout for this chart."  # noqa: E501
         }
     )
     certification_details = fields.String(

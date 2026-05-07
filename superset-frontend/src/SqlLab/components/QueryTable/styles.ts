@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled, css } from '@superset-ui/core';
-import { IconTooltip } from '../../../components/IconTooltip';
+import { IconTooltip } from '@superset-ui/core/components';
 
 export const StaticPosition = css`
   position: static;
@@ -31,11 +31,11 @@ export const verticalAlign = css`
 `;
 
 export const StyledTooltip = styled(IconTooltip)`
-  padding-right: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-right: ${({ theme }) => theme.sizeUnit * 2}px;
   span {
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorIcon};
     &: hover {
-      color: ${({ theme }) => theme.colors.primary.base};
+      color: ${({ theme }) => theme.colorPrimary};
     }
   }
 `;

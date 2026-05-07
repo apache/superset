@@ -20,19 +20,27 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
-import { Tooltip } from 'src/components/Tooltip';
-import { css, logging, SupersetClient, t, tn } from '@superset-ui/core';
+import {
+  Tooltip,
+  Button,
+  DeleteModal,
+  UnsavedChangesModal,
+} from '@superset-ui/core/components';
+import { AlteredSliceTag } from 'src/components';
+import { css, logging, SupersetClient, t } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import AlteredSliceTag from 'src/components/AlteredSliceTag';
-import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
-import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
+import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { applyColors, resetColors } from 'src/utils/colorScheme';
+import ReportModal from 'src/features/reports/ReportModal';
+import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
+import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
+import { useExploreMetadataBar } from './useExploreMetadataBar';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -49,10 +57,11 @@ const propTypes = {
   timeout: PropTypes.number,
   chart: chartPropShape,
   saveDisabled: PropTypes.bool,
+  isSaveModalVisible: PropTypes.bool,
 };
 
 const saveButtonStyles = theme => css`
-  color: ${theme.colors.primary.dark2};
+  color: ${theme.colorPrimaryText};
   & > span[role='img'] {
     margin-right: 0;
   }
@@ -61,9 +70,9 @@ const saveButtonStyles = theme => css`
 const additionalItemsStyles = theme => css`
   display: flex;
   align-items: center;
-  margin-left: ${theme.gridUnit}px;
+  margin-left: ${theme.sizeUnit}px;
   & > span {
-    margin-right: ${theme.gridUnit * 3}px;
+    margin-right: ${theme.sizeUnit * 3}px;
   }
 `;
 
@@ -82,11 +91,16 @@ export const ExploreChartHeader = ({
   sliceName,
   saveDisabled,
   metadata,
+  isSaveModalVisible,
 }) => {
   const dispatch = useDispatch();
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
-  const updateCategoricalNamespace = async () => {
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
+  const [shouldForceCloseModal, setShouldForceCloseModal] = useState(false);
+
+  const updateCategoricalNamespace = useCallback(async () => {
     const { dashboards } = metadata || {};
     const dashboard =
       dashboardId && dashboards && dashboards.find(d => d.id === dashboardId);
@@ -114,11 +128,11 @@ export const ExploreChartHeader = ({
         logging.info(t('Unable to retrieve dashboard colors'));
       }
     }
-  };
+  }, [dashboardColorScheme, dashboardId, metadata]);
 
   useEffect(() => {
     updateCategoricalNamespace();
-  }, []);
+  }, [updateCategoricalNamespace]);
 
   const openPropertiesModal = () => {
     setIsPropertiesModalOpen(true);
@@ -128,9 +142,13 @@ export const ExploreChartHeader = ({
     setIsPropertiesModalOpen(false);
   };
 
-  const showModal = useCallback(() => {
-    dispatch(setSaveChartModalVisibility(true));
-  }, [dispatch]);
+  const showReportModal = () => {
+    setIsReportModalOpen(true);
+  };
+
+  const closeReportModal = () => {
+    setIsReportModalOpen(false);
+  };
 
   const updateSlice = useCallback(
     slice => {
@@ -138,6 +156,11 @@ export const ExploreChartHeader = ({
     },
     [dispatch],
   );
+
+  const handleReportDelete = async report => {
+    await dispatch(deleteActiveReport(report));
+    setCurrentReportDeleting(null);
+  };
 
   const history = useHistory();
   const { redirectSQLLab } = actions;
@@ -158,57 +181,73 @@ export const ExploreChartHeader = ({
       openPropertiesModal,
       ownState,
       metadata?.dashboards,
+      showReportModal,
+      setCurrentReportDeleting,
     );
 
-  const metadataBar = useMemo(() => {
-    if (!metadata) {
-      return null;
-    }
-    const items = [];
-    items.push({
-      type: MetadataType.Dashboards,
-      title:
-        metadata.dashboards.length > 0
-          ? tn(
-              'Added to 1 dashboard',
-              'Added to %s dashboards',
-              metadata.dashboards.length,
-              metadata.dashboards.length,
-            )
-          : t('Not added to any dashboard'),
-      description:
-        metadata.dashboards.length > 0
-          ? t(
-              'You can preview the list of dashboards in the chart settings dropdown.',
-            )
-          : undefined,
-    });
-    items.push({
-      type: MetadataType.LastModified,
-      value: metadata.changed_on_humanized,
-      modifiedBy: metadata.changed_by || t('Not available'),
-    });
-    items.push({
-      type: MetadataType.Owner,
-      createdBy: metadata.created_by || t('Not available'),
-      owners: metadata.owners.length > 0 ? metadata.owners : t('None'),
-      createdOn: metadata.created_on_humanized,
-    });
-    if (slice?.description) {
-      items.push({
-        type: MetadataType.Description,
-        value: slice?.description,
-      });
-    }
-    return <MetadataBar items={items} tooltipPlacement="bottom" />;
-  }, [metadata, slice?.description]);
-
+  const metadataBar = useExploreMetadataBar(metadata, slice);
   const oldSliceName = slice?.slice_name;
+
+  // Capture initial form data for new charts
+  const [initialFormDataForNewChart] = useState(() =>
+    !slice ? { ...formData, chartTitle: oldSliceName } : null,
+  );
+
+  const originalFormData = useMemo(() => {
+    // For new charts (no slice), use the captured initial formData
+    if (!slice && initialFormDataForNewChart) {
+      return initialFormDataForNewChart;
+    }
+    // For existing charts, use the saved sliceFormData if available
+    if (!sliceFormData) return {};
+    return {
+      ...sliceFormData,
+      chartTitle: oldSliceName,
+    };
+  }, [sliceFormData, oldSliceName, slice, initialFormDataForNewChart]);
+
+  const currentFormData = useMemo(
+    () => ({ ...formData, chartTitle: sliceName }),
+    [formData, sliceName],
+  );
+
+  const formDiffs = useMemo(
+    () => getChartFormDiffs(originalFormData, currentFormData),
+    [originalFormData, currentFormData],
+  );
+
+  const {
+    showModal: showUnsavedChangesModal,
+    setShowModal: setShowUnsavedChangesModal,
+    handleConfirmNavigation,
+    handleSaveAndCloseModal,
+    triggerManualSave,
+  } = useUnsavedChangesPrompt({
+    hasUnsavedChanges: Object.keys(formDiffs).length > 0,
+    onSave: () => dispatch(setSaveChartModalVisibility(true)),
+    isSaveModalVisible,
+    manualSaveOnUnsavedChanges: true,
+  });
+
+  const showModal = useCallback(() => {
+    triggerManualSave();
+  }, [triggerManualSave]);
+
+  useEffect(() => {
+    if (!isSaveModalVisible) setShouldForceCloseModal(true);
+  }, [isSaveModalVisible, setShowUnsavedChangesModal]);
+
+  useEffect(() => {
+    if (!showUnsavedChangesModal && shouldForceCloseModal) {
+      setShouldForceCloseModal(false);
+    }
+  }, [showUnsavedChangesModal, shouldForceCloseModal]);
+
   return (
     <>
       <PageHeaderWithActions
         editableTitleProps={{
-          title: sliceName,
+          title: sliceName ?? '',
           canEdit:
             !slice ||
             canOverwrite ||
@@ -235,11 +274,9 @@ export const ExploreChartHeader = ({
             {sliceFormData ? (
               <AlteredSliceTag
                 className="altered"
-                origFormData={{
-                  ...sliceFormData,
-                  chartTitle: oldSliceName,
-                }}
-                currentFormData={{ ...formData, chartTitle: sliceName }}
+                diffs={formDiffs}
+                origFormData={originalFormData}
+                currentFormData={currentFormData}
               />
             ) : null}
             {metadataBar}
@@ -261,8 +298,8 @@ export const ExploreChartHeader = ({
                 disabled={saveDisabled}
                 data-test="query-save-button"
                 css={saveButtonStyles}
+                icon={<Icons.SaveOutlined />}
               >
-                <Icons.SaveOutlined iconSize="l" />
                 {t('Save')}
               </Button>
             </div>
@@ -270,8 +307,8 @@ export const ExploreChartHeader = ({
         }
         additionalActionsMenu={menu}
         menuDropdownProps={{
-          visible: isDropdownVisible,
-          onVisibleChange: setIsDropdownVisible,
+          open: isDropdownVisible,
+          onOpenChange: setIsDropdownVisible,
         }}
       />
       {isPropertiesModalOpen && (
@@ -282,6 +319,42 @@ export const ExploreChartHeader = ({
           slice={slice}
         />
       )}
+
+      <ReportModal
+        userId={user.userId}
+        show={isReportModalOpen}
+        onHide={closeReportModal}
+        userEmail={user.email}
+        dashboardId={dashboardId}
+        chart={chart}
+        creationMethod="charts"
+      />
+
+      {currentReportDeleting && (
+        <DeleteModal
+          description={t(
+            'This action will permanently delete %s.',
+            currentReportDeleting?.name,
+          )}
+          onConfirm={() => {
+            if (currentReportDeleting) {
+              handleReportDelete(currentReportDeleting);
+            }
+          }}
+          onHide={() => setCurrentReportDeleting(null)}
+          open
+          title={t('Delete Report?')}
+        />
+      )}
+
+      <UnsavedChangesModal
+        title={t('Save changes to your chart?')}
+        body={t("If you don't save, changes will be lost.")}
+        showModal={showUnsavedChangesModal}
+        onHide={() => setShowUnsavedChangesModal(false)}
+        onConfirmNavigation={handleConfirmNavigation}
+        handleSave={handleSaveAndCloseModal}
+      />
     </>
   );
 };

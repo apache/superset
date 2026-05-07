@@ -19,7 +19,7 @@ from typing import Any, Optional, Union
 from croniter import croniter
 from flask import current_app
 from flask_babel import gettext as _
-from marshmallow import fields, Schema, validate, validates, validates_schema
+from marshmallow import EXCLUDE, fields, Schema, validate, validates, validates_schema
 from marshmallow.validate import Length, Range, ValidationError
 from pytz import all_timezones
 
@@ -124,8 +124,8 @@ class ValidatorConfigJSONSchema(Schema):
 class ReportRecipientConfigJSONSchema(Schema):
     # TODO if email check validity
     target = fields.String()
-    ccTarget = fields.String()
-    bccTarget = fields.String()
+    ccTarget = fields.String()  # noqa: N815
+    bccTarget = fields.String()  # noqa: N815
 
 
 class ReportRecipientSchema(Schema):
@@ -233,7 +233,7 @@ class ReportSchedulePostSchema(Schema):
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
 
-    recipients = fields.List(fields.Nested(ReportRecipientSchema))
+    recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
     report_format = fields.String(
         dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
@@ -416,3 +416,17 @@ class ReportSchedulePutSchema(Schema):
                     max=max_width,
                 )
             )
+
+
+class SlackChannelSchema(Schema):
+    """
+    Schema to load Slack channels, set to ignore any fields not used by Superset.
+    """
+
+    class Meta:
+        unknown = EXCLUDE
+
+    id = fields.String()
+    name = fields.String()
+    is_member = fields.Boolean()
+    is_private = fields.Boolean()

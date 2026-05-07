@@ -16,14 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t, GenericDataType } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   getStandardizedControls,
   sharedControls,
   sections,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import { noop } from 'lodash';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  subtitleControl,
+  subtitleFontSize,
+  showMetricNameControl,
+  metricNameFontSizeWithVisibility,
+} from '../sharedControls';
 import { ColorSchemeEnum } from './types';
 
 const config: ControlPanelConfig = {
@@ -63,6 +71,10 @@ const config: ControlPanelConfig = {
             config: { ...headerFontSize.config, default: 0.2 },
           },
         ],
+        [subtitleControl],
+        [subtitleFontSize],
+        [showMetricNameControl],
+        [metricNameFontSizeWithVisibility],
         [
           {
             ...subheaderFontSize,
@@ -103,6 +115,47 @@ const config: ControlPanelConfig = {
                 'Adds color to the chart symbols based on the positive or ' +
                   'negative change from the comparison value.',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'column_config',
+            config: {
+              type: 'ColumnConfigControl',
+              label: t('Customize columns'),
+              description: t('Further customize how to display each column'),
+              width: 400,
+              height: 320,
+              renderTrigger: true,
+              configFormLayout: {
+                [GenericDataType.Numeric]: [
+                  {
+                    tab: t('General'),
+                    children: [
+                      ['customColumnName'],
+                      ['displayTypeIcon'],
+                      ['visible'],
+                    ],
+                  },
+                ],
+              },
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                noop(explore, _, chart);
+                return {
+                  columnsPropsObject: {
+                    colnames: ['Previous value', 'Delta', 'Percent change'],
+                    coltypes: [
+                      GenericDataType.Numeric,
+                      GenericDataType.Numeric,
+                      GenericDataType.Numeric,
+                    ],
+                  },
+                };
+              },
             },
           },
         ],

@@ -17,11 +17,10 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { fireEvent, render } from '@testing-library/react';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
-import { InfoTooltipWithTrigger, InfoTooltipWithTriggerProps } from '../../src';
+import { fireEvent, render } from '@superset-ui/core/spec';
+import { InfoTooltip, InfoTooltipProps } from '@superset-ui/core/components';
 
-jest.mock('../../src/components/Tooltip', () => ({
+jest.mock('@superset-ui/core/components/Tooltip', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => (
     <div data-test="mock-tooltip">{children}</div>
   ),
@@ -29,12 +28,8 @@ jest.mock('../../src/components/Tooltip', () => ({
 
 const defaultProps = {};
 
-const setup = (props: Partial<InfoTooltipWithTriggerProps> = {}) =>
-  render(
-    <ThemeProvider theme={supersetTheme}>
-      <InfoTooltipWithTrigger {...defaultProps} {...props} />
-    </ThemeProvider>,
-  );
+const setup = (props: Partial<InfoTooltipProps> = {}) =>
+  render(<InfoTooltip {...defaultProps} {...props} />);
 
 test('renders a tooltip', () => {
   const { getAllByTestId } = setup({
@@ -44,31 +39,29 @@ test('renders a tooltip', () => {
   expect(getAllByTestId('mock-tooltip').length).toEqual(1);
 });
 
-test('renders an info icon', () => {
-  const { container } = setup();
-  expect(container.getElementsByClassName('fa-info-circle')).toHaveLength(1);
-});
-
-test('responds to keypresses', () => {
+test('responds to keydown events', () => {
   const clickHandler = jest.fn();
   const { getByRole } = setup({
     label: 'test',
     tooltip: 'this is a test',
     onClick: clickHandler,
   });
-  fireEvent.keyPress(getByRole('button'), {
+
+  fireEvent.keyDown(getByRole('button'), {
     key: 'Tab',
     code: 9,
     charCode: 9,
   });
   expect(clickHandler).toHaveBeenCalledTimes(0);
-  fireEvent.keyPress(getByRole('button'), {
+
+  fireEvent.keyDown(getByRole('button'), {
     key: 'Enter',
     code: 13,
     charCode: 13,
   });
   expect(clickHandler).toHaveBeenCalledTimes(1);
-  fireEvent.keyPress(getByRole('button'), {
+
+  fireEvent.keyDown(getByRole('button'), {
     key: ' ',
     code: 32,
     charCode: 32,
@@ -76,9 +69,47 @@ test('responds to keypresses', () => {
   expect(clickHandler).toHaveBeenCalledTimes(2);
 });
 
-test('has a bsStyle', () => {
+test('finds the info circle icon inside info variant', () => {
   const { container } = setup({
-    bsStyle: 'something',
+    type: 'info',
   });
-  expect(container.getElementsByClassName('text-something')).toHaveLength(1);
+
+  const iconSpan = container.querySelector('svg[data-icon="info-circle"]');
+  expect(iconSpan).toBeInTheDocument();
+});
+
+test('finds the warning icon inside warning variant', () => {
+  const { container } = setup({
+    type: 'warning',
+  });
+
+  const iconSpan = container.querySelector('svg[data-icon="warning"]');
+  expect(iconSpan).toBeInTheDocument();
+});
+
+test('finds the close circle icon inside error variant', () => {
+  const { container } = setup({
+    type: 'error',
+  });
+
+  const iconSpan = container.querySelector('svg[data-icon="close-circle"]');
+  expect(iconSpan).toBeInTheDocument();
+});
+
+test('finds the question circle icon inside question variant', () => {
+  const { container } = setup({
+    type: 'question',
+  });
+
+  const iconSpan = container.querySelector('svg[data-icon="question-circle"]');
+  expect(iconSpan).toBeInTheDocument();
+});
+
+test('finds the thunderbolt icon inside notice variant', () => {
+  const { container } = setup({
+    type: 'notice',
+  });
+
+  const iconSpan = container.querySelector('svg[data-icon="thunderbolt"]');
+  expect(iconSpan).toBeInTheDocument();
 });

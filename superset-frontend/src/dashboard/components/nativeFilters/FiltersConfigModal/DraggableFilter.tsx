@@ -25,7 +25,8 @@ import {
   useDrop,
   XYCoord,
 } from 'react-dnd';
-import Icons, { IconType } from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
+import type { IconType } from '@superset-ui/core/components/Icons/types';
 
 interface TitleContainerProps {
   readonly isDragging: boolean;
@@ -39,7 +40,6 @@ const Container = styled.div<TitleContainerProps>`
     cursor: ${isDragging ? 'grabbing' : 'pointer'};
     width: 100%;
     display: flex;
-    padding:  ${theme.gridUnit}px;
   `}
 `;
 
@@ -47,10 +47,9 @@ const DragIcon = styled(Icons.Drag, {
   shouldForwardProp: propName => propName !== 'isDragging',
 })<IconType & { isDragging: boolean }>`
   ${({ isDragging, theme }) => `
-    font-size: ${theme.typography.sizes.m}px;
-    margin-top: 15px;
+    font-size: ${theme.fontSize}px;
     cursor: ${isDragging ? 'grabbing' : 'grab'};
-    padding-left: ${theme.gridUnit}px;
+    padding-left: ${theme.sizeUnit}px;
   `}
 `;
 

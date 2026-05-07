@@ -157,7 +157,7 @@ def test_execute_task(update_state_mock, command_mock, init_mock, owners):
 
     report_schedule = insert_report_schedule(
         type=ReportScheduleType.ALERT,
-        name=f"report-{randint(0,1000)}",
+        name=f"report-{randint(0, 1000)}",  # noqa: S311
         crontab="0 4 * * *",
         timezone="America/New_York",
         owners=owners,
@@ -184,7 +184,7 @@ def test_execute_task_with_command_exception(
 
     report_schedule = insert_report_schedule(
         type=ReportScheduleType.ALERT,
-        name=f"report-{randint(0,1000)}",
+        name=f"report-{randint(0, 1000)}",  # noqa: S311
         crontab="0 4 * * *",
         timezone="America/New_York",
         owners=owners,
@@ -195,7 +195,7 @@ def test_execute_task_with_command_exception(
         execute(report_schedule.id)
         update_state_mock.assert_called_with(state="FAILURE")
         logger_mock.exception.assert_called_with(
-            "A downstream exception occurred while generating a report: None. Unexpected error",
+            "A downstream exception occurred while generating a report: None. Unexpected error",  # noqa: E501
             exc_info=True,
         )
 

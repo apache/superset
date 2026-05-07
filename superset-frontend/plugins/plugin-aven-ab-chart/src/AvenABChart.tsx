@@ -29,10 +29,10 @@ import { createRef, useMemo } from 'react';
 import { formatNumber, styled, t } from '@superset-ui/core';
 import cdf from '@stdlib/stats-base-dists-normal-cdf';
 import { AvenABChartProps, AvenABChartStylesProps } from './types';
-import TableView from '../../../src/components/TableView/TableView';
+import { TableView } from '@superset-ui/core/components';
 import sortNumericValues from '../../../src/utils/sortNumericValues';
-import SparklineCell from '../../../src/visualizations/TimeTable/SparklineCell';
-import FormattedNumber from '../../../src/visualizations/TimeTable/FormattedNumber';
+import SparklineCell from '../../../src/visualizations/TimeTable/components/SparklineCell';
+import FormattedNumber from '../../../src/visualizations/TimeTable/components/FormattedNumber';
 
 // The following Styles component is a <div> element, which has been styled using Emotion
 // For docs, visit https://emotion.sh/docs/styled
@@ -185,7 +185,7 @@ const TimeTableStyles = styled.div<AvenABChartStylesProps>`
 const renderSparklineCell = (
   sparkData: (number | null)[],
   tooltip: React.ReactNode[],
-  timestamps: { time: Date }[],
+  timestamps: { time: string }[],
 ) => (
   <SparklineCell
     ariaLabel="spark"
@@ -198,7 +198,6 @@ const renderSparklineCell = (
     showYAxis
     yAxisBounds={[undefined, undefined]}
     entries={timestamps}
-    renderTooltip={e => tooltip[e.index]}
   />
 );
 
@@ -292,8 +291,8 @@ function getIntervalBar(
 }
 
 function getDelta(
-  control: {}[],
-  test: {}[],
+  control: any[],
+  test: any[],
   numeratorMetric: string,
   denominatorMetric: string,
 ): { numbers: (number | null)[]; tooltip: React.ReactNode[] } {
@@ -344,13 +343,13 @@ function getDelta(
 function buildRow(
   metricsControl: {}[],
   metricsTest: {}[],
-  timestamps: { time: Date }[],
+  timestamps: { time: string }[],
   numeratorMetric: string,
   denominatorMetric: string,
   confidenceIntervalLevel: number,
 ) {
-  const lastControl = metricsControl.at(-1);
-  const lastTest = metricsTest.at(-1);
+  const lastControl: any = metricsControl.at(-1);
+  const lastTest: any = metricsTest.at(-1);
   const deltaArray = getDelta(
     metricsControl,
     metricsTest,
@@ -533,7 +532,7 @@ export default function AvenABChart(props: AvenABChartProps) {
   );
 
   const timestamps = allTimestamps.map(v => ({
-    time: new Date(v),
+    time: (new Date(v)).toISOString(),
   }));
 
   const rows = [];

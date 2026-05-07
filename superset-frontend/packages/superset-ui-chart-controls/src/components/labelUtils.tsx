@@ -23,27 +23,24 @@ import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 
 const TooltipSectionWrapper = styled.div`
   ${({ theme }) => css`
-    display: flex;
-    flex-direction: column;
-    font-size: ${theme.typography.sizes.s}px;
+    display: -webkit-box;
+    -webkit-line-clamp: 40;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    font-size: ${theme.fontSizeSM}px;
     line-height: 1.2;
 
     &:not(:last-of-type) {
-      margin-bottom: ${theme.gridUnit * 2}px;
-    }
-    &:last-of-type {
-      display: -webkit-box;
-      -webkit-line-clamp: 40;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
 
 const TooltipSectionLabel = styled.span`
   ${({ theme }) => css`
-    font-weight: ${theme.typography.weights.bold};
+    font-weight: ${theme.fontWeightStrong};
   `}
 `;
 
@@ -100,7 +97,7 @@ export const getColumnTooltipNode = (
   );
 };
 
-type MetricType = Omit<Metric, 'id'> & { label?: string };
+type MetricType = Omit<Metric, 'id' | 'uuid'> & { label?: string };
 
 export const getMetricTooltipNode = (
   metric: MetricType,

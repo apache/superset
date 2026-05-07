@@ -37,7 +37,7 @@ from superset.migrations.shared.security_converge import (
 )
 from superset.models.core import Database
 
-logger = logging.getLogger("alembic")
+logger = logging.getLogger("alembic.env")
 
 Base: Type[Any] = declarative_base()
 
@@ -151,10 +151,10 @@ def print_processed_batch(
     """
     elapsed_time = datetime.now() - start_time
     elapsed_seconds = elapsed_time.total_seconds()
-    elapsed_formatted = f"{int(elapsed_seconds // 3600):02}:{int((elapsed_seconds % 3600) // 60):02}:{int(elapsed_seconds % 60):02}"
+    elapsed_formatted = f"{int(elapsed_seconds // 3600):02}:{int((elapsed_seconds % 3600) // 60):02}:{int(elapsed_seconds % 60):02}"  # noqa: E501
     rows_processed = min(offset + batch_size, total_rows)
     logger.info(
-        f"{elapsed_formatted} - {rows_processed:,} of {total_rows:,} {model.__tablename__} rows processed "
+        f"{elapsed_formatted} - {rows_processed:,} of {total_rows:,} {model.__tablename__} rows processed "  # noqa: E501
         f"({(rows_processed / total_rows) * 100:.2f}%)"
     )
 
@@ -253,7 +253,7 @@ def update_schema_catalog_perms(
         catalog (str): The new catalog to set.
         downgrade (bool, optional): If True, reset the `catalog` and `catalog_perm` fields to None.
                                     Defaults to False.
-    """
+    """  # noqa: E501
     # Mapping of table id to schema permission
     mapping = {}
 

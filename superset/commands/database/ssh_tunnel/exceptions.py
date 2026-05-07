@@ -69,9 +69,9 @@ class SSHTunnelRequiredFieldValidationError(ValidationError, SSHTunnelError):
         )
 
 
-class SSHTunnelMissingCredentials(CommandInvalidError, SSHTunnelError):
+class SSHTunnelMissingCredentials(CommandInvalidError, SSHTunnelError):  # noqa: N818
     message = _("Must provide credentials for the SSH Tunnel")
 
 
-class SSHTunnelInvalidCredentials(CommandInvalidError, SSHTunnelError):
+class SSHTunnelInvalidCredentials(CommandInvalidError, SSHTunnelError):  # noqa: N818
     message = _("Cannot have multiple credentials for the SSH Tunnel")

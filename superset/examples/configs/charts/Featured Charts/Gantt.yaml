@@ -1,0 +1,65 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Gantt
+description: null
+certified_by: null
+certification_details: null
+viz_type: gantt_chart
+params:
+  datasource: 61__table
+  viz_type: gantt_chart
+  slice_id: 1495
+  start_time: start_time
+  end_time: end_time
+  y_axis: status
+  series: priority
+  subcategories: true
+  tooltip_columns:
+  - project
+  - phase
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: start_time
+  order_by_cols:
+  - '["status",false]'
+  row_limit: 10000
+  x_axis_title_margin: 15
+  y_axis_title_margin: 50
+  color_scheme: supersetAndPresetColors
+  show_legend: true
+  legendType: plain
+  legendOrientation: right
+  legendMargin: 100
+  zoomable: false
+  show_extra_controls: false
+  x_axis_time_bounds:
+  - '08:00:00'
+  - '19:00:00'
+  x_axis_time_format: smart_date
+  tooltipTimeFormat: smart_date
+  tooltipValuesFormat: SMART_NUMBER
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: null
+cache_timeout: null
+uuid: c91c242e-ec16-43e4-84fd-1c69336e0a99
+version: 1.0.0
+dataset_uuid: d638a239-f255-44fc-b0c1-c3f3b7f00ee0

@@ -40,13 +40,13 @@ def compute_hash(obj: Callable[..., Any]) -> str:
 
 
 def compute_func_hash(function: Callable[..., Any]) -> str:
-    hashed = md5()
+    hashed = md5()  # noqa: S324
     hashed.update(str(signature(function)).encode())
     return b85encode(hashed.digest()).decode("utf-8")
 
 
 def compute_class_hash(class_: Callable[..., Any]) -> str:
-    hashed = md5()
+    hashed = md5()  # noqa: S324
     public_methods = sorted(
         [
             (name, method)

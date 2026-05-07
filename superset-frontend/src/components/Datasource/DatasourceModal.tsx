@@ -16,26 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FunctionComponent, useState, useRef } from 'react';
-import Alert from 'src/components/Alert';
-import Button from 'src/components/Button';
+import { FunctionComponent, useState, useEffect, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import {
-  FeatureFlag,
-  isDefined,
-  isFeatureEnabled,
-  Metric,
   styled,
   SupersetClient,
   getClientErrorObject,
   t,
   SupersetError,
+  useTheme,
+  css,
 } from '@superset-ui/core';
 
-import Modal from 'src/components/Modal';
-import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import {
+  Icons,
+  Alert,
+  Button,
+  Checkbox,
+  Modal,
+  AsyncEsmComponent,
+} from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { useSelector } from 'react-redux';
+import { ErrorMessageWithStackTrace } from 'src/components';
+import type { DatasetObject } from 'src/features/datasets/types';
+import type { DatasourceModalProps } from './types';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -58,18 +62,15 @@ const StyledDatasourceModal = styled(Modal)`
   .modal-footer {
     flex: 0 1 auto;
   }
+
+  .ant-tabs-top {
+    margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
+  }
 `;
 
-interface DatasourceModalProps {
-  addSuccessToast: (msg: string) => void;
-  datasource: any;
-  onChange: () => {};
-  onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
-  onHide: () => {};
-  show: boolean;
-}
-
-function buildExtraJsonObject(item: Record<string, unknown>) {
+function buildExtraJsonObject(
+  item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
+) {
   const certification =
     item?.certified_by || item?.certification_details
       ? {
@@ -90,13 +91,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   onHide,
   show,
 }) => {
-  const [currentDatasource, setCurrentDatasource] = useState({
-    ...datasource,
-    metrics: datasource?.metrics?.map((metric: Metric) => ({
-      ...metric,
-      currency: JSON.parse(metric.currency || 'null'),
-    })),
-  });
+  const theme = useTheme();
+  const [currentDatasource, setCurrentDatasource] = useState(datasource);
+  const [syncColumns, setSyncColumns] = useState(false);
   const currencies = useSelector<
     {
       common: {
@@ -108,132 +105,132 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [errors, setErrors] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const dialog = useRef<any>(null);
   const [modal, contextHolder] = Modal.useModal();
-
-  const onConfirmSave = () => {
-    // Pull out extra fields into the extra object
-    const schema =
-      currentDatasource.tableSelector?.schema ||
-      currentDatasource.databaseSelector?.schema ||
-      currentDatasource.schema;
-
-    setIsSaving(true);
-    SupersetClient.put({
-      endpoint: `/api/v1/dataset/${currentDatasource.id}`,
-      jsonPayload: {
-        table_name: currentDatasource.table_name,
-        database_id: currentDatasource.database?.id,
-        sql: currentDatasource.sql,
-        filter_select_enabled: currentDatasource.filter_select_enabled,
-        fetch_values_predicate: currentDatasource.fetch_values_predicate,
-        schema,
-        description: currentDatasource.description,
-        main_dttm_col: currentDatasource.main_dttm_col,
-        normalize_columns: currentDatasource.normalize_columns,
-        always_filter_main_dttm: currentDatasource.always_filter_main_dttm,
-        offset: currentDatasource.offset,
-        default_endpoint: currentDatasource.default_endpoint,
-        cache_timeout:
-          currentDatasource.cache_timeout === ''
-            ? null
-            : currentDatasource.cache_timeout,
-        is_sqllab_view: currentDatasource.is_sqllab_view,
-        template_params: currentDatasource.template_params,
-        extra: currentDatasource.extra,
-        is_managed_externally: currentDatasource.is_managed_externally,
-        external_url: currentDatasource.external_url,
-        metrics: currentDatasource?.metrics?.map(
-          (metric: Record<string, unknown>) => {
-            const metricBody: any = {
-              expression: metric.expression,
-              description: metric.description,
-              metric_name: metric.metric_name,
-              metric_type: metric.metric_type,
-              d3format: metric.d3format || null,
-              currency: !isDefined(metric.currency)
-                ? null
-                : JSON.stringify(metric.currency),
-              verbose_name: metric.verbose_name,
-              warning_text: metric.warning_text,
-              uuid: metric.uuid,
-              extra: buildExtraJsonObject(metric),
-            };
-            if (!Number.isNaN(Number(metric.id))) {
-              metricBody.id = metric.id;
-            }
-            return metricBody;
-          },
-        ),
-        columns: currentDatasource?.columns?.map(
-          (column: Record<string, unknown>) => ({
-            id: typeof column.id === 'number' ? column.id : undefined,
-            column_name: column.column_name,
-            type: column.type,
-            advanced_data_type: column.advanced_data_type,
-            verbose_name: column.verbose_name,
-            description: column.description,
-            expression: column.expression,
-            filterable: column.filterable,
-            groupby: column.groupby,
-            is_active: column.is_active,
-            is_dttm: column.is_dttm,
-            python_date_format: column.python_date_format || null,
-            uuid: column.uuid,
-            extra: buildExtraJsonObject(column),
-          }),
-        ),
-        owners: currentDatasource.owners.map(
-          (o: Record<string, number>) => o.value || o.id,
-        ),
-      },
-    })
-      .then(() => {
-        addSuccessToast(t('The dataset has been saved'));
-        return SupersetClient.get({
-          endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
-        });
-      })
-      .then(({ json }) => {
-        // eslint-disable-next-line no-param-reassign
-        json.result.type = 'table';
-        onDatasourceSave({
-          ...json.result,
-          owners: currentDatasource.owners,
-        });
-        onHide();
-      })
-      .catch(response => {
-        setIsSaving(false);
-        getClientErrorObject(response).then(error => {
-          let errorResponse: SupersetError | undefined;
-          let errorText: string | undefined;
-          // sip-40 error response
-          if (error?.errors?.length) {
-            errorResponse = error.errors[0];
-          } else if (typeof error.error === 'string') {
-            // backward compatible with old error messages
-            errorText = error.error;
+  const buildPayload = (datasource: Record<string, any>) => {
+    const payload: Record<string, any> = {
+      table_name: datasource.table_name,
+      database_id: datasource.database?.id,
+      sql: datasource.sql,
+      filter_select_enabled: datasource.filter_select_enabled,
+      fetch_values_predicate: datasource.fetch_values_predicate,
+      schema:
+        datasource.tableSelector?.schema ||
+        datasource.databaseSelector?.schema ||
+        datasource.schema,
+      description: datasource.description,
+      main_dttm_col: datasource.main_dttm_col,
+      normalize_columns: datasource.normalize_columns,
+      always_filter_main_dttm: datasource.always_filter_main_dttm,
+      offset: datasource.offset,
+      default_endpoint: datasource.default_endpoint,
+      cache_timeout:
+        datasource.cache_timeout === '' ? null : datasource.cache_timeout,
+      is_sqllab_view: datasource.is_sqllab_view,
+      template_params: datasource.template_params,
+      extra: datasource.extra,
+      is_managed_externally: datasource.is_managed_externally,
+      external_url: datasource.external_url,
+      metrics: datasource?.metrics?.map(
+        (metric: DatasetObject['metrics'][0]) => {
+          const metricBody: any = {
+            expression: metric.expression,
+            description: metric.description,
+            metric_name: metric.metric_name,
+            metric_type: metric.metric_type,
+            d3format: metric.d3format || null,
+            currency: metric.currency,
+            verbose_name: metric.verbose_name,
+            warning_text: metric.warning_text,
+            uuid: metric.uuid,
+            extra: buildExtraJsonObject(metric),
+          };
+          if (!Number.isNaN(Number(metric.id))) {
+            metricBody.id = metric.id;
           }
-          modal.error({
-            title: t('Error saving dataset'),
-            okButtonProps: { danger: true, className: 'btn-danger' },
-            content: (
-              <ErrorMessageWithStackTrace
-                error={errorResponse}
-                source="crud"
-                fallback={errorText}
-              />
-            ),
-          });
-        });
+          return metricBody;
+        },
+      ),
+      columns: datasource?.columns?.map(
+        (column: DatasetObject['columns'][0]) => ({
+          id: typeof column.id === 'number' ? column.id : undefined,
+          column_name: column.column_name,
+          type: column.type,
+          advanced_data_type: column.advanced_data_type,
+          verbose_name: column.verbose_name,
+          description: column.description,
+          expression: column.expression,
+          filterable: column.filterable,
+          groupby: column.groupby,
+          is_active: column.is_active,
+          is_dttm: column.is_dttm,
+          python_date_format: column.python_date_format || null,
+          uuid: column.uuid,
+          extra: buildExtraJsonObject(column),
+        }),
+      ),
+      owners: datasource.owners.map(
+        (o: Record<string, number>) => o.value || o.id,
+      ),
+    };
+    // Handle catalog based on database's allow_multi_catalog setting
+    // If multi-catalog is disabled, don't include catalog in payload
+    // The backend will use the default catalog
+    // If multi-catalog is enabled, include the selected catalog
+    if (datasource.database?.allow_multi_catalog) {
+      payload.catalog = datasource.catalog;
+    }
+    return payload;
+  };
+  const onConfirmSave = async () => {
+    // Pull out extra fields into the extra object
+    setIsSaving(true);
+    try {
+      await SupersetClient.put({
+        endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${syncColumns}`,
+        jsonPayload: buildPayload(currentDatasource),
       });
+
+      const { json } = await SupersetClient.get({
+        endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
+      });
+      addSuccessToast(t('The dataset has been saved'));
+      // eslint-disable-next-line no-param-reassign
+      json.result.type = 'table';
+      onDatasourceSave({
+        ...json.result,
+        owners: currentDatasource.owners,
+      });
+      onHide();
+    } catch (response) {
+      setIsSaving(false);
+      const error = await getClientErrorObject(response);
+      let errorResponse: SupersetError | undefined;
+      let errorText: string | undefined;
+      // sip-40 error response
+      if (error?.errors?.length) {
+        errorResponse = error.errors[0];
+      } else if (typeof error.error === 'string') {
+        // backward compatible with old error messages
+        errorText = error.error;
+      }
+      modal.error({
+        title: t('Error saving dataset'),
+        okButtonProps: { danger: true, className: 'btn-danger' },
+        content: (
+          <ErrorMessageWithStackTrace
+            error={errorResponse}
+            source="crud"
+            fallback={errorText}
+          />
+        ),
+      });
+    }
   };
 
-  const onDatasourceChange = (data: Record<string, any>, err: Array<any>) => {
+  const onDatasourceChange = (data: DatasetObject, err: Array<any>) => {
     setCurrentDatasource({
       ...data,
-      metrics: data?.metrics.map((metric: Record<string, unknown>) => ({
+      metrics: data?.metrics.map((metric: DatasetObject['metrics'][0]) => ({
         ...metric,
         is_certified: metric?.certified_by || metric?.certification_details,
       })),
@@ -241,29 +238,69 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     setErrors(err);
   };
 
-  const renderSaveDialog = () => (
-    <div>
-      <Alert
-        css={theme => ({
-          marginTop: theme.gridUnit * 4,
-          marginBottom: theme.gridUnit * 4,
-        })}
-        type="warning"
-        showIcon
-        message={t(`The dataset configuration exposed here
+  const getSaveDialog = useCallback(
+    () => (
+      <div>
+        <Alert
+          css={theme => ({
+            marginTop: theme.marginMD,
+            marginBottom: theme.marginSM,
+          })}
+          type="warning"
+          showIcon={false}
+          message={t(`The dataset configuration exposed here
                 affects all the charts using this dataset.
                 Be mindful that changing settings
                 here may affect other charts
                 in undesirable ways.`)}
-      />
-      {t('Are you sure you want to save and apply changes?')}
-    </div>
+        />
+        {datasource.sql !== currentDatasource.sql && (
+          <div
+            css={theme => ({
+              marginBottom: theme.marginMD,
+            })}
+          >
+            <Alert
+              css={theme => ({
+                marginBottom: theme.marginSM,
+              })}
+              type="info"
+              showIcon={false}
+              message={t(`The dataset columns will be automatically synced
+              based on the changes in your SQL query. If your changes don't
+              impact the column definitions, you might want to skip this step.`)}
+            />
+            <Checkbox
+              checked={syncColumns}
+              onChange={() => {
+                setSyncColumns(!syncColumns);
+              }}
+            />
+            <span
+              css={theme => ({
+                marginLeft: theme.marginXS,
+              })}
+            >
+              {t('Automatically sync columns')}
+            </span>
+          </div>
+        )}
+        {t('Are you sure you want to save and apply changes?')}
+      </div>
+    ),
+    [currentDatasource.sql, datasource.sql, syncColumns],
   );
 
+  useEffect(() => {
+    if (datasource.sql !== currentDatasource.sql) {
+      setSyncColumns(true);
+    }
+  }, [datasource.sql, currentDatasource.sql]);
+
   const onClickSave = () => {
-    dialog.current = modal.confirm({
+    modal.confirm({
       title: t('Confirm save'),
-      content: renderSaveDialog(),
+      content: getSaveDialog(),
       onOk: onConfirmSave,
       icon: null,
       okText: t('OK'),
@@ -271,16 +308,19 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     });
   };
 
-  const showLegacyDatasourceEditor = !isFeatureEnabled(
-    FeatureFlag.DisableLegacyDatasourceEditor,
-  );
-
   return (
     <StyledDatasourceModal
       show={show}
       onHide={onHide}
       title={
         <span>
+          <Icons.EditOutlined
+            iconSize="l"
+            css={css`
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
+            `}
+            data-test="edit-alt"
+          />
           {t('Edit Dataset ')}
           <strong>{currentDatasource.table_name}</strong>
         </span>
@@ -288,24 +328,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       maskClosable={!isEditing}
       footer={
         <>
-          {showLegacyDatasourceEditor && (
-            <Button
-              buttonSize="small"
-              buttonStyle="default"
-              data-test="datasource-modal-legacy-edit"
-              className="m-r-5"
-              onClick={() => {
-                window.location.href =
-                  currentDatasource.edit_url || currentDatasource.url;
-              }}
-            >
-              {t('Use legacy datasource editor')}
-            </Button>
-          )}
           <Button
             data-test="datasource-modal-cancel"
             buttonSize="small"
-            className="m-r-5"
+            buttonStyle="secondary"
             onClick={onHide}
           >
             {t('Cancel')}

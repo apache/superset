@@ -17,7 +17,7 @@
 
 # pylint: disable=invalid-name, unused-argument, redefined-outer-name
 
-import json
+import json  # noqa: TID251
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -32,7 +32,7 @@ from superset.security.manager import (
     query_context_modified,
     SupersetSecurityManager,
 )
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils.core import DatasourceName, override_user
 
@@ -361,7 +361,7 @@ def test_raise_for_access_query_default_schema(
     mocker.patch.object(sm, "can_access_database", return_value=False)
     mocker.patch.object(sm, "get_schema_perm", return_value="[PostgreSQL].[public]")
     mocker.patch.object(sm, "is_guest_user", return_value=False)
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
@@ -417,7 +417,7 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
     get_table_access_error_object = mocker.patch.object(
         sm, "get_table_access_error_object"
     )
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
@@ -450,7 +450,7 @@ def test_raise_for_access_chart_for_datasource_permission(
     when the user does not have access to the chart datasource
     """
     sm = SupersetSecurityManager(appbuilder)
-    session = sm.get_session
+    session = sm.session
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
@@ -510,7 +510,7 @@ def test_raise_for_access_chart_on_admin(
     from superset.utils.core import override_user
 
     sm = SupersetSecurityManager(appbuilder)
-    session = sm.get_session
+    session = sm.session
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
@@ -547,18 +547,35 @@ def test_raise_for_access_chart_owner(
     when the user does not have access to the chart datasource
     """
     sm = SupersetSecurityManager(appbuilder)
-    session = sm.get_session
+    session = sm.session
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
 
-    alpha = User(
-        first_name="Alice",
-        last_name="Doe",
-        email="adoe@example.org",
-        username="admin",
-        roles=[Role(name="Alpha")],
-    )
+    # Check if Alpha role already exists
+    alpha_role = session.query(Role).filter_by(name="Alpha").first()
+    if not alpha_role:
+        alpha_role = Role(name="Alpha")
+        session.add(alpha_role)
+        session.commit()
+
+    # Check if user already exists
+    alpha = session.query(User).filter_by(username="test_chart_owner_user").first()
+    if not alpha:
+        alpha = User(
+            first_name="Alice",
+            last_name="Doe",
+            email="adoe@example.org",
+            username="test_chart_owner_user",
+            roles=[alpha_role],
+        )
+        session.add(alpha)
+        session.commit()
+    else:
+        # Ensure the user has the Alpha role
+        if alpha_role not in alpha.roles:
+            alpha.roles.append(alpha_role)
+            session.commit()
 
     slice = Slice(
         id=1,
@@ -1067,7 +1084,7 @@ def test_raise_for_access_catalog(
         return_value="[PostgreSQL].[db1]",
     )
     mocker.patch.object(sm, "is_guest_user", return_value=False)
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()

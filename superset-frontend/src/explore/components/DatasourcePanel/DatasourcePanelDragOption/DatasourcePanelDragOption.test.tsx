@@ -23,7 +23,7 @@ import DatasourcePanelDragOption from '.';
 test('should render', async () => {
   render(
     <DatasourcePanelDragOption
-      value={{ metric_name: 'test' }}
+      value={{ metric_name: 'test', uuid: '1' }}
       type={DndItemType.Metric}
     />,
     { useDnd: true },
@@ -38,7 +38,7 @@ test('should render', async () => {
 test('should have attribute draggable:true', async () => {
   render(
     <DatasourcePanelDragOption
-      value={{ metric_name: 'test' }}
+      value={{ metric_name: 'test', uuid: '1' }}
       type={DndItemType.Metric}
     />,
     { useDnd: true },

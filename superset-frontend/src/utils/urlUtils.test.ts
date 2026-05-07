@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { isUrlExternal, parseUrl, toQueryString } from './urlUtils';
+import {
+  isUrlExternal,
+  parseUrl,
+  toQueryString,
+  getDashboardUrlParams,
+} from './urlUtils';
 
 test('isUrlExternal', () => {
   expect(isUrlExternal('http://google.com')).toBeTruthy();
@@ -95,4 +100,49 @@ describe('toQueryString', () => {
       '?user%40domain=me%26you',
     );
   });
+});
+
+test('getDashboardUrlParams should exclude edit parameter by default', () => {
+  // Mock window.location.search to include edit parameter
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: {
+      ...originalLocation,
+      search: '?edit=true&standalone=false&expand_filters=1',
+    },
+    writable: true,
+  });
+
+  const urlParams = getDashboardUrlParams(['edit']);
+  const paramNames = urlParams.map(([key]) => key);
+
+  expect(paramNames).not.toContain('edit');
+  expect(paramNames).toContain('standalone');
+  expect(paramNames).toContain('expand_filters');
+
+  // Restore original location
+  window.location = originalLocation;
+});
+
+test('getDashboardUrlParams should exclude multiple parameters when provided', () => {
+  // Mock window.location.search with multiple parameters
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: {
+      ...originalLocation,
+      search: '?edit=true&standalone=false&debug=true&test=value',
+    },
+    writable: true,
+  });
+
+  const urlParams = getDashboardUrlParams(['edit', 'debug']);
+  const paramNames = urlParams.map(([key]) => key);
+
+  expect(paramNames).not.toContain('edit');
+  expect(paramNames).not.toContain('debug');
+  expect(paramNames).toContain('standalone');
+  expect(paramNames).toContain('test');
+
+  // Restore original location
+  window.location = originalLocation;
 });

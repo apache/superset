@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { isObject } from 'lodash';
 import rison from 'rison';
 import {
@@ -25,13 +25,17 @@ import {
   Query,
   runningQueryStateList,
   QueryResponse,
+  QueryState,
+  lruCache,
 } from '@superset-ui/core';
-import { QueryDictionary } from 'src/SqlLab/types';
+import { QueryDictionary, SqlLabRootState } from 'src/SqlLab/types';
 import useInterval from 'src/SqlLab/utils/useInterval';
 import {
   refreshQueries,
   clearInactiveQueries,
+  logFailedQuery,
 } from 'src/SqlLab/actions/sqlLab';
+import type { DatabaseObject } from 'src/features/databases/types';
 
 export const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
@@ -43,7 +47,7 @@ export interface QueryAutoRefreshProps {
   queriesLastUpdate: number;
 }
 
-// returns true if the Query.state matches one of the specifc values indicating the query is still processing on server
+// returns true if the Query.state matches one of the specific values indicating the query is still processing on server
 export const isQueryRunning = (q: Query): boolean =>
   runningQueryStateList.includes(q?.state);
 
@@ -67,6 +71,17 @@ function QueryAutoRefresh({
   // pendingRequest check ensures we only have one active http call to check for query statuses
   const pendingRequestRef = useRef(false);
   const cleanInactiveRequestRef = useRef(false);
+  const failedQueries = useRef(lruCache(1000));
+  const databases = useSelector<SqlLabRootState>(
+    ({ sqlLab }) => sqlLab.databases,
+  ) as Record<string, DatabaseObject>;
+  const asyncFetchDbs = useRef(
+    new Set(
+      Object.values(databases)
+        .filter(({ allow_run_async }) => Boolean(allow_run_async))
+        .map(({ id }) => id),
+    ),
+  );
   const dispatch = useDispatch();
 
   const checkForRefresh = () => {
@@ -97,6 +112,17 @@ function QueryAutoRefresh({
                   {},
                 ) ?? {};
               dispatch(refreshQueries(queries));
+              jsonPayload.result.forEach(query => {
+                const { id, dbId, state } = query;
+                if (
+                  asyncFetchDbs.current.has(dbId) &&
+                  !failedQueries.current.has(id) &&
+                  state === QueryState.Failed
+                ) {
+                  dispatch(logFailedQuery(query, query.extra?.errors));
+                  failedQueries.current.set(id, true);
+                }
+              });
             } else {
               dispatch(clearInactiveQueries(QUERY_UPDATE_FREQ));
             }

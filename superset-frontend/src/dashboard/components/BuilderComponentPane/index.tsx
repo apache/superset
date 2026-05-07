@@ -17,8 +17,8 @@
  * under the License.
  */
 /* eslint-env browser */
-import { rgba } from 'emotion-rgba';
-import Tabs from 'src/components/Tabs';
+import tinycolor from 'tinycolor2';
+import Tabs from '@superset-ui/core/components/Tabs';
 import { t, css, SupersetTheme } from '@superset-ui/core';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
@@ -31,6 +31,11 @@ import NewMarkdown from '../gridComponents/new/NewMarkdown';
 import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
 
 const BUILDER_PANE_WIDTH = 374;
+
+const TABS_KEYS = {
+  CHARTS: 'CHARTS',
+  LAYOUT_ELEMENTS: 'LAYOUT_ELEMENTS',
+};
 
 const BuilderComponentPane = ({ topOffset = 0 }) => (
   <div
@@ -48,8 +53,9 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
         position: absolute;
         height: 100%;
         width: ${BUILDER_PANE_WIDTH}px;
-        box-shadow: -4px 0 4px 0 ${rgba(theme.colors.grayscale.dark2, 0.1)};
-        background-color: ${theme.colors.grayscale.light5};
+        box-shadow: -${theme.sizeUnit}px 0 ${theme.sizeUnit}px 0
+          ${tinycolor(theme.colorBorder).setAlpha(0.1).toRgbString()};
+        background-color: ${theme.colorBgBase};
       `}
     >
       <Tabs
@@ -57,7 +63,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
         id="tabs"
         css={(theme: SupersetTheme) => css`
           line-height: inherit;
-          margin-top: ${theme.gridUnit * 2}px;
+          margin-top: ${theme.sizeUnit * 2}px;
           height: 100%;
 
           & .ant-tabs-content-holder {
@@ -67,33 +73,45 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
             }
           }
         `}
-      >
-        <Tabs.TabPane
-          key={1}
-          tab={t('Charts')}
-          css={css`
-            height: 100%;
-          `}
-        >
-          <SliceAdder />
-        </Tabs.TabPane>
-        <Tabs.TabPane key={2} tab={t('Layout elements')}>
-          <NewTabs />
-          <NewRow />
-          <NewColumn />
-          <NewHeader />
-          <NewMarkdown />
-          <NewDivider />
-          {dashboardComponents
-            .getAll()
-            .map(({ key: componentKey, metadata }) => (
-              <NewDynamicComponent
-                metadata={metadata}
-                componentKey={componentKey}
-              />
-            ))}
-        </Tabs.TabPane>
-      </Tabs>
+        items={[
+          {
+            key: TABS_KEYS.CHARTS,
+            label: t('Charts'),
+            children: (
+              <div
+                css={css`
+                  height: calc(100vh - ${topOffset * 2}px);
+                `}
+              >
+                <SliceAdder />
+              </div>
+            ),
+          },
+          {
+            key: TABS_KEYS.LAYOUT_ELEMENTS,
+            label: t('Layout elements'),
+            children: (
+              <>
+                <NewTabs />
+                <NewRow />
+                <NewColumn />
+                <NewHeader />
+                <NewMarkdown />
+                <NewDivider />
+                {dashboardComponents
+                  .getAll()
+                  .map(({ key: componentKey, metadata }) => (
+                    <NewDynamicComponent
+                      key={componentKey}
+                      metadata={metadata}
+                      componentKey={componentKey}
+                    />
+                  ))}
+              </>
+            ),
+          },
+        ]}
+      />
     </div>
   </div>
 );

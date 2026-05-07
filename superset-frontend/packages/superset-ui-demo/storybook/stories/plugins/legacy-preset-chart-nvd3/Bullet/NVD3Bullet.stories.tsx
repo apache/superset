@@ -17,9 +17,10 @@
  * under the License.
  */
 
+import { VizType } from '@superset-ui/core';
 import { BulletChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
 
-new BulletChartPlugin().configure({ key: 'bullet' }).register();
+new BulletChartPlugin().configure({ key: VizType.Bullet }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/Bullet',

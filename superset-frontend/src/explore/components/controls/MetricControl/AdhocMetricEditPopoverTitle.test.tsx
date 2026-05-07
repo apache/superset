@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import {
+  fireEvent,
   screen,
   render,
-  fireEvent,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 
@@ -98,8 +98,7 @@ test('render default label if no title is provided', async () => {
 test('start and end the title edit mode', async () => {
   const { container, onChange } = setup();
   expect(container).toBeInTheDocument();
-
-  expect(container.getElementsByTagName('i')[0]).toBeVisible();
+  expect(screen.getByRole('img', { name: 'edit' })).toBeInTheDocument();
   expect(screen.getByText(titleProps.label)).toBeVisible();
   expect(
     screen.queryByTestId('AdhocMetricEditTitle#input'),

@@ -25,7 +25,7 @@ from superset.extensions import security_manager
 from superset.utils.core import DatasourceName
 
 
-@pytest.fixture()
+@pytest.fixture
 def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database with catalogs and schemas.
@@ -34,21 +34,22 @@ def database_with_catalog(mocker: MockerFixture) -> MagicMock:
 
     database = mocker.MagicMock()
     database.database_name = "test_database"
-    database.get_all_table_names_in_schema.return_value = [
-        DatasourceName("table1", "schema1", "catalog1"),
-        DatasourceName("table2", "schema1", "catalog1"),
-    ]
-    database.get_all_view_names_in_schema.return_value = [
-        DatasourceName("view1", "schema1", "catalog1"),
-    ]
+    database.get_default_catalog.return_value = "catalog1"
+    database.get_all_table_names_in_schema.return_value = {
+        ("table1", "schema1", "catalog1"),
+        ("table2", "schema1", "catalog1"),
+    }
+    database.get_all_view_names_in_schema.return_value = {
+        ("view1", "schema1", "catalog1"),
+    }
 
-    DatabaseDAO = mocker.patch("superset.commands.database.tables.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.tables.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database
 
     return database
 
 
-@pytest.fixture()
+@pytest.fixture
 def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database without catalogs but with schemas.
@@ -57,15 +58,16 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
 
     database = mocker.MagicMock()
     database.database_name = "test_database"
-    database.get_all_table_names_in_schema.return_value = [
-        DatasourceName("table1", "schema1"),
-        DatasourceName("table2", "schema1"),
-    ]
-    database.get_all_view_names_in_schema.return_value = [
-        DatasourceName("view1", "schema1"),
-    ]
+    database.get_default_catalog.return_value = None
+    database.get_all_table_names_in_schema.return_value = {
+        ("table1", "schema1", None),
+        ("table2", "schema1", None),
+    }
+    database.get_all_view_names_in_schema.return_value = {
+        ("view1", "schema1", None),
+    }
 
-    DatabaseDAO = mocker.patch("superset.commands.database.tables.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.tables.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database
 
     return database

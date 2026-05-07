@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { BoxPlotChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
+import { EchartsBoxPlotChartPlugin } from '@superset-ui/plugin-chart-echarts';
 
-new BoxPlotChartPlugin().configure({ key: 'box-plot' }).register();
+new EchartsBoxPlotChartPlugin().configure({ key: 'box-plot' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/BoxPlot',

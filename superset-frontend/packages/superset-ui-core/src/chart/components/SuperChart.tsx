@@ -25,11 +25,12 @@ import {
   Fragment,
 } from 'react';
 
-import ErrorBoundary, {
+import {
+  ErrorBoundary,
   ErrorBoundaryProps,
   FallbackProps,
 } from 'react-error-boundary';
-import { ParentSize } from '@vx/responsive';
+import { ParentSize } from '@visx/responsive';
 import { createSelector } from 'reselect';
 import { withTheme } from '@emotion/react';
 import { parseLength, Dimension } from '../../dimension';
@@ -232,7 +233,7 @@ class SuperChart extends PureComponent<Props, {}> {
       chart
     ) : (
       <ErrorBoundary
-        FallbackComponent={(props: FallbackProps) => (
+        FallbackComponent={props => (
           <FallbackComponent width={width} height={height} {...props} />
         )}
         onError={onErrorBoundary}

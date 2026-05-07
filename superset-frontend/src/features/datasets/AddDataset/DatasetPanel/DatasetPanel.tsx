@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled, useTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
-import Alert from 'src/components/Alert';
-import Table, { ColumnsType, TableSize } from 'src/components/Table';
-import { alphabeticalSort } from 'src/components/Table/sorters';
+import { t, styled } from '@superset-ui/core';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Alert, Image } from '@superset-ui/core/components';
+import Table, {
+  ColumnsType,
+  TableSize,
+} from '@superset-ui/core/components/Table';
 // @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
@@ -56,39 +58,38 @@ const MARGIN_MULTIPLIER = 3;
 const StyledHeader = styled.div<StyledHeaderProps>`
   ${({ theme, position }) => `
   position: ${position};
-  margin: ${theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px
-    ${theme.gridUnit * MARGIN_MULTIPLIER}px
-    ${theme.gridUnit * MARGIN_MULTIPLIER}px
-    ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
-  font-size: ${theme.gridUnit * 6}px;
-  font-weight: ${theme.typography.weights.medium};
-  padding-bottom: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
+  margin: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 1)}px
+    ${theme.sizeUnit * MARGIN_MULTIPLIER}px
+    ${theme.sizeUnit * MARGIN_MULTIPLIER}px
+    ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
+  font-size: ${theme.sizeUnit * 6}px;
+  font-weight: ${theme.fontWeightStrong};
+  padding-bottom: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
 
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
   .anticon:first-of-type {
-    margin-right: ${theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
+    margin-right: ${theme.sizeUnit * 2}px;
+    vertical-align: text-top;
   }
 
-  .anticon:nth-of-type(2) {
-    margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
   `}
 `;
 
 const StyledTitle = styled.div`
   ${({ theme }) => `
-  margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
-  margin-bottom: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
-  font-weight: ${theme.typography.weights.bold};
+  margin-left: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
+  margin-bottom: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
+  font-weight: ${theme.fontWeightStrong};
   `}
 `;
 
 const LoaderContainer = styled.div`
   ${({ theme }) => `
-  padding: ${theme.gridUnit * 8}px
-    ${theme.gridUnit * 6}px;
+  padding: ${theme.sizeUnit * 8}px
+    ${theme.sizeUnit * 6}px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -107,18 +108,18 @@ const StyledLoader = styled.div`
   max-width: 50%;
   width: ${LOADER_WIDTH}px;
 
-  img {
+  .ant-image {
     width: ${SPINNER_WIDTH}px;
     margin-left: ${(LOADER_WIDTH - SPINNER_WIDTH) * HALF}px;
   }
 
   div {
     width: 100%;
-    margin-top: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
+    margin-top: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
     text-align: center;
-    font-weight: ${theme.typography.weights.normal};
-    font-size: ${theme.typography.sizes.l}px;
-    color: ${theme.colors.grayscale.light1};
+    font-weight: ${theme.fontWeightNormal};
+    font-size: ${theme.fontSizeLG}px;
+    color: ${theme.colorTextSecondary};
   }
   `}
 `;
@@ -126,9 +127,9 @@ const StyledLoader = styled.div`
 const TableContainerWithBanner = styled.div`
   ${({ theme }) => `
   position: relative;
-  margin: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
-  margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
-  height: calc(100% - ${theme.gridUnit * 60}px);
+  margin: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
+  margin-left: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
+  height: calc(100% - ${theme.sizeUnit * 60}px);
   overflow: auto;
   `}
 `;
@@ -136,9 +137,9 @@ const TableContainerWithBanner = styled.div`
 const TableContainerWithoutBanner = styled.div`
   ${({ theme }) => `
   position: relative;
-  margin: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
-  margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
-  height: calc(100% - ${theme.gridUnit * 30}px);
+  margin: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
+  margin-left: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
+  height: calc(100% - ${theme.sizeUnit * 30}px);
   overflow: auto;
   `}
 `;
@@ -153,18 +154,17 @@ const TableScrollContainer = styled.div`
 
 const StyledAlert = styled(Alert)`
   ${({ theme }) => `
-  border: 1px solid ${theme.colors.info.base};
-  padding: ${theme.gridUnit * 4}px;
-  margin: ${theme.gridUnit * 6}px ${theme.gridUnit * 6}px
-    ${theme.gridUnit * 8}px;
+  border: 1px solid ${theme.colorInfoText};
+  padding: ${theme.sizeUnit * 4}px;
+  margin: ${theme.sizeUnit * 6}px ${theme.sizeUnit * 6}px
+    ${theme.sizeUnit * 8}px;
   .view-dataset-button {
     position: absolute;
-    top: ${theme.gridUnit * 4}px;
-    right: ${theme.gridUnit * 4}px;
-    font-weight: ${theme.typography.weights.normal};
+    top: ${theme.sizeUnit * 4}px;
+    right: ${theme.sizeUnit * 4}px;
 
     &:hover {
-      color: ${theme.colors.secondary.dark3};
+      color: ${theme.colorPrimary};
       text-decoration: underline;
     }
   }
@@ -184,16 +184,14 @@ export const tableColumnDefinition: ColumnsType<ITableColumn> = [
     title: 'Column Name',
     dataIndex: 'name',
     key: 'name',
-    sorter: (a: ITableColumn, b: ITableColumn) =>
-      alphabeticalSort('name', a, b),
+    sorter: (a: ITableColumn, b: ITableColumn) => a.name.localeCompare(b.name),
   },
   {
     title: 'Datatype',
     dataIndex: 'type',
     key: 'type',
     width: '100px',
-    sorter: (a: ITableColumn, b: ITableColumn) =>
-      alphabeticalSort('type', a, b),
+    sorter: (a: ITableColumn, b: ITableColumn) => a.name.localeCompare(b.name),
   },
 ];
 
@@ -260,8 +258,7 @@ const DatasetPanel = ({
   hasError,
   datasets,
 }: IDatasetPanelProps) => {
-  const theme = useTheme();
-  const hasColumns = columnList?.length > 0 ?? false;
+  const hasColumns = Boolean(columnList?.length > 0);
   const datasetNames = datasets?.map(dataset => dataset.table_name);
   const tableWithDataset = datasets?.find(
     dataset => dataset.table_name === tableName,
@@ -273,7 +270,7 @@ const DatasetPanel = ({
     loader = (
       <LoaderContainer>
         <StyledLoader>
-          <img alt={ALT_LOADING} src={LOADING_GIF} />
+          <Image preview={false} alt={ALT_LOADING} src={LOADING_GIF} />
           <div>{REFRESHING}</div>
         </StyledLoader>
       </LoaderContainer>
@@ -336,9 +333,7 @@ const DatasetPanel = ({
             }
             title={tableName || ''}
           >
-            {tableName && (
-              <Icons.Table iconColor={theme.colors.grayscale.base} />
-            )}
+            <Icons.InsertRowAboveOutlined iconSize="xxl" />
             {tableName}
           </StyledHeader>
         </>

@@ -17,11 +17,14 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { isFeatureEnabled, getExtensionsRegistry } from '@superset-ui/core';
 import Welcome from 'src/pages/Home';
-import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
@@ -62,9 +65,35 @@ fetchMock.get(savedQueryEndpoint, {
   result: [],
 });
 
+const mockRecentActivityResult = [
+  {
+    action: 'dashboard',
+    item_title: "World Bank's Data",
+    item_type: 'dashboard',
+    item_url: '/superset/dashboard/world_health/',
+    time: 1741644942130.566,
+    time_delta_humanized: 'a day ago',
+  },
+  {
+    action: 'dashboard',
+    item_title: '[ untitled dashboard ]',
+    item_type: 'dashboard',
+    item_url: '/superset/dashboard/19/',
+    time: 1741644881695.7869,
+    time_delta_humanized: 'a day ago',
+  },
+  {
+    action: 'dashboard',
+    item_title: '[ untitled dashboard ]',
+    item_type: 'dashboard',
+    item_url: '/superset/dashboard/19/',
+    time: 1741644381695.7869,
+    time_delta_humanized: 'two day ago',
+  },
+];
+
 fetchMock.get(recentActivityEndpoint, {
-  Created: [],
-  Viewed: [],
+  result: mockRecentActivityResult,
 });
 
 fetchMock.get(chartInfoEndpoint, {
@@ -114,8 +143,12 @@ const mockedPropsWithoutSqlRole = {
   },
 };
 
-const setupFeatureToggleMock = () =>
-  jest.spyOn(uiCore, 'isFeatureEnabled').mockReturnValue(true);
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const renderWelcome = (props = mockedProps) =>
   waitFor(() => {
@@ -140,6 +173,20 @@ test('With sql role - renders all panels on the page on page load', async () => 
     /Dashboards|Charts|Recents|Saved queries/,
   );
   expect(panels).toHaveLength(4);
+});
+
+test('With sql role - renders distinct recent activities', async () => {
+  await renderWelcome();
+  const recentPanel = screen.getByRole('button', { name: 'collapsed Recents' });
+  userEvent.click(recentPanel);
+  await waitFor(() =>
+    expect(
+      screen.queryAllByText(mockRecentActivityResult[0].item_title),
+    ).toHaveLength(1),
+  );
+  expect(
+    screen.queryAllByText(mockRecentActivityResult[1].item_title),
+  ).toHaveLength(1);
 });
 
 test('With sql role - calls api methods in parallel on page load', async () => {
@@ -186,19 +233,25 @@ fetchMock.get('glob:*/api/v1/dashboard/*', {
 });
 
 test('With toggle switch - shows a toggle button when feature flag is turned on', async () => {
-  setupFeatureToggleMock();
+  mockedIsFeatureEnabled.mockReturnValue(true);
 
   await renderWelcome();
   expect(screen.getByRole('switch')).toBeInTheDocument();
 });
 
 test('With toggle switch - does not show thumbnails when switch is off', async () => {
-  setupFeatureToggleMock();
+  mockedIsFeatureEnabled.mockReturnValue(true);
 
   await renderWelcome();
-  const toggle = await screen.findByRole('switch');
-  userEvent.click(toggle);
-  expect(screen.queryByAltText('Thumbnails')).not.toBeInTheDocument();
+  const toggle = await screen.findByRole('switch', {}, { timeout: 10000 });
+
+  await waitFor(
+    () => {
+      userEvent.click(toggle);
+      expect(screen.queryByAltText('Thumbnails')).not.toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 });
 
 test('Should render an extension component if one is supplied', async () => {

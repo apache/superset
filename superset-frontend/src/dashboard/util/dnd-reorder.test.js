@@ -17,6 +17,8 @@
  * under the License.
  */
 import reorderItem from 'src/dashboard/util/dnd-reorder';
+import { TABS_TYPE } from './componentTypes';
+import { DROP_LEFT, DROP_RIGHT } from './getDropPosition';
 
 describe('dnd-reorderItem', () => {
   it('should remove the item from its source entity and add it to its destination entity', () => {
@@ -72,6 +74,121 @@ describe('dnd-reorderItem', () => {
       destination: { id: 'b', index: 1 },
     });
 
-    expect(result.iAmExtra === extraEntity).toBe(true);
+    expect(result.iAmExtra).toBe(extraEntity);
+  });
+
+  it('should handle out of bounds destination index gracefully', () => {
+    const result = reorderItem({
+      entitiesMap: {
+        a: {
+          id: 'a',
+          children: ['x', 'y', 'z'],
+        },
+        b: {
+          id: 'b',
+          children: ['banana'],
+        },
+      },
+      source: { id: 'a', index: 1 },
+      destination: { id: 'b', index: 5 },
+    });
+
+    expect(result.a.children).toEqual(['x', 'z']);
+    expect(result.b.children).toEqual(['banana', 'y']);
+  });
+
+  it('should do nothing if source and destination are the same and indices are the same', () => {
+    const result = reorderItem({
+      entitiesMap: {
+        a: {
+          id: 'a',
+          children: ['x', 'y', 'z'],
+        },
+      },
+      source: { id: 'a', index: 1 },
+      destination: { id: 'a', index: 1 },
+    });
+
+    expect(result.a.children).toEqual(['x', 'y', 'z']);
+  });
+
+  it('should handle DROP_LEFT in the same TABS_TYPE list correctly', () => {
+    const result = reorderItem({
+      entitiesMap: {
+        a: {
+          id: 'a',
+          type: TABS_TYPE,
+          children: ['x', 'y', 'z'],
+        },
+      },
+      source: { id: 'a', type: TABS_TYPE, index: 2 },
+      destination: { id: 'a', type: TABS_TYPE, index: 1 },
+      position: DROP_LEFT,
+    });
+
+    expect(result.a.children).toEqual(['x', 'z', 'y']);
+  });
+
+  it('should handle DROP_RIGHT in the same TABS_TYPE list correctly', () => {
+    const result = reorderItem({
+      entitiesMap: {
+        a: {
+          id: 'a',
+          type: TABS_TYPE,
+          children: ['x', 'y', 'z'],
+        },
+      },
+      source: { id: 'a', type: TABS_TYPE, index: 0 },
+      destination: { id: 'a', type: TABS_TYPE, index: 1 },
+      position: DROP_RIGHT,
+    });
+
+    expect(result.a.children).toEqual(['y', 'x', 'z']);
+  });
+
+  it('should handle DROP_LEFT when moving between different TABS_TYPE lists', () => {
+    const result = reorderItem({
+      entitiesMap: {
+        a: {
+          id: 'a',
+          type: TABS_TYPE,
+          children: ['x', 'y'],
+        },
+        b: {
+          id: 'b',
+          type: TABS_TYPE,
+          children: ['banana'],
+        },
+      },
+      source: { id: 'a', type: TABS_TYPE, index: 1 },
+      destination: { id: 'b', type: TABS_TYPE, index: 0 },
+      position: DROP_LEFT,
+    });
+
+    expect(result.a.children).toEqual(['x']);
+    expect(result.b.children).toEqual(['y', 'banana']);
+  });
+
+  it('should handle DROP_RIGHT when moving between different TABS_TYPE lists', () => {
+    const result = reorderItem({
+      entitiesMap: {
+        a: {
+          id: 'a',
+          type: TABS_TYPE,
+          children: ['x', 'y'],
+        },
+        b: {
+          id: 'b',
+          type: TABS_TYPE,
+          children: ['banana'],
+        },
+      },
+      source: { id: 'a', type: TABS_TYPE, index: 0 },
+      destination: { id: 'b', type: TABS_TYPE, index: 0 },
+      position: DROP_RIGHT,
+    });
+
+    expect(result.a.children).toEqual(['y']);
+    expect(result.b.children).toEqual(['banana', 'x']);
   });
 });

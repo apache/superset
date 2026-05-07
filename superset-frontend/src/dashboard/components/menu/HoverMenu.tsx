@@ -34,15 +34,15 @@ const HoverStyleOverrides = styled.div`
     opacity: 0;
     position: absolute;
     z-index: 11; // one more than DragDroppable
-    font-size: ${({ theme }) => theme.typography.sizes.m};
+    font-size: ${({ theme }) => theme.fontSize};
   }
 
   .hover-menu--left {
-    width: ${({ theme }) => theme.gridUnit * 6}px;
+    width: ${({ theme }) => theme.sizeUnit * 6}px;
     top: 50%;
     transform: translate(0, -50%);
-    left: ${({ theme }) => theme.gridUnit * -7}px;
-    padding: ${({ theme }) => theme.gridUnit * 2}px 0;
+    left: ${({ theme }) => theme.sizeUnit * -7}px;
+    padding: ${({ theme }) => theme.sizeUnit * 2}px 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -50,15 +50,15 @@ const HoverStyleOverrides = styled.div`
   }
 
   .hover-menu--left > :nth-child(n):not(:only-child):not(:last-child) {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
   }
 
   .hover-menu--top {
-    height: ${({ theme }) => theme.gridUnit * 6}px;
-    top: ${({ theme }) => theme.gridUnit * -6}px;
+    height: ${({ theme }) => theme.sizeUnit * 6}px;
+    top: ${({ theme }) => theme.sizeUnit * -6}px;
     left: 50%;
     transform: translate(-50%);
-    padding: 0 ${({ theme }) => theme.gridUnit * 2}px;
+    padding: 0;
     display: flex;
     flex-direction: row;
     justify-content: center;

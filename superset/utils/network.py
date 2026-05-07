@@ -63,7 +63,7 @@ def is_host_up(host: str) -> bool:
     param = "-n" if platform.system().lower() == "windows" else "-c"
     command = ["ping", param, "1", host]
     try:
-        output = subprocess.call(command, timeout=PING_TIMEOUT)
+        output = subprocess.call(command, timeout=PING_TIMEOUT)  # noqa: S603
     except subprocess.TimeoutExpired:
         return False
 

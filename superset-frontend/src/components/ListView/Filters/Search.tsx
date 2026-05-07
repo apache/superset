@@ -24,13 +24,17 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
-import { AntdInput } from 'src/components';
-import { SELECT_WIDTH } from 'src/components/ListView/utils';
-import { FormLabel } from 'src/components/Form';
-import InfoTooltip from 'src/components/InfoTooltip';
-import { BaseFilter, FilterHandler } from './Base';
+import { t, useTheme } from '@superset-ui/core';
+import {
+  Input,
+  InfoTooltip,
+  FormLabel,
+  Icons,
+  Flex,
+} from '@superset-ui/core/components';
+import type { BaseFilter, FilterHandler } from './types';
+import { FilterContainer } from './Base';
+import { SELECT_WIDTH } from '../utils';
 
 interface SearchHeaderProps extends BaseFilter {
   Header: string;
@@ -38,18 +42,6 @@ interface SearchHeaderProps extends BaseFilter {
   name: string;
   toolTipDescription: string | undefined;
 }
-
-const Container = styled.div`
-  width: ${SELECT_WIDTH}px;
-`;
-
-const SearchIcon = styled(Icons.Search)`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-`;
-
-const StyledInput = styled(AntdInput)`
-  border-radius: ${({ theme }) => theme.gridUnit}px;
-`;
 
 function SearchFilter(
   {
@@ -61,6 +53,7 @@ function SearchFilter(
   }: SearchHeaderProps,
   ref: RefObject<FilterHandler>,
 ) {
+  const theme = useTheme();
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => {
     if (value) {
@@ -82,12 +75,18 @@ function SearchFilter(
   }));
 
   return (
-    <Container>
-      <FormLabel>{Header}</FormLabel>
-      {toolTipDescription && (
-        <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
-      )}
-      <StyledInput
+    <FilterContainer
+      data-test="search-filter-container"
+      width={SELECT_WIDTH}
+      vertical
+      justify="center"
+      align="start"
+    >
+      <Flex>
+        <FormLabel>{Header}</FormLabel>
+        {toolTipDescription && <InfoTooltip tooltip={toolTipDescription} />}
+      </Flex>
+      <Input
         allowClear
         data-test="filters-search"
         placeholder={t('Type a value')}
@@ -96,9 +95,11 @@ function SearchFilter(
         onChange={handleChange}
         onPressEnter={handleSubmit}
         onBlur={handleSubmit}
-        prefix={<SearchIcon iconSize="l" />}
+        prefix={
+          <Icons.SearchOutlined iconColor={theme.colorIcon} iconSize="l" />
+        }
       />
-    </Container>
+    </FilterContainer>
   );
 }
 

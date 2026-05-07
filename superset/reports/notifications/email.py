@@ -23,15 +23,17 @@ from email.utils import make_msgid, parseaddr
 from typing import Any, Optional
 
 import nh3
+from flask import current_app
 from flask_babel import gettext as __
+from pytz import timezone
 
-from superset import app
+from superset import is_feature_enabled
 from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils import json
-from superset.utils.core import get_email_address_list, HeaderDataType, send_email_smtp
+from superset.utils.core import HeaderDataType, recipients_string_to_list, send_email_smtp
 from superset.utils.decorators import statsd_gauge
 
 logger = logging.getLogger(__name__)
@@ -146,10 +148,20 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     """
 
     type = ReportRecipientType.EMAIL
+    now = datetime.now(timezone("UTC"))
+
+    @property
+    def _name(self) -> str:
+        """Include date format in the name if feature flag is enabled"""
+        return (
+            self._parse_name(self._content.name)
+            if is_feature_enabled("DATE_FORMAT_IN_EMAIL_SUBJECT")
+            else self._content.name
+        )
 
     @staticmethod
     def _get_smtp_domain() -> str:
-        return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
+        return parseaddr(current_app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
     def _error_template(self, text: str) -> str:
         call_to_action = self._get_call_to_action()
@@ -158,7 +170,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
             <p>Please check your dashboard/chart for errors.</p>
             <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
-            """,
+            """,  # noqa: E501
             text=text,
             url=self._content.url,
             call_to_action=call_to_action,
@@ -266,21 +278,28 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             subject = replace_date_placeholders(self._content.email_subject)
             return __(
                 "%(prefix)s %(title)s",
-                prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
+                prefix=current_app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
                 title=subject,
             )
         return __(
             "%(prefix)s %(title)s",
-            prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
+            prefix=current_app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
             title=self._content.name,
         )
 
+    def _parse_name(self, name: str) -> str:
+        """If user add a date format to the subject, parse it to the real date
+        This feature is hidden behind a feature flag `DATE_FORMAT_IN_EMAIL_SUBJECT`
+        by default it is disabled
+        """
+        return self.now.strftime(name)
+
     def _get_call_to_action(self) -> str:
-        email_address_list = get_email_address_list(self._get_to())
+        email_address_list = recipients_string_to_list(self._get_to())
         for email_address in email_address_list:
             if INTERNAL_EMAIL_DOMAIN not in email_address:
                 return ""
-        return __(app.config["EMAIL_REPORTS_CTA"])
+        return __(current_app.config["EMAIL_REPORTS_CTA"])
 
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
@@ -305,7 +324,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         logger.info(
             "Sending email with from_address=%s (default would be %s)",
             from_address,
-            app.config["SMTP_MAIL_FROM"],
+            current_app.config["SMTP_MAIL_FROM"],
         )
 
         try:
@@ -313,7 +332,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 to,
                 subject,
                 content.body,
-                app.config,
+                current_app.config,
                 files=[],
                 data=content.data,
                 pdf=content.pdf,
@@ -326,7 +345,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 from_address=from_address,
             )
             logger.info(
-                "Report sent to email, notification content is %s", content.header_data
+                "Report sent to email, notification content is %s",
+                content.header_data,
             )
         except SupersetErrorsException as ex:
             raise NotificationError(

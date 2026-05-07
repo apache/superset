@@ -23,7 +23,7 @@ import {
 
 describe('explore view', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '**/superset/explore_json/**').as('getJson');
   });
 
   afterEach(() => {
@@ -31,7 +31,10 @@ describe('explore view', () => {
   });
 
   it('should load Explore', () => {
-    const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
+    const LINE_CHART_DEFAULTS = {
+      ...FORM_DATA_DEFAULTS,
+      viz_type: 'echarts_timeseries_line',
+    };
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });

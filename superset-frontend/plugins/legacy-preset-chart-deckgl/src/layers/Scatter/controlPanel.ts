@@ -22,7 +22,6 @@ import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import {
   filterNulls,
   autozoom,
-  dimension,
   jsColumns,
   jsDataMutator,
   jsTooltip,
@@ -34,6 +33,7 @@ import {
   pointRadiusFixed,
   multiplier,
   mapboxStyle,
+  generateDeckGLColorSchemeControls,
 } from '../../utilities/Shared_DeckGL';
 
 const config: ControlPanelConfig = {
@@ -127,22 +127,9 @@ const config: ControlPanelConfig = {
     {
       label: t('Point Color'),
       controlSetRows: [
-        ['color_picker'],
         [legendPosition],
         [legendFormat],
-        [
-          {
-            name: dimension.name,
-            config: {
-              ...dimension.config,
-              label: t('Categorical Color'),
-              description: t(
-                'Pick a dimension from which categorical colors are defined',
-              ),
-            },
-          },
-        ],
-        ['color_scheme'],
+        ...generateDeckGLColorSchemeControls({}),
       ],
     },
     {

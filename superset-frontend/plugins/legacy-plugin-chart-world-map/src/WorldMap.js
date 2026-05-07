@@ -24,13 +24,14 @@ import {
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import Datamap from 'datamaps/dist/datamaps.world.min';
+import Datamap from 'datamaps/dist/datamaps.all.min';
 import { ColorBy } from './utils';
 
 const propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
       country: PropTypes.string,
+      code: PropTypes.string,
       latitude: PropTypes.number,
       longitude: PropTypes.number,
       name: PropTypes.string,
@@ -116,7 +117,7 @@ function WorldMap(element, props) {
     const selected = Object.values(filterState.selectedValues || {});
     const key = source.id || source.country;
     const country =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
 
     if (!country) {
       return undefined;
@@ -170,7 +171,7 @@ function WorldMap(element, props) {
     pointerEvent.preventDefault();
     const key = source.id || source.country;
     const val =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.country;
+      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
     let drillToDetailFilters;
     let drillByFilters;
     if (val) {
@@ -203,14 +204,14 @@ function WorldMap(element, props) {
     height,
     data: processedData,
     fills: {
-      defaultFill: theme.colors.grayscale.light2,
+      defaultFill: theme.colorBorder,
     },
     geographyConfig: {
       popupOnHover: !inContextMenu,
       highlightOnHover: !inContextMenu,
       borderWidth: 1,
-      borderColor: theme.colors.grayscale.light5,
-      highlightBorderColor: theme.colors.grayscale.light5,
+      borderColor: theme.colorSplit,
+      highlightBorderColor: theme.colorIcon,
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
@@ -232,7 +233,7 @@ function WorldMap(element, props) {
       animate: true,
       highlightOnHover: !inContextMenu,
       highlightFillColor: color,
-      highlightBorderColor: theme.colors.grayscale.dark2,
+      highlightBorderColor: theme.colorTextSecondary,
       highlightBorderWidth: 2,
       highlightBorderOpacity: 1,
       highlightFillOpacity: 0.85,
@@ -243,7 +244,32 @@ function WorldMap(element, props) {
       datamap.svg
         .selectAll('.datamaps-subunit')
         .on('contextmenu', handleContextMenu)
-        .on('click', handleClick);
+        .on('click', handleClick)
+        .on('mouseover', function onMouseOver() {
+          if (inContextMenu) {
+            return;
+          }
+          const element = d3.select(this);
+          const classes = element.attr('class') || '';
+          const countryId = classes.split(' ')[1];
+          const countryData = mapData[countryId];
+          const originalFill =
+            (countryData && countryData.fillColor) || theme.colorBorder;
+          // Store original fill color for restoration
+          element.attr('data-original-fill', originalFill);
+        })
+        .on('mouseout', function onMouseOut() {
+          if (inContextMenu) {
+            return;
+          }
+          const element = d3.select(this);
+          const originalFill = element.attr('data-original-fill');
+          // Restore the original fill color (data-based or default no-data color)
+          if (originalFill) {
+            element.style('fill', originalFill);
+            element.attr('data-original-fill', null);
+          }
+        });
     },
   });
 
@@ -265,7 +291,7 @@ function WorldMap(element, props) {
         countryFeature =>
           !filterState.selectedValues.includes(countryFeature.id),
       )
-      .style('fill-opacity', theme.opacity.mediumLight);
+      .style('fill-opacity', 0.35);
 
     // hack to ensure that the clicked country's color is preserved
     // sometimes the fill color would get default grey value after applying cross filter

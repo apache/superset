@@ -66,7 +66,7 @@ For running long query from Sql Lab, by default Superset allows it run as long a
 being killed by celery. If you want to increase the time for running query, you can specify the
 timeout in configuration. For example:
 
-```
+```python
 SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 ```
 
@@ -78,7 +78,7 @@ come back within client-side timeout (60 seconds by default), Superset will disp
 to avoid gateway timeout message. If you have a longer gateway timeout limit, you can change the
 timeout settings in **superset_config.py**:
 
-```
+```python
 SUPERSET_WEBSERVER_TIMEOUT = 60
 ```
 
@@ -87,7 +87,7 @@ SUPERSET_WEBSERVER_TIMEOUT = 60
 You need to register a free account at [Mapbox.com](https://www.mapbox.com), obtain an API key, and add it
 to **.env** at the key MAPBOX_API_KEY:
 
-```
+```python
 MAPBOX_API_KEY = "longstringofalphanumer1c"
 ```
 
@@ -99,7 +99,7 @@ refreshed - especially if some data is slow moving, or run heavy queries. To exc
 from the timed refresh process, add the `timed_refresh_immune_slices` key to the dashboard JSON
 Metadata field:
 
-```
+```json
 {
    "filter_immune_slices": [],
     "expanded_slices": {},
@@ -115,7 +115,7 @@ Slice refresh will also be staggered over the specified period. You can turn off
 setting the `stagger_refresh` to false and modify the stagger period by setting `stagger_time` to a
 value in milliseconds in the JSON Metadata field:
 
-```
+```json
 {
     "stagger_refresh": false,
     "stagger_time": 2500
@@ -125,7 +125,7 @@ value in milliseconds in the JSON Metadata field:
 Here, the entire dashboard will refresh at once if periodic refresh is on. The stagger time of 2.5
 seconds is ignored.
 
-**Why does ‘flask fab’ or superset freezed/hung/not responding when started (my home directory is
+**Why does ‘flask fab’ or superset freeze/hang/not responding when started (my home directory is
 NFS mounted)?**
 
 By default, Superset creates and uses an SQLite database at `~/.superset/superset.db`. SQLite is
@@ -137,7 +137,7 @@ You can override this path using the **SUPERSET_HOME** environment variable.
 Another workaround is to change where superset stores the sqlite database by adding the following in
 `superset_config.py`:
 
-```
+```python
 SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db?check_same_thread=false'
 ```
 
@@ -157,12 +157,12 @@ table afterwards to configure the Columns tab, check the appropriate boxes and s
 
 To clarify, the database backend is an OLTP database used by Superset to store its internal
 information like your list of users and dashboard definitions. While Superset supports a
-[variety of databases as data *sources*](/docs/configuration/databases#installing-database-drivers),
+[variety of databases as data _sources_](/docs/configuration/databases#installing-database-drivers),
 only a few database engines are supported for use as the OLTP backend / metadata store.
 
 Superset is tested using MySQL, PostgreSQL, and SQLite backends. It’s recommended you install
 Superset on one of these database servers for production.  Installation on other OLTP databases
-may work but isn’t tested.  It has been reported that [Microsoft SQL Server does *not*
+may work but isn’t tested.  It has been reported that [Microsoft SQL Server does _not_
 work as a Superset backend](https://github.com/apache/superset/issues/18961). Column-store,
 non-OLTP databases are not designed for this type of workload.
 
@@ -174,13 +174,16 @@ You can take a look at this Flask-AppBuilder
 ## Is there a way to force the dashboard to use specific colors?
 
 It is possible on a per-dashboard basis by providing a mapping of labels to colors in the JSON
-Metadata attribute using the `label_colors` key.
+Metadata attribute using the `label_colors` key. You can use either the full hex color, a named color,
+like `red`, `coral` or `lightblue`, or the index in the current color palette (0 for first color, 1 for
+second etc). Example:
 
 ```json
 {
     "label_colors": {
-        "Girls": "#FF69B4",
-        "Boys": "#ADD8E6"
+        "foo": "#FF69B4",
+        "bar": "lightblue",
+        "baz": 0
     }
 }
 ```
@@ -210,7 +213,7 @@ SQLAlchemy and DBAPI scope. This includes features like:
 Beyond the SQLAlchemy connector, it’s also possible, though much more involved, to extend Superset
 and write your own connector. The only example of this at the moment is the Druid connector, which
 is getting superseded by Druid’s growing SQL support and the recent availability of a DBAPI and
-SQLAlchemy driver. If the database you are considering integrating has any kind of of SQL support,
+SQLAlchemy driver. If the database you are considering integrating has any kind of SQL support,
 it’s probably preferable to go the SQLAlchemy route. Note that for a native connector to be possible
 the database needs to have support for running OLAP-type queries and should be able to do things that
 are typical in basic SQL:
@@ -233,7 +236,7 @@ made to cover more and more use cases.
 The API available is documented using [Swagger](https://swagger.io/) and the documentation can be
 made available under **/swagger/v1** by enabling the following flag in `superset_config.py`:
 
-```
+```python
 FAB_API_SWAGGER_UI = True
 ```
 
@@ -272,3 +275,11 @@ No. Currently, there is no way to recover a deleted Superset dashboard/chart/dat
 Hence, it is recommended to take periodic backups of the metadata database. For recovery, you can launch a recovery instance of a Superset server with the backed-up copy of the DB attached and use the Export Dashboard button in the Superset UI (or the `superset export-dashboards` CLI command). Then, take the .zip file and import it into the current Superset instance.
 
 Alternatively, you can programmatically take regular exports of the assets as a backup.
+
+## I ran a security scan of the Superset container image and it showed dozens of "high" and "critical" vulnerabilities! Can you release a version of Superset without these?
+
+You are talking about dependency CVEs: identified vulnerabilities in software that Superset uses. Most of these CVEs are in the Linux kernel or Python, both of which have many other people working on their security.
+
+We address these dependency CVEs as best we can by regularly updating our dependencies to newer versions. We use bots to assist with that and cheerfully welcome pull requests from humans that fix dependency CVEs.
+
+The Superset [security team](https://superset.apache.org/docs/security/#reporting-security-vulnerabilities) focuses primarily on vulnerabilities _in Superset itself_. See our [CVEs page](https://superset.apache.org/docs/security/cves) for a list of past Superset CVEs.

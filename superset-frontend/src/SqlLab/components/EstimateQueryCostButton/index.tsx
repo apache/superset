@@ -20,12 +20,14 @@ import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { css, styled, t } from '@superset-ui/core';
 
-import Alert from 'src/components/Alert';
-import TableView from 'src/components/TableView';
-import Button from 'src/components/Button';
-import Loading from 'src/components/Loading';
-import ModalTrigger from 'src/components/ModalTrigger';
-import { EmptyWrapperType } from 'src/components/TableView/TableView';
+import {
+  Alert,
+  Button,
+  Loading,
+  ModalTrigger,
+  TableView,
+  EmptyWrapperType,
+} from '@superset-ui/core/components';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, QueryCostEstimate } from 'src/SqlLab/types';
 
@@ -38,7 +40,7 @@ export interface EstimateQueryCostButtonProps {
 
 const CostEstimateModalStyles = styled.div`
   ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.s};
+    font-size: ${theme.fontSizeSM};
   `}
 `;
 
@@ -59,7 +61,11 @@ const EstimateQueryCostButton = ({
   const columns = useMemo(
     () =>
       Array.isArray(cost) && cost.length
-        ? Object.keys(cost[0]).map(key => ({ accessor: key, Header: key }))
+        ? Object.keys(cost[0]).map(key => ({
+            accessor: key,
+            Header: key,
+            id: key,
+          }))
         : [],
     [cost],
   );

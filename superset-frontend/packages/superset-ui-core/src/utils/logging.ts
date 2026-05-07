@@ -17,7 +17,8 @@
  * under the License.
  */
 
-const console = window.console || {};
+const console =
+  typeof window !== 'undefined' ? window.console || {} : globalThis.console;
 const log = console.log || (() => {});
 
 const logger = {

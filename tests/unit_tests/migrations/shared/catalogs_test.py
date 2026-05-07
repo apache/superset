@@ -15,10 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import json  # noqa: TID251
+
+import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
-from superset import app
 from superset.migrations.shared.catalogs import (
     downgrade_catalog_perms,
     upgrade_catalog_perms,
@@ -28,6 +31,29 @@ from superset.migrations.shared.security_converge import (
     PermissionView,
     ViewMenu,
 )
+from superset.superset_typing import OAuth2ClientConfig
+
+
+@pytest.fixture
+def oauth2_config() -> OAuth2ClientConfig:
+    """
+    Config for GSheets OAuth2.
+    """
+    return {
+        "id": "XXX.apps.googleusercontent.com",
+        "secret": "GOCSPX-YYY",
+        "scope": " ".join(
+            [
+                "https://www.googleapis.com/auth/drive.readonly "
+                "https://www.googleapis.com/auth/spreadsheets "
+                "https://spreadsheets.google.com/feeds"
+            ]
+        ),
+        "redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_request_uri": "https://oauth2.googleapis.com/token",
+        "request_content_type": "json",
+    }
 
 
 def test_upgrade_catalog_perms(mocker: MockerFixture, session: Session) -> None:
@@ -335,6 +361,7 @@ def test_upgrade_catalog_perms_graceful(
 def test_upgrade_catalog_perms_oauth_connection(
     mocker: MockerFixture,
     session: Session,
+    oauth2_config: OAuth2ClientConfig,
 ) -> None:
     """
     Test the `upgrade_catalog_perms` function when the DB is set up using OAuth.
@@ -362,7 +389,7 @@ def test_upgrade_catalog_perms_oauth_connection(
     database = Database(
         database_name="my_db",
         sqlalchemy_uri="bigquery://my-test-project",
-        encrypted_extra='{"oauth2_client_info": "fake_mock_oauth_conn"}',
+        encrypted_extra=json.dumps({"oauth2_client_info": oauth2_config}),
     )
     dataset = SqlaTable(
         table_name="my_table",
@@ -541,8 +568,8 @@ def test_upgrade_catalog_perms_simplified_migration(
         ("[my_db].[public]",),
     ]
 
-    with app.test_request_context():
-        app.config["CATALOGS_SIMPLIFIED_MIGRATION"] = True
+    with current_app.test_request_context():
+        current_app.config["CATALOGS_SIMPLIFIED_MIGRATION"] = True
         upgrade_catalog_perms()
         session.commit()
 

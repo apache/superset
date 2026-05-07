@@ -43,8 +43,8 @@ under the License.
 | can this form post on ResetPasswordView          |:heavy_check_mark:|O|O|O|
 | can this form get on ResetMyPasswordView         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can this form post on ResetMyPasswordView        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can this form get on UserInfoEditView            |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can this form post on UserInfoEditView           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
+| can this form get on UserInfoEditView            |:heavy_check_mark:|O|O|O|
+| can this form post on UserInfoEditView           |:heavy_check_mark:|O|O|O|
 | can show on UserDBModelView                      |:heavy_check_mark:|O|O|O|
 | can edit on UserDBModelView                      |:heavy_check_mark:|O|O|O|
 | can delete on UserDBModelView                    |:heavy_check_mark:|O|O|O|
@@ -65,7 +65,6 @@ under the License.
 | can get on MenuApi                               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can list on AsyncEventsRestApi                   |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can invalidate on CacheRestApi                   |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can function names on Database                   |:heavy_check_mark:|O|O|O|
 | can csv upload on Database                       |:heavy_check_mark:|O|O|O|
 | can excel upload on Database                     |:heavy_check_mark:|O|O|O|
 | can query form data on Api                       |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -76,7 +75,6 @@ under the License.
 | can get on Datasource                            |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can my queries on SqlLab                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 | can log on Superset                              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can schemas access for csv upload on Superset    |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can import dashboards on Superset                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can schemas on Superset                          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can sqllab history on Superset                   |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
@@ -96,9 +94,9 @@ under the License.
 | can available domains on Superset                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can request access on Superset                   |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can dashboard on Superset                        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can post on TableSchemaView                      |:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can expanded on TableSchemaView                  |:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can delete on TableSchemaView                    |:heavy_check_mark:|:heavy_check_mark:|O|O|
+| can post on TableSchemaView                      |:heavy_check_mark:|O|O|:heavy_check_mark:|
+| can expanded on TableSchemaView                  |:heavy_check_mark:|O|O|:heavy_check_mark:|
+| can delete on TableSchemaView                    |:heavy_check_mark:|O|O|:heavy_check_mark:|
 | can get on TabStateView                          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 | can post on TabStateView                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 | can delete query on TabStateView                 |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
@@ -118,8 +116,6 @@ under the License.
 | menu access on Data                              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | menu access on Databases                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | menu access on Datasets                          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| menu access on Upload a CSV                      |:heavy_check_mark:|:heavy_check_mark:|O|O|
-| menu access on Upload Excel                      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | menu access on Charts                            |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | menu access on Dashboards                        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | menu access on SQL Lab                           |:heavy_check_mark:|O|O|:heavy_check_mark:|
@@ -129,13 +125,6 @@ under the License.
 | all datasource access on all_datasource_access   |:heavy_check_mark:|:heavy_check_mark:|O|O|
 | all database access on all_database_access       |:heavy_check_mark:|:heavy_check_mark:|O|O|
 | all query access on all_query_access             |:heavy_check_mark:|O|O|O|
-| can edit on UserOAuthModelView                   |:heavy_check_mark:|O|O|O|
-| can list on UserOAuthModelView                   |:heavy_check_mark:|O|O|O|
-| can show on UserOAuthModelView                   |:heavy_check_mark:|O|O|O|
-| can userinfo on UserOAuthModelView               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can add on UserOAuthModelView                    |:heavy_check_mark:|O|O|O|
-| can delete on UserOAuthModelView                 |:heavy_check_mark:|O|O|O|
-| userinfoedit on UserOAuthModelView               |:heavy_check_mark:|O|O|O|
 | can write on DynamicPlugin                       |:heavy_check_mark:|O|O|O|
 | can edit on DynamicPlugin                        |:heavy_check_mark:|O|O|O|
 | can list on DynamicPlugin                        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -143,13 +132,6 @@ under the License.
 | can download on DynamicPlugin                    |:heavy_check_mark:|O|O|O|
 | can add on DynamicPlugin                         |:heavy_check_mark:|O|O|O|
 | can delete on DynamicPlugin                      |:heavy_check_mark:|O|O|O|
-| can edit on RowLevelSecurityFiltersModelView     |:heavy_check_mark:|O|O|O|
-| can list on RowLevelSecurityFiltersModelView     |:heavy_check_mark:|O|O|O|
-| can show on RowLevelSecurityFiltersModelView     |:heavy_check_mark:|O|O|O|
-| can download on RowLevelSecurityFiltersModelView |:heavy_check_mark:|O|O|O|
-| can add on RowLevelSecurityFiltersModelView      |:heavy_check_mark:|O|O|O|
-| can delete on RowLevelSecurityFiltersModelView   |:heavy_check_mark:|O|O|O|
-| muldelete on RowLevelSecurityFiltersModelView    |:heavy_check_mark:|O|O|O|
 | can external metadata by name on Datasource      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can get value on KV                              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can store on KV                                  |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -192,7 +174,6 @@ under the License.
 | can share chart on Superset                      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can this form get on ColumnarToDatabaseView      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can this form post on ColumnarToDatabaseView     |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| menu access on Upload a Columnar file            |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can export on Chart                              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can write on DashboardFilterStateRestApi         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can read on DashboardFilterStateRestApi          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|

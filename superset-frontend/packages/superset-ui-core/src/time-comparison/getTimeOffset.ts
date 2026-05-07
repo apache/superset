@@ -21,18 +21,19 @@ import { ensureIsArray } from '../utils';
 import { customTimeRangeDecode } from './customTimeRangeDecode';
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
 export const parseDttmToDate = (
   dttm: string,
   isEndDate = false,
   computingShifts = false,
 ) => {
   const now = new Date();
-  if (
-    dttm === 'now' ||
-    dttm === 'today' ||
-    dttm === 'No filter' ||
-    dttm === ''
-  ) {
+  if (dttm === 'now' || dttm === 'No filter' || dttm === '') {
+    return now;
+  }
+
+  if (dttm === 'today') {
+    now.setHours(0, 0, 0, 0);
     return now;
   }
 
@@ -280,9 +281,12 @@ export const getTimeOffset = ({
 
   const customShift =
     customStartDateTime &&
+    filterStartDateTime &&
     Math.round((filterStartDateTime - customStartDateTime) / DAY_IN_MS);
   const inInheritShift =
     isInherit &&
+    filterEndDateTime &&
+    filterStartDateTime &&
     Math.round((filterEndDateTime - filterStartDateTime) / DAY_IN_MS);
 
   const newShifts = ensureIsArray(shifts)
@@ -292,7 +296,7 @@ export const getTimeOffset = ({
           if (includeFutureOffsets && customShift < 0) {
             return `${customShift * -1} days after`;
           }
-          if (customShift >= 0) {
+          if (customShift >= 0 && filterStartDateTime) {
             return `${customShift} days ago`;
           }
         }

@@ -22,6 +22,7 @@ import {
   formatSelectOptionsForRange,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
+import { xAxisLabelRotation } from '../controls';
 
 const sortAxisChoices = [
   ['alpha_asc', t('Axis ascending')],
@@ -50,8 +51,7 @@ const config: ControlPanelConfig = {
               label: t('Sort X Axis'),
               choices: sortAxisChoices,
               renderTrigger: false,
-              clearable: false,
-              default: 'alpha_asc',
+              clearable: true,
             },
           },
         ],
@@ -63,8 +63,7 @@ const config: ControlPanelConfig = {
               label: t('Sort Y Axis'),
               choices: sortAxisChoices,
               renderTrigger: false,
-              clearable: false,
-              default: 'alpha_asc',
+              clearable: true,
             },
           },
         ],
@@ -127,10 +126,35 @@ const config: ControlPanelConfig = {
         ['linear_color_scheme'],
         [
           {
+            name: 'border_color',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Border color'),
+              renderTrigger: true,
+              description: t('The color of the elements border'),
+              default: { r: 0, g: 0, b: 0, a: 1 },
+            },
+          },
+          {
+            name: 'border_width',
+            config: {
+              type: 'SliderControl',
+              label: t('Border width'),
+              renderTrigger: true,
+              min: 0,
+              max: 2,
+              default: 0,
+              step: 0.1,
+              description: t('The width of the elements border'),
+            },
+          },
+        ],
+        [
+          {
             name: 'xscale_interval',
             config: {
               type: 'SelectControl',
-              label: t('XScale Interval'),
+              label: t('X-scale interval'),
               renderTrigger: true,
               choices: [[-1, t('Auto')]].concat(
                 formatSelectOptionsForRange(1, 50),
@@ -148,7 +172,7 @@ const config: ControlPanelConfig = {
             name: 'yscale_interval',
             config: {
               type: 'SelectControl',
-              label: t('YScale Interval'),
+              label: t('Y-scale interval'),
               choices: [[-1, t('Auto')]].concat(
                 formatSelectOptionsForRange(1, 50),
               ),
@@ -225,6 +249,7 @@ const config: ControlPanelConfig = {
         ],
         ['y_axis_format'],
         ['x_axis_time_format'],
+        [xAxisLabelRotation],
         ['currency_format'],
         [
           {

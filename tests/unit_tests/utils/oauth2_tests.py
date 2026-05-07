@@ -43,7 +43,7 @@ def test_get_oauth2_access_token_base_token_valid(mocker: MockerFixture) -> None
     db = mocker.patch("superset.utils.oauth2.db")
     db_engine_spec = mocker.MagicMock()
     token = mocker.MagicMock()
-    token.access_token = "access-token"
+    token.access_token = "access-token"  # noqa: S105
     token.access_token_expiration = datetime(2024, 1, 2)
     db.session.query().filter_by().one_or_none.return_value = token
 
@@ -62,16 +62,16 @@ def test_get_oauth2_access_token_base_refresh(mocker: MockerFixture) -> None:
         "expires_in": 3600,
     }
     token = mocker.MagicMock()
-    token.access_token = "access-token"
+    token.access_token = "access-token"  # noqa: S105
     token.access_token_expiration = datetime(2024, 1, 1)
-    token.refresh_token = "refresh-token"
+    token.refresh_token = "refresh-token"  # noqa: S105
     db.session.query().filter_by().one_or_none.return_value = token
 
     with freeze_time("2024-01-02"):
         assert get_oauth2_access_token({}, 1, 1, db_engine_spec) == "new-token"
 
     # check that token was updated
-    assert token.access_token == "new-token"
+    assert token.access_token == "new-token"  # noqa: S105
     assert token.access_token_expiration == datetime(2024, 1, 2, 1)
     db.session.add.assert_called_with(token)
 
@@ -83,7 +83,7 @@ def test_get_oauth2_access_token_base_no_refresh(mocker: MockerFixture) -> None:
     db = mocker.patch("superset.utils.oauth2.db")
     db_engine_spec = mocker.MagicMock()
     token = mocker.MagicMock()
-    token.access_token = "access-token"
+    token.access_token = "access-token"  # noqa: S105
     token.access_token_expiration = datetime(2024, 1, 1)
     token.refresh_token = None
     db.session.query().filter_by().one_or_none.return_value = token

@@ -18,9 +18,8 @@
  */
 import { t } from '@superset-ui/core';
 import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
-import { FormLabel } from 'src/components/Form';
-import { Input } from 'src/components/Input';
-import Modal from 'src/components/Modal';
+import { Input, FormLabel, Modal, Icons } from '@superset-ui/core/components';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import Dataset from 'src/types/Dataset';
 
 interface DuplicateDatasetModalProps {
@@ -58,7 +57,13 @@ const DuplicateDatasetModal: FunctionComponent<DuplicateDatasetModalProps> = ({
     <Modal
       show={show}
       onHide={onHide}
-      title={t('Duplicate dataset')}
+      name={t('Duplicate dataset')}
+      title={
+        <ModalTitleWithIcon
+          title={t('Duplicate dataset')}
+          icon={<Icons.CopyOutlined />}
+        />
+      }
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={duplicateDataset}
       primaryButtonName={t('Duplicate')}

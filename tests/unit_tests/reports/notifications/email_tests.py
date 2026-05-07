@@ -42,15 +42,12 @@ def test_render_description_with_html() -> None:
             "chart_id": None,
             "dashboard_id": None,
             "slack_channels": None,
+            "execution_id": "test-execution-id",
         },
     )
     email_body = (
         EmailNotification(
-            recipient=ReportRecipients(
-                type=ReportRecipientType.EMAIL,
-                recipient_config_json='{"target": "test@example.com"}',
-            ),
-            content=content,
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
         )
         ._get_content()
         .body
@@ -87,6 +84,7 @@ def test_dont_include_cta_for_external_email() -> None:
             "chart_id": None,
             "dashboard_id": None,
             "slack_channels": None,
+            "execution_id": "test-execution-id",
         },
     )
     email_body = (
@@ -133,6 +131,7 @@ def test_include_cta_for_internal_email() -> None:
             "chart_id": None,
             "dashboard_id": None,
             "slack_channels": None,
+            "execution_id": "test-execution-id",
         },
     )
     email_body = (

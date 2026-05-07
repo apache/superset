@@ -17,16 +17,10 @@
  * under the License.
  */
 
-import { ReactElement, ReactNode } from 'react';
-import { mount } from 'enzyme';
+import '@testing-library/jest-dom';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
-import {
-  ChartProps,
-  promiseTimeout,
-  supersetTheme,
-  SupersetTheme,
-  ThemeProvider,
-} from '@superset-ui/core';
+import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { render, screen, waitFor } from '@superset-ui/core/spec';
 import SuperChartCore from '../../../src/chart/components/SuperChartCore';
 import {
   ChartKeys,
@@ -35,25 +29,8 @@ import {
   SlowChartPlugin,
 } from './MockChartPlugins';
 
-const Wrapper = ({
-  theme,
-  children,
-}: {
-  theme: SupersetTheme;
-  children: ReactNode;
-}) => <ThemeProvider theme={theme}>{children}</ThemeProvider>;
-
-const styledMount = (component: ReactElement) =>
-  mount(component, {
-    wrappingComponent: Wrapper,
-    wrappingComponentProps: {
-      theme: supersetTheme,
-    },
-  });
-
 describe('SuperChartCore', () => {
   const chartProps = new ChartProps();
-
   const plugins = [
     new DiligentChartPlugin().configure({ key: ChartKeys.DILIGENT }),
     new LazyChartPlugin().configure({ key: ChartKeys.LAZY }),
@@ -63,6 +40,7 @@ describe('SuperChartCore', () => {
   let restoreConsole: RestoreConsole;
 
   beforeAll(() => {
+    jest.setTimeout(30000);
     plugins.forEach(p => {
       p.unregister().register();
     });
@@ -83,72 +61,83 @@ describe('SuperChartCore', () => {
   });
 
   describe('registered charts', () => {
-    it('renders registered chart', () => {
-      const wrapper = styledMount(
+    it('renders registered chart', async () => {
+      const { container } = render(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
           chartProps={chartProps}
         />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().find('div.test-component')).toHaveLength(1);
+      await waitFor(() => {
+        expect(container.querySelector('.test-component')).toBeInTheDocument();
       });
     });
-    it('renders registered chart with lazy loading', () => {
-      const wrapper = styledMount(
+
+    it('renders registered chart with lazy loading', async () => {
+      const { container } = render(
         <SuperChartCore chartType={ChartKeys.LAZY} />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().find('div.test-component')).toHaveLength(1);
+      await waitFor(() => {
+        expect(container.querySelector('.test-component')).toBeInTheDocument();
       });
     });
-    it('does not render if chartType is not set', () => {
-      // Suppress warning
-      // @ts-ignore chartType is required
-      const wrapper = styledMount(<SuperChartCore />);
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().children()).toHaveLength(0);
-      }, 5);
+    it('does not render if chartType is not set', async () => {
+      // @ts-ignore chartType is required
+      const { container } = render(<SuperChartCore />);
+
+      await waitFor(() => {
+        const testComponent = container.querySelector('.test-component');
+        expect(testComponent).not.toBeInTheDocument();
+      });
     });
-    it('adds id to container if specified', () => {
-      const wrapper = styledMount(
+
+    it('adds id to container if specified', async () => {
+      const { container } = render(
         <SuperChartCore chartType={ChartKeys.DILIGENT} id="the-chart" />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().attr('id')).toEqual('the-chart');
+      await waitFor(() => {
+        const element = container.querySelector('#the-chart');
+        expect(element).toBeInTheDocument();
+        expect(element).toHaveAttribute('id', 'the-chart');
       });
     });
-    it('adds class to container if specified', () => {
-      const wrapper = styledMount(
+
+    it('adds class to container if specified', async () => {
+      const { container } = render(
         <SuperChartCore chartType={ChartKeys.DILIGENT} className="the-chart" />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.hasClass('the-chart')).toBeTruthy();
-      }, 0);
+      await waitFor(() => {
+        const element = container.querySelector('.the-chart');
+        expect(element).toBeInTheDocument();
+        expect(element).toHaveClass('the-chart');
+      });
     });
-    it('uses overrideTransformProps when specified', () => {
-      const wrapper = styledMount(
+
+    it('uses overrideTransformProps when specified', async () => {
+      render(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
           overrideTransformProps={() => ({ message: 'hulk' })}
         />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().find('.message').text()).toEqual('hulk');
+      await waitFor(() => {
+        expect(screen.getByText('hulk')).toBeInTheDocument();
       });
     });
-    it('uses preTransformProps when specified', () => {
+
+    it('uses preTransformProps when specified', async () => {
       const chartPropsWithPayload = new ChartProps({
         queriesData: [{ message: 'hulk' }],
         theme: supersetTheme,
       });
-      const wrapper = styledMount(
+
+      render(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
           preTransformProps={() => chartPropsWithPayload}
@@ -156,69 +145,83 @@ describe('SuperChartCore', () => {
         />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().find('.message').text()).toEqual('hulk');
+      await waitFor(() => {
+        expect(screen.getByText('hulk')).toBeInTheDocument();
       });
     });
-    it('uses postTransformProps when specified', () => {
-      const wrapper = styledMount(
+
+    it('uses postTransformProps when specified', async () => {
+      render(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
           postTransformProps={() => ({ message: 'hulk' })}
         />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().find('.message').text()).toEqual('hulk');
+      await waitFor(() => {
+        expect(screen.getByText('hulk')).toBeInTheDocument();
       });
     });
-    it('renders if chartProps is not specified', () => {
-      const wrapper = styledMount(
+
+    it('renders if chartProps is not specified', async () => {
+      const { container } = render(
         <SuperChartCore chartType={ChartKeys.DILIGENT} />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().find('div.test-component')).toHaveLength(1);
+      await waitFor(() => {
+        expect(container.querySelector('.test-component')).toBeInTheDocument();
       });
     });
+
     it('does not render anything while waiting for Chart code to load', () => {
-      const wrapper = styledMount(
+      const { container } = render(
         <SuperChartCore chartType={ChartKeys.SLOW} />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().children()).toHaveLength(0);
-      });
+      const testComponent = container.querySelector('.test-component');
+      expect(testComponent).not.toBeInTheDocument();
     });
-    it('eventually renders after Chart is loaded', () => {
-      // Suppress warning
-      const wrapper = styledMount(
+
+    it('eventually renders after Chart is loaded', async () => {
+      const { container } = render(
         <SuperChartCore chartType={ChartKeys.SLOW} />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().find('div.test-component')).toHaveLength(1);
-      }, 1500);
+      await waitFor(
+        () => {
+          expect(
+            container.querySelector('.test-component'),
+          ).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
     });
-    it('does not render if chartProps is null', () => {
-      const wrapper = styledMount(
+
+    it('does not render if chartProps is null', async () => {
+      const { container } = render(
         <SuperChartCore chartType={ChartKeys.DILIGENT} chartProps={null} />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().find('div.test-component')).toHaveLength(0);
+      await waitFor(() => {
+        // Should not render any chart content, only the antd App wrapper
+        expect(
+          container.querySelector('.test-component'),
+        ).not.toBeInTheDocument();
+        expect(
+          container.querySelector('[data-test="chart-container"]'),
+        ).not.toBeInTheDocument();
       });
     });
   });
 
   describe('unregistered charts', () => {
-    it('renders error message', () => {
-      const wrapper = styledMount(
+    it('renders error message', async () => {
+      render(
         <SuperChartCore chartType="4d-pie-chart" chartProps={chartProps} />,
       );
 
-      return promiseTimeout(() => {
-        expect(wrapper.render().find('.alert')).toHaveLength(1);
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeInTheDocument();
       });
     });
   });

@@ -23,11 +23,11 @@ from typing import Any, Optional, Union
 import pytest
 from flask_appbuilder.security.sqla.models import User
 
-from superset.tasks.exceptions import ExecutorNotFoundError
-from superset.tasks.types import ExecutorType
+from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
+from superset.tasks.types import Executor, ExecutorType, FixedExecutor
 
-SELENIUM_USER_ID = 1234
-SELENIUM_USERNAME = "admin"
+FIXED_USER_ID = 1234
+FIXED_USERNAME = "admin"
 
 
 def _get_users(
@@ -54,18 +54,18 @@ class ModelType(int, Enum):
 
 
 @pytest.mark.parametrize(
-    "model_type,executor_types,model_config,current_user,expected_result",
+    "model_type,executors,model_config,current_user,expected_result",
     [
         (
             ModelType.REPORT_SCHEDULE,
-            [ExecutorType.SELENIUM],
+            [FixedExecutor(FIXED_USERNAME)],
             ModelConfig(
                 owners=[1, 2],
                 creator=3,
                 modifier=4,
             ),
             None,
-            (ExecutorType.SELENIUM, SELENIUM_USER_ID),
+            (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
         (
             ModelType.REPORT_SCHEDULE,
@@ -75,11 +75,11 @@ class ModelType(int, Enum):
                 ExecutorType.OWNER,
                 ExecutorType.MODIFIER,
                 ExecutorType.MODIFIER_OWNER,
-                ExecutorType.SELENIUM,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[]),
             None,
-            (ExecutorType.SELENIUM, SELENIUM_USER_ID),
+            (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
         (
             ModelType.REPORT_SCHEDULE,
@@ -89,7 +89,7 @@ class ModelType(int, Enum):
                 ExecutorType.OWNER,
                 ExecutorType.MODIFIER,
                 ExecutorType.MODIFIER_OWNER,
-                ExecutorType.SELENIUM,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[], modifier=1),
             None,
@@ -103,7 +103,7 @@ class ModelType(int, Enum):
                 ExecutorType.OWNER,
                 ExecutorType.MODIFIER,
                 ExecutorType.MODIFIER_OWNER,
-                ExecutorType.SELENIUM,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[2], modifier=1),
             None,
@@ -117,7 +117,7 @@ class ModelType(int, Enum):
                 ExecutorType.OWNER,
                 ExecutorType.MODIFIER,
                 ExecutorType.MODIFIER_OWNER,
-                ExecutorType.SELENIUM,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[2], creator=3, modifier=1),
             None,
@@ -198,11 +198,11 @@ class ModelType(int, Enum):
         (
             ModelType.DASHBOARD,
             [
-                ExecutorType.SELENIUM,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             4,
-            (ExecutorType.SELENIUM, SELENIUM_USER_ID),
+            (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
         (
             ModelType.DASHBOARD,
@@ -219,11 +219,11 @@ class ModelType(int, Enum):
                 ExecutorType.CREATOR_OWNER,
                 ExecutorType.MODIFIER_OWNER,
                 ExecutorType.CURRENT_USER,
-                ExecutorType.SELENIUM,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             None,
-            (ExecutorType.SELENIUM, SELENIUM_USER_ID),
+            (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
         (
             ModelType.CHART,
@@ -237,11 +237,11 @@ class ModelType(int, Enum):
         (
             ModelType.CHART,
             [
-                ExecutorType.SELENIUM,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             4,
-            (ExecutorType.SELENIUM, SELENIUM_USER_ID),
+            (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
         (
             ModelType.CHART,
@@ -255,23 +255,32 @@ class ModelType(int, Enum):
         (
             ModelType.CHART,
             [
+                ExecutorType.FIXED_USER,
+            ],
+            ModelConfig(owners=[]),
+            None,
+            InvalidExecutorError(),
+        ),
+        (
+            ModelType.CHART,
+            [
                 ExecutorType.CREATOR_OWNER,
                 ExecutorType.MODIFIER_OWNER,
                 ExecutorType.CURRENT_USER,
-                ExecutorType.SELENIUM,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             None,
-            (ExecutorType.SELENIUM, SELENIUM_USER_ID),
+            (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
     ],
 )
 def test_get_executor(
     model_type: ModelType,
-    executor_types: list[ExecutorType],
+    executors: list[Executor],
     model_config: ModelConfig,
     current_user: Optional[int],
-    expected_result: tuple[int, ExecutorNotFoundError],
+    expected_result: tuple[ExecutorType, int] | Exception,
 ) -> None:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -308,14 +317,14 @@ def test_get_executor(
         cm = nullcontext()
         expected_executor_type = expected_result[0]
         expected_executor = (
-            SELENIUM_USERNAME
-            if expected_executor_type == ExecutorType.SELENIUM
+            FIXED_USERNAME
+            if expected_executor_type == ExecutorType.FIXED_USER
             else str(expected_result[1])
         )
 
     with cm:
         executor_type, executor = get_executor(
-            executor_types=executor_types,
+            executors=executors,
             model=obj,
             current_user=str(current_user) if current_user else None,
         )

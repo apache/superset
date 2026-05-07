@@ -36,13 +36,13 @@ class TestEmbeddedDashboardDAO(SupersetTestCase):
         EmbeddedDashboardDAO.upsert(dash, ["test.example.com"])
         db.session.flush()
         assert dash.embedded
-        self.assertEqual(dash.embedded[0].allowed_domains, ["test.example.com"])
+        assert dash.embedded[0].allowed_domains == ["test.example.com"]
         original_uuid = dash.embedded[0].uuid
-        self.assertIsNotNone(original_uuid)
+        assert original_uuid is not None
         EmbeddedDashboardDAO.upsert(dash, [])
         db.session.flush()
-        self.assertEqual(dash.embedded[0].allowed_domains, [])
-        self.assertEqual(dash.embedded[0].uuid, original_uuid)
+        assert dash.embedded[0].allowed_domains == []
+        assert dash.embedded[0].uuid == original_uuid
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_by_uuid(self):
@@ -51,4 +51,4 @@ class TestEmbeddedDashboardDAO(SupersetTestCase):
         db.session.flush()
         uuid = str(dash.embedded[0].uuid)
         embedded = EmbeddedDashboardDAO.find_by_id(uuid)
-        self.assertIsNotNone(embedded)
+        assert embedded is not None

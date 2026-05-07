@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-preset-chart-nvd3",
-  "version": "0.18.25",
+  "version": "0.20.3",
   "description": "Superset Legacy Chart - NVD3",
   "sideEffects": [
     "*.css"
@@ -29,20 +29,19 @@
     "access": "public"
   },
   "dependencies": {
-    "@data-ui/xy-chart": "^0.0.84",
     "d3": "^3.5.17",
     "d3-tip": "^0.9.1",
-    "dompurify": "^3.1.0",
     "fast-safe-stringify": "^2.1.1",
     "lodash": "^4.17.21",
-    "moment": "^2.30.1",
+    "dayjs": "^1.11.13",
     "nvd3-fork": "^2.0.5",
+    "dompurify": "^3.2.6",
     "prop-types": "^15.8.1",
     "urijs": "^1.19.11"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^15 || ^16"
+    "react": "^17.0.2"
   }
 }

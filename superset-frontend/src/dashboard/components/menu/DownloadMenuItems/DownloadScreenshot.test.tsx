@@ -19,7 +19,7 @@
 
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { Menu } from 'src/components/Menu';
+import { Menu } from '@superset-ui/core/components/Menu';
 import fetchMock from 'fetch-mock';
 import { logging } from '@superset-ui/core';
 import { DownloadScreenshotFormat } from './types';

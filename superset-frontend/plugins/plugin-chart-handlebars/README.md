@@ -73,3 +73,26 @@ more details.
 └── types
     └── external.d.ts
 ```
+
+### Available Handlebars Helpers in Superset
+
+Below, you will find a list of all currently registered helpers in the Handlebars plugin for Superset. These helpers are registered and managed in the file [`HandlebarsViewer.tsx`](./path/to/HandlebarsViewer.tsx).
+
+#### List of Registered Helpers:
+
+1. **`dateFormat`**: Formats a date using a specified format.
+
+   - **Usage**: `{{dateFormat my_date format="MMMM YYYY"}}`
+   - **Default format**: `YYYY-MM-DD`.
+
+2. **`stringify`**: Converts an object into a JSON string or returns a string representation of non-object values.
+
+   - **Usage**: `{{stringify myObj}}`.
+
+3. **`formatNumber`**: Formats a number using locale-specific formatting.
+
+   - **Usage**: `{{formatNumber number locale="en-US"}}`.
+   - **Default locale**: `en-US`.
+
+4. **`parseJson`**: Parses a JSON string into a JavaScript object.
+   - **Usage**: `{{parseJson jsonString}}`.

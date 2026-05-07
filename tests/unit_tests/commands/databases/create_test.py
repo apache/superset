@@ -21,10 +21,11 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.database.create import CreateDatabaseCommand
+from superset.exceptions import OAuth2RedirectError
 from superset.extensions import security_manager
 
 
-@pytest.fixture()
+@pytest.fixture
 def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database with catalogs and schemas.
@@ -41,13 +42,13 @@ def database_with_catalog(mocker: MockerFixture) -> MagicMock:
         {"schema3", "schema4"},
     ]
 
-    DatabaseDAO = mocker.patch("superset.commands.database.create.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.create.DatabaseDAO")  # noqa: N806
     DatabaseDAO.create.return_value = database
 
     return database
 
 
-@pytest.fixture()
+@pytest.fixture
 def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database without catalogs.
@@ -60,7 +61,7 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     database.db_engine_spec.supports_catalog = False
     database.get_all_schema_names.return_value = ["schema1", "schema2"]
 
-    DatabaseDAO = mocker.patch("superset.commands.database.create.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.create.DatabaseDAO")  # noqa: N806
     DatabaseDAO.create.return_value = database
 
     return database
@@ -124,3 +125,33 @@ def test_create_permissions_without_catalog(
         ],
         any_order=True,
     )
+
+
+def test_create_with_oauth2(
+    mocker: MockerFixture,
+    database_without_catalog: MockerFixture,
+) -> None:
+    """
+    Test that the database can be created even if OAuth2 is needed to connect.
+    """
+    TestConnectionDatabaseCommand = mocker.patch(  # noqa: N806
+        "superset.commands.database.create.TestConnectionDatabaseCommand"
+    )
+    TestConnectionDatabaseCommand().run.side_effect = OAuth2RedirectError(
+        "url",
+        "tab_id",
+        "redirect_uri",
+    )
+    add_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "add_permission_view_menu",
+    )
+
+    CreateDatabaseCommand(
+        {
+            "database_name": "test_database",
+            "sqlalchemy_uri": "sqlite://",
+        }
+    ).run()
+
+    add_permission_view_menu.assert_not_called()

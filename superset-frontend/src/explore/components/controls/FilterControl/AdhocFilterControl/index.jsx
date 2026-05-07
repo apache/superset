@@ -37,12 +37,11 @@ import {
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import {
   AddControlLabel,
-  AddIconButton,
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
-import Icons from 'src/components/Icons';
-import Modal from 'src/components/Modal';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Modal } from '@superset-ui/core/components';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -355,31 +354,25 @@ class AdhocFilterControl extends Component {
   }
 
   render() {
-    const { theme } = this.props;
     return (
       <div className="metrics-select" data-test="adhoc-filter-control">
         <HeaderContainer>
           <ControlHeader {...this.props} />
-          {this.addNewFilterPopoverTrigger(
-            <AddIconButton data-test="add-filter-button">
-              <Icons.PlusLarge
-                iconSize="s"
-                iconColor={theme.colors.grayscale.light5}
-              />
-            </AddIconButton>,
-          )}
         </HeaderContainer>
         <LabelsContainer>
-          {this.state.values.length > 0
-            ? this.state.values.map((value, index) =>
-                this.valueRenderer(value, index),
-              )
-            : this.addNewFilterPopoverTrigger(
-                <AddControlLabel>
-                  <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
-                  {t('Add filter')}
-                </AddControlLabel>,
-              )}
+          {[
+            ...(this.state.values.length > 0
+              ? this.state.values.map((value, index) =>
+                  this.valueRenderer(value, index),
+                )
+              : []),
+            this.addNewFilterPopoverTrigger(
+              <AddControlLabel role="button" data-test="add-filter-button">
+                <Icons.PlusOutlined iconSize="m" />
+                {t('Add filter')}
+              </AddControlLabel>,
+            ),
+          ]}
         </LabelsContainer>
       </div>
     );

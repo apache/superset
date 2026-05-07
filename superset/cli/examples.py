@@ -32,10 +32,10 @@ def load_examples_run(
     force: bool = False,
 ) -> None:
     if only_metadata:
-        print("Loading examples metadata")
+        logger.info("Loading examples metadata")
     else:
         examples_db = database_utils.get_example_database()
-        print(f"Loading examples metadata and related data into {examples_db}")
+        logger.info(f"Loading examples metadata and related data into {examples_db}")
 
     # pylint: disable=import-outside-toplevel
     import superset.examples.data_loading as examples
@@ -43,45 +43,45 @@ def load_examples_run(
     examples.load_css_templates()
 
     if load_test_data:
-        print("Loading energy related dataset")
+        logger.info("Loading energy related dataset")
         examples.load_energy(only_metadata, force)
 
-    print("Loading [World Bank's Health Nutrition and Population Stats]")
+    logger.info("Loading [World Bank's Health Nutrition and Population Stats]")
     examples.load_world_bank_health_n_pop(only_metadata, force)
 
-    print("Loading [Birth names]")
+    logger.info("Loading [Birth names]")
     examples.load_birth_names(only_metadata, force)
 
     if load_test_data:
-        print("Loading [Tabbed dashboard]")
+        logger.info("Loading [Tabbed dashboard]")
         examples.load_tabbed_dashboard(only_metadata)
 
-        print("Loading [Supported Charts Dashboard]")
+        logger.info("Loading [Supported Charts Dashboard]")
         examples.load_supported_charts_dashboard()
     else:
-        print("Loading [Random long/lat data]")
+        logger.info("Loading [Random long/lat data]")
         examples.load_long_lat_data(only_metadata, force)
 
-        print("Loading [Country Map data]")
+        logger.info("Loading [Country Map data]")
         examples.load_country_map_data(only_metadata, force)
 
-        print("Loading [San Francisco population polygons]")
+        logger.info("Loading [San Francisco population polygons]")
         examples.load_sf_population_polygons(only_metadata, force)
 
-        print("Loading [Flights data]")
+        logger.info("Loading [Flights data]")
         examples.load_flights(only_metadata, force)
 
-        print("Loading [BART lines]")
+        logger.info("Loading [BART lines]")
         examples.load_bart_lines(only_metadata, force)
 
-        print("Loading [Misc Charts] dashboard")
+        logger.info("Loading [Misc Charts] dashboard")
         examples.load_misc_dashboard()
 
-        print("Loading DECK.gl demo")
+        logger.info("Loading DECK.gl demo")
         examples.load_deck_dash()
 
     if load_big_data:
-        print("Loading big synthetic data for tests")
+        logger.info("Loading big synthetic data for tests")
         examples.load_big_data()
 
     # load examples that are stored as YAML config files

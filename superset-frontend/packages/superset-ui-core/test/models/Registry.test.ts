@@ -396,31 +396,31 @@ describe('Registry', () => {
 
     it('calls the listener when a value is registered', () => {
       registry.registerValue('foo', 'bar');
-      expect(listener).toBeCalledWith(['foo']);
+      expect(listener).toHaveBeenCalledWith(['foo']);
     });
 
     it('calls the listener when a loader is registered', () => {
       registry.registerLoader('foo', () => 'bar');
-      expect(listener).toBeCalledWith(['foo']);
+      expect(listener).toHaveBeenCalledWith(['foo']);
     });
 
     it('calls the listener when a value is overridden', () => {
       registry.registerValue('foo', 'bar');
       listener.mockClear();
       registry.registerValue('foo', 'baz');
-      expect(listener).toBeCalledWith(['foo']);
+      expect(listener).toHaveBeenCalledWith(['foo']);
     });
 
     it('calls the listener when a value is removed', () => {
       registry.registerValue('foo', 'bar');
       listener.mockClear();
       registry.remove('foo');
-      expect(listener).toBeCalledWith(['foo']);
+      expect(listener).toHaveBeenCalledWith(['foo']);
     });
 
     it('does not call the listener when a value is not actually removed', () => {
       registry.remove('foo');
-      expect(listener).not.toBeCalled();
+      expect(listener).not.toHaveBeenCalled();
     });
 
     it('calls the listener when registry is cleared', () => {
@@ -428,13 +428,13 @@ describe('Registry', () => {
       registry.registerLoader('fluz', () => 'baz');
       listener.mockClear();
       registry.clear();
-      expect(listener).toBeCalledWith(['foo', 'fluz']);
+      expect(listener).toHaveBeenCalledWith(['foo', 'fluz']);
     });
 
     it('removes listeners correctly', () => {
       registry.removeListener(listener);
       registry.registerValue('foo', 'bar');
-      expect(listener).not.toBeCalled();
+      expect(listener).not.toHaveBeenCalled();
     });
 
     describe('with a broken listener', () => {
@@ -456,10 +456,10 @@ describe('Registry', () => {
         registry.addListener(lastListener);
         registry.registerValue('foo', 'bar');
 
-        expect(listener).toBeCalledWith(['foo']);
-        expect(errorListener).toBeCalledWith(['foo']);
-        expect(lastListener).toBeCalledWith(['foo']);
-        expect(console.error).toBeCalled();
+        expect(listener).toHaveBeenCalledWith(['foo']);
+        expect(errorListener).toHaveBeenCalledWith(['foo']);
+        expect(lastListener).toHaveBeenCalledWith(['foo']);
+        expect(console.error).toHaveBeenCalled();
       });
     });
   });

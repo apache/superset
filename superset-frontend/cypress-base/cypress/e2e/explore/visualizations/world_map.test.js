@@ -18,7 +18,7 @@
  */
 describe('Visualization > World Map', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '**/superset/explore_json/**').as('getJson');
   });
 
   const WORLD_MAP_FORM_DATA = {
@@ -84,9 +84,10 @@ describe('Visualization > World Map', () => {
     verify(WORLD_MAP_FORM_DATA);
 
     cy.get('.Control[data-test="linear_color_scheme"]').scrollIntoView();
-    cy.get('.Control[data-test="linear_color_scheme"] input[type="search"]')
-      .focus()
-      .type('greens{enter}');
+    cy.get(
+      '.Control[data-test="linear_color_scheme"] input[type="search"]',
+    ).focus();
+    cy.focused().type('greens{enter}');
     cy.get(
       '.Control[data-test="linear_color_scheme"] .ant-select-selection-item [data-test="greens"]',
     ).should('exist');

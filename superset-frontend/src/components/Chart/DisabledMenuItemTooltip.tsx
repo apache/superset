@@ -19,8 +19,8 @@
 
 import { ReactNode } from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from '@superset-ui/core/components';
 
 export const MenuItemTooltip = ({
   title,
@@ -33,8 +33,8 @@ export const MenuItemTooltip = ({
     <Icons.InfoCircleOutlined
       data-test="tooltip-trigger"
       css={(theme: SupersetTheme) => css`
-        color: ${color || theme.colors.text.label};
-        margin-left: ${theme.gridUnit * 2}px;
+        color: ${color || theme.colorTextLabel};
+        margin-left: ${theme.sizeUnit * 2}px;
         &.anticon {
           font-size: unset;
           .anticon {

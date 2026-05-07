@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { getChartControlPanelRegistry } from '@superset-ui/core';
+import { getChartControlPanelRegistry, VizType } from '@superset-ui/core';
 import { getAllControlsState, getFormDataFromControls } from './controlUtils';
 import { controls } from './controls';
 
@@ -42,7 +42,7 @@ export function getControlsState(state, inputFormData) {
   // Getting a list of active control names for the current viz
   const formData = { ...inputFormData };
   const vizType =
-    formData.viz_type || state.common?.conf.DEFAULT_VIZ_TYPE || 'table';
+    formData.viz_type || state.common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
 
   handleDeprecatedControls(formData);
   const controlsState = getAllControlsState(

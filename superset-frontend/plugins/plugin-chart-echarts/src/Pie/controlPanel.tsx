@@ -86,6 +86,23 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'threshold_for_other',
+            config: {
+              type: 'NumberControl',
+              label: t('Threshold for Other'),
+              min: 0,
+              step: 0.5,
+              max: 100,
+              default: 0,
+              renderTrigger: true,
+              description: t(
+                'Values less than this percentage will be grouped into the Other category.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'roseType',
             config: {
               type: 'SelectControl',

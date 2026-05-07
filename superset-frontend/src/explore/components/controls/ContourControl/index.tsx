@@ -47,8 +47,8 @@ const DEFAULT_CONTOURS: ContourType[] = [
 
 const NewContourFormatPlaceholder = styled('div')`
   position: relative;
-  width: calc(100% - ${({ theme }) => theme.gridUnit}px);
-  bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  width: calc(100% - ${({ theme }) => theme.sizeUnit}px);
+  bottom: ${({ theme }) => theme.sizeUnit * 4}px;
   left: 0;
 `;
 

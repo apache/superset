@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { Tag } from 'antd';
+import { Tag } from 'src/components/Tag';
 import {
   BinaryQueryObjectFilterClause,
   css,
@@ -26,8 +26,16 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import RowCountLabel from 'src/explore/components/RowCountLabel';
-import Icons from 'src/components/Icons';
+import RowCountLabel from 'src/components/RowCountLabel';
+import { Icons } from '@superset-ui/core/components/Icons';
+
+export type TableControlsProps = {
+  filters: BinaryQueryObjectFilterClause[];
+  setFilters: (filters: BinaryQueryObjectFilterClause[]) => void;
+  totalCount?: number;
+  loading: boolean;
+  onReload: () => void;
+};
 
 export default function TableControls({
   filters,
@@ -35,13 +43,7 @@ export default function TableControls({
   totalCount,
   loading,
   onReload,
-}: {
-  filters: BinaryQueryObjectFilterClause[];
-  setFilters: (filters: BinaryQueryObjectFilterClause[]) => void;
-  totalCount?: number;
-  loading: boolean;
-  onReload: () => void;
-}) {
+}: TableControlsProps) {
   const theme = useTheme();
   const filterMap: Record<string, BinaryQueryObjectFilterClause> = useMemo(
     () =>
@@ -81,36 +83,29 @@ export default function TableControls({
       css={css`
         display: flex;
         justify-content: space-between;
-        padding: ${theme.gridUnit / 2}px 0;
-        margin-bottom: ${theme.gridUnit * 2}px;
+        padding: ${theme.sizeUnit / 2}px 0;
+        margin-bottom: ${theme.sizeUnit * 2}px;
       `}
     >
       <div
         css={css`
           display: flex;
           flex-wrap: wrap;
-          margin-bottom: -${theme.gridUnit * 4}px;
         `}
       >
-        {filterTags.map(({ colName, val }) => (
+        {filterTags.map(({ colName, val }, index) => (
           <Tag
-            closable
-            onClose={removeFilter.bind(null, colName)}
+            editable
+            onDelete={removeFilter.bind(null, colName)}
+            index={index}
+            id={index}
             key={colName}
-            css={css`
-              height: ${theme.gridUnit * 6}px;
-              display: flex;
-              align-items: center;
-              padding: ${theme.gridUnit / 2}px ${theme.gridUnit * 2}px;
-              margin-right: ${theme.gridUnit * 4}px;
-              margin-bottom: ${theme.gridUnit * 4}px;
-              line-height: 1.2;
-            `}
+            name={`${colName}=${val}`}
             data-test="filter-col"
           >
             <span
               css={css`
-                margin-right: ${theme.gridUnit}px;
+                margin-right: ${theme.sizeUnit}px;
               `}
             >
               {colName}
@@ -128,7 +123,7 @@ export default function TableControls({
       >
         <RowCountLabel loading={loading && !totalCount} rowcount={totalCount} />
         <Icons.ReloadOutlined
-          iconColor={theme.colors.grayscale.light1}
+          iconColor={theme.colorIcon}
           iconSize="l"
           aria-label={t('Reload')}
           role="button"

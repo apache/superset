@@ -19,7 +19,7 @@
 import { RunQueryButton, RunQueryButtonProps } from '.';
 
 export default {
-  title: 'RunQueryButton',
+  title: 'Components/RunQueryButton',
   component: RunQueryButton,
 };
 

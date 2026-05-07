@@ -16,24 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component, cloneElement, ReactNode, ReactElement } from 'react';
-import { t } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
-import withToasts from 'src/components/MessageToasts/withToasts';
+import { Component, cloneElement, ReactElement } from 'react';
+import { t, css, SupersetTheme } from '@superset-ui/core';
 import copyTextToClipboard from 'src/utils/copy';
-
-export interface CopyToClipboardProps {
-  copyNode?: ReactNode;
-  getText?: (callback: (data: string) => void) => void;
-  onCopyEnd?: () => void;
-  shouldShowText?: boolean;
-  text?: string;
-  wrapped?: boolean;
-  tooltipText?: string;
-  addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
-  hideTooltip?: boolean;
-}
+import { Tooltip } from '@superset-ui/core/components';
+import withToasts from '../MessageToasts/withToasts';
+import type { CopyToClipboardProps } from './types';
 
 const defaultProps: Partial<CopyToClipboardProps> = {
   copyNode: <span>{t('Copy')}</span>,
@@ -44,7 +32,7 @@ const defaultProps: Partial<CopyToClipboardProps> = {
   hideTooltip: false,
 };
 
-class CopyToClipboard extends Component<CopyToClipboardProps> {
+class CopyToClip extends Component<CopyToClipboardProps> {
   static defaultProps = defaultProps;
 
   constructor(props: CopyToClipboardProps) {
@@ -97,7 +85,7 @@ class CopyToClipboard extends Component<CopyToClipboardProps> {
             style={{ cursor }}
             title={this.props.tooltipText || ''}
             trigger={['hover']}
-            arrowPointAtCenter
+            arrow={{ pointAtCenter: true }}
           >
             {this.getDecoratedCopyNode()}
           </Tooltip>
@@ -116,7 +104,12 @@ class CopyToClipboard extends Component<CopyToClipboardProps> {
     return (
       <span css={{ display: 'inline-flex', alignItems: 'center' }}>
         {this.props.shouldShowText && this.props.text && (
-          <span className="m-r-5" data-test="short-url">
+          <span
+            data-test="short-url"
+            css={(theme: SupersetTheme) => css`
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          >
             {this.props.text}
           </span>
         )}
@@ -134,4 +127,5 @@ class CopyToClipboard extends Component<CopyToClipboardProps> {
   }
 }
 
-export default withToasts(CopyToClipboard);
+export const CopyToClipboard = withToasts(CopyToClip);
+export type { CopyToClipboardProps };

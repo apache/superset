@@ -17,15 +17,19 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
-
 import type { DatabaseObject } from 'src/features/databases/types';
-import { Row, Col } from 'src/components';
-import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
-import Button from 'src/components/Button';
-import { Menu } from 'src/components/Menu';
-import { Form, FormItem } from 'src/components/Form';
-import Modal from 'src/components/Modal';
+import {
+  Input,
+  Button,
+  Form,
+  FormItem,
+  Modal,
+  Row,
+  Col,
+  Icons,
+} from '@superset-ui/core/components';
+import { Menu } from '@superset-ui/core/components/Menu';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
 import {
   SaveDatasetModal,
@@ -39,6 +43,7 @@ import {
   LOG_ACTIONS_SQLLAB_CREATE_CHART,
   LOG_ACTIONS_SQLLAB_SAVE_QUERY,
 } from 'src/logger/LogUtils';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
 interface SaveQueryProps {
   queryEditorId: string;
@@ -57,12 +62,12 @@ export type QueryPayload = {
 } & Pick<QueryEditor, 'dbId' | 'catalog' | 'schema' | 'sql'>;
 
 const Styles = styled.span`
-  span[role='img'] {
+  span[role='img']:not([aria-label='down']) {
     display: flex;
     margin: 0;
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorIcon};
     svg {
-      vertical-align: -${({ theme }) => theme.gridUnit * 1.25}px;
+      vertical-align: -${({ theme }) => theme.sizeUnit * 1.25}px;
       margin: 0;
     }
   }
@@ -111,16 +116,18 @@ const SaveQuery = ({
     database?.allows_virtual_table_explore !== undefined;
 
   const overlayMenu = (
-    <Menu>
-      <Menu.Item
-        onClick={() => {
-          logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
-          setShowSaveDatasetModal(true);
-        }}
-      >
-        {t('Save dataset')}
-      </Menu.Item>
-    </Menu>
+    <Menu
+      items={[
+        {
+          label: t('Save dataset'),
+          key: 'save-dataset',
+          onClick: () => {
+            logAction(LOG_ACTIONS_SQLLAB_CREATE_CHART, {});
+            setShowSaveDatasetModal(true);
+          },
+        },
+      ]}
+    />
   );
 
   const queryPayload = () => ({
@@ -140,14 +147,14 @@ const SaveQuery = ({
 
   const close = () => setShowSave(false);
 
-  const onSaveWrapper = () => {
+  const onSaveWrapper = async () => {
     logAction(LOG_ACTIONS_SQLLAB_SAVE_QUERY, {});
-    onSave(queryPayload(), query.id);
+    await onSave(queryPayload(), query.id);
     close();
   };
 
-  const onUpdateWrapper = () => {
-    onUpdate(queryPayload(), query.id);
+  const onUpdateWrapper = async () => {
+    await onUpdate(queryPayload(), query.id);
     close();
   };
 
@@ -172,7 +179,7 @@ const SaveQuery = ({
       <Row>
         <Col xs={24}>
           <FormItem label={t('Description')}>
-            <TextArea
+            <Input.TextArea
               rows={4}
               value={description}
               onChange={onDescriptionChange}
@@ -213,32 +220,36 @@ const SaveQuery = ({
       />
       <Modal
         className="save-query-modal"
-        onHandledPrimaryAction={onSaveWrapper}
         onHide={close}
-        primaryButtonName={isSaved ? t('Save') : t('Save as')}
         width="620px"
         show={showSave}
-        title={<h4>{t('Save query')}</h4>}
+        name={t('Save query')}
+        title={
+          <ModalTitleWithIcon
+            title={t('Save query')}
+            icon={<Icons.SaveOutlined />}
+            data-test="save-query-modal-title"
+          />
+        }
         footer={
           <>
-            <Button onClick={close} data-test="cancel-query" cta>
+            <Button
+              onClick={close}
+              data-test="cancel-query"
+              cta
+              buttonStyle="secondary"
+            >
               {t('Cancel')}
             </Button>
             <Button
               buttonStyle={isSaved ? undefined : 'primary'}
               onClick={onSaveWrapper}
-              className="m-r-3"
               cta
             >
               {isSaved ? t('Save as new') : t('Save')}
             </Button>
             {isSaved && (
-              <Button
-                buttonStyle="primary"
-                onClick={onUpdateWrapper}
-                className="m-r-3"
-                cta
-              >
+              <Button buttonStyle="primary" onClick={onUpdateWrapper} cta>
                 {t('Update')}
               </Button>
             )}

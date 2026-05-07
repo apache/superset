@@ -55,3 +55,15 @@ export enum GlobalMenuDataOptions {
   ExcelUpload = 'excelUpload',
   ColumnarUpload = 'columnarUpload',
 }
+
+/**
+ * Return result from /api/v1/log/recent_activity/
+ */
+export interface RecentActivity {
+  action: string;
+  item_type: 'slice' | 'dashboard';
+  item_url: string;
+  item_title: string;
+  time: number;
+  time_delta_humanized?: string;
+}

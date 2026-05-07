@@ -19,11 +19,7 @@
 import { AriaAttributes } from 'react';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
-import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
-import 'jest-enzyme';
 import jQuery from 'jquery';
-import { configure } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
 import { configure as configureTranslation } from '../../packages/superset-ui-core/src/translation';
@@ -33,16 +29,15 @@ import { ResizeObserver } from './ResizeObserver';
 import setupSupersetClient from './setupSupersetClient';
 import CacheStorage from './CacheStorage';
 
-configure({ adapter: new Adapter() });
-
 const exposedProperties = ['window', 'navigator', 'document'];
 
 const { defaultView } = document;
 if (defaultView != null) {
   Object.keys(defaultView).forEach(property => {
-    if (typeof global[property] === 'undefined') {
+    if (typeof global[property as keyof typeof global] === 'undefined') {
       exposedProperties.push(property);
-      global[property] = defaultView[property];
+      // @ts-ignore due to string-type index signature doesn't apply for `typeof globalThis`.
+      global[property] = defaultView[property as keyof typeof defaultView];
     }
   });
 }
@@ -91,32 +86,50 @@ jest.mock('rehype-raw', () => () => jest.fn());
 
 // Mocks the Icon component due to its async nature
 // Tests should override this when needed
-jest.mock('src/components/Icons/Icon', () => ({
+jest.mock('@superset-ui/core/components/Icons/AsyncIcon', () => ({
   __esModule: true,
   default: ({
     fileName,
     role,
     'aria-label': ariaLabel,
+    onClick,
     ...rest
   }: {
     fileName: string;
-    role: string;
-    'aria-label': AriaAttributes['aria-label'];
-  }) => (
-    <span
-      role={role ?? 'img'}
-      aria-label={ariaLabel || fileName.replace('_', '-')}
-      {...rest}
-    />
-  ),
+    role?: string;
+    'aria-label'?: AriaAttributes['aria-label'];
+    onClick?: () => void;
+  }) => {
+    // Simple mock that provides the essential attributes for testing
+    const label = ariaLabel || fileName?.replace(/_/g, '-').toLowerCase() || '';
+    return (
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+      <span
+        role={role || (onClick ? 'button' : 'img')}
+        aria-label={label}
+        data-test={label}
+        onClick={onClick}
+        {...rest}
+      />
+    );
+  },
   StyledIcon: ({
+    component: Component,
     role,
     'aria-label': ariaLabel,
     ...rest
   }: {
+    component: React.ComponentType<any>;
     role: string;
     'aria-label': AriaAttributes['aria-label'];
-  }) => <span role={role ?? 'img'} aria-label={ariaLabel} {...rest} />,
+  }) => (
+    <Component
+      role={role ?? 'img'}
+      alt={ariaLabel}
+      aria-label={ariaLabel}
+      {...rest}
+    />
+  ),
 }));
 
 process.env.WEBPACK_MODE = 'test';

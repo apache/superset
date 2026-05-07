@@ -122,7 +122,8 @@ export function applyMapStateToPropsToControl<T = ControlType>(
     }
   }
   // If no current value, set it as default
-  if (state.default && value === undefined) {
+  // Use loose equality to catch both null and undefined
+  if (state.default != null && value == null) {
     value = state.default;
   }
   // If a choice control went from multi=false to true, wrap value in array
@@ -170,7 +171,7 @@ export function getAllControlsState(
   state: ControlPanelState | null,
   formData: QueryFormData,
 ) {
-  const controlsState = {};
+  const controlsState: Record<string, ControlState<any> | null> = {};
   getSectionsToRender(vizType, datasourceType).forEach(section =>
     section.controlSetRows.forEach(fieldsetRow =>
       fieldsetRow.forEach((field: CustomControlItem) => {

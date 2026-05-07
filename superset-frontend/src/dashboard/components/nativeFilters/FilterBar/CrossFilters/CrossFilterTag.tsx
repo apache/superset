@@ -25,30 +25,29 @@ import {
   useCSSTextTruncation,
 } from '@superset-ui/core';
 import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/selectors';
-import { Tag } from 'src/components';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tag } from 'src/components/Tag';
+import { Tooltip } from '@superset-ui/core/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { CustomCloseIcon } from 'src/components/Tags/Tag';
 import { ellipsisCss } from './styles';
 
 const StyledCrossFilterValue = styled.b`
   ${({ theme }) => `
-    max-width: ${theme.gridUnit * 25}px;
+    max-width: ${theme.sizeUnit * 25}px;
   `}
   ${ellipsisCss}
 `;
 
 const StyledCrossFilterColumn = styled('span')`
   ${({ theme }) => `
-    max-width: ${theme.gridUnit * 25}px;
-    padding-right: ${theme.gridUnit}px;
+    max-width: ${theme.sizeUnit * 25}px;
+    padding-right: ${theme.sizeUnit}px;
   `}
   ${ellipsisCss}
 `;
 
 const StyledTag = styled(Tag)`
   ${({ theme }) => `
-    border: 1px solid ${theme.colors.grayscale.light3};
+    border: 1px solid ${theme.colorBorder};
     border-radius: 2px;
     .anticon-close {
       vertical-align: middle;
@@ -67,22 +66,23 @@ const CrossFilterTag = (props: {
     useCSSTextTruncation<HTMLSpanElement>();
   const [valueRef, valueIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
 
-  const columnLabel = getColumnLabel(filter.column ?? '');
+  const columnLabel =
+    filter.customColumnLabel || getColumnLabel(filter.column ?? '');
 
   return (
     <StyledTag
       css={css`
         ${orientation === FilterBarOrientation.Vertical
           ? `
-            margin-top: ${theme.gridUnit * 2}px;
+            margin-top: ${theme.sizeUnit * 2}px;
           `
           : `
-            margin-left: ${theme.gridUnit * 2}px;
+            margin-left: ${theme.sizeUnit * 2}px;
           `}
       `}
       closable
       onClose={() => removeCrossFilter(filter.emitterId)}
-      closeIcon={CustomCloseIcon}
+      editable
     >
       <Tooltip title={columnIsTruncated ? columnLabel : null}>
         <StyledCrossFilterColumn ref={columnRef}>

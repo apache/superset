@@ -1,0 +1,16 @@
+{
+  "name": "eslint-plugin-i18n-strings",
+  "version": "1.0.0",
+  "description": "Warns about translation variables",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "license": "Apache-2.0",
+  "author": "Apache",
+  "dependencies": {},
+  "peerDependencies": {
+    "eslint": ">=0.8.0"
+  }
+}

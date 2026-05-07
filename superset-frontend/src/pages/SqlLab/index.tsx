@@ -26,7 +26,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { SqlLabGlobalStyles } from 'src/SqlLab//SqlLabGlobalStyles';
 import App from 'src/SqlLab/components/App';
-import Loading from 'src/components/Loading';
+import { Loading } from '@superset-ui/core/components';
 import EditorAutoSync from 'src/SqlLab/components/EditorAutoSync';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { LocationProvider } from './LocationContext';

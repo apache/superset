@@ -24,36 +24,44 @@ import {
   RefObject,
 } from 'react';
 
-import moment, { Moment } from 'moment';
-import { styled, t } from '@superset-ui/core';
-import { RangePicker } from 'src/components/DatePicker';
-import { FormLabel } from 'src/components/Form';
-import { BaseFilter, FilterHandler } from './Base';
+import { t } from '@superset-ui/core';
+import { Dayjs } from 'dayjs';
+import { useLocale } from 'src/hooks/useLocale';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
+import {
+  AntdThemeProvider,
+  Loading,
+  FormLabel,
+  RangePicker,
+} from '@superset-ui/core/components';
+import type { BaseFilter, FilterHandler } from './types';
+import { FilterContainer } from './Base';
+import { RANGE_WIDTH } from '../utils';
 
 interface DateRangeFilterProps extends BaseFilter {
-  onSubmit: (val: number[]) => void;
+  onSubmit: (val: number[] | string[]) => void;
   name: string;
+  dateFilterValueType?: 'unix' | 'iso';
 }
 
-type ValueState = [number, number];
-
-const RangeFilterContainer = styled.div`
-  display: inline-flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  width: 360px;
-`;
+type ValueState = [number, number] | [string, string] | null;
 
 function DateRangeFilter(
-  { Header, initialValue, onSubmit }: DateRangeFilterProps,
+  {
+    Header,
+    initialValue,
+    onSubmit,
+    dateFilterValueType = 'unix',
+  }: DateRangeFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
   const [value, setValue] = useState<ValueState | null>(initialValue ?? null);
-  const momentValue = useMemo((): [Moment, Moment] | null => {
+  const dayjsValue = useMemo((): [Dayjs, Dayjs] | null => {
     if (!value || (Array.isArray(value) && !value.length)) return null;
-    return [moment(value[0]), moment(value[1])];
+    return [extendedDayjs(value[0]), extendedDayjs(value[1])];
   }, [value]);
+
+  const locale = useLocale();
 
   useImperativeHandle(ref, () => ({
     clearFilter: () => {
@@ -62,28 +70,42 @@ function DateRangeFilter(
     },
   }));
 
+  if (locale === null) {
+    return <Loading position="inline-centered" />;
+  }
   return (
-    <RangeFilterContainer>
-      <FormLabel>{Header}</FormLabel>
-      <RangePicker
-        placeholder={[t('Start date'), t('End date')]}
-        showTime
-        value={momentValue}
-        onChange={momentRange => {
-          if (!momentRange) {
-            setValue(null);
-            onSubmit([]);
-            return;
-          }
-          const changeValue = [
-            momentRange[0]?.valueOf() ?? 0,
-            momentRange[1]?.valueOf() ?? 0,
-          ] as ValueState;
-          setValue(changeValue);
-          onSubmit(changeValue);
-        }}
-      />
-    </RangeFilterContainer>
+    <AntdThemeProvider locale={locale}>
+      <FilterContainer
+        data-test="date-range-filter-container"
+        vertical
+        justify="center"
+        align="start"
+        width={RANGE_WIDTH}
+      >
+        <FormLabel>{Header}</FormLabel>
+        <RangePicker
+          placeholder={[t('Start date'), t('End date')]}
+          showTime
+          value={dayjsValue}
+          onCalendarChange={(dayjsRange: [Dayjs, Dayjs]) => {
+            if (!dayjsRange?.[0]?.valueOf() || !dayjsRange?.[1]?.valueOf()) {
+              setValue(null);
+              onSubmit([]);
+              return;
+            }
+            const changeValue =
+              dateFilterValueType === 'iso'
+                ? [dayjsRange[0].toISOString(), dayjsRange[1].toISOString()]
+                : [
+                    dayjsRange[0]?.valueOf() ?? 0,
+                    dayjsRange[1]?.valueOf() ?? 0,
+                  ];
+            setValue(changeValue as ValueState);
+            onSubmit(changeValue);
+          }}
+        />
+      </FilterContainer>
+    </AntdThemeProvider>
   );
 }
 

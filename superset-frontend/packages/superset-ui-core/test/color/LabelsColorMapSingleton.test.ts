@@ -212,7 +212,7 @@ describe('LabelsColorMap', () => {
 
     it('should use recycle colors', () => {
       window.featureFlags = {
-        [FeatureFlag.UseAnalagousColors]: false,
+        [FeatureFlag.UseAnalogousColors]: false,
       };
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 2);
@@ -221,12 +221,12 @@ describe('LabelsColorMap', () => {
       labelsColorMap.updateColorMap(categoricalNamespace, 'testColors');
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).not.toEqual({});
-      expect(getAnalogousColorsSpy).not.toBeCalled();
+      expect(getAnalogousColorsSpy).not.toHaveBeenCalled();
     });
 
-    it('should use analagous colors', () => {
+    it('should use analogous colors', () => {
       window.featureFlags = {
-        [FeatureFlag.UseAnalagousColors]: true,
+        [FeatureFlag.UseAnalogousColors]: true,
       };
 
       labelsColorMap.addSlice('a', 'red', 1);
@@ -236,7 +236,7 @@ describe('LabelsColorMap', () => {
       labelsColorMap.updateColorMap(categoricalNamespace, 'testColors');
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).not.toEqual({});
-      expect(getAnalogousColorsSpy).toBeCalled();
+      expect(getAnalogousColorsSpy).toHaveBeenCalled();
     });
   });
 

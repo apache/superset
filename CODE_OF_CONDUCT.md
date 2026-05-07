@@ -80,9 +80,9 @@ If you believe someone is violating this code of conduct, you may reply to them 
 
 Or one of our volunteers:
 
-* [Mark Thomas](http://home.apache.org/~markt/coc.html)
-* [Joan Touzet](http://home.apache.org/~wohali/)
-* [Sharan Foga](http://home.apache.org/~sharan/coc.html)
+* [Mark Thomas](https://www.linkedin.com/in/mark-thomas-b16751158/)
+* [Joan Touzet](https://www.apache.org/foundation/conduct-team/wohali.html)
+* [Sharan Foga](https://www.linkedin.com/in/sfoga/)
 
 If the violation is in documentation or code, for example inappropriate pronoun usage or word choice within official documentation, we ask that people report these privately to the project in question at <private@project.apache.org>, and, if they have sufficient ability within the project, to resolve or remove the concerning material, being mindful of the perspective of the person originally reporting the issue.
 

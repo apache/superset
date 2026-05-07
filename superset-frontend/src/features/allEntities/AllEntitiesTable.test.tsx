@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { render } from 'spec/helpers/testing-library';
-import { screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import * as useQueryParamsModule from 'use-query-params';
 import AllEntitiesTable from './AllEntitiesTable';
 
@@ -92,13 +91,15 @@ describe('AllEntitiesTable', () => {
     jest.restoreAllMocks();
   });
 
-  it('renders when empty', () => {
+  it('renders when empty with button to tag if user has perm', () => {
     render(
       <AllEntitiesTable
         search=""
         setShowTagModal={mockSetShowTagModal}
         objects={mockObjects}
+        canEditTag
       />,
+      { useRouter: true },
     );
 
     expect(
@@ -108,24 +109,68 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Add tag to entities')).toBeInTheDocument();
   });
 
-  it('renders the correct tags for each object type, excluding the current tag', () => {
+  it('renders when empty without button to tag if user does not have perm', () => {
+    render(
+      <AllEntitiesTable
+        search=""
+        setShowTagModal={mockSetShowTagModal}
+        objects={mockObjects}
+        canEditTag={false}
+      />,
+      { useRouter: true },
+    );
+
+    expect(
+      screen.getByText('No entities have this tag currently assigned'),
+    ).toBeInTheDocument();
+
+    expect(screen.queryByText('Add tag to entities')).not.toBeInTheDocument();
+  });
+
+  it('renders the correct tags for each object type', () => {
     render(
       <AllEntitiesTable
         search=""
         setShowTagModal={mockSetShowTagModal}
         objects={mockObjectsWithTags}
+        canEditTag
       />,
+      { useRouter: true },
     );
 
+    expect(screen.getByText('Dashboards')).toBeInTheDocument();
     expect(screen.getByText('Sales Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Sales')).toBeInTheDocument();
 
+    expect(screen.getByText('Charts')).toBeInTheDocument();
     expect(screen.getByText('Monthly Revenue')).toBeInTheDocument();
     expect(screen.getByText('Revenue')).toBeInTheDocument();
 
+    expect(screen.getByText('Queries')).toBeInTheDocument();
     expect(screen.getByText('User Engagement')).toBeInTheDocument();
     expect(screen.getByText('Engagement')).toBeInTheDocument();
+  });
 
-    expect(screen.queryByText('Current Tag')).not.toBeInTheDocument();
+  it('Only list asset types that have entities', () => {
+    const mockObjects = {
+      dashboard: [],
+      chart: [mockObjectsWithTags.chart[0]],
+      query: [],
+    };
+
+    render(
+      <AllEntitiesTable
+        search=""
+        setShowTagModal={mockSetShowTagModal}
+        objects={mockObjects}
+        canEditTag
+      />,
+      { useRouter: true },
+    );
+
+    expect(screen.queryByText('Dashboards')).not.toBeInTheDocument();
+    expect(screen.getByText('Charts')).toBeInTheDocument();
+    expect(screen.getByText('Monthly Revenue')).toBeInTheDocument();
+    expect(screen.queryByText('Queries')).not.toBeInTheDocument();
   });
 });

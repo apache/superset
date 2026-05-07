@@ -27,7 +27,6 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { EchartsTimeseriesSeriesType } from '../../types';
 import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
@@ -41,6 +40,7 @@ import {
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
+  xAxisLabelInterval,
 } from '../../../controls';
 
 const {
@@ -51,10 +51,8 @@ const {
   minorSplitLine,
   opacity,
   rowLimit,
-  seriesType,
   truncateYAxis,
   yAxisBounds,
-  zoomable,
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -69,27 +67,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ...seriesOrderSection,
         ['color_scheme'],
-        [
-          {
-            name: 'seriesType',
-            config: {
-              type: 'SelectControl',
-              label: t('Series Style'),
-              renderTrigger: true,
-              default: seriesType,
-              choices: [
-                [EchartsTimeseriesSeriesType.Line, t('Line')],
-                [EchartsTimeseriesSeriesType.Scatter, t('Scatter')],
-                [EchartsTimeseriesSeriesType.Smooth, t('Smooth Line')],
-                [EchartsTimeseriesSeriesType.Bar, t('Bar')],
-                [EchartsTimeseriesSeriesType.Start, t('Step - start')],
-                [EchartsTimeseriesSeriesType.Middle, t('Step - middle')],
-                [EchartsTimeseriesSeriesType.End, t('Step - end')],
-              ],
-              description: t('Series chart type (line, bar etc)'),
-            },
-          },
-        ],
+        ['time_shift_color'],
         ...showValueSection,
         [
           {
@@ -156,18 +134,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'zoomable',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Data Zoom'),
-              default: zoomable,
-              renderTrigger: true,
-              description: t('Enable data zooming controls'),
-            },
-          },
-        ],
+        ['zoomable'],
         [minorTicks],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
@@ -182,6 +149,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [xAxisLabelRotation],
+        [xAxisLabelInterval],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],

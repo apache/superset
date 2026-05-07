@@ -20,8 +20,10 @@ import { AdhocColumn } from '@superset-ui/core';
 import {
   ColumnMeta,
   ControlPanelSectionConfig,
+  CustomControlItem,
   isColumnMeta,
   isControlPanelSectionConfig,
+  isCustomControlItem,
   isSavedExpression,
 } from '../src';
 
@@ -42,6 +44,13 @@ const CONTROL_PANEL_SECTION_CONFIG: ControlPanelSectionConfig = {
   label: 'My Section',
   description: 'My Description',
   controlSetRows: [],
+};
+const CUSTOM_CONTROL_ITEM: CustomControlItem = {
+  name: 'Custom Control Item',
+  config: {
+    type: 'config',
+    foo: 'bar',
+  },
 };
 
 test('isColumnMeta returns false for AdhocColumn', () => {
@@ -72,4 +81,12 @@ test('isControlPanelSectionConfig returns true for section', () => {
 
 test('isControlPanelSectionConfig returns true for null value', () => {
   expect(isControlPanelSectionConfig(null)).toEqual(false);
+});
+
+test('isCustomControlItem returns true for proper CustomControlItem', () => {
+  expect(isCustomControlItem(CUSTOM_CONTROL_ITEM)).toEqual(true);
+});
+
+test('isCustomControlItem returns false for generic object', () => {
+  expect(isCustomControlItem({})).toEqual(false);
 });

@@ -92,7 +92,7 @@ export function getRelatedCharts(
 
   const chartsInScope = Array.isArray(filter.scope)
     ? filter.scope
-    : (filter as Filter).chartsInScope ?? [];
+    : ((filter as Filter).chartsInScope ?? []);
 
   if (isCrossFilter) {
     related = getRelatedChartsForCrossFilter(filterKey, slices, chartsInScope);

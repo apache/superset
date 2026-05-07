@@ -17,15 +17,22 @@
  * under the License.
  */
 /* eslint-env browser */
-import { createRef, PureComponent } from 'react';
-import { Radio } from 'src/components/Radio';
-import { RadioChangeEvent } from 'src/components';
-import { Input } from 'src/components/Input';
-import Button from 'src/components/Button';
-import { t, JsonResponse } from '@superset-ui/core';
+import { useRef, useState } from 'react';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
+import {
+  Button,
+  Checkbox,
+  Form,
+  Input,
+  Divider,
+  Flex,
+} from '@superset-ui/core/components';
+import { t, useTheme } from '@superset-ui/core';
 
-import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
-import Checkbox from 'src/components/Checkbox';
+import {
+  ModalTrigger,
+  ModalTriggerRef,
+} from '@superset-ui/core/components/ModalTrigger';
 import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_NEWDASHBOARD,
@@ -53,81 +60,53 @@ type SaveModalProps = {
   lastModifiedTime: number;
 };
 
-type SaveModalState = {
-  saveType: SaveType;
-  newDashName: string;
-  duplicateSlices: boolean;
-};
+// Removed SaveModalState - now using useState hooks
 
-const defaultProps = {
-  saveType: SAVE_TYPE_OVERWRITE,
-  colorNamespace: undefined,
-  colorScheme: undefined,
-  shouldPersistRefreshFrequency: false,
-};
+function SaveModal({
+  saveType: initialSaveType = SAVE_TYPE_OVERWRITE,
+  colorNamespace,
+  colorScheme,
+  shouldPersistRefreshFrequency = false,
+  dashboardTitle,
+  onSave,
+  triggerNode,
+  canOverwrite,
+  addSuccessToast,
+  addDangerToast,
+  dashboardId,
+  dashboardInfo,
+  expandedSlices,
+  layout,
+  customCss,
+  refreshFrequency,
+  lastModifiedTime,
+}: SaveModalProps) {
+  const theme = useTheme();
+  const modal = useRef() as ModalTriggerRef;
 
-class SaveModal extends PureComponent<SaveModalProps, SaveModalState> {
-  static defaultProps = defaultProps;
+  const [saveType, setSaveType] = useState<SaveType>(initialSaveType);
+  const [newDashName, setNewDashName] = useState(
+    `${dashboardTitle} ${t('[copy]')}`,
+  );
+  const [duplicateSlices, setDuplicateSlices] = useState(false);
 
-  modal: ModalTriggerRef | null;
+  const toggleDuplicateSlices = () => {
+    setDuplicateSlices(prev => !prev);
+  };
 
-  onSave: (
-    data: Record<string, any>,
-    dashboardId: number | string,
-    saveType: SaveType,
-  ) => Promise<JsonResponse>;
+  const handleSaveTypeChange = (event: RadioChangeEvent) => {
+    setSaveType((event.target as HTMLInputElement).value as SaveType);
+  };
 
-  constructor(props: SaveModalProps) {
-    super(props);
-    this.state = {
-      saveType: props.saveType,
-      newDashName: `${props.dashboardTitle} ${t('[copy]')}`,
-      duplicateSlices: false,
-    };
+  const handleNameChange = (name: string) => {
+    setNewDashName(name);
+    setSaveType(SAVE_TYPE_NEWDASHBOARD);
+  };
 
-    this.handleSaveTypeChange = this.handleSaveTypeChange.bind(this);
-    this.handleNameChange = this.handleNameChange.bind(this);
-    this.saveDashboard = this.saveDashboard.bind(this);
-    this.toggleDuplicateSlices = this.toggleDuplicateSlices.bind(this);
-    this.onSave = this.props.onSave.bind(this);
-    this.modal = createRef() as ModalTriggerRef;
-  }
-
-  toggleDuplicateSlices(): void {
-    this.setState(prevState => ({
-      duplicateSlices: !prevState.duplicateSlices,
-    }));
-  }
-
-  handleSaveTypeChange(event: RadioChangeEvent) {
-    this.setState({
-      saveType: (event.target as HTMLInputElement).value as SaveType,
-    });
-  }
-
-  handleNameChange(name: string) {
-    this.setState({
-      newDashName: name,
-      saveType: SAVE_TYPE_NEWDASHBOARD,
-    });
-  }
-
-  saveDashboard() {
-    const { saveType, newDashName } = this.state;
-    const {
-      dashboardTitle,
-      dashboardInfo,
-      layout: positions,
-      customCss,
-      dashboardId,
-      refreshFrequency: currentRefreshFrequency,
-      shouldPersistRefreshFrequency,
-      lastModifiedTime,
-    } = this.props;
-
+  const saveDashboard = () => {
     // check refresh frequency is for current session or persist
-    const refreshFrequency = shouldPersistRefreshFrequency
-      ? currentRefreshFrequency
+    const refreshFrequencyToUse = shouldPersistRefreshFrequency
+      ? refreshFrequency
       : dashboardInfo.metadata?.refresh_frequency; // eslint-disable camelcase
 
     const data = {
@@ -136,85 +115,93 @@ class SaveModal extends PureComponent<SaveModalProps, SaveModalState> {
       css: customCss,
       dashboard_title:
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
-      duplicate_slices: this.state.duplicateSlices,
+      duplicate_slices: duplicateSlices,
       last_modified_time: lastModifiedTime,
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
       metadata: {
         ...dashboardInfo?.metadata,
-        positions,
-        refresh_frequency: refreshFrequency,
+        positions: layout,
+        refresh_frequency: refreshFrequencyToUse,
       },
     };
 
     if (saveType === SAVE_TYPE_NEWDASHBOARD && !newDashName) {
-      this.props.addDangerToast(
-        t('You must pick a name for the new dashboard'),
-      );
+      addDangerToast(t('You must pick a name for the new dashboard'));
     } else {
-      this.onSave(data, dashboardId, saveType).then((resp: JsonResponse) => {
-        if (saveType === SAVE_TYPE_NEWDASHBOARD && resp.json?.result?.id) {
-          window.location.href = `/superset/dashboard/${resp.json.result.id}/`;
-        }
-      });
-      this.modal?.current?.close?.();
+      onSave(data, dashboardId, saveType);
+      modal?.current?.close?.();
     }
-  }
+  };
 
-  render() {
-    return (
-      <ModalTrigger
-        ref={this.modal}
-        triggerNode={this.props.triggerNode}
-        modalTitle={t('Save dashboard')}
-        modalBody={
-          <div>
+  return (
+    <ModalTrigger
+      ref={modal}
+      triggerNode={triggerNode}
+      modalTitle={t('Save dashboard')}
+      modalBody={
+        <Form layout="vertical">
+          <Form.Item>
             <Radio
               value={SAVE_TYPE_OVERWRITE}
-              onChange={this.handleSaveTypeChange}
-              checked={this.state.saveType === SAVE_TYPE_OVERWRITE}
-              disabled={!this.props.canOverwrite}
+              onChange={handleSaveTypeChange}
+              checked={saveType === SAVE_TYPE_OVERWRITE}
+              disabled={!canOverwrite}
             >
-              {t('Overwrite Dashboard [%s]', this.props.dashboardTitle)}
+              {t('Overwrite Dashboard [%s]', dashboardTitle)}
             </Radio>
-            <hr />
+          </Form.Item>
+
+          <Divider />
+
+          <Form.Item style={{ marginBottom: theme.sizeUnit }}>
             <Radio
               value={SAVE_TYPE_NEWDASHBOARD}
-              onChange={this.handleSaveTypeChange}
-              checked={this.state.saveType === SAVE_TYPE_NEWDASHBOARD}
+              onChange={handleSaveTypeChange}
+              checked={saveType === SAVE_TYPE_NEWDASHBOARD}
             >
               {t('Save as:')}
             </Radio>
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: theme.sizeUnit }}>
             <Input
-              type="text"
               placeholder={t('[dashboard name]')}
-              value={this.state.newDashName}
-              onFocus={e => this.handleNameChange(e.target.value)}
-              onChange={e => this.handleNameChange(e.target.value)}
+              value={newDashName}
+              onFocus={e => handleNameChange(e.target.value)}
+              onChange={e => handleNameChange(e.target.value)}
             />
-            <div className="m-l-25 m-t-5">
-              <Checkbox
-                checked={this.state.duplicateSlices}
-                onChange={() => this.toggleDuplicateSlices()}
-              />
-              <span className="m-l-5">{t('also copy (duplicate) charts')}</span>
-            </div>
-          </div>
-        }
-        modalFooter={
-          <div>
-            <Button
-              data-test="modal-save-dashboard-button"
-              buttonStyle="primary"
-              onClick={this.saveDashboard}
+          </Form.Item>
+
+          <Form.Item>
+            <Checkbox
+              checked={duplicateSlices}
+              onChange={() => toggleDuplicateSlices()}
             >
-              {t('Save')}
-            </Button>
-          </div>
-        }
-      />
-    );
-  }
+              {t('also copy (duplicate) charts')}
+            </Checkbox>
+          </Form.Item>
+        </Form>
+      }
+      modalFooter={
+        <Flex justify="flex-end" gap={theme.sizeUnit}>
+          <Button
+            buttonStyle="secondary"
+            onClick={() => modal?.current?.close?.()}
+          >
+            {t('Cancel')}
+          </Button>
+          <Button
+            type="primary"
+            data-test="modal-save-dashboard-button"
+            onClick={saveDashboard}
+          >
+            {t('Save')}
+          </Button>
+        </Flex>
+      }
+    />
+  );
 }
 
 export default SaveModal;

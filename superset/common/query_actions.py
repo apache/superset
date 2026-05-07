@@ -21,11 +21,10 @@ from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import _
 
-from superset import app
 from superset.common.chart_data import ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import BaseDatasource
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import QueryObjectValidationError, SupersetParseError
 from superset.utils.core import (
     extract_column_dtype,
     extract_dataframe_dtypes,
@@ -37,8 +36,6 @@ from superset.utils.core import (
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
-
-config = app.config
 
 
 def _get_datasource(
@@ -89,7 +86,15 @@ def _get_query(
     try:
         result["query"] = datasource.get_query_str(query_obj.to_dict())
     except QueryObjectValidationError as err:
+        # Validation errors (missing required fields, invalid config)
+        # No SQL was generated
         result["error"] = err.message
+    except SupersetParseError as err:
+        # Parsing errors (SQL optimization/parsing failed)
+        # SQL was generated but couldn't be optimized - show both
+        if err.error.extra and (sql := err.error.extra.get("sql")) is not None:
+            result["query"] = sql
+        result["error"] = err.error.message
     return result
 
 
@@ -170,7 +175,6 @@ def _get_drill_detail(
     datasource = _get_datasource(query_context, query_obj)
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
-    query_obj.orderby = []
     query_obj.metrics = None
     query_obj.post_processing = []
     qry_obj_cols = []
@@ -180,6 +184,7 @@ def _get_drill_detail(
         else:
             qry_obj_cols.append(o.column_name)
     query_obj.columns = qry_obj_cols
+    query_obj.orderby = [(query_obj.columns[0], True)]
     return _get_full(query_context, query_obj, force_cached)
 
 

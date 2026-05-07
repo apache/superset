@@ -27,6 +27,7 @@ from sqlalchemy.sql import select
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.models.sql_types.mssql_sql_types import GUID
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -46,6 +47,7 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
         ("NCHAR(10)", UnicodeText, None, GenericDataType.STRING, False),
         ("NVARCHAR(10)", UnicodeText, None, GenericDataType.STRING, False),
         ("NTEXT", UnicodeText, None, GenericDataType.STRING, False),
+        ("uniqueidentifier", GUID, None, GenericDataType.STRING, False),
     ],
 )
 def test_get_column_spec(
@@ -55,7 +57,7 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec  # noqa: N813
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
@@ -94,7 +96,7 @@ def test_where_clause_n_prefix() -> None:
     assert query == query_expected
 
 
-def test_time_exp_mixd_case_col_1y() -> None:
+def test_time_exp_mixed_case_col_1y() -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     col = column("MixedCase")
@@ -126,7 +128,7 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -215,17 +217,21 @@ select 'EUR' as cur
 select * from currency union all select * from currency_2
 """
             ),
-            dedent(
-                """WITH currency as (
-select 'INR' as cur
-),
-currency_2 as (
-select 'EUR' as cur
-),
-__cte AS (
-select * from currency union all select * from currency_2
-)"""
-            ),
+            """WITH currency AS (
+  SELECT
+    'INR' AS cur
+), currency_2 AS (
+  SELECT
+    'EUR' AS cur
+), __cte AS (
+  SELECT
+    *
+  FROM currency
+  UNION ALL
+  SELECT
+    *
+  FROM currency_2
+)""",
         ),
         (
             "SELECT 1 as cnt",
@@ -252,36 +258,6 @@ def test_cte_query_parsing(original: TypeEngine, expected: str) -> None:
     assert actual == expected
 
 
-@pytest.mark.parametrize(
-    "original,expected,top",
-    [
-        ("SEL TOP 1000 * FROM My_table", "SEL TOP 100 * FROM My_table", 100),
-        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 100 * FROM My_table", 100),
-        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 1000 * FROM My_table", 10000),
-        ("SEL TOP 1000 * FROM My_table;", "SEL TOP 1000 * FROM My_table", 1000),
-        (
-            """with abc as (select * from test union select * from test1)
-select TOP 100 * from currency""",
-            """WITH abc as (select * from test union select * from test1)
-select TOP 100 * from currency""",
-            1000,
-        ),
-        ("SELECT DISTINCT x from tbl", "SELECT DISTINCT TOP 100 x from tbl", 100),
-        ("SELECT 1 as cnt", "SELECT TOP 10 1 as cnt", 10),
-        (
-            "select TOP 1000 * from abc where id=1",
-            "select TOP 10 * from abc where id=1",
-            10,
-        ),
-    ],
-)
-def test_top_query_parsing(original: TypeEngine, expected: str, top: int) -> None:
-    from superset.db_engine_specs.mssql import MssqlEngineSpec
-
-    actual = MssqlEngineSpec.apply_top_to_sql(original, top)
-    assert actual == expected
-
-
 def test_extract_errors() -> None:
     """
     Test that custom error messages are extracted correctly.
@@ -291,21 +267,21 @@ def test_extract_errors() -> None:
     msg = dedent(
         """
 DB-Lib error message 20009, severity 9:
-Unable to connect: Adaptive Server is unavailable or does not exist (locahost)
+Unable to connect: Adaptive Server is unavailable or does not exist (localhost_)
         """
     )
     result = MssqlEngineSpec.extract_errors(Exception(msg))
     assert result == [
         SupersetError(
             error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
-            message='The hostname "locahost" cannot be resolved.',
+            message='The hostname "localhost_" cannot be resolved.',
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
                 "issue_codes": [
                     {
                         "code": 1007,
-                        "message": "Issue 1007 - The hostname provided can't be resolved.",
+                        "message": "Issue 1007 - The hostname provided can't be resolved.",  # noqa: E501
                     }
                 ],
             },
@@ -365,7 +341,7 @@ Net-Lib error during Operation timed out (60)
                 "issue_codes": [
                     {
                         "code": 1009,
-                        "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
+                        "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",  # noqa: E501
                     }
                 ],
             },
@@ -398,7 +374,7 @@ Net-Lib error during Operation timed out (60)
                 "issue_codes": [
                     {
                         "code": 1009,
-                        "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
+                        "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",  # noqa: E501
                     }
                 ],
             },
@@ -420,7 +396,7 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
     )
     assert result == [
         SupersetError(
-            message='Either the username "testuser", password, or database name "testdb" is incorrect.',
+            message='Either the username "testuser", password, or database name "testdb" is incorrect.',  # noqa: E501
             error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -451,6 +427,6 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
     ],
 )
 def test_denormalize_name(name: str, expected_result: str):
-    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec  # noqa: N813
 
     assert spec.denormalize_name(mssql.dialect(), name) == expected_result

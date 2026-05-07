@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
-import userEvent from '@testing-library/user-event';
 
 const defaultProps = {
   name: 'show_legend',
@@ -29,9 +27,7 @@ const defaultProps = {
 };
 
 const setup = (overrides = {}) => (
-  <ThemeProvider theme={supersetTheme}>
-    <CheckboxControl {...defaultProps} {...overrides} />;
-  </ThemeProvider>
+  <CheckboxControl {...defaultProps} {...overrides} />
 );
 
 describe('CheckboxControl', () => {
@@ -39,7 +35,7 @@ describe('CheckboxControl', () => {
     render(setup());
 
     const checkbox = screen.getByRole('checkbox');
-    expect(checkbox).toBeVisible();
+    expect(checkbox).toBeInTheDocument();
     expect(checkbox).not.toBeChecked();
   });
 

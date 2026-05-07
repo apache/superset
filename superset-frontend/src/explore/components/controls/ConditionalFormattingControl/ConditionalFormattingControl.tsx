@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { styled, css, t, useTheme } from '@superset-ui/core';
+import { styled, css, t } from '@superset-ui/core';
 import { Comparator } from '@superset-ui/chart-controls';
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { FormattingPopover } from './FormattingPopover';
 import {
@@ -35,16 +35,16 @@ import {
 
 const FormattersContainer = styled.div`
   ${({ theme }) => css`
-    padding: ${theme.gridUnit}px;
-    border: solid 1px ${theme.colors.grayscale.light2};
-    border-radius: ${theme.gridUnit}px;
+    padding: ${theme.sizeUnit}px;
+    border: solid 1px ${theme.colorBorder};
+    border-radius: ${theme.borderRadius}px;
   `}
 `;
 
 export const FormatterContainer = styled(OptionControlContainer)`
   &,
   & > div {
-    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
     :last-child {
       margin-bottom: 0;
     }
@@ -53,11 +53,12 @@ export const FormatterContainer = styled(OptionControlContainer)`
 
 export const CloseButton = styled.button`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.light1};
+    background: ${theme.colorBgLayout};
+    color: ${theme.colorIcon};
     height: 100%;
-    width: ${theme.gridUnit * 6}px;
+    width: ${theme.sizeUnit * 6}px;
     border: none;
-    border-right: solid 1px ${theme.colors.grayscale.dark2}0C;
+    border-right: solid 1px ${theme.colorBorder};
     padding: 0;
     outline: none;
     border-bottom-left-radius: 3px;
@@ -74,7 +75,6 @@ const ConditionalFormattingControl = ({
   extraColorChoices,
   ...props
 }: ConditionalFormattingControlProps) => {
-  const theme = useTheme();
   const [conditionalFormattingConfigs, setConditionalFormattingConfigs] =
     useState<ConditionalFormattingConfig[]>(value ?? []);
 
@@ -146,7 +146,7 @@ const ConditionalFormattingControl = ({
         {conditionalFormattingConfigs.map((config, index) => (
           <FormatterContainer key={index}>
             <CloseButton onClick={() => onDelete(index)}>
-              <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+              <Icons.CloseOutlined iconSize="m" />
             </CloseButton>
             <FormattingPopover
               title={t('Edit formatter')}
@@ -161,7 +161,7 @@ const ConditionalFormattingControl = ({
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
                 <CaretContainer>
-                  <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
+                  <Icons.RightOutlined iconSize="m" />
                 </CaretContainer>
               </OptionControlContainer>
             </FormattingPopover>
@@ -175,7 +175,13 @@ const ConditionalFormattingControl = ({
           extraColorChoices={extraColorChoices}
         >
           <AddControlLabel>
-            <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
+            <Icons.PlusOutlined
+              iconSize="m"
+              css={theme => ({
+                margin: `auto ${theme.sizeUnit}px auto 0`,
+                verticalAlign: 'baseline',
+              })}
+            />
             {t('Add new color formatter')}
           </AddControlLabel>
         </FormattingPopover>

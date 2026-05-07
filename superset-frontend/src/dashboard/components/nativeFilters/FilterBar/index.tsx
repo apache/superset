@@ -24,8 +24,8 @@ import {
   useEffect,
   useState,
   useCallback,
-  createContext,
   useRef,
+  useMemo,
 } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
@@ -34,17 +34,18 @@ import {
   DataMaskWithId,
   Filter,
   DataMask,
-  SLOW_DEBOUNCE,
   isNativeFilter,
   usePrevious,
   styled,
 } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
-import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
+import { updateDataMask } from 'src/dataMask/actions';
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
 import { logEvent } from 'src/logger/actions';
@@ -120,16 +121,24 @@ const publishDataMask = debounce(
     // replace params only when current page is /superset/dashboard
     // this prevents a race condition between updating filters and navigating to Explore
     if (window.location.pathname.includes('/superset/dashboard')) {
-      history.location.pathname = window.location.pathname;
+      // The history API is part of React router and understands that a basename may exist.
+      // Internally it treats all paths as if they are relative to the root and appends
+      // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
+      // double it up.
+      const appRoot = applicationRoot();
+      let replacement_pathname = window.location.pathname;
+      if (appRoot !== '/' && replacement_pathname.startsWith(appRoot)) {
+        replacement_pathname = replacement_pathname.substring(appRoot.length);
+      }
+      history.location.pathname = replacement_pathname;
       history.replace({
         search: newParams.toString(),
       });
     }
   },
-  SLOW_DEBOUNCE,
+  Constants.SLOW_DEBOUNCE,
 );
 
-export const FilterBarScrollContext = createContext(false);
 const FilterBar: FC<FiltersBarProps> = ({
   orientation = FilterBarOrientation.Vertical,
   verticalConfig,
@@ -144,8 +153,11 @@ const FilterBar: FC<FiltersBarProps> = ({
   const tabId = useTabId();
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
-  const filterValues = Object.values(filters);
-  const nativeFilterValues = filterValues.filter(isNativeFilter);
+  const filterValues = useMemo(() => Object.values(filters), [filters]);
+  const nativeFilterValues = useMemo(
+    () => filterValues.filter(isNativeFilter),
+    [filterValues],
+  );
   const dashboardId = useSelector<any, number>(
     ({ dashboardInfo }) => dashboardInfo?.id,
   );
@@ -159,6 +171,12 @@ const FilterBar: FC<FiltersBarProps> = ({
   >(state => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
+  const [clearAllTriggers, setClearAllTriggers] = useState<
+    Record<string, boolean>
+  >({});
+  const [initializedFilters, setInitializedFilters] = useState<Set<string>>(
+    new Set(),
+  );
 
   const dataMaskSelectedRef = useRef(dataMaskSelected);
   dataMaskSelectedRef.current = dataMaskSelected;
@@ -168,28 +186,77 @@ const FilterBar: FC<FiltersBarProps> = ({
       dataMask: Partial<DataMask>,
     ) => {
       setDataMaskSelected(draft => {
-        // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
-        if (
-          // filterState.value === undefined - means that value not initialized
+        const appliedDataMask = dataMaskApplied[filter.id];
+        const isFirstTimeInitialization = !initializedFilters.has(filter.id);
+
+        // Auto-apply when filter has value but empty extraFormData in applied state
+        // This fixes the bug where defaultDataMask.filterState.value exists but extraFormData is empty
+        // Only auto-apply if: value matches what's applied AND extraFormData is missing in applied but present in incoming
+        const needsAutoApply =
+          appliedDataMask?.filterState?.value !== undefined &&
           dataMask.filterState?.value !== undefined &&
-          dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
-            undefined &&
-          filter.requiredFirst
-        ) {
+          isEqual(
+            appliedDataMask.filterState.value,
+            dataMask.filterState.value,
+          ) &&
+          (!appliedDataMask?.extraFormData ||
+            Object.keys(appliedDataMask.extraFormData || {}).length === 0) &&
+          dataMask.extraFormData &&
+          Object.keys(dataMask.extraFormData).length > 0;
+
+        // Force instant updating for requiredFirst filters or auto-apply when needed
+        const shouldDispatch =
+          dataMask.filterState?.value !== undefined &&
+          ((isFirstTimeInitialization && filter.requiredFirst) ||
+            needsAutoApply);
+
+        if (shouldDispatch) {
           dispatch(updateDataMask(filter.id, dataMask));
         }
-        draft[filter.id] = {
+
+        // Mark filter as initialized after getting its first value WITH extraFormData
+        // This ensures we don't mark it as initialized on the first sync (value but no extraFormData)
+        // but do mark it after the second sync (value AND extraFormData)
+        if (
+          dataMask.filterState?.value !== undefined &&
+          dataMask.extraFormData &&
+          Object.keys(dataMask.extraFormData).length > 0 &&
+          !initializedFilters.has(filter.id)
+        ) {
+          setInitializedFilters(prev => new Set(prev).add(filter.id));
+        }
+
+        const baseDataMask = {
           ...(getInitialDataMask(filter.id) as DataMaskWithId),
           ...dataMask,
         };
+
+        // Recalculate validation status
+        const hasRequiredValue =
+          filter.controlValues?.enableEmptyFilter &&
+          baseDataMask.filterState?.value == null;
+
+        draft[filter.id] = {
+          ...baseDataMask,
+          filterState: {
+            ...baseDataMask.filterState,
+            validateStatus: hasRequiredValue ? 'error' : undefined,
+          },
+        };
       });
     },
-    [dispatch, setDataMaskSelected],
+    [
+      dispatch,
+      setDataMaskSelected,
+      initializedFilters,
+      setInitializedFilters,
+      dataMaskApplied,
+    ],
   );
 
   useEffect(() => {
     if (previousFilters && dashboardId === previousDashboardId) {
-      const updates = {};
+      const updates: Record<string, DataMaskWithId> = {};
       Object.values(filters).forEach(currentFilter => {
         const previousFilter = previousFilters?.[currentFilter.id];
         if (!previousFilter) {
@@ -206,20 +273,17 @@ const FilterBar: FC<FiltersBarProps> = ({
         const dataMaskChanged = !isEqual(currentDataMask, previousDataMask);
 
         if (typeChanged || targetsChanged || dataMaskChanged) {
-          updates[currentFilter.id] = getInitialDataMask(currentFilter.id);
+          updates[currentFilter.id] = getInitialDataMask(
+            currentFilter.id,
+          ) as DataMaskWithId;
         }
       });
 
       if (!isEmpty(updates)) {
         setDataMaskSelected(draft => ({ ...draft, ...updates }));
-        Object.keys(updates).forEach(key => dispatch(clearDataMask(key)));
       }
     }
-  }, [
-    JSON.stringify(filters),
-    JSON.stringify(previousFilters),
-    previousDashboardId,
-  ]);
+  }, [dashboardId, filters, previousDashboardId, setDataMaskSelected]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
 
@@ -237,36 +301,46 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const handleApply = useCallback(() => {
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
-    const filterIds = Object.keys(dataMaskSelected);
     setUpdateKey(1);
-    filterIds.forEach(filterId => {
-      if (dataMaskSelected[filterId]) {
-        dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
+
+    Object.entries(dataMaskSelected).forEach(([filterId, dataMask]) => {
+      if (dataMask) {
+        dispatch(updateDataMask(filterId, dataMask));
       }
     });
   }, [dataMaskSelected, dispatch]);
 
   const handleClearAll = useCallback(() => {
-    const clearDataMaskIds: string[] = [];
-    let dispatchAllowed = false;
-    filtersInScope.filter(isNativeFilter).forEach(filter => {
+    const newClearAllTriggers = { ...clearAllTriggers };
+    // Clear all native filters, not just those in scope
+    // This ensures dependent filters are cleared even if parent was cleared first
+    nativeFilterValues.forEach(filter => {
       const { id } = filter;
       if (dataMaskSelected[id]) {
-        if (filter.controlValues?.enableEmptyFilter) {
-          dispatchAllowed = false;
-        }
-        clearDataMaskIds.push(id);
         setDataMaskSelected(draft => {
           if (draft[id].filterState?.value !== undefined) {
             draft[id].filterState!.value = undefined;
           }
+          draft[id].extraFormData = {};
         });
+        newClearAllTriggers[id] = true;
       }
     });
-    if (dispatchAllowed) {
-      clearDataMaskIds.forEach(id => dispatch(clearDataMask(id)));
-    }
-  }, [dataMaskSelected, dispatch, filtersInScope, setDataMaskSelected]);
+    setClearAllTriggers(newClearAllTriggers);
+  }, [
+    dataMaskSelected,
+    nativeFilterValues,
+    setDataMaskSelected,
+    clearAllTriggers,
+  ]);
+
+  const handleClearAllComplete = useCallback((filterId: string) => {
+    setClearAllTriggers(prev => {
+      const newTriggers = { ...prev };
+      delete newTriggers[filterId];
+      return newTriggers;
+    });
+  }, []);
 
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
   const isApplyDisabled = checkIsApplyDisabled(
@@ -276,16 +350,27 @@ const FilterBar: FC<FiltersBarProps> = ({
   );
   const isInitialized = useInitialization();
 
-  const actions = (
-    <ActionButtons
-      filterBarOrientation={orientation}
-      width={verticalConfig?.width}
-      onApply={handleApply}
-      onClearAll={handleClearAll}
-      dataMaskSelected={dataMaskSelected}
-      dataMaskApplied={dataMaskApplied}
-      isApplyDisabled={isApplyDisabled}
-    />
+  const actions = useMemo(
+    () => (
+      <ActionButtons
+        filterBarOrientation={orientation}
+        width={verticalConfig?.width}
+        onApply={handleApply}
+        onClearAll={handleClearAll}
+        dataMaskSelected={dataMaskSelected}
+        dataMaskApplied={dataMaskApplied}
+        isApplyDisabled={isApplyDisabled}
+      />
+    ),
+    [
+      orientation,
+      verticalConfig?.width,
+      handleApply,
+      handleClearAll,
+      dataMaskSelected,
+      dataMaskAppliedText,
+      isApplyDisabled,
+    ],
   );
 
   const filterBarComponent =
@@ -298,6 +383,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         filterValues={filterValues}
         isInitialized={isInitialized}
         onSelectionChange={handleFilterSelectionChange}
+        clearAllTriggers={clearAllTriggers}
+        onClearAllComplete={handleClearAllComplete}
       />
     ) : verticalConfig ? (
       <Vertical
@@ -312,6 +399,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         onSelectionChange={handleFilterSelectionChange}
         toggleFiltersBar={verticalConfig.toggleFiltersBar}
         width={verticalConfig.width}
+        clearAllTriggers={clearAllTriggers}
+        onClearAllComplete={handleClearAllComplete}
       />
     ) : null;
 

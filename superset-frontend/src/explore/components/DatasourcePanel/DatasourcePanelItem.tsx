@@ -16,72 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CSSProperties, FC } from 'react';
+import { CSSProperties, ReactNode, useCallback } from 'react';
 
-import { css, Metric, styled, t, useTheme } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  useCSSTextTruncation,
+  useTheme,
+} from '@superset-ui/core';
 
-import Icons from 'src/components/Icons';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from '@superset-ui/core/components/Tooltip';
+import { Typography } from '@superset-ui/core/components';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
-import { DndItemValue } from './types';
-
-export type DataSourcePanelColumn = {
-  is_dttm?: boolean | null;
-  description?: string | null;
-  expression?: string | null;
-  is_certified?: number | null;
-  column_name?: string | null;
-  name?: string | null;
-  type?: string;
-};
-
-type Props = {
-  index: number;
-  style: CSSProperties;
-  data: {
-    metricSlice: Metric[];
-    columnSlice: DataSourcePanelColumn[];
-    totalMetrics: number;
-    totalColumns: number;
-    width: number;
-    showAllMetrics: boolean;
-    onShowAllMetricsChange: (showAll: boolean) => void;
-    showAllColumns: boolean;
-    onShowAllColumnsChange: (showAll: boolean) => void;
-    collapseMetrics: boolean;
-    onCollapseMetricsChange: (collapse: boolean) => void;
-    collapseColumns: boolean;
-    onCollapseColumnsChange: (collapse: boolean) => void;
-    hiddenMetricCount: number;
-    hiddenColumnCount: number;
-  };
-};
-
-export const DEFAULT_MAX_COLUMNS_LENGTH = 50;
-export const DEFAULT_MAX_METRICS_LENGTH = 50;
-export const ITEM_HEIGHT = 30;
-
-const Button = styled.button`
-  background: none;
-  border: none;
-  text-decoration: underline;
-  color: ${({ theme }) => theme.colors.primary.dark1};
-`;
-
-const ButtonContainer = styled.div`
-  text-align: center;
-  padding-top: 2px;
-`;
+import { DndItemValue, FlattenedItem, Folder } from './types';
 
 const LabelWrapper = styled.div`
   ${({ theme }) => css`
+    color: ${theme.colorText};
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: ${theme.typography.sizes.s}px;
-    background-color: ${theme.colors.grayscale.light4};
-    margin: ${theme.gridUnit * 2}px 0;
-    border-radius: 4px;
-    padding: 0 ${theme.gridUnit}px;
+    font-size: ${theme.fontSizeSM}px;
+    background-color: ${theme.colorBgTextActive};
+    margin: ${theme.sizeUnit * 2}px 0;
+    border-radius: ${theme.borderRadius}px;
+    padding: 0 ${theme.sizeUnit}px;
 
     &:first-of-type {
       margin-top: 0;
@@ -91,9 +52,12 @@ const LabelWrapper = styled.div`
     }
 
     padding: 0;
-    cursor: pointer;
+    cursor: grab;
+    &:active {
+      cursor: grabbing;
+    }
     &:hover {
-      background-color: ${theme.colors.grayscale.light3};
+      background-color: ${theme.colorBgTextHover};
     }
 
     & > span {
@@ -106,7 +70,7 @@ const LabelWrapper = styled.div`
 
     .metric-option {
       & > svg {
-        min-width: ${theme.gridUnit * 4}px;
+        min-width: ${theme.sizeUnit * 4}px;
       }
       & > .option-label {
         overflow: hidden;
@@ -117,102 +81,139 @@ const LabelWrapper = styled.div`
 `;
 
 const SectionHeaderButton = styled.button`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   border: none;
   background: transparent;
   width: 100%;
-  padding-inline: 0px;
+  height: 100%;
+  padding-inline: 0;
 `;
 
-const SectionHeader = styled.span`
-  ${({ theme }) => `
-    font-size: ${theme.typography.sizes.m}px;
+const SectionHeaderTextContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
+
+const SectionHeader = styled(Typography.Text)`
+  ${({ theme }) => css`
+    font-size: ${theme.fontSize}px;
+    font-weight: ${theme.fontWeightStrong};
     line-height: 1.3;
-  `}
-`;
-
-const Box = styled.div`
-  ${({ theme }) => `
-    border: 1px ${theme.colors.grayscale.light4} solid;
-    border-radius: ${theme.gridUnit}px;
-    font-size: ${theme.typography.sizes.s}px;
-    padding: ${theme.gridUnit}px;
-    color: ${theme.colors.grayscale.light1};
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    text-align: left;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
     overflow: hidden;
+    text-overflow: ellipsis;
   `}
 `;
 
-const DatasourcePanelItem: FC<Props> = ({ index, style, data }) => {
-  const {
-    metricSlice: _metricSlice,
-    columnSlice,
-    totalMetrics,
-    totalColumns,
-    width,
-    showAllMetrics,
-    onShowAllMetricsChange,
-    showAllColumns,
-    onShowAllColumnsChange,
-    collapseMetrics,
-    onCollapseMetricsChange,
-    collapseColumns,
-    onCollapseColumnsChange,
-    hiddenMetricCount,
-    hiddenColumnCount,
-  } = data;
-  const metricSlice = collapseMetrics ? [] : _metricSlice;
+const Divider = styled.div`
+  ${({ theme }) => css`
+    height: 16px;
+    border-bottom: 1px solid ${theme.colorSplit};
+  `}
+`;
 
-  const EXTRA_LINES = collapseMetrics ? 1 : 2;
-  const isColumnSection = collapseMetrics
-    ? index >= 1
-    : index > metricSlice.length + EXTRA_LINES;
-  const HEADER_LINE = isColumnSection
-    ? metricSlice.length + EXTRA_LINES + 1
-    : 0;
-  const SUBTITLE_LINE = HEADER_LINE + 1;
-  const BOTTOM_LINE =
-    (isColumnSection ? columnSlice.length : metricSlice.length) +
-    (collapseMetrics ? HEADER_LINE : SUBTITLE_LINE) +
-    1;
-  const collapsed = isColumnSection ? collapseColumns : collapseMetrics;
-  const setCollapse = isColumnSection
-    ? onCollapseColumnsChange
-    : onCollapseMetricsChange;
-  const showAll = isColumnSection ? showAllColumns : showAllMetrics;
-  const setShowAll = isColumnSection
-    ? onShowAllColumnsChange
-    : onShowAllMetricsChange;
+export interface DatasourcePanelItemProps {
+  index: number;
+  style: CSSProperties;
+  data: {
+    flattenedItems: FlattenedItem[];
+    folderMap: Map<string, Folder>;
+    width: number;
+    onToggleCollapse: (folderId: string) => void;
+    collapsedFolderIds: Set<string>;
+  };
+}
+
+const DatasourcePanelItem = ({
+  index,
+  style,
+  data,
+}: DatasourcePanelItemProps) => {
+  const {
+    flattenedItems,
+    folderMap,
+    width,
+    onToggleCollapse,
+    collapsedFolderIds,
+  } = data;
+  const item = flattenedItems[index];
   const theme = useTheme();
-  const hiddenCount = isColumnSection ? hiddenColumnCount : hiddenMetricCount;
+  const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>({
+    isVertical: true,
+    isHorizontal: false,
+  });
+
+  const getTooltipNode = useCallback(
+    (folder: Folder) => {
+      let tooltipNode: ReactNode | null = null;
+      if (labelIsTruncated) {
+        tooltipNode = (
+          <div>
+            <b>{t('Name')}:</b> {folder.name}
+          </div>
+        );
+      }
+      if (folder.description) {
+        tooltipNode = (
+          <div>
+            {tooltipNode}
+            <div
+              css={
+                tooltipNode &&
+                css`
+                  margin-top: ${theme.sizeUnit}px;
+                `
+              }
+            >
+              <b>{t('Description')}:</b> {folder.description}
+            </div>
+          </div>
+        );
+      }
+      return tooltipNode;
+    },
+    [labelIsTruncated],
+  );
+
+  if (!item) return null;
+
+  const folder = folderMap.get(item.folderId);
+  if (!folder) return null;
+
+  const indentation = item.depth * theme.sizeUnit * 4;
 
   return (
     <div
-      style={style}
-      css={css`
-        padding: 0 ${theme.gridUnit * 4}px;
-      `}
+      style={{
+        ...style,
+        paddingLeft: theme.sizeUnit * 4 + indentation,
+        paddingRight: theme.sizeUnit * 4,
+      }}
     >
-      {index === HEADER_LINE && (
-        <SectionHeaderButton onClick={() => setCollapse(!collapsed)}>
-          <SectionHeader>
-            {isColumnSection ? t('Columns') : t('Metrics')}
-          </SectionHeader>
-          {collapsed ? (
-            <Icons.DownOutlined iconSize="s" />
-          ) : (
-            <Icons.UpOutlined iconSize="s" />
-          )}
+      {item.type === 'header' && (
+        <SectionHeaderButton onClick={() => onToggleCollapse(folder.id)}>
+          <Tooltip title={getTooltipNode(folder)}>
+            <SectionHeaderTextContainer>
+              <SectionHeader ref={labelRef}>{folder.name}</SectionHeader>
+              {collapsedFolderIds.has(folder.id) ? (
+                <Icons.DownOutlined iconSize="s" iconColor={theme.colorText} />
+              ) : (
+                <Icons.UpOutlined iconSize="s" iconColor={theme.colorText} />
+              )}
+            </SectionHeaderTextContainer>
+          </Tooltip>
         </SectionHeaderButton>
       )}
-      {index === SUBTITLE_LINE && !collapsed && (
+
+      {item.type === 'subtitle' && (
         <div
           css={css`
             display: flex;
-            gap: ${theme.gridUnit * 2}px;
+            gap: ${theme.sizeUnit * 2}px;
             justify-content: space-between;
             align-items: baseline;
           `}
@@ -223,46 +224,34 @@ const DatasourcePanelItem: FC<Props> = ({ index, style, data }) => {
               flex-shrink: 0;
             `}
           >
-            {isColumnSection
-              ? t(`Showing %s of %s`, columnSlice?.length, totalColumns)
-              : t(`Showing %s of %s`, metricSlice?.length, totalMetrics)}
+            {t(`Showing %s of %s items`, item.showingItems, item.totalItems)}
           </div>
-          {hiddenCount > 0 && (
-            <Box>{t(`%s ineligible item(s) are hidden`, hiddenCount)}</Box>
-          )}
         </div>
       )}
-      {index > SUBTITLE_LINE && index < BOTTOM_LINE && (
+
+      {item.type === 'item' && item.item && (
         <LabelWrapper
           key={
-            (isColumnSection
-              ? columnSlice[index - SUBTITLE_LINE - 1].column_name
-              : metricSlice[index - SUBTITLE_LINE - 1].metric_name) +
-            String(width)
+            (item.item.type === 'column'
+              ? item.item.column_name
+              : item.item.metric_name) + String(width)
           }
           className="column"
         >
           <DatasourcePanelDragOption
-            value={
-              isColumnSection
-                ? (columnSlice[index - SUBTITLE_LINE - 1] as DndItemValue)
-                : metricSlice[index - SUBTITLE_LINE - 1]
+            value={item.item as DndItemValue}
+            type={
+              item.item.type === 'column'
+                ? DndItemType.Column
+                : DndItemType.Metric
             }
-            type={isColumnSection ? DndItemType.Column : DndItemType.Metric}
           />
         </LabelWrapper>
       )}
-      {index === BOTTOM_LINE &&
-        !collapsed &&
-        (isColumnSection
-          ? totalColumns > DEFAULT_MAX_COLUMNS_LENGTH
-          : totalMetrics > DEFAULT_MAX_METRICS_LENGTH) && (
-          <ButtonContainer>
-            <Button onClick={() => setShowAll(!showAll)}>
-              {showAll ? t('Show less...') : t('Show all...')}
-            </Button>
-          </ButtonContainer>
-        )}
+
+      {item.type === 'divider' && (
+        <Divider data-test="datasource-panel-divider" />
+      )}
     </div>
   );
 };

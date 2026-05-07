@@ -23,8 +23,6 @@ import {
   xAxisForceCategoricalControl,
   xAxisSortAscControl,
   xAxisSortControl,
-  xAxisSortSeriesAscendingControl,
-  xAxisSortSeriesControl,
 } from '../shared-controls';
 
 const controlsWithoutXAxis: ControlSetRow[] = [
@@ -32,7 +30,7 @@ const controlsWithoutXAxis: ControlSetRow[] = [
   ['groupby'],
   [contributionModeControl],
   ['adhoc_filters'],
-  ['limit'],
+  ['limit', 'group_others_when_limit_reached'],
   ['timeseries_limit_metric'],
   ['order_desc'],
   ['row_limit'],
@@ -55,8 +53,6 @@ export const echartsTimeSeriesQueryWithXAxisSort: ControlPanelSectionConfig = {
     [xAxisForceCategoricalControl],
     [xAxisSortControl],
     [xAxisSortAscControl],
-    [xAxisSortSeriesControl],
-    [xAxisSortSeriesAscendingControl],
     ...controlsWithoutXAxis,
   ],
 };

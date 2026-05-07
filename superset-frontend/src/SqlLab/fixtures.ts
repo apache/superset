@@ -32,15 +32,16 @@ import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
 export const mockedActions = sinon.stub({ ...actions });
 
-export const alert = { bsStyle: 'danger', msg: 'Ooops', id: 'lksvmcx32' };
+export const alert = { bsStyle: 'danger', msg: 'Oops', id: 'lksvmcx32' };
 export const table = {
   dbId: 1,
   selectStar: 'SELECT * FROM ab_user',
   queryEditorId: 'dfsadfs',
   catalog: null,
-  schema: 'superset',
+  schema: 'main',
   name: 'ab_user',
   id: 'r11Vgt60',
+  view: 'SELECT * FROM ab_user',
   dataPreviewQueryId: null,
   partitions: {
     cols: ['username'],
@@ -187,8 +188,9 @@ export const table = {
 export const defaultQueryEditor = {
   version: LatestQueryEditorVersion,
   id: 'dfsadfs',
+  immutableId: 'immutable-id',
   autorun: false,
-  dbId: undefined,
+  dbId: 1,
   latestQueryId: null,
   selectedText: undefined,
   sql: 'SELECT *\nFROM\nWHERE',
@@ -203,6 +205,7 @@ export const defaultQueryEditor = {
 export const extraQueryEditor1 = {
   ...defaultQueryEditor,
   id: 'diekd23',
+  immutableId: 'immutable-id',
   sql: 'SELECT *\nFROM\nWHERE\nLIMIT',
   name: 'Untitled Query 2',
   selectedText: 'SELECT',
@@ -211,8 +214,18 @@ export const extraQueryEditor1 = {
 export const extraQueryEditor2 = {
   ...defaultQueryEditor,
   id: 'owkdi998',
+  immutableId: 'immutable-id',
   sql: '',
   name: 'Untitled Query 3',
+};
+
+export const extraQueryEditor3 = {
+  ...defaultQueryEditor,
+  id: 'kvk23',
+  immutableId: 'immutable-id',
+  sql: '',
+  name: 'Untitled Query 4',
+  tabViewId: 37,
 };
 
 export const queries = [
@@ -528,6 +541,12 @@ export const failedQueryWithErrors = {
   errors: [
     {
       message: 'Something went wrong',
+      error_type: 'TEST_ERROR',
+      level: 'error',
+      extra: null,
+    },
+    {
+      message: 'Something else wrong',
       error_type: 'TEST_ERROR',
       level: 'error',
       extra: null,

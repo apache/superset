@@ -17,9 +17,10 @@
  * under the License.
  */
 
+import { VizType } from '@superset-ui/core';
 import { CompareChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
 
-new CompareChartPlugin().configure({ key: 'compare' }).register();
+new CompareChartPlugin().configure({ key: VizType.Compare }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/Compare',

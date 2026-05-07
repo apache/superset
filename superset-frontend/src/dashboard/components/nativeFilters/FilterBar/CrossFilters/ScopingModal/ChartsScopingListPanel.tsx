@@ -27,24 +27,23 @@ import {
 } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import Icons from 'src/components/Icons';
-import Button from 'src/components/Button';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Button } from '@superset-ui/core/components';
 import { FilterTitle } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer';
 import { NEW_CHART_SCOPING_ID } from './constants';
 
 const AddButtonContainer = styled.div`
   ${({ theme }) => css`
-    margin-top: ${theme.gridUnit * 2}px;
-
+    margin-top: ${theme.sizeUnit * 2}px;
     & button > [role='img']:first-of-type {
-      margin-right: ${theme.gridUnit}px;
       line-height: 0;
     }
-
     span[role='img'] {
       padding-bottom: 1px;
     }
-
+    button > span > :first-of-type {
+      margin-right: 0;
+    }
     .ant-btn > .anticon + span {
       margin-left: 0;
     }
@@ -71,14 +70,15 @@ const ScopingTitle = ({
       onClick={() => onClick(id)}
     >
       {label}
-      <Icons.Trash
-        iconColor={theme.colors.grayscale.light3}
-        onClick={event => {
+      <Icons.DeleteOutlined
+        iconColor={theme.colorIcon}
+        iconSize="xl"
+        onClick={(event: React.MouseEvent<HTMLElement>) => {
           event.stopPropagation();
           onRemove(id);
         }}
         css={css`
-          margin-left: auto;
+          margin: auto auto auto ${theme.sizeUnit}px;
         `}
       />
     </FilterTitle>
@@ -136,7 +136,7 @@ export const ChartsScopingListPanel = ({
           buttonSize="xsmall"
           onClick={addNewCustomScope}
         >
-          <Icons.PlusSmall /> {t('Add custom scoping')}
+          <Icons.PlusOutlined iconSize="s" /> {t('Add custom scoping')}
         </Button>
       </AddButtonContainer>
       <FilterTitle
@@ -150,8 +150,8 @@ export const ChartsScopingListPanel = ({
         css={css`
           width: 100%;
           height: 1px;
-          background-color: ${theme.colors.grayscale.light3};
-          margin: ${theme.gridUnit * 3}px 0;
+          background-color: ${theme.colorSplit};
+          margin: ${theme.sizeUnit * 3}px 0;
         `}
       />
       {customScopedCharts.map(chartInfo => (

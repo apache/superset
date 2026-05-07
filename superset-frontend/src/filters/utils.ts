@@ -34,7 +34,7 @@ export const getSelectExtraFormData = (
   col: string,
   value?: null | (string | number | boolean | null)[],
   emptyFilter = false,
-  inverseSelection = false,
+  shouldExcludeFilter = false,
 ): ExtraFormData => {
   const extra: ExtraFormData = {};
   if (emptyFilter) {
@@ -49,7 +49,7 @@ export const getSelectExtraFormData = (
     extra.filters = [
       {
         col,
-        op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
+        op: shouldExcludeFilter ? ('NOT IN' as const) : ('IN' as const),
         // @ts-ignore
         val: value,
       },
@@ -116,6 +116,9 @@ export function getDataRecordFormatter({
     }
     if (typeof value === 'string') {
       return value;
+    }
+    if (typeof value === 'bigint') {
+      return String(value);
     }
     if (timeFormatter && dtype === GenericDataType.Temporal) {
       return timeFormatter(value);

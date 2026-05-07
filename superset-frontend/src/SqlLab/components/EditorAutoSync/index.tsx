@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useRef, useEffect, FC } from 'react';
+import { useRef, useEffect, FC, useMemo } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
 import { logging } from '@superset-ui/core';
@@ -68,6 +68,17 @@ export function filterUnsavedQueryEditorList(
 const EditorAutoSync: FC = () => {
   const queryEditors = useSelector<SqlLabRootState, QueryEditor[]>(
     state => state.sqlLab.queryEditors,
+  );
+  const queryEditorsById = useMemo(
+    () =>
+      queryEditors.reduce(
+        (acc, queryEditor) => {
+          acc[queryEditor.id] = queryEditor;
+          return acc;
+        },
+        {} as Record<string, QueryEditor>,
+      ),
+    [queryEditors],
   );
   const unsavedQueryEditor = useSelector<SqlLabRootState, UnsavedQueryEditor>(
     state => state.sqlLab.unsavedQueryEditor,
@@ -120,7 +131,10 @@ const EditorAutoSync: FC = () => {
       !queryEditors.find(({ id }) => id === currentQueryEditorId)
         ?.inLocalStorage
     ) {
-      updateCurrentSqlEditor(currentQueryEditorId).then(() => {
+      const queryEditorId =
+        queryEditorsById[currentQueryEditorId]?.tabViewId ??
+        currentQueryEditorId;
+      updateCurrentSqlEditor(queryEditorId).then(() => {
         dispatch(setLastUpdatedActiveTab(currentQueryEditorId));
       });
     }
@@ -129,7 +143,8 @@ const EditorAutoSync: FC = () => {
   const syncDeletedQueryEditor = useEffectEvent(() => {
     if (Object.keys(destroyedQueryEditors).length > 0) {
       Object.keys(destroyedQueryEditors).forEach(id => {
-        deleteSqlEditor(id)
+        const queryEditorId = queryEditorsById[id]?.tabViewId ?? id;
+        deleteSqlEditor(queryEditorId)
           .then(() => {
             dispatch(clearDestoryedQueryEditor(id));
           })

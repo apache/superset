@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-horizon",
-  "version": "0.18.25",
+  "version": "0.20.3",
   "description": "Superset Legacy Chart - Horizon",
   "keywords": [
     "superset"
@@ -30,7 +30,7 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^15 || ^16"
+    "react": "^17.0.2"
   },
   "publishConfig": {
     "access": "public"

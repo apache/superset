@@ -66,7 +66,7 @@ def _insert_annotation(
     return annotation
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_annotation_layers(app_context: AppContext):
     """
     Creates ANNOTATION_LAYERS_COUNT-1 layers with no annotations

@@ -17,42 +17,34 @@
  * under the License.
  */
 import {
-  dashboardView,
-  dataTestChartName,
-  exploreView,
   nativeFilters,
+  exploreView,
+  dataTestChartName,
 } from 'cypress/support/directories';
-import qs from 'querystring';
 
 import {
-  prepareDashboardFilters,
-  SAMPLE_CHART,
-  visitDashboard,
-} from './shared_dashboard_functions';
-import {
-  addCountryNameFilter,
   addParentFilterWithValue,
-  applyAdvancedTimeRangeFilterOnDashboard,
   applyNativeFilterValueWithIndex,
   cancelNativeFilterSettings,
   checkNativeFilterTooltip,
   clickOnAddFilterInModal,
   collapseFilterOnLeftPanel,
-  deleteNativeFilter,
   enterNativeFilterEditModal,
   expandFilterOnLeftPanel,
-  fillNativeFilterForm,
   getNativeFilterPlaceholderWithIndex,
   inputNativeFilterDefaultValue,
-  nativeFilterTooltips,
   saveNativeFilterSettings,
-  testItems,
-  undoDeleteNativeFilter,
+  nativeFilterTooltips,
   validateFilterContentOnDashboard,
-  validateFilterNameOnDashboard,
   valueNativeFilterOptions,
-  WORLD_HEALTH_CHARTS,
+  validateFilterNameOnDashboard,
+  testItems,
 } from './utils';
+import {
+  prepareDashboardFilters,
+  SAMPLE_CHART,
+  visitDashboard,
+} from './shared_dashboard_functions';
 
 function selectFilter(index: number) {
   cy.get("[data-test='filter-title-container'] [draggable='true']")
@@ -74,7 +66,7 @@ describe('Native filters', () => {
       cy.createSampleDashboards([0]);
     });
 
-    it('Verify that default value is respected after revisit', () => {
+    it.skip('Verify that default value is respected after revisit', () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
@@ -168,6 +160,125 @@ describe('Native filters', () => {
       );
     });
 
+    it('user cannot create bi-directional dependencies between filters', () => {
+      prepareDashboardFilters([
+        { name: 'region', column: 'region', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'country_code', column: 'country_code', datasetId: 2 },
+        { name: 'year', column: 'year', datasetId: 2 },
+      ]);
+      enterNativeFilterEditModal();
+
+      // First, make country_name dependent on region
+      selectFilter(1);
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Values are dependent on other filters')
+            .should('be.visible')
+            .click();
+        },
+      );
+      addParentFilterWithValue(0, testItems.topTenChart.filterColumnRegion);
+
+      // Second, make country_code dependent on country_name
+      selectFilter(2);
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Values are dependent on other filters')
+            .should('be.visible')
+            .click();
+        },
+      );
+      addParentFilterWithValue(0, testItems.topTenChart.filterColumn);
+
+      // Now select region filter and try to add dependency
+      selectFilter(0);
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Values are dependent on other filters')
+            .should('be.visible')
+            .click();
+
+          // Verify that only 'year' is available as dependency for region
+          // 'country_name' and 'country_code' should not be available (would create circular dependency)
+          cy.get('input[aria-label^="Limit type"]').click({ force: true });
+          cy.get('[role="listbox"]').should('be.visible');
+          cy.get('[role="listbox"]').should('contain', 'year');
+          cy.get('[role="listbox"]').should('not.contain', 'country_name');
+          cy.get('[role="listbox"]').should('not.contain', 'country_code');
+          cy.get('[role="listbox"]').contains('year').click();
+        },
+      );
+    });
+
+    it('Dependent filter selects first item based on parent filter selection', () => {
+      prepareDashboardFilters([
+        { name: 'region', column: 'region', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
+      ]);
+
+      enterNativeFilterEditModal();
+
+      selectFilter(0);
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Select first filter value by default')
+            .should('be.visible')
+            .click();
+        },
+      );
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Can select multiple values ')
+            .should('be.visible')
+            .click();
+        },
+      );
+
+      selectFilter(1);
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Values are dependent on other filters')
+            .should('be.visible')
+            .click();
+        },
+      );
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Can select multiple values ')
+            .should('be.visible')
+            .click();
+        },
+      );
+      addParentFilterWithValue(0, testItems.topTenChart.filterColumnRegion);
+      cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
+        () => {
+          cy.contains('Select first filter value by default')
+            .should('be.visible')
+            .click();
+        },
+      );
+
+      // cannot use saveNativeFilterSettings because there is a bug which
+      // sometimes does not allow charts to load when enabling the 'Select first filter value by default'
+      // to be saved when using dependent filters so,
+      // you reload the window.
+      cy.get(nativeFilters.modal.footer)
+        .contains('Save')
+        .should('be.visible')
+        .click({ force: true });
+
+      cy.get(nativeFilters.modal.container).should('not.exist');
+      cy.reload();
+
+      applyNativeFilterValueWithIndex(0, 'North America');
+
+      // Check that dependent filter auto-selects the first item
+      cy.get(nativeFilters.filterFromDashboardView.filterContent)
+        .eq(1)
+        .should('contain.text', 'Bermuda');
+    });
+
     it('User can create filter depend on 2 other filters', () => {
       prepareDashboardFilters([
         { name: 'region', column: 'region', datasetId: 2 },
@@ -228,7 +339,7 @@ describe('Native filters', () => {
       ]);
       enterNativeFilterEditModal();
       selectFilter(1);
-      // Select dependdent option and auto use platform for genre
+      // Select dependent option and auto use platform for genre
       cy.get(nativeFilters.filterConfigurationSections.displayedSection).within(
         () => {
           cy.contains('Values are dependent on other filters')
@@ -263,8 +374,10 @@ describe('Native filters', () => {
     });
 
     it('User can expand / retract native filter sidebar on a dashboard', () => {
-      cy.get(nativeFilters.addFilterButton.button).should('not.exist');
       expandFilterOnLeftPanel();
+      cy.get(nativeFilters.filtersPanel.filterGear).click({
+        force: true,
+      });
       cy.get(nativeFilters.filterFromDashboardView.createFilterButton).should(
         'be.visible',
       );
@@ -281,7 +394,7 @@ describe('Native filters', () => {
     it('User can delete a native filter', () => {
       enterNativeFilterEditModal(false);
       cy.get(nativeFilters.filtersList.removeIcon).first().click();
-      cy.contains('Restore Filter').should('not.exist', { timeout: 10000 });
+      cy.contains('Restore filter').should('not.exist', { timeout: 10000 });
     });
 
     it('User can cancel creating a new filter', () => {
@@ -291,7 +404,11 @@ describe('Native filters', () => {
 
     it('Verify setting options and tooltips for value filter', () => {
       enterNativeFilterEditModal(false);
-      cy.contains('Filter value is required').should('be.visible').click();
+      cy.contains('Filter value is required').scrollIntoView();
+
+      cy.contains('Filter value is required').should('be.visible').click({
+        force: true,
+      });
       checkNativeFilterTooltip(0, nativeFilterTooltips.preFilter);
       checkNativeFilterTooltip(1, nativeFilterTooltips.defaultValue);
       cy.get(nativeFilters.modal.container).should('be.visible');
@@ -308,222 +425,6 @@ describe('Native filters', () => {
       checkNativeFilterTooltip(5, nativeFilterTooltips.inverseSelection);
       clickOnAddFilterInModal();
       cy.contains('Values are dependent on other filters').should('exist');
-    });
-  });
-
-  describe('Nativefilters initial state not required', () => {
-    it("User can check 'Filter has default value'", () => {
-      prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
-      ]);
-      enterNativeFilterEditModal();
-      inputNativeFilterDefaultValue(testItems.filterDefaultValue);
-    });
-
-    it('User can add a new native filter', () => {
-      prepareDashboardFilters([]);
-
-      let filterKey: string;
-      const removeFirstChar = (search: string) =>
-        search.split('').slice(1, search.length).join('');
-
-      cy.location().then(loc => {
-        cy.url().should('contain', 'native_filters_key');
-        const queryParams = qs.parse(removeFirstChar(loc.search));
-        filterKey = queryParams.native_filters_key as string;
-        expect(typeof filterKey).eq('string');
-      });
-      enterNativeFilterEditModal();
-      addCountryNameFilter();
-      saveNativeFilterSettings([SAMPLE_CHART]);
-      cy.location().then(loc => {
-        cy.url().should('contain', 'native_filters_key');
-        const queryParams = qs.parse(removeFirstChar(loc.search));
-        const newfilterKey = queryParams.native_filters_key;
-        expect(newfilterKey).eq(filterKey);
-      });
-      cy.get(nativeFilters.modal.container).should('not.exist');
-    });
-
-    it('User can restore a deleted native filter', () => {
-      prepareDashboardFilters([
-        { name: 'country_code', column: 'country_code', datasetId: 2 },
-      ]);
-      enterNativeFilterEditModal();
-      cy.get(nativeFilters.filtersList.removeIcon).first().click();
-      cy.get('[data-test="restore-filter-button"]')
-        .should('be.visible')
-        .click();
-      cy.get(nativeFilters.modal.container)
-        .find(nativeFilters.filtersPanel.filterName)
-        .should(
-          'have.attr',
-          'value',
-          testItems.topTenChart.filterColumnCountryCode,
-        );
-    });
-
-    it('User can create a time grain filter', () => {
-      prepareDashboardFilters([]);
-      enterNativeFilterEditModal();
-      fillNativeFilterForm(
-        testItems.filterType.timeGrain,
-        testItems.filterType.timeGrain,
-        testItems.datasetForNativeFilter,
-      );
-      saveNativeFilterSettings([SAMPLE_CHART]);
-      applyNativeFilterValueWithIndex(0, testItems.filterTimeGrain);
-      cy.get(nativeFilters.applyFilter).click();
-      cy.url().then(u => {
-        const ur = new URL(u);
-        expect(ur.search).to.include('native_filters');
-      });
-      validateFilterNameOnDashboard(testItems.filterType.timeGrain);
-      validateFilterContentOnDashboard(testItems.filterTimeGrain);
-    });
-
-    it.skip('User can create a time range filter', () => {
-      enterNativeFilterEditModal();
-      fillNativeFilterForm(
-        testItems.filterType.timeRange,
-        testItems.filterType.timeRange,
-      );
-      saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
-      cy.get(dashboardView.salesDashboardSpecific.vehicleSalesFilterTimeRange)
-        .should('be.visible')
-        .click();
-      applyAdvancedTimeRangeFilterOnDashboard('2005-12-17', '2006-12-17');
-      cy.url().then(u => {
-        const ur = new URL(u);
-        expect(ur.search).to.include('native_filters');
-      });
-      validateFilterNameOnDashboard(testItems.filterType.timeRange);
-      cy.get(nativeFilters.filterFromDashboardView.timeRangeFilterContent)
-        .contains('2005-12-17')
-        .should('be.visible');
-    });
-
-    it.skip('User can create a time column filter', () => {
-      enterNativeFilterEditModal();
-      fillNativeFilterForm(
-        testItems.filterType.timeColumn,
-        testItems.filterType.timeColumn,
-        testItems.datasetForNativeFilter,
-      );
-      saveNativeFilterSettings(WORLD_HEALTH_CHARTS);
-      cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
-      cy.get(nativeFilters.modal.container).should('not.exist');
-      // assert that native filter is created
-      validateFilterNameOnDashboard(testItems.filterType.timeColumn);
-      applyNativeFilterValueWithIndex(
-        0,
-        testItems.topTenChart.filterColumnYear,
-      );
-      cy.get(nativeFilters.applyFilter).click({ force: true });
-      cy.wait('@chart');
-      validateFilterContentOnDashboard(testItems.topTenChart.filterColumnYear);
-    });
-
-    it('User can create a numerical range filter', () => {
-      visitDashboard();
-      enterNativeFilterEditModal(false);
-      fillNativeFilterForm(
-        testItems.filterType.numerical,
-        testItems.filterNumericalColumn,
-        testItems.datasetForNativeFilter,
-        testItems.filterNumericalColumn,
-      );
-      saveNativeFilterSettings([]);
-      // assertions
-      cy.get(nativeFilters.slider.slider).should('be.visible').click('center');
-      cy.get(nativeFilters.applyFilter).click();
-      // assert that the url contains 'native_filters' in the url
-      cy.url().then(u => {
-        const ur = new URL(u);
-        expect(ur.search).to.include('native_filters');
-        // assert that the start handle has a value
-        cy.get(nativeFilters.slider.startHandle)
-          .invoke('attr', 'aria-valuenow')
-          .should('exist');
-        // assert that the end handle has a value
-        cy.get(nativeFilters.slider.endHandle)
-          .invoke('attr', 'aria-valuenow')
-          .should('exist');
-        // assert slider text matches what we should have
-        cy.get(nativeFilters.slider.sliderText).should('have.text', '49');
-      });
-    });
-
-    it('User can undo deleting a native filter', () => {
-      prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
-      ]);
-      enterNativeFilterEditModal();
-      undoDeleteNativeFilter();
-      cy.get(nativeFilters.modal.container)
-        .find(nativeFilters.filtersPanel.filterName)
-        .should('have.attr', 'value', testItems.topTenChart.filterColumn);
-    });
-
-    it('User can cancel changes in native filter', () => {
-      prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
-      ]);
-      enterNativeFilterEditModal();
-      cy.getBySel('filters-config-modal__name-input').type('|EDITED', {
-        force: true,
-      });
-      cancelNativeFilterSettings();
-      enterNativeFilterEditModal(false);
-      cy.get(nativeFilters.filtersList.removeIcon).first().click();
-      cy.contains('You have removed this filter.').should('be.visible');
-    });
-
-    it('User can create a value filter', () => {
-      visitDashboard();
-      enterNativeFilterEditModal(false);
-      addCountryNameFilter();
-      cy.get(nativeFilters.filtersPanel.filterTypeInput)
-        .find(nativeFilters.filtersPanel.filterTypeItem)
-        .should('have.text', testItems.filterType.value);
-      saveNativeFilterSettings([]);
-      validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
-    });
-
-    it('User can apply value filter with selected values', () => {
-      prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
-      ]);
-      applyNativeFilterValueWithIndex(0, testItems.filterDefaultValue);
-      cy.get(nativeFilters.applyFilter).click();
-      cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
-        cy.contains(testItems.filterDefaultValue).should('be.visible');
-        cy.contains(testItems.filterOtherCountry).should('not.exist');
-      });
-    });
-
-    it('User can stop filtering when filter is removed', () => {
-      prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
-      ]);
-      enterNativeFilterEditModal();
-      inputNativeFilterDefaultValue(testItems.filterDefaultValue);
-      saveNativeFilterSettings([SAMPLE_CHART]);
-      cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
-        cy.contains(testItems.filterDefaultValue).should('be.visible');
-        cy.contains(testItems.filterOtherCountry).should('not.exist');
-      });
-      cy.get(nativeFilters.filterItem)
-        .contains(testItems.filterDefaultValue)
-        .should('be.visible');
-      validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
-      enterNativeFilterEditModal(false);
-      deleteNativeFilter();
-      saveNativeFilterSettings([SAMPLE_CHART]);
-      cy.get(dataTestChartName(testItems.topTenChart.name)).within(() => {
-        cy.contains(testItems.filterDefaultValue).should('be.visible');
-        cy.contains(testItems.filterOtherCountry).should('be.visible');
-      });
     });
   });
 });

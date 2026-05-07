@@ -16,58 +16,78 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
-import { SyntaxHighlighterProps } from 'react-syntax-highlighter';
-import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
-import htmlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars';
-import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown';
-import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
-import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import Icons from 'src/components/Icons';
+import CodeSyntaxHighlighter, {
+  SupportedLanguage,
+  CodeSyntaxHighlighterProps,
+  preloadLanguages,
+} from '@superset-ui/core/components/CodeSyntaxHighlighter';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { ToastProps } from 'src/components/MessageToasts/withToasts';
 import copyTextToClipboard from 'src/utils/copy';
 
-SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
-SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);
-SyntaxHighlighter.registerLanguage('html', htmlSyntax);
-SyntaxHighlighter.registerLanguage('json', jsonSyntax);
-
 const SyntaxHighlighterWrapper = styled.div`
-  margin-top: -24px;
+  position: relative;
 
   &:hover {
-    svg {
+    .copy-button {
       visibility: visible;
     }
   }
 
-  svg {
-    position: relative;
+  .copy-button {
+    position: absolute;
     top: 40px;
-    left: 512px;
+    right: 16px;
+    z-index: 10;
     visibility: hidden;
     margin: -4px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    padding: 4px;
+    background: ${({ theme }) => theme.colorBgContainer};
+    border-radius: ${({ theme }) => theme.borderRadius}px;
+    color: ${({ theme }) => theme.colorIcon};
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: ${({ theme }) => theme.colorFillContentHover};
+      color: ${({ theme }) => theme.colorIconHover};
+    }
+
+    &:focus {
+      visibility: visible;
+      outline: 2px solid ${({ theme }) => theme.colorPrimary};
+      outline-offset: 2px;
+    }
   }
 `;
+
+interface SyntaxHighlighterCopyProps
+  extends Omit<CodeSyntaxHighlighterProps, 'children'> {
+  children: string;
+  addDangerToast?: ToastProps['addDangerToast'];
+  addSuccessToast?: ToastProps['addSuccessToast'];
+  language: SupportedLanguage;
+}
 
 export default function SyntaxHighlighterCopy({
   addDangerToast,
   addSuccessToast,
   children,
+  language,
   ...syntaxHighlighterProps
-}: SyntaxHighlighterProps & {
-  children: string;
-  addDangerToast?: ToastProps['addDangerToast'];
-  addSuccessToast?: ToastProps['addSuccessToast'];
-  language: 'sql' | 'markdown' | 'html' | 'json';
-}) {
+}: SyntaxHighlighterCopyProps) {
+  // Preload the language when component mounts
+  useEffect(() => {
+    preloadLanguages([language]);
+  }, [language]);
+
   function copyToClipboard(textToCopy: string) {
     copyTextToClipboard(() => Promise.resolve(textToCopy))
       .then(() => {
         if (addSuccessToast) {
-          addSuccessToast(t('SQL Copied!'));
+          addSuccessToast(t('Code Copied!'));
         }
       })
       .catch(() => {
@@ -76,20 +96,34 @@ export default function SyntaxHighlighterCopy({
         }
       });
   }
+
+  const handleCopyClick = (e: React.MouseEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.blur();
+    copyToClipboard(children);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      copyToClipboard(children);
+    }
+  };
+
   return (
     <SyntaxHighlighterWrapper>
-      <Icons.Copy
+      <Icons.CopyOutlined
+        className="copy-button"
         tabIndex={0}
         role="button"
-        onClick={e => {
-          e.preventDefault();
-          e.currentTarget.blur();
-          copyToClipboard(children);
-        }}
+        aria-label={t('Copy code to clipboard')}
+        onClick={handleCopyClick}
+        onKeyDown={handleKeyDown}
       />
-      <SyntaxHighlighter style={github} {...syntaxHighlighterProps}>
+      <CodeSyntaxHighlighter language={language} {...syntaxHighlighterProps}>
         {children}
-      </SyntaxHighlighter>
+      </CodeSyntaxHighlighter>
     </SyntaxHighlighterWrapper>
   );
 }

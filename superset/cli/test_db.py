@@ -198,7 +198,7 @@ def collect_connection_info(
     return yaml.safe_load(raw_engine_kwargs)
 
 
-def test_db_engine_spec(
+def test_db_engine_spec(  # noqa: C901
     console: Console,
     sqlalchemy_uri: str,
 ) -> type[BaseEngineSpec] | None:

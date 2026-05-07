@@ -44,3 +44,8 @@ under the License.
 - [4.0.1](./CHANGELOG/4.0.1.md)
 - [4.0.2](./CHANGELOG/4.0.2.md)
 - [4.1.0](./CHANGELOG/4.1.0.md)
+- [4.1.1](./CHANGELOG/4.1.1.md)
+- [4.1.2](./CHANGELOG/4.1.2.md)
+- [4.1.3](./CHANGELOG/4.1.3.md)
+- [5.0.0](./CHANGELOG/5.0.0.md)
+- [6.0.0](./CHANGELOG/6.0.0.md)

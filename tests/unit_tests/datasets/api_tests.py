@@ -64,8 +64,7 @@ def test_put_invalid_dataset(
                         {
                             "code": 1040,
                             "message": (
-                                "Issue 1040 - The submitted payload "
-                                "failed validation."
+                                "Issue 1040 - The submitted payload failed validation."
                             ),
                         }
                     ],

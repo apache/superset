@@ -55,6 +55,7 @@ export interface EchartsProps {
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
   refs: Refs;
+  vizType?: string;
 }
 
 export interface EchartsHandler {
@@ -138,6 +139,7 @@ export interface BaseTransformedProps<F> {
   width: number;
   emitCrossFilters?: boolean;
   coltypeMapping?: Record<string, number>;
+  onLegendScroll?: (currentIndex: number) => void;
 }
 
 export type CrossFilterTransformedProps = {

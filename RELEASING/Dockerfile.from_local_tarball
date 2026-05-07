@@ -20,7 +20,7 @@ RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
 
 # Configure environment
 ENV LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
+  LC_ALL=C.UTF-8
 
 RUN apt-get update -y
 
@@ -30,14 +30,14 @@ RUN apt-get install -y apt-transport-https apt-utils
 # Install superset dependencies
 # https://superset.apache.org/docs/installation/installing-superset-from-scratch
 RUN apt-get install -y build-essential libssl-dev \
-    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev chromium
+  libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev chromium zstd
 
 # Install nodejs for custom build
 # https://nodejs.org/en/download/package-manager/
 RUN set -eux; \
-    curl -sL https://deb.nodesource.com/setup_18.x | bash -; \
-    apt-get install -y nodejs; \
-    node --version;
+  curl -sL https://deb.nodesource.com/setup_20.x | bash -; \
+  apt-get install -y nodejs; \
+  node --version;
 RUN if ! which npm; then apt-get install -y npm; fi
 
 RUN mkdir -p /home/superset
@@ -50,21 +50,21 @@ ARG SUPERSET_RELEASE_RC_TARBALL
 # Can fetch source from svn or copy tarball from local mounted directory
 COPY $SUPERSET_RELEASE_RC_TARBALL ./
 RUN tar -xvf *.tar.gz
-WORKDIR /home/superset/apache-superset-$VERSION/superset-frontend
+WORKDIR /home/superset/apache_superset-$VERSION/superset-frontend
 
 RUN npm ci \
-    && npm run build \
-    && rm -rf node_modules
+  && npm run build \
+  && rm -rf node_modules
 
-WORKDIR /home/superset/apache-superset-$VERSION
+WORKDIR /home/superset/apache_superset-$VERSION
 RUN pip install --upgrade setuptools pip \
-    && pip install -r requirements/base.txt \
-    && pip install --no-cache-dir .
+  && pip install -r requirements/base.txt \
+  && pip install --no-cache-dir .
 
 RUN flask fab babel-compile --target superset/translations
 
 ENV PATH=/home/superset/superset/bin:$PATH \
-    PYTHONPATH=/home/superset/superset/:$PYTHONPATH \
-    SUPERSET_TESTENV=true
+  PYTHONPATH=/home/superset/superset/ \
+  SUPERSET_TESTENV=true
 COPY from_tarball_entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

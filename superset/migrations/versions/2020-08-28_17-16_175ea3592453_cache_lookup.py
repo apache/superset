@@ -22,16 +22,18 @@ Create Date: 2020-08-28 17:16:57.379425
 
 """
 
+import sqlalchemy as sa
+from alembic import op
+
+from superset.migrations.shared.utils import create_table
+
 # revision identifiers, used by Alembic.
 revision = "175ea3592453"
 down_revision = "f80a3b88324b"
 
-import sqlalchemy as sa  # noqa: E402
-from alembic import op  # noqa: E402
-
 
 def upgrade():
-    op.create_table(
+    create_table(
         "cache_keys",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("cache_key", sa.String(256), nullable=False),

@@ -37,6 +37,7 @@ from sqlalchemy import (
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
@@ -107,7 +108,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         primaryjoin="and_(Slice.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'chart')",
         secondaryjoin="TaggedObject.tag_id == Tag.id",
-        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
     table = relationship(
         "SqlaTable",
@@ -140,15 +141,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def cls_model(self) -> type[SqlaTable]:
-        # pylint: disable=import-outside-toplevel
-        from superset.daos.datasource import DatasourceDAO
-
-        return DatasourceDAO.sources[self.datasource_type]
-
-    @property
     def datasource(self) -> SqlaTable | None:
-        return self.get_datasource
+        return self.table
 
     def clone(self) -> Slice:
         return Slice(
@@ -160,15 +154,6 @@ class Slice(  # pylint: disable=too-many-public-methods
             params=self.params,
             description=self.description,
             cache_timeout=self.cache_timeout,
-        )
-
-    # pylint: disable=using-constant-test
-    @datasource.getter  # type: ignore
-    def get_datasource(self) -> SqlaTable | None:
-        return (
-            db.session.query(self.cls_model)
-            .filter_by(id=self.datasource_id)
-            .one_or_none()
         )
 
     @renders("datasource_name")
@@ -198,8 +183,6 @@ class Slice(  # pylint: disable=too-many-public-methods
     def datasource_edit_url(self) -> str | None:
         datasource = self.datasource
         return datasource.url if datasource else None
-
-    # pylint: enable=using-constant-test
 
     @property
     def viz(self) -> BaseViz | None:
@@ -247,16 +230,19 @@ class Slice(  # pylint: disable=too-many-public-methods
         }
 
     @property
-    def digest(self) -> str:
+    def digest(self) -> str | None:
         return get_chart_digest(self)
 
     @property
-    def thumbnail_url(self) -> str:
+    def thumbnail_url(self) -> str | None:
         """
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/api/v1/chart/{self.id}/thumbnail/{self.digest}/"
+        if digest := self.digest:
+            return f"/api/v1/chart/{self.id}/thumbnail/{digest}/"
+
+        return None
 
     @property
     def json_data(self) -> str:
@@ -358,13 +344,24 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.query_context_factory
 
     @classmethod
-    def get(cls, id_: int) -> Slice:
-        qry = db.session.query(Slice).filter_by(id=id_)
+    def get(cls, id_or_uuid: str) -> Slice:
+        qry = db.session.query(Slice).filter(id_or_uuid_filter(id_or_uuid))
         return qry.one_or_none()
 
 
+def id_or_uuid_filter(id_or_uuid: str | int) -> BinaryExpression:
+    if isinstance(id_or_uuid, int):
+        return Slice.id == id_or_uuid
+    if id_or_uuid.isdigit():
+        return Slice.id == int(id_or_uuid)
+    return Slice.uuid == id_or_uuid
+
+
 def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:
-    src_class = target.cls_model
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.datasource import DatasourceDAO
+
+    src_class = DatasourceDAO.sources[target.datasource_type]
     if id_ := target.datasource_id:
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
@@ -377,9 +374,7 @@ def event_after_chart_changed(
     _mapper: Mapper, _connection: Connection, target: Slice
 ) -> None:
     cache_chart_thumbnail.delay(
-        current_user=get_current_user(),
-        chart_id=target.id,
-        force=True,
+        current_user=get_current_user(), chart_id=target.id, force=True
     )
 
 

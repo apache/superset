@@ -19,6 +19,7 @@
 import parseCookie from 'src/utils/parseCookie';
 import rison from 'rison';
 import { nanoid } from 'nanoid';
+import { ensureAppRoot } from './pathUtils';
 
 export default function handleResourceExport(
   resource: string,
@@ -27,9 +28,9 @@ export default function handleResourceExport(
   interval = 200,
 ): void {
   const token = nanoid();
-  const url = `/api/v1/${resource}/export/?q=${rison.encode(
-    ids,
-  )}&token=${token}`;
+  const url = ensureAppRoot(
+    `/api/v1/${resource}/export/?q=${rison.encode(ids)}&token=${token}`,
+  );
 
   // create new iframe for export
   const iframe = document.createElement('iframe');

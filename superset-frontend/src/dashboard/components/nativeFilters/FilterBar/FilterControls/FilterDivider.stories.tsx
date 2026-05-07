@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import { css } from '@emotion/react';
+import { css } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import FilterDivider from './FilterDivider';
 import { FilterDividerProps } from './types';
 
 export default {
-  title: 'FilterDivider',
+  title: 'Components/FilterDivider',
   component: FilterDivider,
 };
 

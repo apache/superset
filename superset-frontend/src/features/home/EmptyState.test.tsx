@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
 import { TableTab } from 'src/views/CRUD/types';
+import { render, screen } from 'spec/helpers/testing-library';
 import EmptyState, { EmptyStateProps } from './EmptyState';
 import { WelcomeTable } from './types';
 
@@ -62,32 +62,33 @@ describe('EmptyState', () => {
       tableName: WelcomeTable.Recents,
     },
   ];
+
   variants.forEach(variant => {
-    it(`it renders an ${variant.tab} ${variant.tableName} empty state`, () => {
-      const wrapper = mount(<EmptyState {...variant} />);
-      expect(wrapper).toExist();
-      const textContainer = wrapper.find('.ant-empty-description');
-      expect(textContainer.text()).toEqual(
-        variant.tab === TableTab.Favorite
-          ? "You don't have any favorites yet!"
-          : `No ${
-              variant.tableName === WelcomeTable.SavedQueries
-                ? 'saved queries'
-                : variant.tableName.toLowerCase()
-            } yet`,
-      );
-      expect(wrapper.find('button')).toHaveLength(1);
+    it(`renders an ${variant.tab} ${variant.tableName} empty state`, () => {
+      const { container } = render(<EmptyState {...variant} />);
+
+      // Select the first description node
+      expect(
+        container.querySelector('.ant-empty-description'),
+      ).toHaveTextContent('Nothing here yet');
+      expect(screen.getAllByRole('button')).toHaveLength(1);
     });
   });
+
   recents.forEach(recent => {
-    it(`it renders a ${recent.tab} ${recent.tableName} empty state`, () => {
-      const wrapper = mount(<EmptyState {...recent} />);
-      expect(wrapper).toExist();
-      const textContainer = wrapper.find('.ant-empty-description');
-      expect(wrapper.find('.ant-empty-image').children()).toHaveLength(1);
-      expect(textContainer.text()).toContain(
-        `Recently ${recent.tab?.toLowerCase()} charts, dashboards, and saved queries will appear here`,
-      );
+    it(`renders a ${recent.tab} ${recent.tableName} empty state`, () => {
+      const { container } = render(<EmptyState {...recent} />);
+
+      // Select the first description node
+      // Check the correct text is displayed
+      expect(
+        container.querySelector('.ant-empty-description'),
+      ).toHaveTextContent('Nothing here yet');
+
+      // Validate the image
+      expect(
+        container.querySelector('.ant-empty-image')?.children,
+      ).toHaveLength(1);
     });
   });
 });

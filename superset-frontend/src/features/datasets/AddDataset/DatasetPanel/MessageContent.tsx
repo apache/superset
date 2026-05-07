@@ -18,12 +18,12 @@
  */
 
 import { t, styled } from '@superset-ui/core';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from '@superset-ui/core/components';
 import { Link } from 'react-router-dom';
 
 const StyledContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 8}px
-    ${({ theme }) => theme.gridUnit * 6}px;
+  padding: ${({ theme }) => theme.sizeUnit * 8}px
+    ${({ theme }) => theme.sizeUnit * 6}px;
 
   display: flex;
   align-items: center;
@@ -31,11 +31,11 @@ const StyledContainer = styled.div`
   height: 100%;
 `;
 
-const StyledEmptyStateBig = styled(EmptyStateBig)`
+const StyledEmptyState = styled(EmptyState)`
   max-width: 50%;
 
   p {
-    width: ${({ theme }) => theme.gridUnit * 115}px;
+    width: ${({ theme }) => theme.sizeUnit * 115}px;
   }
 `;
 
@@ -91,8 +91,9 @@ export const MessageContent = (props: MessageContentProps) => {
   }
   return (
     <StyledContainer>
-      <StyledEmptyStateBig
+      <StyledEmptyState
         image={currentImage}
+        size="large"
         title={currentTitle}
         description={currentDescription}
       />

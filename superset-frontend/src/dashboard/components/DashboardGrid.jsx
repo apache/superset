@@ -17,10 +17,13 @@
  * under the License.
  */
 import { PureComponent, Fragment } from 'react';
+import { withTheme } from '@emotion/react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { addAlpha, css, styled, t } from '@superset-ui/core';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { navigateTo } from 'src/utils/navigationUtils';
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
@@ -50,45 +53,47 @@ const DashboardEmptyStateContainer = styled.div`
   bottom: 0;
   left: 0;
   right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const GridContent = styled.div`
   ${({ theme, editMode }) => css`
     display: flex;
     flex-direction: column;
-
     /* gutters between rows */
     & > div:not(:last-child):not(.empty-droptarget) {
-      ${!editMode && `margin-bottom: ${theme.gridUnit * 4}px`};
+      ${!editMode && `margin-bottom: ${theme.sizeUnit * 4}px`};
     }
 
     .empty-droptarget {
       width: 100%;
-      height: ${theme.gridUnit * 4}px;
+      height: ${theme.sizeUnit * 4}px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: ${theme.gridUnit}px;
+      border-radius: ${theme.borderRadius}px;
       overflow: hidden;
 
       &:before {
         content: '';
         display: block;
-        width: calc(100% - ${theme.gridUnit * 2}px);
-        height: calc(100% - ${theme.gridUnit * 2}px);
+        width: calc(100% - ${theme.sizeUnit * 2}px);
+        height: calc(100% - ${theme.sizeUnit * 2}px);
         border: 1px dashed transparent;
-        border-radius: ${theme.gridUnit}px;
+        border-radius: ${theme.borderRadius}px;
         opacity: 0.5;
       }
     }
 
     & > .empty-droptarget:first-child {
-      height: ${theme.gridUnit * 4}px;
-      margin-top: ${theme.gridUnit * -4}px;
+      height: ${theme.sizeUnit * 4}px;
+      margin-top: ${theme.sizeUnit * -4}px;
     }
 
     & > .empty-droptarget:last-child {
-      height: ${theme.gridUnit * 24}px;
+      height: ${theme.sizeUnit * 24}px;
     }
 
     & > .empty-droptarget.empty-droptarget--full:only-child {
@@ -104,16 +109,9 @@ const GridColumnGuide = styled.div`
       position: absolute;
       top: 0;
       min-height: 100%;
-      background-color: ${addAlpha(
-        theme.colors.primary.base,
-        parseFloat(theme.opacity.light) / 100,
-      )};
+      background-color: ${addAlpha(theme.colorPrimary, 0.1)};
       pointer-events: none;
-      box-shadow: inset 0 0 0 1px
-        ${addAlpha(
-          theme.colors.primary.base,
-          parseFloat(theme.opacity.mediumHeavy) / 100,
-        )};
+      box-shadow: inset 0 0 0 1px ${addAlpha(theme.colorPrimary, 0.6)};
     }
   `};
 `;
@@ -124,7 +122,7 @@ class DashboardGrid extends PureComponent {
     this.state = {
       isResizing: false,
     };
-
+    this.theme = this;
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.handleResizeStop = this.handleResizeStop.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
@@ -154,8 +152,12 @@ class DashboardGrid extends PureComponent {
     }));
   }
 
-  handleResizeStop({ id, widthMultiple: width, heightMultiple: height }) {
-    this.props.resizeComponent({ id, width, height });
+  handleResizeStop(_event, _direction, _elementRef, delta, id) {
+    this.props.resizeComponent({
+      id,
+      width: delta.width,
+      height: delta.height,
+    });
 
     this.setState(() => ({
       isResizing: false,
@@ -190,6 +192,7 @@ class DashboardGrid extends PureComponent {
       canEdit,
       setEditMode,
       dashboardId,
+      theme,
     } = this.props;
     const columnPlusGutterWidth =
       (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
@@ -202,52 +205,51 @@ class DashboardGrid extends PureComponent {
       shouldDisplayEmptyState && gridComponent.type === TAB_TYPE;
 
     const dashboardEmptyState = editMode && (
-      <EmptyStateBig
+      <EmptyState
         title={t('Drag and drop components and charts to the dashboard')}
         description={t(
           'You can create a new chart or use existing ones from the panel on the right',
         )}
+        size="large"
         buttonText={
           <>
-            <i className="fa fa-plus" />
+            <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
             {t('Create a new chart')}
           </>
         }
         buttonAction={() => {
-          window.open(
-            `/chart/add?dashboard_id=${dashboardId}`,
-            '_blank',
-            'noopener noreferrer',
-          );
+          navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
+            newWindow: true,
+          });
         }}
         image="chart.svg"
       />
     );
 
     const topLevelTabEmptyState = editMode ? (
-      <EmptyStateBig
+      <EmptyState
         title={t('Drag and drop components to this tab')}
+        size="large"
         description={t(
           `You can create a new chart or use existing ones from the panel on the right`,
         )}
         buttonText={
           <>
-            <i className="fa fa-plus" />
+            <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
             {t('Create a new chart')}
           </>
         }
         buttonAction={() => {
-          window.open(
-            `/chart/add?dashboard_id=${dashboardId}`,
-            '_blank',
-            'noopener noreferrer',
-          );
+          navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
+            newWindow: true,
+          });
         }}
         image="chart.svg"
       />
     ) : (
-      <EmptyStateBig
+      <EmptyState
         title={t('There are no components added to this tab')}
+        size="large"
         description={
           canEdit && t('You can add the components in the edit mode.')
         }
@@ -352,4 +354,4 @@ class DashboardGrid extends PureComponent {
 DashboardGrid.propTypes = propTypes;
 DashboardGrid.defaultProps = defaultProps;
 
-export default DashboardGrid;
+export default withTheme(DashboardGrid);

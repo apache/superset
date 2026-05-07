@@ -16,131 +16,94 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
-import Icons from 'src/components/Icons';
-import { Menu } from 'src/components/Menu';
+import { MenuItem } from '@superset-ui/core/components/Menu';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { Link } from 'react-router-dom';
 
-export interface DashboardsSubMenuProps {
+export interface DashboardsMenuProps {
   chartId?: number;
   dashboards?: { id: number; dashboard_title: string }[];
+  searchTerm?: string;
 }
 
-const WIDTH = 220;
-const HEIGHT = 300;
-const SEARCH_THRESHOLD = 10;
-
-const DashboardsSubMenu = ({
+export const useDashboardsMenuItems = ({
   chartId,
   dashboards = [],
-  ...menuProps
-}: DashboardsSubMenuProps) => {
+  searchTerm = '',
+}: DashboardsMenuProps): MenuItem[] => {
   const theme = useTheme();
-  const [dashboardSearch, setDashboardSearch] = useState<string>();
-  const [hoveredItem, setHoveredItem] = useState<number | null>();
-  const showSearch = dashboards.length > SEARCH_THRESHOLD;
-  const filteredDashboards = dashboards.filter(
-    dashboard =>
-      !dashboardSearch ||
+
+  const filteredDashboards = useMemo(() => {
+    if (!searchTerm) return dashboards;
+    return dashboards.filter(dashboard =>
       dashboard.dashboard_title
         .toLowerCase()
-        .includes(dashboardSearch.toLowerCase()),
-  );
-  const noResults = dashboards.length === 0;
-  const noResultsFound = dashboardSearch && filteredDashboards.length === 0;
+        .includes(searchTerm.toLowerCase()),
+    );
+  }, [dashboards, searchTerm]);
+
   const urlQueryString = chartId ? `?focused_chart=${chartId}` : '';
-  return (
-    <>
-      {showSearch && (
-        <Input
-          allowClear
-          placeholder={t('Search')}
-          prefix={<Icons.Search iconSize="l" />}
-          css={css`
-            width: ${WIDTH}px;
-            margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
-          `}
-          value={dashboardSearch}
-          onChange={e => setDashboardSearch(e.currentTarget.value)}
-        />
-      )}
-      <div
-        css={css`
-          max-height: ${HEIGHT}px;
-          overflow: auto;
-        `}
-      >
-        {filteredDashboards.map(dashboard => (
-          <Menu.Item
-            key={String(dashboard.id)}
-            onMouseEnter={() => setHoveredItem(dashboard.id)}
-            onMouseLeave={() => {
-              if (hoveredItem === dashboard.id) {
-                setHoveredItem(null);
-              }
-            }}
-            {...menuProps}
-          >
+  const noResults = dashboards.length === 0;
+  const noResultsFound = searchTerm && filteredDashboards.length === 0;
+
+  return useMemo(() => {
+    const items: MenuItem[] = [];
+
+    if (noResults) {
+      items.push({
+        key: 'no-dashboards',
+        label: t('None'),
+        disabled: true,
+      });
+    } else if (noResultsFound) {
+      items.push({
+        key: 'no-results',
+        label: t('No results found'),
+        disabled: true,
+      });
+    } else {
+      filteredDashboards.forEach(dashboard => {
+        items.push({
+          key: String(dashboard.id),
+          label: (
             <Link
               target="_blank"
               rel="noreferer noopener"
               to={`/superset/dashboard/${dashboard.id}${urlQueryString}`}
+              css={css`
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                width: 200px;
+                justify-self: center;
+              `}
             >
               <div
                 css={css`
-                  display: flex;
-                  flex-direction: row;
-                  align-items: center;
-                  max-width: ${WIDTH}px;
+                  white-space: normal;
+                  flex: 1;
                 `}
               >
-                <div
-                  css={css`
-                    white-space: normal;
-                  `}
-                >
-                  {dashboard.dashboard_title}
-                </div>
-                <Icons.Full
-                  iconSize="l"
-                  iconColor={theme.colors.grayscale.base}
-                  css={css`
-                    margin-left: ${theme.gridUnit * 2}px;
-                    visibility: ${hoveredItem === dashboard.id
-                      ? 'visible'
-                      : 'hidden'};
-                  `}
-                />
+                {dashboard.dashboard_title}
               </div>
+              <Icons.Full
+                iconSize="l"
+                css={{ marginLeft: theme.sizeUnit * 2 }}
+              />
             </Link>
-          </Menu.Item>
-        ))}
-        {noResultsFound && (
-          <div
-            css={css`
-              margin-left: ${theme.gridUnit * 3}px;
-              margin-bottom: ${theme.gridUnit}px;
-            `}
-          >
-            {t('No results found')}
-          </div>
-        )}
-        {noResults && (
-          <Menu.Item
-            disabled
-            css={css`
-              min-width: ${WIDTH}px;
-            `}
-            {...menuProps}
-          >
-            {t('None')}
-          </Menu.Item>
-        )}
-      </div>
-    </>
-  );
-};
+          ),
+        });
+      });
+    }
 
-export default DashboardsSubMenu;
+    return items;
+  }, [
+    filteredDashboards,
+    urlQueryString,
+    noResults,
+    noResultsFound,
+    theme.sizeUnit,
+  ]);
+};

@@ -183,6 +183,7 @@ export default function transformProps(
             `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter}%`,
           ],
           fontSize,
+          color: theme.colorTextSecondary,
         },
         detail: {
           offsetCenter: [
@@ -194,6 +195,7 @@ export default function transformProps(
             }%`,
           ],
           fontSize: FONT_SIZE_MULTIPLIERS.detailFontSize * fontSize,
+          color: theme.colorText,
         },
       };
       if (
@@ -220,8 +222,20 @@ export default function transformProps(
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
 
-  const min = minVal ?? calculateMin(transformedData);
-  const max = maxVal ?? calculateMax(transformedData);
+  const isValidNumber = (
+    val: number | null | undefined | string,
+  ): val is number => {
+    if (val == null || val === '') return false;
+    const num = typeof val === 'string' ? Number(val) : val;
+    return !Number.isNaN(num) && Number.isFinite(num);
+  };
+
+  const min = isValidNumber(minVal)
+    ? Number(minVal)
+    : calculateMin(transformedData);
+  const max = isValidNumber(maxVal)
+    ? Number(maxVal)
+    : calculateMax(transformedData);
   const axisLabels = range(min, max, (max - min) / splitNumber);
   const axisLabelLength = Math.max(
     ...axisLabels.map(label => numberFormatter(label).length).concat([1]),

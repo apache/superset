@@ -58,6 +58,7 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
         name: t('Generic Chart'),
         tags: [
           t('Advanced-Analytics'),
+          t('ECharts'),
           t('Line'),
           t('Predictive'),
           t('Time'),

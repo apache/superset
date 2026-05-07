@@ -18,11 +18,14 @@
  */
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
-describe('Download Chart > Distribution bar chart', () => {
-  const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'dist_bar' };
+describe('Download Chart > Bar chart', () => {
+  const VIZ_DEFAULTS = {
+    ...FORM_DATA_DEFAULTS,
+    viz_type: 'echarts_timeseries_bar',
+  };
 
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '**/superset/explore_json/**').as('getJson');
   });
 
   it('download chart with image works', () => {

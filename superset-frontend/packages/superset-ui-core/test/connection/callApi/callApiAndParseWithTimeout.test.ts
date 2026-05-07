@@ -27,16 +27,15 @@ import * as rejectAfterTimeout from '../../../src/connection/callApi/rejectAfter
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 
+const mockGetUrl = '/mock/get/url';
+const mockGetPayload = { get: 'payload' };
+
 describe('callApiAndParseWithTimeout()', () => {
-  beforeAll(() => {
-    fetchMock.get(LOGIN_GLOB, { result: '1234' });
-  });
+  beforeAll(() => fetchMock.get(LOGIN_GLOB, { result: '1234' }));
 
-  afterAll(fetchMock.restore);
+  beforeEach(() => fetchMock.get(mockGetUrl, mockGetPayload));
 
-  const mockGetUrl = '/mock/get/url';
-  const mockGetPayload = { get: 'payload' };
-  fetchMock.get(mockGetUrl, mockGetPayload);
+  afterAll(() => fetchMock.restore());
 
   afterEach(() => {
     fetchMock.reset();

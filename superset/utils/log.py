@@ -26,7 +26,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Literal, TYPE_CHECKING
 
-from flask import g, request
+from flask import g, has_request_context, request
 from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -193,14 +193,15 @@ class AbstractEventLogger(ABC):
 
         # Whenever a user is not bounded to a session we
         # need to add them back before logging to capture user_id
-        if user_id is None:
+        if user_id is None and has_request_context():
             try:
-                db.session.add(g.user)
-                user_id = get_user_id()
-            except Exception as ex:  # pylint: disable=broad-except
-                logging.warning(ex)
+                actual_user = g.get("user", None)
+                if actual_user is not None:
+                    db.session.add(actual_user)
+                    user_id = get_user_id()
+            except Exception as ex:
+                logging.warning("Failed to add user to db session: %s", ex)
                 user_id = None
-
         payload = collect_request_payload()
         if object_ref:
             payload["object_ref"] = object_ref
@@ -394,8 +395,8 @@ class DBEventLogger(AbstractEventLogger):
             log = Log(
                 action=action,
                 json=json_string,
-                dashboard_id=dashboard_id,
-                slice_id=slice_id,
+                dashboard_id=dashboard_id or record.get("dashboard_id"),
+                slice_id=slice_id or record.get("slice_id"),
                 duration_ms=duration_ms,
                 referrer=referrer,
                 user_id=user_id,
@@ -405,8 +406,19 @@ class DBEventLogger(AbstractEventLogger):
             db.session.bulk_save_objects(logs)
             db.session.commit()  # pylint: disable=consider-using-transaction
         except SQLAlchemyError as ex:
+            # Log errors but don't raise - logging failures should not break the
+            # application. Common in tests where the session may be in prepared state or
+            # db is locked
             logging.error("DBEventLogger failed to log event(s)")
             logging.exception(ex)
+            # Rollback to clean up the session state
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except Exception:  # pylint: disable=broad-except
+                # If rollback also fails, just continue - don't let issues crash the app
+                logging.error(
+                    "DBEventLogger failed to rollback the session after failure"
+                )
 
 
 class StdOutEventLogger(AbstractEventLogger):

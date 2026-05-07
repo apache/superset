@@ -6,13 +6,13 @@ on:
 
 jobs:
   welcome:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
 
     steps:
       - name: Welcome Message
-        uses: actions/first-interaction@v1
+        uses: actions/first-interaction@v2
         continue-on-error: true
         with:
           repo-token: ${{ github.token }}

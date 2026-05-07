@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
@@ -30,7 +30,7 @@ export const basic = () => (
     queriesData={[{ data }]}
     formData={{
       colorScheme: 'd3Category10',
-      vizType: 'box_plot',
+      vizType: VizType.BoxPlot,
       whiskerOptions: 'Min/max (no outliers)',
     }}
   />

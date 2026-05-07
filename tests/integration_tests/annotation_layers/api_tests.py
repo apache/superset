@@ -474,7 +474,7 @@ class TestAnnotationLayerApi(SupersetTestCase):
         ]
         for order_column in order_columns:
             arguments = {"order_column": order_column, "order_direction": "asc"}
-            uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(arguments)}"
+            uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(arguments)}"  # noqa: E501
             rv = self.get_assert_metric(uri, "get_list")
             assert rv.status_code == 200
 
@@ -490,7 +490,7 @@ class TestAnnotationLayerApi(SupersetTestCase):
                 {"col": "short_descr", "opr": "annotation_all_text", "value": "2"}
             ]
         }
-        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(arguments)}"  # noqa: E501
         rv = self.get_assert_metric(uri, "get_list")
 
         assert rv.status_code == 200
@@ -502,7 +502,7 @@ class TestAnnotationLayerApi(SupersetTestCase):
                 {"col": "short_descr", "opr": "annotation_all_text", "value": "descr3"}
             ]
         }
-        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(arguments)}"  # noqa: E501
         rv = self.get_assert_metric(uri, "get_list")
 
         assert rv.status_code == 200
@@ -719,7 +719,7 @@ class TestAnnotationLayerApi(SupersetTestCase):
         annotations = query_annotations.all()
         annotations_ids = [annotation.id for annotation in annotations]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(annotations_ids)}"
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(annotations_ids)}"  # noqa: E501
         rv = self.client.delete(uri)
         assert rv.status_code == 200
         deleted_annotations = query_annotations.all()
@@ -745,6 +745,6 @@ class TestAnnotationLayerApi(SupersetTestCase):
 
         annotations_ids.append(max_id + 1)
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(annotations_ids)}"
+        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(annotations_ids)}"  # noqa: E501
         rv = self.client.delete(uri)
         assert rv.status_code == 404

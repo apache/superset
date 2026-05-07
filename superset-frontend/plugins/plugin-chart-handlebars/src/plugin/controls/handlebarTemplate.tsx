@@ -21,7 +21,8 @@ import {
   CustomControlConfig,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t, validateNonEmpty, useTheme } from '@superset-ui/core';
+import { InfoTooltip, SafeMarkdown } from '@superset-ui/core/components';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
 import { debounceFunc } from '../../consts';
@@ -33,13 +34,48 @@ interface HandlebarsCustomControlProps {
 const HandlebarsTemplateControl = (
   props: CustomControlConfig<HandlebarsCustomControlProps>,
 ) => {
+  const theme = useTheme();
+
   const val = String(
     props?.value ? props?.value : props?.default ? props?.default : '',
   );
 
+  const helperDescriptionsHeader = t(
+    'Available Handlebars Helpers in Superset:',
+  );
+
+  const helperDescriptions = [
+    { key: 'dateFormat', descKey: 'Formats a date using a specified format.' },
+    { key: 'stringify', descKey: 'Converts an object to a JSON string.' },
+    {
+      key: 'formatNumber',
+      descKey: 'Formats a number using locale-specific formatting.',
+    },
+    {
+      key: 'parseJson',
+      descKey: 'Parses a JSON string into a JavaScript object.',
+    },
+  ];
+
+  const helpersTooltipContent = `
+${helperDescriptionsHeader}
+
+${helperDescriptions
+  .map(({ key, descKey }) => `- **${key}**: ${t(descKey)}`)
+  .join('\n')}
+`;
+
   return (
     <div>
-      <ControlHeader>{props.label}</ControlHeader>
+      <ControlHeader>
+        <div>
+          {props.label}
+          <InfoTooltip
+            iconStyle={{ marginLeft: theme.sizeUnit }}
+            tooltip={<SafeMarkdown source={helpersTooltipContent} />}
+          />
+        </div>
+      </ControlHeader>
       <CodeEditor
         theme="dark"
         value={val}
@@ -65,6 +101,7 @@ export const handlebarsTemplateControlSetItem: ControlSetItem = {
 </ul>`,
     isInt: false,
     renderTrigger: true,
+    valueKey: null,
 
     validators: [validateNonEmpty],
     mapStateToProps: ({ controls }) => ({

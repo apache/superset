@@ -42,10 +42,16 @@ export default {
 };
 
 function generateData(geojson: JsonObject) {
-  return geojson.features.map(feat => ({
-    metric: Math.round(Number(seed(feat.properties.ISO)()) * 10000) / 100,
-    country_id: feat.properties.ISO,
-  }));
+  return geojson.features.map(
+    (feat: {
+      properties: { ISO: string };
+      type: string;
+      geometry: JsonObject;
+    }) => ({
+      metric: Math.round(Number(seed(feat.properties.ISO)()) * 10000) / 100,
+      country_id: feat.properties.ISO,
+    }),
+  );
 }
 
 export const BasicCountryMapStory = (
@@ -64,7 +70,7 @@ export const BasicCountryMapStory = (
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
-    fetch(countries[country], { signal })
+    fetch(countries[country as keyof typeof countries], { signal })
       .then(resp => resp.json())
       .then(geojson => {
         setData(generateData(geojson));
@@ -78,7 +84,7 @@ export const BasicCountryMapStory = (
     return (
       <div
         style={{
-          color: theme.colors.grayscale.base,
+          color: theme.colorTextLabel,
           textAlign: 'center',
           padding: 20,
         }}

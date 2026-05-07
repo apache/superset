@@ -33,7 +33,11 @@ interface WithPopoverMenuProps {
   // Event argument is left as "any" because of the clash. In defaultProps it seems
   // like it should be React.FocusEvent<>, however from handleClick() we can also
   // derive that type is EventListenerOrEventListenerObject.
-  shouldFocus: (event: any, container: ShouldFocusContainer) => Boolean;
+  shouldFocus: (
+    event: any,
+    container: ShouldFocusContainer,
+    menuRef: HTMLDivElement | null,
+  ) => Boolean;
   editMode: Boolean;
   style: CSSProperties;
 }
@@ -54,15 +58,15 @@ const WithPopoverMenuStyles = styled.div`
       left: 0;
       width: 100%;
       height: 100%;
-      border: 2px solid ${theme.colors.primary.base};
+      border: 2px solid ${theme.colorPrimary};
       pointer-events: none;
     }
 
     .dashboard-component-tabs li &.with-popover-menu--focused:after {
-      top: ${theme.gridUnit * -3}px;
-      left: ${theme.gridUnit * -2}px;
-      width: calc(100% + ${theme.gridUnit * 4}px);
-      height: calc(100% + ${theme.gridUnit * 7}px);
+      top: ${theme.sizeUnit * -3}px;
+      left: ${theme.sizeUnit * -2}px;
+      width: calc(100% + ${theme.sizeUnit * 4}px);
+      height: calc(100% + ${theme.sizeUnit * 7}px);
     }
   `}
 `;
@@ -73,15 +77,11 @@ const PopoverMenuStyles = styled.div`
     flex-wrap: nowrap;
     left: 1px;
     top: -42px;
-    height: ${theme.gridUnit * 10}px;
-    padding: 0 ${theme.gridUnit * 4}px;
-    background: ${theme.colors.grayscale.light5};
-    box-shadow: 0 1px 2px 1px
-      ${addAlpha(
-        theme.colors.grayscale.dark2,
-        parseFloat(theme.opacity.mediumLight) / 100,
-      )};
-    font-size: ${theme.typography.sizes.m}px;
+    height: ${theme.sizeUnit * 10}px;
+    padding: 0 ${theme.sizeUnit * 4}px;
+    background: ${theme.colorBgContainer};
+    box-shadow: 0 1px 2px 1px ${addAlpha(theme.colorTextBase, 0.35)};
+    font-size: ${theme.fontSize}px;
     cursor: default;
     z-index: 3000;
 
@@ -97,8 +97,8 @@ const PopoverMenuStyles = styled.div`
       content: '';
       width: 1px;
       height: 100%;
-      background: ${theme.colors.grayscale.light2};
-      margin: 0 ${theme.gridUnit * 4}px;
+      background: ${theme.colorSplit};
+      margin: 0 ${theme.sizeUnit * 4}px;
     }
   `}
 `;
@@ -109,16 +109,23 @@ export default class WithPopoverMenu extends PureComponent<
 > {
   container: ShouldFocusContainer;
 
+  menuRef: HTMLDivElement | null;
+
   static defaultProps = {
     children: null,
     disableClick: false,
     onChangeFocus: null,
     menuItems: [],
     isFocused: false,
-    shouldFocus: (event: any, container: ShouldFocusContainer) =>
-      container?.contains(event.target) ||
-      event.target.id === 'menu-item' ||
-      event.target.parentNode?.id === 'menu-item',
+    shouldFocus: (
+      event: any,
+      container: ShouldFocusContainer,
+      menuRef: HTMLDivElement | null,
+    ) => {
+      if (container?.contains(event.target)) return true;
+      if (menuRef?.contains(event.target)) return true;
+      return false;
+    },
     style: null,
   };
 
@@ -127,7 +134,9 @@ export default class WithPopoverMenu extends PureComponent<
     this.state = {
       isFocused: props.isFocused!,
     };
+    this.menuRef = null;
     this.setRef = this.setRef.bind(this);
+    this.setMenuRef = this.setMenuRef.bind(this);
     this.handleClick = this.handleClick.bind(this);
   }
 
@@ -152,34 +161,49 @@ export default class WithPopoverMenu extends PureComponent<
     this.container = ref;
   }
 
+  setMenuRef(ref: HTMLDivElement | null) {
+    this.menuRef = ref;
+  }
+
+  shouldHandleFocusChange(shouldFocus: Boolean): boolean {
+    const { disableClick } = this.props;
+    const { isFocused } = this.state;
+
+    return (
+      (!disableClick && shouldFocus && !isFocused) ||
+      (!shouldFocus && isFocused)
+    );
+  }
+
   handleClick(event: any) {
     if (!this.props.editMode) {
       return;
     }
+
     const {
       onChangeFocus,
       shouldFocus: shouldFocusFunc,
       disableClick,
     } = this.props;
 
-    const shouldFocus = shouldFocusFunc(event, this.container);
+    const shouldFocus = shouldFocusFunc(event, this.container, this.menuRef);
+
+    if (shouldFocus === this.state.isFocused) return;
 
     if (!disableClick && shouldFocus && !this.state.isFocused) {
-      // if not focused, set focus and add a window event listener to capture outside clicks
-      // this enables us to not set a click listener for ever item on a dashboard
       document.addEventListener('click', this.handleClick);
       document.addEventListener('drag', this.handleClick);
+
       this.setState(() => ({ isFocused: true }));
-      if (onChangeFocus) {
-        onChangeFocus(true);
-      }
+
+      if (onChangeFocus) onChangeFocus(true);
     } else if (!shouldFocus && this.state.isFocused) {
       document.removeEventListener('click', this.handleClick);
       document.removeEventListener('drag', this.handleClick);
+
       this.setState(() => ({ isFocused: false }));
-      if (onChangeFocus) {
-        onChangeFocus(false);
-      }
+
+      if (onChangeFocus) onChangeFocus(false);
     }
   }
 
@@ -200,7 +224,7 @@ export default class WithPopoverMenu extends PureComponent<
       >
         {children}
         {editMode && isFocused && (menuItems?.length ?? 0) > 0 && (
-          <PopoverMenuStyles>
+          <PopoverMenuStyles ref={this.setMenuRef}>
             {menuItems.map((node: ReactNode, i: Number) => (
               <div className="menu-item" key={`menu-item-${i}`}>
                 {node}

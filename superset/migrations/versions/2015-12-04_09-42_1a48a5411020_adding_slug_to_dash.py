@@ -34,7 +34,7 @@ def upgrade():
     op.add_column("dashboards", sa.Column("slug", sa.String(length=255), nullable=True))
     try:
         op.create_unique_constraint("idx_unique_slug", "dashboards", ["slug"])
-    except:  # noqa: E722
+    except:  # noqa: E722, S110
         pass
 
 

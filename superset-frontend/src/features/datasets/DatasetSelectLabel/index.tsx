@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip } from '@superset-ui/core/components';
 import { styled, t } from '@superset-ui/core';
 
 type Database = {
@@ -34,12 +34,12 @@ export type Dataset = {
 const TooltipContent = styled.div`
   ${({ theme }) => `
     .tooltip-header {
-      font-size: ${theme.typography.sizes.m}px;
-      font-weight: ${theme.typography.weights.bold};
+      font-size: ${theme.fontSize}px;
+      font-weight: ${theme.fontWeightStrong};
     }
 
     .tooltip-description {
-      margin-top: ${theme.gridUnit * 2}px;
+      margin-top: ${theme.sizeUnit * 2}px;
       display: -webkit-box;
       -webkit-line-clamp: 20;
       -webkit-box-orient: vertical;
@@ -51,8 +51,8 @@ const TooltipContent = styled.div`
 
 const StyledLabelContainer = styled.div`
   ${({ theme }) => `
-    left: ${theme.gridUnit * 3}px;
-    right: ${theme.gridUnit * 3}px;
+    left: ${theme.sizeUnit * 3}px;
+    right: ${theme.sizeUnit * 3}px;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
@@ -61,8 +61,8 @@ const StyledLabelContainer = styled.div`
 
 const StyledLabel = styled.span`
   ${({ theme }) => `
-    left: ${theme.gridUnit * 3}px;
-    right: ${theme.gridUnit * 3}px;
+    left: ${theme.sizeUnit * 3}px;
+    right: ${theme.sizeUnit * 3}px;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
@@ -77,15 +77,11 @@ const StyledDetailWrapper = styled.div`
 `;
 
 const StyledLabelDetail = styled.span`
-  ${({
-    theme: {
-      typography: { sizes, weights },
-    },
-  }) => `
+  ${({ theme: { fontSizeSM, colorTextSecondary } }) => `
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: ${sizes.s}px;
-    font-weight: ${weights.light};
+    font-size: ${fontSizeSM}px;
+    color: ${colorTextSecondary};
     line-height: 1.6;
   `}
 `;

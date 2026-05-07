@@ -17,84 +17,40 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { css } from '@emotion/react';
-import { Divider, Filter, SupersetTheme, t } from '@superset-ui/core';
-import { AntdCollapse } from 'src/components';
+import { css, Divider, Filter, SupersetTheme, t } from '@superset-ui/core';
+import { Collapse } from '@superset-ui/core/components';
 
 export interface FiltersOutOfScopeCollapsibleProps {
   filtersOutOfScope: (Filter | Divider)[];
   renderer: (filter: Filter | Divider, index: number) => ReactNode;
-  hasTopMargin?: boolean;
-  horizontalOverflow?: boolean;
   forceRender?: boolean;
 }
 
 export const FiltersOutOfScopeCollapsible = ({
   filtersOutOfScope,
   renderer,
-  hasTopMargin,
-  horizontalOverflow,
   forceRender = false,
 }: FiltersOutOfScopeCollapsibleProps) => (
-  <AntdCollapse
+  <Collapse
     ghost
     bordered
-    expandIconPosition="right"
+    expandIconPosition="end"
     collapsible={filtersOutOfScope.length === 0 ? 'disabled' : undefined}
-    css={(theme: SupersetTheme) =>
-      horizontalOverflow
-        ? css`
-            &.ant-collapse > .ant-collapse-item {
-              & > .ant-collapse-header {
-                padding: 0;
-
-                & > .ant-collapse-arrow {
-                  right: 0;
-                  padding: 0;
-                }
-              }
-
-              & .ant-collapse-content-box {
-                padding: ${theme.gridUnit * 4}px 0 0;
-                margin-bottom: ${theme.gridUnit * -4}px;
-              }
-            }
-          `
-        : css`
-            &.ant-collapse {
-              margin-top: ${hasTopMargin ? theme.gridUnit * 6 : 0}px;
-              & > .ant-collapse-item {
-                & > .ant-collapse-header {
-                  padding-left: 0;
-                  padding-bottom: ${theme.gridUnit * 2}px;
-
-                  & > .ant-collapse-arrow {
-                    right: ${theme.gridUnit}px;
-                  }
-                }
-
-                & .ant-collapse-content-box {
-                  padding: ${theme.gridUnit * 4}px 0 0;
-                }
-              }
-            }
-          `
-    }
-  >
-    <AntdCollapse.Panel
-      forceRender={forceRender}
-      header={
-        <span
-          css={(theme: SupersetTheme) => css`
-            font-size: ${theme.typography.sizes.s}px;
-          `}
-        >
-          {t('Filters out of scope (%d)', filtersOutOfScope.length)}
-        </span>
-      }
-      key="1"
-    >
-      {filtersOutOfScope.map(renderer)}
-    </AntdCollapse.Panel>
-  </AntdCollapse>
+    items={[
+      {
+        key: 'out-of-scope-filters',
+        label: (
+          <span
+            css={(theme: SupersetTheme) => css`
+              font-size: ${theme.fontSizeSM}px;
+            `}
+          >
+            {t('Filters out of scope (%d)', filtersOutOfScope.length)}
+          </span>
+        ),
+        children: filtersOutOfScope.map(renderer),
+        forceRender,
+      },
+    ]}
+  />
 );

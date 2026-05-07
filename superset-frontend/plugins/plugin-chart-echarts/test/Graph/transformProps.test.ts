@@ -168,7 +168,7 @@ describe('EchartsGraph transformProps', () => {
     );
   });
 
-  it('should transform chart props for viz with category and falsey normalization', () => {
+  it('should transform chart props for viz with category and falsy normalization', () => {
     const formData: SqlaFormData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',

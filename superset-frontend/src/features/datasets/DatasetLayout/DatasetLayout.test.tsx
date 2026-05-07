@@ -21,6 +21,7 @@ import DatasetLayout from 'src/features/datasets/DatasetLayout';
 import Header from 'src/features/datasets/AddDataset/Header';
 import LeftPanel from 'src/features/datasets/AddDataset/LeftPanel';
 import DatasetPanel from 'src/features/datasets/AddDataset/DatasetPanel';
+import DatasetPanelComponent from 'src/features/datasets/AddDataset/DatasetPanel/DatasetPanel';
 import RightPanel from 'src/features/datasets/AddDataset/RightPanel';
 import Footer from 'src/features/datasets/AddDataset/Footer';
 
@@ -88,5 +89,77 @@ describe('DatasetLayout', () => {
     });
 
     expect(screen.getByText(/Cancel/i)).toBeVisible();
+  });
+
+  test('layout has proper flex constraints to prevent viewport overflow', () => {
+    const { container } = render(
+      <DatasetLayout
+        leftPanel={<LeftPanel setDataset={() => null} />}
+        datasetPanel={<DatasetPanel />}
+        footer={<Footer url="" />}
+      />,
+      {
+        useRedux: true,
+        useRouter: true,
+      },
+    );
+
+    // Find the wrapper
+    const layoutWrapper = container.querySelector(
+      '[data-test="dataset-layout-wrapper"]',
+    );
+    expect(layoutWrapper).toBeInTheDocument();
+
+    const outerRow = layoutWrapper?.firstElementChild as HTMLElement;
+    expect(outerRow).toBeInTheDocument();
+
+    if (outerRow) {
+      const styles = window.getComputedStyle(outerRow);
+      // Verify the critical flex properties that prevent viewport overflow
+      // eslint-disable-next-line jest/no-conditional-expect
+      expect(styles.flexGrow).toBe('1');
+      // eslint-disable-next-line jest/no-conditional-expect
+      expect(styles.minHeight).toBe('0');
+      // eslint-disable-next-line jest/no-conditional-expect
+      expect(styles.display).toBe('flex');
+      // eslint-disable-next-line jest/no-conditional-expect
+      expect(styles.flexDirection).toBe('row');
+    }
+  });
+
+  test('layout maintains viewport constraints with large content', () => {
+    const manyColumns = Array.from({ length: 100 }, (_, i) => ({
+      name: `column_${i}`,
+      type: 'VARCHAR',
+    }));
+
+    const { container } = render(
+      <DatasetLayout
+        header={<Header setDataset={() => null} />}
+        leftPanel={<LeftPanel setDataset={() => null} />}
+        datasetPanel={
+          <DatasetPanelComponent
+            tableName="large_table"
+            columnList={manyColumns}
+            hasError={false}
+            loading={false}
+          />
+        }
+        footer={<Footer url="" />}
+      />,
+      {
+        useRedux: true,
+        useRouter: true,
+      },
+    );
+
+    const layoutWrapper = container.querySelector(
+      '[data-test="dataset-layout-wrapper"]',
+    );
+    expect(layoutWrapper).toBeInTheDocument();
+
+    // Verify footer is always present in DOM (should be visible)
+    const footer = screen.getByText(/Cancel/i);
+    expect(footer).toBeInTheDocument();
   });
 });
