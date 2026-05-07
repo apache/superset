@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { expect } from '@playwright/test';
 import { Modal, Input } from '../core';
 
 /**
@@ -27,7 +28,8 @@ import { Modal, Input } from '../core';
  */
 export class DeleteConfirmationModal extends Modal {
   private static readonly SELECTORS = {
-    CONFIRMATION_INPUT: 'input[type="text"]',
+    CONFIRMATION_INPUT: '[data-test="delete-modal-input"]',
+    CONFIRM_BUTTON: '[data-test="modal-confirm-button"]',
   };
 
   /**
@@ -36,12 +38,16 @@ export class DeleteConfirmationModal extends Modal {
   private get confirmationInput(): Input {
     return new Input(
       this.page,
-      this.body.locator(DeleteConfirmationModal.SELECTORS.CONFIRMATION_INPUT),
+      this.element.locator(
+        DeleteConfirmationModal.SELECTORS.CONFIRMATION_INPUT,
+      ),
     );
   }
 
   /**
    * Fills the confirmation input with the specified text.
+   * Waits for the input to be visible before filling so callers don't race
+   * with the modal's open animation / focus effect.
    *
    * @param confirmationText - The text to type
    * @param options - Optional fill options (timeout, force)
@@ -57,11 +63,21 @@ export class DeleteConfirmationModal extends Modal {
     confirmationText: string,
     options?: { timeout?: number; force?: boolean },
   ): Promise<void> {
+    await this.confirmationInput.element.waitFor({
+      state: 'visible',
+      timeout: options?.timeout,
+    });
     await this.confirmationInput.fill(confirmationText, options);
   }
 
   /**
-   * Clicks the Delete button in the footer
+   * Clicks the Delete button in the footer.
+   *
+   * Waits for the confirm button to become enabled before clicking. The button
+   * is disabled until the confirmation text matches "DELETE", and React's state
+   * update from fillConfirmationInput is asynchronous; the explicit
+   * toBeEnabled() check makes the timing contract explicit and avoids racing
+   * the disabled→enabled transition.
    *
    * @param options - Optional click options (timeout, force, delay)
    */
@@ -70,6 +86,10 @@ export class DeleteConfirmationModal extends Modal {
     force?: boolean;
     delay?: number;
   }): Promise<void> {
-    await this.clickFooterButton('Delete', options);
+    const confirmButton = this.element.locator(
+      DeleteConfirmationModal.SELECTORS.CONFIRM_BUTTON,
+    );
+    await expect(confirmButton).toBeEnabled({ timeout: options?.timeout });
+    await confirmButton.click(options);
   }
 }

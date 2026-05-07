@@ -68,33 +68,35 @@ test('should delete a dashboard with confirmation', async ({
   await dashboardListPage.goto();
   await dashboardListPage.waitForTableLoad();
 
-  // Verify dashboard is visible in list
-  await expect(dashboardListPage.getDashboardRow(dashboardName)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created dashboard appears.
+  await expect(dashboardListPage.getDashboardRow(dashboardName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Click delete action button
   await dashboardListPage.clickDeleteAction(dashboardName);
 
   // Delete confirmation modal should appear
   const deleteModal = new DeleteConfirmationModal(page);
-  await deleteModal.waitForVisible();
+  await deleteModal.waitForReady();
 
   // Type "DELETE" to confirm
   await deleteModal.fillConfirmationInput('DELETE');
 
-  // Click the Delete button
+  // Click the Delete button (waits for it to become enabled)
   await deleteModal.clickDelete();
 
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears
+  // Verify success toast appears. Use waitFor instead of toBeVisible so we
+  // detect the toast even if it auto-dismisses on a fast machine.
   const toast = new Toast(page);
-  await expect(toast.getSuccess()).toBeVisible();
+  await toast.getSuccess().waitFor({ state: 'visible' });
 
   // Verify dashboard is removed from list
-  await expect(
-    dashboardListPage.getDashboardRow(dashboardName),
-  ).not.toBeVisible();
+  await expect(dashboardListPage.getDashboardRow(dashboardName)).toHaveCount(0);
 
   // Backend verification: API returns 404
   await expectDeleted(page, ENDPOINTS.DASHBOARD, dashboardId, {
@@ -227,25 +229,30 @@ test('should bulk export multiple dashboards', async ({
   await dashboardListPage.goto();
   await dashboardListPage.waitForTableLoad();
 
-  // Verify both dashboards are visible in list
-  await expect(
-    dashboardListPage.getDashboardRow(dashboard1.name),
-  ).toBeVisible();
-  await expect(
-    dashboardListPage.getDashboardRow(dashboard2.name),
-  ).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created dashboards appear.
+  await expect(dashboardListPage.getDashboardRow(dashboard1.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(dashboardListPage.getDashboardRow(dashboard2.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
-  // Enable bulk select mode
+  // Enable bulk select mode (waits for the checkbox column to render)
   await dashboardListPage.clickBulkSelectButton();
 
-  // Select both dashboards
+  // Select both dashboards (each call asserts the checkbox is checked)
   await dashboardListPage.selectDashboardCheckbox(dashboard1.name);
   await dashboardListPage.selectDashboardCheckbox(dashboard2.name);
 
-  // Set up API response intercept for export endpoint
-  const exportResponsePromise = waitForGet(page, ENDPOINTS.DASHBOARD_EXPORT);
+  // Set up API response intercept BEFORE the click that triggers it.
+  // Use the configured API_RESPONSE timeout — exports of multiple dashboards
+  // can run longer than Playwright's default 30s timeout under load.
+  const exportResponsePromise = waitForGet(page, ENDPOINTS.DASHBOARD_EXPORT, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
-  // Click bulk export action
+  // Click bulk export action (waits for the action button to render)
   await dashboardListPage.clickBulkAction('Export');
 
   // Wait for export API response and validate zip contains both dashboards

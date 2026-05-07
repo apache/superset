@@ -17,12 +17,13 @@
  * under the License.
  */
 
-import { Locator, Page } from '@playwright/test';
+import { Locator, Page, expect } from '@playwright/test';
 import { Button, Checkbox, Table } from '../core';
 
 const BULK_SELECT_SELECTORS = {
   CONTROLS: '[data-test="bulk-select-controls"]',
   ACTION: '[data-test="bulk-select-action"]',
+  HEADER_TOGGLE: '[data-test="header-toggle-all"]',
 } as const;
 
 /**
@@ -56,10 +57,17 @@ export class BulkSelect {
   }
 
   /**
-   * Enables bulk selection mode by clicking the toggle button
+   * Enables bulk selection mode by clicking the toggle button.
+   *
+   * Waits for the bulk-select column header checkbox to render so the next
+   * row interaction does not race the table re-render that adds the
+   * checkbox column.
    */
   async enable(): Promise<void> {
     await this.getToggleButton().click();
+    await this.page
+      .locator(BULK_SELECT_SELECTORS.HEADER_TOGGLE)
+      .waitFor({ state: 'visible' });
   }
 
   /**
@@ -72,11 +80,16 @@ export class BulkSelect {
   }
 
   /**
-   * Selects a row's checkbox in bulk select mode
+   * Selects a row's checkbox in bulk select mode.
+   * Asserts the checkbox is checked afterwards so any state-update race
+   * surfaces here rather than as a missing bulk-action button later.
    * @param rowName - The name/text identifying the row to select
    */
   async selectRow(rowName: string): Promise<void> {
-    await this.getRowCheckbox(rowName).check();
+    const checkbox = this.getRowCheckbox(rowName);
+    await checkbox.element.waitFor({ state: 'visible' });
+    await checkbox.check();
+    await expect(checkbox.element).toBeChecked();
   }
 
   /**
@@ -107,10 +120,15 @@ export class BulkSelect {
   }
 
   /**
-   * Clicks a bulk action button by name (e.g., "Export", "Delete")
+   * Clicks a bulk action button by name (e.g., "Export", "Delete").
+   *
+   * The action buttons only render once a row is selected; waiting for
+   * visibility makes that timing contract explicit before the click.
    * @param actionName - The name of the bulk action to click
    */
   async clickAction(actionName: string): Promise<void> {
-    await this.getActionButton(actionName).click();
+    const button = this.getActionButton(actionName);
+    await button.element.waitFor({ state: 'visible' });
+    await button.click();
   }
 }
