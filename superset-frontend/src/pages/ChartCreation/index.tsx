@@ -84,8 +84,12 @@ const StyledContainer = styled.div`
     padding-right: ${theme.padding}px;
     padding-bottom: ${theme.padding}px;
 
-    h2 {
+    h1 {
       padding-bottom: ${theme.paddingSM}px;
+      font-size: ${theme.fontSizeXL}px;
+      font-weight: ${theme.fontWeightStrong};
+      line-height: ${theme.lineHeightHeading2};
+      margin: 0;
     }
 
     & .dataset {
@@ -156,18 +160,6 @@ const StyledContainer = styled.div`
       display: inline;
     }
   `}
-`;
-
-const SrOnlyH1 = styled.h1`
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 `;
 
 const StyledStepTitle = styled.span`
@@ -341,8 +333,7 @@ export class ChartCreation extends PureComponent<
 
     return (
       <StyledContainer>
-        <SrOnlyH1>{t('Create a new chart')}</SrOnlyH1>
-        <h2 aria-hidden="true">{t('Create a new chart')}</h2>
+        <h1>{t('Create a new chart')}</h1>
         <Steps direction="vertical" size="small">
           <Steps.Step
             title={<StyledStepTitle>{t('Choose a dataset')}</StyledStepTitle>}

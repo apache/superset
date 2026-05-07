@@ -28,6 +28,7 @@ import { t } from '@apache-superset/core/translation';
 import { Global } from '@emotion/react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import { VisuallyHidden } from 'src/components/Accessibility';
 import { LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD } from 'src/logger/LogUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
@@ -175,18 +176,6 @@ const actionButtonsStyle = (theme: SupersetTheme) => css`
     display: flex;
     margin-right: ${theme.sizeUnit * 2}px;
   }
-`;
-
-const SrOnlyH1 = styled.h1`
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 `;
 
 const StyledUndoRedoButton = styled(Button)`
@@ -839,7 +828,9 @@ const Header = (): JSX.Element => {
       data-test-id={dashboardInfo.id}
       className="dashboard-header-container"
     >
-      <SrOnlyH1>{dashboardTitle || t('Dashboard')}</SrOnlyH1>
+      <VisuallyHidden as="h1">
+        {dashboardTitle || t('Dashboard')}
+      </VisuallyHidden>
       <PageHeaderWithActions
         editableTitleProps={editableTitleProps}
         certificatiedBadgeProps={certifiedBadgeProps}

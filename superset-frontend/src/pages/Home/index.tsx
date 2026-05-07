@@ -49,6 +49,7 @@ import { Switch } from '@superset-ui/core/components/Switch';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { TableTab } from 'src/views/CRUD/types';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
+import { VisuallyHidden } from 'src/components/Accessibility';
 import { userHasPermission } from 'src/dashboard/util/permissionUtils';
 import { WelcomePageLastTab } from 'src/features/home/types';
 import ActivityTable from 'src/features/home/ActivityTable';
@@ -75,18 +76,6 @@ interface LoadingProps {
 }
 
 const DEFAULT_TAB_ARR = ['dashboards', 'charts'];
-
-const SrOnlyH1 = styled.h1`
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-`;
 
 const WelcomeContainer = styled.div`
   background: ${({ theme }) => theme.colorBgLayout};
@@ -362,7 +351,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         <SubMenu {...menuData} />
       )}
       <WelcomeContainer>
-        <SrOnlyH1>{t('Home')}</SrOnlyH1>
+        <VisuallyHidden as="h1">{t('Home')}</VisuallyHidden>
         {WelcomeMessageExtension && <WelcomeMessageExtension />}
         {WelcomeTopExtension && <WelcomeTopExtension />}
         {WelcomeMainExtension && <WelcomeMainExtension />}

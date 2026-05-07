@@ -25,6 +25,7 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
+import { VisuallyHidden } from 'src/components/Accessibility';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -351,17 +352,6 @@ const StyledDashboardContent = styled.div<{
   `}
 `;
 
-const SrOnlyH2 = styled.h2`
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-`;
 
 const ELEMENT_ON_SCREEN_OPTIONS = {
   threshold: [1],
@@ -522,7 +512,7 @@ const DashboardBuilder = () => {
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
             <>
-              <SrOnlyH2>{t('Filters')}</SrOnlyH2>
+              <VisuallyHidden as="h2">{t('Filters')}</VisuallyHidden>
               <FilterBar
                 orientation={FilterBarOrientation.Horizontal}
                 hidden={isReport}
@@ -596,7 +586,7 @@ const DashboardBuilder = () => {
           hidden={isReport}
           data-test="dashboard-filters-panel"
         >
-          <SrOnlyH2>{t('Filters')}</SrOnlyH2>
+          <VisuallyHidden as="h2">{t('Filters')}</VisuallyHidden>
           <StickyPanel ref={containerRef} width={filterBarWidth}>
             <ErrorBoundary>
               <FilterBar
@@ -632,8 +622,6 @@ const DashboardBuilder = () => {
   return (
     <DashboardWrapper>
       {isVerticalFilterBarVisible && (
-        <>
-        <SrOnlyH2>{t('Filters')}</SrOnlyH2>
         <ResizableSidebar
           id={`dashboard:${dashboardId}`}
           enable={dashboardFiltersOpen}
@@ -643,7 +631,6 @@ const DashboardBuilder = () => {
         >
           {renderChild}
         </ResizableSidebar>
-        </>
       )}
       <StyledHeader
         data-test="dashboard-header-wrapper"
@@ -668,7 +655,7 @@ const DashboardBuilder = () => {
           {renderDraggableContent}
         </Droppable>
       </StyledHeader>
-      <SrOnlyH2>{t('Dashboard content')}</SrOnlyH2>
+      <VisuallyHidden as="h2">{t('Dashboard content')}</VisuallyHidden>
       <StyledContent fullSizeChartId={fullSizeChartId}>
         {!editMode &&
           !topLevelTabs &&
