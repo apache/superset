@@ -936,9 +936,10 @@ def test_auto_upgrade_round_trip_v1_to_v2(
     assert schedule.recipients[0].type == ReportRecipientType.SLACKV2
     assert schedule.recipients[0].recipient_config_json == '{"target": "C12345"}'
 
-    # Step 3: a fresh SlackV2Notification on the rewritten row sends without
-    # any further channel lookups.
-    get_channels_with_search_mock.reset_mock()
+    # Step 3: a fresh SlackV2Notification on the rewritten row sends to the
+    # resolved channel ID directly. (SlackV2Notification.send() never calls
+    # get_channels_with_search itself, so the upgraded row carrying IDs in
+    # its target is the load-bearing assertion here.)
     with patch(
         "superset.reports.notifications.slackv2.get_slack_client"
     ) as v2_client_mock:
@@ -949,4 +950,3 @@ def test_auto_upgrade_round_trip_v1_to_v2(
             v2_client_mock.return_value.chat_postMessage.call_args.kwargs["channel"]
             == "C12345"
         )
-    get_channels_with_search_mock.assert_not_called()

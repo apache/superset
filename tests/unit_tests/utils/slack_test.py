@@ -18,10 +18,12 @@
 import warnings
 
 import pytest
-from slack_sdk.errors import SlackApiError
+from slack_sdk.errors import SlackApiError, SlackClientNotConnectedError
 
-from superset.utils import slack as slack_module
 from superset.utils.slack import (
+    _emit_v1_flag_off_deprecation,
+    _emit_v1_scope_missing_deprecation,
+    _SLACK_V1_DEPRECATION_MESSAGE,
     get_channels_with_search,
     should_use_v2_api,
     SlackChannelTypes,
@@ -233,13 +235,18 @@ The server responded with: missing scope: channels:read"""
 
 
 @pytest.fixture(autouse=True)
-def _reset_v1_warning_flags():
-    """Each test sees a fresh process-level warning state."""
-    slack_module._v1_flag_off_warning_emitted = False
-    slack_module._v1_scope_missing_warning_emitted = False
+def _reset_v1_warning_caches():
+    """Each test sees fresh once-per-process warning state.
+
+    The deprecation emitters are wrapped in `functools.cache` to give
+    thread-safe one-shot semantics in production. Tests need them to fire
+    again, so we clear the cache before and after each case.
+    """
+    _emit_v1_flag_off_deprecation.cache_clear()
+    _emit_v1_scope_missing_deprecation.cache_clear()
     yield
-    slack_module._v1_flag_off_warning_emitted = False
-    slack_module._v1_scope_missing_warning_emitted = False
+    _emit_v1_flag_off_deprecation.cache_clear()
+    _emit_v1_scope_missing_deprecation.cache_clear()
 
 
 class TestShouldUseV2Api:
@@ -277,7 +284,7 @@ class TestShouldUseV2Api:
         ]
         # Exactly one DeprecationWarning across three calls.
         assert len(deprecation_warnings) == 1
-        assert "deprecated" in str(deprecation_warnings[0].message).lower()
+        assert str(deprecation_warnings[0].message) == _SLACK_V1_DEPRECATION_MESSAGE
         # logger.warning fires only once for the same reason.
         assert logger_mock.warning.call_count == 1
         assert (
@@ -307,8 +314,29 @@ class TestShouldUseV2Api:
         ]
         # DeprecationWarning emitted exactly once across multiple calls.
         assert len(deprecation_warnings) == 1
+        assert str(deprecation_warnings[0].message) == _SLACK_V1_DEPRECATION_MESSAGE
         # The user-visible scope-missing log fires every time, since operators
         # need to see the actionable message in their report-execution logs.
         assert logger_mock.warning.call_count == 3
         for c in logger_mock.warning.call_args_list:
             assert "channels:read" in c.args[0]
+            assert "groups:read" in c.args[0]
+
+    def test_propagates_non_slack_api_errors_from_probe(self, mocker):
+        """Any non-`SlackApiError` exception from the probe (network issue,
+        unexpected SDK error) propagates out of `should_use_v2_api` rather than
+        silently falling back to v1. Falling back on a non-API error would
+        mask real bugs as "you don't have channels:read", which is misleading.
+        """
+        mocker.patch(
+            "superset.utils.slack.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        )
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.side_effect = SlackClientNotConnectedError(
+            "transport closed"
+        )
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+
+        with pytest.raises(SlackClientNotConnectedError):
+            should_use_v2_api()

@@ -16,6 +16,7 @@
 # under the License.
 
 
+import functools
 import logging
 import warnings
 from typing import Callable, Optional
@@ -40,11 +41,27 @@ _SLACK_V1_DEPRECATION_MESSAGE = (
     "deprecated and will be removed in the next major release. Slack retired "
     "the `files.upload` endpoint in 2025, so v1 file uploads no longer work; "
     "only text-only `chat_postMessage` sends still succeed. Grant your Slack "
-    "bot the `channels:read` scope so existing v1 recipients can be "
-    "auto-upgraded to SlackV2 on their next send."
+    "bot the `channels:read` (and `groups:read` if you use private channels) "
+    "scopes so existing v1 recipients can be auto-upgraded to SlackV2 on "
+    "their next send."
 )
-_v1_flag_off_warning_emitted = False
-_v1_scope_missing_warning_emitted = False
+
+
+# functools.cache gives us a process-lifetime, thread-safe one-shot guard
+# without the read-then-write race that bare module globals would have under
+# multi-threaded WSGI workers. The cached return value (None) is irrelevant —
+# we only care that the body executes at most once per process.
+@functools.cache
+def _emit_v1_flag_off_deprecation() -> None:
+    warnings.warn(_SLACK_V1_DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=3)
+    logger.warning(
+        "ALERT_REPORT_SLACK_V2 is disabled; %s", _SLACK_V1_DEPRECATION_MESSAGE
+    )
+
+
+@functools.cache
+def _emit_v1_scope_missing_deprecation() -> None:
+    warnings.warn(_SLACK_V1_DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=3)
 
 
 class SlackChannelTypes(StrEnum):
@@ -196,18 +213,8 @@ def get_channels_with_search(
 
 
 def should_use_v2_api() -> bool:
-    global _v1_flag_off_warning_emitted, _v1_scope_missing_warning_emitted  # noqa: PLW0603
-
     if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_SLACK_V2"):
-        if not _v1_flag_off_warning_emitted:
-            _v1_flag_off_warning_emitted = True
-            warnings.warn(
-                _SLACK_V1_DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=2
-            )
-            logger.warning(
-                "ALERT_REPORT_SLACK_V2 is disabled; %s",
-                _SLACK_V1_DEPRECATION_MESSAGE,
-            )
+        _emit_v1_flag_off_deprecation()
         return False
     try:
         client = get_slack_client()
@@ -215,14 +222,13 @@ def should_use_v2_api() -> bool:
         logger.info("Slack API v2 is available")
         return True
     except SlackApiError:
-        if not _v1_scope_missing_warning_emitted:
-            _v1_scope_missing_warning_emitted = True
-            warnings.warn(
-                _SLACK_V1_DEPRECATION_MESSAGE, DeprecationWarning, stacklevel=2
-            )
+        # The DeprecationWarning fires once per process, but the actionable
+        # log line fires every send so operators see it in their report logs.
+        _emit_v1_scope_missing_deprecation()
         logger.warning(
-            "Slack bot is missing the `channels:read` scope; falling back to "
-            "the deprecated v1 API. %s",
+            "Slack bot is missing the `channels:read` (and `groups:read` for "
+            "private channels) scope; falling back to the deprecated v1 API. "
+            "%s",
             _SLACK_V1_DEPRECATION_MESSAGE,
         )
         return False
