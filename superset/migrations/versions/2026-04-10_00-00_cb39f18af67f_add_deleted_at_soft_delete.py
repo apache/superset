@@ -16,17 +16,23 @@
 # under the License.
 """add deleted_at for soft delete
 
-Revision ID: cb39f18af67f
-Revises: ce6bd21901ab
-Create Date: 2026-04-10 00:00:00.000000
-
 Adds a nullable ``deleted_at`` column and index to the ``slices``,
 ``dashboards``, and ``tables`` tables to support soft deletion of
 charts, dashboards, and datasets (sc-103157).
+
+Revision ID: cb39f18af67f
+Revises: ce6bd21901ab
+Create Date: 2026-04-10 00:00:00.000000
 """
 
-import sqlalchemy as sa
-from alembic import op
+from sqlalchemy import Column, DateTime
+
+from superset.migrations.shared.utils import (
+    add_columns,
+    create_index,
+    drop_columns,
+    drop_index,
+)
 
 # revision identifiers, used by Alembic.
 revision = "cb39f18af67f"
@@ -35,20 +41,17 @@ down_revision = "ce6bd21901ab"
 TARGET_TABLES = ("slices", "dashboards", "tables")
 
 
-def upgrade():
+def upgrade() -> None:
     for table_name in TARGET_TABLES:
-        op.add_column(
+        add_columns(table_name, Column("deleted_at", DateTime(), nullable=True))
+        create_index(
             table_name,
-            sa.Column("deleted_at", sa.DateTime(), nullable=True),
-        )
-        op.create_index(
             f"ix_{table_name}_deleted_at",
-            table_name,
             ["deleted_at"],
         )
 
 
-def downgrade():
+def downgrade() -> None:
     for table_name in TARGET_TABLES:
-        op.drop_index(f"ix_{table_name}_deleted_at", table_name=table_name)
-        op.drop_column(table_name, "deleted_at")
+        drop_index(table_name, f"ix_{table_name}_deleted_at")
+        drop_columns(table_name, "deleted_at")
