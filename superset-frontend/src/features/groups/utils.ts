@@ -40,6 +40,15 @@ export const deleteGroup = async (groupId: number) =>
     endpoint: `/api/v1/security/groups/${groupId}`,
   });
 
+export const getUserDisplayLabel = (user: {
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+}): string =>
+  [user.first_name, user.last_name].filter(Boolean).join(' ') ||
+  user.username ||
+  '';
+
 export const fetchUserOptions = async (
   filterValue: string,
   page: number,
@@ -64,9 +73,7 @@ export const fetchUserOptions = async (
     return {
       data: results.map((user: any) => ({
         value: user.id,
-        label:
-          [user.first_name, user.last_name].filter(Boolean).join(' ') ||
-          user.username,
+        label: getUserDisplayLabel(user),
       })),
       totalCount: response.json?.count ?? 0,
     };

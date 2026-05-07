@@ -49,6 +49,7 @@ import {
   updateRoleUsers,
   formatPermissionLabel,
 } from './utils';
+import { getUserDisplayLabel } from '../groups/utils';
 
 export interface RoleListEditModalProps extends BaseModalProps {
   role: RoleObject;
@@ -226,7 +227,7 @@ function RoleListEditModal({
     if (!loadingRoleUsers && formRef.current) {
       const userOptions = roleUsers.map(user => ({
         value: user.id,
-        label: user.username,
+        label: getUserDisplayLabel(user),
       }));
       formRef.current.setFieldsValue({
         roleUsers: userOptions,
@@ -315,7 +316,7 @@ function RoleListEditModal({
     roleUsers:
       roleUsers?.map(user => ({
         value: user.id,
-        label: user.username,
+        label: getUserDisplayLabel(user),
       })) || [],
     roleGroups: group_ids.map(groupId => ({
       value: groupId,

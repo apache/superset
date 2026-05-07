@@ -29,7 +29,12 @@ import {
   AsyncSelect,
 } from '@superset-ui/core/components';
 import { FormValues, GroupModalProps } from './types';
-import { createGroup, fetchUserOptions, updateGroup } from './utils';
+import {
+  createGroup,
+  fetchUserOptions,
+  getUserDisplayLabel,
+  updateGroup,
+} from './utils';
 
 function GroupListModal({
   show,
@@ -94,7 +99,7 @@ function GroupListModal({
     users:
       group?.users?.map(user => ({
         value: user.id,
-        label: user.username,
+        label: getUserDisplayLabel(user),
       })) || [],
   };
 
