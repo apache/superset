@@ -20,8 +20,7 @@ MCP tool: generate_chart (simplified schema)
 
 import logging
 import time
-from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -38,6 +37,11 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     map_config_to_form_data,
     validate_chart_dataset,
+)
+from superset.mcp_service.chart.compile import (
+    _compile_chart,
+    CompileResult,
+    validate_and_compile,
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -74,86 +78,7 @@ def _sanitize_generate_chart_form_data_for_llm_context(
     )
 
 
-@dataclass
-class CompileResult:
-    """Result of a chart compile check (test query execution)."""
-
-    success: bool
-    error: str | None = None
-    warnings: List[str] = field(default_factory=list)
-    row_count: int | None = None
-
-
-def _compile_chart(
-    form_data: Dict[str, Any],
-    dataset_id: int,
-) -> CompileResult:
-    """Execute the chart's query to verify it renders without errors.
-
-    Builds a ``QueryContext`` from *form_data* and runs it through
-    ``ChartDataCommand``.  A small ``row_limit`` is used so the check is
-    fast — we only need to know the query compiles and returns data, not
-    fetch the full result set.
-
-    Returns a :class:`CompileResult` with ``success=True`` when the
-    query executes cleanly.
-    """
-    from superset.commands.chart.data.get_data_command import ChartDataCommand
-    from superset.commands.chart.exceptions import (
-        ChartDataCacheLoadError,
-        ChartDataQueryFailedError,
-    )
-    from superset.common.query_context_factory import QueryContextFactory
-    from superset.mcp_service.chart.chart_utils import adhoc_filters_to_query_filters
-    from superset.mcp_service.chart.preview_utils import _build_query_columns
-
-    try:
-        columns = _build_query_columns(form_data)
-        query_filters = adhoc_filters_to_query_filters(
-            form_data.get("adhoc_filters", [])
-        )
-
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
-
-        factory = QueryContextFactory()
-        query_context = factory.create(
-            datasource={"id": dataset_id, "type": "table"},
-            queries=[
-                {
-                    "columns": columns,
-                    "metrics": metrics,
-                    "orderby": form_data.get("orderby", []),
-                    "row_limit": 2,
-                    "filters": query_filters,
-                    "time_range": form_data.get("time_range", "No filter"),
-                }
-            ],
-            form_data=form_data,
-        )
-
-        command = ChartDataCommand(query_context)
-        command.validate()
-        result = command.run()
-
-        warnings: List[str] = []
-        row_count = 0
-        for query in result.get("queries", []):
-            if query.get("error"):
-                return CompileResult(success=False, error=str(query["error"]))
-            row_count += len(query.get("data", []))
-
-        return CompileResult(success=True, warnings=warnings, row_count=row_count)
-    except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
-        return CompileResult(success=False, error=str(exc))
-    except (CommandException, ValueError, KeyError) as exc:
-        return CompileResult(success=False, error=str(exc))
+__all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_chart"]
 
 
 @tool(
