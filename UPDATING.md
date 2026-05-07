@@ -700,6 +700,95 @@ FROM pg_class c
 WHERE c.relname IN ('dashboard_slices', 'report_schedule_user');
 ```
 
+**Sizing the maintenance window on MySQL.** Equivalent diagnostic queries for MySQL/InnoDB. One important difference from PostgreSQL: InnoDB rebuilds the clustered index on every PK change, so *all eight* tables undergo a full table rebuild on MySQL — not just the two that go through the explicit `recreate="always"` path. The lock-window estimate query below therefore covers all eight tables.
+
+```sql
+-- Per-table size, row count, and which migration path each will take.
+-- TABLE_ROWS is an InnoDB estimate (analogous to PostgreSQL's reltuples);
+-- run SELECT COUNT(*) per table for an exact count if needed.
+SELECT
+  TABLE_NAME AS table_name,
+  CASE WHEN TABLE_NAME IN ('dashboard_slices', 'report_schedule_user')
+       THEN 'recreate (explicit, drops UNIQUE)'
+       ELSE 'direct ALTER (still rebuilds InnoDB clustered index)'
+  END AS migration_path,
+  TABLE_ROWS                                                  AS estimated_rows,
+  CONCAT(ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 1), ' MB') AS total_size,
+  CONCAT(ROUND(DATA_LENGTH / 1024 / 1024, 1), ' MB')          AS heap_size,
+  CONCAT(ROUND(INDEX_LENGTH / 1024 / 1024, 1), ' MB')         AS index_size
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN (
+    'dashboard_roles', 'dashboard_slices', 'dashboard_user',
+    'report_schedule_user', 'rls_filter_roles', 'rls_filter_tables',
+    'slice_user', 'sqlatable_user'
+  )
+ORDER BY (DATA_LENGTH + INDEX_LENGTH) DESC;
+```
+
+```sql
+-- Aggregated duplicate-row roll-up. Same SQL as the PostgreSQL version
+-- (standard SQL); included here for copy-paste convenience.
+SELECT 'dashboard_roles'      AS t, COUNT(*) AS dup_groups, SUM(c) - COUNT(*) AS rows_dropped
+  FROM (SELECT COUNT(*) c FROM dashboard_roles      GROUP BY dashboard_id, role_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_slices',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_slices     GROUP BY dashboard_id, slice_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_user       GROUP BY user_id, dashboard_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'report_schedule_user',COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM report_schedule_user GROUP BY user_id, report_schedule_id      HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_roles',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_roles     GROUP BY role_id, rls_filter_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_tables',   COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_tables    GROUP BY table_id, rls_filter_id          HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'slice_user',          COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM slice_user           GROUP BY user_id, slice_id                HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'sqlatable_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM sqlatable_user       GROUP BY user_id, table_id                HAVING COUNT(*) > 1) g
+ORDER BY rows_dropped DESC;
+```
+
+```sql
+-- External-FK pre-flight check. KEY_COLUMN_USAGE on MySQL carries
+-- both sides of the FK in a single row, so this is simpler than the
+-- PostgreSQL version. Should return zero rows on a stock install.
+SELECT
+  CONSTRAINT_NAME,
+  CONCAT(TABLE_SCHEMA, '.', TABLE_NAME)        AS referencing_table,
+  COLUMN_NAME                                  AS referencing_column,
+  REFERENCED_TABLE_NAME                        AS referenced_table,
+  REFERENCED_COLUMN_NAME                       AS referenced_column
+FROM information_schema.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = DATABASE()
+  AND REFERENCED_TABLE_NAME IN (
+    'dashboard_roles', 'dashboard_slices', 'dashboard_user',
+    'report_schedule_user', 'rls_filter_roles', 'rls_filter_tables',
+    'slice_user', 'sqlatable_user'
+  )
+  AND REFERENCED_COLUMN_NAME = 'id';
+```
+
+```sql
+-- Lock-window estimate for ALL EIGHT tables (InnoDB rebuilds the
+-- clustered index on PK change, so even "direct ALTER" is a rewrite).
+-- ADD PRIMARY KEY is INPLACE but not LOCK=NONE — it allows concurrent
+-- reads but blocks writes. Use heap size combined with your effective
+-- rebuild throughput (~100-200 MB/s on commodity SSD; higher on NVMe).
+SELECT
+  TABLE_NAME                                            AS table_name,
+  CONCAT(ROUND(DATA_LENGTH / 1024 / 1024, 1), ' MB')    AS heap_size,
+  ROUND(DATA_LENGTH / 1024 / 1024, 1)                   AS heap_size_mb,
+  ROUND(DATA_LENGTH / 1024 / 1024 / 100.0, 1)           AS est_rewrite_seconds_at_100mbs
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN (
+    'dashboard_roles', 'dashboard_slices', 'dashboard_user',
+    'report_schedule_user', 'rls_filter_roles', 'rls_filter_tables',
+    'slice_user', 'sqlatable_user'
+  )
+ORDER BY DATA_LENGTH DESC;
+```
+
 **Restoring an old `pg_dump` (or equivalent) against the new schema.** A dump taken before the migration includes `INSERT` statements that populate the now-removed `id` column. Restoring such a dump against the post-migration schema will fail. The supported workaround is to dump only the schema and reference data, then re-create the M:N associations from application data after restore — for example with `pg_dump --exclude-table-data` (or per-table `--exclude-table-data=dashboard_slices` etc.) for the eight junction tables, restore the rest, then run a one-shot script that re-INSERTs `(fk1, fk2)` pairs derived from your application export. Operators who need to restore an old dump verbatim should restore against a pre-migration Superset and then re-run the upgrade.
 
 **Intentional downgrade asymmetry.** The migration's `downgrade()` restores the surrogate `id` column and (for `dashboard_slices` and `report_schedule_user`) the original `UNIQUE (fk1, fk2)` constraint, but it does **not** restore the original `NULL`-allowed state on the FK columns — they remain `NOT NULL`. This is intentional: under SQLAlchemy's `secondary=` semantics, a `NULL` in either FK column of a junction table is meaningless (it cannot participate in either side of the relationship). Operators downgrading are not expected to need this restored. The asymmetry is documented for completeness so that round-trip schema diffs are not mistaken for migration bugs.
