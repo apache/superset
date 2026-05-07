@@ -82,7 +82,11 @@ function UserInfoModal({
         label={t('Last name')}
         rules={[{ required: true, message: t('Last name is required') }]}
       >
-        <Input name="last_name" autoComplete="family-name" placeholder={t("Enter the user's last name")} />
+        <Input
+          name="last_name"
+          autoComplete="family-name"
+          placeholder={t("Enter the user's last name")}
+        />
       </FormItem>
     </>
   );
