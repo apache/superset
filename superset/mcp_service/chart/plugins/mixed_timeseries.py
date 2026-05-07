@@ -21,8 +21,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from superset.mcp_service.chart.chart_utils import (
+    _mixed_timeseries_what,
+    _summarize_filters,
+    map_mixed_timeseries_config,
+)
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef
+from superset.mcp_service.chart.schemas import ColumnRef, MixedTimeseriesChartConfig
+from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
@@ -87,8 +93,6 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
         return None
 
     def extract_column_refs(self, config: Any) -> list[ColumnRef]:
-        from superset.mcp_service.chart.schemas import MixedTimeseriesChartConfig
-
         if not isinstance(config, MixedTimeseriesChartConfig):
             return []
         refs: list[ColumnRef] = [config.x]
@@ -106,16 +110,9 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
     def to_form_data(
         self, config: Any, dataset_id: int | str | None = None
     ) -> dict[str, Any]:
-        from superset.mcp_service.chart.chart_utils import map_mixed_timeseries_config
-
         return map_mixed_timeseries_config(config, dataset_id=dataset_id)
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
-        from superset.mcp_service.chart.chart_utils import (
-            _mixed_timeseries_what,
-            _summarize_filters,
-        )
-
         what = _mixed_timeseries_what(config)
         context = _summarize_filters(config.filters)
         return self._with_context(what, context)
@@ -124,11 +121,6 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
         return "mixed_timeseries"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        from superset.mcp_service.chart.schemas import MixedTimeseriesChartConfig
-        from superset.mcp_service.chart.validation.dataset_validator import (
-            DatasetValidator,
-        )
-
         config_dict = config.model_dump()
 
         def _norm_single(key: str) -> None:

@@ -22,8 +22,20 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from superset.mcp_service.chart.chart_utils import (
+    _xy_chart_context,
+    _xy_chart_what,
+    map_xy_config,
+)
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef
+from superset.mcp_service.chart.schemas import ColumnRef, XYChartConfig
+from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.chart.validation.runtime.cardinality_validator import (
+    CardinalityValidator,
+)
+from superset.mcp_service.chart.validation.runtime.format_validator import (
+    FormatTypeValidator,
+)
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 logger = logging.getLogger(__name__)
@@ -79,8 +91,6 @@ class XYChartPlugin(BaseChartPlugin):
         return None
 
     def extract_column_refs(self, config: Any) -> list[ColumnRef]:
-        from superset.mcp_service.chart.schemas import XYChartConfig
-
         if not isinstance(config, XYChartConfig):
             return []
         refs: list[ColumnRef] = []
@@ -97,16 +107,9 @@ class XYChartPlugin(BaseChartPlugin):
     def to_form_data(
         self, config: Any, dataset_id: int | str | None = None
     ) -> dict[str, Any]:
-        from superset.mcp_service.chart.chart_utils import map_xy_config
-
         return map_xy_config(config, dataset_id=dataset_id)
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        from superset.mcp_service.chart.schemas import XYChartConfig
-        from superset.mcp_service.chart.validation.dataset_validator import (
-            DatasetValidator,
-        )
-
         config_dict = config.model_dump()
         get_canonical = DatasetValidator._get_canonical_column_name
 
@@ -123,11 +126,6 @@ class XYChartPlugin(BaseChartPlugin):
         return XYChartConfig.model_validate(config_dict)
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
-        from superset.mcp_service.chart.chart_utils import (
-            _xy_chart_context,
-            _xy_chart_what,
-        )
-
         what = _xy_chart_what(config)
         context = _xy_chart_context(config)
         return self._with_context(what, context)
@@ -143,18 +141,12 @@ class XYChartPlugin(BaseChartPlugin):
 
     def get_runtime_warnings(self, config: Any, dataset_id: int | str) -> list[str]:
         """Return format-compatibility and cardinality warnings for XY charts."""
-        from superset.mcp_service.chart.schemas import XYChartConfig
-
         if not isinstance(config, XYChartConfig):
             return []
 
         warnings: list[str] = []
 
         try:
-            from superset.mcp_service.chart.validation.runtime.format_validator import (
-                FormatTypeValidator,
-            )
-
             _valid, format_warnings = FormatTypeValidator.validate_format_compatibility(
                 config
             )
@@ -164,10 +156,6 @@ class XYChartPlugin(BaseChartPlugin):
             logger.warning("XY format validation failed: %s", exc)
 
         try:
-            from superset.mcp_service.chart.validation.runtime.cardinality_validator import (  # noqa: E501
-                CardinalityValidator,
-            )
-
             chart_kind = config.kind
             group_by_col = config.group_by[0].name if config.group_by else None
             if config.x is not None:

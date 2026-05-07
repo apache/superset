@@ -21,9 +21,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset.mcp_service.chart.chart_utils import is_column_truly_temporal
+from superset.mcp_service.chart.chart_utils import (
+    _big_number_chart_what,
+    _summarize_filters,
+    is_column_truly_temporal,
+    map_big_number_config,
+)
 from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import BigNumberChartConfig, ColumnRef
+from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
@@ -113,8 +119,6 @@ class BigNumberChartPlugin(BaseChartPlugin):
         return None
 
     def extract_column_refs(self, config: Any) -> list[ColumnRef]:
-        from superset.mcp_service.chart.schemas import BigNumberChartConfig
-
         if not isinstance(config, BigNumberChartConfig):
             return []
         refs: list[ColumnRef] = [config.metric]
@@ -129,8 +133,6 @@ class BigNumberChartPlugin(BaseChartPlugin):
     def to_form_data(
         self, config: Any, dataset_id: int | str | None = None
     ) -> dict[str, Any]:
-        from superset.mcp_service.chart.chart_utils import map_big_number_config
-
         return map_big_number_config(config)
 
     def post_map_validate(
@@ -174,11 +176,6 @@ class BigNumberChartPlugin(BaseChartPlugin):
         return None
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
-        from superset.mcp_service.chart.chart_utils import (
-            _big_number_chart_what,
-            _summarize_filters,
-        )
-
         what = _big_number_chart_what(config)
         context = _summarize_filters(getattr(config, "filters", None))
         return self._with_context(what, context)
@@ -191,11 +188,6 @@ class BigNumberChartPlugin(BaseChartPlugin):
         return "big_number_total"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        from superset.mcp_service.chart.schemas import BigNumberChartConfig
-        from superset.mcp_service.chart.validation.dataset_validator import (
-            DatasetValidator,
-        )
-
         config_dict = config.model_dump()
 
         if config_dict.get("metric") and not config_dict["metric"].get("saved_metric"):

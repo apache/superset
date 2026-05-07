@@ -21,8 +21,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from superset.mcp_service.chart.chart_utils import (
+    _summarize_filters,
+    _table_chart_what,
+    map_table_config,
+)
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef
+from superset.mcp_service.chart.schemas import ColumnRef, TableChartConfig
+from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
@@ -72,8 +78,6 @@ class TableChartPlugin(BaseChartPlugin):
         return None
 
     def extract_column_refs(self, config: Any) -> list[ColumnRef]:
-        from superset.mcp_service.chart.schemas import TableChartConfig
-
         if not isinstance(config, TableChartConfig):
             return []
         refs: list[ColumnRef] = list(config.columns)
@@ -85,16 +89,9 @@ class TableChartPlugin(BaseChartPlugin):
     def to_form_data(
         self, config: Any, dataset_id: int | str | None = None
     ) -> dict[str, Any]:
-        from superset.mcp_service.chart.chart_utils import map_table_config
-
         return map_table_config(config)
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
-        from superset.mcp_service.chart.chart_utils import (
-            _summarize_filters,
-            _table_chart_what,
-        )
-
         what = _table_chart_what(config, dataset_name)
         context = _summarize_filters(config.filters)
         return self._with_context(what, context)
@@ -103,11 +100,6 @@ class TableChartPlugin(BaseChartPlugin):
         return getattr(config, "viz_type", "table")
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        from superset.mcp_service.chart.schemas import TableChartConfig
-        from superset.mcp_service.chart.validation.dataset_validator import (
-            DatasetValidator,
-        )
-
         config_dict = config.model_dump()
         get_canonical = DatasetValidator._get_canonical_column_name
 

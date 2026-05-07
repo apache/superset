@@ -21,8 +21,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from superset.mcp_service.chart.chart_utils import (
+    _pie_chart_what,
+    _summarize_filters,
+    map_pie_config,
+)
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef
+from superset.mcp_service.chart.schemas import ColumnRef, PieChartConfig
+from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
@@ -67,8 +73,6 @@ class PieChartPlugin(BaseChartPlugin):
         return None
 
     def extract_column_refs(self, config: Any) -> list[ColumnRef]:
-        from superset.mcp_service.chart.schemas import PieChartConfig
-
         if not isinstance(config, PieChartConfig):
             return []
         refs: list[ColumnRef] = [config.dimension, config.metric]
@@ -80,16 +84,9 @@ class PieChartPlugin(BaseChartPlugin):
     def to_form_data(
         self, config: Any, dataset_id: int | str | None = None
     ) -> dict[str, Any]:
-        from superset.mcp_service.chart.chart_utils import map_pie_config
-
         return map_pie_config(config)
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
-        from superset.mcp_service.chart.chart_utils import (
-            _pie_chart_what,
-            _summarize_filters,
-        )
-
         what = _pie_chart_what(config)
         context = _summarize_filters(config.filters)
         return self._with_context(what, context)
@@ -98,11 +95,6 @@ class PieChartPlugin(BaseChartPlugin):
         return "pie"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        from superset.mcp_service.chart.schemas import PieChartConfig
-        from superset.mcp_service.chart.validation.dataset_validator import (
-            DatasetValidator,
-        )
-
         config_dict = config.model_dump()
 
         if config_dict.get("dimension"):

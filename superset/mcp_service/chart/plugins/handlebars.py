@@ -21,8 +21,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from superset.mcp_service.chart.chart_utils import (
+    _handlebars_chart_what,
+    _summarize_filters,
+    map_handlebars_config,
+)
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef
+from superset.mcp_service.chart.schemas import ColumnRef, HandlebarsChartConfig
+from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
@@ -119,8 +125,6 @@ class HandlebarsChartPlugin(BaseChartPlugin):
         return None
 
     def extract_column_refs(self, config: Any) -> list[ColumnRef]:
-        from superset.mcp_service.chart.schemas import HandlebarsChartConfig
-
         if not isinstance(config, HandlebarsChartConfig):
             return []
         refs: list[ColumnRef] = []
@@ -138,16 +142,9 @@ class HandlebarsChartPlugin(BaseChartPlugin):
     def to_form_data(
         self, config: Any, dataset_id: int | str | None = None
     ) -> dict[str, Any]:
-        from superset.mcp_service.chart.chart_utils import map_handlebars_config
-
         return map_handlebars_config(config)
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
-        from superset.mcp_service.chart.chart_utils import (
-            _handlebars_chart_what,
-            _summarize_filters,
-        )
-
         what = _handlebars_chart_what(config)
         context = _summarize_filters(getattr(config, "filters", None))
         return self._with_context(what, context)
@@ -156,11 +153,6 @@ class HandlebarsChartPlugin(BaseChartPlugin):
         return "handlebars"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        from superset.mcp_service.chart.schemas import HandlebarsChartConfig
-        from superset.mcp_service.chart.validation.dataset_validator import (
-            DatasetValidator,
-        )
-
         config_dict = config.model_dump()
 
         def _norm_list(key: str) -> None:
