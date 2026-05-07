@@ -552,7 +552,7 @@ def _remove_session_safe() -> None:
                 "Could not invalidate session after connection error: %s",
                 invalidate_exc,
             )
-        db.session.remove()
+        db.session.remove()  # retry: session deregisters cleanly after invalidation
 
 
 def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901

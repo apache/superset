@@ -352,9 +352,9 @@ def test_mcp_auth_hook_preserves_g_user_in_request_context(app) -> None:
 
     def _assert_preserved_then_return():
         """Verify g.user was preserved (not cleared) before returning."""
-        assert hasattr(
-            g, "user"
-        ), "g.user should be preserved in request context but was removed"
+        assert hasattr(g, "user"), (
+            "g.user should be preserved in request context but was removed"
+        )
         assert g.user is middleware_user, (
             "g.user should be preserved in request context but was changed; "
             f"g.user={g.user}"
@@ -430,20 +430,15 @@ def test_sync_wrapper_handles_ssl_error_on_pre_call_remove(app) -> None:
 
     wrapped = mcp_auth_hook(dummy_tool)
 
-    remove_call_count = 0
-
-    def _flaky_remove() -> None:
-        nonlocal remove_call_count
-        remove_call_count += 1
-        if remove_call_count == 1:
-            raise SAOperationalError(
-                "SSL connection has been closed unexpectedly", None, None
-            )
-
     with app.test_request_context():
         g.user = fresh_user
         with patch("superset.extensions.db") as mock_db:
-            mock_db.session.remove.side_effect = _flaky_remove
+            mock_db.session.remove.side_effect = [
+                SAOperationalError(
+                    "SSL connection has been closed unexpectedly", None, None
+                ),
+                None,  # second call succeeds
+            ]
 
             with patch(
                 "superset.mcp_service.auth.get_user_from_request",
@@ -453,7 +448,9 @@ def test_sync_wrapper_handles_ssl_error_on_pre_call_remove(app) -> None:
 
     assert result == "fresh"
     assert mock_db.session.invalidate.called, "invalidate() must be called on SSL error"
-    assert remove_call_count == 2, "remove() must be retried after SSL error"
+    assert mock_db.session.remove.call_count == 2, (
+        "remove() must be retried after SSL error"
+    )
 
 
 # -- default_user_resolver --
