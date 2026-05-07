@@ -152,7 +152,7 @@ fastmcp = [
     # heuristic that under-counts JSON-heavy MCP responses.
     "tiktoken>=0.7.0,<1.0",
 ]
-firebird = ["sqlalchemy-firebird>=0.7.0, <0.8"]
+firebird = ["sqlalchemy-firebird>=0.7.0, <2.2"]
 firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
 gevent = ["gevent>=23.9.1"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
