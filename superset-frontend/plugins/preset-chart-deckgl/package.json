@@ -29,7 +29,7 @@
     "@deck.gl/extensions": "~9.2.9",
     "@deck.gl/geo-layers": "~9.2.5",
     "@deck.gl/layers": "~9.2.5",
-    "@deck.gl/mapbox": "~9.3.1",
+    "@deck.gl/mapbox": "~9.3.2",
     "@deck.gl/mesh-layers": "~9.2.5",
     "@luma.gl/constants": "~9.2.5",
     "@luma.gl/core": "~9.2.5",
@@ -67,8 +67,8 @@
     "@superset-ui/core": "*",
     "dayjs": "^1.11.19",
     "mapbox-gl": ">=1.0.0",
-    "react": "^17.0.2 || ^19.0.0",
-    "react-dom": "^17.0.2 || ^19.0.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "peerDependenciesMeta": {
     "mapbox-gl": {

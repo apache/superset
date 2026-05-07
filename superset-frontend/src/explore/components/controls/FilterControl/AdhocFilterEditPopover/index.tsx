@@ -415,21 +415,25 @@ export default class AdhocFilterEditPopover extends Component<
                 </ErrorBoundary>
               ),
             },
-            {
-              key: ExpressionTypes.Sql,
-              label: t('Custom SQL'),
-              children: (
-                <ErrorBoundary>
-                  <AdhocFilterEditPopoverSqlTabContent
-                    adhocFilter={this.state.adhocFilter}
-                    onChange={this.onAdhocFilterChange}
-                    options={this.props.options}
-                    height={this.state.height}
-                    datasource={datasource}
-                  />
-                </ErrorBoundary>
-              ),
-            },
+            ...(datasource?.type === 'semantic_view'
+              ? []
+              : [
+                  {
+                    key: ExpressionTypes.Sql,
+                    label: t('Custom SQL'),
+                    children: (
+                      <ErrorBoundary>
+                        <AdhocFilterEditPopoverSqlTabContent
+                          adhocFilter={this.state.adhocFilter}
+                          onChange={this.onAdhocFilterChange}
+                          options={this.props.options}
+                          height={this.state.height}
+                          datasource={datasource}
+                        />
+                      </ErrorBoundary>
+                    ),
+                  },
+                ]),
           ]}
         />
         {hasDeckSlices && (
