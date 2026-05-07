@@ -39,7 +39,9 @@ def test_bar_chart_with_all_null_values_returns_fallback() -> None:
         {"category": "B", "value": float("nan")},
     ]
     result = generate_ascii_chart(data, "bar")
+    assert isinstance(result, str)
     assert result == "No numeric data found for bar chart"
+    assert "█" not in result  # No bars should be rendered in the fallback path
 
 
 def test_line_chart_with_null_values_does_not_raise() -> None:
@@ -64,8 +66,10 @@ def test_horizontal_bar_chart_nan_rows_are_skipped() -> None:
         {"label": "Gamma Category", "amount": 150.0},
     ]
     result = generate_ascii_chart(data, "bar")
-    # Valid labels should appear in output; NaN row should not crash
-    assert "Alpha" in result or "Gamma" in result
+    # Both valid labels must appear; the NaN row (Beta) must be absent
+    assert "Alpha" in result
+    assert "Gamma" in result
+    assert "Beta" not in result
 
 
 def test_column_chart_with_null_values_does_not_raise() -> None:
