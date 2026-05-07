@@ -21,6 +21,7 @@ import jwt
 import pytest
 
 from flask.ctx import AppContext
+from flask_appbuilder.const import AUTH_OAUTH
 from flask_wtf.csrf import generate_csrf
 from superset import db, security_manager
 from superset.daos.dashboard import EmbeddedDashboardDAO
@@ -442,3 +443,99 @@ class TestLogoutSessionInvalidation(SupersetTestCase):
             f"Captured session cookie was still accepted after logout "
             f"(status={resp_replay.status_code}); see issue #24713"
         )
+
+
+class TestSecuritySsoApi(SupersetTestCase):
+    resource_name = "security"
+
+    def test_get_auth_providers_db_auth(self):
+        """
+        Security API: Test auth providers with DB auth returns browser_login=False
+        """
+        uri = f"api/v1/{self.resource_name}/auth_providers/"
+        response = self.client.get(uri)
+        self.assert200(response)
+        data = json.loads(response.data.decode("utf-8"))
+        assert "auth_type" in data
+        assert "browser_login" in data
+        assert "login_page" in data
+        assert "providers" in data
+        assert data["browser_login"] is False
+        assert data["providers"] == []
+
+    def test_get_auth_providers_oauth(self):
+        """
+        Security API: Test auth providers with OAuth returns configured providers
+        """
+        from unittest.mock import PropertyMock, patch
+
+        mock_providers = [
+            {"name": "keycloak", "icon": "fa-key"},
+            {"name": "google", "icon": "fa-google"},
+        ]
+        with (
+            patch.dict(
+                self.app.config,
+                {
+                    "AUTH_TYPE": AUTH_OAUTH,
+                    "OAUTH_PROVIDERS": mock_providers,
+                },
+            ),
+            patch.object(
+                type(self.app.appbuilder.sm),
+                "oauth_providers",
+                new_callable=PropertyMock,
+                return_value=mock_providers,
+            ),
+        ):
+            uri = f"api/v1/{self.resource_name}/auth_providers/"
+            response = self.client.get(uri)
+            self.assert200(response)
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["browser_login"] is True
+            assert len(data["providers"]) == 2
+            assert data["providers"][0]["name"] == "keycloak"
+            assert data["providers"][0]["icon"] == "fa-key"
+            assert "login_url" in data["providers"][0]
+            assert data["providers"][0]["login_url"].endswith("/keycloak")
+            assert data["providers"][1]["name"] == "google"
+
+    def test_get_auth_providers_no_auth_required(self):
+        """
+        Security API: Test auth providers endpoint does not require authentication
+        """
+        uri = f"api/v1/{self.resource_name}/auth_providers/"
+        response = self.client.get(uri)
+        self.assert200(response)
+
+    def test_get_session_token_unauthenticated(self):
+        """
+        Security API: Test get session token unauthenticated returns 401
+        """
+        uri = f"api/v1/{self.resource_name}/session_token/"
+        response = self.client.get(uri)
+        self.assert401(response)
+
+    def test_get_session_token_admin(self):
+        """
+        Security API: Test get session token as admin returns valid JWT
+        """
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/{self.resource_name}/session_token/"
+        response = self.client.get(uri)
+        self.assert200(response)
+        data = json.loads(response.data.decode("utf-8"))
+        assert "access_token" in data
+        assert isinstance(data["access_token"], str)
+        assert len(data["access_token"]) > 0
+
+    def test_get_session_token_gamma(self):
+        """
+        Security API: Test get session token as gamma user
+        """
+        self.login(GAMMA_USERNAME)
+        uri = f"api/v1/{self.resource_name}/session_token/"
+        response = self.client.get(uri)
+        self.assert200(response)
+        data = json.loads(response.data.decode("utf-8"))
+        assert "access_token" in data

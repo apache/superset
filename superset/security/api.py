@@ -17,10 +17,11 @@
 import logging
 from typing import Any
 
-from flask import current_app, request, Response
+from flask import current_app, g, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison as parse_rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
+from flask_appbuilder.const import AUTH_OAUTH, AUTH_SAML
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
 from flask_wtf.csrf import generate_csrf
@@ -145,6 +146,146 @@ class SecurityRestApi(BaseSupersetApi):
               $ref: '#/components/responses/500'
         """
         return self.response(200, result=generate_csrf())
+
+    @expose("/auth_providers/", methods=("GET",))
+    @event_logger.log_this
+    @safe
+    @statsd_metrics
+    def auth_providers(self) -> Response:
+        """Get the available SSO auth providers.
+        ---
+        get:
+          summary: Get the SSO auth providers
+          description: >-
+            Returns a list of configured SSO auth providers (OAuth or SAML)
+            with their names, icons, and login URLs. This endpoint does not
+            require authentication and is intended for client applications
+            that need to discover login options before authenticating.
+          responses:
+            200:
+              description: Result contains the configured auth providers
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                        auth_type:
+                          type: integer
+                          description: >-
+                            The FAB auth type constant (1=DB, 2=LDAP,
+                            3=OAUTH, etc.)
+                        login_page:
+                          type: string
+                          description: >-
+                            URL of the login page. For SSO flows, open this
+                            URL in a browser or web view.
+                        browser_login:
+                          type: boolean
+                          description: >-
+                            Whether authentication requires a browser flow
+                            (OAuth/SAML). If false, use the
+                            /api/v1/security/login endpoint with
+                            username/password instead.
+                        providers:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              icon:
+                                type: string
+                              login_url:
+                                type: string
+                                description: >-
+                                  Direct login URL for this provider.
+                                  Open in a browser or web view to start
+                                  the SSO flow.
+            500:
+              $ref: '#/components/responses/500'
+        """
+        auth_type = current_app.config.get("AUTH_TYPE")
+        providers: list[dict[str, str]] = []
+
+        # The login page URL is the SPA entry point that handles all auth flows.
+        # For OAuth/SAML, the React frontend handles the redirect to the IdP.
+        login_page = self.appbuilder.get_url_for_login
+
+        login_base = login_page.rstrip("/")
+
+        if auth_type == AUTH_OAUTH:
+            for provider in self.appbuilder.sm.oauth_providers:
+                name = provider["name"]
+                providers.append(
+                    {
+                        "name": name,
+                        "icon": provider.get("icon", "fa-sign-in"),
+                        "login_url": f"{login_base}/{name}",
+                    }
+                )
+        elif auth_type == AUTH_SAML:
+            for provider in self.appbuilder.sm.saml_providers:
+                name = provider["name"]
+                providers.append(
+                    {
+                        "name": name,
+                        "icon": provider.get("icon", "fa-sign-in"),
+                        "login_url": f"{login_base}/{name}",
+                    }
+                )
+
+        # browser_login indicates whether authentication requires a browser
+        # flow (OAuth/SAML SSO) or can be done via the /api/v1/security/login
+        # endpoint with username/password (DB/LDAP).
+        browser_login = auth_type in (AUTH_OAUTH, AUTH_SAML)
+
+        return self.response(
+            200,
+            auth_type=auth_type,
+            login_page=login_page,
+            browser_login=browser_login,
+            providers=providers,
+        )
+
+    @expose("/session_token/", methods=("GET",))
+    @event_logger.log_this
+    @protect()
+    @safe
+    @statsd_metrics
+    @permission_name("read")
+    def session_token(self) -> Response:
+        """Get a JWT access token from the active web session.
+        ---
+        get:
+          summary: Get a JWT session token
+          description: >-
+            Converts an active browser session (cookie-based) into a JWT
+            access token. Intended for mobile or external applications that
+            complete SSO login via a web view and need a bearer token for
+            subsequent API calls.
+          responses:
+            200:
+              description: Result contains the JWT access token
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                        access_token:
+                          type: string
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        from flask_jwt_extended import create_access_token
+
+        user = g.user
+        if not user or user.is_anonymous:
+            return self.response_401()
+
+        token = create_access_token(identity=str(user.id), fresh=True)
+        return self.response(200, access_token=token)
 
     @expose("/guest_token/", methods=("POST",))
     @event_logger.log_this
