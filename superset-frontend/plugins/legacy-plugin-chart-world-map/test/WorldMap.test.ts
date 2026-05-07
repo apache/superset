@@ -511,7 +511,7 @@ test('assigns fill colors from sequential scheme when colorBy is metric', () => 
   expect(data.CAN.fillColor).toMatch(/^(#|rgb)/);
 });
 
-test('falls back to theme.colorBorder when metric values are null', () => {
+test('excludes countries with null metric value from data when colorBy is metric', () => {
   WorldMap(container, {
     ...baseProps,
     colorBy: ColorBy.Metric,
@@ -519,17 +519,58 @@ test('falls back to theme.colorBorder when metric values are null', () => {
       {
         country: 'USA',
         name: 'United States',
-        m1: null as unknown as number,
+        m1: 100,
         m2: 200,
         code: 'US',
         latitude: 37.0902,
         longitude: -95.7129,
       },
+      {
+        country: 'CAN',
+        name: 'Canada',
+        m1: null as unknown as number,
+        m2: 100,
+        code: 'CA',
+        latitude: 56.1304,
+        longitude: -106.3468,
+      },
     ],
-  } as any);
+  });
 
-  const data = lastDatamapConfig?.data as Record<string, { fillColor: string }>;
-  expect(data.USA.fillColor).toBe('#e0e0e0');
+  const data = lastDatamapConfig?.data as Record<string, unknown>;
+  expect(data).toHaveProperty('USA');
+  expect(data).not.toHaveProperty('CAN');
+});
+
+test('excludes countries with zero metric value from data when colorBy is metric', () => {
+  WorldMap(container, {
+    ...baseProps,
+    colorBy: ColorBy.Metric,
+    data: [
+      {
+        country: 'USA',
+        name: 'United States',
+        m1: 100,
+        m2: 200,
+        code: 'US',
+        latitude: 37.0902,
+        longitude: -95.7129,
+      },
+      {
+        country: 'MEX',
+        name: 'Mexico',
+        m1: 0,
+        m2: 50,
+        code: 'MX',
+        latitude: 23.6345,
+        longitude: -102.5528,
+      },
+    ],
+  });
+
+  const data = lastDatamapConfig?.data as Record<string, unknown>;
+  expect(data).toHaveProperty('USA');
+  expect(data).not.toHaveProperty('MEX');
 });
 
 test('does not throw with empty data and metric coloring', () => {

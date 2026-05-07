@@ -150,7 +150,11 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       fillColor: colorFn(d.name, sliceId),
     }));
   } else {
-    const rawExtents = d3Extent(filteredData, d => d.m1);
+    // Exclude null/zero so they render as "no data" instead of getting a scale color.
+    const colorableData = filteredData.filter(
+      d => d.m1 != null && d.m1 !== 0,
+    );
+    const rawExtents = d3Extent(colorableData, d => d.m1);
     const extents: [number, number] =
       rawExtents[0] != null && rawExtents[1] != null
         ? [rawExtents[0], rawExtents[1]]
@@ -160,7 +164,7 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       ? colorSchemeObj.createLinearScale(extents)
       : () => theme.colorBorder;
 
-    processedData = filteredData.map(d => ({
+    processedData = colorableData.map(d => ({
       ...d,
       radius: radiusScale(Math.sqrt(d.m2)),
       fillColor: colorFn(d.m1) ?? theme.colorBorder,
