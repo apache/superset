@@ -363,7 +363,7 @@ referencing==0.36.2
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.28.1
+requests==2.32.4
     # via
     #   -r requirements/base.in
     #   requests-cache
