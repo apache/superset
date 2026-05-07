@@ -523,7 +523,9 @@ def _remove_session_safe() -> None:
     the session is removed to prevent a prior request's thread-local session
     from leaking into the next one.  If the underlying DBAPI connection died
     between requests (e.g. RDS SSL idle-timeout or max-connection-age), the
-    rollback implicit in ``session.close()`` raises ``OperationalError``.
+    rollback implicit in ``session.close()`` raises a ``DBAPIError`` subclass
+    (``OperationalError`` for psycopg2, ``InterfaceError`` for some other
+    drivers).
 
     When that happens:
     1. Invalidate the dead connection so the pool discards it (rather than
@@ -533,13 +535,13 @@ def _remove_session_safe() -> None:
     The tool call still proceeds because a fresh connection will be obtained
     on the next DB access.
     """
-    from sqlalchemy.exc import OperationalError
+    from sqlalchemy.exc import DBAPIError
 
     from superset.extensions import db
 
     try:
         db.session.remove()
-    except OperationalError as exc:
+    except DBAPIError as exc:
         logger.warning(
             "Connection error during pre-call session cleanup "
             "(likely SSL/idle timeout); invalidating connection and retrying: %s",
