@@ -560,6 +560,108 @@ SELECT COUNT(*) FROM slice_user WHERE user_id IS NULL OR slice_id IS NULL;
 SELECT COUNT(*) FROM sqlatable_user WHERE user_id IS NULL OR table_id IS NULL;
 ```
 
+**Sizing the maintenance window on PostgreSQL.** The queries above are dialect-portable but only count rows. Operators on PostgreSQL can run the diagnostic queries below to characterize the migration's runtime cost ahead of time: per-table row count and on-disk size, an aggregated duplicate roll-up, the external-FK pre-flight check (the migration runs the same check and aborts if it returns rows), and a rewrite-time estimate for the two tables that go through the slower full-table-rebuild path.
+
+```sql
+-- Per-table size, row count, and which migration path each will take.
+-- Two tables ("dashboard_slices", "report_schedule_user") have a
+-- redundant UNIQUE constraint that the migration drops via a full
+-- table rewrite (op.batch_alter_table(recreate="always")). The other
+-- six use direct ALTER TABLE, which is much cheaper.
+WITH affected(name, has_unique) AS (
+  VALUES
+    ('dashboard_roles',       false),
+    ('dashboard_slices',      true),
+    ('dashboard_user',        false),
+    ('report_schedule_user',  true),
+    ('rls_filter_roles',      false),
+    ('rls_filter_tables',     false),
+    ('slice_user',            false),
+    ('sqlatable_user',        false)
+)
+SELECT
+  a.name                                                AS table_name,
+  CASE WHEN a.has_unique THEN 'recreate (full rewrite)'
+       ELSE 'direct ALTER' END                          AS migration_path,
+  c.reltuples::bigint                                   AS estimated_rows,
+  pg_size_pretty(pg_total_relation_size(c.oid))         AS total_size,
+  pg_size_pretty(pg_relation_size(c.oid))               AS heap_size,
+  pg_size_pretty(pg_indexes_size(c.oid))                AS index_size
+FROM affected a
+JOIN pg_class c ON c.relname = a.name AND c.relkind = 'r'
+ORDER BY pg_total_relation_size(c.oid) DESC;
+```
+
+```sql
+-- Aggregated duplicate-row roll-up.
+-- "dup_groups" is the number of (fk1, fk2) pairs that appear more
+-- than once; "rows_dropped" is the total number of rows the
+-- migration will delete during the dedupe pass (it keeps MIN(id) per
+-- group and discards the rest).
+SELECT 'dashboard_roles'      AS t, COUNT(*) AS dup_groups, SUM(c) - COUNT(*) AS rows_dropped
+  FROM (SELECT COUNT(*) c FROM dashboard_roles      GROUP BY dashboard_id, role_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_slices',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_slices     GROUP BY dashboard_id, slice_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'dashboard_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM dashboard_user       GROUP BY user_id, dashboard_id            HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'report_schedule_user',COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM report_schedule_user GROUP BY user_id, report_schedule_id      HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_roles',    COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_roles     GROUP BY role_id, rls_filter_id           HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'rls_filter_tables',   COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM rls_filter_tables    GROUP BY table_id, rls_filter_id          HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'slice_user',          COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM slice_user           GROUP BY user_id, slice_id                HAVING COUNT(*) > 1) g
+UNION ALL SELECT 'sqlatable_user',      COUNT(*), SUM(c) - COUNT(*)
+  FROM (SELECT COUNT(*) c FROM sqlatable_user       GROUP BY user_id, table_id                HAVING COUNT(*) > 1) g
+ORDER BY rows_dropped DESC NULLS LAST;
+```
+
+```sql
+-- External-FK pre-flight check.
+-- The migration runs the equivalent check at upgrade time and aborts
+-- if any external FK references one of the soon-to-be-removed `id`
+-- columns. Running it ahead of time lets you discover (and migrate)
+-- any such reference before the maintenance window. On a stock
+-- Superset install this should return zero rows. (Default schema
+-- only; multi-schema deployments need to broaden the lookup.)
+SELECT
+  rc.constraint_name,
+  kcu.table_schema || '.' || kcu.table_name AS referencing_table,
+  kcu.column_name                           AS referencing_column,
+  ccu.table_name                            AS referenced_table,
+  ccu.column_name                           AS referenced_column
+FROM information_schema.referential_constraints rc
+JOIN information_schema.key_column_usage      kcu
+  ON kcu.constraint_name = rc.constraint_name
+ AND kcu.constraint_schema = rc.constraint_schema
+JOIN information_schema.constraint_column_usage ccu
+  ON ccu.constraint_name = rc.constraint_name
+ AND ccu.constraint_schema = rc.constraint_schema
+WHERE ccu.table_name IN (
+        'dashboard_roles','dashboard_slices','dashboard_user',
+        'report_schedule_user','rls_filter_roles','rls_filter_tables',
+        'slice_user','sqlatable_user')
+  AND ccu.column_name = 'id';
+```
+
+```sql
+-- Lock-window estimate for the two full-rewrite tables.
+-- recreate="always" takes ACCESS EXCLUSIVE on the table for the full
+-- rewrite. Use heap size combined with your hardware's effective
+-- write throughput (~100-200 MB/s on commodity SSD; faster on NVMe)
+-- to size the maintenance window. The other six tables use direct
+-- ALTER and are dominated by composite-index build time, typically
+-- seconds for tables in the low millions of rows.
+SELECT
+  c.relname                                              AS table_name,
+  pg_size_pretty(pg_relation_size(c.oid))                AS heap_size,
+  pg_relation_size(c.oid) / 1024 / 1024                  AS heap_size_mb,
+  ROUND(pg_relation_size(c.oid) / 1024 / 1024 / 100.0, 1) AS est_rewrite_seconds_at_100mbs
+FROM pg_class c
+WHERE c.relname IN ('dashboard_slices', 'report_schedule_user');
+```
+
 **Restoring an old `pg_dump` (or equivalent) against the new schema.** A dump taken before the migration includes `INSERT` statements that populate the now-removed `id` column. Restoring such a dump against the post-migration schema will fail. The supported workaround is to dump only the schema and reference data, then re-create the M:N associations from application data after restore — for example with `pg_dump --exclude-table-data` (or per-table `--exclude-table-data=dashboard_slices` etc.) for the eight junction tables, restore the rest, then run a one-shot script that re-INSERTs `(fk1, fk2)` pairs derived from your application export. Operators who need to restore an old dump verbatim should restore against a pre-migration Superset and then re-run the upgrade.
 
 **Intentional downgrade asymmetry.** The migration's `downgrade()` restores the surrogate `id` column and (for `dashboard_slices` and `report_schedule_user`) the original `UNIQUE (fk1, fk2)` constraint, but it does **not** restore the original `NULL`-allowed state on the FK columns — they remain `NOT NULL`. This is intentional: under SQLAlchemy's `secondary=` semantics, a `NULL` in either FK column of a junction table is meaningless (it cannot participate in either side of the relationship). Operators downgrading are not expected to need this restored. The asymmetry is documented for completeness so that round-trip schema diffs are not mistaken for migration bugs.
