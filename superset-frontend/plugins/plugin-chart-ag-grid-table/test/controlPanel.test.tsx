@@ -61,7 +61,9 @@ const findMetricsMapStateToProps = ():
           'override' in control
         ) {
           return (
-            control as { override: { mapStateToProps: ControlConfig['mapStateToProps'] } }
+            control as {
+              override: { mapStateToProps: ControlConfig['mapStateToProps'] };
+            }
           ).override.mapStateToProps;
         }
       }
