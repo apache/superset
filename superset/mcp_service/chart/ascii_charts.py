@@ -81,6 +81,7 @@ def _generate_ascii_bar_chart(data: list[Any], width: int, height: int) -> str:
             for _key, val in row.items():
                 if (
                     isinstance(val, (int, float))
+                    and not isinstance(val, bool)
                     and not _is_nan_value(val)
                     and numeric_val is None
                 ):
@@ -286,6 +287,7 @@ def _extract_time_series_data(data: list[Any]) -> tuple[list[float], list[str]]:
             for key, val in row.items():
                 if (
                     isinstance(val, (int, float))
+                    and not isinstance(val, bool)
                     and not _is_nan_value(val)
                     and numeric_val is None
                 ):

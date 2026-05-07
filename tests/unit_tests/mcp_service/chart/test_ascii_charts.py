@@ -110,3 +110,36 @@ def test_chart_with_none_values_does_not_raise() -> None:
     result = generate_ascii_chart(data, "bar")
     assert isinstance(result, str)
     assert len(result) > 0
+
+
+def test_bar_chart_skips_boolean_columns() -> None:
+    """Boolean fields must not be selected as the numeric metric.
+
+    bool is a subclass of int, so isinstance(True, (int, float)) is True.
+    Without an explicit bool guard the extractor would lock onto a boolean
+    column (e.g. is_active=True -> 1) and ignore the real numeric metric.
+    """
+    data = [
+        {"label": "Alpha Category", "is_active": True, "revenue": 500.0},
+        {"label": "Beta Category", "is_active": False, "revenue": 1500.0},
+        {"label": "Gamma Category", "is_active": True, "revenue": 1000.0},
+    ]
+    result = generate_ascii_chart(data, "bar")
+    # If booleans are correctly skipped, revenue (500/1500/1000) drives the
+    # bars. The max value is 1500, so we expect at least one K-formatted value.
+    assert "1.5K" in result or "1500" in result or "1.0K" in result
+
+
+def test_line_chart_skips_boolean_columns() -> None:
+    """Boolean fields must not be selected as numeric points in line charts."""
+    data = [
+        {"date": "2024-01", "is_active": True, "sales": 100.0},
+        {"date": "2024-02", "is_active": False, "sales": 200.0},
+        {"date": "2024-03", "is_active": True, "sales": 300.0},
+    ]
+    result = generate_ascii_chart(data, "line")
+    assert isinstance(result, str)
+    assert len(result) > 0
+    # If booleans were selected, the range would be 0-1; if revenue is
+    # selected the range includes values up to 300.
+    assert "300" in result or "200" in result
