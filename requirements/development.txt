@@ -126,7 +126,7 @@ cffi==2.0.0
     #   pynacl
 cfgv==3.4.0
     # via pre-commit
-charset-normalizer==3.4.2
+charset-normalizer==3.4.7
     # via
     #   -c requirements/base-constraint.txt
     #   requests
