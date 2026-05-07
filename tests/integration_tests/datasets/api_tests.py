@@ -38,7 +38,7 @@ from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
-from superset.utils.core import backend, get_example_default_schema
+from superset.utils.core import backend, get_example_default_schema, shortid
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -291,6 +291,46 @@ class TestDatasetApi(SupersetTestCase):
             "uuid",
         ]
         assert sorted(response["result"][0]) == expected_columns
+
+    def test_get_dataset_list_with_jwt_auth(self):
+        """
+        Dataset API: Test get dataset list with JWT authentication
+        """
+        database = self.insert_database(f"jwt_dataset_db_{shortid()}")
+        dataset = self.insert_dataset(
+            table_name=f"jwt_dataset_{shortid()}",
+            owners=[self.get_user("admin").id],
+            database=database,
+            fetch_metadata=False,
+        )
+        headers = self.get_bearer_auth_header()
+
+        try:
+            client = self.create_app().test_client()
+            arguments = {
+                "filters": [{"col": "id", "opr": "eq", "value": dataset.id}]
+            }
+            uri = f"api/v1/dataset/?q={rison.dumps(arguments)}"
+            rv = client.get(uri, headers=headers)
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            assert response["count"] == 1
+            assert response["result"][0]["id"] == dataset.id
+        finally:
+            db.session.delete(dataset)
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_get_dataset_list_with_invalid_jwt_auth(self):
+        """
+        Dataset API: Test get dataset list with invalid JWT authentication
+        """
+        client = self.create_app().test_client()
+        rv = client.get(
+            "api/v1/dataset/",
+            headers={"Authorization": "Bearer not-a-token"},
+        )
+        assert rv.status_code == 401
 
     def test_get_dataset_list_gamma(self):
         """
