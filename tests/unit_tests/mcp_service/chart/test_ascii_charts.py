@@ -66,7 +66,10 @@ def test_horizontal_bar_chart_nan_rows_are_skipped() -> None:
         {"label": "Gamma Category", "amount": 150.0},
     ]
     result = generate_ascii_chart(data, "bar")
-    # Both valid labels must appear; the NaN row (Beta) must be absent
+    # avg label length is 14 (> 8 threshold), so horizontal layout is chosen;
+    # horizontal mode preserves full label text unlike vertical (3-char truncation).
+    assert "Horizontal Bar Chart" in result
+    # Both valid labels must appear in full; the NaN row (Beta) must be absent
     assert "Alpha" in result
     assert "Gamma" in result
     assert "Beta" not in result
