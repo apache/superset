@@ -199,7 +199,7 @@ async def get_schema(
     # Get the appropriate core factory with defensive lookup
     factory = _SCHEMA_CORE_FACTORIES.get(request.model_type)
     if factory is None:
-        await ctx.error(f"Unsupported model_type: {request.model_type}")
+        await ctx.warning(f"Unsupported model_type: {request.model_type}")
         raise ValueError(
             f"Unsupported model_type: {request.model_type}. "
             f"Valid types are: {', '.join(_SCHEMA_CORE_FACTORIES.keys())}"

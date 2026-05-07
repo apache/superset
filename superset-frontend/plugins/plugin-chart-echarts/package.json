@@ -29,7 +29,7 @@
     "acorn": "^8.16.0",
     "d3-array": "^3.2.4",
     "lodash": "^4.18.1",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "@apache-superset/core": "*",
@@ -38,7 +38,7 @@
     "dayjs": "^1.11.19",
     "echarts": "*",
     "memoize-one": "*",
-    "react": "^17.0.2"
+    "react": "^18.2.0"
   },
   "publishConfig": {
     "access": "public"

@@ -26,7 +26,6 @@ from typing import Any, Dict, List, Tuple
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     GenerateChartRequest,
-    parse_chart_config,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -112,23 +111,8 @@ class ValidationPipeline:
             if request is None:
                 return ValidationResult(is_valid=False, error=error)
 
-            # Parse the raw config dict into a typed ChartConfig for
-            # downstream validators that need typed access.
-            try:
-                typed_config = parse_chart_config(request.config)
-            except (ValueError, TypeError) as e:
-                from superset.mcp_service.utils.error_builder import (
-                    ChartErrorBuilder,
-                )
-
-                sanitized_reason = _sanitize_validation_error(e)
-                error = ChartErrorBuilder.build_error(
-                    error_type="validation_error",
-                    template_key="validation_error",
-                    template_vars={"reason": sanitized_reason},
-                    error_code="INVALID_CHART_CONFIG",
-                )
-                return ValidationResult(is_valid=False, request=request, error=error)
+            # config is already a typed ChartConfig (validated by Pydantic)
+            typed_config = request.config
 
             # Fetch dataset context once and reuse across validation layers
             dataset_context = ValidationPipeline._get_dataset_context(
@@ -266,7 +250,7 @@ class ValidationPipeline:
         try:
             from .dataset_validator import DatasetValidator
 
-            config = typed_config or parse_chart_config(request.config)
+            config = typed_config or request.config
             normalized_config = DatasetValidator.normalize_column_names(
                 config,
                 request.dataset_id,

@@ -183,6 +183,11 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
         except Exception as ex:
             if isinstance(ex, SupersetVizException):
                 errors = ex.errors
+            # Extract SIP-40 style errors when available
+            elif isinstance(ex, SupersetErrorException):
+                errors = [dataclasses.asdict(ex.error)]  # type: ignore
+            elif isinstance(ex, SupersetErrorsException):
+                errors = [dataclasses.asdict(error) for error in ex.errors]  # type: ignore
             else:
                 error = ex.message if hasattr(ex, "message") else str(ex)
                 errors = [error]  # type: ignore

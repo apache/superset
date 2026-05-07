@@ -43,7 +43,7 @@ Extensions can provide:
 
 ## UI Components for Extensions
 
-Extension developers have access to pre-built UI components via `@apache-superset/core/components`. Browse all available components on the [UI Components](/docs/components/) page and filter by **Extension Compatible** to see components available to extensions.
+Extension developers have access to pre-built UI components via `@apache-superset/core/components`. Browse all available components on the [UI Components](/developer-docs/components/) page and filter by **Extension Compatible** to see components available to extensions.
 
 ## Next Steps
 
