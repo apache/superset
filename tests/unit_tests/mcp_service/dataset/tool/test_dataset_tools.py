@@ -2128,7 +2128,9 @@ class TestListDatasetsRequestWrapper:
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
-    async def test_request_wrapper_enforced_by_tool(self, mock_list, mcp_server) -> None:
+    async def test_request_wrapper_enforced_by_tool(
+        self, mock_list, mcp_server
+    ) -> None:
         """The MCP tool layer accepts the request wrapper and returns results.
 
         Verifies end-to-end that wrapping params in ``request={}`` works through
