@@ -17,3 +17,7 @@
  * under the License.
  */
 export { default as SkipLink } from './SkipLink';
+export {
+  default as VisuallyHidden,
+  type VisuallyHiddenProps,
+} from './VisuallyHidden';

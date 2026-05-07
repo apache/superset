@@ -89,9 +89,13 @@ const App = () => (
                 <Layout>
                   <Layout.Content
                     id="main-content"
+                    role="main"
                     css={css`
                       display: flex;
                       flex-direction: column;
+                      &[tabindex='-1']:focus {
+                        outline: none;
+                      }
                     `}
                   >
                     <ErrorBoundary
