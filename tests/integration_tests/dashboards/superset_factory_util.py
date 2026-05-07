@@ -25,7 +25,6 @@ from superset.connectors.sqla.models import SqlaTable, sqlatable_user
 from superset.models.core import Database
 from superset.models.dashboard import (
     Dashboard,
-    dashboard_slices,
     dashboard_user,
     DashboardRoles,
 )
@@ -234,9 +233,15 @@ def delete_dashboard_roles_associations(dashboard: Dashboard) -> None:
 
 
 def delete_dashboard_slices_associations(dashboard: Dashboard) -> None:
-    db.session.execute(
-        dashboard_slices.delete().where(dashboard_slices.c.dashboard_id == dashboard.id)
-    )
+    # Use ORM-level reassignment instead of `db.session.execute(table.delete())`.
+    # SQLAlchemy-Continuum's M2M tracker needs row-level visibility to record
+    # shadow entries; a bulk DELETE via Core bypasses the ORM and produces a
+    # malformed INSERT into `dashboard_slices_version` (missing the composite-PK
+    # columns), which fails under MySQL strict mode and produces dead rows on
+    # Postgres. Mirrors the precedent set by ``DatasetDAO.update_columns``
+    # being rewritten to ORM-level ``session.delete()`` for the same reason.
+    dashboard.slices = []
+    db.session.flush()
 
 
 def delete_all_inserted_slices():
