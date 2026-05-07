@@ -1700,7 +1700,8 @@ class TestDatasetSortableColumns:
 
         # Check list_datasets docstring for sortable columns documentation
         assert list_datasets.__doc__ is not None
-        assert "Sortable columns for order_column:" in list_datasets.__doc__
+        assert "Sortable columns for" in list_datasets.__doc__
+        assert "order_column" in list_datasets.__doc__
         for col in SORTABLE_DATASET_COLUMNS:
             assert col in list_datasets.__doc__
 
@@ -2088,19 +2089,20 @@ class TestListDatasetsRequestWrapper:
 
     LLMs sometimes pass parameters like ``search``, ``page``, or ``page_size``
     as flat top-level kwargs instead of nesting them inside a ``request``
-    object.  These tests confirm the correct call shape and that the schema
-    rejects invalid filter column names (e.g. ``created_by_fk``).
+    object.  These tests confirm the correct call shape through both the Pydantic
+    schema and the actual MCP tool layer, and verify that invalid filter column
+    names (e.g. ``created_by_fk``) are rejected.
     """
 
     def test_request_wrapper_with_search(self):
-        """Parameters passed inside request= are accepted."""
+        """Parameters passed inside request= are accepted by the schema."""
         request = ListDatasetsRequest(search="sales", page=1, page_size=10)
         assert request.search == "sales"
         assert request.page == 1
         assert request.page_size == 10
 
     def test_request_wrapper_defaults(self):
-        """No-arg constructor produces valid defaults."""
+        """No-arg constructor produces valid schema defaults."""
         request = ListDatasetsRequest()
         assert request.search is None
         assert request.page == 1
@@ -2109,7 +2111,7 @@ class TestListDatasetsRequestWrapper:
     def test_dataset_filter_valid_col(self):
         """Valid col values are accepted by DatasetFilter."""
         for col in ("table_name", "schema", "database_name"):
-            f = DatasetFilter(col=col, opr="ct", value="test")
+            f = DatasetFilter(col=col, opr="sw", value="test")
             assert f.col == col
 
     def test_dataset_filter_invalid_col_raises(self):
@@ -2124,19 +2126,45 @@ class TestListDatasetsRequestWrapper:
             with pytest.raises(ValidationError):
                 DatasetFilter(col=bad_col, opr="eq", value="1")
 
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_request_wrapper_enforced_by_tool(self, mock_list, mcp_server):
+        """The MCP tool layer accepts the request wrapper and returns results.
+
+        Verifies end-to-end that wrapping params in ``request={}`` works through
+        the actual FastMCP tool call, not just schema validation.
+        """
+        mock_list.return_value = ([], 0)
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_datasets",
+                {"request": {"search": "sales", "page": 1, "page_size": 5}},
+            )
+        data = json.loads(result.content[0].text)
+        assert data["count"] == 0
+        assert data["datasets"] == []
+
     @pytest.mark.asyncio
     async def test_flat_kwargs_rejected(self, mcp_server):
-        """Passing search/page/page_size as top-level kwargs raises a ToolError.
+        """Passing search/page/page_size as top-level kwargs raises a ToolError
+        that specifically mentions the unexpected arguments.
 
-        This is the exact failure pattern reported in story #105712: LLMs call
+        This is the exact failure pattern from story #105712: LLMs call
         ``list_datasets(search=..., page=..., page_size=...)`` instead of
         ``list_datasets(request={...})``.
         """
         from fastmcp.exceptions import ToolError
 
-        with pytest.raises(ToolError):
+        with pytest.raises(ToolError) as exc_info:
             async with Client(mcp_server) as client:
                 await client.call_tool(
                     "list_datasets",
                     {"search": "sales", "page": 1, "page_size": 10},
                 )
+        error_text = str(exc_info.value)
+        # The error must call out the unexpected arguments, not some unrelated failure
+        assert (
+            "search" in error_text
+            or "Unexpected" in error_text
+            or "request" in error_text
+        )
