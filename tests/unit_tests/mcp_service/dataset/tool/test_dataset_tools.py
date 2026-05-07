@@ -2094,27 +2094,27 @@ class TestListDatasetsRequestWrapper:
     names (e.g. ``created_by_fk``) are rejected.
     """
 
-    def test_request_wrapper_with_search(self):
+    def test_request_wrapper_with_search(self) -> None:
         """Parameters passed inside request= are accepted by the schema."""
         request = ListDatasetsRequest(search="sales", page=1, page_size=10)
         assert request.search == "sales"
         assert request.page == 1
         assert request.page_size == 10
 
-    def test_request_wrapper_defaults(self):
+    def test_request_wrapper_defaults(self) -> None:
         """No-arg constructor produces valid schema defaults."""
         request = ListDatasetsRequest()
         assert request.search is None
         assert request.page == 1
         assert request.filters == []
 
-    def test_dataset_filter_valid_col(self):
+    def test_dataset_filter_valid_col(self) -> None:
         """Valid col values are accepted by DatasetFilter."""
         for col in ("table_name", "schema", "database_name"):
             f = DatasetFilter(col=col, opr="sw", value="test")
             assert f.col == col
 
-    def test_dataset_filter_invalid_col_raises(self):
+    def test_dataset_filter_invalid_col_raises(self) -> None:
         """Column names not in the Literal are rejected with a validation error.
 
         This guards against LLMs passing ``created_by_fk`` or similar
@@ -2128,7 +2128,7 @@ class TestListDatasetsRequestWrapper:
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
-    async def test_request_wrapper_enforced_by_tool(self, mock_list, mcp_server):
+    async def test_request_wrapper_enforced_by_tool(self, mock_list, mcp_server) -> None:
         """The MCP tool layer accepts the request wrapper and returns results.
 
         Verifies end-to-end that wrapping params in ``request={}`` works through
@@ -2145,7 +2145,7 @@ class TestListDatasetsRequestWrapper:
         assert data["datasets"] == []
 
     @pytest.mark.asyncio
-    async def test_flat_kwargs_rejected(self, mcp_server):
+    async def test_flat_kwargs_rejected(self, mcp_server) -> None:
         """Passing search/page/page_size as top-level kwargs raises a ToolError
         that specifically mentions the unexpected arguments.
 
@@ -2153,8 +2153,6 @@ class TestListDatasetsRequestWrapper:
         ``list_datasets(search=..., page=..., page_size=...)`` instead of
         ``list_datasets(request={...})``.
         """
-        from fastmcp.exceptions import ToolError
-
         with pytest.raises(ToolError) as exc_info:
             async with Client(mcp_server) as client:
                 await client.call_tool(
