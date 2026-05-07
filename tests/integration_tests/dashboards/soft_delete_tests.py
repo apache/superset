@@ -135,6 +135,58 @@ class TestDashboardSoftDelete(SupersetTestCase):
         _hard_delete_dashboard(live_id)
         _hard_delete_dashboard(deleted_id)
 
+    def test_embedded_dashboard_with_soft_deleted_parent(self):
+        """Embedded URL keeps loading after the parent dashboard is soft-deleted.
+
+        The embedded view (`embedded/view.py:embedded`) only reads
+        `embedded.allowed_domains` and `embedded.dashboard_id` (FK column,
+        not relationship), so it never dereferences the soft-deleted
+        Dashboard via `embedded.dashboard`. Iframe still returns 200; the
+        frontend's subsequent `/api/v1/dashboard/<id>` fetch returns 404
+        cleanly via the visibility filter, and the user sees the standard
+        "dashboard not found" UI rather than a 500.
+
+        This pins down the contract documented in pr-readiness.md #8 and
+        prevents future changes to either the embedded view or the schema
+        from regressing it into a 500.
+        """
+        from unittest import mock
+
+        from superset.daos.dashboard import EmbeddedDashboardDAO
+
+        dashboard = self._create_dashboard("embedded_soft_delete_test")
+        dashboard_id = dashboard.id
+        embedded = EmbeddedDashboardDAO.upsert(dashboard, [])
+        db.session.flush()
+        embedded_uuid = str(embedded.uuid)
+        self.login(ADMIN_USERNAME)
+
+        # Soft-delete the parent
+        self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
+
+        # The embedded iframe URL still loads (200) — embedded.dashboard is
+        # never dereferenced by the view.
+        with mock.patch.dict(
+            "superset.extensions.feature_flag_manager._feature_flags",
+            EMBEDDED_SUPERSET=True,
+        ):
+            rv = self.client.get(f"/embedded/{embedded_uuid}")
+        assert rv.status_code == 200, (
+            f"Embedded view should still load 200 with a soft-deleted parent; "
+            f"got {rv.status_code}. Body: {rv.data[:200]!r}"
+        )
+
+        # The dashboard fetch returns 404 cleanly (visibility filter applies).
+        rv = self.client.get(f"/api/v1/dashboard/{dashboard_id}")
+        assert rv.status_code == 404, (
+            f"Soft-deleted dashboard should fetch 404, not 500; got "
+            f"{rv.status_code}. Body: {rv.data[:200]!r}"
+        )
+
+        # Cleanup: hard-deleting the dashboard cascades to the embedded
+        # row via the FK ondelete=CASCADE.
+        _hard_delete_dashboard(dashboard_id)
+
 
 class TestDashboardRestore(SupersetTestCase):
     """Tests for dashboard restore behaviour (T026, T028)."""
