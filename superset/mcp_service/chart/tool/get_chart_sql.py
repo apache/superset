@@ -196,13 +196,15 @@ def _build_single_query_dict(
 def _build_mixed_timeseries_secondary(
     form_data: dict[str, Any],
     x_axis_col: str | None,
+    engine: str = "base",
 ) -> dict[str, Any]:
     """Build the secondary query dict for the ``mixed_timeseries`` viz type.
 
     ``mixed_timeseries`` has two independent series layers; the secondary
     layer uses ``metrics_b`` / ``groupby_b`` instead of the primary fields.
-    If ``time_range_b`` is set it overrides the primary ``time_range`` for
-    the secondary query.
+    Secondary-specific overrides (``time_range_b``, ``row_limit_b``,
+    ``adhoc_filters_b``) replace the corresponding primary values so the
+    generated SQL accurately reflects each series' independent configuration.
     """
     metrics_b: list[Any] = list(form_data.get("metrics_b") or [])
     raw_b = form_data.get("groupby_b") or []
@@ -212,6 +214,18 @@ def _build_mixed_timeseries_secondary(
     qd = _build_single_query_dict(form_data, groupby_b, metrics_b)
     if time_range_b := form_data.get("time_range_b"):
         qd["time_range"] = time_range_b
+    if (row_limit_b := form_data.get("row_limit_b")) is not None:
+        qd["row_limit"] = row_limit_b
+    # Process adhoc_filters_b into concrete filter clauses for the secondary
+    # query, mirroring how split_adhoc_filters_into_base_filters handles the
+    # primary adhoc_filters in _build_query_context_from_form_data.
+    if adhoc_filters_b := form_data.get("adhoc_filters_b"):
+        from superset.utils.core import split_adhoc_filters_into_base_filters
+
+        secondary_fd: dict[str, Any] = {"adhoc_filters": adhoc_filters_b}
+        split_adhoc_filters_into_base_filters(secondary_fd, engine)
+        if secondary_filters := secondary_fd.get("filters"):
+            qd["filters"] = secondary_filters
     return qd
 
 
@@ -288,7 +302,7 @@ def _build_query_context_from_form_data(
     # secondary).  Build the second query from metrics_b / groupby_b so
     # that get_chart_sql returns SQL for both and neither is silently lost.
     if viz_type == "mixed_timeseries":
-        queries.append(_build_mixed_timeseries_secondary(form_data, x_axis_col))
+        queries.append(_build_mixed_timeseries_secondary(form_data, x_axis_col, engine))
 
     # Ensure datasource fields satisfy DatasourceDict typing requirements.
     # datasource_id must be int | str; datasource_type must be str.

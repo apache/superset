@@ -790,6 +790,85 @@ class TestBuildQueryContextTimeseriesAndMixed:
         assert queries[0]["time_range"] == "Last 30 days"
         assert queries[1]["time_range"] == "Last 7 days"
 
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_mixed_timeseries_row_limit_b_overrides_secondary(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """row_limit_b overrides the primary row_limit for the secondary query."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["sum__revenue"],
+            "groupby": [],
+            "metrics_b": ["count"],
+            "groupby_b": [],
+            "row_limit": 100,
+            "row_limit_b": 50,
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert len(queries) == 2
+        assert queries[0]["row_limit"] == 100
+        assert queries[1]["row_limit"] == 50
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_mixed_timeseries_adhoc_filters_b_applied_to_secondary(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """adhoc_filters_b is processed and applied to the secondary query filters."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["sum__revenue"],
+            "groupby": [],
+            "metrics_b": ["count"],
+            "groupby_b": [],
+            "adhoc_filters_b": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "channel",
+                    "operator": "==",
+                    "comparator": "organic",
+                }
+            ],
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert len(queries) == 2
+        secondary_filters = queries[1].get("filters", [])
+        assert {"col": "channel", "op": "==", "val": "organic"} in secondary_filters
+
 
 class TestResolveDatasourceName:
     """Tests for _resolve_datasource_name helper."""
