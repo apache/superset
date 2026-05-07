@@ -1746,11 +1746,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const validateGeneralSection = () => {
+    // Skip validation while alert data is still loading so the error display
+    // (which is also gated on `currentAlert`) and the disable-save flag stay
+    // consistent. Once the modal initializes `currentAlert`, validation reruns.
+    if (!currentAlert) {
+      updateValidationStatus(Sections.General, []);
+      return;
+    }
     const errors = [];
-    if (!currentAlert?.name?.length) {
+    if (!currentAlert.name?.length) {
       errors.push(TRANSLATIONS.NAME_ERROR_TEXT);
     }
-    if (!currentAlert?.owners?.length) {
+    if (!currentAlert.owners?.length) {
       errors.push(TRANSLATIONS.OWNERS_ERROR_TEXT);
     }
     updateValidationStatus(Sections.General, errors);

@@ -18,7 +18,7 @@
  */
 import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
+import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
 import {
   Form,
   FormLabel,
@@ -50,6 +50,13 @@ const StyledFormItem = styled(Form.Item)`
 
 const StyledInputPassword = styled(Input.Password)`
   margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
+`;
+
+const fieldErrorStyles = (theme: SupersetTheme) => css`
+  color: ${theme.colorError};
+  font-size: ${theme.fontSizeSM}px;
+  display: block;
+  margin-top: ${theme.sizeUnit}px;
 `;
 
 const SSHTunnelForm = ({
@@ -99,7 +106,7 @@ const SSHTunnelForm = ({
               data-test="ssh-tunnel-server_address-input"
             />
             {fieldError('server_address', db?.ssh_tunnel?.server_address) && (
-              <span id="server-address-error" role="alert" style={{ color: 'red', fontSize: '12px' }}>
+              <span id="server-address-error" role="alert" css={fieldErrorStyles}>
                 {t('SSH Host is required')}
               </span>
             )}
@@ -129,7 +136,7 @@ const SSHTunnelForm = ({
               data-test="ssh-tunnel-server_port-input"
             />
             {fieldError('server_port', db?.ssh_tunnel?.server_port) && (
-              <span id="server-port-error" role="alert" style={{ color: 'red', fontSize: '12px' }}>
+              <span id="server-port-error" role="alert" css={fieldErrorStyles}>
                 {t('SSH Port is required')}
               </span>
             )}
@@ -160,7 +167,7 @@ const SSHTunnelForm = ({
               data-test="ssh-tunnel-username-input"
             />
             {fieldError('username', db?.ssh_tunnel?.username) && (
-              <span id="ssh-username-error" role="alert" style={{ color: 'red', fontSize: '12px' }}>
+              <span id="ssh-username-error" role="alert" css={fieldErrorStyles}>
                 {t('Username is required')}
               </span>
             )}

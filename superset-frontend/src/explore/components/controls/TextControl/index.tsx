@@ -18,9 +18,17 @@
  */
 import { Component, ChangeEvent } from 'react';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import { debounce } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Constants, Input } from '@superset-ui/core/components';
+
+const fieldErrorStyles = (theme: SupersetTheme) => css`
+  color: ${theme.colorError};
+  font-size: ${theme.fontSizeSM}px;
+  display: block;
+  margin-top: ${theme.sizeUnit}px;
+`;
 
 type InputValueType = string | number;
 
@@ -127,9 +135,7 @@ export default class TextControl<
           id={inputId}
         />
         {hasErrors && (
-          <span
-            style={{ color: 'red', fontSize: '12px', display: 'block', marginTop: '4px' }}
-          >
+          <span css={fieldErrorStyles}>
             {this.props.validationErrors!.join('. ')}
           </span>
         )}

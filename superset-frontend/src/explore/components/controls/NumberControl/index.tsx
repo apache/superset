@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useId, useRef } from 'react';
-import { styled } from '@apache-superset/core/theme';
+import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
 import { InputNumber } from '@superset-ui/core/components/Input';
 import ControlHeader, { ControlHeaderProps } from '../../ControlHeader';
 
@@ -41,6 +41,13 @@ const FullWidthDiv = styled.div`
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
+`;
+
+const fieldErrorStyles = (theme: SupersetTheme) => css`
+  color: ${theme.colorError};
+  font-size: ${theme.fontSizeSM}px;
+  display: block;
+  margin-top: ${theme.sizeUnit}px;
 `;
 
 function parseValue(value: string | number | null | undefined) {
@@ -105,9 +112,7 @@ export default function NumberControl({
         id={inputId}
       />
       {hasErrors && (
-        <span
-          style={{ color: 'red', fontSize: '12px', display: 'block', marginTop: '4px' }}
-        >
+        <span css={fieldErrorStyles}>
           {rest.validationErrors!.join('. ')}
         </span>
       )}
