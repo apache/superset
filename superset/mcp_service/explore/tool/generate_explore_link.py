@@ -22,20 +22,25 @@ This tool generates a URL to the Superset explore interface with the specified
 chart configuration.
 """
 
+import logging
 from typing import Any, Dict
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
     map_config_to_form_data,
 )
+from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @tool(
@@ -131,6 +136,24 @@ async def generate_explore_link(
                     ),
                 }
 
+            if not has_dataset_access(dataset):
+                logger.warning(
+                    "User attempted to access dataset %s without permission",
+                    request.dataset_id,
+                )
+                await ctx.warning(
+                    "Dataset access denied: dataset_id=%s" % (request.dataset_id,)
+                )
+                return {
+                    "url": "",
+                    "form_data": {},
+                    "form_data_key": None,
+                    "error": (
+                        f"Dataset not found: {request.dataset_id}. "
+                        "Use list_datasets to find valid dataset IDs."
+                    ),
+                }
+
         await ctx.report_progress(2, 4, "Converting configuration to form data")
         with event_logger.log_context(action="mcp.generate_explore_link.form_data"):
             # Normalize column names to match canonical dataset column names
@@ -164,6 +187,38 @@ async def generate_explore_link(
                 bool(form_data.get("datasource")),
             )
         )
+
+        # Tier-1 schema validation against the dataset (no DB roundtrip).
+        # Catches references to non-existent columns/metrics with fuzzy
+        # suggestions so the LLM can self-correct ("did you mean sum_boys?").
+        with event_logger.log_context(action="mcp.generate_explore_link.validation"):
+            compile_result = validate_and_compile(
+                normalized_config,
+                form_data,
+                dataset,
+                run_compile_check=False,
+            )
+        if not compile_result.success:
+            await ctx.warning(
+                "Explore link validation failed: error=%s" % (compile_result.error,)
+            )
+            error_payload: Dict[str, Any]
+            if compile_result.error_obj is not None:
+                error_payload = compile_result.error_obj.model_dump()
+            else:
+                error_payload = {
+                    "error_type": "validation_error",
+                    "message": "Explore link validation failed",
+                    "details": compile_result.error or "",
+                    "error_code": compile_result.error_code,
+                    "suggestions": [],
+                }
+            return {
+                "url": "",
+                "form_data": form_data,
+                "form_data_key": None,
+                "error": error_payload,
+            }
 
         await ctx.report_progress(3, 4, "Generating explore URL")
         with event_logger.log_context(

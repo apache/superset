@@ -36,7 +36,7 @@ def test_csrf_exempt_blueprints(app_context: None) -> None:
         "MenuApi",
         "SecurityApi",
         "OpenApi",
-        "PermissionViewMenuApi",
+        "SupersetPermissionViewMenuApi",
         "SupersetRoleApi",
         "SupersetUserApi",
         "PermissionApi",

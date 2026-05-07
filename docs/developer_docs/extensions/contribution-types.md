@@ -224,3 +224,52 @@ async def analysis_guide(ctx: Context) -> str:
 ```
 
 See [MCP Integration](./mcp) for implementation details.
+
+### Semantic Layers
+
+Extensions can register custom semantic layer implementations that allow Superset to connect to external data modeling frameworks. Each semantic layer defines how to authenticate, discover semantic views (tables/metrics/dimensions), and execute queries against the external system.
+
+```python
+from superset_core.semantic_layers.decorators import semantic_layer
+from superset_core.semantic_layers.layer import SemanticLayer
+
+from my_extension.config import MyConfig
+from my_extension.view import MySemanticView
+
+
+@semantic_layer(
+    id="my_platform",
+    name="My Data Platform",
+    description="Connect to My Data Platform's semantic layer",
+)
+class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
+    configuration_class = MyConfig
+
+    @classmethod
+    def from_configuration(cls, configuration: dict) -> "MySemanticLayer":
+        config = MyConfig.model_validate(configuration)
+        return cls(config)
+
+    @classmethod
+    def get_configuration_schema(cls, configuration=None) -> dict:
+        return MyConfig.model_json_schema()
+
+    @classmethod
+    def get_runtime_schema(cls, configuration=None, runtime_data=None) -> dict:
+        return {"type": "object", "properties": {}}
+
+    def get_semantic_views(self, runtime_configuration: dict) -> set[MySemanticView]:
+        # Return available views from the external platform
+        ...
+
+    def get_semantic_view(self, name: str, additional_configuration: dict) -> MySemanticView:
+        # Return a specific view by name
+        ...
+```
+
+**Note**: The `@semantic_layer` decorator automatically detects context and applies appropriate ID prefixing:
+
+- **Extension context**: ID prefixed as `extensions.{publisher}.{name}.{id}`
+- **Host context**: Original ID used as-is
+
+The decorator registers the class in the semantic layers registry, making it available in the UI for users to create connections. The `configuration_class` should be a Pydantic model that defines the fields needed to connect (credentials, project, database, etc.). Superset uses the model's JSON schema to render the configuration form dynamically.
