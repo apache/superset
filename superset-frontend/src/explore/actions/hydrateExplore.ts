@@ -78,9 +78,11 @@ export const hydrateExplore =
     const initialSlice = slice ?? fallbackSlice;
     const initialFormData = form_data ?? initialSlice?.form_data;
     const isCachedFormData = getUrlParam(URL_PARAMS.formDataKey) !== null;
+    const [primarySliceNameSource, fallbackSliceNameSource] = isCachedFormData
+      ? [initialFormData, initialSlice]
+      : [initialSlice, initialFormData];
     const initialSliceName =
-      (isCachedFormData ? initialFormData : initialSlice)?.slice_name ??
-      (isCachedFormData ? initialSlice : initialFormData)?.slice_name;
+      primarySliceNameSource?.slice_name ?? fallbackSliceNameSource?.slice_name;
     if (!initialFormData.viz_type) {
       const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
       initialFormData.viz_type =
