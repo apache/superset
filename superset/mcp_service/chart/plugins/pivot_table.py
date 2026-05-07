@@ -107,6 +107,19 @@ class PivotTableChartPlugin(BaseChartPlugin):
 
         return map_pivot_table_config(config)
 
+    def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
+        from superset.mcp_service.chart.chart_utils import (
+            _pivot_table_what,
+            _summarize_filters,
+        )
+
+        what = _pivot_table_what(config)
+        context = _summarize_filters(config.filters)
+        return f"{what} \u2013 {context}" if context else what
+
+    def resolve_viz_type(self, config: Any) -> str:
+        return "pivot_table_v2"
+
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         from superset.mcp_service.chart.schemas import PivotTableChartConfig
         from superset.mcp_service.chart.validation.dataset_validator import (

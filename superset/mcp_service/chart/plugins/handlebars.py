@@ -142,6 +142,19 @@ class HandlebarsChartPlugin(BaseChartPlugin):
 
         return map_handlebars_config(config)
 
+    def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
+        from superset.mcp_service.chart.chart_utils import (
+            _handlebars_chart_what,
+            _summarize_filters,
+        )
+
+        what = _handlebars_chart_what(config)
+        context = _summarize_filters(getattr(config, "filters", None))
+        return f"{what} \u2013 {context}" if context else what
+
+    def resolve_viz_type(self, config: Any) -> str:
+        return "handlebars"
+
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         from superset.mcp_service.chart.schemas import HandlebarsChartConfig
         from superset.mcp_service.chart.validation.dataset_validator import (

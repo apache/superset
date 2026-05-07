@@ -1282,13 +1282,7 @@ def _big_number_chart_what(config: BigNumberChartConfig) -> str:
 
 
 def generate_chart_name(
-    config: TableChartConfig
-    | XYChartConfig
-    | PieChartConfig
-    | PivotTableChartConfig
-    | MixedTimeseriesChartConfig
-    | HandlebarsChartConfig
-    | BigNumberChartConfig,
+    config: Any,
     dataset_name: str | None = None,
 ) -> str:
     """Generate a descriptive chart name following a standard format.
@@ -1304,65 +1298,22 @@ def generate_chart_name(
     An en-dash followed by context (filters / time grain) is appended
     when such information is available.
     """
-    if isinstance(config, TableChartConfig):
-        what = _table_chart_what(config, dataset_name)
-        context = _summarize_filters(config.filters)
-    elif isinstance(config, XYChartConfig):
-        what = _xy_chart_what(config)
-        context = _xy_chart_context(config)
-    elif isinstance(config, PieChartConfig):
-        what = _pie_chart_what(config)
-        context = _summarize_filters(config.filters)
-    elif isinstance(config, PivotTableChartConfig):
-        what = _pivot_table_what(config)
-        context = _summarize_filters(config.filters)
-    elif isinstance(config, MixedTimeseriesChartConfig):
-        what = _mixed_timeseries_what(config)
-        context = _summarize_filters(config.filters)
-    elif isinstance(config, HandlebarsChartConfig):
-        what = _handlebars_chart_what(config)
-        context = _summarize_filters(getattr(config, "filters", None))
-    elif isinstance(config, BigNumberChartConfig):
-        what = _big_number_chart_what(config)
-        context = _summarize_filters(getattr(config, "filters", None))
-    else:
-        return "Chart"
+    from superset.mcp_service.chart.registry import get_registry
 
-    name = what
-    if context:
-        name = f"{what} \u2013 {context}"
-    return _truncate(name)
+    plugin = get_registry().get(getattr(config, "chart_type", ""))
+    if plugin is None:
+        return "Chart"
+    return _truncate(plugin.generate_name(config, dataset_name))
 
 
 def _resolve_viz_type(config: Any) -> str:
     """Resolve the Superset viz_type from a chart config object."""
-    chart_type = getattr(config, "chart_type", "unknown")
-    if chart_type == "xy":
-        kind = getattr(config, "kind", "line")
-        viz_type_map = {
-            "line": "echarts_timeseries_line",
-            "bar": "echarts_timeseries_bar",
-            "area": "echarts_area",
-            "scatter": "echarts_timeseries_scatter",
-        }
-        return viz_type_map.get(kind, "echarts_timeseries_line")
-    elif chart_type == "table":
-        return getattr(config, "viz_type", "table")
-    elif chart_type == "pie":
-        return "pie"
-    elif chart_type == "pivot_table":
-        return "pivot_table_v2"
-    elif chart_type == "mixed_timeseries":
-        return "mixed_timeseries"
-    elif chart_type == "handlebars":
-        return "handlebars"
-    elif chart_type == "big_number":
-        show_trendline = getattr(config, "show_trendline", False)
-        temporal_column = getattr(config, "temporal_column", None)
-        return (
-            "big_number" if show_trendline and temporal_column else "big_number_total"
-        )
-    return "unknown"
+    from superset.mcp_service.chart.registry import get_registry
+
+    plugin = get_registry().get(getattr(config, "chart_type", ""))
+    if plugin is None:
+        return "unknown"
+    return plugin.resolve_viz_type(config)
 
 
 TABLE_VIZ_TYPE_LABELS = {

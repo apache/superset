@@ -89,6 +89,19 @@ class TableChartPlugin(BaseChartPlugin):
 
         return map_table_config(config)
 
+    def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
+        from superset.mcp_service.chart.chart_utils import (
+            _summarize_filters,
+            _table_chart_what,
+        )
+
+        what = _table_chart_what(config, dataset_name)
+        context = _summarize_filters(config.filters)
+        return f"{what} \u2013 {context}" if context else what
+
+    def resolve_viz_type(self, config: Any) -> str:
+        return getattr(config, "viz_type", "table")
+
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         from superset.mcp_service.chart.schemas import TableChartConfig
         from superset.mcp_service.chart.validation.dataset_validator import (
@@ -96,6 +109,10 @@ class TableChartPlugin(BaseChartPlugin):
         )
 
         config_dict = config.model_dump()
-        DatasetValidator._normalize_table_config(config_dict, dataset_context)
+        get_canonical = DatasetValidator._get_canonical_column_name
+
+        for col in config_dict.get("columns") or []:
+            col["name"] = get_canonical(col["name"], dataset_context)
+
         DatasetValidator._normalize_filters(config_dict, dataset_context)
         return TableChartConfig.model_validate(config_dict)

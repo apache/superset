@@ -176,6 +176,23 @@ class BigNumberChartPlugin(BaseChartPlugin):
 
         return None
 
+    def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
+        from superset.mcp_service.chart.chart_utils import (
+            _big_number_chart_what,
+            _summarize_filters,
+        )
+
+        what = _big_number_chart_what(config)
+        context = _summarize_filters(getattr(config, "filters", None))
+        return f"{what} \u2013 {context}" if context else what
+
+    def resolve_viz_type(self, config: Any) -> str:
+        show_trendline = getattr(config, "show_trendline", False)
+        temporal_column = getattr(config, "temporal_column", None)
+        if show_trendline and temporal_column:
+            return "big_number"
+        return "big_number_total"
+
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         from superset.mcp_service.chart.schemas import BigNumberChartConfig
         from superset.mcp_service.chart.validation.dataset_validator import (

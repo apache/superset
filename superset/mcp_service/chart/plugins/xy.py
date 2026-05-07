@@ -19,11 +19,14 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import ColumnRef
 from superset.mcp_service.common.error_schemas import ChartGenerationError
+
+logger = logging.getLogger(__name__)
 
 
 class XYChartPlugin(BaseChartPlugin):
@@ -105,17 +108,43 @@ class XYChartPlugin(BaseChartPlugin):
         )
 
         config_dict = config.model_dump()
-        DatasetValidator._normalize_xy_config(config_dict, dataset_context)
+        get_canonical = DatasetValidator._get_canonical_column_name
+
+        if config_dict.get("x"):
+            config_dict["x"]["name"] = get_canonical(
+                config_dict["x"]["name"], dataset_context
+            )
+        for y_col in config_dict.get("y") or []:
+            y_col["name"] = get_canonical(y_col["name"], dataset_context)
+        for gb_col in config_dict.get("group_by") or []:
+            gb_col["name"] = get_canonical(gb_col["name"], dataset_context)
+
         DatasetValidator._normalize_filters(config_dict, dataset_context)
         return XYChartConfig.model_validate(config_dict)
 
+    def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
+        from superset.mcp_service.chart.chart_utils import (
+            _xy_chart_context,
+            _xy_chart_what,
+        )
+
+        what = _xy_chart_what(config)
+        context = _xy_chart_context(config)
+        return f"{what} \u2013 {context}" if context else what
+
+    def resolve_viz_type(self, config: Any) -> str:
+        kind = getattr(config, "kind", "line")
+        return {
+            "line": "echarts_timeseries_line",
+            "bar": "echarts_timeseries_bar",
+            "area": "echarts_area",
+            "scatter": "echarts_timeseries_scatter",
+        }.get(kind, "echarts_timeseries_line")
+
     def get_runtime_warnings(self, config: Any, dataset_id: int | str) -> list[str]:
         """Return format-compatibility and cardinality warnings for XY charts."""
-        import logging
-
         from superset.mcp_service.chart.schemas import XYChartConfig
 
-        logger = logging.getLogger(__name__)
         if not isinstance(config, XYChartConfig):
             return []
 

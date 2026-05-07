@@ -148,6 +148,30 @@ class ChartTypePlugin(Protocol):
         """
         ...
 
+    def generate_name(
+        self,
+        config: Any,
+        dataset_name: str | None = None,
+    ) -> str:
+        """
+        Return a descriptive chart name for the given config.
+
+        Called by chart_utils.generate_chart_name(). The name should follow
+        the standard format conventions documented in that function. Plugins
+        that do not override this return the generic fallback "Chart".
+        """
+        ...
+
+    def resolve_viz_type(self, config: Any) -> str:
+        """
+        Return the Superset-internal viz_type string for this config.
+
+        Called by chart_utils._resolve_viz_type(). The returned string must
+        match a registered Superset viz plugin (e.g. "echarts_timeseries_line").
+        Plugins that do not override this return "unknown".
+        """
+        ...
+
 
 class BaseChartPlugin:
     """
@@ -202,3 +226,13 @@ class BaseChartPlugin:
         dataset_id: int | str,
     ) -> list[str]:
         return []
+
+    def generate_name(
+        self,
+        config: Any,
+        dataset_name: str | None = None,
+    ) -> str:
+        return "Chart"
+
+    def resolve_viz_type(self, config: Any) -> str:
+        return "unknown"
