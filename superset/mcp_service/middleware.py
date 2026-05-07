@@ -41,6 +41,12 @@ from superset.mcp_service.constants import (
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
+from superset.mcp_service.utils.token_utils import (
+    estimate_response_tokens,
+    format_size_limit_error,
+    INFO_TOOLS,
+    truncate_oversized_response,
+)
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -1046,10 +1052,6 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         Returns the truncated response if successful, None otherwise.
         """
-        from superset.mcp_service.utils.token_utils import (
-            estimate_response_tokens,
-            truncate_oversized_response,
-        )
 
         try:
             truncated, was_truncated, notes = truncate_oversized_response(
@@ -1118,10 +1120,6 @@ class ResponseSizeGuardMiddleware(Middleware):
         response = await call_next(context)
 
         # Estimate response token count (guard against huge responses causing OOM)
-        from superset.mcp_service.utils.token_utils import (
-            estimate_response_tokens,
-            format_size_limit_error,
-        )
 
         try:
             estimated_tokens = estimate_response_tokens(response)
@@ -1153,8 +1151,6 @@ class ResponseSizeGuardMiddleware(Middleware):
             params = getattr(context.message, "params", {}) or {}
 
             # For info tools, try dynamic truncation before blocking
-            from superset.mcp_service.utils.token_utils import INFO_TOOLS
-
             if tool_name in INFO_TOOLS:
                 truncated = self._try_truncate_info_response(
                     tool_name, response, estimated_tokens
