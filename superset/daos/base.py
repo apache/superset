@@ -324,6 +324,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         cls,
         model_ids: Sequence[str | int],
         skip_base_filter: bool = False,
+        skip_visibility_filter: bool = False,
         id_column: str | None = None,
     ) -> list[T]:
         """
@@ -331,6 +332,8 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         :param model_ids: List of IDs to find
         :param skip_base_filter: If true, skip applying the base filter
+        :param skip_visibility_filter: If true, skip the soft-delete visibility
+            filter so soft-deleted rows are returned
         :param id_column: Optional column name to use for ID lookup
                          (defaults to id_column_name)
         """
@@ -359,7 +362,10 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         if not converted_ids:
             return []
 
-        query = db.session.query(cls.model_cls).filter(id_col.in_(converted_ids))
+        query = db.session.query(cls.model_cls)
+        if skip_visibility_filter:
+            query = query.execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        query = query.filter(id_col.in_(converted_ids))
         query = cls._apply_base_filter(query, skip_base_filter)
 
         try:
