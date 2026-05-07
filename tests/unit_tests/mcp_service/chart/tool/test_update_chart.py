@@ -745,6 +745,9 @@ class TestUpdateChartNameOnly:
 class TestUpdateChartPreviewFirst:
     """Integration-style tests for the preview-first default flow."""
 
+    @patch.object(
+        update_chart_module, "_validate_update_against_dataset", return_value=None
+    )
     @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
     @patch(
         "superset.commands.chart.update.UpdateChartCommand",
@@ -764,6 +767,7 @@ class TestUpdateChartPreviewFirst:
         mock_check_access,
         mock_update_cmd_cls,
         mock_create_preview,
+        unused_validate_mock,
         mcp_server,
     ):
         """Default update flow returns a preview URL and does NOT save."""
@@ -934,6 +938,9 @@ class TestBuildPreviewFormData:
 class TestUpdateChartSaveWithConfig:
     """Save-path integration tests for update_chart with a full config payload."""
 
+    @patch.object(
+        update_chart_module, "_validate_update_against_dataset", return_value=None
+    )
     @patch(
         "superset.commands.chart.update.UpdateChartCommand",
         new_callable=Mock,
@@ -951,6 +958,7 @@ class TestUpdateChartSaveWithConfig:
         mock_find_by_id,
         mock_check_access,
         mock_update_cmd_cls,
+        unused_validate_mock,
         mcp_server,
     ):
         """generate_preview=False with config persists and returns saved chart."""
@@ -1086,6 +1094,9 @@ class TestUpdateChartErrorPaths:
         assert error["error_type"] == "CommandException"
         assert "boom" in error["details"]
 
+    @patch.object(
+        update_chart_module, "_validate_update_against_dataset", return_value=None
+    )
     @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
     @patch(
         "superset.mcp_service.auth.check_chart_data_access",
@@ -1100,6 +1111,7 @@ class TestUpdateChartErrorPaths:
         mock_find_by_id,
         mock_check_access,
         mock_create_preview,
+        unused_validate_mock,
         mcp_server,
     ):
         """If _create_preview_url returns (url, None), form_data_key comes from url."""
@@ -1137,3 +1149,140 @@ class TestUpdateChartErrorPaths:
 
         assert result.structured_content["success"] is True
         assert result.structured_content["form_data_key"] == "url_embedded_key"
+
+
+class TestUpdateChartValidationGate:
+    """Tier-1+2 validation prevents bad config from reaching DB or cache."""
+
+    @staticmethod
+    def _mock_chart_with_dataset(chart_id: int = 1) -> Mock:
+        chart = Mock()
+        chart.id = chart_id
+        chart.datasource_id = 10
+        chart.slice_name = "Existing"
+        chart.viz_type = "table"
+        chart.uuid = "abc-123"
+        chart.params = '{"viz_type": "table", "datasource": "10__table"}'
+        # validate_and_compile is mocked, so dataset shape doesn't matter.
+        chart.datasource = Mock()
+        return chart
+
+    @patch.object(update_chart_module, "validate_and_compile")
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_preview_path_validation_failure_skips_cache(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_create_preview,
+        mock_validate,
+        mcp_server,
+    ):
+        """Preview path: bad column → structured error, _create_preview_url
+        must NOT be called."""
+        from superset.mcp_service.chart.compile import CompileResult
+        from superset.mcp_service.common.error_schemas import ChartGenerationError
+
+        mock_find_by_id.return_value = self._mock_chart_with_dataset()
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True, dataset_id=10, dataset_name="ds", warnings=[]
+        )
+        mock_validate.return_value = CompileResult(
+            success=False,
+            error="Column 'num_boys' does not exist",
+            error_code="CHART_VALIDATION_FAILED",
+            tier="validation",
+            error_obj=ChartGenerationError(
+                error_type="invalid_column",
+                message="Column 'num_boys' does not exist",
+                details="Available: ds, gender, sum_boys",
+                suggestions=["sum_boys"],
+                error_code="CHART_VALIDATION_FAILED",
+            ),
+        )
+
+        request = {
+            "identifier": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "ds"},
+                "y": [{"name": "num_boys", "aggregate": "SUM"}],
+                "kind": "line",
+            },
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_code"] == "CHART_VALIDATION_FAILED"
+            assert "sum_boys" in error["suggestions"]
+            mock_create_preview.assert_not_called()
+
+    @patch.object(update_chart_module, "validate_and_compile")
+    @patch(
+        "superset.commands.chart.update.UpdateChartCommand",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_persist_path_validation_failure_skips_db_write(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_update_cmd_cls,
+        mock_validate,
+        mcp_server,
+    ):
+        """Persist path: validation failure → UpdateChartCommand NOT called."""
+        from superset.mcp_service.chart.compile import CompileResult
+        from superset.mcp_service.common.error_schemas import ChartGenerationError
+
+        mock_find_by_id.return_value = self._mock_chart_with_dataset(chart_id=42)
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True, dataset_id=10, dataset_name="ds", warnings=[]
+        )
+        mock_validate.return_value = CompileResult(
+            success=False,
+            error="Column 'bad_col' does not exist",
+            error_code="CHART_VALIDATION_FAILED",
+            tier="validation",
+            error_obj=ChartGenerationError(
+                error_type="invalid_column",
+                message="Column 'bad_col' does not exist",
+                details="Available: a, b, c",
+                suggestions=["a"],
+                error_code="CHART_VALIDATION_FAILED",
+            ),
+        )
+
+        request = {
+            "identifier": 42,
+            "generate_preview": False,
+            "config": {
+                "chart_type": "table",
+                "columns": [{"name": "bad_col"}],
+            },
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_code"] == "CHART_VALIDATION_FAILED"
+            mock_update_cmd_cls.assert_not_called()
