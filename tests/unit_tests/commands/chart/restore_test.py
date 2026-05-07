@@ -44,7 +44,7 @@ def test_restore_chart_clears_deleted_at(app_context: None) -> None:
         mock_db.session.query.return_value = query_mock
         mock_sec.raise_for_ownership.return_value = None
 
-        cmd = RestoreChartCommand(1)
+        cmd = RestoreChartCommand("1")
         cmd.run()
 
     chart.restore.assert_called_once()
@@ -63,7 +63,7 @@ def test_restore_chart_not_found_raises(app_context: None) -> None:
     with patch("superset.commands.chart.restore.db") as mock_db:
         mock_db.session.query.return_value = query_mock
 
-        cmd = RestoreChartCommand(999)
+        cmd = RestoreChartCommand("999")
         with pytest.raises(ChartNotFoundError):
             cmd.run()
 
@@ -84,7 +84,7 @@ def test_restore_active_chart_raises_not_found(app_context: None) -> None:
     with patch("superset.commands.chart.restore.db") as mock_db:
         mock_db.session.query.return_value = query_mock
 
-        cmd = RestoreChartCommand(1)
+        cmd = RestoreChartCommand("1")
         with pytest.raises(ChartNotFoundError):
             cmd.run()
 
@@ -113,6 +113,6 @@ def test_restore_chart_forbidden_raises(app_context: None) -> None:
         mock_db.session.query.return_value = query_mock
         mock_sec.raise_for_ownership = raise_security
 
-        cmd = RestoreChartCommand(1)
+        cmd = RestoreChartCommand("1")
         with pytest.raises(ChartForbiddenError):
             cmd.run()

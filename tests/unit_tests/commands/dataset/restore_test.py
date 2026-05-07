@@ -44,7 +44,7 @@ def test_restore_dataset_clears_deleted_at(app_context: None) -> None:
         mock_db.session.query.return_value = query_mock
         mock_sec.raise_for_ownership.return_value = None
 
-        cmd = RestoreDatasetCommand(1)
+        cmd = RestoreDatasetCommand("1")
         cmd.run()
 
     dataset.restore.assert_called_once()
@@ -63,7 +63,7 @@ def test_restore_dataset_not_found_raises(app_context: None) -> None:
     with patch("superset.commands.dataset.restore.db") as mock_db:
         mock_db.session.query.return_value = query_mock
 
-        cmd = RestoreDatasetCommand(999)
+        cmd = RestoreDatasetCommand("999")
         with pytest.raises(DatasetNotFoundError):
             cmd.run()
 
@@ -86,7 +86,7 @@ def test_restore_active_dataset_raises_not_found(
     with patch("superset.commands.dataset.restore.db") as mock_db:
         mock_db.session.query.return_value = query_mock
 
-        cmd = RestoreDatasetCommand(1)
+        cmd = RestoreDatasetCommand("1")
         with pytest.raises(DatasetNotFoundError):
             cmd.run()
 
@@ -115,6 +115,6 @@ def test_restore_dataset_forbidden_raises(app_context: None) -> None:
         mock_db.session.query.return_value = query_mock
         mock_sec.raise_for_ownership = raise_security
 
-        cmd = RestoreDatasetCommand(1)
+        cmd = RestoreDatasetCommand("1")
         with pytest.raises(DatasetForbiddenError):
             cmd.run()

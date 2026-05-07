@@ -110,10 +110,7 @@ class TestDatasetSoftDelete(SupersetTestCase):
 
     def test_only_filter_returns_only_soft_deleted_datasets(self):
         """dataset_deleted_state=only excludes live rows and returns only deleted ones."""  # noqa: E501
-        ids = [
-            row.id
-            for row in db.session.query(SqlaTable).limit(2).all()
-        ]
+        ids = [row.id for row in db.session.query(SqlaTable).limit(2).all()]
         assert len(ids) >= 2, "Need at least two example datasets for this test"
         live_id, deleted_id = ids[0], ids[1]
         self.login(ADMIN_USERNAME)

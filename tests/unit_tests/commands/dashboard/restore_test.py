@@ -44,7 +44,7 @@ def test_restore_dashboard_clears_deleted_at(app_context: None) -> None:
         mock_db.session.query.return_value = query_mock
         mock_sec.raise_for_ownership.return_value = None
 
-        cmd = RestoreDashboardCommand(1)
+        cmd = RestoreDashboardCommand("1")
         cmd.run()
 
     dashboard.restore.assert_called_once()
@@ -63,7 +63,7 @@ def test_restore_dashboard_not_found_raises(app_context: None) -> None:
     with patch("superset.commands.dashboard.restore.db") as mock_db:
         mock_db.session.query.return_value = query_mock
 
-        cmd = RestoreDashboardCommand(999)
+        cmd = RestoreDashboardCommand("999")
         with pytest.raises(DashboardNotFoundError):
             cmd.run()
 
@@ -86,7 +86,7 @@ def test_restore_active_dashboard_raises_not_found(
     with patch("superset.commands.dashboard.restore.db") as mock_db:
         mock_db.session.query.return_value = query_mock
 
-        cmd = RestoreDashboardCommand(1)
+        cmd = RestoreDashboardCommand("1")
         with pytest.raises(DashboardNotFoundError):
             cmd.run()
 
@@ -115,6 +115,6 @@ def test_restore_dashboard_forbidden_raises(app_context: None) -> None:
         mock_db.session.query.return_value = query_mock
         mock_sec.raise_for_ownership = raise_security
 
-        cmd = RestoreDashboardCommand(1)
+        cmd = RestoreDashboardCommand("1")
         with pytest.raises(DashboardForbiddenError):
             cmd.run()
