@@ -83,6 +83,11 @@ JUNCTIONS: list[tuple[str, str, str, str, str]] = [
     ("dashboard_roles", "dashboard_id", "role_id", "dashboards", "ab_role"),
 ]
 
+# Junction tables that originally carried ``UNIQUE(fk1, fk2)`` and therefore
+# cannot accept duplicate ``(fk1, fk2)`` pairs even on the pre-migration
+# (downgrade) schema. The other JUNCTIONS allow duplicates pre-migration.
+JUNCTIONS_WITH_UNIQUE: set[str] = {"dashboard_slices", "report_schedule_user"}
+
 
 # ----------------------------------------------------------------------
 # Connection setup
@@ -504,7 +509,95 @@ def _seed_all_junctions(
             seed_junction(conn, junction, fk1, fk2, p1, p2, target, dry_run)
 
 
-def run(targets: dict[str, int], dry_run: bool) -> None:
+def inject_duplicates(
+    conn: Connection,
+    junction: str,
+    fk1_col: str,
+    fk2_col: str,
+    pct: float,
+    dry_run: bool,
+) -> None:
+    """Insert duplicate ``(fk1, fk2)`` rows on a non-UNIQUE junction table.
+
+    Used to stress-test the migration's ``_dedupe_by_min_id`` phase, which
+    is otherwise a no-op on cleanly-seeded data. Computes ``count =
+    current_rows * pct / 100`` and inserts that many rows by re-sampling
+    existing ``(fk1, fk2)`` pairs in row-major order. The synthetic
+    duplicates land on top of distinct existing pairs (one duplicate per
+    distinct pair, then wraps), so the migration's dedupe finds and
+    deletes them.
+
+    **Pre-condition: the table must NOT have UNIQUE on (fk1, fk2)**, i.e.,
+    the schema must be the pre-migration shape (after running
+    ``superset db downgrade``). On the post-migration schema the composite
+    PK rejects duplicates and this function will error.
+    """
+    if pct == 0:
+        return
+    current = count_rows(conn, junction)
+    count = int(current * pct / 100)
+    if count == 0:
+        logger.info(
+            "%s: 0 duplicates to inject (current=%d, pct=%g)",
+            junction,
+            current,
+            pct,
+        )
+        return
+    logger.info(
+        "%s: injecting %d duplicate rows (%g%% of %d existing)",
+        junction,
+        count,
+        pct,
+        current,
+    )
+    if dry_run:
+        return
+
+    select_sql = sa.text(
+        f"SELECT {fk1_col}, {fk2_col} FROM {junction} ORDER BY id LIMIT :n"  # noqa: S608
+    )
+    sample = conn.execute(select_sql, {"n": count}).fetchall()
+    if not sample:
+        logger.warning("%s: no rows to duplicate (table is empty)", junction)
+        return
+
+    insert_sql = sa.text(
+        f"INSERT INTO {junction} ({fk1_col}, {fk2_col}) "  # noqa: S608
+        f"VALUES (:fk1, :fk2)"
+    )
+    inserted = 0
+    while inserted < count:
+        batch: list[dict[str, int]] = []
+        while len(batch) < BATCH and inserted < count:
+            row = sample[inserted % len(sample)]
+            batch.append({"fk1": row[0], "fk2": row[1]})
+            inserted += 1
+        conn.execute(insert_sql, batch)
+        logger.info("  %s: injected %d / %d duplicates", junction, inserted, count)
+
+
+def _inject_dirty_data(conn: Connection, dirty_pct: float, dry_run: bool) -> None:
+    """Inject duplicate rows on every non-UNIQUE seeded junction.
+
+    The two tables that originally carried ``UNIQUE(fk1, fk2)`` are
+    skipped because their composite-PK successor (and their pre-migration
+    UNIQUE constraint) both reject duplicate inserts.
+    """
+    if dirty_pct == 0:
+        return
+    for junction, fk1, fk2, _, _ in JUNCTIONS:
+        if junction in JUNCTIONS_WITH_UNIQUE:
+            logger.info(
+                "%s: skipping duplicate injection (table has UNIQUE on FK pair)",
+                junction,
+            )
+            continue
+        with time_phase(f"dirty:{junction}"):
+            inject_duplicates(conn, junction, fk1, fk2, dirty_pct, dry_run)
+
+
+def run(targets: dict[str, int], dry_run: bool, dirty_duplicates_pct: float) -> None:
     engine = build_engine()
     with engine.begin() as conn:
         parent_req = _compute_parent_requirements(targets)
@@ -515,6 +608,10 @@ def run(targets: dict[str, int], dry_run: bool) -> None:
 
         with time_phase("junctions"):
             _seed_all_junctions(conn, targets, dry_run)
+
+        if dirty_duplicates_pct > 0:
+            with time_phase("dirty-duplicates"):
+                _inject_dirty_data(conn, dirty_duplicates_pct, dry_run)
 
 
 # ----------------------------------------------------------------------
@@ -541,6 +638,19 @@ def main() -> None:
         help="print planned inserts without writing to the DB",
     )
     parser.add_argument(
+        "--dirty-duplicates-pct",
+        type=float,
+        default=0,
+        help=(
+            "after seeding distinct pairs, inject this percentage of duplicate "
+            "rows on each non-UNIQUE junction (slice_user, dashboard_user, "
+            "dashboard_roles). Stress-tests the migration's _dedupe_by_min_id "
+            "phase. Requires the DB to be at the pre-migration revision "
+            "(33d7e0e21daa) — the post-migration composite PK rejects "
+            "duplicates and this will error. Default: 0 (no duplicates)."
+        ),
+    )
+    parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
@@ -558,9 +668,14 @@ def main() -> None:
 
     logger.info("Targets: %s", targets)
     logger.info("Dry run: %s", args.dry_run)
+    logger.info("Dirty duplicates pct: %g", args.dirty_duplicates_pct)
 
     with time_phase("total"):
-        run(targets, dry_run=args.dry_run)
+        run(
+            targets,
+            dry_run=args.dry_run,
+            dirty_duplicates_pct=args.dirty_duplicates_pct,
+        )
 
 
 if __name__ == "__main__":
