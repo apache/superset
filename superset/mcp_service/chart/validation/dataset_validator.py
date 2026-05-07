@@ -386,6 +386,9 @@ class DatasetValidator:
         if not dataset_context:
             return config
 
+        # Local import: plugins call DatasetValidator helpers from normalize_column_refs().
+        # A top-level import of registry in dataset_validator would make loading this
+        # module implicitly trigger plugin registration, creating a circular dependency.
         from superset.mcp_service.chart.registry import get_registry
 
         chart_type = getattr(config, "chart_type", None)

@@ -355,13 +355,11 @@ Time grain for temporal x-axis (time_grain parameter):
 
 Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 Each chart returned by list_charts / get_chart_info includes a
-chart_type_display_name field with a human-readable name. Use that name
-when referring to chart types — do NOT expose raw viz_type identifiers.
-Common display names: Line Chart, Bar Chart, Area Chart, Scatter Plot,
-Pie Chart, Table, Interactive Table, Pivot Table, Big Number,
-Big Number with Trendline, Mixed Timeseries Chart, Custom Template Chart,
-Funnel Chart, Gauge Chart, Heatmap, Sankey Chart, Sunburst, Treemap,
-Word Cloud, World Map, Box Plot, Bubble Chart.
+chart_type_display_name field with a human-readable name when available.
+This field is populated only for the 7 chart types supported by generate_chart
+(xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars).
+For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
+use the raw viz_type field instead when referring to those chart types.
 
 Query Examples:
 - List all tables:

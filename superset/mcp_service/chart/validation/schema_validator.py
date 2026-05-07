@@ -199,7 +199,7 @@ class SchemaValidator:
             "details": "The XY chart configuration is missing required "
             "fields or has invalid structure",
             "suggestions": [
-                "Ensure 'x' field exists with {'name': 'column_name'}",
+                "Note: 'x' is optional and defaults to the dataset's primary datetime column",
                 "Ensure 'y' is an array: [{'name': 'metric', 'aggregate': 'SUM'}]",
                 "Check that all column names are strings",
                 "Verify aggregate functions are valid: SUM, COUNT, AVG, MIN, MAX",

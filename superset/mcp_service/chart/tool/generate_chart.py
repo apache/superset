@@ -113,7 +113,7 @@ async def generate_chart(  # noqa: C901
     other fields in your configuration:
 
     - Use chart_type='xy' for charts with x and y axes (line, bar, area, scatter)
-      Required fields: x, y
+      Required fields: y (x is optional — defaults to dataset's primary datetime column)
 
     - Use chart_type='table' for tabular visualizations
       Required fields: columns

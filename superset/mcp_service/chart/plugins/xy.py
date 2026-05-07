@@ -179,6 +179,7 @@ class XYChartPlugin(BaseChartPlugin):
                 )
                 if not _ok and card_info:
                     warnings.extend(card_info.get("warnings", []))
+                    warnings.extend(card_info.get("suggestions", []))
         except Exception as exc:
             logger.warning("XY cardinality validation failed: %s", exc)
 

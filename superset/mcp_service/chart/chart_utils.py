@@ -360,6 +360,9 @@ def map_config_to_form_data(
     temporal check) are now owned by each plugin's post_map_validate() method
     rather than being baked into this dispatcher.
     """
+    # Local import: plugins call map_*_config from their to_form_data() methods,
+    # so chart_utils is loaded before plugins finish registering. A top-level
+    # import of registry here would trigger plugin loading mid-import = cycle.
     from superset.mcp_service.chart.registry import get_registry
 
     chart_type = getattr(config, "chart_type", None)

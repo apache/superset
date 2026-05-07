@@ -21,8 +21,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from superset.mcp_service.chart.chart_utils import is_column_truly_temporal
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef
+from superset.mcp_service.chart.schemas import BigNumberChartConfig, ColumnRef
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
@@ -144,14 +145,10 @@ class BigNumberChartPlugin(BaseChartPlugin):
         chart_utils.py as a special case. Moving it here keeps the dispatcher
         clean and makes the constraint explicit and discoverable.
         """
-        from superset.mcp_service.chart.schemas import BigNumberChartConfig
-
         if not isinstance(config, BigNumberChartConfig):
             return None
         if not (config.show_trendline and config.temporal_column):
             return None
-
-        from superset.mcp_service.chart.chart_utils import is_column_truly_temporal
 
         if not is_column_truly_temporal(config.temporal_column, dataset_id):
             return ChartGenerationError(
