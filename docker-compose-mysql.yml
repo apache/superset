@@ -48,6 +48,17 @@ x-mysql-env: &mysql-env
   DATABASE_USER: superset
   DATABASE_PASSWORD: superset
   SQLALCHEMY_DATABASE_URI: "mysql+mysqldb://superset:superset@db:3306/superset?charset=utf8mb4&binary_prefix=true"
+  # Override the analytics-examples DB connection too. ``EXAMPLES_PORT``
+  # in docker/.env is hardcoded to 5432 (the Postgres port); without
+  # this override the examples connection would try MySQL on 5432 and
+  # fail. The examples user/DB are created by docker/mysql-init/
+  # examples-init.sql on first MySQL boot.
+  EXAMPLES_HOST: db
+  EXAMPLES_PORT: "3306"
+  EXAMPLES_DB: examples
+  EXAMPLES_USER: examples
+  EXAMPLES_PASSWORD: examples
+  SUPERSET__SQLALCHEMY_EXAMPLES_URI: "mysql+mysqldb://examples:examples@db:3306/examples?charset=utf8mb4&binary_prefix=true"
 
 services:
   db:
@@ -57,10 +68,23 @@ services:
       MYSQL_USER: superset
       MYSQL_PASSWORD: superset
       MYSQL_ROOT_PASSWORD: root
+    # The original 5432 port mapping is harmless on a MySQL container
+    # (nothing listens on 5432 inside it) but we add 13306->3306 so the
+    # MySQL port is reachable from the host without colliding with a
+    # native MySQL on 3306. Compose merges port lists.
     ports:
       - "127.0.0.1:${DATABASE_PORT_MYSQL:-13306}:3306"
+    # Override the init-scripts mount by re-binding the same target path
+    # to a MySQL-compatible directory. Compose merges volume lists by
+    # target path; later definitions win on conflict, so this displaces
+    # the Postgres-specific ``./docker/docker-entrypoint-initdb.d`` mount
+    # from docker-compose.yml. Without this, MySQL would try to run
+    # ``cypress-init.sh`` (which invokes ``psql``, not in the MySQL
+    # image), abort the init phase, and never create the ``examples``
+    # database. Add the MySQL data volume separately.
     volumes:
       - db_home_mysql:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d
     command:
       - --default-authentication-plugin=caching_sha2_password
       - --character-set-server=utf8mb4
