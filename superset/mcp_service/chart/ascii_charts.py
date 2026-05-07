@@ -536,9 +536,11 @@ def _extract_scatter_data(
     if data and isinstance(data[0], dict):
         # Find the first two numeric columns
         for key, val in data[0].items():
-            if isinstance(val, (int, float)) and not (
-                isinstance(val, float) and (val != val)
-            ):  # Exclude NaN
+            if (
+                isinstance(val, (int, float))
+                and not isinstance(val, bool)
+                and not _is_nan_value(val)
+            ):
                 numeric_columns.append(key)
 
         if len(numeric_columns) >= 2:
@@ -550,15 +552,14 @@ def _extract_scatter_data(
                 if isinstance(row, dict):
                     x_val = row.get(x_column)
                     y_val = row.get(y_column)
-                    # Check for valid numbers (not NaN)
                     if (
                         isinstance(x_val, (int, float))
+                        and not isinstance(x_val, bool)
+                        and not _is_nan_value(x_val)
                         and isinstance(y_val, (int, float))
-                        and not (
-                            isinstance(x_val, float) and (x_val != x_val)
-                        )  # Not NaN
-                        and not (isinstance(y_val, float) and (y_val != y_val))
-                    ):  # Not NaN
+                        and not isinstance(y_val, bool)
+                        and not _is_nan_value(y_val)
+                    ):
                         x_values.append(x_val)
                         y_values.append(y_val)
 

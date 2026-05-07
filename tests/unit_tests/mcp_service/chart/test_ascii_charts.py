@@ -41,7 +41,6 @@ def test_bar_chart_with_all_null_values_returns_fallback() -> None:
     result = generate_ascii_chart(data, "bar")
     assert isinstance(result, str)
     assert result == "No numeric data found for bar chart"
-    assert "█" not in result  # No bars should be rendered in the fallback path
 
 
 def test_line_chart_with_null_values_does_not_raise() -> None:
@@ -128,6 +127,9 @@ def test_bar_chart_skips_boolean_columns() -> None:
     # If booleans are correctly skipped, revenue (500/1500/1000) drives the
     # bars. The max value is 1500, so we expect at least one K-formatted value.
     assert "1.5K" in result or "1500" in result or "1.0K" in result
+    # The scale min/max would be "0.0" and "1.0" only if booleans were chosen;
+    # with revenue selected the scale starts at 500 (never "Scale: 0.0").
+    assert "Scale: 0.0" not in result
 
 
 def test_line_chart_skips_boolean_columns() -> None:
@@ -143,3 +145,31 @@ def test_line_chart_skips_boolean_columns() -> None:
     # If booleans were selected, the range would be 0-1; if revenue is
     # selected the range includes values up to 300.
     assert "300" in result or "200" in result
+
+
+def test_scatter_chart_with_nan_values_does_not_raise() -> None:
+    """Scatter chart renderer must not crash when dataset rows contain NaN values."""
+    data = [
+        {"x": 1.0, "y": 2.0},
+        {"x": float("nan"), "y": 4.0},
+        {"x": 5.0, "y": float("nan")},
+        {"x": 7.0, "y": 8.0},
+    ]
+    result = generate_ascii_chart(data, "scatter")
+    assert isinstance(result, str)
+    assert len(result) > 0
+
+
+def test_scatter_chart_skips_boolean_columns() -> None:
+    """Boolean fields must not be selected as X/Y axes in scatter charts."""
+    data = [
+        {"is_active": True, "x": 10.0, "y": 20.0},
+        {"is_active": False, "x": 30.0, "y": 40.0},
+        {"is_active": True, "x": 50.0, "y": 60.0},
+    ]
+    result = generate_ascii_chart(data, "scatter")
+    # If booleans are correctly skipped, x/y (10-50 / 20-60) drive the axes;
+    # boolean-driven axes would be confined to 0-1.
+    assert isinstance(result, str)
+    assert len(result) > 0
+    assert "10" in result or "30" in result or "50" in result
