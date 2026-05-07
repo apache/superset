@@ -33,14 +33,13 @@ def test_bar_chart_with_null_values_does_not_raise() -> None:
 
 
 def test_bar_chart_with_all_null_values_returns_fallback() -> None:
-    """Bar chart with no valid numeric rows should return a fallback message."""
+    """Bar chart with no valid numeric rows should return the no-data fallback."""
     data = [
         {"category": "A", "value": float("nan")},
         {"category": "B", "value": float("nan")},
     ]
     result = generate_ascii_chart(data, "bar")
-    assert isinstance(result, str)
-    assert len(result) > 0
+    assert result == "No numeric data found for bar chart"
 
 
 def test_line_chart_with_null_values_does_not_raise() -> None:
