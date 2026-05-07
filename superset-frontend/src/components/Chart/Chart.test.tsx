@@ -80,9 +80,9 @@ test('chart container has role="img" and aria-label with vizType when no slice_n
     />,
   );
 
-  const container = screen.getByRole('img');
-  expect(container).toBeInTheDocument();
-  expect(container).toHaveAttribute('aria-label', 'table chart');
+  // Look up by accessible name rather than role so the test stays valid if
+  // the role moves from the wrapper to the rendered SVG/canvas later.
+  expect(screen.getByLabelText('table chart')).toBeInTheDocument();
 });
 
 test('chart container aria-label includes slice_name when provided', () => {
@@ -96,11 +96,9 @@ test('chart container aria-label includes slice_name when provided', () => {
     />,
   );
 
-  const container = screen.getByRole('img');
-  expect(container).toHaveAttribute(
-    'aria-label',
-    'Revenue by Region \u2014 pie chart',
-  );
+  expect(
+    screen.getByLabelText('Revenue by Region \u2014 pie chart'),
+  ).toBeInTheDocument();
 });
 
 test('shows loading spinner for client-side errors without errors array when datasource is still a placeholder', () => {

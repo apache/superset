@@ -67,11 +67,15 @@ test('renders visually-hidden screen-reader text for Grace state', () => {
 });
 
 test('sr-only span is visually hidden via CSS clip', () => {
-  const { container } = render(
+  render(
     <AlertStatusIcon state={AlertState.Success} isReportEnabled={false} />,
   );
-  const srSpan = container.querySelector('span > span:last-child');
-  expect(srSpan).toBeInTheDocument();
-  // The span should have clip-based hiding styles applied via emotion/css
-  expect(srSpan).toHaveTextContent('Alert triggered, notification sent');
+  // Look up the sr-only text directly so the assertion doesn't depend on
+  // the wrapper structure (Tooltip's DOM has changed in past upgrades).
+  const srText = screen.getByText('Alert triggered, notification sent');
+  expect(srText).toBeInTheDocument();
+  // Assert on the clip-based hiding rule explicitly — earlier the test only
+  // checked text content, which would still pass if the sr-only style
+  // accidentally got dropped.
+  expect(srText).toHaveStyle({ position: 'absolute' });
 });
