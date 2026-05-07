@@ -803,6 +803,30 @@ class FilterConfig(BaseModel):
         return self
 
 
+class SortByConfig(BaseModel):
+    """Sort specification with explicit direction.
+
+    Accepts either this object or a bare column-name string in `sort_by`
+    lists. Bare strings default to descending, which matches the
+    sort-by-metric "top N" pattern most commonly used for tables.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    column: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        validation_alias=AliasChoices("column", "col"),
+        description="Column to sort by",
+    )
+    ascending: bool = Field(
+        False,
+        description="Sort ascending. Defaults to False (descending) to match "
+        "the typical sort-by-metric top-N use case.",
+    )
+
+
 # Actual chart types
 class PieChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -1189,8 +1213,12 @@ class TableChartConfig(UnknownFieldCheckMixin):
         description="Structured filters (column/op/value). "
         "Do NOT use adhoc_filters or raw SQL expressions.",
     )
-    sort_by: List[str] | None = Field(
+    sort_by: List[str | SortByConfig] | None = Field(
         None,
+        description="Columns to sort by. Each entry is either a column-name "
+        "string (defaults to descending) or a SortByConfig object with "
+        "explicit `ascending`. Descending matches the sort-by-metric "
+        "top-N pattern most common for tables.",
         validation_alias=AliasChoices("sort_by", "order_by_cols", "order_by"),
     )
     row_limit: int = Field(1000, description="Max rows returned", ge=1, le=50000)
