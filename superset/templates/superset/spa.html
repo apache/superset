@@ -45,6 +45,13 @@
         color: #000;
       }
       {% endif %}
+      {% if standalone_mode %}
+      /* Keep body sized so screenshot waits don't see it as hidden before React mounts. */
+      html, body.standalone {
+        min-height: 100vh;
+        margin: 0;
+      }
+      {% endif %}
     </style>
 
     {% if dark_theme_bg and entry != 'embedded' %}
