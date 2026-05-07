@@ -239,22 +239,22 @@ describe('FilterBar', () => {
     expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
   });
 
-  test('should toggle', () => {
+  test('should toggle', async () => {
     renderWrapper();
     const collapse = screen.getByRole('img', {
       name: 'vertical-align',
     });
     expect(toggleFiltersBar).not.toHaveBeenCalled();
-    userEvent.click(collapse);
+    await userEvent.click(collapse);
     expect(toggleFiltersBar).toHaveBeenCalled();
   });
 
-  test('open filter bar', () => {
+  test('open filter bar', async () => {
     renderWrapper();
     expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
     expect(screen.getByTestId(getTestId('expand-button'))).toBeInTheDocument();
 
-    userEvent.click(screen.getByTestId(getTestId('collapsable')));
+    await userEvent.click(screen.getByTestId(getTestId('collapsable')));
     expect(toggleFiltersBar).toHaveBeenCalledWith(true);
   });
 
@@ -276,12 +276,12 @@ describe('FilterBar', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('close filter bar', () => {
+  test('close filter bar', async () => {
     renderWrapper(openedBarProps);
     const collapseButton = screen.getByTestId(getTestId('collapse-button'));
 
     expect(collapseButton).toBeInTheDocument();
-    userEvent.click(collapseButton);
+    await userEvent.click(collapseButton);
 
     expect(toggleFiltersBar).toHaveBeenCalledWith(false);
   });
@@ -554,7 +554,7 @@ describe('FilterBar', () => {
     const clearBtn = screen.getByTestId(getTestId('clear-button'));
     expect(clearBtn).not.toBeDisabled();
     await act(async () => {
-      userEvent.click(clearBtn);
+      await userEvent.click(clearBtn);
     });
 
     expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
@@ -611,7 +611,7 @@ describe('FilterBar', () => {
     const clearBtn = screen.getByTestId(getTestId('clear-button'));
     expect(clearBtn).not.toBeDisabled();
     await act(async () => {
-      userEvent.click(clearBtn);
+      await userEvent.click(clearBtn);
     });
 
     expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
@@ -675,7 +675,7 @@ describe('FilterBar', () => {
 
     const clearBtn = screen.getByTestId(getTestId('clear-button'));
     await act(async () => {
-      userEvent.click(clearBtn);
+      await userEvent.click(clearBtn);
     });
 
     expect(updateDataMaskSpy).toHaveBeenCalledTimes(1);
