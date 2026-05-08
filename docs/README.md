@@ -45,10 +45,13 @@ To create a new version for any section, use the Docusaurus version command with
 # Main Documentation
 yarn version:add:docs 1.2.0
 
-# Developer Portal
-yarn version:add:developer_portal 1.2.0
+# Admin Docs
+yarn version:add:admin_docs 1.2.0
 
-# Component Playground (when enabled)
+# Developer Docs
+yarn version:add:developer_docs 1.2.0
+
+# Component Playground
 yarn version:add:components 1.2.0
 ```
 
@@ -91,8 +94,11 @@ If creating versions manually, you'll need to:
 # Main Documentation
 yarn version:remove:docs 1.0.0
 
-# Developer Portal
-yarn version:remove:developer_portal 1.0.0
+# Admin Docs
+yarn version:remove:admin_docs 1.0.0
+
+# Developer Docs
+yarn version:remove:developer_docs 1.0.0
 
 # Component Playground
 yarn version:remove:components 1.0.0
@@ -103,17 +109,20 @@ To manually remove a version:
 
 1. **Delete the version folder** from the appropriate location:
    - Main docs: `versioned_docs/version-X.X.X/` (no prefix for main)
-   - Developer Portal: `developer_portal_versioned_docs/version-X.X.X/`
+   - Admin Docs: `admin_docs_versioned_docs/version-X.X.X/`
+   - Developer Docs: `developer_docs_versioned_docs/version-X.X.X/`
    - Components: `components_versioned_docs/version-X.X.X/`
 
 2. **Delete the version metadata file**:
    - Main docs: `versioned_sidebars/version-X.X.X-sidebars.json` (no prefix)
-   - Developer Portal: `developer_portal_versioned_sidebars/version-X.X.X-sidebars.json`
+   - Admin Docs: `admin_docs_versioned_sidebars/version-X.X.X-sidebars.json`
+   - Developer Docs: `developer_docs_versioned_sidebars/version-X.X.X-sidebars.json`
    - Components: `components_versioned_sidebars/version-X.X.X-sidebars.json`
 
 3. **Update the versions list file**:
    - Main docs: `versions.json`
-   - Developer Portal: `developer_portal_versions.json`
+   - Admin Docs: `admin_docs_versions.json`
+   - Developer Docs: `developer_docs_versions.json`
    - Components: `components_versions.json`
 
 4. **Update configuration**:
@@ -145,12 +154,12 @@ docs: {
 }
 ```
 
-#### Developer Portal & Components (custom plugins)
+#### Developer Docs & Components (custom plugins)
 ```typescript
 {
-  id: 'developer_portal',
-  path: 'developer_portal',
-  routeBasePath: 'developer_portal',
+  id: 'developer_docs',
+  path: 'developer_docs',
+  routeBasePath: 'developer-docs',
   includeCurrentVersion: true,
   lastVersion: '1.1.0',  // Default version
   onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
@@ -194,7 +203,7 @@ For other issues:
 
 #### Broken Links in Versioned Documentation
 When creating a new version, links in the documentation are preserved as-is. Common issues:
-- **Cross-section links**: Links between sections (e.g., from developer_portal to docs) need to be version-aware
+- **Cross-section links**: Links between sections (e.g., from developer_docs to docs) need to be version-aware
 - **Absolute vs relative paths**: Use relative paths within the same section
 - **Version-specific URLs**: Update hardcoded URLs to use version variables
 

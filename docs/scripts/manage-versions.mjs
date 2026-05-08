@@ -32,7 +32,7 @@ const CONFIG_FILE = path.join(__dirname, '..', 'versions-config.json');
 // Parse command line arguments
 const args = process.argv.slice(2);
 const command = args[0]; // 'add' or 'remove'
-const section = args[1]; // 'docs', 'developer_portal', or 'components'
+const section = args[1]; // 'docs', 'developer_docs', or 'components'
 const version = args[2]; // version string like '1.2.0'
 
 function loadConfig() {
@@ -43,36 +43,59 @@ function saveConfig(config) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2) + '\n');
 }
 
-function fixVersionedImports(version) {
-  const versionedDocsPath = path.join(__dirname, '..', 'versioned_docs', `version-${version}`);
+function fixVersionedImports(section, version) {
+  // Versioned content lands one directory deeper than the source content,
+  // so any `../../src/` or `../../data/` imports in .md/.mdx files need
+  // an extra `../` to keep reaching docs/src and docs/data.
+  const versionedDocsDir = section === 'docs'
+    ? `versioned_docs/version-${version}`
+    : `${section}_versioned_docs/version-${version}`;
+  const versionedDocsPath = path.join(__dirname, '..', versionedDocsDir);
 
-  // Files that need import path fixes
-  const filesToFix = [
-    'contributing/resources.mdx',
-    'configuration/country-map-tools.mdx'
-  ];
+  if (!fs.existsSync(versionedDocsPath)) {
+    return;
+  }
 
-  console.log(`  Fixing relative imports in versioned docs...`);
+  console.log(`  Fixing relative imports in ${versionedDocsDir}...`);
 
-  filesToFix.forEach(filePath => {
-    const fullPath = path.join(versionedDocsPath, filePath);
-    if (fs.existsSync(fullPath)) {
-      let content = fs.readFileSync(fullPath, 'utf8');
-
-      // Fix imports that go up two directories to go up three instead
-      content = content.replace(
-        /from ['"]\.\.\/\.\.\/src\//g,
-        "from '../../../src/"
-      );
-      content = content.replace(
-        /from ['"]\.\.\/\.\.\/data\//g,
-        "from '../../../data/"
-      );
-
-      fs.writeFileSync(fullPath, content);
-      console.log(`    Fixed imports in ${filePath}`);
+  // Imports whose `../` count exceeds the file's depth within the section
+  // escape the section root, so they need one extra `../` once the file
+  // lives one level deeper inside the snapshot dir. Imports that stay
+  // inside the section are unaffected (the section copies wholesale).
+  function walk(dir, depth) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath, depth + 1);
+      } else if (entry.isFile() && /\.(md|mdx)$/.test(entry.name)) {
+        const original = fs.readFileSync(fullPath, 'utf8');
+        // Track fenced code blocks so we don't rewrite import samples inside
+        // ```ts / ```js (etc.) blocks that are documentation, not real imports.
+        let inFence = false;
+        const updated = original.split('\n').map(line => {
+          if (/^\s*(```|~~~)/.test(line)) {
+            inFence = !inFence;
+            return line;
+          }
+          if (inFence) return line;
+          return line.replace(
+            /(from\s+['"])((?:\.\.\/)+)/g,
+            (match, prefix, dots) => {
+              const upCount = dots.match(/\.\.\//g).length;
+              return upCount > depth ? `${prefix}../${dots}` : match;
+            },
+          );
+        }).join('\n');
+        if (updated !== original) {
+          fs.writeFileSync(fullPath, updated);
+          const rel = path.relative(versionedDocsPath, fullPath);
+          console.log(`    Fixed imports in ${rel}`);
+        }
+      }
     }
-  });
+  }
+
+  walk(versionedDocsPath, 0);
 }
 
 function addVersion(section, version) {
@@ -103,10 +126,8 @@ function addVersion(section, version) {
     process.exit(1);
   }
 
-  // Fix relative imports in versioned docs (for main docs section only)
-  if (section === 'docs') {
-    fixVersionedImports(version);
-  }
+  // Fix relative imports in versioned content
+  fixVersionedImports(section, version);
 
   // Update config
   // Add to onlyIncludeVersions array (after 'current')
@@ -215,12 +236,12 @@ Usage:
   node scripts/manage-versions.js remove <section> <version>
 
 Where:
-  - section: 'docs', 'developer_portal', or 'components'
+  - section: 'docs', 'developer_docs', or 'components'
   - version: version string (e.g., '1.2.0', '2.0.0')
 
 Examples:
   node scripts/manage-versions.js add docs 2.0.0
-  node scripts/manage-versions.js add developer_portal 1.3.0
+  node scripts/manage-versions.js add developer_docs 1.3.0
   node scripts/manage-versions.js remove components 1.0.0
 `);
 }

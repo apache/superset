@@ -40,8 +40,8 @@ export default function DocVersionBadge() {
   const isVersioned = [
     'default',  // main docs
     'components',
-    'tutorials',
-    'developer_portal',
+    'admin_docs',
+    'developer_docs',
   ].includes(pluginId);
 
   const { preferredVersion } = useDocsPreferredVersion(pluginId);
