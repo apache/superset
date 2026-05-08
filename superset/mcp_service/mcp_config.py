@@ -22,6 +22,7 @@ from typing import Any, Dict, Optional
 
 from flask import Flask
 
+from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
 from superset.mcp_service.constants import (
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
@@ -343,10 +344,6 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                     return None
 
     if api_key_enabled:
-        from superset.mcp_service.composite_token_verifier import (
-            CompositeTokenVerifier,
-        )
-
         api_key_prefixes = app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
         logger.info("API key auth enabled for MCP")
         return CompositeTokenVerifier(
