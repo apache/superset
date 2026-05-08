@@ -43,6 +43,87 @@ function saveConfig(config) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2) + '\n');
 }
 
+function freezeDataImports(section, version) {
+  // MDX files can `import` JSON/YAML data from outside the section (e.g.
+  // country-map-tools.mdx imports `../../data/countries.json`). Without
+  // intervention, the snapshot keeps reading the live file, so the
+  // historical version's content silently changes whenever the data file
+  // is updated. Copy each escaping data import into a snapshot-local
+  // `_versioned_data/` dir and rewrite the import to point there.
+  const sectionRoot = section === 'docs'
+    ? path.join(__dirname, '..', 'docs')
+    : path.join(__dirname, '..', section);
+  const docsRoot = path.join(__dirname, '..');
+  const versionedDocsDir = section === 'docs'
+    ? `versioned_docs/version-${version}`
+    : `${section}_versioned_docs/version-${version}`;
+  const versionedDocsPath = path.join(__dirname, '..', versionedDocsDir);
+  const frozenDataDir = path.join(versionedDocsPath, '_versioned_data');
+
+  if (!fs.existsSync(versionedDocsPath)) {
+    return;
+  }
+
+  console.log(`  Freezing data imports in ${versionedDocsDir}...`);
+
+  // Matches `from '../../foo/bar.json'` and similar — only escaping paths
+  // (one or more `../`) targeting JSON/YAML files.
+  const dataImportRe = /(from\s+['"])((?:\.\.\/)+)([^'"\s]+\.(?:json|ya?ml))(['"])/g;
+
+  function walk(dir, depth) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name.startsWith('_')) continue;
+        walk(fullPath, depth + 1);
+      } else if (entry.isFile() && /\.(md|mdx)$/.test(entry.name)) {
+        const original = fs.readFileSync(fullPath, 'utf8');
+        let inFence = false;
+        let mutated = false;
+        const updated = original.split('\n').map(line => {
+          if (/^\s*(```|~~~)/.test(line)) {
+            inFence = !inFence;
+            return line;
+          }
+          if (inFence) return line;
+          return line.replace(dataImportRe, (match, prefix, dots, importPath, suffix) => {
+            const upCount = dots.match(/\.\.\//g).length;
+            // Imports that stay inside the section are copied wholesale by
+            // Docusaurus, so they don't need freezing.
+            if (upCount <= depth) return match;
+            // Resolve the import against the file's *original* location to
+            // find the source file in the live tree.
+            const relativeFromVersioned = path.relative(versionedDocsPath, fullPath);
+            const originalDir = path.dirname(path.join(sectionRoot, relativeFromVersioned));
+            const resolvedSource = path.resolve(originalDir, dots + importPath);
+            const relFromDocsRoot = path.relative(docsRoot, resolvedSource);
+            if (relFromDocsRoot.startsWith('..') || !fs.existsSync(resolvedSource)) {
+              return match;
+            }
+            const destPath = path.join(frozenDataDir, relFromDocsRoot);
+            fs.mkdirSync(path.dirname(destPath), { recursive: true });
+            fs.copyFileSync(resolvedSource, destPath);
+            const rewritten = path
+              .relative(path.dirname(fullPath), destPath)
+              .split(path.sep)
+              .join('/');
+            const finalImport = rewritten.startsWith('.') ? rewritten : `./${rewritten}`;
+            mutated = true;
+            return `${prefix}${finalImport}${suffix}`;
+          });
+        }).join('\n');
+        if (mutated) {
+          fs.writeFileSync(fullPath, updated);
+          const rel = path.relative(versionedDocsPath, fullPath);
+          console.log(`    Froze data imports in ${rel}`);
+        }
+      }
+    }
+  }
+
+  walk(versionedDocsPath, 0);
+}
+
 function fixVersionedImports(section, version) {
   // Versioned content lands one directory deeper than the source content,
   // so any `../../src/` or `../../data/` imports in .md/.mdx files need
@@ -125,6 +206,10 @@ function addVersion(section, version) {
     console.error(`Failed to create version: ${error.message}`);
     process.exit(1);
   }
+
+  // Freeze data imports BEFORE adjusting paths, so the depth-aware rewriter
+  // doesn't process the now-local imports we just rewrote.
+  freezeDataImports(section, version);
 
   // Fix relative imports in versioned content
   fixVersionedImports(section, version);
