@@ -234,10 +234,12 @@ def _splices_for_scope(
         if source_type == "from":
             from_predicates.append(pred_sql)
             from_table_ends.append(table_end)
-        elif source_type == "join":
-            join_splice = _find_join_splice(sql, tokens, table_end, pred_sql)
-            if join_splice:
-                join_splices.extend(join_splice)
+            continue
+
+        join_splice = _find_join_splice(sql, tokens, table_end, pred_sql)
+        if join_splice:
+            join_splices.extend(join_splice)
+        continue
 
     if not from_predicates:
         return join_splices
