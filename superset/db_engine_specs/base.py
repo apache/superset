@@ -566,6 +566,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # if True, database will be listed as option in the upload file form
     supports_file_upload = True
 
+    # Optional override for the RLS method used by ``get_rls_method``. When set,
+    # the engine spec opts into a specific strategy regardless of the
+    # ``allows_subqueries`` / ``allows_alias_in_select`` defaults. Use
+    # ``RLSMethod.AS_PREDICATE_SPLICE`` for engines whose sqlglot dialect can
+    # parse but not faithfully regenerate the SQL — splice mode rewrites the
+    # original query string instead of round-tripping through the generator.
+    rls_method: RLSMethod | None = None
+
     # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False
@@ -636,10 +644,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Returns the RLS method to be used for this engine.
 
-        There are two ways to insert RLS: either replacing the table with a subquery
-        that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
-        safer, but not supported in all databases.
+        There are three ways to insert RLS: replacing the table with a subquery
+        that has the RLS (safest, but not supported in all databases), appending
+        the RLS to the ``WHERE`` clause via AST transformation, or splicing the
+        RLS into the original SQL string (preserves dialect-specific syntax that
+        the sqlglot generator would otherwise transpile).
+
+        Engine specs can opt into a specific strategy by setting the class-level
+        ``rls_method`` attribute; otherwise the choice falls back to subquery
+        when supported, and predicate otherwise.
         """
+        if cls.rls_method is not None:
+            return cls.rls_method
         return (
             RLSMethod.AS_SUBQUERY
             if cls.allows_subqueries and cls.allows_alias_in_select
