@@ -403,6 +403,39 @@ test('TableRenderer applies cellColorFormatters background and contrast color to
   expect(plainHeader!.style.backgroundColor).toBe('');
 });
 
+test('TableRenderer applies cellColorFormatters background and contrast color to value cells', () => {
+  // Value-cell formatters are matched against actual row/col key values
+  // (not attribute names), so a formatter with column: 'blue' fires for
+  // every value cell whose row key contains 'blue'.
+  const cellColorFormatters = {
+    color: [
+      {
+        column: 'blue',
+        getColorFromValue: () => '#000000',
+      },
+    ],
+  };
+  const props = buildDefaultProps({
+    tableOptions: { cellColorFormatters },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const valueCells = Array.from(
+    document.querySelectorAll<HTMLElement>('.pvtVal'),
+  );
+  expect(valueCells.length).toBeGreaterThan(0);
+
+  // At least one value cell in the "blue" row should have both a background
+  // and a contrast-aware text color applied.
+  const formattedCells = valueCells.filter(
+    cell => cell.style.backgroundColor !== '',
+  );
+  expect(formattedCells.length).toBeGreaterThan(0);
+  formattedCells.forEach(cell => {
+    expect(cell.style.color).not.toBe('');
+  });
+});
+
 test('TableRenderer renders correct number of thead and tbody sections', () => {
   const props = buildDefaultProps();
   renderWithTheme(<TableRenderer {...props} />);
