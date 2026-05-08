@@ -183,7 +183,9 @@ idna==3.10
     #   trio
     #   url-normalize
 isodate==0.7.2
-    # via apache-superset (pyproject.toml)
+    # via
+    #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 itsdangerous==2.2.0
     # via
     #   flask
@@ -296,6 +298,7 @@ pyarrow==20.0.0
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 pyasn1==0.6.3
     # via
     #   pyasn1-modules

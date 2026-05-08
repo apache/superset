@@ -179,6 +179,33 @@ test('renders the right footer buttons', () => {
   ).toBeInTheDocument();
 });
 
+test('initializes chart name from current Explore slice name', () => {
+  const previewSliceName = 'RENAMED - Bug Evidence';
+  const savedSliceName = 'Most Populated Countries';
+  const { getByTestId } = setup(
+    {
+      ...defaultProps,
+      form_data: {
+        ...defaultProps.form_data,
+        slice_name: previewSliceName,
+      },
+      sliceName: previewSliceName,
+    },
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          slice_name: savedSliceName,
+        },
+      },
+    }),
+  );
+
+  expect(getByTestId('new-chart-name')).toHaveValue(previewSliceName);
+});
+
 test('does not render a message when overriding', () => {
   const { getByRole, queryByRole } = setup();
 
