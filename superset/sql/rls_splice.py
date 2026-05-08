@@ -62,8 +62,15 @@ _CLAUSE_ENDS = {
     TokenType.GROUP_BY,
     TokenType.HAVING,
     TokenType.ORDER_BY,
+    TokenType.WINDOW,
+    TokenType.QUALIFY,
     TokenType.LIMIT,
     TokenType.FETCH,
+    TokenType.CLUSTER_BY,
+    TokenType.DISTRIBUTE_BY,
+    TokenType.SORT_BY,
+    TokenType.CONNECT_BY,
+    TokenType.START_WITH,
     TokenType.UNION,
     TokenType.INTERSECT,
     TokenType.EXCEPT,
@@ -75,6 +82,33 @@ def _before_whitespace(sql: str, offset: int) -> int:
     while offset > 0 and sql[offset - 1] in (" ", "\t", "\n", "\r"):
         offset -= 1
     return offset
+
+
+def _before_trivia(sql: str, offset: int) -> int:
+    """
+    Back up past whitespace and adjacent comments immediately before *offset*.
+
+    This ensures insertion points land before inline/block comments that appear
+    between `FROM`/`WHERE` and the next clause keyword.
+    """
+    while True:
+        offset = _before_whitespace(sql, offset)
+
+        # Inline comment ending at offset, eg: "... -- comment\nGROUP BY".
+        line_start = sql.rfind("\n", 0, offset) + 1
+        inline_comment_start = sql.rfind("--", line_start, offset)
+        if inline_comment_start != -1:
+            offset = inline_comment_start
+            continue
+
+        # Block comment ending at offset, eg: "... /* comment */GROUP BY".
+        if offset >= 2 and sql[offset - 2 : offset] == "*/":
+            block_comment_start = sql.rfind("/*", 0, offset - 2)
+            if block_comment_start != -1:
+                offset = block_comment_start
+                continue
+
+        return offset
 
 
 def _table_from_node(
@@ -217,7 +251,7 @@ def _find_splice_point(
         if tok.token_type == TokenType.R_PAREN:
             if depth == 0:
                 # Closing paren of our subquery — insert just before it.
-                offset = _before_whitespace(sql, tok.start)
+                offset = _before_trivia(sql, tok.start)
                 text = f" AND {pred_sql}" if has_where else f" WHERE {pred_sql}"
                 return (offset, text)
             depth -= 1
@@ -231,7 +265,7 @@ def _find_splice_point(
 
         if not has_where and tok.token_type in _CLAUSE_ENDS:
             # Insert WHERE before this clause keyword.
-            return (_before_whitespace(sql, tok.start), f" WHERE {pred_sql}")
+            return (_before_trivia(sql, tok.start), f" WHERE {pred_sql}")
 
     # No clause boundary found — append at end of SQL.
     text = f" AND {pred_sql}" if has_where else f" WHERE {pred_sql}"
@@ -255,9 +289,9 @@ def _find_after_where(
             depth += 1
         elif tok.token_type == TokenType.R_PAREN:
             if depth == 0:
-                return (_before_whitespace(sql, tok.start), f" AND {pred_sql}")
+                return (_before_trivia(sql, tok.start), f" AND {pred_sql}")
             depth -= 1
         elif depth == 0 and tok.token_type in _CLAUSE_ENDS:
-            return (_before_whitespace(sql, tok.start), f" AND {pred_sql}")
+            return (_before_trivia(sql, tok.start), f" AND {pred_sql}")
         prev_end = tok.end
     return (prev_end + 1, f" AND {pred_sql}")

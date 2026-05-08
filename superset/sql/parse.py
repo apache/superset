@@ -1338,7 +1338,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         Modify the `LIMIT` or `TOP` value of the SQL statement inplace.
         """
         # AST mutation invalidates any cached verbatim SQL (e.g. from splice).
-        self._raw_sql = None
+        # If we already have a rewritten SQL string, re-parse it first so further
+        # AST mutations (like LIMIT injection) preserve prior text-based rewrites.
+        if self._raw_sql is not None:
+            self._parsed = self._parse_statement(self._raw_sql, self.engine)
+            self._source_sql = self._raw_sql
+            self._raw_sql = None
         if method == LimitMethod.FORCE_LIMIT:
             self._parsed.args["limit"] = exp.Limit(
                 expression=exp.Literal(this=str(limit), is_string=False)

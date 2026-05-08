@@ -2243,6 +2243,21 @@ def test_set_limit_value(
     assert statement.format() == expected
 
 
+def test_set_limit_value_after_splice_reparses_from_raw_sql() -> None:
+    """
+    When a statement has cached verbatim SQL from splice-mode rewrites, setting
+    limit should reparse that SQL before mutating the AST.
+    """
+    statement = SQLStatement("SELECT * FROM some_table", "postgresql")
+    statement._raw_sql = "SELECT * FROM some_table WHERE tenant_id = 42"
+
+    statement.set_limit_value(10, LimitMethod.FORCE_LIMIT)
+    formatted = statement.format()
+
+    assert "tenant_id = 42" in formatted
+    assert "LIMIT 10" in formatted
+
+
 @pytest.mark.parametrize(
     "kql, limit, expected",
     [
@@ -3244,6 +3259,86 @@ def test_rls_predicate_splice_string_predicates_skip_parse() -> None:
     assert statement.format() == (
         "SELECT * FROM some_table WHERE tenant_id = 42 AND active"
     )
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        (
+            "SELECT * FROM some_table -- hi\nGROUP BY id",
+            "SELECT * FROM some_table WHERE tenant_id = 42 -- hi\nGROUP BY id",
+        ),
+        (
+            "SELECT * FROM some_table /* inline */ GROUP BY id",
+            "SELECT * FROM some_table WHERE tenant_id = 42 /* inline */ GROUP BY id",
+        ),
+    ],
+)
+def test_rls_predicate_splice_inserts_before_comments(sql: str, expected: str) -> None:
+    """
+    Splice mode should insert predicates before comments that precede the next
+    clause boundary, so comments do not swallow the injected SQL.
+    """
+    statement = SQLStatement(sql, engine="postgresql")
+    statement.apply_rls(
+        None,
+        None,
+        {Table("some_table"): ["tenant_id = 42"]},
+        RLSMethod.AS_PREDICATE_SPLICE,
+    )
+    assert statement.format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        (
+            "SELECT * FROM some_table QUALIFY row_number() OVER (PARTITION BY id ORDER BY ts DESC) = 1",
+            "snowflake",
+            "SELECT * FROM some_table WHERE tenant_id = 42 QUALIFY row_number() OVER (PARTITION BY id ORDER BY ts DESC) = 1",
+        ),
+        (
+            "SELECT sum(v) OVER () FROM some_table WINDOW w AS (PARTITION BY id)",
+            "postgresql",
+            "SELECT sum(v) OVER () FROM some_table WHERE tenant_id = 42 WINDOW w AS (PARTITION BY id)",
+        ),
+    ],
+)
+def test_rls_predicate_splice_handles_additional_clause_boundaries(
+    sql: str,
+    engine: str,
+    expected: str,
+) -> None:
+    """
+    Splice mode should insert WHERE before clause types that can legally follow
+    FROM/WHERE (for example QUALIFY and WINDOW).
+    """
+    statement = SQLStatement(sql, engine=engine)
+    statement.apply_rls(
+        None,
+        None,
+        {Table("some_table"): ["tenant_id = 42"]},
+        RLSMethod.AS_PREDICATE_SPLICE,
+    )
+    assert statement.format() == expected
+
+
+def test_rls_predicate_splice_then_limit_keeps_rls() -> None:
+    """
+    LIMIT rewrites after splice-mode RLS should retain injected predicates.
+    """
+    statement = SQLStatement("SELECT * FROM some_table", engine="postgresql")
+    statement.apply_rls(
+        None,
+        None,
+        {Table("some_table"): ["tenant_id = 42"]},
+        RLSMethod.AS_PREDICATE_SPLICE,
+    )
+    statement.set_limit_value(101, LimitMethod.FORCE_LIMIT)
+
+    formatted = statement.format()
+    assert "tenant_id = 42" in formatted
+    assert "LIMIT 101" in formatted
 
 
 @pytest.mark.parametrize(
