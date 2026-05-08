@@ -24,7 +24,7 @@ from typing import Any, TYPE_CHECKING
 from sqlalchemy import and_, func, or_
 
 from superset import db, security_manager
-from superset.sql.parse import folds_unquoted_object_names, Table
+from superset.sql.parse import folds_unquoted_object_names, RLSMethod, Table
 from superset.utils import json
 from superset.utils.core import get_user_id, remove_duplicates
 
@@ -81,13 +81,21 @@ def apply_rls(
         outer query.
     :returns: True if any RLS predicates were actually applied, False otherwise.
     """
-    # There are two ways to insert RLS: either replacing the table with a subquery
-    # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
-    # safer, but not supported in all databases.
+    # There are three ways to insert RLS:
+    #   - replace the table with a subquery containing the RLS (safest, but not
+    #     supported in all databases)
+    #   - append the RLS to the ``WHERE`` clause via AST transformation
+    #   - splice the RLS into the original SQL string (preserves dialect-specific
+    #     syntax that the sqlglot generator would otherwise transpile)
     method = database.db_engine_spec.get_rls_method()
 
     # collect all RLS predicates for all tables in the query
     default_catalog = database.get_default_catalog()
+
+    # In splice mode predicates stay as raw SQL strings and are inserted verbatim
+    # into the source query — re-parsing them would force a generator round-trip
+    # later and defeat the purpose.
+    use_splice = method == RLSMethod.AS_PREDICATE_SPLICE
 
     def collect_predicates(
         include_global: bool, exclude_id: int | None
@@ -95,8 +103,8 @@ def apply_rls(
         predicates: dict[Table, list[Any]] = {}
         for table in parsed_statement.tables:
             table = table.qualify(catalog=catalog, schema=schema)
-            predicates[table] = [
-                parsed_statement.parse_predicate(predicate)
+            raw_predicates = [
+                predicate
                 for predicate in get_predicates_for_table(
                     table,
                     database,
@@ -106,6 +114,11 @@ def apply_rls(
                 )
                 if predicate
             ]
+            predicates[table] = (
+                raw_predicates
+                if use_splice
+                else [parsed_statement.parse_predicate(p) for p in raw_predicates]
+            )
         return predicates
 
     predicates = collect_predicates(include_global_guest_rls, exclude_dataset_id)
