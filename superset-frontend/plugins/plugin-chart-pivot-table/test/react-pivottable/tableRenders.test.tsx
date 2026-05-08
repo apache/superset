@@ -353,6 +353,29 @@ test('TableRenderer coerces numeric timestamp strings to numbers for column head
   expect(screen.getByText('col:square')).toBeInTheDocument();
 });
 
+test('TableRenderer coerces numeric timestamp strings to numbers for row header date formatters', () => {
+  const dateFormatter = jest.fn((val: unknown) => `row:${String(val)}`);
+  const data = [
+    { color: '1700000000000', shape: 'circle', value: 1 },
+    { color: 'red', shape: 'circle', value: 2 },
+  ];
+  const props = buildDefaultProps({
+    data,
+    rows: ['color'],
+    cols: ['shape'],
+    tableOptions: { dateFormatters: { color: dateFormatter } },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Row-header path mirrors the column path: numeric strings coerce to
+  // Number, non-numeric strings pass through verbatim.
+  expect(dateFormatter).toHaveBeenCalledWith(1700000000000);
+  expect(dateFormatter).toHaveBeenCalledWith('red');
+
+  expect(screen.getByText('row:1700000000000')).toBeInTheDocument();
+  expect(screen.getByText('row:red')).toBeInTheDocument();
+});
+
 test('TableRenderer renders correct number of thead and tbody sections', () => {
   const props = buildDefaultProps();
   renderWithTheme(<TableRenderer {...props} />);
