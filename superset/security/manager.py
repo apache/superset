@@ -23,7 +23,7 @@ import time
 from collections import defaultdict
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
-from flask import current_app, Flask, g, Request
+from flask import current_app, Flask, g, has_request_context, Request, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
@@ -48,6 +48,7 @@ from flask_appbuilder.security.views import (
     ViewMenuModelView,
 )
 from flask_babel import lazy_gettext as _
+from flask_jwt_extended import verify_jwt_in_request
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
@@ -56,6 +57,7 @@ from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
+from werkzeug.exceptions import Unauthorized
 
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -718,6 +720,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     ) -> Optional[str]:
         return f"[{database_name}].[{dataset_name}](id:{dataset_id})"
 
+    def get_current_user_for_permissions(self) -> Any:
+        """
+        Return the request user used by Superset-specific permission filters.
+
+        FAB verifies JWTs in @protect, but public/browser-login APIs can reach
+        model filters before JWT auth has populated g.user. In that case, hydrate
+        the user with flask-jwt-extended so filters do not evaluate the request
+        as anonymous.
+        """
+        user = self.current_user or getattr(g, "user", None)
+        if (
+            has_request_context()
+            and (user is None or user.is_anonymous)
+            and request.headers.get("Authorization", "").lower().startswith("bearer ")
+        ):
+            try:
+                verify_jwt_in_request()
+            except Exception as ex:  # pylint: disable=broad-except
+                raise Unauthorized("Invalid authorization token") from ex
+            user = self.current_user or getattr(g, "user", None)
+        if user is None:
+            return self.get_anonymous_user()
+        if not user.is_anonymous:
+            g.user = user
+        return user
+
     def can_access(self, permission_name: str, view_name: str) -> bool:
         """
         Return True if the user can access the FAB permission/view, False otherwise.
@@ -730,7 +758,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: Whether the user can access the FAB permission/view
         """
 
-        user = g.user
+        user = self.get_current_user_for_permissions()
         if user.is_anonymous:
             return self.is_item_public(permission_name, view_name)
         return self._has_view_access(user, permission_name, view_name)
@@ -1135,6 +1163,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return True
 
     def user_view_menu_names(self, permission_name: str) -> set[str]:
+        user = self.get_current_user_for_permissions()
         base_query = (
             self.session.query(self.viewmenu_model.name)
             .join(self.permissionview_model)
@@ -1143,8 +1172,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .join(self.role_model)
         )
 
-        if not g.user.is_anonymous:
-            user_id = get_user_id()
+        if not user.is_anonymous:
+            user_id = user.id
 
             user_roles_filter = or_(
                 exists().where(
