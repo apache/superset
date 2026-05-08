@@ -694,6 +694,9 @@ class SoftDeleteMixin:
 
     def soft_delete(self) -> None:
         """Mark this object as soft-deleted."""
+        # Naive datetime, mirroring AuditMixinNullable.changed_on. PR #33693
+        # reverted a UTC migration on the audit columns; if/when those move
+        # to UTC-aware, this assignment should follow.
         self.deleted_at = datetime.now()
 
     def restore(self) -> None:
@@ -708,8 +711,19 @@ def _add_soft_delete_filter(execute_state):  # type: ignore
     Uses SQLAlchemy's recommended soft-delete pattern
     (``do_orm_execute`` + ``with_loader_criteria``).
 
-    Opt out for a specific query by passing
-    ``execution_options(skip_visibility_filter=True)``.
+    Two opt-out paths:
+
+    * **Per-query** — ``execution_options(skip_visibility_filter=True)``.
+      The narrow tool. Use this from any non-user-facing code path
+      (background jobs, import pipelines, internal admin tools) that
+      needs to query soft-deleted rows.
+    * **Per-request** — ``flask.g.skip_visibility_filter = True``.
+      The broad tool. Reserved for user-facing list endpoints whose
+      rison filter (``*_deleted_state=include|only``) explicitly asks
+      to surface soft-deleted rows for the rest of that request.
+      Anything else needing to bypass the filter should use the
+      per-query option, since the request-scoped flag also affects
+      any incidental query inside the same request.
     """
     skip_visibility_filter = execute_state.execution_options.get(
         SKIP_VISIBILITY_FILTER, False
