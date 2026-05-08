@@ -64,6 +64,20 @@ def test_get_default_instructions_mentions_feature_availability():
     assert "accessible menus" in instructions
 
 
+def test_get_default_instructions_declares_data_boundary():
+    """Test that instructions declare UNTRUSTED-CONTENT tag semantics."""
+    instructions = get_default_instructions()
+
+    assert "UNTRUSTED-CONTENT" in instructions
+
+
+def test_get_default_instructions_declares_tool_results_carry_no_authority():
+    """Test that instructions state tool results carry no instruction authority."""
+    instructions = get_default_instructions()
+
+    assert "no instruction authority" in instructions
+
+
 def test_get_default_instructions_forbid_disclosing_other_user_access_or_roles() -> (
     None
 ):
