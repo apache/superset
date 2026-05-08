@@ -41,11 +41,15 @@ def _token_index(tokens: list[sqlglot.tokens.Token], token_type: object) -> int:
     return next(i for i, token in enumerate(tokens) if token.token_type == token_type)
 
 
-def _token_by_text(tokens: list[sqlglot.tokens.Token], text: str) -> sqlglot.tokens.Token:
+def _token_by_text(
+    tokens: list[sqlglot.tokens.Token], text: str
+) -> sqlglot.tokens.Token:
     return next(token for token in tokens if token.text == text)
 
 
-def test_split_source_returns_none_result_when_tokenize_fails(monkeypatch: object) -> None:
+def test_split_source_returns_none_result_when_tokenize_fails(
+    monkeypatch: object,
+) -> None:
     class _BrokenDialect:
         @staticmethod
         def tokenize(_: str) -> list[sqlglot.tokens.Token]:
@@ -105,7 +109,9 @@ def test_scan_until_scope_boundary_tracks_parenthesis_depth() -> None:
     sql = "SELECT * FROM t WHERE (a = 1)"
     tokens = _tokenize(sql)
     where_token = _token_by_text(tokens, "WHERE")
-    assert _scan_until_scope_boundary(tokens, where_token.start, stop_at_join=False) == (
+    assert _scan_until_scope_boundary(
+        tokens, where_token.start, stop_at_join=False
+    ) == (
         "eof",
         None,
     )
@@ -210,7 +216,9 @@ def test_splices_for_scope_combines_join_and_from_splices(monkeypatch: object) -
     def _fake_classify(*args: object, **kwargs: object) -> tuple[str, int, str]:
         return calls.pop(0)
 
-    monkeypatch.setattr("superset.sql.rls_splice._classify_source_predicate", _fake_classify)
+    monkeypatch.setattr(
+        "superset.sql.rls_splice._classify_source_predicate", _fake_classify
+    )
     monkeypatch.setattr(
         "superset.sql.rls_splice._find_join_splice",
         lambda *args, **kwargs: [(50, " ON j.id = 2")],
@@ -244,18 +252,23 @@ def test_splices_for_scope_join_then_next_source(monkeypatch: object) -> None:
     ) -> tuple[str, int | None, str | None]:
         return calls.pop(0)
 
-    monkeypatch.setattr("superset.sql.rls_splice._classify_source_predicate", _fake_classify)
+    monkeypatch.setattr(
+        "superset.sql.rls_splice._classify_source_predicate", _fake_classify
+    )
     monkeypatch.setattr(
         "superset.sql.rls_splice._find_join_splice",
         lambda *args, **kwargs: [],
     )
 
-    assert _splices_for_scope(
-        sql,
-        tokens,
-        _Scope(),
-        {Table("j"): ["id = 2"]},
-        None,
-        None,
-        None,
-    ) == []
+    assert (
+        _splices_for_scope(
+            sql,
+            tokens,
+            _Scope(),
+            {Table("j"): ["id = 2"]},
+            None,
+            None,
+            None,
+        )
+        == []
+    )
