@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import pytest
 import sqlglot
 from sqlglot import Dialect, exp
 
@@ -48,7 +49,7 @@ def _token_by_text(
 
 
 def test_split_source_returns_none_result_when_tokenize_fails(
-    monkeypatch: object,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class _BrokenDialect:
         @staticmethod
@@ -176,7 +177,7 @@ def test_scan_join_clause_stops_at_outer_closing_paren() -> None:
 
 
 def test_splices_for_scope_handles_empty_join_splice_result(
-    monkeypatch: object,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class _Scope:
         sources = {"x": object()}
@@ -205,7 +206,9 @@ def test_splices_for_scope_handles_empty_join_splice_result(
     )
 
 
-def test_splices_for_scope_combines_join_and_from_splices(monkeypatch: object) -> None:
+def test_splices_for_scope_combines_join_and_from_splices(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class _Scope:
         sources = {"f": object(), "j": object()}
 
@@ -239,7 +242,9 @@ def test_splices_for_scope_combines_join_and_from_splices(monkeypatch: object) -
     ) == [(50, " ON j.id = 2"), (20, " WHERE f.id = 1")]
 
 
-def test_splices_for_scope_join_then_next_source(monkeypatch: object) -> None:
+def test_splices_for_scope_join_then_next_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class _Scope:
         sources = {"j": object(), "f": object()}
 
