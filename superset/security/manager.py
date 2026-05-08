@@ -462,6 +462,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "PermissionViewMenu",
         "ViewMenu",
         "User",
+        # FAB ApiKeyApi blueprint (active when FAB_API_KEY_ENABLED=True).
+        # Listed unconditionally — harmless when the feature is off because
+        # no PVMs exist under this view menu.
+        "ApiKey",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {

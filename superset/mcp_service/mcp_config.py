@@ -304,71 +304,96 @@ MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
 
 
 def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
-    """Default MCP auth factory using app.config values."""
-    if not app.config.get("MCP_AUTH_ENABLED", False):
+    """Default MCP auth factory using app.config values.
+
+    Returns an auth provider when ``MCP_AUTH_ENABLED=True`` (JWT verifier,
+    optionally wrapped with ``CompositeTokenVerifier`` for API keys) or
+    when only ``FAB_API_KEY_ENABLED=True`` (API-key-only verifier that
+    rejects all non-API-key Bearer tokens at the transport).
+    """
+    auth_enabled = app.config.get("MCP_AUTH_ENABLED", False)
+    api_key_enabled = app.config.get("FAB_API_KEY_ENABLED", False)
+
+    if not (auth_enabled or api_key_enabled):
         return None
 
-    jwks_uri = app.config.get("MCP_JWKS_URI")
-    public_key = app.config.get("MCP_JWT_PUBLIC_KEY")
-    secret = app.config.get("MCP_JWT_SECRET")
+    jwt_verifier: Any | None = None
 
-    if not (jwks_uri or public_key or secret):
-        logger.warning("MCP_AUTH_ENABLED is True but no JWT keys/secret configured")
-        return None
+    if auth_enabled:
+        jwks_uri = app.config.get("MCP_JWKS_URI")
+        public_key = app.config.get("MCP_JWT_PUBLIC_KEY")
+        secret = app.config.get("MCP_JWT_SECRET")
 
-    try:
-        debug_errors = app.config.get("MCP_JWT_DEBUG_ERRORS", False)
-
-        common_kwargs: dict[str, Any] = {
-            "issuer": app.config.get("MCP_JWT_ISSUER"),
-            "audience": app.config.get("MCP_JWT_AUDIENCE"),
-            "required_scopes": app.config.get("MCP_REQUIRED_SCOPES", []),
-        }
-
-        # For HS256 (symmetric), use the secret as the public_key parameter
-        if app.config.get("MCP_JWT_ALGORITHM") == "HS256" and secret:
-            common_kwargs["public_key"] = secret
-            common_kwargs["algorithm"] = "HS256"
+        if not (jwks_uri or public_key or secret):
+            logger.warning("MCP_AUTH_ENABLED is True but no JWT keys/secret configured")
+            if not api_key_enabled:
+                return None
         else:
-            # For RS256 (asymmetric), use public key or JWKS
-            common_kwargs["jwks_uri"] = jwks_uri
-            common_kwargs["public_key"] = public_key
-            common_kwargs["algorithm"] = app.config.get("MCP_JWT_ALGORITHM", "RS256")
+            try:
+                jwt_verifier = _build_jwt_verifier(
+                    app=app,
+                    jwks_uri=jwks_uri,
+                    public_key=public_key,
+                    secret=secret,
+                )
+            except Exception:
+                # Do not log the exception — it may contain secrets
+                logger.error("Failed to create MCP JWT verifier")
+                if not api_key_enabled:
+                    return None
 
-        if debug_errors:
-            # DetailedJWTVerifier: detailed server-side logging of JWT
-            # validation failures. HTTP responses are always generic per
-            # RFC 6750 Section 3.1.
-            from superset.mcp_service.jwt_verifier import DetailedJWTVerifier
+    if api_key_enabled:
+        from superset.mcp_service.composite_token_verifier import (
+            CompositeTokenVerifier,
+        )
 
-            auth_provider = DetailedJWTVerifier(**common_kwargs)
-        else:
-            # Default JWTVerifier: minimal logging, generic error responses.
-            from fastmcp.server.auth.providers.jwt import JWTVerifier
+        api_key_prefixes = app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
+        logger.info("API key auth enabled for MCP")
+        return CompositeTokenVerifier(
+            jwt_verifier=jwt_verifier,
+            api_key_prefixes=api_key_prefixes,
+        )
 
-            auth_provider = JWTVerifier(**common_kwargs)
+    return jwt_verifier
 
-        # Wrap with CompositeTokenVerifier when API key auth is enabled
-        # so that API key tokens (e.g. sst_...) pass through the transport
-        # layer instead of being rejected by the JWT verifier.
-        if app.config.get("FAB_API_KEY_ENABLED", False):
-            from superset.mcp_service.composite_token_verifier import (
-                CompositeTokenVerifier,
-            )
 
-            api_key_prefixes = app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
-            auth_provider = CompositeTokenVerifier(
-                jwt_verifier=auth_provider,
-                api_key_prefixes=api_key_prefixes,
-            )
-            logger.info("API key auth enabled for MCP")
+def _build_jwt_verifier(
+    app: Flask,
+    jwks_uri: Optional[str],
+    public_key: Optional[str],
+    secret: Optional[str],
+) -> Any:
+    """Construct the JWT verifier from configured keys/secret."""
+    debug_errors = app.config.get("MCP_JWT_DEBUG_ERRORS", False)
 
-        return auth_provider
-    except Exception:
-        # Do not log the exception — it may contain the HS256 secret
-        # from common_kwargs["public_key"]
-        logger.error("Failed to create MCP auth provider")
-        return None
+    common_kwargs: Dict[str, Any] = {
+        "issuer": app.config.get("MCP_JWT_ISSUER"),
+        "audience": app.config.get("MCP_JWT_AUDIENCE"),
+        "required_scopes": app.config.get("MCP_REQUIRED_SCOPES", []),
+    }
+
+    # For HS256 (symmetric), use the secret as the public_key parameter
+    if app.config.get("MCP_JWT_ALGORITHM") == "HS256" and secret:
+        common_kwargs["public_key"] = secret
+        common_kwargs["algorithm"] = "HS256"
+    else:
+        # For RS256 (asymmetric), use public key or JWKS
+        common_kwargs["jwks_uri"] = jwks_uri
+        common_kwargs["public_key"] = public_key
+        common_kwargs["algorithm"] = app.config.get("MCP_JWT_ALGORITHM", "RS256")
+
+    if debug_errors:
+        # DetailedJWTVerifier: detailed server-side logging of JWT
+        # validation failures. HTTP responses are always generic per
+        # RFC 6750 Section 3.1.
+        from superset.mcp_service.jwt_verifier import DetailedJWTVerifier
+
+        return DetailedJWTVerifier(**common_kwargs)
+
+    # MCPJWTVerifier: minimal logging + browser-friendly error page.
+    from superset.mcp_service.jwt_verifier import MCPJWTVerifier
+
+    return MCPJWTVerifier(**common_kwargs)
 
 
 def default_user_resolver(app: Any, access_token: Any) -> str | None:
