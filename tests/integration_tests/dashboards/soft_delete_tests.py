@@ -164,8 +164,17 @@ class TestDashboardSoftDelete(SupersetTestCase):
         # Soft-delete the parent
         self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
 
+        # The dashboard fetch returns 404 cleanly (visibility filter applies).
+        rv = self.client.get(f"/api/v1/dashboard/{dashboard_id}")
+        assert rv.status_code == 404, (
+            f"Soft-deleted dashboard should fetch 404, not 500; got "
+            f"{rv.status_code}. Body: {rv.data[:200]!r}"
+        )
+
         # The embedded iframe URL still loads (200) — embedded.dashboard is
-        # never dereferenced by the view.
+        # never dereferenced by the view. Done last because the embedded
+        # handler clears the session in CI, which would 401 any follow-up
+        # API call.
         with mock.patch.dict(
             "superset.extensions.feature_flag_manager._feature_flags",
             EMBEDDED_SUPERSET=True,
@@ -174,13 +183,6 @@ class TestDashboardSoftDelete(SupersetTestCase):
         assert rv.status_code == 200, (
             f"Embedded view should still load 200 with a soft-deleted parent; "
             f"got {rv.status_code}. Body: {rv.data[:200]!r}"
-        )
-
-        # The dashboard fetch returns 404 cleanly (visibility filter applies).
-        rv = self.client.get(f"/api/v1/dashboard/{dashboard_id}")
-        assert rv.status_code == 404, (
-            f"Soft-deleted dashboard should fetch 404, not 500; got "
-            f"{rv.status_code}. Body: {rv.data[:200]!r}"
         )
 
         # Cleanup: hard-deleting the dashboard cascades to the embedded
