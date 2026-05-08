@@ -51,6 +51,8 @@ from typing import Any, Callable, TYPE_CHECKING, TypeVar
 from flask import current_app, g, has_app_context, has_request_context
 from flask_appbuilder.security.sqla.models import Group, User
 
+from superset.mcp_service.composite_token_verifier import API_KEY_PASSTHROUGH_CLAIM
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.mcp_service.chart.chart_utils import DatasetValidationResult
@@ -288,10 +290,6 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     # API key pass-through: CompositeTokenVerifier accepted this token
     # at the transport layer but defers actual validation to
     # _resolve_user_from_api_key() (priority 2 in get_user_from_request).
-    from superset.mcp_service.composite_token_verifier import (
-        API_KEY_PASSTHROUGH_CLAIM,
-    )
-
     claims = getattr(access_token, "claims", None)
     if isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM):
         logger.debug("API key pass-through token detected, deferring to API key auth")
@@ -361,10 +359,6 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
     # Only validate tokens that the CompositeTokenVerifier flagged as
     # API key pass-throughs. Plain JWTs were already validated by the JWT
     # verifier and resolved in _resolve_user_from_jwt_context.
-    from superset.mcp_service.composite_token_verifier import (
-        API_KEY_PASSTHROUGH_CLAIM,
-    )
-
     claims = getattr(access_token, "claims", None)
     if not (isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM)):
         return None
