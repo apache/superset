@@ -167,7 +167,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         # The dashboard fetch returns 404 cleanly (visibility filter applies).
         rv = self.client.get(f"/api/v1/dashboard/{dashboard_id}")
         assert rv.status_code == 404, (
-            f"Soft-deleted dashboard should fetch 404, not 500; got "
+            "Soft-deleted dashboard should fetch 404, not 500; got "
             f"{rv.status_code}. Body: {rv.data[:200]!r}"
         )
 
@@ -181,7 +181,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         ):
             rv = self.client.get(f"/embedded/{embedded_uuid}")
         assert rv.status_code == 200, (
-            f"Embedded view should still load 200 with a soft-deleted parent; "
+            "Embedded view should still load 200 with a soft-deleted parent; "
             f"got {rv.status_code}. Body: {rv.data[:200]!r}"
         )
 

@@ -73,7 +73,7 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
         if model.deleted_at is None:
             raise self.not_found_exc(
                 f"Row with uuid={self._model_uuid!r} is not soft-deleted; "
-                f"nothing to restore"
+                "nothing to restore"
             )
         try:
             security_manager.raise_for_ownership(model)
