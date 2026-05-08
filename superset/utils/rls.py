@@ -22,7 +22,7 @@ from typing import Any, TYPE_CHECKING
 from sqlalchemy import and_, or_
 
 from superset import db
-from superset.sql.parse import RLSMethod, Table
+from superset.sql.parse import Table
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -54,11 +54,7 @@ def apply_rls(
     #     syntax that the sqlglot generator would otherwise transpile)
     method = database.db_engine_spec.rls_method
 
-    # In splice mode predicates stay as raw SQL strings and are inserted verbatim
-    # into the source query — re-parsing them would force a generator round-trip
-    # later and defeat the purpose.
-    use_splice = method == RLSMethod.AS_PREDICATE_SPLICE
-    predicates: dict[Table, list[Any]] = {}
+    predicates: dict[Table, list[str]] = {}
     for table in parsed_statement.tables:
         table = table.qualify(catalog=catalog, schema=schema)
         raw_predicates = [
@@ -71,11 +67,7 @@ def apply_rls(
             )
             if predicate
         ]
-        predicates[table] = (
-            raw_predicates
-            if use_splice
-            else [parsed_statement.parse_predicate(p) for p in raw_predicates]
-        )
+        predicates[table] = raw_predicates
 
     has_predicates = any(predicates.values())
     parsed_statement.apply_rls(catalog, schema, predicates, method)

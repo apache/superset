@@ -707,7 +707,7 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         self,
         catalog: str | None,
         schema: str | None,
-        predicates: dict[Table, list[InternalRepresentation]],
+        predicates: dict[Table, list[str]],
         method: RLSMethod,
     ) -> None:
         """
@@ -1450,7 +1450,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         self,
         catalog: str | None,
         schema: str | None,
-        predicates: dict[Table, list[exp.Expression]] | dict[Table, list[str]],
+        predicates: dict[Table, list[str]],
         method: RLSMethod,
     ) -> None:
         """
@@ -1458,9 +1458,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :param catalog: The default catalog for non-qualified table names
         :param schema: The default schema for non-qualified table names
-        :param predicates: Mapping of fully qualified ``Table`` to predicates.
-            For ``AS_PREDICATE`` and ``AS_SUBQUERY`` the predicates are sqlglot
-            expressions. For ``AS_PREDICATE_SPLICE`` they are raw SQL strings.
+        :param predicates: Mapping of fully qualified ``Table`` to raw predicate
+            SQL strings.
         :param method: The method to use for applying the rules.
         """
         if not predicates:
@@ -1470,6 +1469,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             self._apply_rls_splice(catalog, schema, predicates)
             return
 
+        parsed_predicates: dict[Table, list[exp.Expression]] = {
+            table: [self.parse_predicate(predicate) for predicate in table_predicates]
+            for table, table_predicates in predicates.items()
+        }
+
         transformers = {
             RLSMethod.AS_PREDICATE: RLSAsPredicateTransformer,
             RLSMethod.AS_SUBQUERY: RLSAsSubqueryTransformer,
@@ -1477,14 +1481,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if method not in transformers:
             raise ValueError(f"Invalid RLS method: {method}")
 
-        transformer = transformers[method](catalog, schema, predicates)
+        transformer = transformers[method](catalog, schema, parsed_predicates)
         self._parsed = self._parsed.transform(transformer)
 
     def _apply_rls_splice(
         self,
         catalog: str | None,
         schema: str | None,
-        predicates: dict[Table, list[exp.Expression]] | dict[Table, list[str]],
+        predicates: dict[Table, list[str]],
     ) -> None:
         """
         Apply RLS via text splicing on the original SQL.
@@ -1501,19 +1505,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 "this SQLStatement was constructed without one."
             )
 
-        # Splice operates on raw predicate strings; coerce expressions if needed.
-        string_predicates: dict[Table, list[str]] = {
-            table: [
-                pred if isinstance(pred, str) else pred.sql(dialect=self._dialect)
-                for pred in preds
-            ]
-            for table, preds in predicates.items()
-        }
         spliced = apply_rls_splice(
             self._source_sql,
             catalog,
             schema,
-            string_predicates,
+            predicates,
             dialect=self._dialect,
         )
         self._raw_sql = spliced
