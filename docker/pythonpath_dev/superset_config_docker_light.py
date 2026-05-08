@@ -36,3 +36,31 @@ THUMBNAIL_CACHE_CONFIG = CACHE_CONFIG
 
 # Disable Celery entirely for lightweight mode
 CELERY_CONFIG = None  # type: ignore[assignment,misc]
+
+# Honor SUPERSET_FEATURE_<NAME> env vars on top of any flags inherited from
+# superset_config. Lets local dev/e2e enable features (e.g. EMBEDDED_SUPERSET)
+# without editing shipped config files.
+import os  # noqa: E402
+
+FEATURE_FLAGS = {
+    **FEATURE_FLAGS,  # noqa: F405
+    **{
+        name[len("SUPERSET_FEATURE_") :]: value.strip().lower() == "true"
+        for name, value in os.environ.items()
+        if name.startswith("SUPERSET_FEATURE_")
+    },
+}
+
+# Disable Talisman so /embedded/<uuid> doesn't return X-Frame-Options:SAMEORIGIN.
+# Without this, browsers refuse to render Superset inside an iframe from a
+# different origin (i.e. the embedded SDK use case). Production/CI configures
+# Talisman with explicit `frame-ancestors`; for the lightweight local stack we
+# just turn it off.
+TALISMAN_ENABLED = False
+
+# Guest tokens (used by the embedded SDK) inherit the "Public" role's perms.
+# Out of the box Public has zero perms, so embedded dashboards immediately fail
+# their first call (`/api/v1/me/roles/`) with 403. Mirror Public to Gamma —
+# the standard read-only viewer role — so the embedded flow can authenticate
+# and load dashboard data in local dev.
+PUBLIC_ROLE_LIKE = "Gamma"
