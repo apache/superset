@@ -18,6 +18,8 @@
 # Configuration for docker-compose-light.yml - disables Redis and uses minimal services
 
 # Import all settings from the main config first
+import os
+
 from flask_caching.backends.filesystemcache import FileSystemCache
 
 from superset_config import *  # noqa: F403
@@ -39,9 +41,9 @@ CELERY_CONFIG = None  # type: ignore[assignment,misc]
 
 # Honor SUPERSET_FEATURE_<NAME> env vars on top of any flags inherited from
 # superset_config. Lets local dev/e2e enable features (e.g. EMBEDDED_SUPERSET)
-# without editing shipped config files.
-import os  # noqa: E402
-
+# without editing shipped config files. Only the literal string "true"
+# (case-insensitive) is treated as enabled — "1"/"yes"/"on" are not, matching
+# the strict-string convention used elsewhere in Superset's env parsing.
 FEATURE_FLAGS = {
     **FEATURE_FLAGS,  # noqa: F405
     **{

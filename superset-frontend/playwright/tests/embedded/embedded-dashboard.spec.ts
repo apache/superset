@@ -152,7 +152,6 @@ test.describe('Embedded Dashboard E2E', () => {
   test.setTimeout(60000);
 
   let appServer: EmbedAppServer;
-  let appUrl: string;
   let accessToken: string;
   let embedUuid: string;
   let dashboardId: number;
@@ -167,7 +166,7 @@ test.describe('Embedded Dashboard E2E', () => {
       getGuestToken(page, dashboardId, { accessToken }),
     );
     await embeddedPage.goto({
-      appUrl,
+      appUrl: appServer.url,
       uuid: embedUuid,
       supersetDomain: SUPERSET_DOMAIN,
     });
@@ -184,7 +183,6 @@ test.describe('Embedded Dashboard E2E', () => {
     );
 
     appServer = await startEmbedAppServer();
-    appUrl = appServer.url;
 
     // Use a fresh context with auth to set up test data via API
     const context = await createAdminContext(browser);
@@ -236,11 +234,15 @@ test.describe('Embedded Dashboard E2E', () => {
     ).toHaveAttribute('src', new RegExp(`/embedded/${embedUuid}`));
 
     // Verify no errors in the test app
-    const error = await embeddedPage.getError();
-    expect(error).toBe('');
+    expect(await embeddedPage.getError()).toBe('');
 
-    // Baseline: title should be visible when hideTitle is not set
+    // Baseline: title should be visible when hideTitle is not set. This
+    // doubles as a positive existence check the `hideTitle` test relies on
+    // for distinguishing "title was hidden" from "selector is wrong".
     await expect(embeddedPage.titleLocator).toBeVisible();
+
+    // Prove the dashboard actually renders, not just the chrome.
+    await embeddedPage.waitForChartRendered();
   });
 
   test('UI config hideTitle hides dashboard title', async ({ page }) => {
@@ -249,7 +251,7 @@ test.describe('Embedded Dashboard E2E', () => {
       getGuestToken(page, dashboardId, { accessToken }),
     );
     await embeddedPage.goto({
-      appUrl,
+      appUrl: appServer.url,
       uuid: embedUuid,
       supersetDomain: SUPERSET_DOMAIN,
       hideTitle: true,
@@ -262,18 +264,21 @@ test.describe('Embedded Dashboard E2E', () => {
       page.locator('iframe[title="Embedded Dashboard"]'),
     ).toHaveAttribute('src', /uiConfig=/);
 
-    // Verify the title is actually hidden inside the iframe
+    // hideTitle removes the header from the DOM (rather than CSS-hiding it),
+    // so toBeHidden + toHaveCount(0) together assert: not visible AND
+    // confirmed-removed (so the test can't pass for the wrong reason if the
+    // selector ever drifts — the baseline test asserts the selector matches
+    // when hideTitle is off).
     await expect(embeddedPage.titleLocator).toBeHidden();
+    await expect(embeddedPage.titleLocator).toHaveCount(0);
   });
 
   test('charts render inside embedded iframe', async ({ page }) => {
     const embeddedPage = await setupEmbeddedPage(page);
 
-    // Wait for at least one chart to fully render (not just its container).
-    // Superset adds `.rendered` to `.chart-container` after the viz draws.
     await embeddedPage.waitForChartRendered();
     const renderedCharts = embeddedPage.iframe.locator(
-      '[data-test="chart-container"]:has(svg, canvas, table, [class*="big-number"])',
+      EmbeddedPage.RENDERED_CHART_SELECTOR,
     );
     expect(await renderedCharts.count()).toBeGreaterThan(0);
   });
@@ -306,7 +311,7 @@ test.describe('Embedded Dashboard E2E', () => {
       );
 
       await embeddedPage.goto({
-        appUrl,
+        appUrl: appServer.url,
         uuid: restrictedEmbed.uuid,
         supersetDomain: SUPERSET_DOMAIN,
       });
@@ -330,7 +335,7 @@ test.describe('Embedded Dashboard E2E', () => {
     });
 
     await embeddedPage.goto({
-      appUrl,
+      appUrl: appServer.url,
       uuid: embedUuid,
       supersetDomain: SUPERSET_DOMAIN,
     });
@@ -338,12 +343,13 @@ test.describe('Embedded Dashboard E2E', () => {
     await embeddedPage.waitForDashboardContent();
     await embeddedPage.waitForChartRendered();
 
-    // The SDK should have called fetchGuestToken at least once
-    expect(tokenCallCount).toBeGreaterThanOrEqual(1);
+    // The SDK fetches the token exactly once per embed (caching is the
+    // SDK's responsibility, not ours) — assert the stronger invariant.
+    expect(tokenCallCount).toBe(1);
 
     // Confirm at least one chart actually rendered with data, not just its shell
     const renderedCharts = embeddedPage.iframe.locator(
-      '[data-test="chart-container"]:has(svg, canvas, table, [class*="big-number"])',
+      EmbeddedPage.RENDERED_CHART_SELECTOR,
     );
     expect(await renderedCharts.count()).toBeGreaterThan(0);
   });

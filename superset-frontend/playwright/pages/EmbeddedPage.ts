@@ -116,18 +116,27 @@ export class EmbeddedPage {
   }
 
   /**
-   * Wait for at least one chart to finish rendering — proven by the chart
-   * container holding a real viz element (svg, canvas, or table) rather than
-   * just a loading spinner.
+   * Matches a chart cell that has finished loading: it contains a real viz
+   * element (svg, canvas, table) AND no longer hosts the `Loading` spinner
+   * (`data-test="loading-indicator"`). Excluding the spinner matters —
+   * the spinner itself renders an SVG, so a `:has(svg)`-only check can match
+   * a still-loading chart for the wrong reason.
+   */
+  static readonly RENDERED_CHART_SELECTOR =
+    '[data-test="chart-container"]:has(svg, canvas, table):not(:has([data-test="loading-indicator"]))';
+
+  /**
+   * Wait for at least one chart to finish rendering — viz drawn AND no
+   * loading spinner in that cell.
    */
   async waitForChartRendered(options?: { timeout?: number }): Promise<void> {
-    const timeout = options?.timeout ?? EMBEDDED.CHART_RENDER;
     await this.iframe
-      .locator(
-        '[data-test="chart-container"]:has(svg, canvas, table, [class*="big-number"])',
-      )
+      .locator(EmbeddedPage.RENDERED_CHART_SELECTOR)
       .first()
-      .waitFor({ state: 'visible', timeout });
+      .waitFor({
+        state: 'visible',
+        timeout: options?.timeout ?? EMBEDDED.CHART_RENDER,
+      });
   }
 
   /**
