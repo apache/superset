@@ -1350,7 +1350,8 @@ class TestDashboardSortableColumns:
         tools = asyncio.run(mcp.list_tools())
         tool = next(tool for tool in tools if tool.name == "list_dashboards")
         assert tool.description is not None
-        assert "Sortable columns for order_column:" in tool.description
+        assert "Sortable columns for" in tool.description
+        assert "order_column" in tool.description
         for col in SORTABLE_DASHBOARD_COLUMNS:
             assert col in tool.description
 

@@ -71,8 +71,11 @@ class DatasetFilter(ColumnOperator):
         "database_name",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='dataset') for "
-        "available filter columns.",
+        description=(
+            "Column to filter on. Valid values: 'table_name', 'schema', "
+            "'database_name'. Other column names (e.g. 'created_by_fk', 'id') "
+            "are not valid filter columns and will cause a validation error."
+        ),
     )
     opr: ColumnOperatorEnum = Field(
         ...,
