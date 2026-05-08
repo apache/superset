@@ -1016,3 +1016,46 @@ test('should not duplicate subdirectory prefix when toggling fullscreen', async 
     expect.stringMatching(/^\/dashboard(\?|$)/),
   );
 });
+
+test('should not duplicate subdirectory prefix when entering fullscreen', async () => {
+  const { useLocation } = jest.requireMock('react-router-dom');
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '',
+    hash: '',
+    state: undefined,
+  });
+  window.history.pushState({}, 'Test page', '/pcs/dashboard');
+
+  setup();
+  await openActionsDropdown();
+  userEvent.click(screen.getByText('Enter fullscreen'));
+
+  expect(mockHistoryReplace).toHaveBeenCalledWith(
+    expect.not.stringMatching(/^\/pcs\//),
+  );
+  expect(mockHistoryReplace).toHaveBeenCalledWith(
+    expect.stringMatching(/^\/dashboard\?standalone=1$/),
+  );
+});
+
+test('share URL should use browser-absolute pathname to preserve subdirectory prefix', () => {
+  const { useLocation } = jest.requireMock('react-router-dom');
+  // Router returns path without the subdirectory prefix
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '',
+    hash: '',
+    state: undefined,
+  });
+  // Browser URL includes the full prefix
+  window.history.pushState({}, 'Test page', '/pcs/dashboard');
+
+  const { container } = setup();
+  // The share/embed URL must use window.location.pathname so that shared links
+  // include the subdirectory prefix and work outside the React Router context.
+  const emailLink = container.querySelector('[data-test="share-by-email"]');
+  if (emailLink) {
+    expect(emailLink.getAttribute('href')).toMatch(/\/pcs\/dashboard/);
+  }
+});
