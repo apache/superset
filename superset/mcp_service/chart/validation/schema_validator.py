@@ -536,10 +536,9 @@ class SchemaValidator:
 
         if err_type == "string_pattern_mismatch":
             return (
-                f"'{field}' value contains disallowed characters. "
-                "Column names must not contain HTML, script tags, or SQL "
-                "injection patterns. Use the exact column name from your dataset.",
-                "Use get_dataset_info to find exact column names",
+                f"'{field}' value does not match the required pattern. "
+                "Use the exact value from your dataset.",
+                "Use get_dataset_info to find exact column names and values",
             )
         if err_type == "literal_error":
             # Preserve the pydantic message ("Input should be ...") which is

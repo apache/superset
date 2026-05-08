@@ -746,7 +746,7 @@ class FilterConfig(BaseModel):
         ...,
         min_length=1,
         max_length=255,
-        # No regex pattern: sanitize_name() already blocks XSS/SQL injection;
+        # No regex pattern: sanitize_column() already blocks XSS/SQL injection;
         # many valid column names (digit-prefixed, locale chars, etc.) would
         # be rejected by a strict pattern while posing no security risk.
         # Use get_dataset_info to find exact column names.
