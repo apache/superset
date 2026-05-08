@@ -39,7 +39,7 @@ function getBaseUrl(): string {
   return url.endsWith('/') ? url : `${url}/`;
 }
 
-interface CsrfResult {
+export interface CsrfResult {
   token: string;
   error?: string;
 }
@@ -49,7 +49,7 @@ interface CsrfResult {
  * Superset provides a CSRF token via api/v1/security/csrf_token/
  * The session cookie is automatically included by page.request
  */
-async function getCsrfToken(page: Page): Promise<CsrfResult> {
+export async function getCsrfToken(page: Page): Promise<CsrfResult> {
   try {
     const response = await page.request.get('api/v1/security/csrf_token/', {
       failOnStatusCode: false,

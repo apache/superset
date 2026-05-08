@@ -135,9 +135,13 @@ export default defineConfig({
     },
     {
       // Embedded dashboard tests - validates the full embedding flow:
-      // external app -> SDK -> iframe -> guest token -> dashboard render
+      // external app -> SDK -> iframe -> guest token -> dashboard render.
+      // Each spec file mutates per-dashboard embedding state (UUID,
+      // allowed_domains) on a single shared Superset, so files must not
+      // run in parallel even if more are added later.
       name: 'chromium-embedded',
       testMatch: '**/tests/embedded/**/*.spec.ts',
+      fullyParallel: false,
       use: {
         browserName: 'chromium',
         testIdAttribute: 'data-test',

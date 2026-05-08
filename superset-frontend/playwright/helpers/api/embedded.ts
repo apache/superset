@@ -18,7 +18,7 @@
  */
 
 import { Page } from '@playwright/test';
-import { apiPost, apiPut } from './requests';
+import { apiPost, apiPut, getCsrfToken } from './requests';
 import { ENDPOINTS as DASHBOARD_ENDPOINTS } from './dashboard';
 
 export const ENDPOINTS = {
@@ -55,27 +55,21 @@ export async function apiEnableEmbedding(
 }
 
 /**
- * Get a guest token for an embedded dashboard.
- * Uses the admin login flow (login → access_token → guest_token).
- * @param page - Playwright page instance (used for request context)
- * @param dashboardId - Dashboard id to grant access to
- * @param options - Optional login credentials and RLS rules
- * @returns Signed guest token string
+ * Login as admin and return the JWT access token used by the guest_token
+ * endpoint. Cache the result at suite level (`beforeAll`) and pass it into
+ * `getGuestToken` to avoid a fresh login on every test.
+ *
+ * Defaults match `playwright/global-setup.ts` so credentials come from one
+ * source (env vars). Overrides via `options` win.
  */
-export async function getGuestToken(
+export async function getAccessToken(
   page: Page,
-  dashboardId: number | string,
-  options?: {
-    username?: string;
-    password?: string;
-    rls?: Array<{ dataset: number; clause: string }>;
-  },
+  options?: { username?: string; password?: string },
 ): Promise<string> {
-  const username = options?.username ?? 'admin';
-  const password = options?.password ?? 'general';
-  const rls = options?.rls ?? [];
-
-  // Step 1: Login to get access token
+  const username =
+    options?.username ?? process.env.PLAYWRIGHT_ADMIN_USERNAME ?? 'admin';
+  const password =
+    options?.password ?? process.env.PLAYWRIGHT_ADMIN_PASSWORD ?? 'general';
   const loginResponse = await apiPost(
     page,
     ENDPOINTS.SECURITY_LOGIN,
@@ -88,11 +82,39 @@ export async function getGuestToken(
     { allowMissingCsrf: true },
   );
   const loginBody = await loginResponse.json();
-  const accessToken = loginBody.access_token;
+  return loginBody.access_token;
+}
 
-  // Step 2: Fetch guest token using the access token.
-  // Uses raw page.request.post() (not apiPost) because the guest token endpoint
-  // requires a JWT Bearer token rather than session+CSRF auth.
+/**
+ * Get a guest token for an embedded dashboard.
+ * If `accessToken` is provided, the login round-trip is skipped — preferred
+ * for tests that fetch many tokens from a single suite.
+ * @returns Signed guest token string
+ */
+export async function getGuestToken(
+  page: Page,
+  dashboardId: number | string,
+  options?: {
+    accessToken?: string;
+    username?: string;
+    password?: string;
+    rls?: Array<{ dataset: number; clause: string }>;
+  },
+): Promise<string> {
+  const accessToken =
+    options?.accessToken ??
+    (await getAccessToken(page, {
+      username: options?.username,
+      password: options?.password,
+    }));
+  const rls = options?.rls ?? [];
+
+  // The guest_token endpoint authenticates via JWT Bearer, but if the
+  // request also carries a session cookie (which page.request inherits from
+  // storageState), Flask-WTF still requires a matching X-CSRFToken. Send it
+  // unconditionally so this works whether the caller is authenticated via
+  // session, JWT, or both.
+  const { token: csrfToken } = await getCsrfToken(page);
   const guestResponse = await page.request.post(ENDPOINTS.GUEST_TOKEN, {
     data: {
       user: {
@@ -106,6 +128,7 @@ export async function getGuestToken(
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
+      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
     },
   });
   const guestBody = await guestResponse.json();

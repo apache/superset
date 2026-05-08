@@ -17,16 +17,16 @@
  * under the License.
  */
 
-import { Page, FrameLocator } from '@playwright/test';
+import { Page, FrameLocator, Locator, expect } from '@playwright/test';
 import { EMBEDDED } from '../utils/constants';
 
 /**
  * Page object for the embedded dashboard test app.
  *
- * The test app runs on a separate origin (localhost:9000) and uses the
- * @superset-ui/embedded-sdk to render a Superset dashboard in an iframe.
- * Playwright's page.exposeFunction() bridges the guest token from Node.js
- * into the browser page.
+ * The test app runs on a separate origin (its origin is assigned per-suite
+ * via an OS-allocated port) and uses the @superset-ui/embedded-sdk to render
+ * a Superset dashboard in an iframe. Playwright's page.exposeFunction()
+ * bridges the guest token from Node.js into the browser page.
  */
 export class EmbeddedPage {
   private readonly page: Page;
@@ -53,8 +53,11 @@ export class EmbeddedPage {
 
   /**
    * Navigate to the embedded test app with the given parameters.
+   * `appUrl` is the origin of the static test app (assigned dynamically by
+   * the spec's beforeAll fixture so workers don't collide on a fixed port).
    */
   async goto(params: {
+    appUrl: string;
     uuid: string;
     supersetDomain: string;
     hideTitle?: boolean;
@@ -71,7 +74,7 @@ export class EmbeddedPage {
     if (params.hideChartControls) searchParams.set('hideChartControls', 'true');
     if (params.debug) searchParams.set('debug', 'true');
 
-    await this.page.goto(`${EMBEDDED.APP_URL}/?${searchParams.toString()}`);
+    await this.page.goto(`${params.appUrl}/?${searchParams.toString()}`);
   }
 
   /**
@@ -82,11 +85,17 @@ export class EmbeddedPage {
   }
 
   /**
-   * Wait for the iframe to appear in the DOM.
+   * Wait for the iframe to appear in the DOM AND have its src set.
+   * The SDK appends the iframe element before assigning src, so a bare
+   * `state: 'attached'` wait races the src read.
    */
   async waitForIframe(options?: { timeout?: number }): Promise<void> {
-    await this.page.locator(EmbeddedPage.SELECTORS.IFRAME).waitFor({
+    const locator = this.page.locator(EmbeddedPage.SELECTORS.IFRAME);
+    await locator.waitFor({
       state: 'attached',
+      timeout: options?.timeout ?? EMBEDDED.IFRAME_LOAD,
+    });
+    await expect(locator).toHaveAttribute('src', /.+/, {
       timeout: options?.timeout ?? EMBEDDED.IFRAME_LOAD,
     });
   }
@@ -107,6 +116,32 @@ export class EmbeddedPage {
   }
 
   /**
+   * Wait for at least one chart to finish rendering — proven by the chart
+   * container holding a real viz element (svg, canvas, or table) rather than
+   * just a loading spinner.
+   */
+  async waitForChartRendered(options?: { timeout?: number }): Promise<void> {
+    const timeout = options?.timeout ?? EMBEDDED.CHART_RENDER;
+    await this.iframe
+      .locator(
+        '[data-test="chart-container"]:has(svg, canvas, table, [class*="big-number"])',
+      )
+      .first()
+      .waitFor({ state: 'visible', timeout });
+  }
+
+  /**
+   * Locator for the dashboard title input inside the iframe.
+   * Returned as a `Locator` so callers can use `expect(...).toBeVisible()` /
+   * `.toBeHidden()` with auto-retry instead of one-shot `.isVisible()`.
+   */
+  get titleLocator(): Locator {
+    return this.iframe.locator(
+      '[data-test="dashboard-header-container"] [data-test="editable-title-input"]',
+    );
+  }
+
+  /**
    * Get the status text from the test app.
    */
   async getStatus(): Promise<string> {
@@ -124,17 +159,5 @@ export class EmbeddedPage {
     const display = await errorEl.evaluate(el => getComputedStyle(el).display);
     if (display === 'none') return '';
     return (await errorEl.textContent()) ?? '';
-  }
-
-  /**
-   * Check if the dashboard title is visible inside the iframe.
-   */
-  async isTitleVisible(): Promise<boolean> {
-    const frame = this.iframe;
-    return frame
-      .locator(
-        '[data-test="dashboard-header-container"] [data-test="editable-title-input"]',
-      )
-      .isVisible();
   }
 }

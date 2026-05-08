@@ -81,12 +81,10 @@ export const TIMEOUT = {
  * The test app is served by a Node.js http server started in the test fixture.
  */
 export const EMBEDDED = {
-  /** Port for the embedded test app static server */
-  APP_PORT: 9000,
-  /** Full URL for the embedded test app */
-  APP_URL: 'http://localhost:9000',
   /** Timeout for iframe to appear in the DOM */
   IFRAME_LOAD: 15000, // 15s
   /** Timeout for dashboard content to render inside the iframe */
   DASHBOARD_RENDER: 30000, // 30s
+  /** Timeout for individual chart cells to finish rendering */
+  CHART_RENDER: 30000, // 30s
 } as const;
