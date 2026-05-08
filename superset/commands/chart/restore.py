@@ -19,12 +19,12 @@
 import logging
 from functools import partial
 
-from superset.commands.base import BaseRestoreCommand
 from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartNotFoundError,
     ChartRestoreFailedError,
 )
+from superset.commands.restore import BaseRestoreCommand
 from superset.daos.chart import ChartDAO
 from superset.models.slice import Slice
 from superset.utils.decorators import on_error, transaction

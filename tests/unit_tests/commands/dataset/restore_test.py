@@ -36,7 +36,7 @@ def test_restore_dataset_clears_deleted_at(app_context: None) -> None:
         patch(
             "superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset
         ) as mock_find,
-        patch("superset.commands.base.security_manager") as mock_sec,
+        patch("superset.commands.restore.security_manager") as mock_sec,
     ):
         mock_sec.raise_for_ownership.return_value = None
 
@@ -86,7 +86,7 @@ def test_restore_dataset_forbidden_raises(app_context: None) -> None:
 
     with (
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
-        patch("superset.commands.base.security_manager") as mock_sec,
+        patch("superset.commands.restore.security_manager") as mock_sec,
     ):
         mock_sec.raise_for_ownership = raise_security
 

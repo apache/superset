@@ -36,7 +36,7 @@ def test_restore_dashboard_clears_deleted_at(app_context: None) -> None:
         patch(
             "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
         ) as mock_find,
-        patch("superset.commands.base.security_manager") as mock_sec,
+        patch("superset.commands.restore.security_manager") as mock_sec,
     ):
         mock_sec.raise_for_ownership.return_value = None
 
@@ -90,7 +90,7 @@ def test_restore_dashboard_forbidden_raises(app_context: None) -> None:
         patch(
             "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
         ),
-        patch("superset.commands.base.security_manager") as mock_sec,
+        patch("superset.commands.restore.security_manager") as mock_sec,
     ):
         mock_sec.raise_for_ownership = raise_security
 

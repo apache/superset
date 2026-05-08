@@ -19,12 +19,12 @@
 import logging
 from functools import partial
 
-from superset.commands.base import BaseRestoreCommand
 from superset.commands.dashboard.exceptions import (
     DashboardForbiddenError,
     DashboardNotFoundError,
     DashboardRestoreFailedError,
 )
+from superset.commands.restore import BaseRestoreCommand
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils.decorators import on_error, transaction

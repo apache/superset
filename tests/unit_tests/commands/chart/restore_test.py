@@ -36,7 +36,7 @@ def test_restore_chart_clears_deleted_at(app_context: None) -> None:
         patch(
             "superset.daos.chart.ChartDAO.find_by_id", return_value=chart
         ) as mock_find,
-        patch("superset.commands.base.security_manager") as mock_sec,
+        patch("superset.commands.restore.security_manager") as mock_sec,
     ):
         mock_sec.raise_for_ownership.return_value = None
 
@@ -86,7 +86,7 @@ def test_restore_chart_forbidden_raises(app_context: None) -> None:
 
     with (
         patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
-        patch("superset.commands.base.security_manager") as mock_sec,
+        patch("superset.commands.restore.security_manager") as mock_sec,
     ):
         mock_sec.raise_for_ownership = raise_security
 

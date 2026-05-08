@@ -19,12 +19,12 @@
 import logging
 from functools import partial
 
-from superset.commands.base import BaseRestoreCommand
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
     DatasetRestoreFailedError,
 )
+from superset.commands.restore import BaseRestoreCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.utils.decorators import on_error, transaction
