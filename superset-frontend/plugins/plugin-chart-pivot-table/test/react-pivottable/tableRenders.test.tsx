@@ -330,6 +330,29 @@ test('TableRenderer renders value cells with the pvtVal class', () => {
   expect(valueCells.length).toBe(4);
 });
 
+test('TableRenderer coerces numeric timestamp strings to numbers for column header date formatters', () => {
+  const dateFormatter = jest.fn((val: unknown) => `col:${String(val)}`);
+  const data = [
+    { shape: '1700000000000', color: 'blue', value: 1 },
+    { shape: 'square', color: 'blue', value: 2 },
+  ];
+  const props = buildDefaultProps({
+    data,
+    rows: ['color'],
+    cols: ['shape'],
+    tableOptions: { dateFormatters: { shape: dateFormatter } },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Numeric string should be coerced to a Number before being passed to the
+  // date formatter; plain (non-numeric) strings should pass through verbatim.
+  expect(dateFormatter).toHaveBeenCalledWith(1700000000000);
+  expect(dateFormatter).toHaveBeenCalledWith('square');
+
+  expect(screen.getByText('col:1700000000000')).toBeInTheDocument();
+  expect(screen.getByText('col:square')).toBeInTheDocument();
+});
+
 test('TableRenderer renders correct number of thead and tbody sections', () => {
   const props = buildDefaultProps();
   renderWithTheme(<TableRenderer {...props} />);
