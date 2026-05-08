@@ -22,7 +22,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastmcp.server.auth import AccessToken
 
-from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
+from superset.mcp_service.composite_token_verifier import (
+    API_KEY_PASSTHROUGH_CLAIM,
+    CompositeTokenVerifier,
+)
 
 
 @pytest.fixture
@@ -52,7 +55,7 @@ async def test_api_key_token_returns_passthrough(
     assert result is not None
     assert result.token == api_key
     assert result.client_id == "api_key"
-    assert result.claims.get("_api_key_passthrough") is True
+    assert result.claims.get(API_KEY_PASSTHROUGH_CLAIM) is True
 
 
 @pytest.mark.asyncio
@@ -63,7 +66,7 @@ async def test_second_prefix_matches(
     result = await composite_verifier.verify_token("pat_mytoken")
 
     assert result is not None
-    assert result.claims.get("_api_key_passthrough") is True
+    assert result.claims.get(API_KEY_PASSTHROUGH_CLAIM) is True
 
 
 @pytest.mark.asyncio
@@ -109,3 +112,47 @@ async def test_api_key_does_not_call_jwt_verifier(
     await composite_verifier.verify_token("sst_test_key")
 
     mock_jwt_verifier.verify_token.assert_not_awaited()
+
+
+# -- API-key-only mode (no JWT verifier configured) --
+
+
+@pytest.mark.asyncio
+async def test_api_key_only_mode_accepts_api_keys() -> None:
+    """When jwt_verifier is None, API key tokens are still passed through."""
+    verifier = CompositeTokenVerifier(jwt_verifier=None, api_key_prefixes=["sst_"])
+
+    result = await verifier.verify_token("sst_abc123")
+
+    assert result is not None
+    assert result.claims.get(API_KEY_PASSTHROUGH_CLAIM) is True
+
+
+@pytest.mark.asyncio
+async def test_api_key_only_mode_rejects_non_api_key_tokens() -> None:
+    """When jwt_verifier is None, non-API-key Bearer tokens are rejected at
+    the transport instead of being silently accepted."""
+    verifier = CompositeTokenVerifier(jwt_verifier=None, api_key_prefixes=["sst_"])
+
+    result = await verifier.verify_token("eyJhbGciOiJSUzI1NiJ9.jwt_payload")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_api_key_passthrough_propagates_required_scopes() -> None:
+    """The pass-through AccessToken must carry the verifier's required_scopes
+    so FastMCP's transport-level ``RequireAuthMiddleware`` does not 403 the
+    request before ``_resolve_user_from_api_key`` runs."""
+    jwt_verifier = MagicMock()
+    jwt_verifier.required_scopes = ["read", "write"]
+    jwt_verifier.verify_token = AsyncMock()
+
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=jwt_verifier, api_key_prefixes=["sst_"]
+    )
+
+    result = await verifier.verify_token("sst_abc123")
+
+    assert result is not None
+    assert result.scopes == ["read", "write"]
