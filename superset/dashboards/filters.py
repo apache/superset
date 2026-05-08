@@ -33,8 +33,8 @@ from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
-from superset.views.filters import BaseDeletedStateFilter
 from superset.views.base_api import BaseFavoriteFilter
+from superset.views.filters import BaseDeletedStateFilter
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods

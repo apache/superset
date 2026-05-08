@@ -133,9 +133,7 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
             skip_visibility_filter=True,
         )
         if model is None:
-            raise self.not_found_exc(
-                f"No row with uuid={self._model_uuid!r}"
-            )
+            raise self.not_found_exc(f"No row with uuid={self._model_uuid!r}")
         if model.deleted_at is None:
             raise self.not_found_exc(
                 f"Row with uuid={self._model_uuid!r} is not soft-deleted; "

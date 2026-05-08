@@ -59,14 +59,16 @@ def test_restore_dashboard_not_found_raises(app_context: None) -> None:
 
 
 def test_restore_active_dashboard_raises_not_found(app_context: None) -> None:
-    """RestoreDashboardCommand raises DashboardNotFoundError for non-deleted dashboard."""
+    """RestoreDashboardCommand raises DashboardNotFoundError for non-deleted dashboard."""  # noqa: E501
     from superset.commands.dashboard.exceptions import DashboardNotFoundError
     from superset.commands.dashboard.restore import RestoreDashboardCommand
 
     dashboard = MagicMock()
     dashboard.deleted_at = None  # not soft-deleted
 
-    with patch("superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard):
+    with patch(
+        "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+    ):
         cmd = RestoreDashboardCommand("1")
         with pytest.raises(DashboardNotFoundError):
             cmd.run()
@@ -85,7 +87,9 @@ def test_restore_dashboard_forbidden_raises(app_context: None) -> None:
         raise SupersetSecurityException(MagicMock())
 
     with (
-        patch("superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard),
+        patch(
+            "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+        ),
         patch("superset.commands.base.security_manager") as mock_sec,
     ):
         mock_sec.raise_for_ownership = raise_security

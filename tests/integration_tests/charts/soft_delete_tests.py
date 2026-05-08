@@ -109,7 +109,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         _hard_delete_chart(chart_id)
 
     def test_soft_deleted_chart_included_in_list_when_requested(self):
-        """GET /api/v1/chart/ with chart_deleted_state=include returns deleted charts."""
+        """GET /api/v1/chart/ with chart_deleted_state=include returns deleted charts."""  # noqa: E501
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("listed_with_deleted", [admin_id], 1)
         chart_id = chart.id
@@ -226,7 +226,9 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
 
         # Cleanup
         db.session.delete(
-            db.session.query(ReportSchedule).filter(ReportSchedule.id == report_id).one()
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.id == report_id)
+            .one()
         )
         db.session.commit()
         _hard_delete_chart(chart_id)
