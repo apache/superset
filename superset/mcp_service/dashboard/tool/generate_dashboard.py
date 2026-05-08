@@ -231,7 +231,7 @@ def generate_dashboard(  # noqa: C901
                     dashboard=None,
                     dashboard_url=None,
                     error=(
-                        f"Charts not found: {list(missing_chart_ids)}."
+                        f"Charts not found: {sorted(missing_chart_ids)}."
                         " Use list_charts to get valid chart IDs."
                     ),
                 )
