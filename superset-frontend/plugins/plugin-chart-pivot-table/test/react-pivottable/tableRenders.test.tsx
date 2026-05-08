@@ -376,6 +376,33 @@ test('TableRenderer coerces numeric timestamp strings to numbers for row header 
   expect(screen.getByText('row:red')).toBeInTheDocument();
 });
 
+test('TableRenderer applies cellColorFormatters background and contrast color to column headers', () => {
+  const cellColorFormatters = {
+    shape: [
+      {
+        column: 'shape',
+        getColorFromValue: (val: unknown) =>
+          val === 'circle' ? '#ff0000' : undefined,
+      },
+    ],
+  };
+  const props = buildDefaultProps({
+    tableOptions: { cellColorFormatters },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // The matching column header should pick up the formatter's background
+  // color and a contrast-aware text color from getTextColorForBackground.
+  const formattedHeader = screen.getByText('circle').closest('th');
+  expect(formattedHeader).not.toBeNull();
+  expect(formattedHeader!.style.backgroundColor).not.toBe('');
+  expect(formattedHeader!.style.color).not.toBe('');
+
+  // The non-matching header should not get a background applied.
+  const plainHeader = screen.getByText('square').closest('th');
+  expect(plainHeader!.style.backgroundColor).toBe('');
+});
+
 test('TableRenderer renders correct number of thead and tbody sections', () => {
   const props = buildDefaultProps();
   renderWithTheme(<TableRenderer {...props} />);
