@@ -67,9 +67,7 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
       [...metricOffsetMap.entries()].forEach(
         ([metricWithOffset, metricOnly]) => {
           const offsetLabel = timeOffsets.find(offset =>
-            metricWithOffset.endsWith(
-              `${TIME_COMPARISON_SEPARATOR}${offset}`,
-            ),
+            metricWithOffset.endsWith(`${TIME_COMPARISON_SEPARATOR}${offset}`),
           );
           renamePairs.push([
             formData.comparison_type === ComparisonType.Values
