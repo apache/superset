@@ -16,14 +16,13 @@
 # under the License.
 from typing import Any
 
-from flask import g
 from flask_babel import lazy_gettext as _
 from sqlalchemy import not_, or_
 from sqlalchemy.orm.query import Query
 
 from superset.connectors.sqla.models import SqlaTable
-from superset.models.helpers import SKIP_VISIBILITY_FILTER
 from superset.views.base import BaseFilter
+from superset.views.filters import BaseDeletedStateFilter
 
 
 class DatasetIsNullOrEmptyFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -57,29 +56,8 @@ class DatasetCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         return query
 
 
-class DatasetDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    """Rison filter for the GET list that exposes soft-deleted datasets.
+class DatasetDeletedStateFilter(BaseDeletedStateFilter):  # pylint: disable=too-few-public-methods
+    """Rison filter for the GET list that exposes soft-deleted datasets."""
 
-    Values:
-        ``include`` — return live + soft-deleted rows
-        ``only``    — return only soft-deleted rows
-        anything else (or absent) — default behaviour (live rows only)
-    """
-
-    name = _("Deleted state")
     arg_name = "dataset_deleted_state"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        # Setting g.skip_visibility_filter is read by the do_orm_execute listener
-        # at superset.models.helpers._add_soft_delete_filter to opt the request
-        # out of the global soft-delete WHERE clause. apply() runs during query
-        # construction (before execution), so the flag is in place by the time
-        # the listener fires.
-        normalized = str(value).lower().strip() if value is not None else ""
-        if normalized == "include":
-            setattr(g, SKIP_VISIBILITY_FILTER, True)
-            return query
-        if normalized == "only":
-            setattr(g, SKIP_VISIBILITY_FILTER, True)
-            return query.filter(SqlaTable.deleted_at.is_not(None))
-        return query
+    model = SqlaTable

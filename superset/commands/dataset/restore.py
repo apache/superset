@@ -19,8 +19,7 @@
 import logging
 from functools import partial
 
-from superset import security_manager
-from superset.commands.base import BaseCommand
+from superset.commands.base import BaseRestoreCommand
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
@@ -28,37 +27,19 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
 
-class RestoreDatasetCommand(BaseCommand):
+class RestoreDatasetCommand(BaseRestoreCommand[SqlaTable]):
     """Restore a soft-deleted dataset by clearing its ``deleted_at`` field."""
 
-    def __init__(self, model_uuid: str):
-        self._model_uuid = model_uuid
-        self._model: SqlaTable | None = None
+    dao = DatasetDAO
+    not_found_exc = DatasetNotFoundError
+    forbidden_exc = DatasetForbiddenError
+    failed_exc = DatasetRestoreFailedError
 
     @transaction(on_error=partial(on_error, reraise=DatasetRestoreFailedError))
     def run(self) -> None:
-        self.validate()
-        assert self._model
-        self._model.restore()
-
-    def validate(self) -> None:
-        self._model = DatasetDAO.find_by_id(
-            self._model_uuid,
-            id_column="uuid",
-            skip_base_filter=True,
-            skip_visibility_filter=True,
-        )
-
-        if self._model is None or self._model.deleted_at is None:
-            raise DatasetNotFoundError()
-
-        try:
-            security_manager.raise_for_ownership(self._model)
-        except SupersetSecurityException as ex:
-            raise DatasetForbiddenError() from ex
+        super().run()

@@ -32,67 +32,48 @@ def test_restore_dashboard_clears_deleted_at(app_context: None) -> None:
     dashboard.deleted_at = datetime(2026, 1, 1)
     dashboard.id = 1
 
-    query_mock = MagicMock()
-    query_mock.execution_options.return_value = query_mock
-    query_mock.filter.return_value = query_mock
-    query_mock.one_or_none.return_value = dashboard
-
     with (
-        patch("superset.commands.dashboard.restore.db") as mock_db,
-        patch("superset.commands.dashboard.restore.security_manager") as mock_sec,
+        patch(
+            "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+        ) as mock_find,
+        patch("superset.commands.base.security_manager") as mock_sec,
     ):
-        mock_db.session.query.return_value = query_mock
         mock_sec.raise_for_ownership.return_value = None
 
         cmd = RestoreDashboardCommand("1")
         cmd.run()
 
+    mock_find.assert_called_once()
     dashboard.restore.assert_called_once()
 
 
 def test_restore_dashboard_not_found_raises(app_context: None) -> None:
-    """RestoreDashboardCommand raises DashboardNotFoundError when missing."""
+    """RestoreDashboardCommand raises DashboardNotFoundError for missing dashboard."""
     from superset.commands.dashboard.exceptions import DashboardNotFoundError
     from superset.commands.dashboard.restore import RestoreDashboardCommand
 
-    query_mock = MagicMock()
-    query_mock.execution_options.return_value = query_mock
-    query_mock.filter.return_value = query_mock
-    query_mock.one_or_none.return_value = None
-
-    with patch("superset.commands.dashboard.restore.db") as mock_db:
-        mock_db.session.query.return_value = query_mock
-
+    with patch("superset.daos.dashboard.DashboardDAO.find_by_id", return_value=None):
         cmd = RestoreDashboardCommand("999")
         with pytest.raises(DashboardNotFoundError):
             cmd.run()
 
 
-def test_restore_active_dashboard_raises_not_found(
-    app_context: None,
-) -> None:
-    """RestoreDashboardCommand raises error for non-deleted dashboard."""
+def test_restore_active_dashboard_raises_not_found(app_context: None) -> None:
+    """RestoreDashboardCommand raises DashboardNotFoundError for non-deleted dashboard."""
     from superset.commands.dashboard.exceptions import DashboardNotFoundError
     from superset.commands.dashboard.restore import RestoreDashboardCommand
 
     dashboard = MagicMock()
-    dashboard.deleted_at = None
+    dashboard.deleted_at = None  # not soft-deleted
 
-    query_mock = MagicMock()
-    query_mock.execution_options.return_value = query_mock
-    query_mock.filter.return_value = query_mock
-    query_mock.one_or_none.return_value = dashboard
-
-    with patch("superset.commands.dashboard.restore.db") as mock_db:
-        mock_db.session.query.return_value = query_mock
-
+    with patch("superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard):
         cmd = RestoreDashboardCommand("1")
         with pytest.raises(DashboardNotFoundError):
             cmd.run()
 
 
 def test_restore_dashboard_forbidden_raises(app_context: None) -> None:
-    """RestoreDashboardCommand raises DashboardForbiddenError."""
+    """RestoreDashboardCommand raises DashboardForbiddenError on permission check."""
     from superset.commands.dashboard.exceptions import DashboardForbiddenError
     from superset.commands.dashboard.restore import RestoreDashboardCommand
     from superset.exceptions import SupersetSecurityException
@@ -100,19 +81,13 @@ def test_restore_dashboard_forbidden_raises(app_context: None) -> None:
     dashboard = MagicMock()
     dashboard.deleted_at = datetime(2026, 1, 1)
 
-    query_mock = MagicMock()
-    query_mock.execution_options.return_value = query_mock
-    query_mock.filter.return_value = query_mock
-    query_mock.one_or_none.return_value = dashboard
-
     def raise_security(*args: object, **kwargs: object) -> None:
         raise SupersetSecurityException(MagicMock())
 
     with (
-        patch("superset.commands.dashboard.restore.db") as mock_db,
-        patch("superset.commands.dashboard.restore.security_manager") as mock_sec,
+        patch("superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard),
+        patch("superset.commands.base.security_manager") as mock_sec,
     ):
-        mock_db.session.query.return_value = query_mock
         mock_sec.raise_for_ownership = raise_security
 
         cmd = RestoreDashboardCommand("1")

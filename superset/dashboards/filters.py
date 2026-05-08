@@ -27,13 +27,13 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
-from superset.models.helpers import SKIP_VISIBILITY_FILTER
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
+from superset.views.filters import BaseDeletedStateFilter
 from superset.views.base_api import BaseFavoriteFilter
 
 
@@ -258,29 +258,8 @@ class DashboardHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public
         return query
 
 
-class DashboardDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    """Rison filter for the GET list that exposes soft-deleted dashboards.
+class DashboardDeletedStateFilter(BaseDeletedStateFilter):  # pylint: disable=too-few-public-methods
+    """Rison filter for the GET list that exposes soft-deleted dashboards."""
 
-    Values:
-        ``include`` — return live + soft-deleted rows
-        ``only``    — return only soft-deleted rows
-        anything else (or absent) — default behaviour (live rows only)
-    """
-
-    name = _("Deleted state")
     arg_name = "dashboard_deleted_state"
-
-    def apply(self, query: Query, value: Any) -> Query:
-        # Setting g.skip_visibility_filter is read by the do_orm_execute listener
-        # at superset.models.helpers._add_soft_delete_filter to opt the request
-        # out of the global soft-delete WHERE clause. apply() runs during query
-        # construction (before execution), so the flag is in place by the time
-        # the listener fires.
-        normalized = str(value).lower().strip() if value is not None else ""
-        if normalized == "include":
-            setattr(g, SKIP_VISIBILITY_FILTER, True)
-            return query
-        if normalized == "only":
-            setattr(g, SKIP_VISIBILITY_FILTER, True)
-            return query.filter(Dashboard.deleted_at.is_not(None))
-        return query
+    model = Dashboard
