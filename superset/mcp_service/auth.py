@@ -314,8 +314,12 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     # API key pass-through: CompositeTokenVerifier accepted this token
     # at the transport layer but defers actual validation to
     # _resolve_user_from_api_key() (priority 2 in get_user_from_request).
+    from superset.mcp_service.composite_token_verifier import (
+        API_KEY_PASSTHROUGH_CLAIM,
+    )
+
     claims = getattr(access_token, "claims", None)
-    if isinstance(claims, dict) and claims.get("_api_key_passthrough"):
+    if isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM):
         logger.debug("API key pass-through token detected, deferring to API key auth")
         return None
 
@@ -349,37 +353,53 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
 
 def _resolve_user_from_api_key(app: Any) -> User | None:
     """
-    Resolve the current user from an API key in the Authorization header.
+    Resolve the current user from an API key passed via Bearer token.
 
-    Uses FAB SecurityManager's API key validation. Only attempts when
-    FAB_API_KEY_ENABLED is True and a request context is active.
+    Reads the token from FastMCP's per-request ``AccessToken`` (set by
+    ``CompositeTokenVerifier`` when a Bearer token matches an API key
+    prefix). The streamable-http transport does not push a Flask request
+    context, so we cannot rely on ``flask.request`` headers — the verifier
+    already saw the token and stashed it on the ``AccessToken``.
 
     Returns:
-        User object with relationships loaded, or None if no API key present
-        or API key auth is not enabled/available.
+        User object with relationships loaded, or None if no API key
+        pass-through token is present or API key auth is not enabled.
 
     Raises:
-        PermissionError: If an API key is present but invalid/expired,
-            or if validation is not available in this FAB version.
+        PermissionError: If an API key pass-through token is present but
+            invalid/expired (fail closed — do NOT fall through to weaker
+            auth sources like ``MCP_DEV_USERNAME``), or if validation is
+            not available in this FAB version.
     """
-    if not app.config.get("FAB_API_KEY_ENABLED", False) or not has_request_context():
+    if not app.config.get("FAB_API_KEY_ENABLED", False):
+        return None
+
+    try:
+        from fastmcp.server.dependencies import get_access_token
+    except ImportError:
+        logger.debug("fastmcp.server.dependencies not available, skipping API key auth")
+        return None
+
+    access_token = get_access_token()
+    if access_token is None:
+        return None
+
+    # Only validate tokens that the CompositeTokenVerifier flagged as
+    # API key pass-throughs. Plain JWTs were already validated by the JWT
+    # verifier and resolved in _resolve_user_from_jwt_context.
+    from superset.mcp_service.composite_token_verifier import (
+        API_KEY_PASSTHROUGH_CLAIM,
+    )
+
+    claims = getattr(access_token, "claims", None)
+    if not (isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM)):
+        return None
+
+    api_key_string = getattr(access_token, "token", None)
+    if not api_key_string:
         return None
 
     sm = app.appbuilder.sm
-    # extract_api_key_from_request is FAB's method for reading
-    # the Bearer token from the Authorization header and matching prefixes.
-    # Not all FAB versions include this method, so guard with hasattr.
-    if not hasattr(sm, "extract_api_key_from_request"):
-        logger.debug(
-            "FAB SecurityManager does not have extract_api_key_from_request; "
-            "API key authentication is not available in this FAB version"
-        )
-        return None
-
-    api_key_string = sm.extract_api_key_from_request()
-    if api_key_string is None:
-        return None
-
     if not hasattr(sm, "validate_api_key"):
         logger.warning(
             "FAB SecurityManager does not have validate_api_key; "
@@ -575,7 +595,6 @@ def _setup_user_context() -> User | None:
     # tool calls when no per-request middleware refreshes it.
     # Only clear in app-context-only mode; preserve g.user when
     # a request context is active (external middleware set it).
-    from flask import has_request_context
 
     if not has_request_context():
         g.pop("user", None)
