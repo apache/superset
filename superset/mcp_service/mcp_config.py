@@ -20,6 +20,7 @@ import logging
 import secrets
 from typing import Any, Dict, Optional
 
+from fastmcp.server.auth.providers.jwt import JWTVerifier
 from flask import Flask
 
 from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
@@ -27,6 +28,7 @@ from superset.mcp_service.constants import (
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
+from superset.mcp_service.jwt_verifier import DetailedJWTVerifier, MCPJWTVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -383,13 +385,9 @@ def _build_jwt_verifier(
         # DetailedJWTVerifier: detailed server-side logging of JWT
         # validation failures. HTTP responses are always generic per
         # RFC 6750 Section 3.1.
-        from superset.mcp_service.jwt_verifier import DetailedJWTVerifier
-
         return DetailedJWTVerifier(**common_kwargs)
 
     # MCPJWTVerifier: minimal logging + browser-friendly error page.
-    from superset.mcp_service.jwt_verifier import MCPJWTVerifier
-
     return MCPJWTVerifier(**common_kwargs)
 
 
