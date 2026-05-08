@@ -2197,13 +2197,25 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # goes on a wrapping query instead, exactly as `WRAP_SQL` does.
         if method == LimitMethod.FORCE_LIMIT and not self._has_limit_by():
             # AST mutation invalidates any cached verbatim SQL (e.g. from splice).
-            self._raw_sql = None
+            # If we already have a rewritten SQL string, re-parse it first so
+            # further AST mutations (like LIMIT injection) preserve prior
+            # text-based rewrites.
+            if self._raw_sql is not None:
+                self._parsed = self._parse_statement(self._raw_sql, self.engine)
+                self._source_sql = self._raw_sql
+                self._raw_sql = None
             self._parsed.args["limit"] = exp.Limit(
                 expression=exp.Literal(this=str(limit), is_string=False)
             )
         elif method in {LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL}:
             # AST mutation invalidates any cached verbatim SQL (e.g. from splice).
-            self._raw_sql = None
+            # If we already have a rewritten SQL string, re-parse it first so
+            # further AST mutations (like LIMIT injection) preserve prior
+            # text-based rewrites.
+            if self._raw_sql is not None:
+                self._parsed = self._parse_statement(self._raw_sql, self.engine)
+                self._source_sql = self._raw_sql
+                self._raw_sql = None
             inner = self._parsed.copy()
             wrapper = exp.Select(
                 expressions=[exp.Star()],
