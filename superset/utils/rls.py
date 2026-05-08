@@ -24,7 +24,7 @@ from typing import Any, TYPE_CHECKING
 from sqlalchemy import and_, func, or_
 
 from superset import db, security_manager
-from superset.sql.parse import folds_unquoted_object_names, RLSMethod, Table
+from superset.sql.parse import folds_unquoted_object_names, Table
 from superset.utils import json
 from superset.utils.core import get_user_id, remove_duplicates
 
@@ -92,18 +92,13 @@ def apply_rls(
     # collect all RLS predicates for all tables in the query
     default_catalog = database.get_default_catalog()
 
-    # In splice mode predicates stay as raw SQL strings and are inserted verbatim
-    # into the source query — re-parsing them would force a generator round-trip
-    # later and defeat the purpose.
-    use_splice = method == RLSMethod.AS_PREDICATE_SPLICE
-
     def collect_predicates(
         include_global: bool, exclude_id: int | None
-    ) -> dict[Table, list[Any]]:
-        predicates: dict[Table, list[Any]] = {}
+    ) -> dict[Table, list[str]]:
+        predicates: dict[Table, list[str]] = {}
         for table in parsed_statement.tables:
             table = table.qualify(catalog=catalog, schema=schema)
-            raw_predicates = [
+            predicates[table] = [
                 predicate
                 for predicate in get_predicates_for_table(
                     table,
@@ -114,11 +109,6 @@ def apply_rls(
                 )
                 if predicate
             ]
-            predicates[table] = (
-                raw_predicates
-                if use_splice
-                else [parsed_statement.parse_predicate(p) for p in raw_predicates]
-            )
         return predicates
 
     predicates = collect_predicates(include_global_guest_rls, exclude_dataset_id)

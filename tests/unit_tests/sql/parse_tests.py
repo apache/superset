@@ -4571,7 +4571,7 @@ def test_rls_subquery_transformer(
     statement.apply_rls(
         "catalog1",
         "schema1",
-        {k: [parse_one(v)] for k, v in rules.items()},
+        {k: [v] for k, v in rules.items()},
         RLSMethod.AS_SUBQUERY,
     )
     assert statement.format() == expected
@@ -5024,7 +5024,7 @@ def test_rls_predicate_transformer(
     statement.apply_rls(
         "catalog1",
         "schema1",
-        {k: [parse_one(v)] for k, v in rules.items()},
+        {k: [v] for k, v in rules.items()},
         RLSMethod.AS_PREDICATE,
     )
     assert statement.format() == expected
