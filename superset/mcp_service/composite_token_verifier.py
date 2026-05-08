@@ -74,7 +74,8 @@ class CompositeTokenVerifier(TokenVerifier):
         """Verify a Bearer token.
 
         If the token starts with an API key prefix, return a pass-through
-        AccessToken with a ``_api_key_passthrough`` claim. The Flask-layer
+        AccessToken with the namespaced ``API_KEY_PASSTHROUGH_CLAIM``
+        (``_superset_mcp_api_key_passthrough``). The Flask-layer
         ``_resolve_user_from_api_key()`` performs the real validation.
 
         Otherwise, delegate to the wrapped JWT verifier when one is
