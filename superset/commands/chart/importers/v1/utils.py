@@ -51,10 +51,9 @@ def import_chart(
     can_write = ignore_permissions or security_manager.can_access("can_write", "Chart")
     from superset.commands.importers.v1.utils import find_existing_for_import
 
-    existing = find_existing_for_import(Slice, config["uuid"])
     user = get_user()
 
-    if existing:
+    if existing := find_existing_for_import(Slice, config["uuid"]):
         if overwrite and can_write and user:
             if not security_manager.can_access_chart(existing) or (
                 user not in existing.owners and not security_manager.is_admin()

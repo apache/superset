@@ -114,10 +114,9 @@ def import_dataset(  # noqa: C901
     )
     from superset.commands.importers.v1.utils import find_existing_for_import
 
-    existing = find_existing_for_import(SqlaTable, config["uuid"])
     user = get_user()
 
-    if existing:
+    if existing := find_existing_for_import(SqlaTable, config["uuid"]):
         if overwrite and can_write and user:
             if user not in existing.owners and not security_manager.is_admin():
                 raise ImportFailedError(

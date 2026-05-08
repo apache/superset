@@ -202,10 +202,9 @@ def import_dashboard(  # noqa: C901
     )
     from superset.commands.importers.v1.utils import find_existing_for_import
 
-    existing = find_existing_for_import(Dashboard, config["uuid"])
     user = get_user()
 
-    if existing:
+    if existing := find_existing_for_import(Dashboard, config["uuid"]):
         if overwrite and can_write and user:
             if not security_manager.can_access_dashboard(existing) or (
                 user not in existing.owners and not security_manager.is_admin()
