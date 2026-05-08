@@ -66,7 +66,7 @@ const LazyDashboardPage = lazy(
     ),
 );
 
-const EmbededLazyDashboardPage = () => {
+const EmbeddedLazyDashboardPage = () => {
   const uiConfig = useUiConfig();
   const emitDataMasks = uiConfig?.emitDataMasks;
 
@@ -108,7 +108,7 @@ const EmbeddedRoute = () => (
     />
     <Suspense fallback={<Loading />}>
       <ErrorBoundary>
-        <EmbededLazyDashboardPage />
+        <EmbeddedLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
     </Suspense>
