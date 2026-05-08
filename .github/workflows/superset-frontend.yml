@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload Docker Image Artifact
         if: steps.check.outputs.frontend
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: docker-image
           path: docker-image.tar.zst
@@ -91,7 +91,7 @@ jobs:
           "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json"
 
       - name: Upload Coverage Artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-artifacts-${{ matrix.shard }}
           path: superset-frontend/coverage
@@ -128,7 +128,7 @@ jobs:
         run: npx nyc merge coverage/ merged-output/coverage-summary.json
 
       - name: Upload Code Coverage
-        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
         with:
           flags: javascript
           use_oidc: true

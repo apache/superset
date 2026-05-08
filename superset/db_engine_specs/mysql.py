@@ -402,9 +402,14 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         if not cls.type_code_map:
             # only import and store if needed at least once
             # pylint: disable=import-outside-toplevel
-            import MySQLdb
+            try:
+                import MySQLdb
 
-            ft = MySQLdb.constants.FIELD_TYPE
+                mysql_module = MySQLdb
+            except ImportError:
+                mysql_module = __import__("pymysql")
+
+            ft = mysql_module.constants.FIELD_TYPE
             cls.type_code_map = {
                 getattr(ft, k): k for k in dir(ft) if not k.startswith("_")
             }

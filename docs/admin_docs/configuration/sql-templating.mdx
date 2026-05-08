@@ -22,6 +22,15 @@ While powerful, this feature executes template code on the server. Within the Su
 
 If you grant these permissions to untrusted users, this feature can be exploited as a **Server-Side Template Injection (SSTI)** vulnerability. Do not enable `ENABLE_TEMPLATE_PROCESSING` unless you fully understand and accept the associated security risks.
 
+Additionally:
+
+- The `url_param()` macro allows URL parameters to influence the rendered SQL. Always validate or restrict `url_param()` values in your templates rather than interpolating them directly.
+- `filter.get('val')` returns raw filter values without escaping. Use the safe helpers described below (`|where_in`, `| replace("'", "''")`) rather than concatenating values directly into SQL strings.
+
+:::
+
+:::tip
+`ENABLE_TEMPLATE_PROCESSING` defaults to `False`. Only enable it if your deployment requires Jinja templates and all users with dataset/chart edit access are administrators or fully trusted internal users.
 :::
 
 When templating is enabled, python code can be embedded in virtual datasets and
@@ -324,6 +333,16 @@ cache hit in the future and Superset can retrieve cached data.
 The `{{ url_param('custom_variable') }}` macro lets you define arbitrary URL
 parameters and reference them in your SQL code.
 
+:::warning
+Always treat `url_param()` values as untrusted input. Escaping behaviour varies by context and configuration, so do not rely on it. Restrict values to an explicit allowlist before using them in SQL:
+
+```sql
+{% set cc = url_param('countrycode') %}
+{% if cc not in ('US', 'ES', 'FR') %}{% set cc = 'US' %}{% endif %}
+WHERE country_code = '{{ cc }}'
+```
+:::
+
 Here's a concrete example:
 
 - You write the following query in SQL Lab:
@@ -398,6 +417,16 @@ This is useful if:
 - You want to handle generating custom SQL conditions for a filter
 - You want to have the ability to filter inside the main query for speed purposes
 
+:::warning
+`filter.get('val')` returns the raw filter value without escaping. For multi-value filters, use the `|where_in` Jinja filter, which handles quoting safely. For single-value operators like `LIKE`, escape single quotes before interpolating:
+
+```sql
+{%- if filter.get('op') == 'LIKE' -%}
+    AND full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
+{%- endif -%}
+```
+:::
+
 Here's a concrete example:
 
 ```sql
@@ -424,7 +453,7 @@ Here's a concrete example:
 
     {%- if filter.get('op') == 'LIKE' -%}
         AND
-        full_name LIKE {{ "'" + filter.get('val') + "'" }}
+        full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
     {%- endif -%}
 
     {%- endfor -%}

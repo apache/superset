@@ -99,6 +99,7 @@ def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
         "columns": payload_columns,
         "selectStar": database.select_star(
             table,
+            show_cols=True if columns else False,
             indent=True,
             cols=columns,
             latest_partition=True,

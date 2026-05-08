@@ -458,7 +458,8 @@ export const getSimpleSQLExpression = (
       isMulti && Array.isArray(comparator) ? comparator[0] : comparator;
     const comparatorArray = ensureIsArray(comparator);
     const isString =
-      firstValue !== undefined && Number.isNaN(Number(firstValue));
+      firstValue !== undefined &&
+      (typeof firstValue === 'boolean' || Number.isNaN(Number(firstValue)));
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
     if (comparatorArray.length > 0 && showComparator) {

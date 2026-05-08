@@ -844,6 +844,8 @@ postgresql:
     database: superset
 
   image:
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
     tag: "14.17.0-debian-12-r3"
 
   ## PostgreSQL Primary parameters
@@ -917,6 +919,11 @@ redis:
       ## Access mode:
       accessModes:
         - ReadWriteOnce
+
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/redis
+    tag: 7.0.10-debian-11-r4
 
 nodeSelector: {}
 

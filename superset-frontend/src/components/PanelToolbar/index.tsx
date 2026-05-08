@@ -62,7 +62,7 @@ const PanelToolbar = ({
               buttonSize="small"
               aria-label={command?.title}
               variant="text"
-              color="primary"
+              color="default"
             />
           );
         })
@@ -140,7 +140,7 @@ const PanelToolbar = ({
         >
           <Button
             showMarginRight={false}
-            color="primary"
+            color="default"
             variant="text"
             css={css`
               padding: 8px;

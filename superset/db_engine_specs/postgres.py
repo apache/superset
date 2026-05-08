@@ -82,6 +82,43 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
 SYNTAX_ERROR_REGEX = re.compile('syntax error at or near "(?P<syntax_error>.*?)"')
 
 
+def _check_not_redshift(dbapi_connection: Any, connection_record: Any) -> None:
+    """
+    Event that checks if database is Amazon Redshift.
+
+    SQLAlchemy pool `connect` event that checks whether the database is actually
+    Amazon Redshift by running `SELECT version()`. Redshift returns a version string
+    containing `Redshift`, e.g.::
+
+        PostgreSQL 8.0.2 on ... Redshift 1.0.77467
+
+    If detected, a `ValueError` is raised so that the user is prompted to
+    switch to the `redshift+psycopg2://` driver, which ensures the correct
+    sqlglot dialect is used for SQL transpilation.
+    """
+    try:
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("SELECT version()")
+            version = cursor.fetchone()[0]
+        finally:
+            cursor.close()
+
+        if "redshift" in str(version).lower():
+            raise ValueError(
+                "It looks like you're connecting to Amazon Redshift using the "
+                "PostgreSQL driver. Please use the Redshift driver instead "
+                "(redshift+psycopg2://) to ensure proper SQL dialect support."
+            )
+    except ValueError:
+        raise
+    except Exception:
+        logger.debug(
+            "Failed to check database version for Redshift detection",
+            exc_info=True,
+        )
+
+
 def parse_options(connect_args: dict[str, Any]) -> dict[str, str]:
     """
     Parse ``options`` from  ``connect_args`` into a dictionary.
@@ -571,6 +608,15 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return uri, connect_args
 
     @staticmethod
+    def mutate_db_for_connection_test(database: Database) -> None:
+        """
+        Flag the database so that the Redshift `SELECT version()` check
+        runs during `test_connection`.  The actual check is injected as a
+        pool `connect` event inside `update_params_from_encrypted_extra`.
+        """
+        database._check_redshift_version = True
+
+    @staticmethod
     def update_params_from_encrypted_extra(
         database: Database,
         params: dict[str, Any],
@@ -581,6 +627,13 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         Handles AWS IAM authentication if configured, then merges any
         remaining encrypted_extra keys into params (standard behavior).
         """
+        # During test_connection, inject a pool event to detect Redshift by
+        # checking SELECT version().  This catches cases where the hostname
+        # doesn't reveal Redshift (custom domains, private endpoints, etc.).
+        if getattr(database, "_check_redshift_version", False) is True:
+            pool_events = params.setdefault("pool_events", [])
+            pool_events.append((_check_not_redshift, "connect"))
+
         if not database.encrypted_extra:
             return
 

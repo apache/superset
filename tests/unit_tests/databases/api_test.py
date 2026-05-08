@@ -2375,7 +2375,7 @@ def test_export_includes_configuration_method(
     """
     import zipfile
 
-    import prison
+    import rison
 
     from superset.models.core import Database
 
@@ -2389,7 +2389,7 @@ def test_export_includes_configuration_method(
     db.session.add(db_obj)
     db.session.commit()
 
-    rison_ids = prison.dumps([db_obj.id])
+    rison_ids = rison.dumps([db_obj.id])
     response = client.get(f"/api/v1/database/export/?q={rison_ids}")
     assert response.status_code == 200
 

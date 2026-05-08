@@ -43,10 +43,10 @@ def test_bundle_command_creates_zip_with_default_name(
     result = cli_runner.invoke(app, ["bundle"])
 
     assert result.exit_code == 0
-    assert "✅ Bundle created: test-org.test-extension-1.0.0.supx" in result.output
+    assert "✅ Bundle created: test-extension-1.0.0.supx" in result.output
 
     # Verify zip file was created
-    zip_path = isolated_filesystem / "test-org.test-extension-1.0.0.supx"
+    zip_path = isolated_filesystem / "test-extension-1.0.0.supx"
     assert_file_exists(zip_path)
 
     # Verify zip contents
@@ -100,7 +100,7 @@ def test_bundle_command_with_output_directory(
     assert result.exit_code == 0
 
     # Verify zip file was created in output directory
-    expected_path = output_dir / "test-org.test-extension-1.0.0.supx"
+    expected_path = output_dir / "test-extension-1.0.0.supx"
     assert_file_exists(expected_path)
     assert f"✅ Bundle created: {expected_path}" in result.output
 
@@ -193,7 +193,7 @@ def test_bundle_includes_all_files_recursively(
     assert result.exit_code == 0
 
     # Verify zip file and contents
-    zip_path = isolated_filesystem / "complex-org.complex-extension-2.1.0.supx"
+    zip_path = isolated_filesystem / "complex-extension-2.1.0.supx"
     assert_file_exists(zip_path)
 
     with zipfile.ZipFile(zip_path, "r") as zipf:

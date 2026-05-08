@@ -16,10 +16,12 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [ -n "${{ (secrets.FOSSA_API_KEY != '' ) || '' }}" ]; then
+          if [ -n "${FOSSA_API_KEY}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
 
+        env:
+          FOSSA_API_KEY: ${{ (secrets.FOSSA_API_KEY != '' ) || '' }}
   license_check:
     needs: config
     if: needs.config.outputs.has-secrets

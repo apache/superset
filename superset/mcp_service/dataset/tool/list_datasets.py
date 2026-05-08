@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
+    DatasetError,
     DatasetFilter,
     DatasetInfo,
     DatasetList,
@@ -40,15 +41,28 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
-from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.privacy import (
+    DATA_MODEL_METADATA_ERROR_TYPE,
+    requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
 # Minimal defaults for reduced token usage - users can request more via select_columns
+# NOTE: "database" (relationship) is included so the DAO eagerly loads it
+# via joinedload, which avoids N+1 lazy-load queries when the serializer
+# accesses dataset.database.name (via the database_name @property).
 DEFAULT_DATASET_COLUMNS = [
     "id",
     "table_name",
     "schema",
+    "database_name",
+    "database",
+    "description",
+    "certified_by",
+    "certification_details",
+    "changed_on",
     "changed_on_humanized",
 ]
 
@@ -60,6 +74,8 @@ SORTABLE_DATASET_COLUMNS = [
     "created_on",
 ]
 
+_DEFAULT_LIST_DATASETS_REQUEST = ListDatasetsRequest()
+
 
 @tool(
     tags=["core"],
@@ -70,8 +86,11 @@ SORTABLE_DATASET_COLUMNS = [
         destructiveHint=False,
     ),
 )
-@parse_request(ListDatasetsRequest)
-async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetList:
+@requires_data_model_metadata_access
+async def list_datasets(
+    request: ListDatasetsRequest | None = None,
+    ctx: Context | None = None,
+) -> DatasetList | DatasetError:
     """List datasets with filtering and search.
 
     Returns dataset metadata including table name, schema, and last modified
@@ -80,6 +99,11 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
     Sortable columns for order_column: id, table_name, schema, changed_on,
     created_on
     """
+    if ctx is None:
+        raise RuntimeError("FastMCP context is required for list_datasets")
+
+    request = request or _DEFAULT_LIST_DATASETS_REQUEST.model_copy(deep=True)
+
     await ctx.info(
         "Listing datasets: page=%s, page_size=%s, search=%s"
         % (
@@ -106,6 +130,13 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
             request.force_refresh,
         )
     )
+
+    if not user_can_view_data_model_metadata():
+        await ctx.warning("Dataset listing blocked by data-model privacy controls")
+        return DatasetError.create(
+            error="You don't have permission to access dataset details for your role.",
+            error_type=DATA_MODEL_METADATA_ERROR_TYPE,
+        )
 
     try:
         from superset.daos.dataset import DatasetDAO
@@ -148,6 +179,8 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
                 order_direction=request.order_direction,
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,
+                created_by_me=request.created_by_me,
+                owned_by_me=request.owned_by_me,
             )
 
         await ctx.info(

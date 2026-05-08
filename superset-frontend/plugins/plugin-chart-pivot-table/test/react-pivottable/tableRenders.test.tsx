@@ -1050,3 +1050,99 @@ test('renderTableRow uses active header surface for adaptive contrast', () => {
     ),
   });
 });
+
+function makeColPivotSettings(
+  value: string,
+): Parameters<TableRenderer['renderColHeaderRow']>[2] {
+  return {
+    rowAttrs: [],
+    colAttrs: ['event_time'],
+    colKeys: [[value]],
+    visibleColKeys: [[value]],
+    colAttrSpans: [[1]],
+    rowTotals: false,
+    colSubtotalDisplay: {
+      enabled: false,
+      displayOnTop: false,
+      hideOnExpand: false,
+    },
+    maxColVisible: 1,
+    pivotData: {},
+    namesMapping: {},
+    allowRenderHtml: false,
+  } as unknown as Parameters<TableRenderer['renderColHeaderRow']>[2];
+}
+
+function makeRowPivotSettings(): Parameters<
+  TableRenderer['renderTableRow']
+>[2] {
+  const aggregator = {
+    value: jest.fn().mockReturnValue(1),
+    format: jest.fn().mockReturnValue('1'),
+    isSubtotal: false,
+  };
+  return {
+    rowAttrs: ['event_time'],
+    colAttrs: [],
+    rowAttrSpans: [[1]],
+    visibleColKeys: [[]],
+    pivotData: { getAggregator: jest.fn().mockReturnValue(aggregator) },
+    rowTotals: false,
+    rowSubtotalDisplay: {
+      enabled: false,
+      displayOnTop: false,
+      hideOnExpand: false,
+    },
+    arrowExpanded: null,
+    arrowCollapsed: null,
+    cellCallbacks: {},
+    rowTotalCallbacks: {},
+    namesMapping: {},
+    allowRenderHtml: false,
+  } as unknown as Parameters<TableRenderer['renderTableRow']>[2];
+}
+
+test.each([
+  ['numeric timestamp string', '1700000000000', 1700000000000],
+  ['non-numeric date string', 'Dec. 16 2020', 'Dec. 16 2020'],
+  ['ISO timestamp string', '2024-01-15T00:00:00Z', '2024-01-15T00:00:00Z'],
+])(
+  'col header date formatter receives correct value for %s',
+  (_, input, expected) => {
+    const formatter = jest.fn().mockReturnValue('formatted');
+    tableRenderer = new TableRenderer({
+      ...mockProps,
+      cols: ['event_time'],
+      tableOptions: {
+        ...mockProps.tableOptions,
+        dateFormatters: { event_time: formatter },
+      },
+    });
+    tableRenderer.renderColHeaderRow(
+      'event_time',
+      0,
+      makeColPivotSettings(input),
+    );
+    expect(formatter).toHaveBeenCalledWith(expected);
+  },
+);
+
+test.each([
+  ['numeric timestamp string', '1700000000000', 1700000000000],
+  ['non-numeric date string', 'Dec. 16 2020', 'Dec. 16 2020'],
+])(
+  'row header date formatter receives correct value for %s',
+  (_, input, expected) => {
+    const formatter = jest.fn().mockReturnValue('formatted');
+    tableRenderer = new TableRenderer({
+      ...mockProps,
+      rows: ['event_time'],
+      tableOptions: {
+        ...mockProps.tableOptions,
+        dateFormatters: { event_time: formatter },
+      },
+    });
+    tableRenderer.renderTableRow([input], 0, makeRowPivotSettings());
+    expect(formatter).toHaveBeenCalledWith(expected);
+  },
+);

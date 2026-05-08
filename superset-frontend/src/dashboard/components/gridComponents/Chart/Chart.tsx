@@ -17,7 +17,15 @@
  * under the License.
  */
 import cx from 'classnames';
-import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+  useState,
+  memo,
+  RefObject,
+} from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -88,6 +96,7 @@ interface ChartProps {
   extraControls?: JsonObject;
   isInView?: boolean;
   cacheBusterProp?: string | number;
+  chartHolderRef?: RefObject<HTMLDivElement>;
 }
 
 const RESIZE_TIMEOUT = 500;
@@ -688,6 +697,7 @@ const Chart = (props: ChartProps) => {
         width={width}
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel as unknown as (arg0: string) => void}
+        chartHolderRef={props.chartHolderRef}
       />
 
       {/*

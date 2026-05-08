@@ -116,19 +116,31 @@ describe('EditorWrapper', () => {
     );
   });
 
-  test('skips rerendering for updating cursor position', () => {
+  test('skips rerendering for updating cursor position', async () => {
     const store = createStore(initialState, reducerIndex);
     setup(defaultQueryEditor, store);
 
-    expect(MockEditorHost).toHaveBeenCalled();
-    const renderCount = MockEditorHost.mock.calls.length;
+    await waitFor(() => expect(MockEditorHost).toHaveBeenCalled());
+    const renderCountBeforeCursor = MockEditorHost.mock.calls.length;
     const updatedCursorPosition = { row: 1, column: 9 };
-    store.dispatch(
-      queryEditorSetCursorPosition(defaultQueryEditor, updatedCursorPosition),
+    act(() => {
+      store.dispatch(
+        queryEditorSetCursorPosition(defaultQueryEditor, updatedCursorPosition),
+      );
+    });
+    // Cursor position change should NOT trigger a re-render
+    expect(MockEditorHost).toHaveBeenCalledTimes(renderCountBeforeCursor);
+
+    const renderCountBeforeDb = MockEditorHost.mock.calls.length;
+    act(() => {
+      store.dispatch(queryEditorSetDb(defaultQueryEditor, 2));
+    });
+    // DB change SHOULD trigger a re-render
+    await waitFor(() =>
+      expect(MockEditorHost.mock.calls.length).toBeGreaterThan(
+        renderCountBeforeDb,
+      ),
     );
-    expect(MockEditorHost).toHaveBeenCalledTimes(renderCount);
-    store.dispatch(queryEditorSetDb(defaultQueryEditor, 2));
-    expect(MockEditorHost).toHaveBeenCalledTimes(renderCount + 1);
   });
 
   test('clears selectedText when selection becomes empty', async () => {

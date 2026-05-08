@@ -552,6 +552,12 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+      ],
+    },
+    {
+      label: t('Visual formatting'),
+      expanded: true,
+      controlSetRows: [
         [
           {
             name: 'column_config',
@@ -648,18 +654,12 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-      ],
-    },
-    {
-      label: t('Visual formatting'),
-      expanded: true,
-      controlSetRows: [
         [
           {
             name: 'show_cell_bars',
             config: {
               type: 'CheckboxControl',
-              label: t('Show cell bars'),
+              label: t('Show cell bars for all columns'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -673,7 +673,7 @@ const config: ControlPanelConfig = {
             name: 'align_pn',
             config: {
               type: 'CheckboxControl',
-              label: t('Align +/-'),
+              label: t('Align +/- for all columns'),
               renderTrigger: true,
               default: false,
               description: t(
@@ -687,7 +687,7 @@ const config: ControlPanelConfig = {
             name: 'color_pn',
             config: {
               type: 'CheckboxControl',
-              label: t('Add colors to cell bars for +/-'),
+              label: t('Add colors to cell bars for +/- for all columns'),
               renderTrigger: true,
               default: true,
               description: t(
