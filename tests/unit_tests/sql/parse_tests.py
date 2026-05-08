@@ -3293,14 +3293,17 @@ def test_rls_predicate_splice_inserts_before_comments(sql: str, expected: str) -
     "sql, engine, expected",
     [
         (
-            "SELECT * FROM some_table QUALIFY row_number() OVER (PARTITION BY id ORDER BY ts DESC) = 1",
+            "SELECT * FROM some_table QUALIFY row_number() OVER "
+            "(PARTITION BY id ORDER BY ts DESC) = 1",
             "snowflake",
-            "SELECT * FROM some_table WHERE tenant_id = 42 QUALIFY row_number() OVER (PARTITION BY id ORDER BY ts DESC) = 1",
+            "SELECT * FROM some_table WHERE tenant_id = 42 "
+            "QUALIFY row_number() OVER (PARTITION BY id ORDER BY ts DESC) = 1",
         ),
         (
             "SELECT sum(v) OVER () FROM some_table WINDOW w AS (PARTITION BY id)",
             "postgresql",
-            "SELECT sum(v) OVER () FROM some_table WHERE tenant_id = 42 WINDOW w AS (PARTITION BY id)",
+            "SELECT sum(v) OVER () FROM some_table WHERE tenant_id = 42 "
+            "WINDOW w AS (PARTITION BY id)",
         ),
     ],
 )

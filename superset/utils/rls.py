@@ -52,7 +52,7 @@ def apply_rls(
     #   - append the RLS to the ``WHERE`` clause via AST transformation
     #   - splice the RLS into the original SQL string (preserves dialect-specific
     #     syntax that the sqlglot generator would otherwise transpile)
-    method = database.db_engine_spec.get_rls_method()
+    method = database.db_engine_spec.rls_method
 
     # In splice mode predicates stay as raw SQL strings and are inserted verbatim
     # into the source query — re-parsing them would force a generator round-trip
