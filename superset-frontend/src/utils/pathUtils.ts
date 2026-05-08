@@ -43,7 +43,10 @@ export function ensureAppRoot(path: string): string {
   }
   const root = applicationRoot();
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  if (root && (normalizedPath === root || normalizedPath.startsWith(`${root}/`))) {
+  if (
+    root &&
+    (normalizedPath === root || normalizedPath.startsWith(`${root}/`))
+  ) {
     return normalizedPath;
   }
   return `${root}${normalizedPath}`;
