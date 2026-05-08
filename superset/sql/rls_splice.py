@@ -76,6 +76,22 @@ _CLAUSE_ENDS = {
     TokenType.EXCEPT,
 }
 
+_JOIN_STARTS = {
+    TokenType.JOIN,
+    TokenType.STRAIGHT_JOIN,
+    TokenType.JOIN_MARKER,
+}
+
+
+def _splice_priority(text: str) -> int:
+    """
+    Priority for applying splices at the same offset.
+
+    Insert full SQL fragments (WHERE/ON/predicates) before closing parens so
+    wrapping splices like ``pred AND (existing)`` compose correctly.
+    """
+    return 1 if text != ")" else 0
+
 
 def _before_whitespace(sql: str, offset: int) -> int:
     """Back up past any whitespace immediately before *offset*."""
@@ -161,83 +177,151 @@ def apply_rls_splice(
 
     splices: list[tuple[int, str]] = []
     for scope in traverse_scope(tree):
-        splice = _splice_for_scope(sql, tokens, scope, predicates, catalog, schema)
-        if splice is not None:
-            splices.append(splice)
+        splices.extend(
+            _splices_for_scope(
+                sql,
+                tokens,
+                scope,
+                predicates,
+                catalog,
+                schema,
+                dialect,
+            )
+        )
 
     # Apply splices in reverse offset order so earlier positions stay valid.
-    splices.sort(key=lambda item: item[0], reverse=True)
+    # For equal offsets, apply predicate/WHERE/ON inserts before ")" inserts.
+    splices.sort(key=lambda item: (item[0], _splice_priority(item[1])), reverse=True)
     result = sql
     for offset, text in splices:
         result = result[:offset] + text + result[offset:]
     return result
 
 
-def _splice_for_scope(
+def _splices_for_scope(
     sql: str,
     tokens: list[Token],
     scope: object,
     predicates: dict[Table, list[str]],
     catalog: str | None,
     schema: str | None,
-) -> tuple[int, str] | None:
+    dialect: str | None,
+) -> list[tuple[int, str]]:
     """
-    Compute the (offset, text) splice for a single SELECT scope, or ``None`` if
-    the scope has no matching predicates or no usable anchor.
+    Compute all splices for a single SELECT scope.
+
+    This mirrors ``RLSAsPredicateTransformer`` semantics:
+      - predicates for FROM tables are applied to the SELECT WHERE clause as
+        ``pred AND (existing_where)``
+      - predicates for JOIN tables are applied to each JOIN ON clause as
+        ``pred AND (existing_on)`` (or ``ON pred`` when ON is absent)
     """
-    scope_preds = _collect_scope_predicates(scope, predicates, catalog, schema)
-    if not scope_preds:
-        return None
+    from_predicates: list[str] = []
+    from_table_ends: list[int] = []
+    join_splices: list[tuple[int, str]] = []
 
-    # Anchor: rightmost character position among the table-name identifiers
-    # directly owned by this scope. Used to skip past tokens that belong to
-    # earlier parts of the query (projections, JOIN ON clauses, etc.).
-    table_ends = [
-        ident._meta["end"]
-        for source in scope.sources.values()  # type: ignore[attr-defined]
-        if isinstance(source, exp.Table)
-        for ident in [source.find(exp.Identifier)]
-        if ident and getattr(ident, "_meta", None)
-    ]
-    if not table_ends:
-        return None
+    for source in scope.sources.values():  # type: ignore[attr-defined]
+        source_type, table_end, pred_sql = _classify_source_predicate(
+            source,
+            predicates,
+            catalog,
+            schema,
+            dialect,
+        )
+        if source_type == "none" or table_end is None or pred_sql is None:
+            continue
 
-    has_where = scope.expression.args.get("where") is not None  # type: ignore[attr-defined]
-    pred_sql = " AND ".join(scope_preds)
-    return _find_splice_point(sql, tokens, max(table_ends), has_where, pred_sql)
+        if source_type == "from":
+            from_predicates.append(pred_sql)
+            from_table_ends.append(table_end)
+        elif source_type == "join":
+            join_splice = _find_join_splice(sql, tokens, table_end, pred_sql)
+            if join_splice:
+                join_splices.extend(join_splice)
+
+    if not from_predicates:
+        return join_splices
+
+    combined_predicates = " AND ".join(dict.fromkeys(from_predicates))
+    from_splice = _find_where_splice(
+        sql,
+        tokens,
+        max(from_table_ends),
+        combined_predicates,
+    )
+    return [*join_splices, *from_splice]
 
 
-def _collect_scope_predicates(
-    scope: object,
+def _table_end(source: exp.Table) -> int | None:
+    ident = source.find(exp.Identifier)
+    if ident and getattr(ident, "_meta", None):
+        return ident._meta["end"]
+    return None
+
+
+def _classify_source_predicate(
+    source: object,
     predicates: dict[Table, list[str]],
     catalog: str | None,
     schema: str | None,
-) -> list[str]:
+    dialect: str | None,
+) -> tuple[str, int | None, str | None]:
     """
-    Collect the predicates that apply to direct Table sources in ``scope``,
-    deduped while preserving order.
+    Return source kind (from/join/none), table end offset, and predicate SQL.
     """
-    scope_preds: list[str] = []
-    for source in scope.sources.values():  # type: ignore[attr-defined]
-        if not isinstance(source, exp.Table):
-            continue
-        table = _table_from_node(source, catalog, schema)
-        for predicate in predicates.get(table, []):
-            if predicate and predicate not in scope_preds:
-                scope_preds.append(predicate)
-    return scope_preds
+    if not isinstance(source, exp.Table):
+        return ("none", None, None)
+
+    table = _table_from_node(source, catalog, schema)
+    table_predicates = [
+        _qualify_predicate(predicate, source, dialect)
+        for predicate in predicates.get(table, [])
+        if predicate
+    ]
+    if not table_predicates:
+        return ("none", None, None)
+
+    table_end = _table_end(source)
+    if table_end is None:
+        return ("none", None, None)
+
+    pred_sql = " AND ".join(dict.fromkeys(table_predicates))
+    if isinstance(source.parent, exp.From):
+        return ("from", table_end, pred_sql)
+    if isinstance(source.parent, exp.Join):
+        return ("join", table_end, pred_sql)
+    return ("none", None, None)
 
 
-def _find_splice_point(
-    sql: str,
+def _qualify_predicate(
+    predicate: str,
+    table_node: exp.Table,
+    dialect: str | None,
+) -> str:
+    """
+    Qualify predicate columns with the table alias/name, mirroring
+    ``RLSAsPredicateTransformer``.
+    """
+    parsed = sqlglot.parse_one(predicate, dialect=dialect)
+    table = table_node.alias_or_name
+    table_expr = exp.to_identifier(table)
+    for column in parsed.find_all(exp.Column):
+        column.set("table", table_expr.copy())
+    return parsed.sql(dialect=dialect)
+
+
+def _scan_until_scope_boundary(
     tokens: list[Token],
     anchor: int,
-    has_where: bool,
-    pred_sql: str,
-) -> tuple[int, str] | None:
+    *,
+    stop_at_join: bool,
+) -> tuple[str, int | None]:
     """
-    Scan tokens forward from ``anchor``, tracking paren depth, to find where to
-    insert the RLS predicate for a single scope.
+    Scan tokens forward from ``anchor`` until a clause/scope boundary.
+
+    Returns ``("where", index)`` when a WHERE token is found at depth 0,
+    ``("boundary", index)`` for a non-WHERE boundary token, and
+    ``("eof", None)`` when no boundary token is found.
     """
     depth = 0
     for i, tok in enumerate(tokens):
@@ -250,48 +334,147 @@ def _find_splice_point(
 
         if tok.token_type == TokenType.R_PAREN:
             if depth == 0:
-                # Closing paren of our subquery — insert just before it.
-                offset = _before_trivia(sql, tok.start)
-                text = f" AND {pred_sql}" if has_where else f" WHERE {pred_sql}"
-                return (offset, text)
+                return ("boundary", i)
             depth -= 1
             continue
 
         if depth > 0:
             continue
 
-        if has_where and tok.token_type == TokenType.WHERE:
-            return _find_after_where(sql, tokens, i, pred_sql)
+        if tok.token_type == TokenType.WHERE:
+            return ("where", i)
 
-        if not has_where and tok.token_type in _CLAUSE_ENDS:
-            # Insert WHERE before this clause keyword.
-            return (_before_trivia(sql, tok.start), f" WHERE {pred_sql}")
+        if tok.token_type in _CLAUSE_ENDS or (
+            stop_at_join and tok.token_type in _JOIN_STARTS
+        ):
+            return ("boundary", i)
 
-    # No clause boundary found — append at end of SQL.
-    text = f" AND {pred_sql}" if has_where else f" WHERE {pred_sql}"
-    return (len(sql), text)
+    return ("eof", None)
 
 
-def _find_after_where(
+def _find_condition_end(
     sql: str,
     tokens: list[Token],
-    where_index: int,
-    pred_sql: str,
-) -> tuple[int, str] | None:
+    start_index: int,
+    *,
+    stop_at_join: bool,
+) -> int:
     """
-    Given the index of a ``WHERE`` token in ``tokens``, find the offset just
-    after the WHERE clause body where ``AND <pred>`` should be inserted.
+    Find the end offset for a WHERE/ON condition body.
     """
     depth = 0
-    prev_end = tokens[where_index].end
-    for tok in tokens[where_index + 1 :]:
+    prev_end = tokens[start_index].end
+    for tok in tokens[start_index + 1 :]:
         if tok.token_type == TokenType.L_PAREN:
             depth += 1
         elif tok.token_type == TokenType.R_PAREN:
             if depth == 0:
-                return (_before_trivia(sql, tok.start), f" AND {pred_sql}")
+                return _before_trivia(sql, tok.start)
             depth -= 1
-        elif depth == 0 and tok.token_type in _CLAUSE_ENDS:
-            return (_before_trivia(sql, tok.start), f" AND {pred_sql}")
+        elif depth == 0 and (
+            (stop_at_join and tok.token_type == TokenType.WHERE)
+            or tok.token_type in _CLAUSE_ENDS
+            or (stop_at_join and tok.token_type in _JOIN_STARTS)
+        ):
+            return _before_trivia(sql, tok.start)
         prev_end = tok.end
-    return (prev_end + 1, f" AND {pred_sql}")
+    return prev_end + 1
+
+
+def _find_where_splice(
+    sql: str,
+    tokens: list[Token],
+    anchor: int,
+    pred_sql: str,
+) -> list[tuple[int, str]]:
+    """
+    Build splices for adding predicate semantics to the SELECT WHERE clause:
+    ``pred`` when absent, ``pred AND (existing)`` when present.
+    """
+    kind, idx = _scan_until_scope_boundary(tokens, anchor, stop_at_join=False)
+    if kind == "where" and idx is not None:
+        if idx + 1 >= len(tokens):
+            return [(tokens[idx].end + 1, f" {pred_sql}")]
+        body_start = tokens[idx + 1].start
+        body_end = _find_condition_end(sql, tokens, idx, stop_at_join=False)
+        return [
+            (body_start, f"{pred_sql} AND ("),
+            (body_end, ")"),
+        ]
+
+    if kind == "boundary" and idx is not None:
+        return [(_before_trivia(sql, tokens[idx].start), f" WHERE {pred_sql}")]
+
+    return [(len(sql), f" WHERE {pred_sql}")]
+
+
+def _find_join_splice(
+    sql: str,
+    tokens: list[Token],
+    anchor: int,
+    pred_sql: str,
+) -> list[tuple[int, str]]:
+    """
+    Build splices for adding predicate semantics to a JOIN clause:
+    ``ON pred`` when ON absent, ``ON pred AND (existing_on)`` when present.
+    """
+    on_index, boundary_index = _scan_join_clause(tokens, anchor)
+
+    if on_index is not None:
+        if on_index + 1 >= len(tokens):
+            return [(tokens[on_index].end + 1, f" {pred_sql}")]
+        body_start = tokens[on_index + 1].start
+        body_end = _find_condition_end(sql, tokens, on_index, stop_at_join=True)
+        return [
+            (body_start, f"{pred_sql} AND ("),
+            (body_end, ")"),
+        ]
+
+    if boundary_index is not None:
+        return [(_before_trivia(sql, tokens[boundary_index].start), f" ON {pred_sql}")]
+
+    return [(len(sql), f" ON {pred_sql}")]
+
+
+def _scan_join_clause(
+    tokens: list[Token],
+    anchor: int,
+) -> tuple[int | None, int | None]:
+    """
+    Find ON and boundary token indexes for a JOIN segment.
+    """
+    depth = 0
+    on_index: int | None = None
+    boundary_index: int | None = None
+
+    for i, tok in enumerate(tokens):
+        if tok.start <= anchor:
+            continue
+
+        if tok.token_type == TokenType.L_PAREN:
+            depth += 1
+            continue
+
+        if tok.token_type == TokenType.R_PAREN:
+            if depth == 0:
+                boundary_index = i
+                break
+            depth -= 1
+            continue
+
+        if depth > 0:
+            continue
+
+        if tok.token_type == TokenType.ON and on_index is None:
+            on_index = i
+            continue
+
+        if tok.token_type == TokenType.WHERE:
+            boundary_index = i
+            break
+
+        if tok.token_type in _JOIN_STARTS or tok.token_type in _CLAUSE_ENDS:
+            boundary_index = i
+            break
+
+    return on_index, boundary_index
