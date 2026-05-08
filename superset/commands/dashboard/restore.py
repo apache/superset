@@ -38,7 +38,6 @@ class RestoreDashboardCommand(BaseRestoreCommand[Dashboard]):
     dao = DashboardDAO
     not_found_exc = DashboardNotFoundError
     forbidden_exc = DashboardForbiddenError
-    failed_exc = DashboardRestoreFailedError
 
     @transaction(on_error=partial(on_error, reraise=DashboardRestoreFailedError))
     def run(self) -> None:

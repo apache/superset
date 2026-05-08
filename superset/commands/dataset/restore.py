@@ -38,7 +38,6 @@ class RestoreDatasetCommand(BaseRestoreCommand[SqlaTable]):
     dao = DatasetDAO
     not_found_exc = DatasetNotFoundError
     forbidden_exc = DatasetForbiddenError
-    failed_exc = DatasetRestoreFailedError
 
     @transaction(on_error=partial(on_error, reraise=DatasetRestoreFailedError))
     def run(self) -> None:

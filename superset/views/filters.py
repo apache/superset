@@ -17,13 +17,14 @@
 import logging
 from typing import Any, cast, Optional
 
-from flask import current_app as app
+from flask import current_app as app, g
 from flask_appbuilder.models.filters import BaseFilter
 from flask_babel import lazy_gettext
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Query
 
 from superset import security_manager
+from superset.models.helpers import SKIP_VISIBILITY_FILTER
 
 logger = logging.getLogger(__name__)
 
@@ -145,23 +146,19 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
     model: Any  # set by subclass — a class with a ``deleted_at`` column
 
     def apply(self, query: Query, value: Any) -> Query:
-        from flask import g
-
-        from superset.models.helpers import SKIP_VISIBILITY_FILTER
-
         normalized = str(value).lower().strip() if value is not None else ""
         if normalized == "include":
-            self._opt_out_of_visibility_filter(g, SKIP_VISIBILITY_FILTER)
+            self._opt_out_of_visibility_filter()
             return query
         if normalized == "only":
-            self._opt_out_of_visibility_filter(g, SKIP_VISIBILITY_FILTER)
+            self._opt_out_of_visibility_filter()
             return query.filter(self.model.deleted_at.is_not(None))
         return query
 
     @staticmethod
-    def _opt_out_of_visibility_filter(g: Any, key: str) -> None:
+    def _opt_out_of_visibility_filter() -> None:
         """Set the request-scoped flag so the do_orm_execute listener
         bypasses the soft-delete WHERE clause for the rest of the
         request. Named to make the side effect visible at the call site.
         """
-        setattr(g, key, True)
+        setattr(g, SKIP_VISIBILITY_FILTER, True)

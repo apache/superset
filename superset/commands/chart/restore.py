@@ -38,7 +38,6 @@ class RestoreChartCommand(BaseRestoreCommand[Slice]):
     dao = ChartDAO
     not_found_exc = ChartNotFoundError
     forbidden_exc = ChartForbiddenError
-    failed_exc = ChartRestoreFailedError
 
     @transaction(on_error=partial(on_error, reraise=ChartRestoreFailedError))
     def run(self) -> None:

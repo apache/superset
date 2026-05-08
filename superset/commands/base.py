@@ -100,13 +100,14 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
         exist OR isn't soft-deleted
       - ``forbidden_exc``: exception type raised when the caller doesn't
         have ownership of the row
-      - ``failed_exc``: exception type the ``@transaction`` decorator
-        re-raises on any other failure mode
 
     Subclasses MUST override ``run()`` only to apply the
-    ``@transaction(on_error=partial(on_error, reraise=cls.failed_exc))``
-    decorator with their concrete failure-exception type — the body
-    should be a single ``super().run()`` call.
+    ``@transaction(on_error=partial(on_error, reraise=<RestoreFailed>))``
+    decorator with their concrete restore-failed exception type — the
+    body should be a single ``super().run()`` call. The base class does
+    not enforce this in code; Python decorators don't compose well with
+    class-var-driven configuration. The contract lives in this
+    docstring and in code review.
 
     The model returned from ``validate()`` is the soft-deleted row,
     type-narrowed via ``Generic[T]``. ``run()`` calls ``model.restore()``
@@ -116,7 +117,6 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
     dao: ClassVar[Any]
     not_found_exc: ClassVar[type[Exception]]
     forbidden_exc: ClassVar[type[Exception]]
-    failed_exc: ClassVar[type[Exception]]
 
     def __init__(self, model_uuid: str) -> None:
         self._model_uuid = model_uuid
