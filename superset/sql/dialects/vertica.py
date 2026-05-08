@@ -67,6 +67,12 @@ class Vertica(Postgres):
         SUPPORTS_MEDIAN = True
         NVL2_SUPPORTED = True
 
+        # Emit INTERVAL '<value>' <unit> (SQL-standard) instead of the
+        # Postgres-style INTERVAL '<value> <unit>'. Vertica miscomputes the
+        # combined-string form for MONTH/YEAR units (treats them as a fixed
+        # number of days). See https://forum.vertica.com/discussion/229329/.
+        SINGLE_STRING_INTERVAL = False
+
         TRANSFORMS = {
             **Postgres.Generator.TRANSFORMS,
             # Postgres rewrites LAST_DAY into DATE_TRUNC + INTERVAL arithmetic

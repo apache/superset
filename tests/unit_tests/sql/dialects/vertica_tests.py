@@ -158,3 +158,40 @@ def test_nvl2_not_rewritten_like_postgres() -> None:
     assert "CASE" in postgres_sql
     assert "CASE" not in vertica_sql
     assert "NVL2" in vertica_sql
+
+
+def test_interval_uses_sql_standard_form() -> None:
+    """
+    Vertica miscomputes month/year arithmetic when given the Postgres-style
+    single-string interval (``INTERVAL '2 MONTH'``). The SQL-standard form
+    ``INTERVAL '2' MONTH`` is correct on all Vertica versions.
+    See https://forum.vertica.com/discussion/229329/.
+    """
+    sql = "SELECT date_col + INTERVAL '2 MONTH' FROM t"
+
+    ast = parse_one(sql, dialect=Vertica)
+    regenerated = ast.sql(dialect=Vertica)
+
+    assert regenerated == "SELECT date_col + INTERVAL '2' MONTH FROM t"
+
+
+def test_interval_year_uses_sql_standard_form() -> None:
+    sql = "SELECT date_col + INTERVAL '1 YEAR' FROM t"
+
+    ast = parse_one(sql, dialect=Vertica)
+    regenerated = ast.sql(dialect=Vertica)
+
+    assert regenerated == "SELECT date_col + INTERVAL '1' YEAR FROM t"
+
+
+def test_interval_diverges_from_postgres() -> None:
+    """
+    Postgres emits the combined-string form; Vertica should not.
+    """
+    sql = "SELECT date_col + INTERVAL '2 MONTH' FROM t"
+
+    postgres_sql = parse_one(sql, dialect="postgres").sql(dialect="postgres")
+    vertica_sql = parse_one(sql, dialect=Vertica).sql(dialect=Vertica)
+
+    assert "INTERVAL '2 MONTH'" in postgres_sql
+    assert "INTERVAL '2' MONTH" in vertica_sql
