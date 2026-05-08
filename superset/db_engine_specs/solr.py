@@ -16,6 +16,7 @@
 # under the License.
 
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.sql.parse import RLSMethod
 
 
 class SolrEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -27,6 +28,7 @@ class SolrEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     time_groupby_inline = False
     allows_joins = False
     allows_subqueries = False
+    rls_method = RLSMethod.AS_PREDICATE
 
     metadata = {
         "description": "Apache Solr is an open-source enterprise search platform.",
