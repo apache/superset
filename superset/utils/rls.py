@@ -87,7 +87,7 @@ def apply_rls(
     #   - append the RLS to the ``WHERE`` clause via AST transformation
     #   - splice the RLS into the original SQL string (preserves dialect-specific
     #     syntax that the sqlglot generator would otherwise transpile)
-    method = database.db_engine_spec.get_rls_method()
+    method = database.db_engine_spec.rls_method
 
     # collect all RLS predicates for all tables in the query
     default_catalog = database.get_default_catalog()
