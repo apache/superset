@@ -121,8 +121,11 @@ test('should export a dashboard as a zip file', async ({
   await dashboardListPage.goto();
   await dashboardListPage.waitForTableLoad();
 
-  // Verify dashboard is visible in list
-  await expect(dashboardListPage.getDashboardRow(dashboardName)).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created dashboard appears.
+  await expect(dashboardListPage.getDashboardRow(dashboardName)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Set up API response intercept for export endpoint
   const exportResponsePromise = waitForGet(page, ENDPOINTS.DASHBOARD_EXPORT);
@@ -159,13 +162,14 @@ test('should bulk delete multiple dashboards', async ({
   await dashboardListPage.goto();
   await dashboardListPage.waitForTableLoad();
 
-  // Verify both dashboards are visible in list
-  await expect(
-    dashboardListPage.getDashboardRow(dashboard1.name),
-  ).toBeVisible();
-  await expect(
-    dashboardListPage.getDashboardRow(dashboard2.name),
-  ).toBeVisible();
+  // The list query is asynchronous; allow extra time on slow CI before the
+  // freshly-created dashboards appear.
+  await expect(dashboardListPage.getDashboardRow(dashboard1.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(dashboardListPage.getDashboardRow(dashboard2.name)).toBeVisible({
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Enable bulk select mode
   await dashboardListPage.clickBulkSelectButton();
@@ -190,17 +194,18 @@ test('should bulk delete multiple dashboards', async ({
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears
+  // Verify success toast appears. Use waitFor instead of toBeVisible so we
+  // detect the toast even if it auto-dismisses on a fast machine.
   const toast = new Toast(page);
-  await expect(toast.getSuccess()).toBeVisible();
+  await toast.getSuccess().waitFor({ state: 'visible' });
 
-  // Verify both dashboards are removed from list
-  await expect(
-    dashboardListPage.getDashboardRow(dashboard1.name),
-  ).not.toBeVisible();
-  await expect(
-    dashboardListPage.getDashboardRow(dashboard2.name),
-  ).not.toBeVisible();
+  // Verify both dashboards are removed from list (deleted rows leave the DOM)
+  await expect(dashboardListPage.getDashboardRow(dashboard1.name)).toHaveCount(
+    0,
+  );
+  await expect(dashboardListPage.getDashboardRow(dashboard2.name)).toHaveCount(
+    0,
+  );
 
   // Backend verification: Both return 404
   for (const dashboard of [dashboard1, dashboard2]) {
@@ -215,6 +220,11 @@ test('should bulk export multiple dashboards', async ({
   dashboardListPage,
   testAssets,
 }) => {
+  // Chains create×2 → refresh → bulk select → export. Matches the
+  // sibling bulk-delete test's budget so the export response wait below
+  // can exceed the 30s default without hitting the test timeout.
+  test.setTimeout(TIMEOUT.SLOW_TEST);
+
   // Create 2 throwaway dashboards for bulk export
   const [dashboard1, dashboard2] = await Promise.all([
     createTestDashboard(page, testAssets, test.info(), {
@@ -246,10 +256,10 @@ test('should bulk export multiple dashboards', async ({
   await dashboardListPage.selectDashboardCheckbox(dashboard2.name);
 
   // Set up API response intercept BEFORE the click that triggers it.
-  // Use the configured API_RESPONSE timeout — exports of multiple dashboards
-  // can run longer than Playwright's default 30s timeout under load.
+  // Exports of multiple dashboards can take longer than 30s under load,
+  // so use SLOW_TEST instead of the default test-timeout-bound budget.
   const exportResponsePromise = waitForGet(page, ENDPOINTS.DASHBOARD_EXPORT, {
-    timeout: TIMEOUT.API_RESPONSE,
+    timeout: TIMEOUT.SLOW_TEST,
   });
 
   // Click bulk export action (waits for the action button to render)
@@ -300,12 +310,12 @@ test.describe('import dashboard', () => {
       label: `Dashboard ${dashboardId}`,
     });
 
-    // Refresh to confirm dashboard is no longer in the list
+    // Refresh to confirm dashboard is no longer in the list (deleted rows leave the DOM)
     await dashboardListPage.goto();
     await dashboardListPage.waitForTableLoad();
-    await expect(
-      dashboardListPage.getDashboardRow(dashboardName),
-    ).not.toBeVisible();
+    await expect(dashboardListPage.getDashboardRow(dashboardName)).toHaveCount(
+      0,
+    );
 
     // Click the import button
     await dashboardListPage.clickImportButton();
@@ -357,18 +367,20 @@ test.describe('import dashboard', () => {
     // Modal should close on success
     await importModal.waitForHidden({ timeout: TIMEOUT.FILE_IMPORT });
 
-    // Verify success toast appears
+    // Verify success toast appears. Use waitFor instead of toBeVisible so we
+    // detect the toast even if it auto-dismisses on a fast machine.
     const toast = new Toast(page);
-    await expect(toast.getSuccess()).toBeVisible({ timeout: 10000 });
+    await toast.getSuccess().waitFor({ state: 'visible', timeout: 10000 });
 
     // Refresh to see the imported dashboard
     await dashboardListPage.goto();
     await dashboardListPage.waitForTableLoad();
 
-    // Verify dashboard appears in list
-    await expect(
-      dashboardListPage.getDashboardRow(dashboardName),
-    ).toBeVisible();
+    // The list query is asynchronous; allow extra time on slow CI before the
+    // freshly-imported dashboard appears.
+    await expect(dashboardListPage.getDashboardRow(dashboardName)).toBeVisible({
+      timeout: TIMEOUT.API_RESPONSE,
+    });
 
     // Track for cleanup: look up the reimported dashboard by title
     const reimported = await getDashboardByName(page, dashboardName);

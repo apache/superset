@@ -93,11 +93,17 @@ export class BulkSelect {
   }
 
   /**
-   * Deselects a row's checkbox in bulk select mode
+   * Deselects a row's checkbox in bulk select mode.
+   * Mirrors selectRow: waits for visibility and asserts the unchecked state
+   * so any lingering selection surfaces here rather than as a stale bulk-action
+   * count later.
    * @param rowName - The name/text identifying the row to deselect
    */
   async deselectRow(rowName: string): Promise<void> {
-    await this.getRowCheckbox(rowName).uncheck();
+    const checkbox = this.getRowCheckbox(rowName);
+    await checkbox.element.waitFor({ state: 'visible' });
+    await checkbox.uncheck();
+    await expect(checkbox.element).not.toBeChecked();
   }
 
   /**
