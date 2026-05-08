@@ -22,12 +22,22 @@ export const ExplorePopoverContent = styled.div`
   .edit-popover-resize {
     transform: scaleX(-1);
     float: right;
-    margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
-    margin-right: ${({ theme }) => theme.sizeUnit * -1}px;
+    margin-top: ${({ theme }) => theme.margin}px;
+    margin-right: ${({ theme }) => theme.marginXXS * -1}px;
     color: ${({ theme }) => theme.colorIcon};
     cursor: nwse-resize;
   }
   .filter-sql-editor {
     border: ${({ theme }) => theme.colorBorder} solid thin;
+  }
+  /* Restore spacing between tab navigation bar and tab content.
+     Superset's Tabs styled component sets margin: 0 on .ant-tabs-nav globally.
+     Use && to win the specificity race against the per-instance Tabs CSS. */
+  && .ant-tabs-nav {
+    margin-bottom: ${({ theme }) => theme.marginSM}px;
+  }
+  /* Tighten vertical spacing between form items inside these popovers. */
+  && .ant-form-item {
+    margin-bottom: ${({ theme }) => theme.marginXS}px;
   }
 `;
