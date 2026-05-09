@@ -39,7 +39,7 @@ import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
 
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),

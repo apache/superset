@@ -485,7 +485,7 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 First, be sure you are using the following versions of Node.js and npm:
 
-- `Node.js`: Version 20
+- `Node.js`: Version 22 (LTS)
 - `npm`: Version 10
 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:

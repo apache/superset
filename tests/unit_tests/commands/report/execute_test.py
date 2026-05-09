@@ -624,6 +624,65 @@ def test_get_tab_urls(
     ]
 
 
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_multitab_preserves_url_params(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Multi-tab fan-out must preserve dashboard_state.urlParams (e.g. standalone)
+    and replace any pre-existing native_filters entry with the report's value —
+    matching the single-tab branch's merge semantics."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.type = "report_type"
+    mock_report_schedule.report_format = "report_format"
+    mock_report_schedule.owners = [1, 2]
+    mock_report_schedule.recipients = []
+    native_filter_rison = "(NATIVE_FILTER-1:(filterType:filter_select))"
+    # Use list-of-lists (not tuples) — extra_json deserializes urlParams from
+    # JSON arrays. Includes a stale native_filters entry to exercise the
+    # dedup-then-append step in the merge.
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "urlParams": [
+                ["standalone", "true"],
+                ["native_filters", "(STALE_FILTER:(filterType:filter_select))"],
+                ["show_filters", "0"],
+            ],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
+    mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    class_instance.get_dashboard_urls()
+
+    assert mock_permalink_cls.call_count == 2
+    for idx, expected_anchor in enumerate(["TAB-1", "TAB-2"]):
+        state = mock_permalink_cls.call_args_list[idx].kwargs["state"]
+        # Stale native_filters is replaced (not duplicated); other params
+        # survive in their original order; report's native_filters appended.
+        assert state["urlParams"] == [
+            ["standalone", "true"],
+            ["show_filters", "0"],
+            ["native_filters", native_filter_rison],
+        ]
+        # Each per-tab permalink targets exactly that tab.
+        assert state["anchor"] == expected_anchor
+
+
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
@@ -700,6 +759,58 @@ def test_get_dashboard_urls_native_filters_without_tabs(
 
     assert len(result) == 1
     assert "permalink_key" in result[0]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=False)
+def test_get_dashboard_urls_flag_off_preserves_url_params(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """The post-``if``-block fall-through in ``get_dashboard_urls`` must
+    honor any urlParams set in ``extra.dashboard`` (e.g. via API) — same
+    merge semantics as the protected branch.
+
+    Reachability: only when ``dashboard_state`` is falsy OR
+    ``ALERT_REPORT_TABS=False``. The flag-on / no-anchor case lands in
+    the single-tab merge at L290-306, not here.
+    """
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard_id = 123
+    native_filter_rison = "(NATIVE_FILTER-abc:!(val1))"
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "urlParams": [
+                ["standalone", "true"],
+                ["native_filters", "(STALE_FILTER:!(stale))"],
+                ["show_filters", "0"],
+            ],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore[attr-defined]
+        native_filter_rison,
+        [],
+    )
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_permalink_cls.return_value.run.return_value = "permalink_key"
+
+    class_instance.get_dashboard_urls()
+
+    state = mock_permalink_cls.call_args_list[0].kwargs["state"]
+    # Stale native_filters replaced; existing params survive in order;
+    # report's native_filters appended.
+    assert state["urlParams"] == [
+        ["standalone", "true"],
+        ["show_filters", "0"],
+        ["native_filters", native_filter_rison],
+    ]
 
 
 def create_report_schedule(

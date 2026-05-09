@@ -111,7 +111,7 @@ jobs:
         run: |
           yarn install --check-cache
       - name: Download database diagnostics from integration tests
-        uses: dawidd6/action-download-artifact@8305c0f1062bb0d184d09ef4493ecb9288447732 # v20
+        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
         with:
           workflow: superset-python-integrationtest.yml
           run_id: ${{ github.event.workflow_run.id }}
