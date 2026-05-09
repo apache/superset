@@ -42,6 +42,10 @@ export class Theme {
   // both fields are assigned via setConfig() during construction, so we
   // use a definite-assignment assertion rather than hoisting the logic
   // out of setConfig().
+  //
+  // Assigned via setConfig() in the constructor; TypeScript 6.0's
+  // strictPropertyInitialization can't trace that call chain, so we use
+  // a definite-assignment assertion.
   theme!: SupersetTheme;
 
   private antdConfig!: AntdThemeConfig;

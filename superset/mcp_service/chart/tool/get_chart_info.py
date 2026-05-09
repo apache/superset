@@ -29,13 +29,20 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import get_cached_form_data
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
+    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
     ChartError,
     ChartInfo,
     extract_filters_from_form_data,
     GetChartInfoRequest,
+    sanitize_chart_info_for_llm_context,
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.privacy import (
+    redact_chart_data_model_fields,
+    user_can_view_data_model_metadata,
+)
+from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
 
@@ -63,15 +70,23 @@ def _build_unsaved_chart_info(form_data_key: str) -> ChartInfo | ChartError:
             error="Cached form_data is not a valid JSON object.",
             error_type="ParseError",
         )
-    return ChartInfo(
-        viz_type=form_data.get("viz_type"),
-        datasource_name=form_data.get("datasource_name"),
-        datasource_type=form_data.get("datasource_type"),
-        filters=extract_filters_from_form_data(form_data),
-        form_data=form_data,
-        form_data_key=form_data_key,
-        is_unsaved_state=True,
+    return sanitize_chart_info_for_llm_context(
+        ChartInfo(
+            viz_type=form_data.get("viz_type"),
+            datasource_name=form_data.get("datasource_name"),
+            datasource_type=form_data.get("datasource_type"),
+            filters=extract_filters_from_form_data(form_data),
+            form_data=form_data,
+            form_data_key=form_data_key,
+            is_unsaved_state=True,
+        )
     )
+
+
+FORM_DATA_OVERRIDE_EXCLUDED_FIELD_NAMES = (
+    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
+    | frozenset({"cache_key", "database", "database_name", "schema"})
+)
 
 
 def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None:
@@ -101,6 +116,23 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
             "form_data_key provided but no cached data found. "
             "The cache may have expired. Using saved chart configuration."
         )
+
+    payload = result.model_dump(mode="python")
+    if payload.get("filters") is not None:
+        payload["filters"] = sanitize_for_llm_context(
+            payload["filters"],
+            field_path=("filters",),
+            excluded_field_names=frozenset(),
+        )
+    if payload.get("form_data") is not None:
+        payload["form_data"] = sanitize_for_llm_context(
+            payload["form_data"],
+            field_path=("form_data",),
+            excluded_field_names=FORM_DATA_OVERRIDE_EXCLUDED_FIELD_NAMES,
+        )
+    sanitized = ChartInfo.model_validate(payload)
+    result.filters = sanitized.filters
+    result.form_data = sanitized.form_data
 
 
 @tool(
@@ -155,6 +187,7 @@ async def get_chart_info(
         "Retrieving chart information: identifier=%s, form_data_key=%s"
         % (request.identifier, request.form_data_key)
     )
+    can_view_data_model_metadata = user_can_view_data_model_metadata()
 
     # Handle unsaved chart (form_data_key only, no identifier)
     if not request.identifier and request.form_data_key:
@@ -165,16 +198,18 @@ async def get_chart_info(
                 "No chart identifier provided - retrieving unsaved chart from cache: "
                 "form_data_key=%s" % (request.form_data_key,)
             )
-            return _build_unsaved_chart_info(request.form_data_key)
+            result = _build_unsaved_chart_info(request.form_data_key)
+            if not can_view_data_model_metadata:
+                return redact_chart_data_model_fields(result)
+            return result
 
     # At this point identifier must be set (validator ensures at least one
     # of identifier/form_data_key is provided, and the form_data_key-only
     # branch returned above).
     assert request.identifier is not None
 
-    # Eager load owners and tags to avoid N+1 queries during serialization
+    # Eager load tags to avoid N+1 queries during serialization.
     eager_options = [
-        subqueryload(Slice.owners),
         subqueryload(Slice.tags),
     ]
 
@@ -202,6 +237,9 @@ async def get_chart_info(
                     % (request.form_data_key,)
                 )
                 _apply_unsaved_state_override(result, request.form_data_key)
+
+        if not can_view_data_model_metadata:
+            result = redact_chart_data_model_fields(result)
 
         await ctx.info(
             "Chart information retrieved successfully: chart_name=%s, "

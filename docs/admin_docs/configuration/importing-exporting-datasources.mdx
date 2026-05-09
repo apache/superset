@@ -30,6 +30,10 @@ Superset's ZIP-based import/export also covers **dashboards**, **charts**, and *
 |  └── ... (more databases)
 ```
 
+:::note
+When you export a database connection, the `masked_encrypted_extra` field (used for sensitive connection parameters such as service account JSON, OAuth tokens, and other encrypted credentials) is included in the export. When importing on another instance, these values are decrypted and re-encrypted using the destination instance's `SECRET_KEY`. Ensure the receiving instance has a valid `SECRET_KEY` configured before importing.
+:::
+
 ## Exporting Datasources to YAML
 
 You can print your current datasources to stdout by running:

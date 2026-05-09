@@ -45,7 +45,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import DB2, Dremio, Firebolt, Pinot
+from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot, Vertica
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -93,7 +93,7 @@ SQLGLOT_DIALECTS = {
     "netezza": Dialects.POSTGRES,
     "oceanbase": Dialects.MYSQL,
     # "ocient": ???
-    # "odelasticsearch": ???
+    "odelasticsearch": OpenSearch,
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
@@ -113,7 +113,7 @@ SQLGLOT_DIALECTS = {
     # "taosws": ???
     "teradatasql": Dialects.TERADATA,
     "trino": Dialects.TRINO,
-    "vertica": Dialects.POSTGRES,
+    "vertica": Vertica,
     "yql": Dialects.CLICKHOUSE,
 }
 
@@ -1568,6 +1568,7 @@ def transpile_to_dialect(
     sql: str,
     target_engine: str,
     source_engine: str | None = None,
+    identify: bool = False,
 ) -> str:
     """
     Transpile SQL from one database dialect to another using SQLGlot.
@@ -1576,6 +1577,7 @@ def transpile_to_dialect(
         sql: The SQL query to transpile
         target_engine: The target database engine (e.g., "mysql", "postgresql")
         source_engine: The source database engine. If None, uses generic SQL dialect.
+        identify: If True, quote all identifiers per the target dialect.
 
     Returns:
         The transpiled SQL string
@@ -1598,6 +1600,7 @@ def transpile_to_dialect(
             copy=True,
             comments=False,
             pretty=False,
+            identify=identify,
         )
     except ParseError as ex:
         raise QueryClauseValidationException(f"Cannot parse SQL clause: {sql}") from ex

@@ -265,17 +265,17 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
         return None
 
     sm = app.appbuilder.sm
-    # _extract_api_key_from_request is FAB's internal method for reading
+    # extract_api_key_from_request is FAB's method for reading
     # the Bearer token from the Authorization header and matching prefixes.
     # Not all FAB versions include this method, so guard with hasattr.
-    if not hasattr(sm, "_extract_api_key_from_request"):
+    if not hasattr(sm, "extract_api_key_from_request"):
         logger.debug(
-            "FAB SecurityManager does not have _extract_api_key_from_request; "
+            "FAB SecurityManager does not have extract_api_key_from_request; "
             "API key authentication is not available in this FAB version"
         )
         return None
 
-    api_key_string = sm._extract_api_key_from_request()
+    api_key_string = sm.extract_api_key_from_request()
     if api_key_string is None:
         return None
 
@@ -632,6 +632,15 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
         @functools.wraps(tool_func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             with _get_app_context_manager():
+                # Clear any stale thread-local SQLAlchemy session before user lookup.
+                # Thread pool workers reuse threads across requests; db.session is
+                # scoped by thread (not ContextVar), so a prior request's session may
+                # still be bound to a different tenant's DB engine. Removing it here
+                # ensures the next DB access creates a fresh session bound to the
+                # correct engine for the current request.
+                from superset.extensions import db
+
+                db.session.remove()
                 user = _setup_user_context()
 
                 # No Flask context - this is a FastMCP internal operation

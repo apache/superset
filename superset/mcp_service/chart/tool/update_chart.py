@@ -40,10 +40,10 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     map_config_to_form_data,
 )
+from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     GenerateChartResponse,
-    parse_chart_config,
     PerformanceMetadata,
     UpdateChartRequest,
 )
@@ -86,22 +86,23 @@ def _missing_config_or_name_error() -> GenerateChartResponse:
 def _build_update_payload(
     request: UpdateChartRequest,
     chart: Any,
+    parsed_config: Any = None,
 ) -> dict[str, Any] | GenerateChartResponse:
     """Build the update payload for a chart update.
 
     Returns a dict payload on success, or a GenerateChartResponse error
     when neither config nor chart_name is provided.
+    ``parsed_config`` is the pre-parsed chart config from the caller.
     """
-    if request.config is not None:
-        config = parse_chart_config(request.config)
+    if parsed_config is not None:
         dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(config, dataset_id=dataset_id)
+        new_form_data = map_config_to_form_data(parsed_config, dataset_id=dataset_id)
         new_form_data.pop("_mcp_warnings", None)
 
         chart_name = (
             request.chart_name
             if request.chart_name
-            else chart.slice_name or generate_chart_name(config)
+            else chart.slice_name or generate_chart_name(parsed_config)
         )
 
         return {
@@ -121,12 +122,14 @@ def _build_update_payload(
 def _build_preview_form_data(
     request: UpdateChartRequest,
     chart: Any,
+    parsed_config: Any = None,
 ) -> dict[str, Any] | GenerateChartResponse:
     """Merge the existing chart's form_data with the requested changes.
 
     Used by the preview-first flow so the user can review edits in Explore
     before clicking Save. Returns the merged form_data dict on success, or a
     GenerateChartResponse error when neither config nor chart_name is given.
+    ``parsed_config`` is the pre-parsed chart config from the caller.
     """
     existing_form_data: dict[str, Any] = {}
     if getattr(chart, "params", None):
@@ -138,10 +141,9 @@ def _build_preview_form_data(
             )
             existing_form_data = {}
 
-    if request.config is not None:
-        config = parse_chart_config(request.config)
+    if parsed_config is not None:
         dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(config, dataset_id=dataset_id)
+        new_form_data = map_config_to_form_data(parsed_config, dataset_id=dataset_id)
         new_form_data.pop("_mcp_warnings", None)
         merged = {**existing_form_data, **new_form_data}
     else:
@@ -159,6 +161,70 @@ def _build_preview_form_data(
         merged["datasource"] = f"{chart.datasource_id}__table"
 
     return merged
+
+
+def _validate_update_against_dataset(
+    parsed_config: Any,
+    form_data: dict[str, Any],
+    chart: Any,
+) -> GenerateChartResponse | None:
+    """Run Tier 1 (schema) + Tier 2 (compile) validation against the chart's
+    dataset. Returns ``None`` on success, or a :class:`GenerateChartResponse`
+    error envelope on failure that callers should return as-is.
+    """
+    from superset.daos.dataset import DatasetDAO
+
+    dataset = getattr(chart, "datasource", None)
+    if dataset is None and getattr(chart, "datasource_id", None) is not None:
+        dataset = DatasetDAO.find_by_id(chart.datasource_id)
+    if dataset is None:
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": None,
+                "error": {
+                    "error_type": "DatasetNotAccessible",
+                    "message": "Chart's dataset is not accessible",
+                    "details": (
+                        f"Dataset {getattr(chart, 'datasource_id', None)} "
+                        "is missing or inaccessible."
+                    ),
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )
+
+    compile_result = validate_and_compile(
+        parsed_config, form_data, dataset, run_compile_check=True
+    )
+    if compile_result.success:
+        return None
+
+    logger.warning(
+        "update_chart validation failed for chart %s: %s",
+        getattr(chart, "id", None),
+        compile_result.error,
+    )
+    if compile_result.error_obj is not None:
+        error_payload = compile_result.error_obj.model_dump()
+    else:
+        error_payload = {
+            "error_type": "validation_error",
+            "message": "Chart update validation failed",
+            "details": compile_result.error or "",
+            "error_code": compile_result.error_code,
+            "suggestions": [],
+        }
+    return GenerateChartResponse.model_validate(
+        {
+            "chart": None,
+            "error": error_payload,
+            "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
+        }
+    )
 
 
 def _create_preview_url(
@@ -319,16 +385,31 @@ async def update_chart(  # noqa: C901
         saved = False
         new_form_data: dict[str, Any] | None = None
 
+        # config is already a typed ChartConfig | None (validated by Pydantic)
+        parsed_config = request.config
+
         if not request.generate_preview:
             from superset.commands.chart.update import UpdateChartCommand
 
-            payload_or_error = _build_update_payload(request, chart)
+            payload_or_error = _build_update_payload(request, chart, parsed_config)
             if isinstance(payload_or_error, GenerateChartResponse):
                 return payload_or_error
 
             # Extract form_data — present only for config updates, None for renames.
             if "params" in payload_or_error:
                 new_form_data = json.loads(payload_or_error["params"])
+
+            # Validate before persisting — catches bad column refs and runtime
+            # SQL errors so we don't commit a chart that can't be queried.
+            # Renames (no parsed_config) skip validation since form_data is
+            # untouched.
+            if parsed_config is not None and new_form_data is not None:
+                with event_logger.log_context(action="mcp.update_chart.validation"):
+                    validation_error = _validate_update_against_dataset(
+                        parsed_config, new_form_data, chart
+                    )
+                if validation_error is not None:
+                    return validation_error
 
             with event_logger.log_context(action="mcp.update_chart.db_write"):
                 command = UpdateChartCommand(chart.id, payload_or_error)
@@ -338,21 +419,27 @@ async def update_chart(  # noqa: C901
                 f"{get_superset_base_url()}/explore/?slice_id={updated_chart.id}"
             )
         else:
-            preview_or_error = _build_preview_form_data(request, chart)
+            preview_or_error = _build_preview_form_data(request, chart, parsed_config)
             if isinstance(preview_or_error, GenerateChartResponse):
                 return preview_or_error
+
+            # Validate before caching the form_data — same rationale as above.
+            if parsed_config is not None:
+                with event_logger.log_context(action="mcp.update_chart.validation"):
+                    validation_error = _validate_update_against_dataset(
+                        parsed_config, preview_or_error, chart
+                    )
+                if validation_error is not None:
+                    return validation_error
 
             with event_logger.log_context(action="mcp.update_chart.preview_link"):
                 explore_url, form_data_key, warnings = _create_preview_url(
                     chart, preview_or_error
                 )
 
-        # Parse config for analysis (may be None for name-only updates)
-        config = parse_chart_config(request.config) if request.config else None
-
         chart_for_analysis = updated_chart if saved else chart
-        capabilities = analyze_chart_capabilities(chart_for_analysis, config)
-        semantics = analyze_chart_semantics(chart_for_analysis, config)
+        capabilities = analyze_chart_capabilities(chart_for_analysis, parsed_config)
+        semantics = analyze_chart_semantics(chart_for_analysis, parsed_config)
 
         execution_time = int((time.time() - start_time) * 1000)
         performance = PerformanceMetadata(
@@ -367,7 +454,11 @@ async def update_chart(  # noqa: C901
             else (
                 request.chart_name
                 or (chart.slice_name if hasattr(chart, "slice_name") else None)
-                or (generate_chart_name(config) if config else "Updated chart")
+                or (
+                    generate_chart_name(parsed_config)
+                    if parsed_config
+                    else "Updated chart"
+                )
             )
         )
         accessibility = AccessibilityMetadata(
@@ -461,7 +552,7 @@ async def update_chart(  # noqa: C901
         return GenerateChartResponse.model_validate(result)
 
     except OAuth2RedirectError as ex:
-        await ctx.error(
+        await ctx.warning(
             "Chart update requires OAuth authentication: identifier=%s"
             % request.identifier
         )
