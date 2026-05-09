@@ -160,6 +160,8 @@ const AsyncSelect = forwardRef(
     const [allValuesLoaded, setAllValuesLoaded] = useState(false);
     const selectValueRef = useRef(selectValue);
     const fetchedQueries = useRef(new Map<string, number>());
+    const initialOptionsRef = useRef<SelectOptionsType>(EMPTY_OPTIONS);
+    const wasSearchingRef = useRef(false);
     const mappedMode = isSingleMode ? undefined : 'multiple';
     const allowFetch = !fetchOnlyOnSearch || inputValue;
     const [maxTagCount, setMaxTagCount] = useState(
@@ -335,13 +337,22 @@ const AsyncSelect = forwardRef(
         const fetchOptions = options as SelectOptionsPagePromise;
         fetchOptions(search, page, pageSize)
           .then(({ data, totalCount }: SelectOptionsTypePage) => {
-            const mergedData = mergeData(data);
+            let resultData: SelectOptionsType;
+            if (search && page === 0) {
+              resultData = data.slice().sort(sortComparatorForNoSearch);
+              setSelectOptions(resultData);
+            } else {
+              resultData = mergeData(data);
+              if (!search) {
+                initialOptionsRef.current = resultData;
+              }
+            }
             fetchedQueries.current.set(key, totalCount);
             setTotalCount(totalCount);
             if (
               !fetchOnlyOnSearch &&
               search === '' &&
-              mergedData.length >= totalCount
+              resultData.length >= totalCount
             ) {
               setAllValuesLoaded(true);
             }
@@ -358,6 +369,7 @@ const AsyncSelect = forwardRef(
         internalOnError,
         options,
         pageSize,
+        sortComparatorForNoSearch,
       ],
     );
 
@@ -518,12 +530,26 @@ const AsyncSelect = forwardRef(
       if (loadingEnabled && allowFetch) {
         // trigger fetch every time inputValue changes
         if (inputValue) {
+          wasSearchingRef.current = true;
           debouncedFetchPage(inputValue, 0);
         } else {
+          if (wasSearchingRef.current && initialOptionsRef.current.length > 0) {
+            setSelectOptions(
+              [...initialOptionsRef.current].sort(sortComparatorForNoSearch),
+            );
+          }
+          wasSearchingRef.current = false;
           fetchPage('', 0);
         }
       }
-    }, [loadingEnabled, fetchPage, allowFetch, inputValue, debouncedFetchPage]);
+    }, [
+      loadingEnabled,
+      fetchPage,
+      allowFetch,
+      inputValue,
+      debouncedFetchPage,
+      sortComparatorForNoSearch,
+    ]);
 
     useEffect(() => {
       if (loading !== undefined && loading !== isLoading) {

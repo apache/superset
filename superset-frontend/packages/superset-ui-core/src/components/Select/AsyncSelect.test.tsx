@@ -897,6 +897,86 @@ test('fires onChange when pasting a selection', async () => {
   await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
 });
 
+test('replaces cached options with search results instead of merging', async () => {
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const searchData = [{ label: 'Search Match', value: 100 }];
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      return { data: page0Data, totalCount: 100 };
+    }
+    return { data: searchData, totalCount: 1 };
+  });
+
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  let options = await findAllSelectOptions();
+  expect(options).toHaveLength(10);
+
+  await type('search');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+
+  options = await findAllSelectOptions();
+  expect(options).toHaveLength(1);
+  expect(options[0]).toHaveTextContent('Search Match');
+});
+
+test('shows all options when filterOption is false', async () => {
+  const loadOptions = jest.fn(async () => ({
+    data: OPTIONS.slice(0, 10),
+    totalCount: 20,
+  }));
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={loadOptions}
+      filterOption={false}
+    />,
+  );
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  await type('zzz_no_match');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+
+  const options = await findAllSelectOptions();
+  expect(options.length).toBeGreaterThan(0);
+});
+
+test('restores base options when search is cleared', async () => {
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const searchData = [{ label: 'Search Match', value: 100 }];
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      return { data: page0Data, totalCount: 100 };
+    }
+    return { data: searchData, totalCount: 1 };
+  });
+
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  await type('search');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+  let options = await findAllSelectOptions();
+  expect(options).toHaveLength(1);
+
+  await type('{backspace}{backspace}{backspace}{backspace}{backspace}{backspace}');
+  await waitFor(async () => {
+    options = await findAllSelectOptions();
+    expect(options).toHaveLength(10);
+  });
+});
+
 test('does not duplicate options when using numeric values', async () => {
   render(
     <AsyncSelect
