@@ -224,7 +224,7 @@ development = [
     "progress>=1.5,<2",
     "psutil",
     "pyfakefs",
-    "pyinstrument>=4.0.2,<5",
+    "pyinstrument>=4.0.2,<6",
     "pylint",
     "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
     "pytest-asyncio",
