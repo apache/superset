@@ -1192,11 +1192,22 @@ async def _get_chart_preview_internal(  # noqa: C901
 
         if not chart:
             await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
+            safe_id = str(request.identifier)[:200]
+            is_form_data_key = (
+                isinstance(request.identifier, str)
+                and len(request.identifier) > 8
+                and not request.identifier.isdigit()
+            )
+            if is_form_data_key:
+                recovery = (
+                    "If using a form_data_key, it may have expired — "
+                    "use generate_explore_link to get a fresh key, "
+                    "or use list_charts to find a saved chart by ID."
+                )
+            else:
+                recovery = "Use list_charts to get valid chart IDs."
             return ChartError(
-                error=(
-                    f"No chart found with identifier: {request.identifier}."
-                    " Use list_charts to get valid chart IDs."
-                ),
+                error=f"No chart found with identifier: {safe_id}. {recovery}",
                 error_type="NotFound",
             )
 
