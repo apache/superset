@@ -230,20 +230,12 @@ test('refreshes table metadata when triggered', async () => {
   await waitFor(() =>
     expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
   );
-  expect(fetchMock.callHistory.calls(updateTableSchemaEndpoint)).toHaveLength(
-    0,
-  );
   expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(1);
 
   fireEvent.click(getByText('Refresh table schema'));
   await waitFor(() =>
     expect(fetchMock.callHistory.calls(getTableMetadataEndpoint)).toHaveLength(
       2,
-    ),
-  );
-  await waitFor(() =>
-    expect(fetchMock.callHistory.calls(updateTableSchemaEndpoint)).toHaveLength(
-      1,
     ),
   );
 });
@@ -459,6 +451,88 @@ test('passes numeric queryEditorId validation', async () => {
     expect(typeof finalQueryEditorId).toBe('string');
     expect(finalQueryEditorId).toMatch(/^\d+$/);
   });
+
+  syncTableSpy.mockRestore();
+});
+
+test('calls syncTable on refresh click when currentQueryEditorId is numeric', async () => {
+  const syncTableSpy = setupSyncTableTest();
+  const testTable = {
+    ...table,
+    initialized: true,
+    queryEditorId: 'editor-refresh',
+  };
+
+  const state = createStateWithQueryEditor({
+    id: 'editor-refresh',
+    tabViewId: '77',
+    inLocalStorage: false,
+    name: 'Refresh Editor',
+  });
+
+  const { getAllByTestId, getByText } = render(
+    <TableElement table={testTable} activeKey={[testTable.id]} />,
+    {
+      useRedux: true,
+      initialState: state,
+    },
+  );
+
+  await waitFor(() =>
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
+  );
+
+  syncTableSpy.mockClear();
+  fireEvent.click(getByText('Refresh table schema'));
+
+  await waitFor(() => {
+    expect(syncTableSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ id: testTable.id }),
+      expect.any(Object),
+      '77',
+    );
+  });
+
+  syncTableSpy.mockRestore();
+});
+
+test('does not call syncTable on refresh click when currentQueryEditorId is non-numeric', async () => {
+  const syncTableSpy = setupSyncTableTest();
+  const testTable = {
+    ...table,
+    initialized: true,
+    queryEditorId: 'editor-nan',
+  };
+
+  const state = createStateWithQueryEditor({
+    id: 'editor-nan',
+    tabViewId: 'not-a-number',
+    inLocalStorage: false,
+    name: 'NaN Editor',
+  });
+
+  const { getAllByTestId, getByText } = render(
+    <TableElement table={testTable} activeKey={[testTable.id]} />,
+    {
+      useRedux: true,
+      initialState: state,
+    },
+  );
+
+  await waitFor(() =>
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(6),
+  );
+
+  syncTableSpy.mockClear();
+  fireEvent.click(getByText('Refresh table schema'));
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(getTableMetadataEndpoint).length,
+    ).toBeGreaterThan(1),
+  );
+
+  expect(syncTableSpy).not.toHaveBeenCalled();
 
   syncTableSpy.mockRestore();
 });
