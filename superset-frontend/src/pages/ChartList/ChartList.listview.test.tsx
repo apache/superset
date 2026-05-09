@@ -267,7 +267,7 @@ test('sorts table when clicking column headers', async () => {
       .filter(
         call =>
           call.url.includes('order_column') &&
-          call.url.includes('last_saved_at'),
+          call.url.includes('changed_on_delta_humanized'),
       );
     expect(lastModifiedSortCalls).toHaveLength(1);
   });
