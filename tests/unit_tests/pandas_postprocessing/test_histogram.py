@@ -14,7 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import warnings
+
 from pandas import DataFrame
+from pandas.errors import SettingWithCopyWarning
 
 from superset.utils.pandas_postprocessing import histogram
 
@@ -207,3 +210,17 @@ def test_histogram_with_no_groupby_and_all_null_values():
 
     result = histogram(data_with_no_groupby_and_all_nulls, "a", [], bins)
     assert result.empty
+
+
+def test_histogram_no_setting_with_copy_warning():
+    """dropna() may return a view; ensure to_numeric assignment does not warn."""
+    data_with_nulls = DataFrame(
+        {
+            "a": [1, 2, None, 4, 5],
+            "b": [1, 2, 3, 4, 5],
+        }
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SettingWithCopyWarning)
+        result = histogram(data_with_nulls, "a", [], bins=2)
+    assert not result.empty

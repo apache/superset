@@ -14,7 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import warnings
+
 import pytest
+from pandas.errors import SettingWithCopyWarning
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
@@ -127,7 +130,7 @@ def test_boxplot_percentile_incorrect_params():
 
 
 def test_boxplot_type_coercion():
-    df = names_df
+    df = names_df.copy()
     df["cars"] = df["cars"].astype(str)
     df = boxplot(
         df=df,
@@ -149,3 +152,18 @@ def test_boxplot_type_coercion():
         "region",
     }
     assert len(df) == 4
+
+
+def test_boxplot_no_setting_with_copy_warning():
+    """Ensure to_numeric coercion does not raise SettingWithCopyWarning."""
+    df = names_df.copy()
+    df["cars"] = df["cars"].astype(str)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", SettingWithCopyWarning)
+        result = boxplot(
+            df=df,
+            groupby=["region"],
+            whisker_type=PostProcessingBoxplotWhiskerType.TUKEY,
+            metrics=["cars"],
+        )
+    assert len(result) == 4
