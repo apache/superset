@@ -29,10 +29,11 @@ import backoff
 import jwt
 from flask import current_app as app, url_for
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
+from werkzeug.routing import BuildError
 
 from superset import db
 from superset.distributed_lock import DistributedLock
-from superset.exceptions import AcquireDistributedLockFailedException
+from superset.exceptions import AcquireDistributedLockFailedException, OAuth2Error
 from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
@@ -78,9 +79,11 @@ def generate_code_challenge(code_verifier: str) -> str:
 @backoff.on_exception(
     backoff.expo,
     AcquireDistributedLockFailedException,
-    factor=10,
+    factor=0.1,
     base=2,
-    max_tries=5,
+    max_tries=8,
+    raise_on_giveup=False,
+    giveup_log_level=logging.DEBUG,
 )
 def get_oauth2_access_token(
     config: OAuth2ClientConfig,
@@ -140,14 +143,17 @@ def refresh_oauth2_token(
                 config,
                 token.refresh_token,
             )
-        except db_engine_spec.oauth2_exception:
+        except db_engine_spec.oauth2_exception as ex:
             # OAuth token is no longer valid, delete it and start OAuth2 dance
             logger.warning(
-                "OAuth2 token refresh failed for user=%s db=%s, deleting invalid token",
+                "OAuth2 token refresh failed for user=%s db=%s, "
+                "deleting token. Error: %s",
                 user_id,
                 database_id,
+                ex,
             )
             db.session.delete(token)
+            db.session.flush()
             raise
         except Exception:
             # non-OAuth related failure, log the exception
@@ -245,16 +251,34 @@ def decode_oauth2_state(encoded_state: str) -> OAuth2State:
     return state
 
 
+def get_oauth2_redirect_uri() -> str:
+    """
+    Return the OAuth2 redirect URI.
+
+    Tries the explicit config first, then falls back to url_for().
+    If url_for() fails (e.g. in headless/MCP contexts where the
+    DatabaseRestApi blueprint may not be registered), raises
+    OAuth2Error so callers don't silently proceed with an invalid URI.
+    """
+    if configured := app.config.get("DATABASE_OAUTH2_REDIRECT_URI"):
+        return configured
+
+    try:
+        return url_for("DatabaseRestApi.oauth2", _external=True)
+    except (BuildError, RuntimeError):
+        raise OAuth2Error(
+            "Unable to determine the OAuth2 redirect URI. "
+            "Set DATABASE_OAUTH2_REDIRECT_URI in the configuration."
+        ) from None
+
+
 class OAuth2ClientConfigSchema(Schema):
     id = fields.String(required=True)
     secret = fields.String(required=True)
     scope = fields.String(required=True)
     redirect_uri = fields.String(
         required=False,
-        load_default=lambda: app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            url_for("DatabaseRestApi.oauth2", _external=True),
-        ),
+        load_default=get_oauth2_redirect_uri,
     )
     authorization_request_uri = fields.String(required=True)
     token_request_uri = fields.String(required=True)

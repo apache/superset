@@ -286,7 +286,6 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         <Breadcrumb.Item>{backend}</Breadcrumb.Item>
         <Breadcrumb.Item>{databaseName}</Breadcrumb.Item>
         {catalog && <Breadcrumb.Item>{catalog}</Breadcrumb.Item>}
-        {schema && <Breadcrumb.Item>{schema}</Breadcrumb.Item>}
         <Breadcrumb.Item> </Breadcrumb.Item>
       </Breadcrumb>
       <div style={{ display: 'none' }} aria-hidden="true">
@@ -314,6 +313,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
       </div>
       <Title>
         <Icons.InsertRowAboveOutlined iconSize="l" />
+        {schema ? `${schema}.` : ''}
         {tableName}
         {titleActions()}
       </Title>

@@ -164,10 +164,13 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @renders("datasource_url")
     def datasource_url(self) -> str | None:
+        # Use getattr to guard against datasource types that don't have explore_url
+        # (e.g. Query objects), which would otherwise raise AttributeError and cause
+        # the entire chart list response to fail.
         if self.table:
-            return self.table.explore_url
+            return getattr(self.table, "explore_url", None)
         datasource = self.datasource
-        return datasource.explore_url if datasource else None
+        return getattr(datasource, "explore_url", None) if datasource else None
 
     def datasource_name_text(self) -> str | None:
         if self.table:
@@ -274,7 +277,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         if self.query_context:
             try:
                 return self.get_query_context_factory().create(
-                    **json.loads(self.query_context)
+                    **{**json.loads(self.query_context), "current_slice": self}
                 )
             except json.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)

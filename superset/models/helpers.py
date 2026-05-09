@@ -202,6 +202,7 @@ def validate_adhoc_subquery(
     nested sub-queries with table
     """
     parsed_statement = SQLStatement(sql, engine)
+    rls_applied = False
     if parsed_statement.has_subquery():
         if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
             raise SupersetSecurityException(
@@ -213,9 +214,12 @@ def validate_adhoc_subquery(
             )
 
         # enforce RLS rules in any relevant tables
-        apply_rls(database, catalog, default_schema, parsed_statement)
+        rls_applied = apply_rls(database, catalog, default_schema, parsed_statement)
 
-    return parsed_statement.format()
+    # Only regenerate the SQL if RLS predicates were actually applied;
+    # unnecessary round-tripping through sqlglot can alter dialect-specific
+    # syntax.
+    return parsed_statement.format() if rls_applied else sql
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
@@ -903,6 +907,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_sqla_row_level_filters(
         self,
         template_processor: Optional[BaseTemplateProcessor] = None,  # pylint: disable=unused-argument
+        include_global_guest_rls: bool = True,  # pylint: disable=unused-argument
     ) -> list[TextClause]:
         # TODO: We should refactor this mixin and remove this method
         # as it exists in the BaseDatasource and is not applicable
@@ -1580,11 +1585,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 for metric in metric_names
             }
 
-            # When the original query has limit or offset we wont apply those
-            # to the subquery so we prevent data inconsistency due to missing records
-            # in the dataframes when performing the join
+            # The subquery drops row_offset (the offset period's own row ordering
+            # differs from the main query's, so applying the same offset would skew
+            # the join). It must still fetch enough rows to cover the main query's
+            # window, hence row_limit + row_offset when a chart limit is set.
             if query_object.row_limit or query_object.row_offset:
-                query_object_clone_dct["row_limit"] = app.config["ROW_LIMIT"]
+                if query_object.row_limit:
+                    query_object_clone_dct["row_limit"] = (
+                        query_object.row_limit + query_object.row_offset
+                    )
+                else:
+                    query_object_clone_dct["row_limit"] = app.config["ROW_LIMIT"]
                 query_object_clone_dct["row_offset"] = 0
 
             # Call the unified query method on the datasource
@@ -2048,15 +2059,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if parsed_script.statements:
             default_schema = self.database.get_default_schema(self.catalog)
             try:
+                rls_applied = False
                 for statement in parsed_script.statements:
-                    apply_rls(
+                    if apply_rls(
                         self.database,
                         self.catalog,
                         self.schema or default_schema or "",
                         statement,
-                    )
-                # Regenerate the SQL after RLS application
-                from_sql = parsed_script.format()
+                    ):
+                        rls_applied = True
+
+                # Only regenerate the SQL if RLS predicates were actually applied.
+                # Unnecessary round-tripping through sqlglot can alter SQL in
+                # dialect-specific ways (e.g. dropping column aliases, rewriting
+                # Redshift-specific syntax) and break virtual dataset queries.
+                if rls_applied:
+                    from_sql = parsed_script.format()
+
             except Exception as ex:
                 # Log the error but don't fail - RLS application is best-effort
                 logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
@@ -2262,7 +2281,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> ColumnElement:
+    ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         raise NotImplementedError()
 
     def _get_top_groups(
@@ -2386,7 +2405,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: Optional[str] = None,
         label: Optional[str] = "__time",
         template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> ColumnElement:
+    ) -> Optional[ColumnElement]:
         col = (
             time_col.get_timestamp_expression(
                 time_grain=time_grain,
@@ -2414,6 +2433,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     self.dttm_sql_literal(end_dttm, time_col)
                 )
             )
+        if not l:
+            return None
         return and_(True, *l)
 
     def values_for_column(  # pylint: disable=too-many-locals
@@ -2811,7 +2832,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     None,
                 )
                 if adhoc_col:
-                    col = self.adhoc_column_to_sqla(
+                    col, _unused = self.adhoc_column_to_sqla(
                         col=adhoc_col,
                         template_processor=template_processor,
                     )
@@ -2862,7 +2883,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
-                    outer = self.adhoc_column_to_sqla(
+                    outer, _unused = self.adhoc_column_to_sqla(
                         col=selected,
                         template_processor=template_processor,
                     )
@@ -2932,14 +2953,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and self.main_dttm_col != dttm_col.column_name
                 and self.main_dttm_col not in removed_filters
             ):
-                time_filters.append(
-                    self.get_time_filter(
-                        time_col=columns_by_name[self.main_dttm_col],
-                        start_dttm=from_dttm,
-                        end_dttm=to_dttm,
-                        template_processor=template_processor,
-                    )
+                _main_dttm_filter = self.get_time_filter(
+                    time_col=columns_by_name[self.main_dttm_col],
+                    start_dttm=from_dttm,
+                    end_dttm=to_dttm,
+                    template_processor=template_processor,
                 )
+                if _main_dttm_filter is not None:
+                    time_filters.append(_main_dttm_filter)
 
             # Check if time filter should be skipped because it was handled in template.
             # Check both the actual column name and __timestamp alias
@@ -2955,7 +2976,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     end_dttm=to_dttm,
                     template_processor=template_processor,
                 )
-                time_filters.append(time_filter_column)
+                if time_filter_column is not None:
+                    time_filters.append(time_filter_column)
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
@@ -2989,6 +3011,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             op = utils.FilterOperator(flt["op"].upper())
             col_obj: Optional["TableColumn"] = None
             sqla_col: Optional[Column] = None
+            adhoc_generic_type: Optional[GenericDataType] = None
             is_metric_filter = (
                 False  # Track if this is a filter on a metric (needs HAVING clause)
             )
@@ -2996,7 +3019,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
                 try:
-                    sqla_col = self.adhoc_column_to_sqla(flt_col, force_type_check=True)
+                    sqla_col, adhoc_generic_type = self.adhoc_column_to_sqla(
+                        flt_col,
+                        force_type_check=True,
+                        template_processor=template_processor,
+                    )
                     applied_adhoc_filters_columns.append(flt_col)
                 except ColumnNotFoundException:
                     rejected_adhoc_filters_columns.append(flt_col)
@@ -3006,6 +3033,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col_obj = columns_by_name.get(cast(str, flt_col))
                 # If not found in columns, check if it's a metric
                 # This supports filtering on metric columns for any chart type
+                if col_obj is None:
+                    # Fall back to verbose_name so filters produced by
+                    # right-click "Drill to detail by" (which can pass a
+                    # column's verbose label) still resolve to a real column.
+                    col_obj = next(
+                        (c for c in self.columns if c.verbose_name == flt_col),
+                        None,
+                    )
                 if (
                     col_obj is None
                     and isinstance(flt_col, str)
@@ -3049,6 +3084,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     sqla_col = self.convert_tbl_column_to_sqla_col(
                         tbl_column=col_obj, template_processor=template_processor
                     )
+                # Parenthesize expression-based columns to prevent operator
+                # precedence issues (e.g. OR in a calculated column breaking
+                # surrounding AND filters). Same pattern as extras.where
+                # wrapping added in PR #38183.
+                if sqla_col is not None and (
+                    (col_obj and col_obj.expression) or is_adhoc_column(flt_col)
+                ):
+                    sqla_col = Grouping(sqla_col)
                 col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(native_type=col_type)
                 is_list_target = op in (
@@ -3060,6 +3103,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 if col_spec and not col_advanced_data_type:
                     target_generic_type = col_spec.generic_type
+                elif adhoc_generic_type is not None and not col_advanced_data_type:
+                    # Adhoc columns have no TableColumn metadata; fall back to
+                    # the generic type resolved by adhoc_column_to_sqla so
+                    # filter values get coerced to match the SQL expression
+                    # (e.g. numeric IN-lists stay unquoted when the expression
+                    # casts to BIGINT).
+                    target_generic_type = adhoc_generic_type
                 else:
                     target_generic_type = GenericDataType.STRING
                 eq = self.filter_values_handler(
@@ -3192,16 +3242,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             time_shift=time_shift,
                             extras=extras,
                         )
-                        target_clause_list.append(
-                            self.get_time_filter(
-                                time_col=col_obj,
-                                start_dttm=_since,
-                                end_dttm=_until,
-                                time_grain=flt_grain,
-                                label=sqla_col.key,
-                                template_processor=template_processor,
-                            )
+                        _temporal_filter = self.get_time_filter(
+                            time_col=col_obj,
+                            start_dttm=_since,
+                            end_dttm=_until,
+                            time_grain=flt_grain,
+                            label=sqla_col.key,
+                            template_processor=template_processor,
                         )
+                        if _temporal_filter is not None:
+                            target_clause_list.append(_temporal_filter)
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
@@ -3288,14 +3338,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 inner_time_filter = []
 
                 if dttm_col and not db_engine_spec.time_groupby_inline:
-                    inner_time_filter = [
-                        self.get_time_filter(
-                            time_col=dttm_col,
-                            start_dttm=inner_from_dttm or from_dttm,
-                            end_dttm=inner_to_dttm or to_dttm,
-                            template_processor=template_processor,
-                        )
-                    ]
+                    _inner_filter = self.get_time_filter(
+                        time_col=dttm_col,
+                        start_dttm=inner_from_dttm or from_dttm,
+                        end_dttm=inner_to_dttm or to_dttm,
+                        template_processor=template_processor,
+                    )
+                    if _inner_filter is not None:
+                        inner_time_filter = [_inner_filter]
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
                 subq = subq.group_by(*inner_groupby_exprs)
 

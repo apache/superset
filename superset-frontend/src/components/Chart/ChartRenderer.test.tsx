@@ -163,7 +163,7 @@ test('should detect changes in matrixify properties', () => {
       ...requiredProps.formData,
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] },
       matrixify_dimension_y: { dimension: 'category', values: ['Tech'] },
       matrixify_charts_per_row: 3,
@@ -177,9 +177,9 @@ test('should detect changes in matrixify properties', () => {
 
   // Since we can't directly test shouldComponentUpdate, we verify the component
   // correctly identifies matrixify-related properties by checking the implementation
-  expect(
-    (initialProps.formData as JsonObject).matrixify_enable_vertical_layout,
-  ).toBe(true);
+  expect((initialProps.formData as JsonObject).matrixify_mode_rows).toBe(
+    'metrics',
+  );
   expect((initialProps.formData as JsonObject).matrixify_dimension_x).toEqual({
     dimension: 'country',
     values: ['USA'],
@@ -212,7 +212,8 @@ test('should identify matrixify property changes correctly', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] },
       matrixify_charts_per_row: 3,
     },
@@ -234,7 +235,8 @@ test('should identify matrixify property changes correctly', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
         values: ['USA', 'Canada'], // Changed
@@ -277,7 +279,8 @@ test('should handle matrixify-related form data changes', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true, // This is a significant change
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics', // This is a significant change
       regular_control: 'value1',
     },
   };
@@ -296,7 +299,8 @@ test('should detect matrixify property addition', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       // No matrixify_dimension_x initially
     },
     queriesResponse: [{ data: 'current' } as unknown as JsonObject],
@@ -317,7 +321,8 @@ test('should detect matrixify property addition', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: { dimension: 'country', values: ['USA'] }, // Added
     },
   };
@@ -336,7 +341,8 @@ test('should detect nested matrixify property changes', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
         values: ['USA'],
@@ -361,7 +367,8 @@ test('should detect nested matrixify property changes', () => {
     formData: {
       datasource: '',
       viz_type: VizType.Table,
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
+      matrixify_mode_rows: 'metrics',
       matrixify_dimension_x: {
         dimension: 'country',
         values: ['USA'],

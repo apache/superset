@@ -439,11 +439,22 @@ export default function PivotTableChart(props: PivotTableProps) {
     [groupbyColumnsRaw, groupbyRowsRaw, setDataMask],
   );
 
+  const isActiveFilterValue = useCallback(
+    (key: string, val: DataRecordValue) => {
+      if (!selectedFilters || !selectedFilters[key]) return false;
+      return selectedFilters[key].some((filterVal: DataRecordValue) => {
+        if (filterVal === val) return true;
+        if (filterVal instanceof Date && val instanceof Date) {
+          return filterVal.getTime() === val.getTime();
+        }
+        return false;
+      });
+    },
+    [selectedFilters],
+  );
+
   const getCrossFilterDataMask = useCallback(
     (value: { [key: string]: string }) => {
-      const isActiveFilterValue = (key: string, val: DataRecordValue) =>
-        !!selectedFilters && selectedFilters[key]?.includes(val);
-
       if (!value) {
         return undefined;
       }
@@ -500,7 +511,7 @@ export default function PivotTableChart(props: PivotTableProps) {
         isCurrentValueSelected: isActiveFilterValue(key, val),
       };
     },
-    [groupbyColumnsRaw, groupbyRowsRaw, selectedFilters],
+    [groupbyColumnsRaw, groupbyRowsRaw, isActiveFilterValue, selectedFilters],
   );
 
   const toggleFilter = useCallback(
@@ -521,9 +532,6 @@ export default function PivotTableChart(props: PivotTableProps) {
         return;
       }
 
-      const isActiveFilterValue = (key: string, val: DataRecordValue) =>
-        !!selectedFilters && selectedFilters[key]?.includes(val);
-
       const filtersCopy = { ...filters };
       delete filtersCopy[METRIC_KEY];
 
@@ -533,16 +541,24 @@ export default function PivotTableChart(props: PivotTableProps) {
       }
 
       const [key, val] = filtersEntries[filtersEntries.length - 1];
+      const isMultiSelect = e.metaKey || e.ctrlKey;
 
       let updatedFilters = { ...selectedFilters };
-      // multi select
-      // if (selectedFilters && isActiveFilterValue(key, val)) {
-      //   updatedFilters[key] = selectedFilters[key].filter((x: DataRecordValue) => x !== val);
-      // } else {
-      //   updatedFilters[key] = [...(selectedFilters?.[key] || []), val];
-      // }
-      // single select
-      if (selectedFilters && isActiveFilterValue(key, val)) {
+      if (isMultiSelect) {
+        if (isActiveFilterValue(key, val)) {
+          updatedFilters[key] = (selectedFilters?.[key] || []).filter(
+            (x: DataRecordValue) => {
+              if (x === val) return false;
+              if (x instanceof Date && val instanceof Date) {
+                return x.getTime() !== val.getTime();
+              }
+              return true;
+            },
+          );
+        } else {
+          updatedFilters[key] = [...(selectedFilters?.[key] || []), val];
+        }
+      } else if (isActiveFilterValue(key, val)) {
         updatedFilters = {};
       } else {
         updatedFilters = {
@@ -557,7 +573,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       }
       handleChange(updatedFilters);
     },
-    [emitCrossFilters, selectedFilters, handleChange],
+    [emitCrossFilters, isActiveFilterValue, selectedFilters, handleChange],
   );
 
   const tableOptions = useMemo(
@@ -576,6 +592,9 @@ export default function PivotTableChart(props: PivotTableProps) {
       omittedHighlightHeaderGroups: [METRIC_KEY],
       cellColorFormatters: { [METRIC_KEY]: metricColorFormatters },
       dateFormatters,
+      cellBackgroundColor: theme.colorBgBase,
+      cellTextColor: theme.colorPrimaryText,
+      activeHeaderBackgroundColor: theme.colorPrimaryBg,
     }),
     [
       colTotals,
@@ -586,6 +605,9 @@ export default function PivotTableChart(props: PivotTableProps) {
       rowTotals,
       rowSubTotals,
       selectedFilters,
+      theme.colorBgBase,
+      theme.colorPrimaryBg,
+      theme.colorPrimaryText,
       toggleFilter,
     ],
   );

@@ -220,7 +220,7 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         sqlalchemy_uri="sqlite://",
         encrypted_extra=json.dumps(oauth2_client_info),
     )
-    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    database.db_engine_spec.oauth2_exception = OAuth2Error
     get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
     get_sqla_engine().__enter__().raw_connection.side_effect = OAuth2Error(
         "OAuth2 required"
@@ -326,3 +326,6 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
 
     table = Table("t1", "public", "examples")
     assert get_predicates_for_table(table, database, "examples") == ["c1 = 1"]
+    dataset.get_sqla_row_level_filters.assert_called_once_with(
+        include_global_guest_rls=False
+    )

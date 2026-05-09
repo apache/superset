@@ -75,7 +75,7 @@ This approach ensures that extensions from different organizations cannot confli
 This creates a complete project structure:
 
 ```
-my-org.hello-world/
+hello-world/
 ├── extension.json           # Extension metadata and configuration
 ├── backend/                 # Backend Python code
 │   ├── src/

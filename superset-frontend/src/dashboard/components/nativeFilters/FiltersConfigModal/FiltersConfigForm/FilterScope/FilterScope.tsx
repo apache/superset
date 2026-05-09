@@ -71,7 +71,7 @@ const FilterScope: FC<FilterScopeProps> = ({
   );
 
   const updateScopes = useCallback(
-    updatedFormValues => {
+    (updatedFormValues: Record<string, any>) => {
       if (hasScopeBeenModified) {
         return;
       }

@@ -47,6 +47,7 @@ import { newQueryTabName } from '../utils/newQueryTabName';
 import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
 import { PREVIEW_QUERY_LIMIT } from '../constants';
+import { EMPTY_STATE_QE_ID } from '../hooks/useQueryEditor';
 
 // Type definitions for SqlLab actions
 export interface Query {
@@ -754,7 +755,7 @@ export function addNewQueryEditor(): SqlLabThunkAction<SqlLabAction> {
     const defaultDbId = common.conf.SQLLAB_DEFAULT_DBID as number | undefined;
     const activeQueryEditor = queryEditors.find(
       (qe: QueryEditor) => qe.id === tabHistory[tabHistory.length - 1],
-    );
+    ) ?? { id: EMPTY_STATE_QE_ID };
     const dbIds = Object.values(databases).map(
       (database: { id: number }) => database.id,
     );
@@ -855,7 +856,7 @@ export function loadQueryEditor(queryEditor: QueryEditor): SqlLabAction {
   return { type: LOAD_QUERY_EDITOR, queryEditor };
 }
 
-interface TableSchema {
+export interface TableSchema {
   description: {
     columns: unknown[];
     selectStar: string;
@@ -1283,7 +1284,7 @@ export function addTable(
   };
 }
 
-interface NewTable {
+export interface NewTable {
   id?: string;
   dbId: number | string;
   catalog?: string | null;
@@ -1345,7 +1346,7 @@ export function runTablePreviewQuery(
   };
 }
 
-interface TableMetaData {
+export interface TableMetaData {
   columns?: unknown[];
   selectStar?: string;
   primaryKey?: unknown;
@@ -1659,7 +1660,7 @@ export function createDatasourceFailed(err: string): SqlLabAction {
   return { type: CREATE_DATASOURCE_FAILED, err };
 }
 
-interface VizOptions {
+export interface VizOptions {
   dbId: number;
   catalog?: string | null;
   schema: string;

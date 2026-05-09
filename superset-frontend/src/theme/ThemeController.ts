@@ -102,15 +102,19 @@ export class ThemeController {
   // Track loaded font URLs to avoid duplicate injections
   private loadedFontUrls: Set<string> = new Set();
 
+  private initialMode: ThemeMode | undefined;
+
   constructor({
     storage = new LocalStorageAdapter(),
     modeStorageKey = STORAGE_KEYS.THEME_MODE,
     themeObject = supersetThemeObject,
     defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
     onChange = undefined,
-  }: ThemeControllerOptions = {}) {
+    initialMode = undefined,
+  }: ThemeControllerOptions & { initialMode?: ThemeMode } = {}) {
     this.storage = storage;
     this.modeStorageKey = modeStorageKey;
+    this.initialMode = initialMode;
 
     // Controller creates and owns the global theme
     this.globalTheme = themeObject;
@@ -301,6 +305,20 @@ export class ThemeController {
    */
   public getCurrentMode(): ThemeMode {
     return this.currentMode;
+  }
+
+  /**
+   * Returns the resolved theme mode as 'dark' or 'light'.
+   * Takes into account SYSTEM mode and returns the actual resolved preference.
+   */
+  public getCurrentModeResolved(): 'dark' | 'light' {
+    const activeTheme = this.getThemeForMode(this.currentMode);
+    if (activeTheme) {
+      const normalizedTheme = this.normalizeTheme(activeTheme);
+      return isThemeConfigDark(normalizedTheme) ? 'dark' : 'light';
+    }
+
+    return this.currentMode === ThemeMode.DARK ? 'dark' : 'light';
   }
 
   /**
@@ -742,6 +760,13 @@ export class ThemeController {
       this.storage.removeItem(this.modeStorageKey);
       return ThemeMode.DEFAULT;
     }
+
+    // Use explicit initial mode if provided (e.g. embedded dashboards default to light)
+    if (
+      this.initialMode !== undefined &&
+      this.isValidThemeMode(this.initialMode)
+    )
+      return this.initialMode;
 
     // Default to system preference when both themes are available
     return ThemeMode.SYSTEM;

@@ -45,11 +45,19 @@ const DatasourceEditor = AsyncEsmComponent(
   () => import('../components/DatasourceEditor'),
 );
 
+const MODAL_HEIGHT_VH = 90;
+const TOP_MARGIN_VH = (100 - MODAL_HEIGHT_VH) / 2;
+
 const StyledDatasourceModal = styled(Modal)`
+  top: ${TOP_MARGIN_VH}vh;
+  padding-bottom: 0;
+
   && .ant-modal-content {
-    max-height: none;
+    max-height: ${MODAL_HEIGHT_VH}vh;
     margin-top: 0;
     margin-bottom: 0;
+    min-height: 500px;
+    min-width: 500px;
   }
 
   && .ant-modal-body {
@@ -367,7 +375,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       }
       responsive
       resizable
-      resizableConfig={{ defaultSize: { width: 'auto', height: '900px' } }}
+      resizableConfig={{
+        defaultSize: { width: 'auto', height: `${MODAL_HEIGHT_VH}vh` },
+        maxHeight: `${MODAL_HEIGHT_VH}vh`,
+      }}
       draggable
     >
       <DatasourceEditor

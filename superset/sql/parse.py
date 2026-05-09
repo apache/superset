@@ -45,7 +45,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import DB2, Dremio, Firebolt, Pinot
+from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot, Vertica
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -93,7 +93,7 @@ SQLGLOT_DIALECTS = {
     "netezza": Dialects.POSTGRES,
     "oceanbase": Dialects.MYSQL,
     # "ocient": ???
-    # "odelasticsearch": ???
+    "odelasticsearch": OpenSearch,
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
@@ -113,7 +113,7 @@ SQLGLOT_DIALECTS = {
     # "taosws": ???
     "teradatasql": Dialects.TERADATA,
     "trino": Dialects.TRINO,
-    "vertica": Dialects.POSTGRES,
+    "vertica": Vertica,
     "yql": Dialects.CLICKHOUSE,
 }
 
@@ -260,12 +260,13 @@ class RLSAsSubqueryTransformer(RLSTransformer):
             if node.alias:
                 alias = node.alias
             else:
-                name = ".".join(
-                    part
-                    for part in (node.catalog or "", node.db or "", node.name)
-                    if part
-                )
-                alias = exp.TableAlias(this=exp.Identifier(this=name, quoted=True))
+                # Use just the table name (not schema-qualified) so that
+                # column references like ``table.column`` still resolve after
+                # the table is replaced with a subquery.  Using the full
+                # ``schema.table`` path as a quoted identifier creates a
+                # mismatch: the columns reference ``table`` but the alias is
+                # ``"schema.table"``, which are different identifiers.
+                alias = exp.TableAlias(this=exp.Identifier(this=node.name, quoted=True))
 
             node.set("alias", None)
             node = exp.Subquery(
@@ -1556,7 +1557,7 @@ def sanitize_clause(clause: str, engine: str) -> str:
         return Dialect.get_or_raise(dialect).generate(
             statement._parsed,  # pylint: disable=protected-access
             copy=True,
-            comments=False,
+            comments=True,
             pretty=False,
         )
     except SupersetParseError as ex:
@@ -1567,6 +1568,7 @@ def transpile_to_dialect(
     sql: str,
     target_engine: str,
     source_engine: str | None = None,
+    identify: bool = False,
 ) -> str:
     """
     Transpile SQL from one database dialect to another using SQLGlot.
@@ -1575,6 +1577,7 @@ def transpile_to_dialect(
         sql: The SQL query to transpile
         target_engine: The target database engine (e.g., "mysql", "postgresql")
         source_engine: The source database engine. If None, uses generic SQL dialect.
+        identify: If True, quote all identifiers per the target dialect.
 
     Returns:
         The transpiled SQL string
@@ -1597,6 +1600,7 @@ def transpile_to_dialect(
             copy=True,
             comments=False,
             pretty=False,
+            identify=identify,
         )
     except ParseError as ex:
         raise QueryClauseValidationException(f"Cannot parse SQL clause: {sql}") from ex

@@ -22,7 +22,9 @@ import {
   parseUrl,
   toQueryString,
   getDashboardUrlParams,
+  getUrlParam,
 } from './urlUtils';
+import { URL_PARAMS } from '../constants';
 
 test('isUrlExternal', () => {
   expect(isUrlExternal('http://google.com')).toBeTruthy();
@@ -144,4 +146,46 @@ test('getDashboardUrlParams should exclude multiple parameters when provided', (
 
   // Restore original location
   window.location = originalLocation;
+});
+
+test('getUrlParam reads from window.location.search by default', () => {
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: { ...originalLocation, search: '?dashboard_page_id=from-window' },
+    writable: true,
+    configurable: true,
+  });
+
+  expect(getUrlParam(URL_PARAMS.dashboardPageId)).toBe('from-window');
+
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+    configurable: true,
+  });
+});
+
+test('getUrlParam uses provided search string instead of window.location.search (Safari race condition fix)', () => {
+  // Simulate Safari race condition: window.location.search is stale (empty),
+  // but the correct search string is passed in from React Router's useLocation()
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    value: { ...originalLocation, search: '' },
+    writable: true,
+    configurable: true,
+  });
+
+  // Without the search override, window.location.search is stale — returns null (the bug)
+  expect(getUrlParam(URL_PARAMS.dashboardPageId)).toBeNull();
+
+  // With the search override (the fix), returns the correct value
+  expect(
+    getUrlParam(URL_PARAMS.dashboardPageId, '?dashboard_page_id=correct-id'),
+  ).toBe('correct-id');
+
+  Object.defineProperty(window, 'location', {
+    value: originalLocation,
+    writable: true,
+    configurable: true,
+  });
 });
