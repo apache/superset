@@ -71,7 +71,7 @@ dependencies = [
     "marshmallow>=3.0, <4",
     "marshmallow-union>=0.1",
     "msgpack>=1.0.0, <1.2",
-    "nh3>=0.2.11, <0.3",
+    "nh3>=0.2.11, <0.4",
     "numpy>1.23.5, <2.3",
     "packaging",
     # --------------------------
