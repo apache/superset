@@ -2131,6 +2131,15 @@ DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 # Timeout when fetching access and refresh tokens.
 DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 
+# Enable SSRF validation for OAuth2 token request URIs. When enabled, Superset will
+# resolve the token URI hostname and reject requests to private/reserved IP addresses.
+# Set to False to disable validation entirely (not recommended).
+DATABASE_OAUTH2_TOKEN_URI_SSRF_VALIDATION = True
+
+# Hostnames exempt from OAuth2 token URI SSRF validation. Use this for legitimate
+# internal OAuth2 providers that resolve to private network addresses.
+DATABASE_OAUTH2_TOKEN_URI_ALLOWED_HOSTS: list[str] = []
+
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
 

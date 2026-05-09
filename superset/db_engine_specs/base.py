@@ -18,8 +18,10 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 import re
+import socket
 import warnings
 from datetime import datetime, timedelta
 from inspect import signature
@@ -35,7 +37,7 @@ from typing import (
     TypedDict,
     Union,
 )
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode, urljoin, urlparse
 from uuid import UUID, uuid4
 
 import pandas as pd
@@ -814,24 +816,39 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def _validate_oauth2_token_uri(cls, uri: str) -> None:
         """Validate OAuth2 token URI to prevent SSRF attacks."""
-        import ipaddress
-        import socket as _socket
-        from urllib.parse import urlparse
+        if not app.config.get("DATABASE_OAUTH2_TOKEN_URI_SSRF_VALIDATION", True):
+            return
 
         parsed = urlparse(uri)
         if parsed.scheme not in ("https", "http"):
             raise ValueError(
                 f"OAuth2 token URI must use http or https scheme, got: {parsed.scheme!r}"
             )
+
         hostname = parsed.hostname or ""
+
+        allowed_hosts: list[str] = app.config.get(
+            "DATABASE_OAUTH2_TOKEN_URI_ALLOWED_HOSTS", []
+        )
+        if hostname in allowed_hosts:
+            return
+
         try:
-            ip = ipaddress.ip_address(_socket.gethostbyname(hostname))
+            addresses = {
+                info[4][0] for info in socket.getaddrinfo(hostname, None)
+            }
+        except socket.gaierror as ex:
+            raise ValueError(
+                f"OAuth2 token URI hostname cannot be resolved: {hostname!r}"
+            ) from ex
+
+        for addr in addresses:
+            ip = ipaddress.ip_address(addr)
             if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
                 raise ValueError(
-                    "OAuth2 token URI must not point to a private or reserved network address"
+                    "OAuth2 token URI must not point to a private or reserved "
+                    f"network address (resolved {hostname!r} to {addr})"
                 )
-        except _socket.gaierror:
-            pass
 
     @classmethod
     def get_oauth2_fresh_token(
