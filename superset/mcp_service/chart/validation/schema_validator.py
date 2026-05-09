@@ -535,10 +535,11 @@ class SchemaValidator:
         field = loc_parts[-1] if loc_parts else "field"
 
         if err_type == "string_pattern_mismatch":
+            pattern = err.get("ctx", {}).get("pattern", "")
+            pattern_info = f" (required pattern: `{pattern}`)" if pattern else ""
             return (
-                f"'{field}' value does not match the required pattern. "
-                "Use the exact value from your dataset.",
-                "Use get_dataset_info to find exact column names and values",
+                f"'{field}' value does not match the required format{pattern_info}.",
+                "Use get_dataset_info to verify exact column names and values",
             )
         if err_type == "literal_error":
             # Preserve the pydantic message ("Input should be ...") which is
