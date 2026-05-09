@@ -399,10 +399,9 @@ def test_raise_for_access_query_default_schema(
             table=None,
             viz=None,
         )
-    assert (
-        str(excinfo.value)
-        == """You need access to the following tables: `public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+    assert str(excinfo.value) == (
+        "You need access to the following tables: `public.ab_user`, "
+        "`all_database_access` or `all_datasource_access` permission"
     )
 
 
@@ -1103,19 +1102,17 @@ def test_raise_for_access_catalog(
     mocker.patch.object(sm, "can_access", return_value=False)
     with pytest.raises(SupersetSecurityException) as excinfo:
         sm.raise_for_access(query=query)
-    assert (
-        str(excinfo.value)
-        == """You need access to the following tables: `db1.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+    assert str(excinfo.value) == (
+        "You need access to the following tables: `db1.public.ab_user`, "
+        "`all_database_access` or `all_datasource_access` permission"
     )
 
     query.sql = "SELECT * FROM db2.public.ab_user"
     with pytest.raises(SupersetSecurityException) as excinfo:
         sm.raise_for_access(query=query)
-    assert (
-        str(excinfo.value)
-        == """You need access to the following tables: `db2.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+    assert str(excinfo.value) == (
+        "You need access to the following tables: `db2.public.ab_user`, "
+        "`all_database_access` or `all_datasource_access` permission"
     )
 
 
@@ -1547,3 +1544,35 @@ def test_validate_child_in_parent_multilayer_null_params(
     assert not sm._validate_child_in_parent_multilayer(
         child_slice_id=1, parent_slice=parent_slice
     )
+
+
+
+def test_get_table_access_error_msg_is_translated(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    Regression test for #38268.
+
+    SupersetSecurityManager.get_table_access_error_msg must route the
+    user-facing error string through flask_babel.gettext so the message
+    is translatable. Before the fix the function returned a raw f-string,
+    bypassing i18n entirely. We assert by patching the underlying
+    gettext callable and confirming it is invoked with the expected msgid.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mock_gettext = mocker.patch(
+        "superset.security.manager.__",
+        side_effect=lambda msgid, **kwargs: msgid % kwargs,
+    )
+
+    msg = sm.get_table_access_error_msg({Table("ab_user", "public", None)})
+
+    # The translation helper must be called exactly once with the expected
+    # msgid and the formatted tables substitution kwarg — otherwise
+    # translators have nothing to translate.
+    mock_gettext.assert_called_once()
+    call_args = mock_gettext.call_args
+    assert "%(tables)s" in call_args.args[0]
+    assert call_args.kwargs.get("tables") == "`public.ab_user`"
+    assert "all_database_access" in msg
+    assert "all_datasource_access" in msg
