@@ -73,8 +73,7 @@ class HandlebarsChartPlugin(BaseChartPlugin):
                 ),
                 suggestions=[
                     "Ensure handlebars_template is a non-empty string",
-                    "Example: '<ul>{{#each data}}<li>{{this.name}}</li>"
-                    "{{/each}}</ul>'",
+                    "Example: '<ul>{{#each data}}<li>{{this.name}}</li>{{/each}}</ul>'",
                 ],
                 error_code="INVALID_HANDLEBARS_TEMPLATE",
             )

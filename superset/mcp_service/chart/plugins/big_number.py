@@ -71,8 +71,7 @@ class BigNumberChartPlugin(BaseChartPlugin):
                 error_type="invalid_metric_type",
                 message="Big Number metric must be a dict with 'name' and 'aggregate'",
                 details=(
-                    "The 'metric' field must be an object, got "
-                    f"{type(metric).__name__}"
+                    f"The 'metric' field must be an object, got {type(metric).__name__}"
                 ),
                 suggestions=[
                     "Use a dict: {'name': 'col', 'aggregate': 'SUM'}",

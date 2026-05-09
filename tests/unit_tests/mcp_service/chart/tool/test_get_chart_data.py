@@ -226,9 +226,9 @@ class TestBigNumberChartFallback:
                 "viz_type": viz_type,
             }
             metrics, _ = _extract_metrics_and_groupby(form_data)
-            assert metrics == [
-                {"label": "plural_metric"}
-            ], f"{viz_type} should use plural metrics"
+            assert metrics == [{"label": "plural_metric"}], (
+                f"{viz_type} should use plural metrics"
+            )
 
     def test_pop_kpi_uses_singular_metric(self):
         """Test that pop_kpi (BigNumberPeriodOverPeriod) uses singular metric."""
