@@ -183,7 +183,9 @@ idna==3.10
     #   trio
     #   url-normalize
 isodate==0.7.2
-    # via apache-superset (pyproject.toml)
+    # via
+    #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 itsdangerous==2.2.0
     # via
     #   flask
@@ -296,6 +298,7 @@ pyarrow==20.0.0
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 pyasn1==0.6.3
     # via
     #   pyasn1-modules
@@ -381,7 +384,7 @@ selenium==4.32.0
     # via apache-superset (pyproject.toml)
 setuptools==80.9.0
     # via -r requirements/base.in
-shillelagh==1.4.3
+shillelagh==1.4.4
     # via apache-superset (pyproject.toml)
 simplejson==3.20.1
     # via apache-superset (pyproject.toml)

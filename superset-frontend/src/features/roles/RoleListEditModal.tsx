@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { RoleObject } from 'src/pages/RolesList';
@@ -330,45 +330,47 @@ function RoleListEditModal({
       initialValues={initialValues}
       requiredFields={['roleName']}
     >
-      {(form: FormInstance) => {
-        formRef.current = form;
+      {
+        ((form: FormInstance) => {
+          formRef.current = form;
 
-        return (
-          <Tabs
-            activeKey={activeTabKey}
-            onChange={activeKey => setActiveTabKey(activeKey)}
-          >
-            <Tabs.TabPane
-              tab={roleTabs.edit.name}
-              key={roleTabs.edit.key}
-              forceRender
+          return (
+            <Tabs
+              activeKey={activeTabKey}
+              onChange={activeKey => setActiveTabKey(activeKey)}
             >
-              <>
-                <RoleNameField />
-                <PermissionsField
-                  addDangerToast={addDangerToast}
-                  loading={loadingRolePermissions}
+              <Tabs.TabPane
+                tab={roleTabs.edit.name}
+                key={roleTabs.edit.key}
+                forceRender
+              >
+                <>
+                  <RoleNameField />
+                  <PermissionsField
+                    addDangerToast={addDangerToast}
+                    loading={loadingRolePermissions}
+                  />
+                  <UsersField
+                    addDangerToast={addDangerToast}
+                    loading={loadingRoleUsers}
+                  />
+                  <GroupsField
+                    addDangerToast={addDangerToast}
+                    loading={loadingRoleGroups}
+                  />
+                </>
+              </Tabs.TabPane>
+              <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
+                <TableView
+                  columns={userColumns}
+                  data={roleUsers}
+                  emptyWrapperType={EmptyWrapperType.Small}
                 />
-                <UsersField
-                  addDangerToast={addDangerToast}
-                  loading={loadingRoleUsers}
-                />
-                <GroupsField
-                  addDangerToast={addDangerToast}
-                  loading={loadingRoleGroups}
-                />
-              </>
-            </Tabs.TabPane>
-            <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
-              <TableView
-                columns={userColumns}
-                data={roleUsers}
-                emptyWrapperType={EmptyWrapperType.Small}
-              />
-            </Tabs.TabPane>
-          </Tabs>
-        );
-      }}
+              </Tabs.TabPane>
+            </Tabs>
+          );
+        }) as unknown as ReactNode
+      }
     </FormModal>
   );
 }

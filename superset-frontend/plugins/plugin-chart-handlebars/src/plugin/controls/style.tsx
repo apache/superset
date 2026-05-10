@@ -49,7 +49,7 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
     <div>
       <ControlHeader>
         <div>
-          {props.label}
+          {typeof props.label === 'function' ? null : props.label}
           {htmlSanitization && (
             <InfoTooltip
               iconStyle={{ marginLeft: theme.sizeUnit }}

@@ -86,7 +86,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
 
     try:
         # Import inside function to avoid initialization issues
-        from superset import db, security_manager
+        from superset import db, is_feature_enabled, security_manager
         from superset.models.core import Database
 
         # 1. Get database and check access
@@ -133,6 +133,22 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         # 4. Convert to MCP response format
         with event_logger.log_context(action="mcp.execute_sql.response_conversion"):
             response = _convert_to_response(result)
+
+        # Surface a warning when template_params is supplied but Jinja
+        # rendering is disabled — otherwise the params are silently dropped.
+        if request.template_params and not is_feature_enabled(
+            "ENABLE_TEMPLATE_PROCESSING"
+        ):
+            response.template_warning = (
+                "template_params was supplied but Jinja2 rendering is "
+                "disabled on this Superset instance "
+                "(ENABLE_TEMPLATE_PROCESSING feature flag is off). "
+                "Template variables in the SQL were NOT substituted; "
+                "the query was executed with literal '{{ var }}' placeholders."
+            )
+            await ctx.warning(
+                "template_params supplied but ENABLE_TEMPLATE_PROCESSING is off"
+            )
 
         # Log successful execution
         if response.success:

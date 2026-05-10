@@ -36,7 +36,6 @@ import {
   type OnClickHandler,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { IconType } from '@superset-ui/core/components/Icons/types';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
 import { Typography } from '@superset-ui/core/components/Typography';
 
@@ -149,7 +148,8 @@ export interface ButtonProps {
   'data-test'?: string;
   buttonStyle: 'primary' | 'secondary' | 'dashed' | 'link' | 'tertiary';
   loading?: boolean;
-  icon?: IconType;
+  icon?: ReactNode;
+  component?: ReactNode;
 }
 
 export interface SubMenuProps {
@@ -164,6 +164,7 @@ export interface SubMenuProps {
   color?: string;
   dropDownLinks?: Array<MenuObjectProps>;
   backgroundColor?: string;
+  children?: ReactNode;
 }
 
 const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
@@ -312,18 +313,22 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
                 ),
             }))}
           />
-          {props.buttons?.map((btn, i) => (
-            <Button
-              key={i}
-              buttonStyle={btn.buttonStyle}
-              icon={btn.icon}
-              onClick={btn.onClick}
-              data-test={btn['data-test']}
-              loading={btn.loading ?? false}
-            >
-              {btn.name}
-            </Button>
-          ))}
+          {props.buttons?.map((btn, i) =>
+            btn.component ? (
+              <span key={i}>{btn.component}</span>
+            ) : (
+              <Button
+                key={i}
+                buttonStyle={btn.buttonStyle}
+                icon={btn.icon}
+                onClick={btn.onClick}
+                data-test={btn['data-test']}
+                loading={btn.loading ?? false}
+              >
+                {btn.name}
+              </Button>
+            ),
+          )}
         </div>
       </Row>
       {props.children}
