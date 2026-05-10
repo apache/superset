@@ -1443,3 +1443,47 @@ def test_handle_cursor_commits_on_progress_text_change(
 
     # There should be commits for progress_text changes
     assert mock_db.session.commit.call_count >= 2
+
+
+def test_handle_boolean_filter() -> None:
+    """
+    Test that Trino uses equality operators for boolean filters instead of IS,
+    since `col IS TRUE` can fail on computed boolean expressions like
+    `(expiration = 1) AS expiration`.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.utils.core import FilterOperator
+
+    bool_col = Column("test_col", Boolean)
+
+    result_true = TrinoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    result_false = TrinoEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+    # Regression: the original bug was on computed boolean columns like
+    # `(expiration = 1) AS expiration`. Verify the equality operator also
+    # compiles correctly when the "column" is a computed expression.
+    from sqlalchemy import literal_column
+
+    computed_col = literal_column("(expiration = 1)")
+    result_computed = TrinoEngineSpec.handle_boolean_filter(
+        computed_col, FilterOperator.IS_TRUE, True
+    )
+    assert (
+        str(result_computed.compile(compile_kwargs={"literal_binds": True}))
+        == "(expiration = 1) = true"
+    )
