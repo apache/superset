@@ -39,6 +39,7 @@ from superset.utils.core import (
     get_stacktrace,
     get_user_agent,
     is_test,
+    markdown,
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
@@ -1688,3 +1689,44 @@ def test_sanitize_url_blocks_dangerous():
     """Test that dangerous URL schemes are blocked."""
     assert sanitize_url("javascript:alert('xss')") == ""
     assert sanitize_url("data:text/html,<script>alert(1)</script>") == ""
+
+
+def test_markdown_basic() -> None:
+    result = markdown("**bold**")
+
+    assert "<strong>bold</strong>" in result
+
+
+def test_markdown_allows_target_blank_on_links() -> None:
+    raw = '<a href="https://example.com" target="_blank">Click here</a>'
+    result = markdown(raw)
+
+    assert 'href="https://example.com"' in result
+    assert 'target="_blank"' in result
+    assert 'rel="noopener noreferrer"' in result
+
+
+def test_markdown_replaces_custom_rel_with_safe_rel() -> None:
+    raw = '<a href="https://example.com" rel="external">Click</a>'
+    result = markdown(raw)
+
+    assert 'href="https://example.com"' in result
+    assert ">Click</a>" in result
+    assert 'rel="noopener noreferrer"' in result
+    assert 'rel="external"' not in result
+
+
+def test_markdown_sanitizes_dangerous_content() -> None:
+    raw = '<div><script>alert("xss")</script>Content</div>'
+    result = markdown(raw)
+
+    assert "<script>" not in result
+    assert "alert" not in result
+
+
+def test_markdown_with_markup_wrap() -> None:
+    result = markdown("**bold**", markup_wrap=True)
+    from markupsafe import Markup
+
+    assert isinstance(result, Markup)
+    assert "<strong>bold</strong>" in str(result)

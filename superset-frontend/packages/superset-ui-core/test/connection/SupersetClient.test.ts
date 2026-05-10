@@ -19,6 +19,7 @@
 import fetchMock from 'fetch-mock';
 
 import { SupersetClient, SupersetClientClass } from '@superset-ui/core';
+import type { SupersetClientInterface } from '@superset-ui/core';
 import { LOGIN_GLOB } from './fixtures/constants';
 
 beforeAll(() => fetchMock.mockGlobal());
@@ -30,6 +31,10 @@ describe('SupersetClient', () => {
   afterAll(() => fetchMock.removeRoutes().clearHistory());
 
   afterEach(() => SupersetClient.reset());
+
+  const clientWithGetUrl = SupersetClient as SupersetClientInterface & {
+    getUrl: (...args: unknown[]) => string;
+  };
 
   test('exposes configure, init, get, post, postForm, delete, put, request, reset, getGuestToken, getCSRFToken, getUrl, isAuthenticated, and reAuthenticate methods', () => {
     expect(typeof SupersetClient.configure).toBe('function');
@@ -43,7 +48,7 @@ describe('SupersetClient', () => {
     expect(typeof SupersetClient.reset).toBe('function');
     expect(typeof SupersetClient.getGuestToken).toBe('function');
     expect(typeof SupersetClient.getCSRFToken).toBe('function');
-    expect(typeof SupersetClient.getUrl).toBe('function');
+    expect(typeof clientWithGetUrl.getUrl).toBe('function');
     expect(typeof SupersetClient.isAuthenticated).toBe('function');
     expect(typeof SupersetClient.reAuthenticate).toBe('function');
   });
@@ -58,7 +63,7 @@ describe('SupersetClient', () => {
     expect(SupersetClient.request).toThrow();
     expect(SupersetClient.getGuestToken).toThrow();
     expect(SupersetClient.getCSRFToken).toThrow();
-    expect(SupersetClient.getUrl).toThrow();
+    expect(clientWithGetUrl.getUrl).toThrow();
     expect(SupersetClient.isAuthenticated).toThrow();
     expect(SupersetClient.reAuthenticate).toThrow();
     expect(SupersetClient.configure).not.toThrow();
@@ -100,7 +105,7 @@ describe('SupersetClient', () => {
     const getUrlSpy = jest.spyOn(SupersetClientClass.prototype, 'getUrl');
 
     SupersetClient.configure({ appRoot: '/app' });
-    expect(SupersetClient.getUrl({ endpoint: '/some/path' })).toContain(
+    expect(clientWithGetUrl.getUrl({ endpoint: '/some/path' })).toContain(
       '/app/some/path',
     );
     expect(getUrlSpy).toHaveBeenCalledTimes(1);

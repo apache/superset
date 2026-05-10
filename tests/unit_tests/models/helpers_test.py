@@ -1937,6 +1937,235 @@ def test_extras_having_is_parenthesized(
         )
 
 
+def test_calculated_column_filter_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that calculated column expressions containing OR are wrapped in
+    parentheses when used in WHERE filters.
+
+    Without parentheses, a calculated column expression like
+    ``status = 'active' OR status = 'pending'`` combined with other filters
+    via AND would produce unexpected evaluation order due to SQL operator
+    precedence (AND binds tighter than OR), potentially dropping time range
+    and other filters. Same class of bug as fixed in PR #38183 for
+    extras.where/having, but on the calculated column filter path.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_active",
+                expression="status = 'active' OR status = 'pending'",
+                type="BOOLEAN",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "is_active",
+                "op": "IS TRUE",
+                "val": None,
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "(status = 'active' OR status = 'pending')" in sql, (
+        f"Calculated column expression should be wrapped in parentheses. "
+        f"Generated SQL: {sql}"
+    )
+
+
+def test_calculated_column_nested_or_and_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that calculated column expressions with nested OR/AND combinations
+    are correctly parenthesized as a single unit in WHERE filters.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_target",
+                expression=(
+                    "(status = 'active' AND region = 'US') "
+                    "OR (status = 'pending' AND region = 'EU')"
+                ),
+                type="BOOLEAN",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "is_target",
+                "op": "IS TRUE",
+                "val": None,
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert (
+        "((status = 'active' AND region = 'US') "
+        "OR (status = 'pending' AND region = 'EU'))"
+    ) in sql, (
+        f"Nested OR/AND expression should be wrapped in parentheses. "
+        f"Generated SQL: {sql}"
+    )
+
+
+def test_calculated_column_non_boolean_filter_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that non-boolean calculated column expressions are parenthesized
+    when used with IN filters.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="full_name",
+                expression="first_name || ' ' || last_name",
+                type="TEXT",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "full_name",
+                "op": "IN",
+                "val": ["John Doe", "Jane Doe"],
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "(first_name || ' ' || last_name)" in sql, (
+        f"Non-boolean calculated column should be wrapped in parentheses. "
+        f"Generated SQL: {sql}"
+    )
+
+
+def test_multiple_calculated_columns_each_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that multiple calculated columns used as filters are each
+    independently wrapped in parentheses.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_active",
+                expression="status = 'active' OR status = 'pending'",
+                type="BOOLEAN",
+            ),
+            TableColumn(
+                column_name="is_premium",
+                expression="tier = 'gold' OR tier = 'platinum'",
+                type="BOOLEAN",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "is_active",
+                "op": "IS TRUE",
+                "val": None,
+            },
+            {
+                "col": "is_premium",
+                "op": "IS TRUE",
+                "val": None,
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "(status = 'active' OR status = 'pending')" in sql, (
+        f"First calculated column should be parenthesized. Generated SQL: {sql}"
+    )
+    assert "(tier = 'gold' OR tier = 'platinum')" in sql, (
+        f"Second calculated column should be parenthesized. Generated SQL: {sql}"
+    )
+
+
 def _run_probe(
     database: Database,
     type_probe_needs_row: bool = False,

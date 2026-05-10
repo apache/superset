@@ -28,7 +28,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.mcp_service.chart.ascii_charts import (
     generate_ascii_chart,
     generate_ascii_table,
@@ -1140,6 +1140,15 @@ async def _get_chart_preview_internal(  # noqa: C901
                     )
                 chart = find_chart_by_identifier(request.identifier)
 
+                # Eagerly refresh all attributes while the session is still
+                # active.  SQLAlchemy expires object attributes after any
+                # commit; if a downstream operation commits before the strategy
+                # classes access chart attributes, a DetachedInstanceError will
+                # be raised.  Calling refresh() here ensures all column values
+                # are loaded into the object's __dict__ upfront.
+                if chart is not None:
+                    db.session.refresh(chart)
+
                 # If not found and looks like a form_data_key, try transient
                 if (
                     not chart
@@ -1371,6 +1380,20 @@ async def _get_chart_preview_internal(  # noqa: C901
 
         return _sanitize_chart_preview_for_llm_context(result)
 
+    except SQLAlchemyError as e:
+        # Catch DetachedInstanceError and other SQLAlchemy errors that can
+        # surface when the ORM session expires or commits mid-request.
+        await ctx.error(
+            "Chart preview failed due to database session error: "
+            "identifier=%s, error_type=%s, error=%s"
+            % (request.identifier, type(e).__name__, str(e))
+        )
+        logger.exception("SQLAlchemy error in get_chart_preview: %s", e)
+        return ChartError(
+            error="Database session error while generating chart preview. "
+            "Please retry the request.",
+            error_type="InternalError",
+        )
     except (
         CommandException,
         SupersetException,

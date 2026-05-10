@@ -38,9 +38,12 @@ import {
 import { normalizeThemeConfig, serializeThemeConfig } from './utils';
 
 export class Theme {
-  theme: SupersetTheme;
+  // Assigned via setConfig() in the constructor; TypeScript 6.0's
+  // strictPropertyInitialization can't trace that call chain, so we use
+  // a definite-assignment assertion.
+  theme!: SupersetTheme;
 
-  private antdConfig: AntdThemeConfig;
+  private antdConfig!: AntdThemeConfig;
 
   private constructor({ config }: { config?: AnyThemeConfig }) {
     this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);
