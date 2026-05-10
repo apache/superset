@@ -28,13 +28,13 @@ from superset.mcp_service.chart.schemas import (
     ChartConfig,
     ColumnRef,
 )
-
-_C = TypeVar("_C", bound=ChartConfig)
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
     ColumnSuggestion,
     DatasetContext,
 )
+
+_C = TypeVar("_C", bound=ChartConfig)
 
 logger = logging.getLogger(__name__)
 
@@ -274,7 +274,8 @@ class DatasetValidator:
         5 of 7 chart types to silently skip column validation. Now delegates
         to the plugin for each chart type so all types are covered.
         """
-        # Local import: plugins call DatasetValidator helpers from normalize_column_refs().
+        # Local import: plugins call DatasetValidator helpers from
+        # normalize_column_refs().
         # A top-level import of registry in dataset_validator would make loading this
         # module implicitly trigger plugin registration, creating a circular dependency.
         from superset.mcp_service.chart.registry import get_registry
@@ -386,7 +387,8 @@ class DatasetValidator:
         if not dataset_context:
             return config
 
-        # Local import: plugins call DatasetValidator helpers from normalize_column_refs().
+        # Local import: plugins call DatasetValidator helpers from
+        # normalize_column_refs().
         # A top-level import of registry in dataset_validator would make loading this
         # module implicitly trigger plugin registration, creating a circular dependency.
         from superset.mcp_service.chart.registry import get_registry
