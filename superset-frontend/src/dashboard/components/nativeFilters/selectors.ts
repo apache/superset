@@ -141,9 +141,17 @@ const selectIndicatorsForChartFromFilter = (
     }));
 };
 
+const getQueryFilterMetadata = (
+  chart: any,
+  metadataKey: 'applied_filters' | 'rejected_filters',
+) =>
+  ensureIsArray(chart?.queriesResponse).flatMap(
+    queryResponse => queryResponse?.[metadataKey] || [],
+  );
+
 const getAppliedColumns = (chart: any): Set<string> =>
   new Set(
-    (chart?.queriesResponse?.[0]?.applied_filters || []).map(
+    getQueryFilterMetadata(chart, 'applied_filters').map(
       (filter: any) => filter.column,
     ),
   );
@@ -161,8 +169,7 @@ export const getAppliedColumnsWithFallback = (
   chartId?: number,
 ): Set<string> => {
   // First try to get from query response (preferred source of truth)
-  const queryAppliedFilters =
-    chart?.queriesResponse?.[0]?.applied_filters || [];
+  const queryAppliedFilters = getQueryFilterMetadata(chart, 'applied_filters');
   if (queryAppliedFilters.length > 0) {
     return new Set(queryAppliedFilters.map((filter: any) => filter.column));
   }
@@ -191,7 +198,7 @@ export const getAppliedColumnsWithFallback = (
 
 const getRejectedColumns = (chart: any): Set<string> =>
   new Set(
-    (chart?.queriesResponse?.[0]?.rejected_filters || []).map((filter: any) =>
+    getQueryFilterMetadata(chart, 'rejected_filters').map((filter: any) =>
       getColumnLabel(filter.column),
     ),
   );
