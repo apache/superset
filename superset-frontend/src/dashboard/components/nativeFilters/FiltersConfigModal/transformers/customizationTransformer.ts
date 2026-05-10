@@ -108,7 +108,7 @@ function transformFormInput(
     excluded: [],
   };
 
-  return {
+  const result: ChartCustomization = {
     id,
     type: ChartCustomizationType.ChartCustomization,
     name: formInputs.name,
@@ -120,6 +120,12 @@ function transformFormInput(
     defaultDataMask: formInputs.defaultDataMask ?? {},
     removed: false,
   };
+
+  if (formInputs.time_grains?.length) {
+    result.time_grains = formInputs.time_grains;
+  }
+
+  return result;
 }
 
 function transformSavedCustomization(

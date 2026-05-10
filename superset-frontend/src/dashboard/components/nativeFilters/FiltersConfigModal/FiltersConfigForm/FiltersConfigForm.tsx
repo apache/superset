@@ -1297,7 +1297,9 @@ const FiltersConfigForm = (
                                     </CollapsibleControl>
                                   </FormItem>
                                 )}
-                                {itemTypeField === 'filter_timegrain' &&
+                                {(itemTypeField === 'filter_timegrain' ||
+                                  itemTypeField ===
+                                    'chart_customization_timegrain') &&
                                   hasDataset &&
                                   datasetDetails?.time_grain_sqla &&
                                   datasetDetails.time_grain_sqla.length > 0 && (

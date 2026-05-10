@@ -89,6 +89,7 @@ export interface ChartCustomizationsFormItem {
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
   granularity_sqla?: string;
+  time_grains?: string[];
   type: typeof NativeFilterType.NativeFilter;
   description: string;
   datasetInfo?: {

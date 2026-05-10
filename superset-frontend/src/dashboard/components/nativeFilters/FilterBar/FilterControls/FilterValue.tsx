@@ -93,7 +93,11 @@ export const applyTimeGrainAllowlist = (
   allowedTimeGrains: string[] | undefined,
   results: ChartDataResponseResult[],
 ): ChartDataResponseResult[] => {
-  if (filterType !== 'filter_timegrain' || !allowedTimeGrains?.length) {
+  if (
+    (filterType !== 'filter_timegrain' &&
+      filterType !== 'chart_customization_timegrain') ||
+    !allowedTimeGrains?.length
+  ) {
     return results;
   }
 
@@ -143,9 +147,7 @@ const FilterValue: FC<FilterValueProps> = ({
 }) => {
   const { id, targets, filterType } = filter;
   const isCustomization = isChartCustomization(filter);
-  const allowedTimeGrains = isCustomization
-    ? undefined
-    : (filter as TimeGrainFilterConfig).time_grains;
+  const allowedTimeGrains = (filter as TimeGrainFilterConfig).time_grains;
   const adhocFilters = isCustomization ? undefined : filter.adhoc_filters;
   const timeRange = isCustomization ? undefined : filter.time_range;
   const granularitySqla = isCustomization ? undefined : filter.granularity_sqla;
