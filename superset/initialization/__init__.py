@@ -668,11 +668,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def check_guest_token_secret(self) -> None:
         """Refuse to start with default guest JWT secret when embedding is enabled."""
         default_secret = "test-guest-secret-change-me"  # noqa: S105
-        feature_flags = {
-            **self.config.get("DEFAULT_FEATURE_FLAGS", {}),
-            **self.config.get("FEATURE_FLAGS", {}),
-        }
-        if not feature_flags.get("EMBEDDED_SUPERSET"):
+        if not feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
             return
         if self.config.get("GUEST_TOKEN_JWT_SECRET") != default_secret:
             return
