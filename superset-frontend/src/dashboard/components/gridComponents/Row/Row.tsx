@@ -100,7 +100,7 @@ const GridRow = styled.div<{ editMode: boolean }>`
         &:not(:last-child) {
           width: ${theme.sizeUnit * 4}px;
         }
-        &:first-child:not(.droptarget-side) {
+        &:first-of-type:not(.droptarget-side) {
           z-index: ${EMPTY_CONTAINER_Z_INDEX};
           position: absolute;
           width: 100%;
@@ -111,7 +111,7 @@ const GridRow = styled.div<{ editMode: boolean }>`
         z-index: ${EMPTY_CONTAINER_Z_INDEX};
         position: absolute;
         width: ${theme.sizeUnit * 4}px;
-        &:first-child {
+        &:first-of-type {
           inset-inline-start: 0;
         }
       }

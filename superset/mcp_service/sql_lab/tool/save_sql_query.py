@@ -23,8 +23,6 @@ so it appears in SQL Lab's "Saved Queries" list and can be
 reloaded/shared via URL.
 """
 
-from __future__ import annotations
-
 import logging
 
 from fastmcp import Context
@@ -38,7 +36,6 @@ from superset.mcp_service.sql_lab.schemas import (
     SaveSqlQueryRequest,
     SaveSqlQueryResponse,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +50,6 @@ logger = logging.getLogger(__name__)
         destructiveHint=False,
     ),
 )
-@parse_request(SaveSqlQueryRequest)
 async def save_sql_query(
     request: SaveSqlQueryRequest, ctx: Context
 ) -> SaveSqlQueryResponse:

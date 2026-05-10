@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useMemo, useReducer, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import {
   Table,
@@ -26,6 +27,7 @@ import {
   useLazyTableMetadataQuery,
   useLazyTableExtendedMetadataQuery,
 } from 'src/hooks/apiResources';
+import { addDangerToast } from 'src/SqlLab/actions/sqlLab';
 import type { TreeNodeData } from './types';
 import { SupersetError } from '@superset-ui/core';
 
@@ -42,6 +44,7 @@ interface TreeDataState {
 type TreeDataAction =
   | { type: 'SET_TABLE_DATA'; key: string; data: { options: Table[] } }
   | { type: 'SET_TABLE_SCHEMA_DATA'; key: string; data: TableMetaData }
+  | { type: 'CLEAR_TABLE_SCHEMA_DATA'; key: string }
   | { type: 'SET_LOADING_NODE'; nodeId: string; loading: boolean }
   | { type: 'SET_ERROR'; errorPayload: SupersetError | null };
 
@@ -71,6 +74,10 @@ function treeDataReducer(
           [action.key]: action.data,
         },
       };
+    case 'CLEAR_TABLE_SCHEMA_DATA': {
+      const { [action.key]: _, ...rest } = state.tableSchemaData;
+      return { ...state, tableSchemaData: rest };
+    }
     case 'SET_LOADING_NODE':
       return {
         ...state,
@@ -93,7 +100,6 @@ function treeDataReducer(
 interface UseTreeDataParams {
   dbId: number | undefined;
   catalog: string | null | undefined;
-  selectedSchema: string | undefined;
   pinnedTables: Record<string, TableMetaData | undefined>;
 }
 
@@ -102,8 +108,14 @@ interface UseTreeDataResult {
   isFetching: boolean;
   refetch: () => void;
   loadingNodes: Record<string, boolean>;
+  selectStarMap: Record<string, string>;
   handleToggle: (id: string, isOpen: boolean) => Promise<void>;
-  fetchLazyTables: ReturnType<typeof useLazyTablesQuery>[0];
+  handleRefreshTables: (params: {
+    dbId: number;
+    catalog: string | null | undefined;
+    schema: string;
+  }) => void;
+  refreshTableSchema: (id: string) => void;
   errorPayload: SupersetError | null;
 }
 
@@ -116,9 +128,9 @@ const createEmptyNode = (parentId: string): TreeNodeData => ({
 const useTreeData = ({
   dbId,
   catalog,
-  selectedSchema,
   pinnedTables,
 }: UseTreeDataParams): UseTreeDataResult => {
+  const reduxDispatch = useDispatch();
   // Schema data from API
   const {
     currentData: schemaData,
@@ -134,6 +146,64 @@ const useTreeData = ({
   const [state, dispatch] = useReducer(treeDataReducer, initialState);
   const { tableData, tableSchemaData, loadingNodes, errorPayload } = state;
 
+  // Shared helper: fetch table metadata + extended metadata and store in state.
+  // preferCacheValue=true on initial open (use cached data if available),
+  // preferCacheValue=false on explicit refresh (bypass cache).
+  const fetchAndStoreTableSchema = useCallback(
+    (id: string, preferCacheValue: boolean) => {
+      if (loadingNodes[id]) return;
+
+      const parts = id.split(':');
+      const [, databaseId, schema, table] = parts;
+      const parsedDbId = Number(databaseId);
+      const tableKey = `${parsedDbId}:${schema}:${table}`;
+
+      dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
+
+      // .unwrap() causes RTK Query to reject on error so .catch() fires.
+      // Without it RTK Query resolves with { error } instead of rejecting.
+      Promise.all([
+        fetchTableMetadata(
+          { dbId: parsedDbId, catalog, schema, table },
+          preferCacheValue,
+        ).unwrap(),
+        fetchTableExtendedMetadata(
+          { dbId: parsedDbId, catalog, schema, table },
+          preferCacheValue,
+        ).unwrap(),
+      ])
+        .then(([tableMetadata, tableExtendedMetadata]) => {
+          if (tableMetadata) {
+            dispatch({
+              type: 'SET_TABLE_SCHEMA_DATA',
+              key: tableKey,
+              data: { ...tableMetadata, ...tableExtendedMetadata },
+            });
+          }
+        })
+        .catch(() => {
+          reduxDispatch(
+            addDangerToast(
+              t(
+                'An error occurred while fetching table metadata for %s',
+                table,
+              ),
+            ),
+          );
+        })
+        .finally(() => {
+          dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: false });
+        });
+    },
+    [
+      catalog,
+      fetchTableExtendedMetadata,
+      fetchTableMetadata,
+      loadingNodes,
+      reduxDispatch,
+    ],
+  );
+
   // Handle async loading when node is toggled open
   const handleToggle = useCallback(
     async (id: string, isOpen: boolean) => {
@@ -147,20 +217,14 @@ const useTreeData = ({
       if (identifier === 'schema') {
         const schemaKey = `${parsedDbId}:${schema}`;
         if (!tableData?.[schemaKey]) {
-          // Set loading state
           dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
 
-          // Fetch tables asynchronously
           fetchLazyTables(
-            {
-              dbId: parsedDbId,
-              catalog,
-              schema,
-              forceRefresh: false,
-            },
+            { dbId: parsedDbId, catalog, schema, forceRefresh: false },
             true,
           )
-            .then(({ data }) => {
+            .unwrap()
+            .then(data => {
               if (data) {
                 dispatch({ type: 'SET_TABLE_DATA', key: schemaKey, data });
               }
@@ -188,73 +252,69 @@ const useTreeData = ({
         if (pinnedTables[tableKey]) return;
 
         if (!tableSchemaData[tableKey]) {
-          // Set loading state
-          dispatch({ type: 'SET_LOADING_NODE', nodeId: id, loading: true });
-
-          // Fetch metadata asynchronously
-          Promise.all([
-            fetchTableMetadata(
-              {
-                dbId: parsedDbId,
-                catalog,
-                schema,
-                table,
-              },
-              true,
-            ),
-            fetchTableExtendedMetadata(
-              {
-                dbId: parsedDbId,
-                catalog,
-                schema,
-                table,
-              },
-              true,
-            ),
-          ])
-            .then(
-              ([{ data: tableMetadata }, { data: tableExtendedMetadata }]) => {
-                if (tableMetadata) {
-                  dispatch({
-                    type: 'SET_TABLE_SCHEMA_DATA',
-                    key: tableKey,
-                    data: {
-                      ...tableMetadata,
-                      ...tableExtendedMetadata,
-                    },
-                  });
-                }
-              },
-            )
-            .finally(() => {
-              dispatch({
-                type: 'SET_LOADING_NODE',
-                nodeId: id,
-                loading: false,
-              });
-            });
+          fetchAndStoreTableSchema(id, true);
         }
       }
     },
     [
       catalog,
+      fetchAndStoreTableSchema,
       fetchLazyTables,
-      fetchTableExtendedMetadata,
-      fetchTableMetadata,
       pinnedTables,
       tableData,
       tableSchemaData,
     ],
   );
 
+  // Force-refresh the table list for a schema and update the tree
+  const handleRefreshTables = useCallback(
+    ({
+      dbId: refreshDbId,
+      catalog: refreshCatalog,
+      schema,
+    }: {
+      dbId: number;
+      catalog: string | null | undefined;
+      schema: string;
+    }) => {
+      const schemaKey = `${refreshDbId}:${schema}`;
+      const nodeId = `schema:${refreshDbId}:${schema}`;
+
+      dispatch({ type: 'SET_LOADING_NODE', nodeId, loading: true });
+
+      fetchLazyTables({
+        dbId: refreshDbId,
+        catalog: refreshCatalog,
+        schema,
+        forceRefresh: true,
+      })
+        .unwrap()
+        .then(data => {
+          dispatch({ type: 'SET_TABLE_DATA', key: schemaKey, data });
+        })
+        .catch(error => {
+          dispatch({
+            type: 'SET_ERROR',
+            errorPayload: error?.errors?.[0] ?? null,
+          });
+        })
+        .finally(() => {
+          dispatch({ type: 'SET_LOADING_NODE', nodeId, loading: false });
+        });
+    },
+    [fetchLazyTables],
+  );
+
+  const refreshTableSchema = useCallback(
+    (id: string) => {
+      fetchAndStoreTableSchema(id, false);
+    },
+    [fetchAndStoreTableSchema],
+  );
+
   // Build tree data
   const treeData = useMemo((): TreeNodeData[] => {
-    // Filter schemas if a schema is selected, otherwise show all
-    const filteredSchemaData = selectedSchema
-      ? schemaData?.filter(schema => schema.value === selectedSchema)
-      : schemaData;
-
-    const data = filteredSchemaData?.map(schema => {
+    const data = schemaData?.map(schema => {
       const schemaKey = `${dbId}:${schema.value}`;
       const schemaId = `schema:${dbId}:${schema.value}`;
       const tablesData = tableData?.[schemaKey];
@@ -316,22 +376,32 @@ const useTreeData = ({
     });
 
     return data ?? [];
-  }, [
-    dbId,
-    schemaData,
-    tableData,
-    tableSchemaData,
-    pinnedTables,
-    selectedSchema,
-  ]);
+  }, [dbId, schemaData, tableData, tableSchemaData, pinnedTables]);
+
+  // Map of tableKey -> selectStar SQL from table metadata
+  const selectStarMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    const addEntry = (key: string, meta: TableMetaData | undefined) => {
+      if (meta?.selectStar) {
+        map[key] = meta.selectStar;
+      }
+    };
+    Object.entries(tableSchemaData).forEach(([key, meta]) =>
+      addEntry(key, meta),
+    );
+    Object.entries(pinnedTables).forEach(([key, meta]) => addEntry(key, meta));
+    return map;
+  }, [tableSchemaData, pinnedTables]);
 
   return {
     treeData,
     isFetching,
     refetch,
     loadingNodes,
+    selectStarMap,
     handleToggle,
-    fetchLazyTables,
+    handleRefreshTables,
+    refreshTableSchema,
     errorPayload,
   };
 };

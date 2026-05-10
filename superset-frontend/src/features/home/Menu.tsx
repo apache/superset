@@ -18,6 +18,7 @@
  */
 import { useState, useEffect } from 'react';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -34,6 +35,7 @@ import {
   MenuObjectProps,
   MenuData,
 } from 'src/types/bootstrapTypes';
+import { datasetsLabel } from 'src/features/semanticLayers/label';
 import RightMenu from './RightMenu';
 import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
@@ -222,7 +224,7 @@ export function Menu({
         setActiveTabs(['Charts']);
         break;
       case path.startsWith(Paths.Datasets):
-        setActiveTabs(['Datasets']);
+        setActiveTabs([datasetsLabel()]);
         break;
       case path.startsWith(Paths.SqlLab) || path.startsWith(Paths.SavedQueries):
         setActiveTabs(['SQL']);
@@ -334,7 +336,12 @@ export function Menu({
     return <>{link}</>;
   };
   return (
-    <StyledHeader className="top" id="main-menu" role="navigation">
+    <StyledHeader
+      className="top"
+      id="main-menu"
+      role="navigation"
+      aria-label={t('Main navigation')}
+    >
       <StyledRow>
         <StyledCol md={16} xs={24}>
           <Tooltip
@@ -402,6 +409,12 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
     Manage: true,
   };
 
+  // Remap labels that depend on feature flags so they stay in sync with
+  // the active-tab key used in the Menu component above.
+  const labelOverrides: Record<string, () => string> = {
+    Datasets: datasetsLabel,
+  };
+
   // Cycle through menu.menu to build out cleanedMenu and settings
   const cleanedMenu: MenuObjectProps[] = [];
   const settings: MenuObjectProps[] = [];
@@ -413,6 +426,10 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
     const children: (MenuObjectProps | string)[] = [];
     const newItem = {
       ...item,
+      // Apply any label override for this item (keyed by FAB internal name).
+      ...(item.name && labelOverrides[item.name]
+        ? { label: labelOverrides[item.name]() }
+        : {}),
     };
 
     // Filter childs

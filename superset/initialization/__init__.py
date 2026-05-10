@@ -61,6 +61,7 @@ from superset.extensions import (
 )
 from superset.extensions.context import extension_context
 from superset.security import SupersetSecurityManager
+from superset.semantic_layers.labels import database_connections_menu_label
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import is_test, pessimistic_connection_handling
@@ -268,6 +269,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        if feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"):
+            from superset.semantic_layers.api import (
+                SemanticLayerRestApi,
+                SemanticViewRestApi,
+            )
+
+            appbuilder.add_api(SemanticLayerRestApi)
+            appbuilder.add_api(SemanticViewRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
@@ -300,7 +309,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             DatabaseView,
             "Databases",
-            label=_("Database Connections"),
+            label=database_connections_menu_label(),
             icon="fa-database",
             category="Data",
             category_label=_("Data"),

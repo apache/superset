@@ -179,6 +179,33 @@ test('renders the right footer buttons', () => {
   ).toBeInTheDocument();
 });
 
+test('initializes chart name from current Explore slice name', () => {
+  const previewSliceName = 'RENAMED - Bug Evidence';
+  const savedSliceName = 'Most Populated Countries';
+  const { getByTestId } = setup(
+    {
+      ...defaultProps,
+      form_data: {
+        ...defaultProps.form_data,
+        slice_name: previewSliceName,
+      },
+      sliceName: previewSliceName,
+    },
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          slice_name: savedSliceName,
+        },
+      },
+    }),
+  );
+
+  expect(getByTestId('new-chart-name')).toHaveValue(previewSliceName);
+});
+
 test('does not render a message when overriding', () => {
   const { getByRole, queryByRole } = setup();
 
@@ -381,7 +408,7 @@ test('removes form_data_key from URL parameters after save', () => {
   // other parameters should remain
   expect(result.get('other_param')).toEqual('value');
   expect(result.get('slice_id')).toEqual('1');
-  expect(result.get('save_action')).toEqual('overwrite');
+  expect(result.has('save_action')).toBe(false);
 });
 
 test('dispatches removeChartState when saving and going to dashboard', async () => {

@@ -58,7 +58,9 @@ import { ExploreAlert } from '../ExploreAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
 
 const extensionsRegistry = getExtensionsRegistry();
-const DefaultHeader: React.FC = ({ children }) => <>{children}</>;
+const DefaultHeader: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => <>{children}</>;
 
 export interface ExploreChartPanelProps {
   actions: {
@@ -204,7 +206,6 @@ const ExploreChartPanel = ({
 
   const {
     ref: chartPanelRef,
-    observerRef: resizeObserverRef,
     width: chartPanelWidth,
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
@@ -378,7 +379,6 @@ const ExploreChartPanel = ({
           flex-direction: column;
           padding-top: ${theme.sizeUnit * 2}px;
         `}
-        ref={resizeObserverRef}
       >
         {vizTypeNeedsDataset && (
           <Alert
@@ -481,7 +481,6 @@ const ExploreChartPanel = ({
       </div>
     ),
     [
-      resizeObserverRef,
       showAlertBanner,
       errorMessage,
       onQuery,
@@ -533,7 +532,7 @@ const ExploreChartPanel = ({
       document.body.className += ` ${standaloneClass}`;
     }
     return (
-      <div id="app" data-test="standalone-app" ref={resizeObserverRef}>
+      <div id="app" data-test="standalone-app">
         {standaloneChartBody}
       </div>
     );

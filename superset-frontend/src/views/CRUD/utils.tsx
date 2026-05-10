@@ -327,6 +327,7 @@ export function handleChartDelete(
   refreshData: (arg0?: FetchDataConfig | null) => void,
   chartFilter?: string,
   userId?: string | number,
+  getData?: (tab: TableTab) => void,
 ) {
   const filters = {
     pageIndex: 0,
@@ -350,6 +351,7 @@ export function handleChartDelete(
   }).then(
     () => {
       if (chartFilter === 'Mine') refreshData(filters);
+      else if (chartFilter && getData) getData(chartFilter as TableTab);
       else refreshData();
       addSuccessToast(t('Deleted: %s', sliceName));
     },
