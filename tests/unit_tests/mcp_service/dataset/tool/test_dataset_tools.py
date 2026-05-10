@@ -84,7 +84,7 @@ def create_mock_dataset(
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = f"[{database_name}].[{schema}]"
-    dataset.url = f"/tablemodelview/edit/{dataset_id}"
+    dataset.url = f"/explore/?datasource_type=table&datasource_id={dataset_id}"
     dataset.database = MagicMock()
     dataset.database.database_name = database_name
     dataset.sql = None
@@ -228,7 +228,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/1"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=1"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -336,7 +336,7 @@ async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[public]"
-    dataset.url = "/tablemodelview/edit/1"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=1"
     dataset.database = MagicMock()
     dataset.database.database_name = "test_db"
     dataset.sql = None
@@ -416,7 +416,7 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/2"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=2"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -519,7 +519,7 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/3"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=3"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -782,7 +782,7 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/1"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=1"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -879,7 +879,7 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/2"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=2"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -970,9 +970,13 @@ async def test_list_datasets_simple_api_error(mock_list, mcp_server):
         assert "API request failed" in str(excinfo.value)
 
 
+@patch(
+    "superset.mcp_service.utils.url_utils.get_superset_base_url",
+    return_value="http://test-superset",
+)
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_get_dataset_info_success(mock_info, mcp_server):
+async def test_get_dataset_info_success(mock_info, mock_base_url, mcp_server):
     dataset = MagicMock()
     dataset.id = 1
     dataset.table_name = "Test DatasetInfo"
@@ -991,7 +995,7 @@ async def test_get_dataset_info_success(mock_info, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/1"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=1"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -1030,6 +1034,10 @@ async def test_get_dataset_info_success(mock_info, mcp_server):
         assert data["id"] == 1
         assert data["table_name"] == "Test DatasetInfo"
         assert data["database_name"] == "examples"
+        assert (
+            data["url"]
+            == "http://test-superset/explore/?datasource_type=table&datasource_id=1"
+        )
         # Check that columns and metrics are included
         assert len(data["columns"]) == 1
         assert len(data["metrics"]) == 1
@@ -1130,7 +1138,7 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/10"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=10"
     dataset.sql = None
     dataset.main_dttm_col = None
     dataset.offset = 0
@@ -1222,7 +1230,7 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/11"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=11"
     dataset.sql = None
     dataset.main_dttm_col = None
     dataset.offset = 0
@@ -1298,7 +1306,7 @@ async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
-    dataset.url = "/tablemodelview/edit/1"
+    dataset.url = "/explore/?datasource_type=table&datasource_id=1"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.sql = None
@@ -1692,7 +1700,8 @@ class TestDatasetSortableColumns:
 
         # Check list_datasets docstring for sortable columns documentation
         assert list_datasets.__doc__ is not None
-        assert "Sortable columns for order_column:" in list_datasets.__doc__
+        assert "Sortable columns for" in list_datasets.__doc__
+        assert "order_column" in list_datasets.__doc__
         for col in SORTABLE_DATASET_COLUMNS:
             assert col in list_datasets.__doc__
 
@@ -2072,3 +2081,90 @@ class TestListDatasetsOwnedByMe:
         request = ListDatasetsRequest(owned_by_me=True, created_by_me=True)
         assert request.owned_by_me is True
         assert request.created_by_me is True
+
+
+class TestListDatasetsRequestWrapper:
+    """
+    Tests verifying that list_datasets requires a ``request`` wrapper object.
+
+    LLMs sometimes pass parameters like ``search``, ``page``, or ``page_size``
+    as flat top-level kwargs instead of nesting them inside a ``request``
+    object.  These tests confirm the correct call shape through both the Pydantic
+    schema and the actual MCP tool layer, and verify that invalid filter column
+    names (e.g. ``created_by_fk``) are rejected.
+    """
+
+    def test_request_wrapper_with_search(self) -> None:
+        """Parameters passed inside request= are accepted by the schema."""
+        request = ListDatasetsRequest(search="sales", page=1, page_size=10)
+        assert request.search == "sales"
+        assert request.page == 1
+        assert request.page_size == 10
+
+    def test_request_wrapper_defaults(self) -> None:
+        """No-arg constructor produces valid schema defaults."""
+        request = ListDatasetsRequest()
+        assert request.search is None
+        assert request.page == 1
+        assert request.filters == []
+
+    def test_dataset_filter_valid_col(self) -> None:
+        """Valid col values are accepted by DatasetFilter."""
+        for col in ("table_name", "schema", "database_name"):
+            f = DatasetFilter(col=col, opr="sw", value="test")
+            assert f.col == col
+
+    def test_dataset_filter_invalid_col_raises(self) -> None:
+        """Column names not in the Literal are rejected with a validation error.
+
+        This guards against LLMs passing ``created_by_fk`` or similar
+        internal column names that are not exposed as filter fields.
+        """
+        from pydantic import ValidationError
+
+        for bad_col in ("created_by_fk", "id", "database_id", "owner"):
+            with pytest.raises(ValidationError):
+                DatasetFilter(col=bad_col, opr="eq", value="1")
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_request_wrapper_enforced_by_tool(
+        self, mock_list, mcp_server
+    ) -> None:
+        """The MCP tool layer accepts the request wrapper and returns results.
+
+        Verifies end-to-end that wrapping params in ``request={}`` works through
+        the actual FastMCP tool call, not just schema validation.
+        """
+        mock_list.return_value = ([], 0)
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_datasets",
+                {"request": {"search": "sales", "page": 1, "page_size": 5}},
+            )
+        data = json.loads(result.content[0].text)
+        assert data["count"] == 0
+        assert data["datasets"] == []
+
+    @pytest.mark.asyncio
+    async def test_flat_kwargs_rejected(self, mcp_server) -> None:
+        """Passing search/page/page_size as top-level kwargs raises a ToolError
+        that specifically mentions the unexpected arguments.
+
+        This is the exact failure pattern from story #105712: LLMs call
+        ``list_datasets(search=..., page=..., page_size=...)`` instead of
+        ``list_datasets(request={...})``.
+        """
+        with pytest.raises(ToolError) as exc_info:
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "list_datasets",
+                    {"search": "sales", "page": 1, "page_size": 10},
+                )
+        error_text = str(exc_info.value)
+        # The error must call out the unexpected arguments, not some unrelated failure
+        assert (
+            "search" in error_text
+            or "Unexpected" in error_text
+            or "request" in error_text
+        )

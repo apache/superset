@@ -62,6 +62,7 @@ Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting
+- query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
@@ -163,6 +164,17 @@ To find all items you have any connection to (created OR own):
 Use created_by_me for authorship, owned_by_me for edit ownership, or both
 together for the union. All flags can be combined with 'filters' but not
 with 'search'.
+
+To query a dataset's semantic layer (metrics, dimensions):
+1. list_datasets(request={{}}) -> find a dataset
+2. get_dataset_info(request={{"identifier": <id>}}) -> examine columns AND metrics
+3. query_dataset(request={{
+     "dataset_id": <id>,
+     "metrics": ["count", "avg_revenue"],
+     "columns": ["category"],
+     "time_range": "Last 7 days",
+     "row_limit": 100
+   }}) -> returns tabular data using saved metrics and dimensions
 
 To explore data with SQL:
 1. list_datasets(request={{}}) -> find a dataset and note its database_id
@@ -520,6 +532,7 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     create_virtual_dataset,
     get_dataset_info,
     list_datasets,
+    query_dataset,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
