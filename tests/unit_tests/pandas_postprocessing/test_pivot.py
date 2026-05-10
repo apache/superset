@@ -16,6 +16,7 @@
 # under the License.
 
 import numpy as np
+import pandas as pd
 import pytest
 from pandas import DataFrame, to_datetime
 
@@ -203,3 +204,59 @@ def test_pivot_eliminate_cartesian_product_columns():
         "metric2, 1, 1",
     ]
     assert np.isnan(df["metric, 1, 1"][0])
+
+
+def test_pivot_preserves_all_nan_metric_flat():
+    """
+    Pivot with drop_missing_columns=True must not drop metric columns whose entries
+    are all NaN. This prevents downstream post-processing (e.g. rename) from failing
+    with "Referenced columns not available in DataFrame" when a Jinja metric
+    expression evaluates to NULL for every row (SC-100398).
+    """
+    mock_df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", "2019-01-02", "2019-01-03"]),
+            "metric": [np.nan, np.nan, np.nan],
+        }
+    )
+
+    df = pivot(
+        df=mock_df,
+        index=["dttm"],
+        aggregates={"metric": {"operator": "mean"}},
+        drop_missing_columns=True,
+    )
+
+    assert "metric" in df.columns
+    assert df["metric"].isna().all()
+
+
+def test_pivot_preserves_all_nan_metric_with_columns():
+    """
+    Pivot with groupby columns and drop_missing_columns=True must preserve the
+    metric at MultiIndex level 0 even when all values for that metric are NaN.
+    After flatten the metric column must appear in the result.
+    """
+    mock_df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
+            "category": ["A", "B"],
+            "metric": [np.nan, np.nan],
+        }
+    )
+
+    df = pivot(
+        df=mock_df,
+        index=["dttm"],
+        columns=["category"],
+        aggregates={"metric": {"operator": "mean"}},
+        drop_missing_columns=True,
+    )
+
+    assert isinstance(df.columns, pd.MultiIndex)
+    assert "metric" in df.columns.get_level_values(0)
+
+    df = flatten(df)
+    metric_cols = [c for c in df.columns if c.startswith("metric")]
+    assert len(metric_cols) > 0
+    assert df[metric_cols].isna().all().all()

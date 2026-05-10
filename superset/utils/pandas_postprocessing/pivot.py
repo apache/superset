@@ -16,6 +16,7 @@
 # under the License.
 from typing import Any, Optional
 
+import pandas as pd
 from flask_babel import gettext as _
 from pandas import DataFrame
 
@@ -25,6 +26,35 @@ from superset.utils.pandas_postprocessing.utils import (
     _get_aggregate_funcs,
     validate_column_args,
 )
+
+
+def _restore_dropped_metric_columns(
+    df: DataFrame, expected_metrics: list[str]
+) -> DataFrame:
+    """Re-add metric columns that pivot_table dropped due to all-NaN values.
+
+    When drop_missing_columns=True, pandas pivot_table silently removes columns
+    whose entries are all NaN. This breaks downstream post-processing steps
+    (rename, rolling) that use validate_column_args to assert the columns exist.
+    Restoring the columns as all-NaN preserves the expected schema.
+    """
+    if isinstance(df.columns, pd.MultiIndex):
+        existing_metrics = set(df.columns.get_level_values(0))
+        missing = [m for m in expected_metrics if m not in existing_metrics]
+        if missing:
+            category_values = (
+                df.columns.get_level_values(-1).unique()
+                if len(df.columns) > 0
+                else [None]
+            )
+            for metric in missing:
+                for cat in category_values:
+                    df[(metric, cat)] = float("nan")
+    else:
+        for metric in expected_metrics:
+            if metric not in df.columns:
+                df[metric] = float("nan")
+    return df
 
 
 @validate_column_args("index", "columns")
@@ -99,6 +129,9 @@ def pivot(  # pylint: disable=too-many-arguments
         margins=marginal_distributions,
         margins_name=marginal_distribution_name,
     )
+
+    if drop_missing_columns:
+        df = _restore_dropped_metric_columns(df, list(aggfunc.keys()))
 
     if not drop_missing_columns and len(series_set) > 0 and not df.empty:
         df = df.drop(df.columns.difference(series_set), axis=PandasAxis.COLUMN)
