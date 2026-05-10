@@ -51,6 +51,7 @@ from superset.exceptions import (
     NullValueException,
     QueryObjectValidationError,
     SpatialException,
+    SupersetErrorException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
@@ -80,6 +81,10 @@ from superset.utils.core import (
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.hashing import hash_from_str
+from superset.utils.pandas_postprocessing.utils import (
+    escape_separator,
+    FLAT_COLUMN_SEPARATOR,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -612,6 +617,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 )
                 self.errors.append(error)
                 self.status = QueryStatus.FAILED
+            except SupersetErrorException:
+                # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+                # so the global Flask error handler serializes them.
+                raise
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
 
@@ -758,6 +767,11 @@ class TimeTableViz(BaseViz):
         pt = df.pivot_table(index=DTTM_ALIAS, columns=columns, values=values)
         pt.index = pt.index.map(str)
         pt = pt.sort_index()
+        if isinstance(pt.columns, pd.MultiIndex):
+            pt.columns = [
+                FLAT_COLUMN_SEPARATOR.join(escape_separator(str(s)) for s in col)
+                for col in pt.columns
+            ]
         return {
             "records": pt.to_dict(orient="index"),
             "columns": list(pt.columns),
