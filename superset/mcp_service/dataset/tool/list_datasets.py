@@ -96,8 +96,23 @@ async def list_datasets(
     Returns dataset metadata including table name, schema, and last modified
     time.
 
-    Sortable columns for order_column: id, table_name, schema, changed_on,
-    created_on
+    **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
+    Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
+    keyword arguments — they will be rejected. Use the ``request`` wrapper::
+
+        # Correct usage
+        list_datasets(request={"search": "sales", "page": 1, "page_size": 10})
+        list_datasets(request={"filters": [{"col": "table_name", "opr": "sw", "value": "orders"}]})
+        list_datasets()  # no arguments returns first page with defaults
+
+        # Wrong — causes pydantic validation errors
+        list_datasets(search="sales", page=1)  # DO NOT DO THIS
+
+    Valid filter columns for ``filters[].col``:
+        ``table_name``, ``schema``, ``database_name``
+
+    Sortable columns for ``order_column``:
+        ``id``, ``table_name``, ``schema``, ``changed_on``, ``created_on``
     """
     if ctx is None:
         raise RuntimeError("FastMCP context is required for list_datasets")
