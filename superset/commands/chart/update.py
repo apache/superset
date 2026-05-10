@@ -112,9 +112,9 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         if not self._model:
             raise ChartNotFoundError()
 
-        # Ownership is always required; report workers updating query_context
-        # are granted access via the report schedule's own permissions, so they
-        # will pass this check.  Only the owner-list update is skipped for
+        # Ownership is always required. Report workers execute with the report
+        # creator's identity (via override_user) and pass only when that user
+        # is a chart owner or admin. Only the owner-list update is skipped for
         # query-context-only updates because there is no owners payload to set.
         try:
             security_manager.raise_for_ownership(self._model)
