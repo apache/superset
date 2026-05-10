@@ -27,7 +27,10 @@ from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset import db, security_manager
-from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
+from superset.commands.dataset.exceptions import (
+    DatasetAccessDeniedError,
+    DatasetForbiddenDataURI,
+)
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetSecurityException
@@ -177,9 +180,7 @@ def import_dataset(  # noqa: C901
         try:
             security_manager.raise_for_access(datasource=dataset)
         except SupersetSecurityException as ex:
-            raise ImportFailedError(
-                "User does not have access to the target dataset"
-            ) from ex
+            raise DatasetAccessDeniedError() from ex
 
     try:
         table_exists = dataset.database.has_table(

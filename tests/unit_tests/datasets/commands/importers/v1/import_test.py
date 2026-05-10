@@ -31,6 +31,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
+    DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
 )
 from superset.commands.dataset.importers.v1.utils import (
@@ -749,7 +750,7 @@ def test_import_dataset_access_check(
     session: Session,
 ) -> None:
     """
-    Test that import_dataset raises ImportFailedError when the user does not
+    Test that import_dataset raises DatasetAccessDeniedError when the user does not
     have datasource-level access to the target dataset.
     """
     from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -778,7 +779,7 @@ def test_import_dataset_access_check(
     config = copy.deepcopy(dataset_fixture)
     config["database_id"] = database.id
 
-    with pytest.raises(ImportFailedError):
+    with pytest.raises(DatasetAccessDeniedError):
         import_dataset(config)
 
 
