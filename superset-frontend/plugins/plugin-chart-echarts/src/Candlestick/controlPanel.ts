@@ -29,7 +29,8 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['temporal_columns_lookup'],
+        ['x_axis'],
+        ['time_grain_sqla'],
         [
           {
             name: 'open',

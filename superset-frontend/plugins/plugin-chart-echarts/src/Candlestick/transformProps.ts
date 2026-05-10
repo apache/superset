@@ -21,6 +21,9 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   getXAxisLabel,
+  isPhysicalColumn,
+  isDefined,
+  getXAxisColumn,
 } from '@superset-ui/core';
 import type { EChartsCoreOption, CandlestickSeriesOption } from 'echarts';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
@@ -36,9 +39,9 @@ import { Refs } from '../types';
 export default function transformProps(
   chartProps: EchartsCandlestickChartProps,
 ): CandlestickChartTransformedProps {
-  const { width, height, formData, queriesData, hooks } = chartProps;
-  const { data = [] } = queriesData[0];
-  const { setDataMask = () => {} } = hooks;
+  const { width, height, formData, queriesData, hooks, filterState } = chartProps;
+  const { data = [], verboseMap = {} } = queriesData[0];
+  const { setDataMask = () => {}, emitCrossFilters, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const refs: Refs = {} as Refs;
 
@@ -54,7 +57,14 @@ export default function transformProps(
   const closeLabel = getMetricLabel(closeMetric);
   const lowLabel = getMetricLabel(lowMetric);
   const highLabel = getMetricLabel(highMetric);
-  const xAxisLabel = getXAxisLabel(chartProps.rawFormData) || '__timestamp';
+  
+  let xAxisLabel = getXAxisLabel(chartProps.rawFormData) || '__timestamp';
+  if (
+    isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
+    isDefined(verboseMap[xAxisLabel])
+  ) {
+    xAxisLabel = verboseMap[xAxisLabel];
+  }
 
   const timeFormatter = getTimeFormatter('%Y-%m-%d %H:%M:%S');
   const numberFormatter = getNumberFormatter();
@@ -164,6 +174,9 @@ export default function transformProps(
       : [],
   };
 
+  const groupby = [getXAxisColumn(formData)].filter(Boolean) as string[];
+  const labelMap = { [xAxisLabel]: [xAxisLabel] };
+
   return {
     formData,
     width,
@@ -172,6 +185,10 @@ export default function transformProps(
     setDataMask,
     refs,
     coltypeMapping,
-    selectedValues: {},
+    selectedValues: filterState?.selectedValues || {},
+    groupby,
+    labelMap,
+    emitCrossFilters,
+    onContextMenu,
   };
 }

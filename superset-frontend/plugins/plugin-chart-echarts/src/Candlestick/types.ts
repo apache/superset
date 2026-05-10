@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
+import { QueryFormData, QueryFormMetric } from '@superset-ui/core';
 import {
   BaseChartProps,
   BaseTransformedProps,
@@ -28,19 +28,23 @@ import { DEFAULT_TITLE_FORM_DATA } from '../constants';
 
 export type CandlestickQueryFormData = QueryFormData & {
   /** Metric for the opening price */
-  open?: string;
+  open: QueryFormMetric;
   /** Metric for the closing price */
-  close?: string;
+  close: QueryFormMetric;
   /** Metric for the lowest price */
-  low?: string;
+  low: QueryFormMetric;
   /** Metric for the highest price */
-  high?: string;
+  high: QueryFormMetric;
   /** Enable/disable zoom features */
   zoomable?: boolean;
 } & TitleFormData;
 
 export const DEFAULT_FORM_DATA: CandlestickQueryFormData = {
   ...DEFAULT_TITLE_FORM_DATA,
+  open: '',
+  close: '',
+  low: '',
+  high: '',
 };
 
 export interface EchartsCandlestickChartProps extends BaseChartProps<CandlestickQueryFormData> {
