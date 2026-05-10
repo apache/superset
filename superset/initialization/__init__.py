@@ -634,12 +634,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.init_all_dependencies_and_extensions()
 
+    @staticmethod
+    def _log_config_warning(message: str) -> None:
+        top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
+        bottom_banner = 80 * "-" + "\n" + 80 * "-"
+        logger.warning(top_banner)
+        logger.warning(message)
+        logger.warning(bottom_banner)
+
     def check_secret_key(self) -> None:
-        def log_default_secret_key_warning() -> None:
-            top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
-            bottom_banner = 80 * "-" + "\n" + 80 * "-"
-            logger.warning(top_banner)
-            logger.warning(
+        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+            warning = (
                 "A Default SECRET_KEY was detected, please use superset_config.py "
                 "to override it.\n"
                 "Use a strong complex alphanumeric string and use a tool to help"
@@ -648,18 +653,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "For more info, see: https://superset.apache.org/docs/"
                 "configuration/configuring-superset#specifying-a-secret_key"
             )
-            logger.warning(bottom_banner)
-
-        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
             if (
                 self.superset_app.debug
                 or self.superset_app.config["TESTING"]
                 or is_test()
             ):
                 logger.warning("Debug mode identified with default secret key")
-                log_default_secret_key_warning()
+                self._log_config_warning(warning)
                 return
-            log_default_secret_key_warning()
+            self._log_config_warning(warning)
             logger.error("Refusing to start due to insecure SECRET_KEY")
             sys.exit(1)
 
@@ -674,10 +676,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             return
         if self.config.get("GUEST_TOKEN_JWT_SECRET") != default_secret:
             return
-        top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
-        bottom_banner = 80 * "-" + "\n" + 80 * "-"
-        logger.warning(top_banner)
-        logger.warning(
+        self._log_config_warning(
             "EMBEDDED_SUPERSET is enabled but GUEST_TOKEN_JWT_SECRET has not "
             "been changed from its default value.\n"
             "The default value is publicly known and must be replaced before "
@@ -686,7 +685,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "  GUEST_TOKEN_JWT_SECRET = "
             "'<output of: openssl rand -base64 42>'"
         )
-        logger.warning(bottom_banner)
         if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
             return
         logger.error(
