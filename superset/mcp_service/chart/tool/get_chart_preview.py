@@ -1192,7 +1192,6 @@ async def _get_chart_preview_internal(  # noqa: C901
 
         if not chart:
             await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
-            safe_id = str(request.identifier)[:200]
             is_form_data_key = (
                 isinstance(request.identifier, str)
                 and len(request.identifier) > 8
@@ -1206,6 +1205,9 @@ async def _get_chart_preview_internal(  # noqa: C901
                 )
             else:
                 recovery = "Use list_charts to get valid chart IDs."
+            safe_id = sanitize_for_llm_context(
+                str(request.identifier)[:200], field_path=("identifier",)
+            )
             return ChartError(
                 error=f"No chart found with identifier: {safe_id}. {recovery}",
                 error_type="NotFound",
