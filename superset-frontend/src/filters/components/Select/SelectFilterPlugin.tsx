@@ -539,6 +539,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [debouncedLikeChange],
   );
 
+  const getSelectPopupContainer = useCallback(
+    (trigger: HTMLElement) => {
+      if (showOverflow) {
+        return (parentRef?.current as HTMLElement) || document.body;
+      }
+      if (appSection === AppSection.FilterConfigModal) {
+        return (trigger?.parentNode as HTMLElement) || document.body;
+      }
+      return document.body;
+    },
+    [appSection, parentRef, showOverflow],
+  );
+
   const likeInputPlaceholder = useMemo(() => {
     switch (operatorType) {
       case SelectFilterOperatorType.Contains:
@@ -595,12 +608,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               allowSelectAll={!searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}
               disabled={isDisabled}
-              getPopupContainer={
-                showOverflow
-                  ? () => (parentRef?.current as HTMLElement) || document.body
-                  : (trigger: HTMLElement) =>
-                      (trigger?.parentNode as HTMLElement) || document.body
-              }
+              getPopupContainer={getSelectPopupContainer}
               showSearch={showSearch}
               mode={multiSelect ? 'multiple' : 'single'}
               placeholder={placeholderText}
