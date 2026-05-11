@@ -47,7 +47,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     UpdateChartRequest,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.mcp_service.utils import escape_llm_context_delimiters
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -338,9 +338,7 @@ async def update_chart(  # noqa: C901
             chart = find_chart_by_identifier(request.identifier)
 
         if not chart:
-            safe_id = sanitize_for_llm_context(
-                str(request.identifier)[:200], field_path=("identifier",)
-            )
+            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
             not_found_msg = (
                 f"No chart found with identifier: {safe_id}."
                 " Use list_charts to get valid chart IDs."

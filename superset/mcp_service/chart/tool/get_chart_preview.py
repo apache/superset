@@ -47,7 +47,10 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
+)
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -1205,9 +1208,7 @@ async def _get_chart_preview_internal(  # noqa: C901
                 )
             else:
                 recovery = "Use list_charts to get valid chart IDs."
-            safe_id = sanitize_for_llm_context(
-                str(request.identifier)[:200], field_path=("identifier",)
-            )
+            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
             return ChartError(
                 error=f"No chart found with identifier: {safe_id}. {recovery}",
                 error_type="NotFound",
