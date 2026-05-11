@@ -99,11 +99,10 @@ def test_file_content_replaces_dataset_id_with_uuid_in_display_controls():
     result = yaml.safe_load(content)
     customizations = result["metadata"]["chart_customization_config"]
 
-    # The datasetId must be replaced with datasetUuid
+    # datasetUuid must be added; datasetId preserved for backward compat
     target = customizations[0]["targets"][0]
-    assert "datasetUuid" in target
     assert target["datasetUuid"] == dataset_uuid
-    assert "datasetId" not in target
+    assert target["datasetId"] == 99
 
     # Dividers with no targets must be unaffected
     assert customizations[1]["targets"] == []
@@ -165,10 +164,35 @@ def test_export_yields_dataset_files_for_display_controls():
     assert "datasets/my_dataset.yaml" in filenames
 
 
-def test_file_content_dataset_not_found_leaves_target_empty():
+def test_file_content_null_chart_customization_config_does_not_raise():
+    """
+    When chart_customization_config is explicitly null in metadata,
+    _file_content must not raise — the `or []` guard handles it.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    mock_dashboard = _make_mock_dashboard(
+        {
+            "native_filter_configuration": [],
+            "chart_customization_config": None,
+        }
+    )
+
+    with patch(
+        "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+        return_value=False,
+    ):
+        content = ExportDashboardsCommand._file_content(mock_dashboard)
+
+    result = yaml.safe_load(content)
+    assert result["metadata"]["chart_customization_config"] is None
+
+
+def test_file_content_missing_dataset_preserves_dataset_id():
     """
     When DatasetDAO.find_by_id returns None for a display control target,
-    the target should have neither datasetId nor datasetUuid — not crash.
+    datasetId is preserved (dual-write: it was never popped) and no
+    datasetUuid is added — the target is not silently emptied.
     """
     from superset.commands.dashboard.export import ExportDashboardsCommand
 
@@ -198,5 +222,5 @@ def test_file_content_dataset_not_found_leaves_target_empty():
 
     result = yaml.safe_load(content)
     target = result["metadata"]["chart_customization_config"][0]["targets"][0]
-    assert "datasetId" not in target
+    assert target["datasetId"] == 9999
     assert "datasetUuid" not in target

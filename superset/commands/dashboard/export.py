@@ -146,16 +146,26 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     if dataset:
                         target["datasetUuid"] = str(dataset.uuid)
 
-        # Replace display control dataset references with uuid
-        for customization in payload.get("metadata", {}).get(
-            "chart_customization_config", []
+        # Replace display control dataset references with uuid.
+        # datasetId is intentionally preserved alongside datasetUuid so that
+        # bundles remain importable by older versions that do not yet understand
+        # datasetUuid for display-control targets.
+        for customization in (
+            payload.get("metadata", {}).get("chart_customization_config") or []
         ):
             for target in customization.get("targets", []):
-                dataset_id = target.pop("datasetId", None)
+                dataset_id = target.get("datasetId")
                 if dataset_id is not None:
                     dataset = DatasetDAO.find_by_id(dataset_id)
                     if dataset:
                         target["datasetUuid"] = str(dataset.uuid)
+                    else:
+                        logger.warning(
+                            "Dashboard '%s': display control target references "
+                            "missing dataset %s; datasetUuid will not be set",
+                            model.dashboard_title,
+                            dataset_id,
+                        )
 
         # the mapping between dashboard -> charts is inferred from the position
         # attribute, so if it's not present we need to add a default config
@@ -243,8 +253,8 @@ class ExportDashboardsCommand(ExportModelsCommand):
                             yield from ExportDatasetsCommand([dataset_id]).run()
 
             # Export datasets referenced by display controls
-            for customization in payload.get("metadata", {}).get(
-                "chart_customization_config", []
+            for customization in (
+                payload.get("metadata", {}).get("chart_customization_config") or []
             ):
                 for target in customization.get("targets", []):
                     dataset_id = target.get("datasetId")

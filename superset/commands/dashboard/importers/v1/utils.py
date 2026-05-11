@@ -42,7 +42,7 @@ def find_native_filter_datasets(metadata: dict[str, Any]) -> set[str]:
             dataset_uuid = target.get("datasetUuid")
             if dataset_uuid:
                 uuids.add(dataset_uuid)
-    for customization in metadata.get("chart_customization_config", []):
+    for customization in metadata.get("chart_customization_config") or []:
         targets = customization.get("targets", [])
         for target in targets:
             dataset_uuid = target.get("datasetUuid")
@@ -147,10 +147,9 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
             ]
 
     # fix display control dataset references
-    chart_customization_config = fixed.get("metadata", {}).get(
-        "chart_customization_config", []
-    )
-    for customization in chart_customization_config:
+    for customization in (
+        fixed.get("metadata", {}).get("chart_customization_config") or []
+    ):
         targets = customization.get("targets", [])
         for target in targets:
             dataset_uuid = target.pop("datasetUuid", None)
@@ -158,6 +157,12 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
                 info = dataset_info.get(dataset_uuid)
                 if info:
                     target["datasetId"] = info["datasource_id"]
+                else:
+                    logger.warning(
+                        "Display control target references unknown dataset UUID %s; "
+                        "datasetId will not be restored",
+                        dataset_uuid,
+                    )
 
     fixed = update_cross_filter_scoping(fixed, id_map)
     return fixed
