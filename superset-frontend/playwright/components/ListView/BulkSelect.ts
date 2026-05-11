@@ -87,21 +87,18 @@ export class BulkSelect {
    */
   async selectRow(rowName: string): Promise<void> {
     const checkbox = this.getRowCheckbox(rowName);
-    await checkbox.element.waitFor({ state: 'visible' });
     await checkbox.check();
     await expect(checkbox.element).toBeChecked();
   }
 
   /**
    * Deselects a row's checkbox in bulk select mode.
-   * Mirrors selectRow: waits for visibility and asserts the unchecked state
-   * so any lingering selection surfaces here rather than as a stale bulk-action
-   * count later.
+   * Mirrors selectRow: asserts the unchecked state so any lingering selection
+   * surfaces here rather than as a stale bulk-action count later.
    * @param rowName - The name/text identifying the row to deselect
    */
   async deselectRow(rowName: string): Promise<void> {
     const checkbox = this.getRowCheckbox(rowName);
-    await checkbox.element.waitFor({ state: 'visible' });
     await checkbox.uncheck();
     await expect(checkbox.element).not.toBeChecked();
   }
@@ -127,14 +124,10 @@ export class BulkSelect {
 
   /**
    * Clicks a bulk action button by name (e.g., "Export", "Delete").
-   *
-   * The action buttons only render once a row is selected; waiting for
-   * visibility makes that timing contract explicit before the click.
    * @param actionName - The name of the bulk action to click
    */
   async clickAction(actionName: string): Promise<void> {
     const button = this.getActionButton(actionName);
-    await button.element.waitFor({ state: 'visible' });
     await button.click();
   }
 }

@@ -85,10 +85,9 @@ test('should delete a chart with confirmation', async ({
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears. Use waitFor instead of toBeVisible so we
-  // detect the toast even if it auto-dismisses on a fast machine.
+  // Verify success toast appears.
   const toast = new Toast(page);
-  await toast.getSuccess().waitFor({ state: 'visible' });
+  await expect(toast.getSuccess()).toBeVisible();
 
   // Verify chart is removed from list (deleted rows leave the DOM)
   await expect(chartListPage.getChartRow(chartName)).toHaveCount(0);
@@ -145,10 +144,9 @@ test('should edit chart name via properties modal', async ({
   // Modal should close
   await propertiesModal.waitForHidden();
 
-  // Verify success toast appears. Use waitFor instead of toBeVisible so we
-  // detect the toast even if it auto-dismisses on a fast machine.
+  // Verify success toast appears.
   const toast = new Toast(page);
-  await toast.getSuccess().waitFor({ state: 'visible' });
+  await expect(toast.getSuccess()).toBeVisible();
 
   // Backend verification: API returns updated name
   const response = await apiGetChart(page, chartId);
@@ -246,10 +244,9 @@ test('should bulk delete multiple charts', async ({
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears. Use waitFor instead of toBeVisible so we
-  // detect the toast even if it auto-dismisses on a fast machine.
+  // Verify success toast appears.
   const toast = new Toast(page);
-  await toast.getSuccess().waitFor({ state: 'visible' });
+  await expect(toast.getSuccess()).toBeVisible();
 
   // Verify both charts are removed from list (deleted rows leave the DOM)
   await expect(chartListPage.getChartRow(chart1.name)).toHaveCount(0);
@@ -306,10 +303,9 @@ test('should edit chart name from card view', async ({ page, testAssets }) => {
   // Modal should close
   await propertiesModal.waitForHidden();
 
-  // Verify success toast appears. Use waitFor instead of toBeVisible so we
-  // detect the toast even if it auto-dismisses on a fast machine.
+  // Verify success toast appears.
   const toast = new Toast(page);
-  await toast.getSuccess().waitFor({ state: 'visible' });
+  await expect(toast.getSuccess()).toBeVisible();
 
   // Verify the renamed card appears in card view and old name is gone
   // (the old card name is removed from the DOM after the rename re-render).

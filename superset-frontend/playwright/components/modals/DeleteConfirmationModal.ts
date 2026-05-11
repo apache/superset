@@ -73,11 +73,15 @@ export class DeleteConfirmationModal extends Modal {
   /**
    * Clicks the Delete button in the footer.
    *
-   * Waits for the confirm button to become enabled before clicking. The button
-   * is disabled until the confirmation text matches "DELETE", and React's state
-   * update from fillConfirmationInput is asynchronous; the explicit
-   * toBeEnabled() check makes the timing contract explicit and avoids racing
-   * the disabled→enabled transition.
+   * Targets the confirm button by data-test rather than going through
+   * Modal.clickFooterButton, which finds buttons by their visible text. The
+   * button label is i18n'd ("Delete" / "Supprimer" / …) so name-based lookups
+   * break in non-English locales.
+   *
+   * Also waits for the button to become enabled before clicking: it is
+   * disabled until the confirmation text matches "DELETE", and React's state
+   * update from fillConfirmationInput is asynchronous, so an immediate click
+   * can race the disabled→enabled transition.
    *
    * @param options - Optional click options (timeout, force, delay)
    */

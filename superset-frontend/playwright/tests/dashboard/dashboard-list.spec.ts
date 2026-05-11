@@ -90,10 +90,9 @@ test('should delete a dashboard with confirmation', async ({
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears. Use waitFor instead of toBeVisible so we
-  // detect the toast even if it auto-dismisses on a fast machine.
+  // Verify success toast appears.
   const toast = new Toast(page);
-  await toast.getSuccess().waitFor({ state: 'visible' });
+  await expect(toast.getSuccess()).toBeVisible();
 
   // Verify dashboard is removed from list
   await expect(dashboardListPage.getDashboardRow(dashboardName)).toHaveCount(0);
@@ -194,10 +193,9 @@ test('should bulk delete multiple dashboards', async ({
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears. Use waitFor instead of toBeVisible so we
-  // detect the toast even if it auto-dismisses on a fast machine.
+  // Verify success toast appears.
   const toast = new Toast(page);
-  await toast.getSuccess().waitFor({ state: 'visible' });
+  await expect(toast.getSuccess()).toBeVisible();
 
   // Verify both dashboards are removed from list (deleted rows leave the DOM)
   await expect(dashboardListPage.getDashboardRow(dashboard1.name)).toHaveCount(
@@ -367,10 +365,9 @@ test.describe('import dashboard', () => {
     // Modal should close on success
     await importModal.waitForHidden({ timeout: TIMEOUT.FILE_IMPORT });
 
-    // Verify success toast appears. Use waitFor instead of toBeVisible so we
-    // detect the toast even if it auto-dismisses on a fast machine.
+    // Verify success toast appears.
     const toast = new Toast(page);
-    await toast.getSuccess().waitFor({ state: 'visible', timeout: 10000 });
+    await expect(toast.getSuccess()).toBeVisible({ timeout: 10000 });
 
     // Refresh to see the imported dashboard
     await dashboardListPage.goto();

@@ -129,11 +129,9 @@ test('should delete a dataset with confirmation', async ({
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears with correct message. Use waitFor instead of
-  // toBeVisible so we detect the toast even if it auto-dismisses fast.
+  // Verify success toast appears with correct message.
   const toast = new Toast(page);
-  const successToast = toast.getSuccess();
-  await successToast.waitFor({ state: 'visible' });
+  await expect(toast.getSuccess()).toBeVisible();
   await expect(toast.getMessage()).toContainText('Deleted');
 
   // Verify dataset is removed from list (deleted rows leave the DOM)
@@ -377,10 +375,9 @@ test('should edit dataset name via modal', async ({
   // Modal should close
   await editModal.waitForHidden();
 
-  // Verify success toast appears. Use waitFor instead of toBeVisible so we
-  // detect the toast even if it auto-dismisses on a fast machine.
+  // Verify success toast appears.
   const toast = new Toast(page);
-  await toast.getSuccess().waitFor({ state: 'visible', timeout: 10000 });
+  await expect(toast.getSuccess()).toBeVisible({ timeout: 10000 });
 
   // Verify via API that name was saved
   const updatedDatasetRes = await apiGetDataset(page, datasetId);
@@ -439,10 +436,9 @@ test('should bulk delete multiple datasets', async ({
   // Modal should close
   await deleteModal.waitForHidden();
 
-  // Verify success toast appears. Use waitFor instead of toBeVisible so we
-  // detect the toast even if it auto-dismisses on a fast machine.
+  // Verify success toast appears.
   const toast = new Toast(page);
-  await toast.getSuccess().waitFor({ state: 'visible' });
+  await expect(toast.getSuccess()).toBeVisible();
 
   // Verify both datasets are removed from list (deleted rows leave the DOM)
   await expect(datasetListPage.getDatasetRow(dataset1.name)).toHaveCount(0);
@@ -543,10 +539,9 @@ test.describe('import dataset', () => {
     // Modal should close on success
     await importModal.waitForHidden({ timeout: TIMEOUT.FILE_IMPORT });
 
-    // Verify success toast appears. Use waitFor instead of toBeVisible so we
-    // detect the toast even if it auto-dismisses on a fast machine.
+    // Verify success toast appears.
     const toast = new Toast(page);
-    await toast.getSuccess().waitFor({ state: 'visible', timeout: 10000 });
+    await expect(toast.getSuccess()).toBeVisible({ timeout: 10000 });
 
     // Refresh to see the imported dataset
     await datasetListPage.goto();
