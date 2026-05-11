@@ -44,9 +44,11 @@ function saveConfig(config) {
 }
 
 function freezeDataImports(section, version) {
-  // MDX files can `import` JSON/YAML data from outside the section (e.g.
-  // country-map-tools.mdx imports `../../data/countries.json`). Without
-  // intervention, the snapshot keeps reading the live file, so the
+  // MDX files can `import` JSON/YAML data from outside the section, either
+  // via escaping relative paths (e.g. country-map-tools.mdx imports
+  // `../../data/countries.json`) or via the `@site/` alias (e.g.
+  // feature-flags.mdx imports `@site/static/feature-flags.json`). Without
+  // intervention the snapshot keeps reading the live file, so the
   // historical version's content silently changes whenever the data file
   // is updated. Copy each escaping data import into a snapshot-local
   // `_versioned_data/` dir and rewrite the import to point there.
@@ -66,9 +68,44 @@ function freezeDataImports(section, version) {
 
   console.log(`  Freezing data imports in ${versionedDocsDir}...`);
 
-  // Matches `from '../../foo/bar.json'` and similar — only escaping paths
-  // (one or more `../`) targeting JSON/YAML files.
-  const dataImportRe = /(from\s+['"])((?:\.\.\/)+)([^'"\s]+\.(?:json|ya?ml))(['"])/g;
+  // Matches data file imports in two flavors:
+  //   `from '../../foo/bar.json'`  (relative, must escape one or more dirs)
+  //   `from '@site/static/foo.json'`  (Docusaurus site-root alias)
+  const dataImportRe = /(from\s+['"])((?:\.\.\/)+|@site\/)([^'"\s]+\.(?:json|ya?ml))(['"])/g;
+
+  function freezeOne(fullPath, depth, prefix, pathSpec, importPath, suffix) {
+    let resolvedSource;
+    if (pathSpec === '@site/') {
+      // `@site/...` always resolves relative to the docs root.
+      resolvedSource = path.join(docsRoot, importPath);
+    } else {
+      // Relative path — must escape the file's depth within the section
+      // to point at content outside the section. Imports that stay inside
+      // are copied wholesale by Docusaurus, so we leave them alone.
+      const upCount = pathSpec.match(/\.\.\//g).length;
+      if (upCount <= depth) return null;
+      const relativeFromVersioned = path.relative(versionedDocsPath, fullPath);
+      const originalDir = path.dirname(path.join(sectionRoot, relativeFromVersioned));
+      resolvedSource = path.resolve(originalDir, pathSpec + importPath);
+    }
+    // Skip imports that land inside the section root — those get copied
+    // with the section snapshot already.
+    const relFromSection = path.relative(sectionRoot, resolvedSource);
+    if (!relFromSection.startsWith('..')) return null;
+    const relFromDocsRoot = path.relative(docsRoot, resolvedSource);
+    if (relFromDocsRoot.startsWith('..') || !fs.existsSync(resolvedSource)) {
+      return null;
+    }
+    const destPath = path.join(frozenDataDir, relFromDocsRoot);
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+    fs.copyFileSync(resolvedSource, destPath);
+    const rewritten = path
+      .relative(path.dirname(fullPath), destPath)
+      .split(path.sep)
+      .join('/');
+    const finalImport = rewritten.startsWith('.') ? rewritten : `./${rewritten}`;
+    return `${prefix}${finalImport}${suffix}`;
+  }
 
   function walk(dir, depth) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -86,30 +123,11 @@ function freezeDataImports(section, version) {
             return line;
           }
           if (inFence) return line;
-          return line.replace(dataImportRe, (match, prefix, dots, importPath, suffix) => {
-            const upCount = dots.match(/\.\.\//g).length;
-            // Imports that stay inside the section are copied wholesale by
-            // Docusaurus, so they don't need freezing.
-            if (upCount <= depth) return match;
-            // Resolve the import against the file's *original* location to
-            // find the source file in the live tree.
-            const relativeFromVersioned = path.relative(versionedDocsPath, fullPath);
-            const originalDir = path.dirname(path.join(sectionRoot, relativeFromVersioned));
-            const resolvedSource = path.resolve(originalDir, dots + importPath);
-            const relFromDocsRoot = path.relative(docsRoot, resolvedSource);
-            if (relFromDocsRoot.startsWith('..') || !fs.existsSync(resolvedSource)) {
-              return match;
-            }
-            const destPath = path.join(frozenDataDir, relFromDocsRoot);
-            fs.mkdirSync(path.dirname(destPath), { recursive: true });
-            fs.copyFileSync(resolvedSource, destPath);
-            const rewritten = path
-              .relative(path.dirname(fullPath), destPath)
-              .split(path.sep)
-              .join('/');
-            const finalImport = rewritten.startsWith('.') ? rewritten : `./${rewritten}`;
+          return line.replace(dataImportRe, (match, prefix, pathSpec, importPath, suffix) => {
+            const rewritten = freezeOne(fullPath, depth, prefix, pathSpec, importPath, suffix);
+            if (rewritten === null) return match;
             mutated = true;
-            return `${prefix}${finalImport}${suffix}`;
+            return rewritten;
           });
         }).join('\n');
         if (mutated) {
