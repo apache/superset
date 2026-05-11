@@ -18,7 +18,6 @@
 """
 Superset db engine specs for SeqsLab
 """
-from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.exceptions import SupersetException
 
