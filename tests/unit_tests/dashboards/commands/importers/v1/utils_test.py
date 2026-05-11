@@ -315,6 +315,38 @@ def test_update_id_refs_fixes_display_control_dataset_references():
     assert customizations[1]["targets"] == []
 
 
+def test_update_id_refs_raises_on_missing_display_control_dataset_uuid():
+    """
+    update_id_refs raises KeyError when a display control target's datasetUuid
+    is absent from dataset_info.
+
+    This matches native filter behaviour (same bare dict lookup at line 141).
+    The import command is responsible for resolving every UUID returned by
+    find_native_filter_datasets before calling update_id_refs, so a missing
+    entry indicates a corrupted or incomplete bundle.
+    """
+    import pytest
+
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {},
+        "metadata": {
+            "native_filter_configuration": [],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-abc",
+                    "type": "CHART_CUSTOMIZATION",
+                    "targets": [{"datasetUuid": "uuid-missing-from-bundle"}],
+                },
+            ],
+        },
+    }
+
+    with pytest.raises(KeyError):
+        update_id_refs(config, {}, {})
+
+
 def test_update_id_refs_handles_missing_time_grains():
     """
     Test backward compatibility when time_grains is not present.
