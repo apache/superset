@@ -146,7 +146,10 @@ const getQueryFilterMetadata = (
   metadataKey: 'applied_filters' | 'rejected_filters',
 ) =>
   ensureIsArray(chart?.queriesResponse).flatMap(
-    queryResponse => queryResponse?.[metadataKey] || [],
+    queryResponse =>
+      (metadataKey === 'applied_filters'
+        ? queryResponse?.applied_filters
+        : queryResponse?.rejected_filters) || [],
   );
 
 const getAppliedColumns = (chart: any): Set<string> =>
