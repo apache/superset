@@ -611,7 +611,7 @@ test('should refresh the charts', async () => {
 });
 
 test('auto-refresh uses onRefresh with skipped filters and toggles refresh state', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   onRefresh.mockResolvedValue(undefined);
 
   const originalRequestAnimationFrame = window.requestAnimationFrame;
