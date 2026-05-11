@@ -379,7 +379,7 @@ const ResultSet = ({
             onConfirm: () => {
               window.location.href = getExportCsvUrl(query.id);
             },
-            confirmText: t('OK'),
+            confirmText: t('Confirm'),
             cancelText: t('Close'),
           });
         }

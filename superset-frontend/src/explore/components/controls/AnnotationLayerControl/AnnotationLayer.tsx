@@ -1147,7 +1147,7 @@ class AnnotationLayer extends PureComponent<
               disabled={!isValid}
               onClick={this.submitAnnotation}
             >
-              {t('OK')}
+              {t('Confirm')}
             </Button>
           </div>
         </div>
