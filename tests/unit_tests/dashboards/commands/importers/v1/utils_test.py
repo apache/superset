@@ -315,18 +315,13 @@ def test_update_id_refs_fixes_display_control_dataset_references():
     assert customizations[1]["targets"] == []
 
 
-def test_update_id_refs_raises_on_missing_display_control_dataset_uuid():
+def test_update_id_refs_skips_display_control_target_on_missing_uuid():
     """
-    update_id_refs raises KeyError when a display control target's datasetUuid
-    is absent from dataset_info.
-
-    This matches native filter behaviour (same bare dict lookup at line 141).
-    The import command is responsible for resolving every UUID returned by
-    find_native_filter_datasets before calling update_id_refs, so a missing
-    entry indicates a corrupted or incomplete bundle.
+    When a display control target's datasetUuid is absent from dataset_info
+    (e.g. a partially corrupt export bundle), update_id_refs skips the target
+    silently rather than raising KeyError — the datasetUuid is popped and no
+    datasetId is written, leaving the target without a dataset reference.
     """
-    import pytest
-
     from superset.commands.dashboard.importers.v1.utils import update_id_refs
 
     config: dict[str, Any] = {
@@ -343,8 +338,11 @@ def test_update_id_refs_raises_on_missing_display_control_dataset_uuid():
         },
     }
 
-    with pytest.raises(KeyError):
-        update_id_refs(config, {}, {})
+    fixed = update_id_refs(config, {}, {})
+
+    target = fixed["metadata"]["chart_customization_config"][0]["targets"][0]
+    assert "datasetUuid" not in target
+    assert "datasetId" not in target
 
 
 def test_update_id_refs_handles_missing_time_grains():

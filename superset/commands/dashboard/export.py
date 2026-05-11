@@ -247,7 +247,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
                 "chart_customization_config", []
             ):
                 for target in customization.get("targets", []):
-                    dataset_id = target.pop("datasetId", None)
+                    dataset_id = target.get("datasetId")
                     if dataset_id is not None:
                         dataset = DatasetDAO.find_by_id(dataset_id)
                         if dataset:

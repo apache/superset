@@ -155,7 +155,9 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
         for target in targets:
             dataset_uuid = target.pop("datasetUuid", None)
             if dataset_uuid:
-                target["datasetId"] = dataset_info[dataset_uuid]["datasource_id"]
+                info = dataset_info.get(dataset_uuid)
+                if info:
+                    target["datasetId"] = info["datasource_id"]
 
     fixed = update_cross_filter_scoping(fixed, id_map)
     return fixed
