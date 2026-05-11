@@ -356,21 +356,31 @@ describe('SaveDatasetModal', () => {
 
   const setupOverwriteFlow = async () => {
     // Select the "Overwrite existing" radio
-    userEvent.click(screen.getByRole('radio', { name: /overwrite existing/i }));
-    // Open the select and pick an existing dataset
-    userEvent.click(
+    await userEvent.click(
+      screen.getByRole('radio', { name: /overwrite existing/i }),
+    );
+    // Open the select to load existing-dataset options
+    await userEvent.click(
       screen.getByRole('combobox', { name: /existing dataset/i }),
     );
-    await waitFor(() =>
-      expect(screen.queryByText('Loading...')).not.toBeVisible(),
-    );
-    userEvent.click(screen.getAllByText('coolest table 0')[1]);
+    // Advance timers to flush debounced fetches in AsyncSelect
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    // Wait for the loading indicator to clear
+    await waitFor(() => {
+      const loading = screen.queryByText('Loading...');
+      expect(loading === null || !loading.checkVisibility()).toBe(true);
+    });
+    // Pick an existing dataset (use the listbox item, not the input mirror)
+    const options = await screen.findAllByText('coolest table 0');
+    await userEvent.click(options[1]);
     // First overwrite click → confirmation screen
-    userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
+    await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
     // Wait for the confirmation screen to render
     await screen.findByText(/are you sure you want to overwrite this dataset/i);
     // Second overwrite click → triggers the PUT
-    userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
+    await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
   };
 
   test('sends template_params when overwriting a dataset with include template parameters checked', async () => {
@@ -399,7 +409,7 @@ describe('SaveDatasetModal', () => {
     });
 
     // Check the "Include Template Parameters" checkbox
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
 
     await setupOverwriteFlow();
 
