@@ -47,6 +47,11 @@ yarn build                # Build production site
 yarn serve                # Serve built site locally
 
 # Version Management (USE THESE, NOT docusaurus commands)
+# The add scripts auto-run `generate:smart` so auto-gen content (database
+# pages, API reference, component pages) is fresh before snapshotting.
+# For maximum-detail databases.json, drop the `database-diagnostics`
+# artifact from Python-Integration CI at src/data/databases.json before
+# cutting. See README.md "Before You Cut".
 yarn version:add:docs <version>              # Add new docs version
 yarn version:add:admin_docs <version>        # Add admin docs version
 yarn version:add:developer_docs <version>    # Add developer docs version

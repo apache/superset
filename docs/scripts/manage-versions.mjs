@@ -30,7 +30,9 @@ const __dirname = path.dirname(__filename);
 const CONFIG_FILE = path.join(__dirname, '..', 'versions-config.json');
 
 // Parse command line arguments
-const args = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+const skipGenerate = rawArgs.includes('--skip-generate');
+const args = rawArgs.filter((a) => a !== '--skip-generate');
 const command = args[0]; // 'add' or 'remove'
 const section = args[1]; // 'docs', 'developer_docs', or 'components'
 const version = args[2]; // version string like '1.2.0'
@@ -213,6 +215,28 @@ function addVersion(section, version) {
 
   console.log(`Creating version ${version} for ${section}...`);
 
+  // Refresh auto-generated content (database pages, API reference,
+  // component playground) so the snapshot captures the current state of
+  // master rather than whatever happened to be on disk. `generate:smart`
+  // hashes its inputs and skips unchanged generators, so this is cheap
+  // when the dev already has fresh output.
+  //
+  // Use --skip-generate if you've placed a CI-artifact databases.json
+  // (the `database-diagnostics` artifact from Python-Integration) and
+  // want to preserve it instead of letting the local env regenerate it.
+  // See docs/README.md "Before You Cut" for the canonical release flow.
+  if (skipGenerate) {
+    console.log(`  Skipping auto-gen refresh (--skip-generate set)`);
+  } else {
+    console.log(`  Refreshing auto-generated docs...`);
+    try {
+      execSync('yarn run generate:smart', { stdio: 'inherit' });
+    } catch (error) {
+      console.error(`Failed to refresh auto-generated docs: ${error.message}`);
+      process.exit(1);
+    }
+  }
+
   // Run Docusaurus version command
   const docusaurusCommand = section === 'docs'
     ? `yarn docusaurus docs:version ${version}`
@@ -309,8 +333,17 @@ function removeVersion(section, version) {
     const versionIndex = versions.indexOf(version);
     if (versionIndex > -1) {
       versions.splice(versionIndex, 1);
-      fs.writeFileSync(versionsJsonPath, JSON.stringify(versions, null, 2) + '\n');
-      console.log(`  Updated ${versionsJsonFile}`);
+      if (versions.length === 0) {
+        // Sections with no versions shouldn't carry an empty versions file
+        // on disk — Docusaurus doesn't require it, and an empty `[]` file
+        // gets picked up by `docusaurus version` and snapshotted into the
+        // next cut.
+        fs.unlinkSync(versionsJsonPath);
+        console.log(`  Removed empty ${versionsJsonFile}`);
+      } else {
+        fs.writeFileSync(versionsJsonPath, JSON.stringify(versions, null, 2) + '\n');
+        console.log(`  Updated ${versionsJsonFile}`);
+      }
     }
   }
 
@@ -335,12 +368,15 @@ function removeVersion(section, version) {
 function printUsage() {
   console.log(`
 Usage:
-  node scripts/manage-versions.js add <section> <version>
+  node scripts/manage-versions.js add <section> <version> [--skip-generate]
   node scripts/manage-versions.js remove <section> <version>
 
 Where:
-  - section: 'docs', 'developer_docs', or 'components'
+  - section: 'docs', 'developer_docs', 'admin_docs', or 'components'
   - version: version string (e.g., '1.2.0', '2.0.0')
+  - --skip-generate: skip refreshing auto-generated docs before snapshotting
+                     (use when you've already placed a fresh databases.json
+                     from CI and want to preserve it)
 
 Examples:
   node scripts/manage-versions.js add docs 2.0.0
