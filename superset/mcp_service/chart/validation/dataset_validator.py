@@ -28,6 +28,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     ColumnRef,
     HandlebarsChartConfig,
+    SandpackChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
@@ -296,6 +297,13 @@ class DatasetValidator:
             if config.group_by_secondary:
                 refs.extend(config.group_by_secondary)
         elif isinstance(config, HandlebarsChartConfig):
+            if config.columns:
+                refs.extend(config.columns)
+            if config.groupby:
+                refs.extend(config.groupby)
+            if config.metrics:
+                refs.extend(config.metrics)
+        elif isinstance(config, SandpackChartConfig):
             if config.columns:
                 refs.extend(config.columns)
             if config.groupby:

@@ -33,6 +33,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SandpackChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -47,6 +48,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "pivot_table": TypeAdapter(PivotTableChartConfig),
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
     "handlebars": TypeAdapter(HandlebarsChartConfig),
+    "sandpack": TypeAdapter(SandpackChartConfig),
     "big_number": TypeAdapter(BigNumberChartConfig),
 }
 
@@ -108,6 +110,49 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "query_mode": "raw",
             "columns": [{"name": "customer_name"}, {"name": "email"}],
             "handlebars_template": "{{#each data}}<p>{{customer_name}}</p>{{/each}}",
+        },
+    ],
+    "sandpack": [
+        {
+            "chart_type": "sandpack",
+            "template": "react",
+            "query_mode": "raw",
+            "columns": [{"name": "customer_name"}, {"name": "revenue"}],
+            "app_code": (
+                "import data from './data.json';\n\n"
+                "export default function App() {\n"
+                "  return (\n"
+                "    <ul>\n"
+                "      {data.map((row, i) => (\n"
+                "        <li key={i}>{row.customer_name}: {row.revenue}</li>\n"
+                "      ))}\n"
+                "    </ul>\n"
+                "  );\n"
+                "}\n"
+            ),
+        },
+        {
+            "chart_type": "sandpack",
+            "template": "react",
+            "query_mode": "aggregate",
+            "groupby": [{"name": "region"}],
+            "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+            "dependencies": {"recharts": "^2.12.0"},
+            "app_code": (
+                "import data from './data.json';\n"
+                "import { BarChart, Bar, XAxis, YAxis, Tooltip } "
+                "from 'recharts';\n\n"
+                "export default function App() {\n"
+                "  return (\n"
+                "    <BarChart width={400} height={300} data={data}>\n"
+                "      <XAxis dataKey=\"region\" />\n"
+                "      <YAxis />\n"
+                "      <Tooltip />\n"
+                "      <Bar dataKey=\"SUM(revenue)\" />\n"
+                "    </BarChart>\n"
+                "  );\n"
+                "}\n"
+            ),
         },
     ],
     "big_number": [
@@ -179,7 +224,7 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values: xy, table, pie, pivot_table,
-    mixed_timeseries, handlebars, big_number.
+    mixed_timeseries, handlebars, sandpack, big_number.
 
     Returns the JSON Schema for the requested chart type, optionally
     with working examples.

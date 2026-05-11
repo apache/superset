@@ -94,9 +94,10 @@ class TestGetChartTypeSchema:
             assert example["chart_type"] == "pie"
 
     def test_valid_chart_types_constant(self) -> None:
-        assert len(VALID_CHART_TYPES) == 7
+        assert len(VALID_CHART_TYPES) == 8
         assert "xy" in VALID_CHART_TYPES
         assert "table" in VALID_CHART_TYPES
+        assert "sandpack" in VALID_CHART_TYPES
 
     def test_all_chart_types_have_examples(self) -> None:
         for chart_type in VALID_CHART_TYPES:

@@ -37,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SandpackChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -315,6 +316,7 @@ def map_config_to_form_data(
     | PivotTableChartConfig
     | MixedTimeseriesChartConfig
     | HandlebarsChartConfig
+    | SandpackChartConfig
     | BigNumberChartConfig,
     dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
@@ -331,6 +333,8 @@ def map_config_to_form_data(
         return map_mixed_timeseries_config(config, dataset_id=dataset_id)
     elif isinstance(config, HandlebarsChartConfig):
         return map_handlebars_config(config)
+    elif isinstance(config, SandpackChartConfig):
+        return map_sandpack_config(config)
     elif isinstance(config, BigNumberChartConfig):
         if config.show_trendline and config.temporal_column:
             if not is_column_truly_temporal(config.temporal_column, dataset_id):
@@ -824,6 +828,41 @@ def map_handlebars_config(config: HandlebarsChartConfig) -> Dict[str, Any]:
     return form_data
 
 
+def map_sandpack_config(config: SandpackChartConfig) -> Dict[str, Any]:
+    """Map sandpack chart config to Superset form_data.
+
+    Mirrors the camelCase keys the frontend control panel writes:
+    ``appCode``, ``dependencies`` (JSON-stringified), ``template``, ``layout``,
+    ``showNavigator``.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "sandpack",
+        "appCode": config.app_code,
+        "template": config.template,
+        "layout": config.layout,
+        "showNavigator": config.show_navigator,
+        "row_limit": config.row_limit,
+    }
+
+    if config.dependencies:
+        form_data["dependencies"] = json.dumps(config.dependencies)
+
+    if config.query_mode == "raw":
+        form_data["query_mode"] = "raw"
+        if config.columns:
+            form_data["all_columns"] = [col.name for col in config.columns]
+    else:
+        form_data["query_mode"] = "aggregate"
+        if config.groupby:
+            form_data["groupby"] = [col.name for col in config.groupby]
+        if config.metrics:
+            form_data["metrics"] = [create_metric_object(col) for col in config.metrics]
+
+    _add_adhoc_filters(form_data, config.filters)
+
+    return form_data
+
+
 def map_pivot_table_config(config: PivotTableChartConfig) -> Dict[str, Any]:
     """Map pivot table config to Superset form_data."""
     if not config.rows:
@@ -1111,6 +1150,17 @@ def _handlebars_chart_what(config: HandlebarsChartConfig) -> str:
     return "Handlebars Chart"
 
 
+def _sandpack_chart_what(config: SandpackChartConfig) -> str:
+    """Build the 'what' portion for a sandpack chart name."""
+    if config.query_mode == "raw" and config.columns:
+        cols = ", ".join(col.name for col in config.columns[:3])
+        return f"Sandpack ({cols})"
+    if config.metrics:
+        metrics = ", ".join(col.name for col in config.metrics[:3])
+        return f"Sandpack ({metrics})"
+    return "Sandpack App"
+
+
 def _big_number_chart_what(config: BigNumberChartConfig) -> str:
     """Build the 'what' portion for a big number chart name.
 
@@ -1135,6 +1185,7 @@ def generate_chart_name(
     | PivotTableChartConfig
     | MixedTimeseriesChartConfig
     | HandlebarsChartConfig
+    | SandpackChartConfig
     | BigNumberChartConfig,
     dataset_name: str | None = None,
 ) -> str:
@@ -1168,6 +1219,9 @@ def generate_chart_name(
         context = _summarize_filters(config.filters)
     elif isinstance(config, HandlebarsChartConfig):
         what = _handlebars_chart_what(config)
+        context = _summarize_filters(getattr(config, "filters", None))
+    elif isinstance(config, SandpackChartConfig):
+        what = _sandpack_chart_what(config)
         context = _summarize_filters(getattr(config, "filters", None))
     elif isinstance(config, BigNumberChartConfig):
         what = _big_number_chart_what(config)
@@ -1203,6 +1257,8 @@ def _resolve_viz_type(config: Any) -> str:
         return "mixed_timeseries"
     elif chart_type == "handlebars":
         return "handlebars"
+    elif chart_type == "sandpack":
+        return "sandpack"
     elif chart_type == "big_number":
         show_trendline = getattr(config, "show_trendline", False)
         temporal_column = getattr(config, "temporal_column", None)
@@ -1291,6 +1347,10 @@ def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
         "handlebars": (
             "Renders data using a custom Handlebars HTML template for "
             "fully flexible layouts like KPI cards, leaderboards, and reports"
+        ),
+        "sandpack": (
+            "Runs an in-browser Sandpack app (React/JS) bundled at view time, "
+            "with the query result available inside the sandbox as ./data.json"
         ),
         "big_number": (
             "Displays a key metric with a trendline showing "

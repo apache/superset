@@ -1054,6 +1054,137 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
         return self
 
 
+class SandpackChartConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore")
+
+    chart_type: Literal["sandpack"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'sandpack' for in-browser apps "
+            "rendered with the Sandpack bundler. The chart frame mounts a "
+            "Sandpack runtime; the dataset is exposed inside the sandbox as "
+            "`./data.json`. Use this for fully custom interactive UIs (small "
+            "React apps, dashboards-in-a-cell, bespoke widgets) when the "
+            "built-in chart types are too restrictive."
+        ),
+    )
+    app_code: str = Field(
+        ...,
+        description=(
+            "Source code for the entry file of the Sandpack app. Import the "
+            "query result with `import data from './data.json';` (default-export "
+            "the React component for `react`/`react-ts` templates). Keep it a "
+            "single file when possible — Sandpack rebundles on every edit."
+        ),
+        min_length=1,
+        max_length=100000,
+        validation_alias=AliasChoices("app_code", "appCode"),
+    )
+    template: Literal["react", "react-ts", "vanilla", "vanilla-ts"] = Field(
+        "react",
+        description=(
+            "Sandpack runtime template. 'react' = JS React (entry: App.js, "
+            "default export). 'react-ts' = TS React (entry: App.tsx). "
+            "'vanilla' / 'vanilla-ts' = plain JS/TS (entry: index.js / "
+            "index.ts). Pick the one matching the syntax used in app_code."
+        ),
+    )
+    dependencies: Dict[str, str] | None = Field(
+        None,
+        description=(
+            "Optional npm dependencies as {name: semver} pairs. React/ReactDOM "
+            "ship with the react templates; only add what your app additionally "
+            "imports (e.g. {'recharts': '^2.12.0'})."
+        ),
+    )
+    layout: Literal["preview", "split", "editor"] = Field(
+        "preview",
+        description=(
+            "Which Sandpack panes are visible in the chart frame. 'preview' = "
+            "rendered output only (recommended for finished charts), 'split' = "
+            "editor + preview side-by-side, 'editor' = code only."
+        ),
+    )
+    show_navigator: bool = Field(
+        False,
+        description="Show the Sandpack URL bar above the preview pane.",
+        validation_alias=AliasChoices("show_navigator", "showNavigator"),
+    )
+    query_mode: Literal["aggregate", "raw"] = Field(
+        "raw",
+        description=(
+            "Query mode: 'raw' returns individual rows (default for sandpack — "
+            "most apps want row-level data), 'aggregate' groups with metrics."
+        ),
+    )
+    columns: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Columns to fetch in raw mode (query_mode='raw'). These become the "
+            "fields available on each object in `./data.json`."
+        ),
+    )
+    groupby: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Group-by columns in aggregate mode (query_mode='aggregate'). "
+            "Become the dimensions for aggregation."
+        ),
+        validation_alias=AliasChoices("groupby", "group_by"),
+    )
+    metrics: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Metrics to aggregate in aggregate mode. Each must have an "
+            "aggregate function (SUM, COUNT, AVG, ...)."
+        ),
+    )
+    filters: list[FilterConfig] | None = Field(
+        None, description="Filters to apply"
+    )
+    row_limit: int = Field(
+        1000,
+        description="Maximum number of rows passed to the app",
+        ge=1,
+        le=50000,
+    )
+
+    @model_validator(mode="after")
+    def validate_query_fields(self) -> "SandpackChartConfig":
+        """Enforce that the right query fields are present for the chosen mode."""
+        if self.query_mode == "raw":
+            if not self.columns:
+                raise ValueError(
+                    "Sandpack chart in 'raw' query mode requires 'columns'. "
+                    "Specify which columns to expose in ./data.json."
+                )
+            if self.metrics:
+                raise ValueError(
+                    "Sandpack chart in 'raw' query mode does not use 'metrics'. "
+                    "Remove 'metrics' or switch to 'aggregate' query mode."
+                )
+            if self.groupby:
+                raise ValueError(
+                    "Sandpack chart in 'raw' query mode does not use 'groupby'. "
+                    "Remove 'groupby' or switch to 'aggregate' query mode."
+                )
+        else:
+            if not self.metrics:
+                raise ValueError(
+                    "Sandpack chart in 'aggregate' query mode requires 'metrics'. "
+                    "Specify at least one metric with an aggregate function."
+                )
+            missing_agg = [m.name for m in self.metrics if not m.is_metric]
+            if missing_agg:
+                raise ValueError(
+                    f"Sandpack chart in 'aggregate' query mode requires an "
+                    f"aggregate function on every metric. Missing aggregate for: "
+                    f"{', '.join(missing_agg)}. "
+                    f"Use one of: SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, etc."
+                )
+        return self
+
+
 class BigNumberChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore")
 
@@ -1343,13 +1474,14 @@ ChartConfig = Annotated[
     | PivotTableChartConfig
     | MixedTimeseriesChartConfig
     | HandlebarsChartConfig
+    | SandpackChartConfig
     | BigNumberChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
             "'pie', 'pivot_table', 'mixed_timeseries', 'handlebars', "
-            "or 'big_number'"
+            "'sandpack', or 'big_number'"
         ),
     ),
 ]

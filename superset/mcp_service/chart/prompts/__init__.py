@@ -19,3 +19,4 @@
 
 # Import to register prompts when module is imported
 from . import create_chart_guided  # noqa: F401
+from . import create_sandpack_app  # noqa: F401

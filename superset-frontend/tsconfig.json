@@ -95,6 +95,7 @@
     { "path": "./plugins/plugin-chart-echarts" },
     { "path": "./plugins/plugin-chart-point-cluster-map" },
     { "path": "./plugins/plugin-chart-handlebars" },
+    { "path": "./plugins/plugin-chart-sandpack" },
     { "path": "./plugins/plugin-chart-pivot-table" },
     { "path": "./plugins/plugin-chart-table" },
     { "path": "./plugins/plugin-chart-word-cloud" }

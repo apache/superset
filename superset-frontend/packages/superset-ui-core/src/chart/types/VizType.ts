@@ -50,6 +50,7 @@ export enum VizType {
   PivotTable = 'pivot_table_v2',
   Radar = 'radar',
   Rose = 'rose',
+  Sandpack = 'sandpack',
   Sankey = 'sankey_v2',
   Scatter = 'echarts_timeseries_scatter',
   SmoothLine = 'echarts_timeseries_smooth',

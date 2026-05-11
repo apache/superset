@@ -134,6 +134,8 @@ class SchemaValidator:
                     "Add 'chart_type': 'pivot_table' for interactive pivot tables",
                     "Add 'chart_type': 'mixed_timeseries' for dual-series time charts",
                     "Add 'chart_type': 'handlebars' for custom HTML template charts",
+                    "Add 'chart_type': 'sandpack' for in-browser Sandpack apps "
+                    "(React/JS) rendered against the query result",
                     "Add 'chart_type': 'big_number' for big number display",
                     "Example: 'config': {'chart_type': 'xy', ...}",
                 ],
@@ -155,6 +157,7 @@ class SchemaValidator:
             "pivot_table": SchemaValidator._pre_validate_pivot_table_config,
             "mixed_timeseries": SchemaValidator._pre_validate_mixed_timeseries_config,
             "handlebars": SchemaValidator._pre_validate_handlebars_config,
+            "sandpack": SchemaValidator._pre_validate_sandpack_config,
             "big_number": SchemaValidator._pre_validate_big_number_config,
         }
 
@@ -172,6 +175,7 @@ class SchemaValidator:
                     "Use 'chart_type': 'pivot_table' for interactive pivot tables",
                     "Use 'chart_type': 'mixed_timeseries' for dual-series time charts",
                     "Use 'chart_type': 'handlebars' for custom HTML template charts",
+                    "Use 'chart_type': 'sandpack' for Sandpack-rendered React/JS apps",
                     "Use 'chart_type': 'big_number' for big number display",
                     "Check spelling and ensure lowercase",
                 ],
@@ -351,6 +355,130 @@ class SchemaValidator:
                 "at least one metric with an aggregate function",
                 suggestions=[
                     "Add 'metrics': [{'name': 'column', 'aggregate': 'SUM'}]",
+                    "Or use query_mode='raw' with 'columns' for individual rows",
+                ],
+                error_code="MISSING_AGGREGATE_METRICS",
+            )
+
+        return True, None
+
+    @staticmethod
+    def _pre_validate_sandpack_config(
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Pre-validate sandpack chart configuration."""
+        # Accept both snake_case and the camelCase form_data alias.
+        app_code = config.get("app_code") or config.get("appCode")
+        if app_code is None:
+            return False, ChartGenerationError(
+                error_type="missing_app_code",
+                message="Sandpack chart missing required field: app_code",
+                details="Sandpack charts require an 'app_code' string with the "
+                "source code of the entry file. Inside the sandbox the "
+                "dataset is exposed as './data.json'.",
+                suggestions=[
+                    "Add 'app_code' with the source for your entry file",
+                    "React entry: import data from './data.json'; "
+                    "export default function App() { ... }",
+                    "Vanilla entry: import data from './data.json'; "
+                    "document.body.innerText = JSON.stringify(data);",
+                ],
+                error_code="MISSING_APP_CODE",
+            )
+
+        if not isinstance(app_code, str) or not app_code.strip():
+            return False, ChartGenerationError(
+                error_type="invalid_app_code",
+                message="Sandpack app_code must be a non-empty string",
+                details="The 'app_code' field must contain the source code for "
+                "the entry file as a non-empty string.",
+                suggestions=[
+                    "Ensure app_code is a non-empty string",
+                    "Example: \"import data from './data.json';\\n"
+                    "export default function App(){return <pre>{JSON."
+                    'stringify(data)}</pre>}"',
+                ],
+                error_code="INVALID_APP_CODE",
+            )
+
+        template = config.get("template", "react")
+        valid_templates = ("react", "react-ts", "vanilla", "vanilla-ts")
+        if template not in valid_templates:
+            return False, ChartGenerationError(
+                error_type="invalid_template",
+                message=f"Invalid Sandpack template: '{template}'",
+                details=f"template must be one of: {', '.join(valid_templates)}",
+                suggestions=[
+                    "Use 'react' (default) for JS React apps",
+                    "Use 'react-ts' for TypeScript React",
+                    "Use 'vanilla' or 'vanilla-ts' for plain JS/TS",
+                ],
+                error_code="INVALID_SANDPACK_TEMPLATE",
+            )
+
+        dependencies = config.get("dependencies")
+        if dependencies is not None and not isinstance(dependencies, dict):
+            return False, ChartGenerationError(
+                error_type="invalid_dependencies",
+                message="Sandpack dependencies must be an object",
+                details="The 'dependencies' field must be an object mapping "
+                "package names to semver ranges, or omitted entirely.",
+                suggestions=[
+                    "Pass an object: {'recharts': '^2.12.0'}",
+                    "Or omit 'dependencies' to use only template defaults",
+                ],
+                error_code="INVALID_SANDPACK_DEPENDENCIES",
+            )
+
+        layout = config.get("layout", "preview")
+        if layout not in ("preview", "split", "editor"):
+            return False, ChartGenerationError(
+                error_type="invalid_layout",
+                message=f"Invalid Sandpack layout: '{layout}'",
+                details="layout must be 'preview', 'split', or 'editor'",
+                suggestions=[
+                    "Use 'preview' for finished charts (default)",
+                    "Use 'split' for editor + preview side-by-side",
+                    "Use 'editor' to show only the code",
+                ],
+                error_code="INVALID_SANDPACK_LAYOUT",
+            )
+
+        query_mode = config.get("query_mode", "raw")
+        if query_mode not in ("aggregate", "raw"):
+            return False, ChartGenerationError(
+                error_type="invalid_query_mode",
+                message="Invalid query_mode for sandpack chart",
+                details="query_mode must be either 'aggregate' or 'raw'",
+                suggestions=[
+                    "Use 'raw' for row-level data (default for sandpack)",
+                    "Use 'aggregate' with 'metrics' for grouped data",
+                ],
+                error_code="INVALID_QUERY_MODE",
+            )
+
+        if query_mode == "raw" and not config.get("columns"):
+            return False, ChartGenerationError(
+                error_type="missing_raw_columns",
+                message="Sandpack chart in 'raw' mode requires 'columns'",
+                details="When query_mode is 'raw', you must specify which "
+                "columns to include in ./data.json",
+                suggestions=[
+                    "Add 'columns': [{'name': 'column_name'}]",
+                    "Or use query_mode='aggregate' with 'metrics' "
+                    "and optional 'groupby'",
+                ],
+                error_code="MISSING_RAW_COLUMNS",
+            )
+
+        if query_mode == "aggregate" and not config.get("metrics"):
+            return False, ChartGenerationError(
+                error_type="missing_aggregate_metrics",
+                message="Sandpack chart in 'aggregate' mode requires 'metrics'",
+                details="When query_mode is 'aggregate', specify at least one "
+                "metric with an aggregate function",
+                suggestions=[
+                    "Add 'metrics': [{'name': 'col', 'aggregate': 'SUM'}]",
                     "Or use query_mode='raw' with 'columns' for individual rows",
                 ],
                 error_code="MISSING_AGGREGATE_METRICS",
@@ -590,6 +718,26 @@ class SchemaValidator:
                             "'metrics': [{'name': 'sales', 'aggregate': 'SUM'}]}",
                         ],
                         error_code="HANDLEBARS_VALIDATION_ERROR",
+                    )
+                elif chart_type == "sandpack":
+                    return ChartGenerationError(
+                        error_type="sandpack_validation_error",
+                        message="Sandpack chart configuration validation failed",
+                        details="The sandpack chart configuration is missing "
+                        "required fields or has invalid structure",
+                        suggestions=[
+                            "Ensure 'app_code' is a non-empty string",
+                            "Pick a template: 'react' (default), 'react-ts', "
+                            "'vanilla', or 'vanilla-ts'",
+                            "For raw mode (default): set 'columns'",
+                            "For aggregate mode: set 'metrics' (and optionally "
+                            "'groupby') and switch 'query_mode' to 'aggregate'",
+                            "Example: {'chart_type': 'sandpack', 'app_code': "
+                            "\"import data from './data.json'; export default "
+                            "() => <pre>{JSON.stringify(data)}</pre>\", "
+                            "'columns': [{'name': 'product'}]}",
+                        ],
+                        error_code="SANDPACK_VALIDATION_ERROR",
                     )
                 elif chart_type == "big_number":
                     return ChartGenerationError(

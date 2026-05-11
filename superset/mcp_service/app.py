@@ -96,6 +96,8 @@ Available Resources:
 Available Prompts:
 - quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
+- create_sandpack_app: Guidance for authoring chart_type="sandpack" apps
+  (./data.json contract, template/dependencies, common patterns)
 
 IMPORTANT - Using Saved Metrics vs Columns:
 When get_dataset_info returns a dataset, it includes both 'columns' and 'metrics'.
@@ -217,6 +219,16 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
   Requires handlebars_template with Handlebars HTML template string.
   Supports query_mode="aggregate" (with metrics/groupby) or "raw" (with columns).
   Data available as {{{{data}}}} array; helpers: dateFormat, formatNumber, stringify.
+- chart_type="sandpack": In-browser Sandpack app rendered against the query result.
+  Requires app_code (entry-file source). Inside the sandbox the dataset is exposed
+  as ./data.json — import it with `import data from './data.json';`.
+  Pick template: 'react' (default, JS, entry App.js with default export),
+  'react-ts' (TS, App.tsx), 'vanilla' (index.js), or 'vanilla-ts' (index.ts).
+  Add npm packages via dependencies={{...}} (e.g. {{"recharts": "^2.12.0"}}).
+  Defaults to query_mode="raw" with columns; switch to "aggregate" with metrics
+  for grouped data. Use this when the user wants a custom interactive UI that
+  the built-in chart types can't express. Call get_chart_type_schema(chart_type
+  ="sandpack") for the full schema and runnable examples.
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
