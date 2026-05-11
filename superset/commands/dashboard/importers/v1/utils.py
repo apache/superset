@@ -42,6 +42,12 @@ def find_native_filter_datasets(metadata: dict[str, Any]) -> set[str]:
             dataset_uuid = target.get("datasetUuid")
             if dataset_uuid:
                 uuids.add(dataset_uuid)
+    for customization in metadata.get("chart_customization_config", []):
+        targets = customization.get("targets", [])
+        for target in targets:
+            dataset_uuid = target.get("datasetUuid")
+            if dataset_uuid:
+                uuids.add(dataset_uuid)
     return uuids
 
 
@@ -139,6 +145,18 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
             native_filter["scope"]["excluded"] = [
                 id_map[old_id] for old_id in scope_excluded if old_id in id_map
             ]
+
+    # fix display control dataset references
+    chart_customization_config = fixed.get("metadata", {}).get(
+        "chart_customization_config", []
+    )
+    for customization in chart_customization_config:
+        targets = customization.get("targets", [])
+        for target in targets:
+            dataset_uuid = target.pop("datasetUuid", None)
+            if dataset_uuid:
+                target["datasetId"] = dataset_info[dataset_uuid]["datasource_id"]
+
     fixed = update_cross_filter_scoping(fixed, id_map)
     return fixed
 

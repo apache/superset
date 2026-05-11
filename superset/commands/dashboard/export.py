@@ -146,6 +146,17 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     if dataset:
                         target["datasetUuid"] = str(dataset.uuid)
 
+        # Replace display control dataset references with uuid
+        for customization in payload.get("metadata", {}).get(
+            "chart_customization_config", []
+        ):
+            for target in customization.get("targets", []):
+                dataset_id = target.pop("datasetId", None)
+                if dataset_id is not None:
+                    dataset = DatasetDAO.find_by_id(dataset_id)
+                    if dataset:
+                        target["datasetUuid"] = str(dataset.uuid)
+
         # the mapping between dashboard -> charts is inferred from the position
         # attribute, so if it's not present we need to add a default config
         if not payload.get("position"):
@@ -225,6 +236,17 @@ class ExportDashboardsCommand(ExportModelsCommand):
                 "native_filter_configuration", []
             ):
                 for target in native_filter.get("targets", []):
+                    dataset_id = target.pop("datasetId", None)
+                    if dataset_id is not None:
+                        dataset = DatasetDAO.find_by_id(dataset_id)
+                        if dataset:
+                            yield from ExportDatasetsCommand([dataset_id]).run()
+
+            # Export datasets referenced by display controls
+            for customization in payload.get("metadata", {}).get(
+                "chart_customization_config", []
+            ):
+                for target in customization.get("targets", []):
                     dataset_id = target.pop("datasetId", None)
                     if dataset_id is not None:
                         dataset = DatasetDAO.find_by_id(dataset_id)
