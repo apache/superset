@@ -33,6 +33,7 @@ import {
   SupersetTheme,
   t,
   useTheme,
+  VizType,
 } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
@@ -205,9 +206,12 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     const rowLimit = Number(formData.row_limit ?? 0);
 
-    const isTableChart = formData.viz_type === 'table';
-    const countFromSecondQuery =
-      isTableChart && secondQueryResponse?.data?.[0]?.rowcount;
+    const isTableChart =
+      formData.viz_type === VizType.Table ||
+      formData.viz_type === VizType.TableAgGrid;
+    const countFromSecondQuery = isTableChart
+      ? secondQueryResponse?.data?.[0]?.rowcount
+      : undefined;
 
     const sqlRowCount =
       countFromSecondQuery != null

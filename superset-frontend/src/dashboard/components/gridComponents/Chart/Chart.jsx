@@ -19,7 +19,7 @@
 import cx from 'classnames';
 import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, logging } from '@superset-ui/core';
+import { styled, t, logging, VizType } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { useHistory } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
@@ -454,7 +454,9 @@ const Chart = props => {
       const resultType = isPivot ? 'post_processed' : 'full';
 
       let actualRowCount;
-      const isTableViz = formData?.viz_type === 'table';
+      const vizType = formData?.viz_type;
+      const isTableViz =
+        vizType === VizType.Table || vizType === VizType.TableAgGrid;
 
       if (
         isTableViz &&
