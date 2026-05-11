@@ -537,8 +537,11 @@ class ChartFilter(ColumnOperator):
         "datasource_name",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='chart') for "
-        "available filter columns.",
+        description=(
+            "Column to filter on. Valid values: 'slice_name', 'viz_type', "
+            "'datasource_name'. Other column names are not valid filter columns "
+            "and will cause a validation error."
+        ),
     )
     opr: ColumnOperatorEnum = Field(
         ...,

@@ -45,7 +45,7 @@ fetchMock.get('glob:*/api/v1/dataset/?*', {
   dataset_count: 3,
 });
 
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
 
 // Mock the user
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
