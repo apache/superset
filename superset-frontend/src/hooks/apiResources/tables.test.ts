@@ -251,7 +251,7 @@ describe('useTables hook', () => {
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
       result: fakeSchemaApiResult,
     });
-    const { result, waitFor } = renderHook(
+    const { result } = renderHook(
       () =>
         useTables({
           dbId: expectDbId,
