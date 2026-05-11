@@ -109,6 +109,62 @@ def test_file_content_replaces_dataset_id_with_uuid_in_display_controls():
     assert customizations[1]["targets"] == []
 
 
+def test_export_yields_dataset_files_for_display_controls():
+    """
+    _export must yield dataset files for datasets referenced by display controls.
+
+    The _export generator has a second pass over json_metadata (separate from
+    _file_content) whose job is to emit dataset YAML files into the bundle.
+    Without this, the round-trip fails: the UUID is in the dashboard YAML but
+    the dataset file is absent from the ZIP.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    dataset_id = 42
+    mock_dashboard = _make_mock_dashboard(
+        {
+            "native_filter_configuration": [],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-abc",
+                    "type": "CHART_CUSTOMIZATION",
+                    "targets": [{"datasetId": dataset_id}],
+                },
+            ],
+        }
+    )
+
+    mock_dataset = MagicMock()
+    sentinel_file = ("datasets/my_dataset.yaml", lambda: "dataset_content")
+    mock_datasets_cmd = MagicMock()
+    mock_datasets_cmd.run.return_value = iter([sentinel_file])
+
+    with (
+        patch(
+            "superset.commands.dashboard.export.DatasetDAO.find_by_id",
+            return_value=mock_dataset,
+        ),
+        patch(
+            "superset.commands.dashboard.export.ExportDatasetsCommand",
+            return_value=mock_datasets_cmd,
+        ) as mock_datasets_cls,
+        patch(
+            "superset.commands.dashboard.export.ExportChartsCommand"
+        ) as mock_charts_cls,
+        patch(
+            "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+            return_value=False,
+        ),
+    ):
+        mock_charts_cls.return_value.run.return_value = iter([])
+        results = list(ExportDashboardsCommand._export(mock_dashboard))
+
+    mock_datasets_cls.assert_called_once_with([dataset_id])
+    mock_datasets_cmd.run.assert_called_once()
+    filenames = [name for name, _ in results]
+    assert "datasets/my_dataset.yaml" in filenames
+
+
 def test_file_content_dataset_not_found_leaves_target_empty():
     """
     When DatasetDAO.find_by_id returns None for a display control target,
