@@ -172,16 +172,42 @@ class SecurityRestApi(BaseSupersetApi):
             body = guest_token_create_schema.load(request.json)
             self.appbuilder.sm.validate_guest_token_resources(body["resources"])
             # Verify requesting user has access to each specified resource
-            for resource in body["resources"]:
-                if resource["type"] == GuestTokenResourceType.DASHBOARD.value:
-                    from superset.models.embedded_dashboard import EmbeddedDashboard  # noqa: PLC0415
-                    embedded = (
+            import uuid as _uuid_lib  # noqa: PLC0415
+            from superset.models.dashboard import Dashboard  # noqa: PLC0415
+            from superset.models.embedded_dashboard import EmbeddedDashboard  # noqa: PLC0415
+
+            dashboard_ids = [
+                r["id"]
+                for r in body["resources"]
+                if r["type"] == GuestTokenResourceType.DASHBOARD.value
+            ]
+            if dashboard_ids:
+                uuid_ids, int_ids = [], []
+                for rid in dashboard_ids:
+                    try:
+                        uuid_ids.append(_uuid_lib.UUID(str(rid)))
+                    except (ValueError, AttributeError):
+                        int_ids.append(rid)
+                resolved: dict[str, Any] = {}
+                if uuid_ids:
+                    for emb in (
                         db.session.query(EmbeddedDashboard)
-                        .filter_by(uuid=resource["id"])
-                        .one_or_none()
-                    )
-                    if embedded and not self.appbuilder.sm.can_access_dashboard(
-                        embedded.dashboard
+                        .filter(EmbeddedDashboard.uuid.in_(uuid_ids))
+                        .options(selectinload(EmbeddedDashboard.dashboard))
+                        .all()
+                    ):
+                        resolved[str(emb.uuid)] = emb.dashboard
+                if int_ids:
+                    for dash in (
+                        db.session.query(Dashboard)
+                        .filter(Dashboard.id.in_(int_ids))
+                        .all()
+                    ):
+                        resolved[str(dash.id)] = dash
+                for rid in dashboard_ids:
+                    dashboard = resolved.get(str(rid))
+                    if dashboard is None or not self.appbuilder.sm.can_access_dashboard(
+                        dashboard
                     ):
                         raise ForbiddenError()
             guest_token_validator_hook = current_app.config.get(
