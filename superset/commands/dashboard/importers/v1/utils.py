@@ -43,8 +43,7 @@ def find_native_filter_datasets(metadata: dict[str, Any]) -> set[str]:
             if dataset_uuid:
                 uuids.add(dataset_uuid)
     for customization in metadata.get("chart_customization_config") or []:
-        targets = customization.get("targets", [])
-        for target in targets:
+        for target in customization.get("targets") or []:
             dataset_uuid = target.get("datasetUuid")
             if dataset_uuid:
                 uuids.add(dataset_uuid)
@@ -150,14 +149,17 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     for customization in (
         fixed.get("metadata", {}).get("chart_customization_config") or []
     ):
-        targets = customization.get("targets", [])
-        for target in targets:
+        for target in customization.get("targets") or []:
             dataset_uuid = target.pop("datasetUuid", None)
             if dataset_uuid:
                 info = dataset_info.get(dataset_uuid)
                 if info:
                     target["datasetId"] = info["datasource_id"]
                 else:
+                    # UUID present but unresolvable — remove stale integer ID
+                    # so the control fails visibly rather than binding to
+                    # whatever dataset happens to own that ID in this environment
+                    target.pop("datasetId", None)
                     logger.warning(
                         "Display control target references unknown dataset UUID %s; "
                         "datasetId will not be restored",

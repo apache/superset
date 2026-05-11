@@ -153,7 +153,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
         for customization in (
             payload.get("metadata", {}).get("chart_customization_config") or []
         ):
-            for target in customization.get("targets", []):
+            for target in customization.get("targets") or []:
                 dataset_id = target.get("datasetId")
                 if dataset_id is not None:
                     dataset = DatasetDAO.find_by_id(dataset_id)
@@ -256,7 +256,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
             for customization in (
                 payload.get("metadata", {}).get("chart_customization_config") or []
             ):
-                for target in customization.get("targets", []):
+                for target in customization.get("targets") or []:
                     dataset_id = target.get("datasetId")
                     if dataset_id is not None:
                         dataset = DatasetDAO.find_by_id(dataset_id)

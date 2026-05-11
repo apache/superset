@@ -289,8 +289,13 @@ def test_update_id_refs_fixes_display_control_dataset_references():
                 {
                     "id": "CUSTOMIZATION-abc",
                     "type": "CHART_CUSTOMIZATION",
+                    # dual-write format: both fields present in exported bundle
                     "targets": [
-                        {"datasetUuid": "ds-uuid-1", "column": {"name": "col"}}
+                        {
+                            "datasetId": 99,
+                            "datasetUuid": "ds-uuid-1",
+                            "column": {"name": "col"},
+                        }
                     ],
                 },
                 {
@@ -310,9 +315,40 @@ def test_update_id_refs_fixes_display_control_dataset_references():
     fixed = update_id_refs(config, chart_ids, dataset_info)
 
     customizations = fixed["metadata"]["chart_customization_config"]
-    assert customizations[0]["targets"][0].get("datasetId") == 42
-    assert "datasetUuid" not in customizations[0]["targets"][0]
+    target = customizations[0]["targets"][0]
+    assert target["datasetId"] == 42  # updated to destination-env ID
+    assert "datasetUuid" not in target  # consumed by import
     assert customizations[1]["targets"] == []
+
+
+def test_update_id_refs_removes_stale_dataset_id_when_uuid_unresolvable():
+    """
+    When a target has both datasetId and datasetUuid but the UUID is absent
+    from dataset_info, the stale datasetId must also be removed. A visibly
+    broken control is safer than one silently bound to whatever dataset
+    happens to own that integer ID in the destination environment.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {},
+        "metadata": {
+            "native_filter_configuration": [],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-abc",
+                    "type": "CHART_CUSTOMIZATION",
+                    "targets": [{"datasetId": 99, "datasetUuid": "uuid-missing"}],
+                },
+            ],
+        },
+    }
+
+    fixed = update_id_refs(config, {}, {})
+
+    target = fixed["metadata"]["chart_customization_config"][0]["targets"][0]
+    assert "datasetUuid" not in target
+    assert "datasetId" not in target
 
 
 def test_update_id_refs_skips_display_control_target_on_missing_uuid():
