@@ -856,7 +856,7 @@ export function loadQueryEditor(queryEditor: QueryEditor): SqlLabAction {
   return { type: LOAD_QUERY_EDITOR, queryEditor };
 }
 
-interface TableSchema {
+export interface TableSchema {
   description: {
     columns: unknown[];
     selectStar: string;
@@ -1284,7 +1284,7 @@ export function addTable(
   };
 }
 
-interface NewTable {
+export interface NewTable {
   id?: string;
   dbId: number | string;
   catalog?: string | null;
@@ -1346,7 +1346,7 @@ export function runTablePreviewQuery(
   };
 }
 
-interface TableMetaData {
+export interface TableMetaData {
   columns?: unknown[];
   selectStar?: string;
   primaryKey?: unknown;
@@ -1660,7 +1660,7 @@ export function createDatasourceFailed(err: string): SqlLabAction {
   return { type: CREATE_DATASOURCE_FAILED, err };
 }
 
-interface VizOptions {
+export interface VizOptions {
   dbId: number;
   catalog?: string | null;
   schema: string;

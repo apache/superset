@@ -383,6 +383,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
 "superset/mcp_service/app.py" = ["S608", "E501"]  # LLM instruction text: SQL examples (S608) and long lines in multiline string (E501)
+"superset/mcp_service/*/tool/list_*.py" = ["E501"]  # LLM docstring examples show full request shapes which exceed line length
 "scripts/*" = ["TID251"]
 "setup.py" = ["TID251"]
 "superset/config.py" = ["TID251"]

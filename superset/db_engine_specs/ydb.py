@@ -51,6 +51,7 @@ class YDBEngineSpec(BaseEngineSpec):
     disable_ssh_tunneling = False
 
     supports_file_upload = False
+    supports_schemas = False
 
     allows_alias_in_orderby = True
 
