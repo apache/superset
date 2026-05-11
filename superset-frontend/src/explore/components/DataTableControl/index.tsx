@@ -61,21 +61,29 @@ export const CopyButton = styled(Button)`
 export const CopyToClipboardButton = ({
   data,
   columns,
+  disabled,
 }: {
   data?: Record<string, any>;
   columns?: string[];
+  disabled?: boolean;
 }) => (
   <CopyToClipboard
     text={
-      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+      !disabled && data && columns
+        ? prepareCopyToClipboardTabularData(data, columns)
+        : ''
     }
     wrapped={false}
     copyNode={
       <Icons.CopyOutlined
         iconSize="l"
         aria-label={t('Copy')}
+        aria-disabled={disabled}
         role="button"
+        tabIndex={disabled ? -1 : 0}
         css={css`
+          opacity: ${disabled ? 0.3 : 1};
+          cursor: ${disabled ? 'not-allowed' : 'pointer'};
           &.anticon > * {
             line-height: 0;
           }

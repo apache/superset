@@ -41,6 +41,9 @@ export const SingleQueryResultPane = ({
   canDownload,
   columnDisplayNames,
   isPaginationSticky = true,
+  onDownloadCSV,
+  onDownloadXLSX,
+  onReload,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
 
@@ -74,6 +77,9 @@ export const SingleQueryResultPane = ({
         onInputChange={handleInputChange}
         isLoading={false}
         canDownload={canDownload}
+        onDownloadCSV={onDownloadCSV}
+        onDownloadXLSX={onDownloadXLSX}
+        onReload={onReload}
       />
       <TableView
         columns={columns}
