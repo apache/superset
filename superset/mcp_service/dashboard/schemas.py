@@ -176,8 +176,9 @@ class DashboardFilter(ColumnOperator):
     ] = Field(
         ...,
         description=(
-            "Column to filter on. Use "
-            "get_schema(model_type='dashboard') for available filter columns."
+            "Column to filter on. Valid values: 'dashboard_title', 'published', "
+            "'favorite'. Other column names are not valid filter columns and will "
+            "cause a validation error."
         ),
     )
     opr: ColumnOperatorEnum = Field(
