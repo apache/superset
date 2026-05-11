@@ -171,6 +171,19 @@ class SecurityRestApi(BaseSupersetApi):
         try:
             body = guest_token_create_schema.load(request.json)
             self.appbuilder.sm.validate_guest_token_resources(body["resources"])
+            # Verify requesting user has access to each specified resource
+            for resource in body["resources"]:
+                if resource["type"] == GuestTokenResourceType.DASHBOARD.value:
+                    from superset.models.embedded_dashboard import EmbeddedDashboard  # noqa: PLC0415
+                    embedded = (
+                        db.session.query(EmbeddedDashboard)
+                        .filter_by(uuid=resource["id"])
+                        .one_or_none()
+                    )
+                    if embedded and not self.appbuilder.sm.can_access_dashboard(
+                        embedded.dashboard
+                    ):
+                        raise ForbiddenError()
             guest_token_validator_hook = current_app.config.get(
                 "GUEST_TOKEN_VALIDATOR_HOOK"
             )
