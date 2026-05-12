@@ -28,7 +28,7 @@ class SolrEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     time_groupby_inline = False
     allows_joins = False
     allows_subqueries = False
-    rls_method = RLSMethod.AS_PREDICATE
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     metadata = {
         "description": "Apache Solr is an open-source enterprise search platform.",
