@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  memo,
   useState,
   useCallback,
   useEffect,
@@ -381,4 +382,7 @@ function SelectControl({
   );
 }
 
-export default SelectControl;
+// SelectControl was a PureComponent before the FC conversion; wrap with memo
+// to preserve the shallow-equal skip behavior across the many call sites in
+// the explore control panel.
+export default memo(SelectControl);

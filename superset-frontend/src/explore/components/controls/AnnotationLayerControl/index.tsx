@@ -17,7 +17,7 @@
  * under the License.
  */
 import { connect } from 'react-redux';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   HandlerFunction,
@@ -316,7 +316,11 @@ function mapDispatchToProps(
   };
 }
 
+// Was a PureComponent before the FC conversion; preserve shallow-equal skip
+// for downstream consumers (the connect HOC compares its own derived props,
+// but the component itself still benefits from memo for parent re-renders
+// that don't change props).
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(AnnotationLayerControl);
+)(memo(AnnotationLayerControl));

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Collapse, Label } from '@superset-ui/core/components';
 import TextControl from 'src/explore/components/controls/TextControl';
@@ -64,7 +64,8 @@ interface FixedOrMetricControlProps {
 
 const DEFAULT_VALUE: ControlValue = { type: controlTypes.fixed, value: 5 };
 
-export default function FixedOrMetricControl({
+// Was a PureComponent before the FC conversion; preserve shallow-equal skip.
+function FixedOrMetricControl({
   onChange = () => {},
   value,
   datasource,
@@ -202,3 +203,5 @@ export default function FixedOrMetricControl({
     </div>
   );
 }
+
+export default memo(FixedOrMetricControl);

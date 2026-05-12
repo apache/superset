@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, type ReactNode } from 'react';
+import { memo, useState, useCallback, type ReactNode } from 'react';
 import { OptionSortType } from 'src/explore/types';
 import AdhocFilterEditPopover from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -115,4 +115,6 @@ function AdhocFilterPopoverTrigger({
   );
 }
 
-export default AdhocFilterPopoverTrigger;
+// Was a PureComponent before the FC conversion; preserve shallow-equal skip
+// (rendered once per chart filter row in the control panel).
+export default memo(AdhocFilterPopoverTrigger);
