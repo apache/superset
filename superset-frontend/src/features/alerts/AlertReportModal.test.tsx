@@ -1800,7 +1800,7 @@ const setupAnchorMocks = (
   fetchMock.clearHistory();
 
   // Only replace the named routes that need anchor-specific overrides;
-  // unnamed related-endpoint routes (owners, database, etc.) stay intact.
+  // unnamed related-endpoint routes (editors, database, etc.) stay intact.
   fetchMock.removeRoute(FETCH_DASHBOARD_ENDPOINT);
   fetchMock.removeRoute(FETCH_CHART_ENDPOINT);
   fetchMock.removeRoute(tabsEndpoint);

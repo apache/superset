@@ -293,19 +293,6 @@ class BaseDatasource(
         return DatasourceKind.VIRTUAL if self.sql else DatasourceKind.PHYSICAL
 
     @property
-    def owners_data(self) -> list[dict[str, Any]]:
-        return [
-            {
-                "first_name": o.first_name,
-                "last_name": o.last_name,
-                "username": o.username,
-                "id": o.id,
-                "email": o.email,
-            }
-            for o in self.owners
-        ]
-
-    @property
     def is_virtual(self) -> bool:
         return self.kind == DatasourceKind.VIRTUAL
 
@@ -471,7 +458,6 @@ class BaseDatasource(
             "folders": self.folders,
             # TODO deprecate, move logic to JS
             "order_by_choices": self.order_by_choices,
-            "owners": [owner.id for owner in self.owners],
             "verbose_map": self.verbose_map,
             "select_star": self.select_star,
         }
@@ -672,7 +658,7 @@ class BaseDatasource(
         for attr in self.update_from_object_fields:
             setattr(self, attr, obj.get(attr))
 
-        # owners is a computed property; editors is the source of truth
+        # editors is the source of truth for access control
         if "editors" in obj:
             self.editors = obj.get("editors", [])
 
@@ -1239,11 +1225,6 @@ class SqlaTable(
         passive_deletes=True,
     )
 
-    @property
-    def owners(self) -> list[User]:
-        """Derive owners from user-type editors (backwards compat)."""
-        return [s.user for s in self.editors if s.type == SubjectType.USER and s.user]
-
     database: Database = relationship(
         "Database",
         backref=backref("tables", cascade="all, delete-orphan"),
@@ -1476,7 +1457,6 @@ class SqlaTable(
             data_["is_sqllab_view"] = self.is_sqllab_view
             data_["health_check_message"] = self.health_check_message
             data_["extra"] = self.extra
-            data_["owners"] = self.owners_data
             data_["always_filter_main_dttm"] = self.always_filter_main_dttm
             data_["normalize_columns"] = self.normalize_columns
         return data_

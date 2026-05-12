@@ -164,12 +164,14 @@ class SupersetRoleApi(RoleApi):
 
         RoleDAO._sync_subject(item)
         self.datamodel.session.commit()
+        _log_audit_event("RoleCreated", {"role_name": item.name, "role_id": item.id})
 
     def post_update(self, item: Model) -> None:
         from superset.daos.role import RoleDAO
 
         RoleDAO._sync_subject(item)
         self.datamodel.session.commit()
+        _log_audit_event("RoleUpdated", {"role_name": item.name, "role_id": item.id})
 
     def pre_delete(self, item: Model) -> None:
         from superset.daos.role import RoleDAO
@@ -177,10 +179,13 @@ class SupersetRoleApi(RoleApi):
         item.permissions = []
         RoleDAO._delete_subject(item.id)
 
+    def post_delete(self, item: Model) -> None:
+        _log_audit_event("RoleDeleted", {"role_name": item.name, "role_id": item.id})
+
 
 class SupersetGroupApi(GroupApi):
     """
-    Overriding the GroupApi to sync Subject rows on CRUD operations.
+    Overriding the GroupApi to sync Subject rows and add audit logging.
     GroupApi has custom post/put that bypass hooks, so we override them
     and sync after the parent method succeeds.
     """
@@ -212,6 +217,10 @@ class SupersetGroupApi(GroupApi):
                 if group:
                     GroupDAO._sync_subject(group)
                     self.datamodel.session.commit()
+                    _log_audit_event(
+                        "GroupCreated",
+                        {"group_name": group.name, "group_id": group.id},
+                    )
         return response
 
     @expose("/<pk>", methods=["PUT"])
@@ -246,21 +255,19 @@ class SupersetGroupApi(GroupApi):
             if group:
                 GroupDAO._sync_subject(group)
                 self.datamodel.session.commit()
+                _log_audit_event(
+                    "GroupUpdated",
+                    {"group_name": group.name, "group_id": group.id},
+                )
         return response
+
+    def post_delete(self, item: Model) -> None:
+        _log_audit_event("GroupDeleted", {"group_name": item.name, "group_id": item.id})
 
     def pre_delete(self, item: Model) -> None:
         from superset.daos.group import GroupDAO
 
         GroupDAO._delete_subject(item.id)
-
-    def post_add(self, item: Model) -> None:
-        _log_audit_event("RoleCreated", {"role_name": item.name, "role_id": item.id})
-
-    def post_update(self, item: Model) -> None:
-        _log_audit_event("RoleUpdated", {"role_name": item.name, "role_id": item.id})
-
-    def post_delete(self, item: Model) -> None:
-        _log_audit_event("RoleDeleted", {"role_name": item.name, "role_id": item.id})
 
 
 class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -405,21 +412,6 @@ class SupersetUserApi(UserApi):
                 "target_user_id": item.id,
             },
         )
-
-
-class SupersetGroupApi(GroupApi):
-    """
-    Overriding the GroupApi to add audit logging for group CRUD operations.
-    """
-
-    def post_add(self, item: Model) -> None:
-        _log_audit_event("GroupCreated", {"group_name": item.name, "group_id": item.id})
-
-    def post_update(self, item: Model) -> None:
-        _log_audit_event("GroupUpdated", {"group_name": item.name, "group_id": item.id})
-
-    def post_delete(self, item: Model) -> None:
-        _log_audit_event("GroupDeleted", {"group_name": item.name, "group_id": item.id})
 
 
 # Limiting routes on FAB model views
@@ -936,7 +928,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self, dataset: "BaseDatasource", dashboard: "Dashboard"
     ) -> bool:
         """
-        Return True if an embedded user or DASHBOARD_RBAC user can drill a dataset.
+        Return True if an embedded user or viewer (in promiscuous mode) can
+        drill a dataset via dashboard access.
         """
         from superset import is_feature_enabled
 
@@ -947,11 +940,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and self.has_guest_access(dashboard)
             )
             or (
-                is_feature_enabled("DASHBOARD_RBAC")
-                and dashboard.roles
+                current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+                and self.is_viewer(dashboard)
                 and dashboard.published
-                and {role.id for role in dashboard.roles}
-                & {role.id for role in self.get_user_roles()}
             )
         ) and dataset.id in {dataset.id for dataset in dashboard.datasources}:
             return True
@@ -2689,7 +2680,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_exclude_users_from_lists() -> list[str]:
         """
         Override to dynamically identify a list of usernames to exclude from
-        all UI dropdown lists, owners, created_by filters etc...
+        all UI dropdown lists, editors, created_by filters etc...
 
         It will exclude all users from the all endpoints of the form
         ``/api/v1/<modelview>/related/<column>``
@@ -2874,8 +2865,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         .one_or_none()
                     )
                     and (
-                        (is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles)
-                        or (
+                        (
                             is_feature_enabled("EMBEDDED_SUPERSET")
                             and self.is_guest_user()
                         )
@@ -2996,15 +2986,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     # No viewers assigned → fall back to dataset-based check
                     return
             else:
-                # Legacy DASHBOARD_RBAC logic
-                if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
-                    if dashboard.published and {role.id for role in dashboard.roles} & {
-                        role.id for role in self.get_user_roles()
-                    }:
-                        return
-
-                # REGULAR RBAC logic
-                elif not dashboard.datasources or any(
+                # Regular RBAC logic
+                if not dashboard.datasources or any(
                     self.can_access_datasource(datasource)
                     for datasource in dashboard.datasources
                 ):
@@ -3428,9 +3411,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def raise_for_editorship(self, resource: Model) -> None:
         """
-        Raise an exception if the user does not own the resource.
+        Raise an exception if the user is not an editor of the resource.
 
-        Note admins are deemed owners of all resources.
+        Note admins are deemed editors of all resources.
 
         :param resource: The dashboard, dataset, chart, etc. resource
         :raises SupersetSecurityException: If the current user is not an owner

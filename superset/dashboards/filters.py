@@ -113,9 +113,8 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         4. Embedded dashboard access (preserved as-is)
 
     When ``ENABLE_VIEWERS`` is off (legacy):
-        1. Those which the user owns
+        1. Those which the user is an editor of
         2. Those which have been published (if they have access to at least one slice)
-        3. Those that they have access to via a role (if ``DASHBOARD_RBAC`` is enabled)
 
     If the user is an admin then show all dashboards.
     """
@@ -207,20 +206,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         return query.filter(or_(*filters)) if filters else query
 
     def _apply_legacy(self, query: Query) -> Query:
-        # Check if dashboard has role-type viewers (replaces Dashboard.roles.any())
-        dashboard_has_viewers = Dashboard.id.in_(
-            db.session.query(dashboard_viewers.c.dashboard_id)
-            .join(
-                Subject.__table__,
-                Subject.__table__.c.id == dashboard_viewers.c.subject_id,
-            )
-            .where(Subject.__table__.c.type == 2)
-        )
-
-        is_rbac_disabled_filter = []
-        if is_feature_enabled("DASHBOARD_RBAC"):
-            is_rbac_disabled_filter.append(~dashboard_has_viewers)
-
         datasource_perm_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices, isouter=True)
@@ -229,7 +214,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             .filter(
                 and_(
                     Dashboard.published.is_(True),
-                    *is_rbac_disabled_filter,
                     get_dataset_access_filters(
                         Slice,
                         security_manager.can_access_all_datasources(),
@@ -252,29 +236,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
         )
 
         feature_flagged_filters = []
-        if is_feature_enabled("DASHBOARD_RBAC"):
-            roles_based_query = (
-                db.session.query(dashboard_viewers.c.dashboard_id)
-                .join(
-                    Subject.__table__,
-                    Subject.__table__.c.id == dashboard_viewers.c.subject_id,
-                )
-                .filter(
-                    Subject.__table__.c.type == 2,
-                    Subject.__table__.c.role_id.in_(
-                        [x.id for x in security_manager.get_user_roles()]
-                    ),
-                )
-            )
-
-            feature_flagged_filters.append(
-                and_(
-                    Dashboard.published.is_(True),
-                    dashboard_has_viewers,
-                    Dashboard.id.in_(roles_based_query),
-                )
-            )
-
         if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
             g.user
         ):

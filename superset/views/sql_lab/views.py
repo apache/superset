@@ -47,7 +47,7 @@ class SavedQueryView(BaseSupersetView):
         return super().render_app_template()
 
 
-def _get_owner_id(tab_state_id: int) -> int:
+def _get_tab_user_id(tab_state_id: int) -> int:
     return db.session.query(TabState.user_id).filter_by(id=tab_state_id).scalar()
 
 
@@ -88,10 +88,10 @@ class TabStateView(BaseSupersetView):
     @expose("/<int:tab_state_id>", methods=("DELETE",))
     def delete(self, tab_state_id: int) -> FlaskResponse:
         try:
-            owner_id = _get_owner_id(tab_state_id)
-            if owner_id is None:
+            tab_user_id = _get_tab_user_id(tab_state_id)
+            if tab_user_id is None:
                 return Response(status=404)
-            if owner_id != get_user_id():
+            if tab_user_id != get_user_id():
                 return Response(status=403)
 
             db.session.query(TabState).filter(TabState.id == tab_state_id).delete(
@@ -109,10 +109,10 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("/<int:tab_state_id>", methods=("GET",))
     def get(self, tab_state_id: int) -> FlaskResponse:
-        owner_id = _get_owner_id(tab_state_id)
-        if owner_id is None:
+        tab_user_id = _get_tab_user_id(tab_state_id)
+        if tab_user_id is None:
             return Response(status=404)
-        if owner_id != get_user_id():
+        if tab_user_id != get_user_id():
             return Response(status=403)
 
         tab_state = db.session.query(TabState).filter_by(id=tab_state_id).first()
@@ -126,10 +126,10 @@ class TabStateView(BaseSupersetView):
     @expose("<int:tab_state_id>/activate", methods=("POST",))
     def activate(self, tab_state_id: int) -> FlaskResponse:
         try:
-            owner_id = _get_owner_id(tab_state_id)
-            if owner_id is None:
+            tab_user_id = _get_tab_user_id(tab_state_id)
+            if tab_user_id is None:
                 return Response(status=404)
-            if owner_id != get_user_id():
+            if tab_user_id != get_user_id():
                 return Response(status=403)
 
             (
@@ -146,10 +146,10 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("<int:tab_state_id>", methods=("PUT",))
     def put(self, tab_state_id: int) -> FlaskResponse:
-        owner_id = _get_owner_id(tab_state_id)
-        if owner_id is None:
+        tab_user_id = _get_tab_user_id(tab_state_id)
+        if tab_user_id is None:
             return Response(status=404)
-        if owner_id != get_user_id():
+        if tab_user_id != get_user_id():
             return Response(status=403)
 
         try:
@@ -165,10 +165,10 @@ class TabStateView(BaseSupersetView):
     @expose("<int:tab_state_id>/migrate_query", methods=("POST",))
     def migrate_query(self, tab_state_id: int) -> FlaskResponse:
         try:
-            owner_id = _get_owner_id(tab_state_id)
-            if owner_id is None:
+            tab_user_id = _get_tab_user_id(tab_state_id)
+            if tab_user_id is None:
                 return Response(status=404)
-            if owner_id != get_user_id():
+            if tab_user_id != get_user_id():
                 return Response(status=403)
 
             client_id = json.loads(request.form["queryId"])

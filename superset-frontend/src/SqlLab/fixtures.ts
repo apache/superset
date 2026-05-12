@@ -786,5 +786,4 @@ export const mockdatasets = Array.from({ length: 3 }, (_, i) => ({
   catalog: null,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
-  owners: [{ username: 'admin', userId: 1 }],
 }));

@@ -192,7 +192,6 @@ test('renders edit mode when report exists in store', () => {
     active: true,
     type: 'Report',
     dashboard: 1,
-    owners: [1],
     recipients: [
       {
         recipient_config_json: { target: 'test@test.com' },
@@ -233,7 +232,6 @@ test('edit mode dispatches editReport via PUT on save', async () => {
     active: true,
     type: 'Report',
     dashboard: 1,
-    owners: [1],
     recipients: [
       {
         recipient_config_json: { target: 'test@test.com' },

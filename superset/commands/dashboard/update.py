@@ -45,6 +45,7 @@ from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule
+from superset.subjects.types import SubjectType
 from superset.tags.models import ObjectType
 from superset.utils import json
 from superset.utils.core import send_email_smtp
@@ -135,14 +136,15 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 </html>
                 """
         )
-        for report_owner in report.owners:
-            if email := report_owner.email:
-                send_email_smtp(
-                    to=email,
-                    subject=f"[Report: {report.name}] Deactivated",
-                    html_content=html_content,
-                    config=current_app.config,
-                )
+        for editor in report.editors:
+            if editor.type == SubjectType.USER and editor.user:
+                if email := editor.user.email:
+                    send_email_smtp(
+                        to=email,
+                        subject=f"[Report: {report.name}] Deactivated",
+                        html_content=html_content,
+                        config=current_app.config,
+                    )
 
     def process_tab_diff(self) -> None:
         def find_deleted_tabs() -> list[str]:

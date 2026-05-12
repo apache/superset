@@ -157,7 +157,7 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
 
 
 def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
-    from superset.subjects.utils import subjects_from_owners
+    from superset.subjects.utils import get_user_subject
 
     owner = security_manager.get_user_by_id(1)
     metrics = [
@@ -508,7 +508,9 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 },
                 limit="10",
             ),
-            editors=subjects_from_owners([owner]) if owner else [],
+            editors=[get_user_subject(owner.id)]
+            if owner and get_user_subject(owner.id)
+            else [],
         ),
         Slice(
             **slice_kwargs,

@@ -167,7 +167,6 @@ class TestImportAssetsCommand(SupersetTestCase):
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
 
-        assert dashboard.owners == [self.user]
         assert len(dashboard.editors) == 1
         assert user_is_editor(self.user, dashboard)
 

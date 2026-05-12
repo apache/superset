@@ -149,7 +149,7 @@ from superset.views.custom_tags_api_mixin import CustomTagsOptimizationMixin
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
     BaseFilterRelatedUsers,
-    FilterRelatedOwners,
+    FilterRelatedUsers,
 )
 
 logger = logging.getLogger(__name__)
@@ -349,7 +349,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "certification_details",
         "dashboard_title",
         "slug",
-        "owners",
         "editors",
         "viewers",
         "position_json",
@@ -433,13 +432,12 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     }
 
     related_field_filters = {
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
         "viewers": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
     allowed_rel_fields = {
-        "owners",
         "created_by",
         "changed_by",
         "editors",

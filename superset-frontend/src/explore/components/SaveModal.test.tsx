@@ -85,7 +85,6 @@ const initialState = {
     slice: {
       slice_id: 1,
       slice_name: 'title',
-      owners: [1],
       editors: [{ id: 1 }],
     },
     alert: null,
@@ -352,7 +351,6 @@ test('make sure slice_id in the URLSearchParams before the redirect', () => {
     slice: {
       slice_id: 1,
       slice_name: 'title',
-      owners: [1],
       editors: [{ id: 1 }],
     },
     actions: {
@@ -381,7 +379,6 @@ test('removes form_data_key from URL parameters after save', () => {
     slice: {
       slice_id: 1,
       slice_name: 'title',
-      owners: [1],
       editors: [{ id: 1 }],
     },
     actions: {
@@ -442,7 +439,6 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
     slice: {
       slice_id: 1,
       slice_name: 'title',
-      owners: [1],
       editors: [{ id: 1 }],
     },
     actions: {

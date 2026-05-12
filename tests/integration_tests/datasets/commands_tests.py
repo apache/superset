@@ -388,8 +388,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
             == '{"certification": {"certified_by": "Data Platform Team", "details": "This table is the source of truth."}, "warning_markdown": "This is a warning."}'  # noqa: E501
         )
 
-        # user should be included as one of the owners
-        assert dataset.owners == [admin]
+        # user should be included as one of the editors
         assert len(dataset.editors) == 1
         assert user_is_editor(admin, dataset)
 
@@ -602,7 +601,6 @@ class TestCreateDatasetCommand(SupersetTestCase):
                 .one()
             )
             assert table == fetched_table
-            assert [owner.username for owner in table.owners] == ["admin"]
             assert len(table.editors) == 1
             assert user_is_editor(security_manager.find_user("admin"), table)
 

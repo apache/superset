@@ -105,13 +105,6 @@ class ImportFailedError(CommandException):
     message = "Import failed for an unknown reason"
 
 
-class OwnersNotFoundValidationError(ValidationError):
-    status = 422
-
-    def __init__(self) -> None:
-        super().__init__([_("Owners are invalid")], field_name="owners")
-
-
 class RolesNotFoundValidationError(ValidationError):
     status = 422
 

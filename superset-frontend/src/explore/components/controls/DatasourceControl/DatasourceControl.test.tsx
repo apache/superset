@@ -82,12 +82,6 @@ interface TestDatasource {
   columns?: Partial<ColumnObject>[];
   type?: DatasourceType;
   main_dttm_col?: string | null;
-  owners?: Array<{
-    first_name: string;
-    last_name: string;
-    id: number;
-    username?: string;
-  }>;
   sql?: string;
   metrics?: Array<{ id: number; metric_name: string }>;
   [key: string]: unknown;
@@ -104,7 +98,6 @@ const mockDatasource: TestDatasource = {
   datasource_name: 'channels',
   type: DatasourceType.Table,
   columns: [],
-  owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
   sql: 'SELECT * FROM mock_datasource_sql',
 };
 

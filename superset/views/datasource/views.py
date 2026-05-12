@@ -95,19 +95,6 @@ class Datasource(BaseSupersetView):
             except SupersetSecurityException as ex:
                 raise DatasetForbiddenError() from ex
 
-        # Bridge owners → editors for backwards compat
-        from superset.subjects.utils import get_user_subject
-
-        owner_ids = datasource_dict.pop("owners", [])
-        if "editors" not in datasource_dict:
-            editor_subjects = []
-            for uid in owner_ids:
-                if isinstance(uid, int):
-                    subj = get_user_subject(uid)
-                    if subj:
-                        editor_subjects.append(subj)
-            datasource_dict["editors"] = editor_subjects
-
         duplicates = [
             name
             for name, count in Counter(

@@ -55,7 +55,6 @@ export interface DatasetFixture {
     id: string;
     database_name: string;
   };
-  owners: Array<{ first_name: string; last_name: string; id: number }>;
   changed_by_name: string;
   changed_by: {
     first_name: string;
@@ -98,7 +97,6 @@ export const mockDatasets: DatasetFixture[] = [
       id: '1',
       database_name: 'PostgreSQL',
     },
-    owners: [{ first_name: 'John', last_name: 'Doe', id: 1 }],
     changed_by_name: 'John Doe',
     changed_by: {
       first_name: 'John',
@@ -119,10 +117,6 @@ export const mockDatasets: DatasetFixture[] = [
       id: '2',
       database_name: 'MySQL',
     },
-    owners: [
-      { first_name: 'Jane', last_name: 'Smith', id: 2 },
-      { first_name: 'Bob', last_name: 'Jones', id: 3 },
-    ],
     changed_by_name: 'Jane Smith',
     changed_by: {
       first_name: 'Jane',
@@ -148,7 +142,6 @@ export const mockDatasets: DatasetFixture[] = [
       id: '1',
       database_name: 'PostgreSQL',
     },
-    owners: [],
     changed_by_name: 'System',
     changed_by: {
       first_name: 'System',
@@ -171,7 +164,6 @@ export const mockDatasets: DatasetFixture[] = [
       id: '3',
       database_name: 'Redshift',
     },
-    owners: [{ first_name: 'Alice', last_name: 'Johnson', id: 4 }],
     changed_by_name: 'Alice Johnson',
     changed_by: {
       first_name: 'Alice',
@@ -198,12 +190,6 @@ export const mockDatasets: DatasetFixture[] = [
       id: '2',
       database_name: 'MySQL',
     },
-    owners: [
-      { first_name: 'Charlie', last_name: 'Brown', id: 5 },
-      { first_name: 'David', last_name: 'Lee', id: 6 },
-      { first_name: 'Eve', last_name: 'Taylor', id: 7 },
-      { first_name: 'Frank', last_name: 'Wilson', id: 8 },
-    ],
     changed_by_name: 'Charlie Brown',
     changed_by: {
       first_name: 'Charlie',
@@ -232,7 +218,7 @@ export const mockAdminUser = {
   },
 };
 
-export const mockOwnerUser = {
+export const mockEditorUser = {
   userId: 1,
   firstName: 'John',
   lastName: 'Doe',
@@ -326,7 +312,6 @@ export const API_ENDPOINTS = {
   DATASET_FAVORITE_STATUS: 'glob:*/api/v1/dataset/favorite_status*',
   DATASET_RELATED_DATABASE: 'glob:*/api/v1/dataset/related/database*',
   DATASET_RELATED_SCHEMA: 'glob:*/api/v1/dataset/distinct/schema*',
-  DATASET_RELATED_OWNERS: 'glob:*/api/v1/dataset/related/owners*',
   DATASET_RELATED_CHANGED_BY: 'glob:*/api/v1/dataset/related/changed_by*',
 };
 
@@ -548,12 +533,6 @@ export const setupMocks = () => {
       count: 4,
     },
     { name: API_ENDPOINTS.DATASET_RELATED_SCHEMA },
-  );
-
-  fetchMock.get(
-    API_ENDPOINTS.DATASET_RELATED_OWNERS,
-    { result: [], count: 0 },
-    { name: API_ENDPOINTS.DATASET_RELATED_OWNERS },
   );
 
   fetchMock.get(

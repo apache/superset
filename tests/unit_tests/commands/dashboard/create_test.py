@@ -38,12 +38,11 @@ def test_validate_custom_user_class(
     monkeypatch.setattr(security_manager, "user_model", CustomUserModel)
     mocker.patch.object(security_manager, "is_admin", return_value=True)
 
-    owner_ids = [admin_user.id]
+    editor_ids = [admin_user.id]
 
-    command = CreateDashboardCommand(data={"owners": owner_ids})
+    command = CreateDashboardCommand(data={"editors": editor_ids})
     command.validate()
 
-    # owners are bridged to editors; editors should be Subject instances
-    assert "owners" not in command._properties
+    # editors should be Subject instances
     for editor in command._properties["editors"]:
         assert isinstance(editor, Subject)

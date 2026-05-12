@@ -90,7 +90,7 @@ def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
-    mock_dataset.owners = []  # No owners to avoid ownership computation issues
+    mock_dataset.editors = []  # No editors to avoid computation issues
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
@@ -135,7 +135,7 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
-    mock_dataset.owners = []  # No owners to avoid ownership computation issues
+    mock_dataset.editors = []  # No editors to avoid computation issues
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database

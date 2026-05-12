@@ -37,22 +37,21 @@ class ExecutorType(StrEnum):
     FIXED_USER = "fixed_user"
     # The creator of the model
     CREATOR = "creator"
-    # The creator of the model, if found in the editors list (user-type subjects only)
-    CREATOR_OWNER = "creator_owner"
+    # The creator of the model, if they are an editor directly (user-type subject)
+    # or indirectly (their role or group is an editor subject)
+    CREATOR_EDITOR = "creator_editor"
     # The currently logged in user. In the case of Alerts & Reports, this is always
     # None. For Thumbnails, this is the user that requested the thumbnail
     CURRENT_USER = "current_user"
     # The last modifier of the model
     MODIFIER = "modifier"
-    # The last modifier of the model, if found in the editors list
-    # (user-type subjects only)
-    MODIFIER_OWNER = "modifier_owner"
-    # A user-type editor of the model. If the last modifier is a user-type editor,
-    # returns that user. If the modifier is not found, returns the creator if found
-    # in the user-type editors. Finally, if neither are present, returns the first
-    # user-type editor. Only user-type subjects are considered, since tasks can only
-    # be executed as actual users (not roles or groups).
-    OWNER = "owner"
+    # The last modifier of the model, if they are an editor directly (user-type subject)
+    # or indirectly (their role or group is an editor subject)
+    MODIFIER_EDITOR = "modifier_editor"
+    # An editor of the model. Resolves to a user who is an editor either directly
+    # or through role/group membership. Prioritizes: modifier -> creator -> first
+    # direct user-type editor.
+    EDITOR = "editor"
 
 
 Executor = FixedExecutor | ExecutorType

@@ -87,27 +87,6 @@ fetchMock.get(
   },
 );
 
-fetchMock.get(
-  'http://localhost/api/v1/dashboard/related/owners?q=(filter:%27%27,page:0,page_size:100)',
-  {
-    body: {
-      count: 1,
-      result: [
-        {
-          text: 'Superset Admin',
-          value: 1,
-          extra: { active: true },
-        },
-        {
-          text: 'Inactive Admin',
-          value: 2,
-          extra: { active: false },
-        },
-      ],
-    },
-  },
-);
-
 const dashboardInfo = {
   certified_by: 'John Doe',
   certification_details: 'Sample certification',
@@ -128,7 +107,6 @@ const dashboardInfo = {
   dashboard_title: 'COVID Vaccine Dashboard',
   id: 26,
   metadata: mockedJsonMetadata,
-  owners: [],
   editors: [],
   viewers: [],
   position_json:

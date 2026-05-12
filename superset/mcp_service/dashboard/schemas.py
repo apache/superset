@@ -325,7 +325,7 @@ class DashboardChartSummary(BaseModel):
 
     Contains only the fields needed for LLMs to understand which charts
     are on a dashboard, omitting verbose fields like form_data, tags,
-    owners, and timestamps that bloat the response.
+    editors, and timestamps that bloat the response.
     """
 
     id: int | None = Field(None, description="Chart ID")

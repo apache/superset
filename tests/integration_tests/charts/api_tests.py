@@ -36,6 +36,8 @@ from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.reports.models import ReportSchedule, ReportScheduleType
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema
@@ -540,11 +542,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         Chart API: Test create chart
         """
         dashboards_ids = get_dashboards_ids(["world_health", "births"])
-        admin_id = self.get_user("admin").id
         chart_data = {
             "slice_name": "name1",
             "description": "description1",
-            "owners": [admin_id],
             "viz_type": "viz_type1",
             "params": "1234",
             "cache_timeout": 1000,
@@ -677,7 +677,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         full_table_name = f"{schema}.birth_names" if schema else "birth_names"
 
         admin = self.get_user("admin")
-        gamma = self.get_user("gamma")
         birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
         chart_id = self.insert_chart(
             "title", [admin.id], birth_names_table_id, admin
@@ -686,7 +685,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart_data = {
             "slice_name": "title1_changed",
             "description": "description1",
-            "owners": [gamma.id],
             "viz_type": "viz_type1",
             "params": """{"a": 1}""",
             "cache_timeout": 1000,
@@ -705,10 +703,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert model.created_by == admin
         assert model.slice_name == "title1_changed"
         assert model.description == "description1"
-        assert admin not in model.owners
-        assert not user_is_editor(admin, model)
-        assert gamma in model.owners
-        assert user_is_editor(gamma, model)
+        assert user_is_editor(admin, model)
         assert model.viz_type == "viz_type1"
         assert model.params == '{"a": 1}'
         assert model.cache_timeout == 1000
@@ -731,7 +726,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart_id = self.insert_chart("title", [admin.id], birth_names_table_id).id
         chart_data = {
             "slice_name": (new_name := "title1_changed"),
-            "owners": [admin.id],
         }
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/chart/{chart_id}"
@@ -753,14 +747,13 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_get_no_username(self):
         """
-        Chart API: Tests that no username is returned
+        Chart API: Tests that no username is returned in editors
         """
         admin = self.get_user("admin")
         birth_names_table_id = SupersetTestCase.get_table(name="birth_names").id
         chart_id = self.insert_chart("title", [admin.id], birth_names_table_id).id
         chart_data = {
             "slice_name": (new_name := "title1_changed"),
-            "owners": [admin.id],
         }
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/chart/{chart_id}"
@@ -772,21 +765,20 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         res = json.loads(response.data.decode("utf-8"))["result"]
 
         assert res["slice_name"] == new_name
-        assert "username" not in res["owners"][0].keys()
+        assert len(res["editors"]) > 0
+        assert "username" not in res["editors"][0].keys()
 
         db.session.delete(model)
         db.session.commit()
 
     def test_update_chart_new_owner_not_admin(self):
         """
-        Chart API: Test update set new owner implicitly adds logged in owner
+        Chart API: Test update preserves editors when non-admin updates chart
         """
         gamma = self.get_user("gamma_no_csv")
-        alpha = self.get_user("alpha")
         chart_id = self.insert_chart("title", [gamma.id], 1).id
         chart_data = {
             "slice_name": (new_name := "title1_changed"),
-            "owners": [alpha.id],
         }
         self.login(gamma.username)
         uri = f"api/v1/chart/{chart_id}"
@@ -794,37 +786,30 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         model = db.session.query(Slice).get(chart_id)
         assert model.slice_name == new_name
-        assert alpha in model.owners
-        assert user_is_editor(alpha, model)
-        assert gamma in model.owners
         assert user_is_editor(gamma, model)
         db.session.delete(model)
         db.session.commit()
 
     def test_update_chart_new_owner_admin(self):
         """
-        Chart API: Test update set new owner as admin to other than current user
+        Chart API: Test update as admin preserves editors
         """
-        gamma = self.get_user("gamma")
         admin = self.get_user("admin")
         chart_id = self.insert_chart("title", [admin.id], 1).id
-        chart_data = {"slice_name": "title1_changed", "owners": [gamma.id]}
+        chart_data = {"slice_name": "title1_changed"}
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/chart/{chart_id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
         assert rv.status_code == 200
         model = db.session.query(Slice).get(chart_id)
-        assert admin not in model.owners
-        assert not user_is_editor(admin, model)
-        assert gamma in model.owners
-        assert user_is_editor(gamma, model)
+        assert user_is_editor(admin, model)
         db.session.delete(model)
         db.session.commit()
 
     @pytest.mark.usefixtures("add_dashboard_to_chart")
     def test_update_chart_preserve_ownership(self):
         """
-        Chart API: Test update chart preserves owner list (if un-changed)
+        Chart API: Test update chart preserves editors (if un-changed)
         """
         chart_data = {
             "slice_name": "title1_changed",
@@ -834,44 +819,41 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{self.chart.id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
         assert rv.status_code == 200
-        assert [admin] == self.chart.owners
         assert len(self.chart.editors) == 1
         assert user_is_editor(admin, self.chart)
 
     @pytest.mark.usefixtures("add_dashboard_to_chart")
-    def test_update_chart_clear_owner_list(self):
+    def test_update_chart_clear_editor_list(self):
         """
-        Chart API: Test update chart admin can clear owner list
+        Chart API: Test update chart admin can clear editor list
         """
-        chart_data = {"slice_name": "title1_changed", "owners": []}
-        self.get_user("admin")  # noqa: F841
+        chart_data = {"slice_name": "title1_changed", "editors": []}
         self.login(username="admin")
         uri = f"api/v1/chart/{self.chart.id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
         assert rv.status_code == 200
-        assert [] == self.chart.owners
         assert self.chart.editors == []
 
-    def test_update_chart_populate_owner(self):
+    def test_update_chart_populate_editor(self):
         """
         Chart API: Test update admin can update chart with
-        no owners to a different owner
+        no editors to a different editor
         """
         gamma = self.get_user("gamma")
-        admin = self.get_user("admin")
         chart_id = self.insert_chart("title", [], 1).id
         model = db.session.query(Slice).get(chart_id)
-        assert model.owners == []
         assert model.editors == []
-        chart_data = {"owners": [gamma.id]}
+        gamma_subject = (
+            db.session.query(Subject)
+            .filter_by(user_id=gamma.id, type=SubjectType.USER)
+            .first()
+        )
+        chart_data = {"editors": [gamma_subject.id]}
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
         assert rv.status_code == 200
         model_updated = db.session.query(Slice).get(chart_id)
-        assert admin not in model_updated.owners
-        assert not user_is_editor(admin, model_updated)
-        assert gamma in model_updated.owners
         assert user_is_editor(gamma, model_updated)
         db.session.delete(model_updated)
         db.session.commit()
@@ -987,7 +969,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         Chart API: Test update validate datasource
         """
         admin = self.get_user("admin")
-        chart = self.insert_chart("title", owners=[admin.id], datasource_id=1)
+        chart = self.insert_chart("title", editor_user_ids=[admin.id], datasource_id=1)
         self.login(ADMIN_USERNAME)
 
         chart_data = {"datasource_id": 1, "datasource_type": "unknown"}
@@ -1048,14 +1030,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "certification_details": None,
             "dashboards": [],
             "description": None,
-            "owners": [
-                {
-                    "id": 1,
-                    "first_name": "admin",
-                    "last_name": "user",
-                    "email": "admin@fab.org",
-                }
-            ],
             "editors": [
                 {
                     "id": ANY,

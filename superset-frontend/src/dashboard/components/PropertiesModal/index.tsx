@@ -754,12 +754,10 @@ const PropertiesModal = ({
               children: (
                 <AccessSection
                   isLoading={isLoading}
-                  owners={[]}
                   roles={roles}
                   tags={tags}
                   editors={editors}
                   viewers={viewers}
-                  onChangeOwners={() => {}}
                   onChangeRoles={handleOnChangeRoles}
                   onChangeEditors={handleOnChangeEditors}
                   onChangeViewers={handleOnChangeViewers}

@@ -82,11 +82,11 @@ def import_chart(
         db.session.flush()
 
     if user := get_user():
-        from superset.subjects.utils import subjects_from_owners
+        from superset.subjects.utils import get_user_subject
 
-        for subj in subjects_from_owners([user]):
-            if subj not in chart.editors:
-                chart.editors.append(subj)
+        subj = get_user_subject(user.id)
+        if subj and subj not in chart.editors:
+            chart.editors.append(subj)
 
     return chart
 

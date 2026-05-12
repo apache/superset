@@ -55,7 +55,6 @@ class TaggedObjectEntityResponseSchema(Schema):
     created_by = fields.Nested(UserSchema(exclude=["username"]))
     creator = fields.String()
     tags = fields.List(fields.Nested(TagGetResponseSchema()))
-    owners = fields.List(fields.Nested(UserSchema()))
     editors = fields.List(fields.Nested(SubjectResponseSchema()))
 
 

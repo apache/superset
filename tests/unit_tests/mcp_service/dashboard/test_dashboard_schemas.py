@@ -198,7 +198,7 @@ class TestSerializeDashboardObject:
         # Verify no heavy fields
         assert not hasattr(result.charts[0], "form_data")
         assert not hasattr(result.charts[0], "tags")
-        assert not hasattr(result.charts[0], "owners")
+        assert not hasattr(result.charts[0], "editors")
 
 
 class TestExtractNativeFilters:

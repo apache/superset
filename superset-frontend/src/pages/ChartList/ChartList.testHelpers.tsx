@@ -37,8 +37,7 @@ export const mockCharts = [
     viz_type: 'table',
     slice_name: 'Test Chart 0',
 
-    // ✅ Basic case - has some data
-    owners: [{ first_name: 'Test', last_name: 'User', id: 1 }],
+    // Basic case - has some data
     editors: [{ id: 1, label: 'Test User', type: 1 }],
     dashboards: [{ dashboard_title: 'Test Dashboard', id: 1 }],
     tags: [{ name: 'basic', type: 1, id: 1 }],
@@ -77,11 +76,7 @@ export const mockCharts = [
     viz_type: 'bar',
     slice_name: 'Test Chart 1',
 
-    // ✅ FULL DATA CASE - everything populated for comprehensive testing
-    owners: [
-      { first_name: 'Admin', last_name: 'User', id: 2 },
-      { first_name: 'Data', last_name: 'Analyst', id: 3 },
-    ],
+    // FULL DATA CASE - everything populated for comprehensive testing
     editors: [
       { id: 2, label: 'Admin User', type: 1 },
       { id: 3, label: 'Data Analyst', type: 1 },
@@ -128,8 +123,7 @@ export const mockCharts = [
     viz_type: 'line',
     slice_name: 'Test Chart 2',
 
-    // ✅ EDGE CASE - no owners, no dataset, no dashboards, no tags
-    owners: [],
+    // EDGE CASE - no dataset, no dashboards, no tags
     editors: [],
     dashboards: [],
     tags: [],
@@ -160,13 +154,7 @@ export const mockCharts = [
     viz_type: 'area',
     slice_name: 'Test Chart 3',
 
-    // ✅ TRUNCATION TEST - Exactly at limits (4 owners, 20 dashboards)
-    owners: [
-      { first_name: 'Admin', last_name: 'User', id: 2 },
-      { first_name: 'Data', last_name: 'Analyst', id: 3 },
-      { first_name: 'Limit', last_name: 'User', id: 40 },
-      { first_name: 'Test', last_name: 'User', id: 43 },
-    ],
+    // TRUNCATION TEST - Exactly at limits (4 editors, 20 dashboards)
     editors: [
       { id: 2, label: 'Admin User', type: 1 },
       { id: 3, label: 'Data Analyst', type: 1 },
@@ -205,14 +193,7 @@ export const mockCharts = [
     viz_type: 'bubble',
     slice_name: 'Test Chart 4',
 
-    // ✅ TRUNCATION TEST - Just above limits (5 owners shows +1, 21 dashboards)
-    owners: [
-      { first_name: 'Admin', last_name: 'User', id: 2 },
-      { first_name: 'Data', last_name: 'Analyst', id: 3 },
-      { first_name: 'Limit', last_name: 'User', id: 40 },
-      { first_name: 'Test', last_name: 'User', id: 43 },
-      { first_name: 'Overflow', last_name: 'User', id: 50 },
-    ],
+    // TRUNCATION TEST - Just above limits (5 editors shows +1, 21 dashboards)
     editors: [
       { id: 2, label: 'Admin User', type: 1 },
       { id: 3, label: 'Data Analyst', type: 1 },
@@ -306,7 +287,6 @@ export const API_ENDPOINTS = {
   CHART_THUMBNAILS: 'glob:*/api/v1/chart/*/thumbnail/*',
   DATASETS: 'glob:*/api/v1/dataset/?q=*',
   DASHBOARDS: 'glob:*/api/v1/dashboard/?q=*',
-  CHART_RELATED_OWNERS: 'glob:*/api/v1/chart/related/owners*',
   CHART_RELATED_CHANGED_BY: 'glob:*/api/v1/chart/related/changed_by*',
   CATCH_ALL: 'glob:*',
 };
@@ -357,11 +337,6 @@ export const setupMocks = (
   });
 
   fetchMock.get(API_ENDPOINTS.DASHBOARDS, {
-    result: [],
-    count: 0,
-  });
-
-  fetchMock.get(API_ENDPOINTS.CHART_RELATED_OWNERS, {
     result: [],
     count: 0,
   });

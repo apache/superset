@@ -575,9 +575,6 @@ class Superset(BaseSupersetView):
         except (SupersetException, SQLAlchemyError):
             datasource_data = dummy_datasource_data
 
-        if datasource:
-            datasource_data["owners"] = datasource.owners_data
-
         bootstrap_data = {
             "can_add": slice_add_perm,
             "datasource": sanitize_datasource_data(datasource_data),
@@ -630,9 +627,14 @@ class Superset(BaseSupersetView):
         if action == "saveas":
             if "slice_id" in form_data:
                 form_data.pop("slice_id")  # don't save old slice_id
-            from superset.subjects.utils import subjects_from_owners
+            from superset.subjects.utils import get_user_subject
 
-            slc = Slice(editors=subjects_from_owners([g.user] if g.user else []))
+            editors = []
+            if g.user:
+                subj = get_user_subject(g.user.id)
+                if subj:
+                    editors.append(subj)
+            slc = Slice(editors=editors)
 
         utils.remove_extra_adhoc_filters(form_data)
 
@@ -684,11 +686,16 @@ class Superset(BaseSupersetView):
                     status=403,
                 )
 
-            from superset.subjects.utils import subjects_from_owners
+            from superset.subjects.utils import get_user_subject
 
+            editors = []
+            if g.user:
+                subj = get_user_subject(g.user.id)
+                if subj:
+                    editors.append(subj)
             dash = Dashboard(
                 dashboard_title=request.args.get("new_dashboard_name"),
-                editors=subjects_from_owners([g.user] if g.user else []),
+                editors=editors,
             )
 
         if dash and slc not in dash.slices:

@@ -153,7 +153,7 @@ const updateDataset = async (
   datasetId: number,
   sql: string,
   columns: Array<Record<string, any>>,
-  owners: [number],
+  editors: [number],
   overrideColumns: boolean,
 ) => {
   const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
@@ -161,7 +161,7 @@ const updateDataset = async (
   const body = JSON.stringify({
     sql,
     columns,
-    owners,
+    editors,
     database_id: dbId,
   });
 
@@ -288,7 +288,7 @@ export const SaveDatasetModal = ({
             value: input,
           },
           {
-            col: 'owners',
+            col: 'editors',
             opr: 'rel_m_m',
             value: userId,
           },

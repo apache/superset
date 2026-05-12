@@ -251,7 +251,6 @@ function DashboardList(props: DashboardListProps) {
                 url = '',
                 certified_by: certifiedBy = '',
                 certification_details: certificationDetails = '',
-                owners,
                 editors,
                 viewers,
                 tags,
@@ -267,7 +266,6 @@ function DashboardList(props: DashboardListProps) {
                 url,
                 certified_by: certifiedBy,
                 certification_details: certificationDetails,
-                owners,
                 editors,
                 viewers,
                 tags,
@@ -540,11 +538,6 @@ function DashboardList(props: DashboardListProps) {
         accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
         id: QueryObjectColumns.ChangedBy,
-      },
-      {
-        accessor: 'owners',
-        hidden: true,
-        id: 'owners',
       },
     ],
     [

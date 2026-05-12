@@ -77,9 +77,6 @@ class DatasetSchema(Schema):
         fields.List(fields.String()),
         metadata={"description": "List of order by columns."},
     )
-    owners = fields.List(
-        fields.Integer(), metadata={"description": "List of owners identifiers"}
-    )
     editors = fields.List(
         fields.Nested(SubjectResponseSchema),
         metadata={"description": "List of editors"},
@@ -142,9 +139,6 @@ class SliceSchema(Schema):
     )
     modified = fields.String(
         metadata={"description": "Last modification in human readable form."}
-    )
-    owners = fields.List(
-        fields.Integer(), metadata={"description": "Owners identifiers."}
     )
     editors = fields.List(
         fields.Nested(SubjectResponseSchema),

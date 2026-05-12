@@ -775,11 +775,11 @@ def test_email_chart_report_schedule_alpha_owner(
 ):
     """
     ExecuteReport Command: Test chart email report schedule with screenshot
-    executed as the chart owner
+    executed as the chart editor
     """
     config_key = "ALERT_REPORTS_EXECUTORS"
     original_config_value = app.config[config_key]
-    app.config[config_key] = [ExecutorType.OWNER]
+    app.config[config_key] = [ExecutorType.EDITOR]
 
     # setup screenshot mock
     username = ""

@@ -29,11 +29,7 @@ import type { DatabaseObject } from 'src/components';
  * Retrieves all pages of dataset results
  */
 const useDatasetsList = (
-  db:
-    | (DatabaseObject & {
-        owners: [number];
-      })
-    | undefined,
+  db: DatabaseObject | undefined,
   schema: string | null | undefined,
 ) => {
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);

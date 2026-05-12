@@ -32,7 +32,6 @@ interface VirtualDatasetFixture {
     id: string;
     database_name: string;
   };
-  owners: Array<{ first_name: string; last_name: string; id: number }>;
   changed_by_name: string;
   changed_by: string;
   changed_on_delta_humanized: string;
@@ -51,7 +50,6 @@ const mockDataset: VirtualDatasetFixture = {
     id: '1',
     database_name: 'PostgreSQL',
   },
-  owners: [],
   changed_by_name: 'Admin',
   changed_by: 'Admin User',
   changed_on_delta_humanized: '1 day ago',

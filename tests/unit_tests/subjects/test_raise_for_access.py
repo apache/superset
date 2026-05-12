@@ -333,7 +333,6 @@ def test_explore_command_uses_chart_access_when_slice_exists(app_context):
     mock_slc.data = {"slice_id": 1}
     mock_slc.created_on_humanized = "1 day ago"
     mock_slc.changed_on_humanized = "1 day ago"
-    mock_slc.owners = []
     mock_slc.dashboards = []
     mock_slc.created_by = None
     mock_slc.changed_by = None

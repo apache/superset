@@ -85,7 +85,7 @@ class TestDatasetApi(SupersetTestCase):
     @staticmethod
     def insert_dataset(
         table_name: str,
-        owners: list[int],
+        editor_user_ids: list[int],
         database: Database | None = None,
         sql: str | None = None,
         schema: str | None = None,
@@ -96,10 +96,10 @@ class TestDatasetApi(SupersetTestCase):
         extra: str | None = None,
     ) -> SqlaTable:
         obj_editors = list()  # noqa: C408
-        for owner in owners:
+        for user_id in editor_user_ids:
             subject = (
                 db.session.query(Subject)
-                .filter_by(user_id=owner, type=SubjectType.USER)
+                .filter_by(user_id=user_id, type=SubjectType.USER)
                 .first()
             )
             if subject:
@@ -459,7 +459,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         dataset = self.insert_dataset(
             table_name="test_sql_table_with_jinja",
-            owners=[],
+            editor_user_ids=[],
             sql="SELECT {{ current_user_id() }} as my_user_id",
             fetch_metadata=False,
             columns=[
@@ -527,7 +527,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         dataset = self.insert_dataset(
             table_name="test_sql_table_with_incorrect_jinja",
-            owners=[],
+            editor_user_ids=[],
             sql="SELECT {{ current_user_id() } as my_user_id",
             fetch_metadata=False,
             columns=[
@@ -796,9 +796,9 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.post(uri, json=table_data)
         assert rv.status_code == 403
 
-    def test_create_dataset_item_owner(self):
+    def test_create_dataset_item_editor(self):
         """
-        Dataset API: Test create item owner
+        Dataset API: Test create item editor
         """
 
         main_db = get_main_database()
@@ -810,16 +810,13 @@ class TestDatasetApi(SupersetTestCase):
             "database": main_db.id,
             "schema": "",
             "table_name": "ab_permission",
-            "owners": [admin.id],
         }
         uri = "api/v1/dataset/"
         rv = self.post_assert_metric(uri, table_data, "post")
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(SqlaTable).get(data.get("id"))
-        assert admin in model.owners
         assert user_is_editor(admin, model)
-        assert alpha in model.owners
         assert user_is_editor(alpha, model)
         self.items_to_delete = [model]
 
@@ -856,7 +853,6 @@ class TestDatasetApi(SupersetTestCase):
             "database": energy_usage_ds.database_id,
             "table_name": "energy_usage_virtual",
             "sql": "select * from energy_usage",
-            "owners": [admin.id],
         }
         if schema := get_example_default_schema():
             table_data["schema"] = schema
@@ -864,9 +860,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(SqlaTable).get(data.get("id"))
-        assert admin in model.owners
         assert user_is_editor(admin, model)
-        assert alpha in model.owners
         assert user_is_editor(alpha, model)
         self.items_to_delete = [model]
 
@@ -1057,55 +1051,52 @@ class TestDatasetApi(SupersetTestCase):
         assert "sql" in data["message"]
         assert "Invalid SQL:" in data["message"]["sql"][0]
 
-    def test_update_dataset_preserve_ownership(self):
+    def test_update_dataset_preserve_editors(self):
         """
-        Dataset API: Test update dataset preserves owner list (if un-changed)
+        Dataset API: Test update dataset preserves editor list (if un-changed)
         """
 
         dataset = self.insert_default_dataset()
-        current_owners = dataset.owners
+        current_editors = list(dataset.editors)
         self.login(username="admin")
         dataset_data = {"description": "new description"}
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.put_assert_metric(uri, dataset_data, "put")
         assert rv.status_code == 200
         model = db.session.query(SqlaTable).get(dataset.id)
-        assert model.owners == current_owners
-        assert len(model.editors) == len(current_owners)
+        assert len(model.editors) == len(current_editors)
 
         self.items_to_delete = [dataset]
 
-    def test_update_dataset_clear_owner_list(self):
+    def test_update_dataset_clear_editor_list(self):
         """
-        Dataset API: Test update dataset admin can clear ownership config
+        Dataset API: Test update dataset admin can clear editor config
         """
 
         dataset = self.insert_default_dataset()
         self.login(username="admin")
-        dataset_data = {"owners": []}
+        dataset_data = {"editors": []}
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.put_assert_metric(uri, dataset_data, "put")
         assert rv.status_code == 200
         model = db.session.query(SqlaTable).get(dataset.id)
-        assert model.owners == []
         assert model.editors == []
 
         self.items_to_delete = [dataset]
 
-    def test_update_dataset_populate_owner(self):
+    def test_update_dataset_populate_editor(self):
         """
         Dataset API: Test update admin can update dataset with
-        no owners to a different owner
+        no editors to a different editor
         """
         self.login(username="admin")
         gamma = self.get_user("gamma")
         dataset = self.insert_dataset("ab_permission", [], get_main_database())
-        dataset_data = {"owners": [gamma.id]}
+        dataset_data = {"editors": [gamma.id]}
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.put_assert_metric(uri, dataset_data, "put")
         assert rv.status_code == 200
         model = db.session.query(SqlaTable).get(dataset.id)
-        assert model.owners == [gamma]
         assert len(model.editors) == 1
         assert user_is_editor(gamma, model)
 
@@ -1117,7 +1108,7 @@ class TestDatasetApi(SupersetTestCase):
         """
 
         dataset = self.insert_default_dataset()
-        current_owners = dataset.owners
+        current_editors = list(dataset.editors)
         self.login(ADMIN_USERNAME)
         dataset_data = {"description": "changed_description"}
         uri = f"api/v1/dataset/{dataset.id}"
@@ -1125,8 +1116,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         model = db.session.query(SqlaTable).get(dataset.id)
         assert model.description == dataset_data["description"]
-        assert model.owners == current_owners
-        assert len(model.editors) == len(current_owners)
+        assert len(model.editors) == len(current_editors)
 
         self.items_to_delete = [dataset]
 
@@ -1751,7 +1741,7 @@ class TestDatasetApi(SupersetTestCase):
         new_db_connection = self.insert_database("new_db_connection")
         dataset = self.insert_dataset(
             table_name="test_dataset",
-            owners=[],
+            editor_user_ids=[],
             database=db_connection,
             sql="select 1 as one",
             schema="test_schema",
@@ -1787,7 +1777,7 @@ class TestDatasetApi(SupersetTestCase):
         )
         dataset = self.insert_dataset(
             table_name="test_dataset",
-            owners=[],
+            editor_user_ids=[],
             database=db_connection,
             sql="select 1 as one",
             schema="test_schema",
@@ -1837,7 +1827,7 @@ class TestDatasetApi(SupersetTestCase):
         db_connection = self.insert_database("db_connection", allow_multi_catalog=True)
         dataset = self.insert_dataset(
             table_name="test_dataset",
-            owners=[],
+            editor_user_ids=[],
             database=db_connection,
             sql="select 1 as one",
             schema="test_schema",
@@ -1866,7 +1856,7 @@ class TestDatasetApi(SupersetTestCase):
         db_connection = self.insert_database("db_connection")
         dataset = self.insert_dataset(
             table_name="test_dataset",
-            owners=[],
+            editor_user_ids=[],
             database=db_connection,
             sql="select 1 as one",
             schema="test_schema",
@@ -1903,7 +1893,7 @@ class TestDatasetApi(SupersetTestCase):
         new_db_connection = self.insert_database("new_db_connection")
         first_schema_dataset = self.insert_dataset(
             table_name="test_dataset",
-            owners=[],
+            editor_user_ids=[],
             database=db_connection,
             sql="select 1 as one",
             schema="first_schema",
@@ -1911,7 +1901,7 @@ class TestDatasetApi(SupersetTestCase):
         )
         second_schema_dataset = self.insert_dataset(
             table_name="test_dataset",
-            owners=[],
+            editor_user_ids=[],
             database=db_connection,
             sql="select 1 as one",
             schema="second_schema",
@@ -1919,7 +1909,7 @@ class TestDatasetApi(SupersetTestCase):
         )
         new_db_conn_dataset = self.insert_dataset(
             table_name="test_dataset",
-            owners=[],
+            editor_user_ids=[],
             database=new_db_connection,
             sql="select 1 as one",
             schema="first_schema",
@@ -2440,13 +2430,13 @@ class TestDatasetApi(SupersetTestCase):
         second_connection = self.insert_database("test_db_connection_2")
         first_dataset = self.insert_dataset(
             table_name="test_dataset",
-            owners=[],
+            editor_user_ids=[],
             database=first_connection,
             fetch_metadata=False,
         )
         second_dataset = self.insert_dataset(
             table_name="test_dataset",
-            owners=[],
+            editor_user_ids=[],
             database=second_connection,
             fetch_metadata=False,
         )
@@ -2818,7 +2808,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         table_w_certification = self.insert_dataset(
             table_name="foo",
-            owners=[],
+            editor_user_ids=[],
             fetch_metadata=False,
             extra='{"certification": 1}',
         )
@@ -3103,7 +3093,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         dataset = self.insert_dataset(
             table_name="test_drill_dataset",
-            owners=[],
+            editor_user_ids=[],
             columns=[
                 TableColumn(
                     column_name="category",
@@ -3145,7 +3135,7 @@ class TestDatasetApi(SupersetTestCase):
         assert "changed_on_humanized" in result
         assert result["id"] == dataset.id
         assert result["table_name"] == "test_drill_dataset"
-        assert result["owners"] == []
+        assert result["editors"] == []
         assert len(result["columns"]) == 2
         assert result["columns"] == [
             {"column_name": "category", "verbose_name": "Category Column"},
@@ -3169,7 +3159,9 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test drill_info endpoint returns 403 for users without permission
         to access the API.
         """
-        dataset = self.insert_dataset(table_name="foo", owners=[], fetch_metadata=False)
+        dataset = self.insert_dataset(
+            table_name="foo", editor_user_ids=[], fetch_metadata=False
+        )
 
         # Log in as alpha for dataset access but remove pvm access
         with self.temporary_user(
@@ -3196,7 +3188,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         dataset = self.insert_dataset(
             table_name="test_embedded_dataset",
-            owners=[],
+            editor_user_ids=[],
             columns=[
                 TableColumn(
                     column_name="category",
@@ -3245,7 +3237,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         dataset = self.insert_dataset(
             table_name="test_embedded_dataset",
-            owners=[],
+            editor_user_ids=[],
             columns=[
                 TableColumn(
                     column_name="category",
@@ -3301,7 +3293,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         dataset = self.insert_dataset(
             table_name="test_embedded_dataset",
-            owners=[],
+            editor_user_ids=[],
             columns=[
                 TableColumn(
                     column_name="category",
@@ -3348,7 +3340,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         dataset = self.insert_dataset(
             table_name="test_d2d_table",
-            owners=[],
+            editor_user_ids=[],
             columns=[
                 TableColumn(
                     column_name="category",
@@ -3360,7 +3352,7 @@ class TestDatasetApi(SupersetTestCase):
         )
         dashboard_dataset = self.insert_dataset(
             table_name="test_dashboard_dataset",
-            owners=[],
+            editor_user_ids=[],
             fetch_metadata=False,
         )
         chart = self.insert_chart("Dashboard Chart", dashboard_dataset.id)

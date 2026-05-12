@@ -298,7 +298,6 @@ test('write user sees edit, delete, and export actions', async () => {
 
   const dataset = {
     ...mockDatasets[0],
-    owners: [{ id: mockWriteUser.userId, username: 'writeuser' }],
   };
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });

@@ -56,7 +56,6 @@ const mockPropsWithDataset = {
       id: '1',
       database_name: 'examples',
     },
-    owners: [1, 2, 3],
     schema: 'public',
     dataset_name: 'Untitled',
     table_name: 'real_info',

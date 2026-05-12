@@ -790,8 +790,24 @@ def upgrade() -> None:
     # 4. Drop legacy owner/role junction tables
     _drop_legacy_tables()
 
+    # 5. Rename owner:N tags to editor:N in the tag table
+    tag = sa_table("tag", sa_column("id", Integer), sa_column("name", String(250)))
+    op.execute(
+        tag.update()
+        .where(tag.c.name.like("owner:%"))
+        .values(name=func.concat("editor:", func.substr(tag.c.name, 7)))
+    )
+
 
 def downgrade() -> None:
+    # 0. Rename editor:N tags back to owner:N
+    tag = sa_table("tag", sa_column("id", Integer), sa_column("name", String(250)))
+    op.execute(
+        tag.update()
+        .where(tag.c.name.like("editor:%"))
+        .values(name=func.concat("owner:", func.substr(tag.c.name, 8)))
+    )
+
     # 1. Recreate legacy owner/role tables and repopulate from editors/viewers
     _recreate_legacy_tables()
 

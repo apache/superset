@@ -106,7 +106,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
-        # Validate/Populate editors (and derive owners)
+        # Validate/Populate editors
         compute_subjects(self._model, self._properties, exceptions)
 
         self._validate_dataset_source(exceptions)

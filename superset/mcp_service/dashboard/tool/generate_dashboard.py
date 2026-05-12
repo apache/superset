@@ -311,9 +311,11 @@ def generate_dashboard(  # noqa: C901
                     .first()
                 )
                 if current_user:
-                    from superset.subjects.utils import subjects_from_owners
+                    from superset.subjects.utils import get_user_subject
 
-                    dashboard.editors = subjects_from_owners([current_user])
+                    subj = get_user_subject(current_user.id)
+                    if subj:
+                        dashboard.editors = [subj]
 
                 fresh_charts = (
                     db.session.query(Slice)

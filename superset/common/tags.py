@@ -444,7 +444,7 @@ def add_owners(metadata: MetaData) -> None:
     insert = tag.insert()
     for (id_,) in db.session.execute(ids):
         with contextlib.suppress(IntegrityError):  # already exists
-            db.session.execute(insert, name=f"owner:{id_}", type=TagType.owner)
+            db.session.execute(insert, name=f"editor:{id_}", type=TagType.editor)
     add_owners_to_charts(metadata, tag, tagged_object, columns)
     add_owners_to_dashboards(metadata, tag, tagged_object, columns)
     add_owners_to_saved_queries(metadata, tag, tagged_object, columns)

@@ -51,7 +51,6 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '1 day ago',
-    owners: [{ id: 1, first_name: 'Admin', last_name: 'User' }],
     roles: [{ id: 1, name: 'Admin' }],
     tags: [{ id: 1, name: 'production', type: 'TagTypes.custom' }],
     thumbnail_url: '/thumbnail',
@@ -73,10 +72,6 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '2 days ago',
-    owners: [
-      { id: 1, first_name: 'Admin', last_name: 'User' },
-      { id: 2, first_name: 'Data', last_name: 'Analyst' },
-    ],
     roles: [],
     tags: [],
     thumbnail_url: '/thumbnail',
@@ -98,7 +93,6 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '3 days ago',
-    owners: [],
     roles: [{ id: 2, name: 'Alpha' }],
     tags: [
       { id: 2, name: 'executive', type: 'TagTypes.custom' },
@@ -123,7 +117,6 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '5 days ago',
-    owners: [{ id: 3, first_name: 'Marketing', last_name: 'Lead' }],
     roles: [],
     tags: [],
     thumbnail_url: '/thumbnail',
@@ -145,10 +138,6 @@ export const mockDashboards = [
     },
     changed_on_utc: new Date().toISOString(),
     changed_on_delta_humanized: '1 week ago',
-    owners: [
-      { id: 4, first_name: 'Ops', last_name: 'Engineer' },
-      { id: 1, first_name: 'Admin', last_name: 'User' },
-    ],
     roles: [],
     tags: [{ id: 4, name: 'monitoring', type: 'TagTypes.custom' }],
     thumbnail_url: '/thumbnail',
@@ -199,7 +188,6 @@ export const API_ENDPOINTS = {
   DASHBOARDS: 'glob:*/api/v1/dashboard/?*',
   DASHBOARD_GET: 'glob:*/api/v1/dashboard/*',
   DASHBOARD_FAVORITE_STATUS: 'glob:*/api/v1/dashboard/favorite_status*',
-  DASHBOARD_RELATED_OWNERS: 'glob:*/api/v1/dashboard/related/owners*',
   DASHBOARD_RELATED_EDITORS: 'glob:*/api/v1/dashboard/related/editors*',
   DASHBOARD_RELATED_CHANGED_BY: 'glob:*/api/v1/dashboard/related/changed_by*',
   THUMBNAIL: '/thumbnail',
@@ -304,12 +292,6 @@ export const setupMocks = (
     API_ENDPOINTS.DASHBOARD_FAVORITE_STATUS,
     { result: [] },
     { name: API_ENDPOINTS.DASHBOARD_FAVORITE_STATUS },
-  );
-
-  fetchMock.get(
-    API_ENDPOINTS.DASHBOARD_RELATED_OWNERS,
-    { result: [], count: 0 },
-    { name: API_ENDPOINTS.DASHBOARD_RELATED_OWNERS },
   );
 
   fetchMock.get(

@@ -30,25 +30,13 @@ import SubjectPicker, {
 } from 'src/features/subjects/SubjectPicker';
 
 type Roles = { id: number; name: string }[];
-type Owners = {
-  id: number;
-  full_name?: string;
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-}[];
 
 interface AccessSectionProps {
   isLoading: boolean;
-  owners: Owners;
   roles: Roles;
   tags: TagType[];
   editors?: Subject[];
   viewers?: Subject[];
-  onChangeOwners: (
-    owners: { value: number; label: string }[],
-    options: Record<string, unknown>[],
-  ) => void;
   onChangeRoles: (roles: { value: number; label: string }[]) => void;
   onChangeEditors?: (editors: SubjectPickerValue[]) => void;
   onChangeViewers?: (viewers: SubjectPickerValue[]) => void;
@@ -58,12 +46,10 @@ interface AccessSectionProps {
 
 const AccessSection = ({
   isLoading,
-  owners,
   roles,
   tags,
   editors,
   viewers,
-  onChangeOwners,
   onChangeRoles,
   onChangeEditors,
   onChangeViewers,

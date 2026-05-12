@@ -831,10 +831,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         raise NotImplementedError()
 
     @property
-    def owners_data(self) -> list[Any]:
-        raise NotImplementedError()
-
-    @property
     def metrics(self) -> list[Any]:
         return []
 

@@ -506,14 +506,12 @@ class TestImportExport(SupersetTestCase):
         imported_dash = self.get_dash(imported_dash_id)
         assert imported_dash.created_by == gamma_user
         assert imported_dash.changed_by == gamma_user
-        assert imported_dash.owners == [gamma_user]
         assert len(imported_dash.editors) == 1
         assert user_is_editor(gamma_user, imported_dash)
 
         imported_slc = imported_dash.slices[0]
         assert imported_slc.created_by == gamma_user
         assert imported_slc.changed_by == gamma_user
-        assert imported_slc.owners == [gamma_user]
         assert len(imported_slc.editors) == 1
         assert user_is_editor(gamma_user, imported_slc)
 
@@ -531,14 +529,12 @@ class TestImportExport(SupersetTestCase):
         imported_dash = self.get_dash(imported_dash_id)
         assert imported_dash.created_by == gamma_user
         assert imported_dash.changed_by == gamma_user
-        assert imported_dash.owners == [gamma_user]
         assert len(imported_dash.editors) == 1
         assert user_is_editor(gamma_user, imported_dash)
 
         imported_slc = imported_dash.slices[0]
         assert imported_slc.created_by == gamma_user
         assert imported_slc.changed_by == gamma_user
-        assert imported_slc.owners == [gamma_user]
         assert len(imported_slc.editors) == 1
         assert user_is_editor(gamma_user, imported_slc)
 
@@ -550,14 +546,12 @@ class TestImportExport(SupersetTestCase):
         imported_dash = self.get_dash(imported_dash_id)
         assert imported_dash.created_by == gamma_user
         assert imported_dash.changed_by == gamma_user
-        assert imported_dash.owners == [gamma_user]
         assert len(imported_dash.editors) == 1
         assert user_is_editor(gamma_user, imported_dash)
 
         imported_slc = imported_dash.slices[0]
         assert imported_slc.created_by == gamma_user
         assert imported_slc.changed_by == gamma_user
-        assert imported_slc.owners == [gamma_user]
         assert len(imported_slc.editors) == 1
         assert user_is_editor(gamma_user, imported_slc)
 

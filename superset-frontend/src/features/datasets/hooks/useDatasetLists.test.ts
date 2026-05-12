@@ -31,7 +31,6 @@ jest.mock('src/components/MessageToasts/actions', () => ({
 const mockDb = {
   id: 1,
   database_name: 'test_db',
-  owners: [1] as [number],
 };
 
 const mockDatasets = [
@@ -347,7 +346,6 @@ test('useDatasetsList skips fetching when db.id is undefined', () => {
   // Create db object without id property
   const dbWithoutId = {
     database_name: 'test_db',
-    owners: [1] as [number],
   } as typeof mockDb;
 
   const { result } = renderHook(() => useDatasetsList(dbWithoutId, 'public'));

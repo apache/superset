@@ -115,7 +115,6 @@ fetchMock.put('glob:*/api/v1/chart/318', {
       certified_by: 'John Doe',
       certification_details: 'Sample certification',
       description: null,
-      owners: [],
       slice_name: 'Age distribution of respondents',
     },
   },

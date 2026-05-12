@@ -251,7 +251,6 @@ class TestImportChartsCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert chart.table.database == database
 
-        assert chart.owners == [admin]
         assert len(chart.editors) == 1
         assert user_is_editor(admin, chart)
 
@@ -353,7 +352,6 @@ class TestChartsCreateCommand(SupersetTestCase):
         chart_data = {
             "slice_name": "new chart",
             "description": "new description",
-            "owners": [user.id],
             "viz_type": "new_viz_type",
             "params": json.dumps({"viz_type": "new_viz_type"}),
             "cache_timeout": 1000,
@@ -367,7 +365,6 @@ class TestChartsCreateCommand(SupersetTestCase):
         json_params = json.loads(chart.params)
         assert json_params == {"viz_type": "new_viz_type"}
         assert chart.slice_name == "new chart"
-        assert chart.owners == [user]
         assert len(chart.editors) == 1
         assert user_is_editor(user, chart)
         db.session.delete(chart)
@@ -392,7 +389,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
 
         command = UpdateChartCommand(
             pk,
-            {"description": "test", "owners": [user.id]},
+            {"description": "test"},
         )
         command.run()
 
@@ -419,7 +416,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
 
         command = UpdateChartCommand(
             pk,
-            {"description": "test", "owners": [user.id]},
+            {"description": "test"},
         )
         # Sleep to ensure timestamp differs at MySQL's second precision (DATETIME(0))
         time.sleep(1)
@@ -438,7 +435,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
     def test_query_context_update_command(self, mock_sm_g, mock_g):
         """
         Test that a user can generate the chart query context
-        payload without affecting owners
+        payload without affecting editors
         """
         chart = db.session.query(Slice).all()[0]
         pk = chart.id
@@ -457,9 +454,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
         command.run()
         chart = db.session.query(Slice).get(pk)
         assert chart.query_context == query_context
-        assert len(chart.owners) == 1
         assert len(chart.editors) == 1
-        assert chart.owners[0] == admin
         assert user_is_editor(admin, chart)
 
     @patch("superset.commands.chart.update.g")
@@ -469,7 +464,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
     def test_update_chart_dashboard_security_existing_relationship(
         self, mock_sm_g, mock_u_g, mock_c_g
     ):
-        """Test that chart owners can update charts linked to inaccessible
+        """Test that chart editors can update charts linked to inaccessible
         dashboards (existing relationships)"""
         from superset.models.dashboard import Dashboard
 

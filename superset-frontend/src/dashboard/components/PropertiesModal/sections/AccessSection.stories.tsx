@@ -26,16 +26,11 @@ export default {
     docs: {
       description: {
         component:
-          'The AccessSection component renders access control fields in the dashboard properties modal. When the ENABLE_VIEWERS feature flag is on, it shows Editors and Viewers pickers instead of the legacy Owners and Roles pickers.',
+          'The AccessSection component renders access control fields in the dashboard properties modal. It shows Editors and Tags pickers. When the ENABLE_VIEWERS feature flag is on, it also shows a Viewers picker.',
       },
     },
   },
 };
-
-const sampleOwners = [
-  { id: 1, full_name: 'Alice Smith', email: 'alice@example.com' },
-  { id: 2, full_name: 'Bob Johnson', email: 'bob@example.com' },
-];
 
 const sampleRoles = [
   { id: 1, name: 'Admin' },
@@ -61,12 +56,10 @@ const noopFn = () => {};
 
 const baseProps = {
   isLoading: false,
-  owners: sampleOwners,
   roles: sampleRoles,
   tags: sampleTags,
   editors: sampleEditors,
   viewers: sampleViewers,
-  onChangeOwners: noopFn,
   onChangeRoles: noopFn,
   onChangeEditors: noopFn,
   onChangeViewers: noopFn,
@@ -153,7 +146,6 @@ export const LoadingState = () => (
   <AccessSection
     {...baseProps}
     isLoading
-    owners={[]}
     roles={[]}
     tags={[]}
     editors={[]}

@@ -44,7 +44,6 @@ from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
 from superset.subjects.models import report_schedule_editors, Subject
-from superset.subjects.types import SubjectType
 from superset.utils.backports import StrEnum
 from superset.utils.core import MediumText
 
@@ -135,11 +134,6 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         secondary=report_schedule_editors,
         passive_deletes=True,
     )
-
-    @property
-    def owners(self) -> list[Any]:
-        """Derive owners from user-type editors (backwards compat)."""
-        return [s.user for s in self.editors if s.type == SubjectType.USER and s.user]
 
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)

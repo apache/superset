@@ -44,7 +44,6 @@ def mock_dashboard() -> MagicMock:
     dash.created_by = MagicMock(id=1, first_name="admin", last_name="user")
     dash.created_on_humanized = "5 days ago"
     dash.charts = []
-    dash.owners = []
     dash.roles = []
     dash.editors = []
     dash.viewers = []
@@ -104,14 +103,13 @@ def test_data_key_mapping_logic() -> None:
 def test_schema_strips_sensitive_fields_for_guest_user(
     mock_dashboard: MagicMock,
 ) -> None:
-    """Guest users should not see owners, editors, viewers, or changed_by."""
+    """Guest users should not see editors, viewers, or changed_by."""
     schema = DashboardGetResponseSchema()
 
     with patch("superset.dashboards.schemas.security_manager") as mock_sm:
         mock_sm.is_guest_user = MagicMock(return_value=True)
         result = schema.dump(mock_dashboard)
 
-    assert "owners" not in result
     assert "editors" not in result
     assert "viewers" not in result
     assert "changed_by_name" not in result
@@ -123,14 +121,13 @@ def test_schema_strips_sensitive_fields_for_guest_user(
 def test_schema_includes_all_fields_for_regular_user(
     mock_dashboard: MagicMock,
 ) -> None:
-    """Regular users should see owners, editors, viewers, and changed_by."""
+    """Regular users should see editors, viewers, and changed_by."""
     schema = DashboardGetResponseSchema()
 
     with patch("superset.dashboards.schemas.security_manager") as mock_sm:
         mock_sm.is_guest_user = MagicMock(return_value=False)
         result = schema.dump(mock_dashboard)
 
-    assert "owners" in result
     assert "editors" in result
     assert "viewers" in result
     assert "changed_by_name" in result

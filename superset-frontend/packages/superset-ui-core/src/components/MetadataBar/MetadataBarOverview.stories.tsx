@@ -54,7 +54,7 @@ in the code and should be specific for each metadata object.
 Content types are predefined and consistent across the whole app. This means that
 they will be displayed and behave in a consistent manner, keeping the same ordering,
 information formatting, and interactions. For example, the Owner content type will always
-have the same icon and when hovered it will present who created the entity, its current owners, and when the entity was created.
+have the same icon and when hovered it will present who created the entity, its current editors, and when the entity was created.
 
 To extend the list of content types, a developer needs to request the inclusion of the new type in the design system.
 This process is important to make sure the new type is reviewed by the design team, improving Superset consistency.
@@ -125,7 +125,7 @@ export type LastModified = {
 export type Owner = {
   type: MetadataType.Owner;
   createdBy: string;
-  owners: string[];
+  editors: string[];
   createdOn: Date;
   onClick?: (type: string) => void;
 };

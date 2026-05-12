@@ -35,12 +35,10 @@ const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const defaultProps = {
   isLoading: false,
-  owners: [{ id: 1, full_name: 'John Doe' }],
   roles: [{ id: 1, name: 'Admin' }],
   tags: [{ id: 1, name: 'Important' }],
   editors: [{ id: 10, label: 'Editor Subject', type: 1 }],
   viewers: [{ id: 11, label: 'Viewer Subject', type: 2 }],
-  onChangeOwners: jest.fn(),
   onChangeRoles: jest.fn(),
   onChangeEditors: jest.fn(),
   onChangeViewers: jest.fn(),

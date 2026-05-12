@@ -130,10 +130,6 @@ test('can unfavorite a dashboard', async () => {
       value: d.id === 1,
     })),
   });
-  fetchMock.get('glob:*/api/v1/dashboard/related/owners*', {
-    result: [],
-    count: 0,
-  });
   fetchMock.get('glob:*/api/v1/dashboard/related/changed_by*', {
     result: [],
     count: 0,

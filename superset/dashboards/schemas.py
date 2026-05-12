@@ -47,10 +47,6 @@ screenshot_query_schema = {
 }
 dashboard_title_description = "A title for the dashboard."
 slug_description = "Unique identifying part for the web address of the dashboard."
-owners_description = (
-    "Owner are users ids allowed to delete or change this dashboard. "
-    "If left empty you will be one of the owners of the dashboard."
-)
 roles_description = (
     "Roles is a list which defines access to the dashboard. "
     "These roles are always applied in addition to restrictions on dataset "
@@ -98,7 +94,9 @@ openapi_spec_methods_override = {
     },
     "info": {"get": {"summary": "Get metadata information about this API resource"}},
     "related": {
-        "get": {"description": "Get a list of all possible owners for a dashboard."}
+        "get": {
+            "description": "Get a list of all possible related entities for a dashboard"
+        }
     },
 }
 
@@ -242,7 +240,6 @@ class DashboardGetResponseSchema(Schema):
     changed_on = fields.DateTime()
     created_by = fields.Nested(UserSchema(exclude=["username"]))
     charts = fields.List(fields.String(metadata={"description": charts_description}))
-    owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
     roles = fields.List(fields.Nested(RolesSchema))
     editors = fields.List(fields.Nested(SubjectResponseSchema))
     viewers = fields.List(fields.Nested(SubjectResponseSchema))
@@ -263,7 +260,6 @@ class DashboardGetResponseSchema(Schema):
             serialized["tags"] = serialized.pop("custom_tags")
 
         if security_manager.is_guest_user():
-            del serialized["owners"]
             del serialized["changed_by_name"]
             del serialized["changed_by"]
             serialized.pop("editors", None)
@@ -310,7 +306,6 @@ class DashboardDatasetSchema(Schema):
     health_check_message = fields.Str()
     fetch_values_predicate = fields.Str()
     template_params = fields.Str()
-    owners = fields.List(fields.Dict())
     editors = fields.List(fields.Nested(SubjectResponseSchema))
     columns = fields.List(fields.Dict())
     column_types = fields.List(fields.Int())
@@ -327,7 +322,6 @@ class DashboardDatasetSchema(Schema):
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if security_manager.is_guest_user():
-            del serialized["owners"]
             del serialized["database"]
             serialized.pop("editors", None)
         return serialized
@@ -368,7 +362,6 @@ class DashboardPostSchema(BaseDashboardSchema):
         allow_none=True,
         validate=[Length(1, 255)],
     )
-    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
     editors = fields.List(fields.Integer(metadata={"description": editors_description}))
     viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
     position_json = fields.String(
@@ -423,9 +416,6 @@ class DashboardPutSchema(BaseDashboardSchema):
         metadata={"description": slug_description},
         allow_none=True,
         validate=Length(0, 255),
-    )
-    owners = fields.List(
-        fields.Integer(metadata={"description": owners_description}, allow_none=True)
     )
     editors = fields.List(
         fields.Integer(metadata={"description": editors_description}, allow_none=True)

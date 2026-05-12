@@ -2142,7 +2142,7 @@ class TestReportSchedulesApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_preserve_ownership(self):
         """
-        ReportSchedule API: Test update report preserves owner list (if un-changed)
+        ReportSchedule API: Test update report preserves editor list (if un-changed)
         """
         self.login(username="admin")
         existing_report = (
@@ -2150,7 +2150,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             .filter(ReportSchedule.name == "name1")
             .one_or_none()
         )
-        current_owners = existing_report.owners
+        current_editors = existing_report.editors
         report_schedule_data = {
             "description": "Updated description",
         }
@@ -2161,13 +2161,12 @@ class TestReportSchedulesApi(SupersetTestCase):
             .filter(ReportSchedule.name == "name1")
             .one_or_none()
         )
-        assert set(updated_report.owners) == set(current_owners)
-        assert len(updated_report.editors) == len(current_owners)
+        assert set(updated_report.editors) == set(current_editors)
 
     @pytest.mark.usefixtures("create_report_schedules")
-    def test_update_report_clear_owner_list(self):
+    def test_update_report_clear_editor_list(self):
         """
-        ReportSchedule API: Test update report admin can clear ownership config
+        ReportSchedule API: Test update report admin can clear editor config
         """
         self.login(username="admin")
         existing_report = (
@@ -2176,7 +2175,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             .one_or_none()
         )
         report_schedule_data = {
-            "owners": [],
+            "editors": [],
         }
         uri = f"api/v1/report/{existing_report.id}"
         self.put_assert_metric(uri, report_schedule_data, "put")  # noqa: F841
@@ -2188,22 +2187,22 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert updated_report.editors == []
 
     @pytest.mark.usefixtures("create_report_schedules")
-    def test_update_report_populate_owner(self):
+    def test_update_report_populate_editor(self):
         """
         ReportSchedule API: Test update admin can update report with
-        no owners to a different owner
+        no editors to a different editor
         """
         gamma = self.get_user("gamma")
         self.login(username="admin")
 
-        # Modify an existing report to make remove all owners
+        # Modify an existing report to remove all editors
         existing_report = (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.name == "name1")
             .one_or_none()
         )
         report_update_data = {
-            "owners": [],
+            "editors": [],
         }
         uri = f"api/v1/report/{existing_report.id}"
         self.put_assert_metric(uri, report_update_data, "put")
@@ -2216,7 +2215,7 @@ class TestReportSchedulesApi(SupersetTestCase):
 
         # Populate the field
         report_update_data = {
-            "owners": [gamma.id],
+            "editors": [gamma.id],
         }
         uri = f"api/v1/report/{updated_report.id}"
         self.put_assert_metric(uri, report_update_data, "put")  # noqa: F841

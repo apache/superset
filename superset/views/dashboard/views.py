@@ -78,11 +78,16 @@ class Dashboard(BaseSupersetView):
     @expose("/new/")
     def new(self) -> FlaskResponse:
         """Creates a new, blank dashboard and redirects to it in edit mode"""
-        from superset.subjects.utils import subjects_from_owners
+        from superset.subjects.utils import get_user_subject
 
+        editors = []
+        if g.user:
+            subj = get_user_subject(g.user.id)
+            if subj:
+                editors.append(subj)
         new_dashboard = DashboardModel(
             dashboard_title="[ untitled dashboard ]",
-            editors=subjects_from_owners([g.user] if g.user else []),
+            editors=editors,
         )
         db.session.add(new_dashboard)
         db.session.commit()  # pylint: disable=consider-using-transaction

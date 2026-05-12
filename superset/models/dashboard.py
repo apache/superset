@@ -69,13 +69,18 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
     if dashboard_id is None:
         return
 
-    from superset.subjects.utils import subjects_from_owners
+    from superset.subjects.utils import get_user_subject
 
     session = sqla.inspect(target).session  # pylint: disable=disallowed-name
     new_user = session.query(User).filter_by(id=target.id).first()
 
     # copy template dashboard to user
     template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
+    editors = []
+    if new_user:
+        subj = get_user_subject(new_user.id)
+        if subj:
+            editors.append(subj)
     dashboard = Dashboard(
         dashboard_title=template.dashboard_title,
         position_json=template.position_json,
@@ -83,7 +88,7 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         css=template.css,
         json_metadata=template.json_metadata,
         slices=template.slices,
-        editors=subjects_from_owners([new_user] if new_user else []),
+        editors=editors,
     )
     session.add(dashboard)
 
@@ -158,11 +163,6 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         secondary=dashboard_viewers,
         passive_deletes=True,
     )
-
-    @property
-    def owners(self) -> list[User]:
-        """Derive owners from user-type editors (backwards compat)."""
-        return [s.user for s in self.editors if s.type == SubjectType.USER and s.user]
 
     @property
     def roles(self) -> list[Any]:
@@ -362,7 +362,7 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
                 .filter_by(id=dashboard_id)
                 .first()
             )
-            # remove ids and relations (like owners, created by, slices, ...)
+            # remove ids and relations (like editors, created by, slices, ...)
             copied_dashboard = dashboard.copy()
             for slc in dashboard.slices:
                 datasource_ids.add((slc.datasource_id, slc.datasource_type))

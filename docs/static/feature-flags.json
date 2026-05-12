@@ -245,14 +245,6 @@
         "category": "runtime_config"
       },
       {
-        "name": "DASHBOARD_RBAC",
-        "default": false,
-        "lifecycle": "stable",
-        "description": "Role-based access control for dashboards",
-        "docs": "https://superset.apache.org/docs/using-superset/creating-your-first-dashboard",
-        "category": "runtime_config"
-      },
-      {
         "name": "DASHBOARD_VIRTUALIZATION",
         "default": true,
         "lifecycle": "stable",

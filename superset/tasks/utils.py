@@ -60,9 +60,9 @@ def get_executor(  # noqa: C901
     types extract the user from the underlying object (e.g. CREATOR), a fixed user
     account, or the user that initiated the request.
 
-    The OWNER, CREATOR_OWNER, and MODIFIER_OWNER types resolve users from the model's
-    editors (subjects). Only user-type subjects are considered, since tasks can only be
-    executed as actual users (not roles or groups).
+    The EDITOR, CREATOR_EDITOR, and MODIFIER_EDITOR types resolve users from the model's
+    editors (subjects). These check both direct user-type subjects and indirect
+    membership through role/group subjects.
 
     :param executors: The requested executor in descending order. When the
            first user is found it is returned.
@@ -77,14 +77,23 @@ def get_executor(  # noqa: C901
             iterating through all entries in `executors`
     """
     from superset.subjects.types import SubjectType
+    from superset.subjects.utils import get_user_subject_ids
 
-    # Extract user-type editors (only actual users can execute tasks)
+    # Build set of all subject IDs that are editors of this model
+    editor_subject_ids = {e.id for e in getattr(model, "editors", [])}
+
+    def _is_editor(user_id: int) -> bool:
+        """Check if user is an editor directly or via role/group membership."""
+        if not user_id or not editor_subject_ids:
+            return False
+        return bool(set(get_user_subject_ids(user_id)) & editor_subject_ids)
+
+    # Direct user-type editors (for EDITOR fallback resolution)
     editor_users = [
-        editor.user
-        for editor in getattr(model, "editors", [])
-        if editor.type == SubjectType.USER and editor.user is not None
+        e.user
+        for e in getattr(model, "editors", [])
+        if e.type == SubjectType.USER and e.user is not None
     ]
-    editor_user_dict = {user.id: user for user in editor_users}
 
     for executor in executors:
         if isinstance(executor, FixedExecutor):
@@ -93,28 +102,25 @@ def get_executor(  # noqa: C901
             raise InvalidExecutorError()
         if executor == ExecutorType.CURRENT_USER and current_user:
             return executor, current_user
-        if executor == ExecutorType.CREATOR_OWNER:
-            if (user := model.created_by) and (editor := editor_user_dict.get(user.id)):
-                return executor, editor.username
+        if executor == ExecutorType.CREATOR_EDITOR:
+            if (user := model.created_by) and _is_editor(user.id):
+                return executor, user.username
         if executor == ExecutorType.CREATOR:
             if user := model.created_by:
                 return executor, user.username
-        if executor == ExecutorType.MODIFIER_OWNER:
-            if (user := model.changed_by) and (editor := editor_user_dict.get(user.id)):
-                return executor, editor.username
+        if executor == ExecutorType.MODIFIER_EDITOR:
+            if (user := model.changed_by) and _is_editor(user.id):
+                return executor, user.username
         if executor == ExecutorType.MODIFIER:
             if user := model.changed_by:
                 return executor, user.username
-        if executor == ExecutorType.OWNER:
-            if len(editor_users) == 1:
-                return executor, editor_users[0].username
-            if len(editor_users) > 1:
-                if modifier := model.changed_by:
-                    if modifier and (user := editor_user_dict.get(modifier.id)):
-                        return executor, user.username
-                if creator := model.created_by:
-                    if creator and (user := editor_user_dict.get(creator.id)):
-                        return executor, user.username
+        if executor == ExecutorType.EDITOR:
+            # Priority: modifier → creator → first direct user editor
+            if (modifier := model.changed_by) and _is_editor(modifier.id):
+                return executor, modifier.username
+            if (creator := model.created_by) and _is_editor(creator.id):
+                return executor, creator.username
+            if editor_users:
                 return executor, editor_users[0].username
 
     raise ExecutorNotFoundError()

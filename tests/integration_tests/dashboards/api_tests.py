@@ -318,7 +318,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         actual_dataset_ids = {dataset["id"] for dataset in result}
         assert actual_dataset_ids == expected_dataset_ids
         for dataset in result:
-            for excluded_key in ["database", "owners"]:
+            for excluded_key in ["database"]:
                 assert excluded_key not in dataset
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -542,13 +542,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 "dashboard_title": "title",
                 "datasources": [],
                 "json_metadata": "",
-                "owners": [
-                    {
-                        "id": 1,
-                        "first_name": "admin",
-                        "last_name": "user",
-                    }
-                ],
                 "editors": [
                     {
                         "id": ANY,
@@ -604,7 +597,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert result["dashboard_title"] == "title"
         assert "thumbnail_url" not in result
         assert "slug" not in result
-        assert "owners" not in result
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
@@ -683,7 +675,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        for excluded_key in ["changed_by", "changed_by_name", "owners"]:
+        for excluded_key in ["changed_by", "changed_by_name", "editors"]:
             assert excluded_key not in data["result"]
         # rollback changes
         db.session.delete(dashboard)
@@ -1682,7 +1674,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         dashboard_data = {
             "dashboard_title": "title1",
             "slug": "slug1",
-            "owners": [admin_id],
+            "editors": [admin_id],
             "position_json": '{"a": "A"}',
             "css": "css",
             "json_metadata": '{"refresh_frequency": 30}',
@@ -2329,7 +2321,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
     def test_dashboard_chart_customizations_forbidden(self):
         """
-        Dashboard API: Test chart customizations update forbidden for non-owner
+        Dashboard API: Test chart customizations update forbidden for non-editor
         """
         admin = self.get_user("admin")
         admin_role = self.get_role("Admin")
@@ -2373,7 +2365,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         current_dash = [d for d in res if d["id"] == dashboard_id][0]
         assert current_dash["dashboard_title"] == "title2"
         assert "username" not in current_dash["changed_by"].keys()
-        # editors (not owners) are in the list response
+        # editors are in the list response
         assert len(current_dash["editors"]) > 0
 
         db.session.delete(model)
@@ -2400,15 +2392,14 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         assert res["dashboard_title"] == "title2"
         assert "username" not in res["changed_by"].keys()
-        assert "username" not in res["owners"][0].keys()
 
         db.session.delete(model)
         db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_update_dashboard_chart_owners_propagation(self):
+    def test_update_dashboard_chart_editors_propagation(self):
         """
-        Dashboard API: Test update chart owners propagation
+        Dashboard API: Test update chart editors propagation
         """
         user_alpha1 = self.create_user(
             "alpha1",
@@ -2422,7 +2413,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         slices.append(db.session.query(Slice).filter_by(slice_name="Trends").one())
         slices.append(db.session.query(Slice).filter_by(slice_name="Boys").one())
 
-        # Insert dashboard with admin as owner
+        # Insert dashboard with admin as editor
         dashboard = self.insert_dashboard(
             "title1",
             "slug1",
@@ -2431,9 +2422,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         )
 
         # Updates dashboard without Boys in json_metadata positions
-        # and user_alpha1 as owner
+        # and user_alpha1 as editor
         dashboard_data = {
-            "owners": [user_alpha1.id],
+            "editors": [user_alpha1.id],
             "json_metadata": json.dumps(
                 {
                     "positions": {
@@ -2450,12 +2441,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         rv = self.client.put(uri, json=dashboard_data)
         assert rv.status_code == 200
 
-        # Check that chart named Boys does not contain alpha 1 in its owners
+        # Check that chart named Boys does not contain alpha 1 in its editors
         boys = db.session.query(Slice).filter_by(slice_name="Boys").one()
-        assert user_alpha1 not in boys.owners
         assert not user_is_editor(user_alpha1, boys)
 
-        # Revert owners on slice
+        # Revert editors on slice
         for slice in slices:
             slice.editors = []
             db.session.commit()
@@ -2494,77 +2484,68 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_dashboard_new_owner_not_admin(self):
+    def test_update_dashboard_new_editor_not_admin(self):
         """
-        Dashboard API: Test update set new owner implicitly adds logged in owner
+        Dashboard API: Test update set new editor implicitly adds logged in editor
         """
         gamma = self.get_user("gamma")
         alpha = self.get_user("alpha")
         dashboard_id = self.insert_dashboard("title1", "slug1", [alpha.id]).id
-        dashboard_data = {"dashboard_title": "title1_changed", "owners": [gamma.id]}
+        dashboard_data = {"dashboard_title": "title1_changed", "editors": [gamma.id]}
         self.login(ALPHA_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
         assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
-        assert gamma in model.owners
         assert user_is_editor(gamma, model)
-        assert alpha in model.owners
         assert user_is_editor(alpha, model)
         for slc in model.slices:
-            assert gamma in slc.owners
             assert user_is_editor(gamma, slc)
-            assert alpha in slc.owners
             assert user_is_editor(alpha, slc)
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_dashboard_new_owner_admin(self):
+    def test_update_dashboard_new_editor_admin(self):
         """
-        Dashboard API: Test update set new owner as admin to other than current user
+        Dashboard API: Test update set new editor as admin to other than current user
         """
         gamma = self.get_user("gamma")
         admin = self.get_user("admin")
         dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
-        dashboard_data = {"dashboard_title": "title1_changed", "owners": [gamma.id]}
+        dashboard_data = {"dashboard_title": "title1_changed", "editors": [gamma.id]}
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
         assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
-        assert gamma in model.owners
         assert user_is_editor(gamma, model)
-        assert admin not in model.owners
         assert not user_is_editor(admin, model)
         for slc in model.slices:
-            assert gamma in slc.owners
             assert user_is_editor(gamma, slc)
-            assert admin not in slc.owners
             assert not user_is_editor(admin, slc)
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_dashboard_clear_owner_list(self):
+    def test_update_dashboard_clear_editor_list(self):
         """
-        Dashboard API: Test update admin can clear up owners list
+        Dashboard API: Test update admin can clear up editors list
         """
         admin = self.get_user("admin")
         dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
-        dashboard_data = {"owners": []}
+        dashboard_data = {"editors": []}
         rv = self.client.put(uri, json=dashboard_data)
         assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
-        assert [] == model.owners
         assert model.editors == []
         db.session.delete(model)
         db.session.commit()
 
-    def test_update_dashboard_populate_owner(self):
+    def test_update_dashboard_populate_editor(self):
         """
         Dashboard API: Test update admin can update dashboard with
-        no owners to a different owner
+        no editors to a different editor
         """
         self.login(username="admin")
         gamma = self.get_user("gamma")
@@ -2574,11 +2555,10 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             [],
         )
         uri = f"api/v1/dashboard/{dashboard.id}"
-        dashboard_data = {"owners": [gamma.id]}
+        dashboard_data = {"editors": [gamma.id]}
         rv = self.client.put(uri, json=dashboard_data)
         assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard.id)
-        assert [gamma] == model.owners
         assert len(model.editors) == 1
         assert user_is_editor(gamma, model)
         db.session.delete(model)
@@ -2653,9 +2633,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         model = db.session.query(Dashboard).get(dashboard.id)
         assert model.published is True
         assert model.slug == "slug1"
-        assert admin in model.owners
         assert user_is_editor(admin, model)
-        assert gamma in model.owners
         assert user_is_editor(gamma, model)
         db.session.delete(model)
         db.session.commit()

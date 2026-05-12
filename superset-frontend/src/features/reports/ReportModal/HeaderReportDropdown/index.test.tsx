@@ -98,7 +98,6 @@ const stateWithUserAndReport = {
           crontab: '0 12 * * 1',
           dashboard: 1,
           name: 'Weekly Report',
-          owners: [1],
           recipients: [
             {
               recipient_config_json: {

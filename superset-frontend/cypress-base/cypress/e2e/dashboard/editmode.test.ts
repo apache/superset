@@ -155,7 +155,7 @@ function resetDashboardColors(dashboard = 'tabbed_dash') {
       css: r.css,
       dashboard_title: r.dashboard_title,
       json_metadata: resetMetadata,
-      owners: r.owners,
+      editors: r.editors,
       slug: r.slug,
     });
   });

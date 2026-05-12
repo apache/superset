@@ -42,7 +42,7 @@ def test_render_description_with_html() -> None:
         header_data={
             "notification_format": "PNG",
             "notification_type": "Alert",
-            "owners": [1],
+            "editors": [1],
             "notification_source": None,
             "chart_id": None,
             "dashboard_id": None,
@@ -87,7 +87,7 @@ def test_email_subject_with_datetime() -> None:
         header_data={
             "notification_format": "PNG",
             "notification_type": "Alert",
-            "owners": [1],
+            "editors": [1],
             "notification_source": None,
             "chart_id": None,
             "dashboard_id": None,

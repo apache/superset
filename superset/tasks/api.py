@@ -47,7 +47,7 @@ from superset.views.base_api import (
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +136,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
     # Related field configuration for filter dropdowns
     allowed_rel_fields = {"created_by"}
     related_field_filters = {
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     base_related_field_filters = {
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
@@ -380,8 +380,9 @@ class TaskRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        ".related_subscribers",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.related_subscribers"
+        ),
         log_to_statsd=False,
     )
     def related_subscribers(self) -> Response:

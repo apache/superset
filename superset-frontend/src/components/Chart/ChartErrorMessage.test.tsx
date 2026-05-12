@@ -31,7 +31,7 @@ jest.mock('src/hooks/apiResources', () => ({
   useChartEditorNames: jest.fn(),
 }));
 
-const mockUseChartOwnerNames = useChartEditorNames as jest.MockedFunction<
+const mockUseChartEditorNames = useChartEditorNames as jest.MockedFunction<
   typeof useChartEditorNames
 >;
 
@@ -51,7 +51,7 @@ describe('ChartErrorMessage', () => {
   };
 
   test('renders the default error message when error is null', () => {
-    mockUseChartOwnerNames.mockReturnValue({
+    mockUseChartEditorNames.mockReturnValue({
       result: null,
       status: ResourceStatus.Loading,
       error: null,
@@ -84,7 +84,7 @@ describe('ChartErrorMessage', () => {
   });
 
   test('chart error banner is not dismissible', () => {
-    mockUseChartOwnerNames.mockReturnValue({
+    mockUseChartEditorNames.mockReturnValue({
       result: null,
       status: ResourceStatus.Loading,
       error: null,

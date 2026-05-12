@@ -22,7 +22,6 @@ from uuid import uuid4
 from flask_appbuilder.security.sqla.models import User
 
 from superset import db, security_manager
-from superset.commands.utils import owners_from_editors
 from superset.key_value.models import KeyValueEntry
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -85,12 +84,12 @@ def insert_report_schedule(
     force_screenshot: bool = False,
 ) -> ReportSchedule:
     editors = editors or []
-    owners = owners_from_editors(editors)
+    editor_users = [s.user for s in editors if s.type == SubjectType.USER and s.user]
     recipients = recipients or []
     logs = logs or []
     last_state = last_state or ReportState.NOOP
 
-    with override_user(owners[0] if owners else None):
+    with override_user(editor_users[0] if editor_users else None):
         report_schedule = ReportSchedule(
             type=type,
             name=name,

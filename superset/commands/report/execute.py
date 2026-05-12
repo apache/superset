@@ -71,6 +71,7 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
     SlackV1NotificationError,
 )
+from superset.subjects.types import SubjectType
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
@@ -610,7 +611,11 @@ class BaseReportState:
             "notification_format": self._report_schedule.report_format,
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
-            "owners": self._report_schedule.owners,
+            "editors": [
+                s.user.id
+                for s in self._report_schedule.editors
+                if s.type == SubjectType.USER and s.user
+            ],
             "slack_channels": slack_channels,
             "execution_id": str(self._execution_id),
         }
@@ -774,16 +779,17 @@ class BaseReportState:
             name=name, text=message, header_data=header_data, url=url
         )
 
-        # filter recipients to recipients who are also owners
-        owner_recipients = [
+        # filter recipients to recipients who are also editors
+        editor_recipients = [
             ReportRecipients(
                 type=ReportRecipientType.EMAIL,
-                recipient_config_json=json.dumps({"target": owner.email}),
+                recipient_config_json=json.dumps({"target": s.user.email}),
             )
-            for owner in self._report_schedule.owners
+            for s in self._report_schedule.editors
+            if s.type == SubjectType.USER and s.user
         ]
 
-        self._send(notification_content, owner_recipients)
+        self._send(notification_content, editor_recipients)
 
     def is_in_grace_period(self) -> bool:
         """

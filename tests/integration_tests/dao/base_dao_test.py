@@ -1220,7 +1220,7 @@ def test_base_dao_list_with_relationships_pagination(app_context: Session) -> No
     This test addresses the concern that joinedload() with many-to-many
     relationships can cause incorrect pagination due to SQL JOINs multiplying rows.
     """
-    # Create dashboards with owners (many-to-many relationship)
+    # Create dashboards with editors (many-to-many relationship)
     users = []
     from superset.subjects.sync import sync_user_subject
 
@@ -1246,10 +1246,10 @@ def test_base_dao_list_with_relationships_pagination(app_context: Session) -> No
             dashboard_title=f"Relationship Test Dashboard {i}",
             slug=f"rel-test-dash-{i}",
         )
-        # Add multiple owners to create many-to-many relationship
+        # Add multiple editors to create many-to-many relationship
         dashboard.editors = subjects_from_users(
             users[:2]
-        )  # Each dashboard has 2 owners
+        )  # Each dashboard has 2 editors
         dashboards.append(dashboard)
         db.session.add(dashboard)
 
@@ -1295,10 +1295,9 @@ def test_base_dao_list_with_relationships_pagination(app_context: Session) -> No
 
     # 3. Verify relationships are actually loaded
     for result in results_with_rel:
-        # Check that owners relationship is loaded (would raise if not)
-        assert hasattr(result, "owners")
-        # In our test setup, each dashboard should have 2 owners
-        assert len(result.owners) == 2
+        # Check that editors relationship is loaded (would raise if not)
+        assert hasattr(result, "editors")
+        # In our test setup, each dashboard should have 2 editors
         assert len(result.editors) == 2
 
     # Test second page to ensure offset works correctly
@@ -1411,7 +1410,7 @@ def test_base_dao_list_count_accuracy_with_filters_and_relationships(
         sync_user_subject(user)
     db.session.commit()
 
-    # Create dashboards owned by these users
+    # Create dashboards edited by these users
     for i in range(6):
         dashboard = Dashboard(
             dashboard_title=f"Count Test Dashboard {i}",
@@ -1419,7 +1418,7 @@ def test_base_dao_list_count_accuracy_with_filters_and_relationships(
         )
         dashboard.editors = subjects_from_users(
             active_users[:3]
-        )  # 3 owners per dashboard
+        )  # 3 editors per dashboard
         db.session.add(dashboard)
 
     db.session.commit()
@@ -1448,13 +1447,12 @@ def test_base_dao_list_count_accuracy_with_filters_and_relationships(
         f"Expected 3 results due to pagination, got {len(results)}"
     )
 
-    # Each should have 3 owners as we set up
+    # Each should have 3 editors as we set up
     for dashboard in results:
-        assert len(dashboard.owners) == 3, (
-            f"Dashboard {dashboard.dashboard_title} should have 3 owners, "
-            f"has {len(dashboard.owners)}"
+        assert len(dashboard.editors) == 3, (
+            f"Dashboard {dashboard.dashboard_title} should have 3 editors, "
+            f"has {len(dashboard.editors)}"
         )
-        assert len(dashboard.editors) == 3
 
 
 def test_base_dao_id_column_name_property(app_context: Session) -> None:

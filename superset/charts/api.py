@@ -105,7 +105,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -276,14 +276,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
         ],
     }
     related_field_filters = {
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
         "viewers": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
 
     allowed_rel_fields = {
-        "owners",
         "created_by",
         "changed_by",
         "editors",

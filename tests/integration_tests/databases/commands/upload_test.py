@@ -140,7 +140,6 @@ def test_csv_upload_dataset():
         .one_or_none()
     )
     assert dataset is not None
-    assert security_manager.find_user("admin") in dataset.owners
     assert user_is_editor(security_manager.find_user("admin"), dataset)
 
 

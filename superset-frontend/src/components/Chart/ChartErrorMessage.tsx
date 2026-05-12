@@ -41,7 +41,7 @@ export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
   // don't mutate props
   const ownedError = error && {
     ...error,
-    extra: { ...error.extra, owners: editors },
+    extra: { ...error.extra, editors },
   };
 
   return (

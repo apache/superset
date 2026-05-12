@@ -20,16 +20,13 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import Role, User
+    from sqlalchemy.sql import CompoundSelect
 
 from sqlalchemy import select, union_all
 
 from superset import db
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
-
-if TYPE_CHECKING:
-    from flask_appbuilder.security.sqla.models import User
-    from sqlalchemy.sql import CompoundSelect
 
 
 def get_user_subject_ids_subquery(user_id: int) -> CompoundSelect:
@@ -95,23 +92,6 @@ def get_user_subject(user_id: int) -> Subject | None:
 def get_subject(id_: int) -> Subject | None:
     """Look up a Subject by its primary key."""
     return db.session.get(Subject, id_)
-
-
-def subjects_from_owners(users: list[User | int]) -> list[Subject]:
-    """Convert a list of User objects or user IDs to user-type Subjects.
-
-    Bridges the legacy ``owners`` to the Subject model.
-    Accepts both User objects and plain integer IDs for flexibility
-    (API schemas pass IDs, application code passes User objects).
-    Silently skips users without a matching Subject row.
-    """
-    subjects = []
-    for user in users:
-        user_id = user if isinstance(user, int) else user.id
-        subj = get_user_subject(user_id)
-        if subj:
-            subjects.append(subj)
-    return subjects
 
 
 def subjects_from_roles(roles: list[Role | int]) -> list[Subject]:

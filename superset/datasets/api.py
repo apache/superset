@@ -93,7 +93,7 @@ from superset.views.base_api import (
     statsd_metrics,
 )
 from superset.views.error_handling import handle_api_exception
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -248,7 +248,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "schema",
         "table_name",
         "sql",
-        "owners",
         "editors",
     ]
     edit_columns = [
@@ -268,7 +267,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "is_sqllab_view",
         "template_params",
-        "owners",
         "editors",
         "columns",
         "metrics",
@@ -288,7 +286,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         ],
     }
     related_field_filters = {
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "database": "database_name",
         "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
@@ -315,7 +313,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_by",
         "uuid",
     ]
-    allowed_rel_fields = {"database", "owners", "created_by", "changed_by", "editors"}
+    allowed_rel_fields = {"database", "created_by", "changed_by", "editors"}
     allowed_distinct_fields = {"catalog", "schema"}
 
     apispec_parameter_schemas = {

@@ -45,7 +45,6 @@ def _make_model(
     model.name = "test_schedule"
     model.crontab = "0 9 * * *"
     model.last_state = "noop"
-    model.owners = []
     model.editors = []
     return model
 

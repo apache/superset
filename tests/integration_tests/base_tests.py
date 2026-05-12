@@ -613,7 +613,7 @@ class SupersetTestCase(TestCase):
         self,
         dashboard_title: str,
         slug: Optional[str],
-        owners: list[int],
+        editor_user_ids: list[int],
         roles: list[int] = [],  # noqa: B006
         created_by=None,
         slices: Optional[list[Slice]] = None,
@@ -627,10 +627,10 @@ class SupersetTestCase(TestCase):
         obj_editors = list()  # noqa: C408
         obj_roles = list()  # noqa: C408
         slices = slices or []
-        for owner in owners:
+        for user_id in editor_user_ids:
             subject = (
                 db.session.query(Subject)
-                .filter_by(user_id=owner, type=SubjectType.USER)
+                .filter_by(user_id=user_id, type=SubjectType.USER)
                 .first()
             )
             if subject:

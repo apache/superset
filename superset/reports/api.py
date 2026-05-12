@@ -59,7 +59,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "dashboard",
         "database",
         "description",
-        "owners",
         "editors",
         "extra",
         "force_screenshot",
@@ -228,7 +227,6 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "chart",
         "dashboard",
         "database",
-        "owners",
         "created_by",
         "changed_by",
         "editors",
@@ -258,8 +256,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "dashboard": "dashboard_title",
         "chart": "slice_name",
         "database": "database_name",
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
 

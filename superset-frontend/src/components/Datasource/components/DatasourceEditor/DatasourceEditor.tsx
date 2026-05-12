@@ -108,16 +108,6 @@ const extensionsRegistry = getExtensionsRegistry();
 
 // Type definitions
 
-interface Owner {
-  id?: number;
-  value?: number;
-  label?: ReactNode;
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  [key: string]: unknown;
-}
-
 interface Currency {
   symbol?: string;
   symbolPosition?: string;
@@ -181,7 +171,7 @@ interface DatasourceObject {
   sql?: string;
   columns: Column[];
   metrics?: Metric[];
-  editors: Owner[];
+  editors: SubjectPickerValue[];
   main_dttm_col?: string;
   currency_code_column?: string;
   filter_select_enabled?: boolean;
@@ -326,7 +316,7 @@ interface FormContainerProps {
 
 interface EditorsSelectorProps {
   datasource: DatasourceObject;
-  onChange: (editors: Owner[]) => void;
+  onChange: (editors: SubjectPickerValue[]) => void;
 }
 
 const DatasourceContainer = styled.div`
@@ -801,7 +791,7 @@ function EditorsSelector({
       relatedUrl="/api/v1/dataset/related/editors"
       ariaLabel={t('Select editors')}
       value={datasource.editors as SubjectPickerValue[]}
-      onChange={value => onChange(value as Owner[])}
+      onChange={value => onChange(value as SubjectPickerValue[])}
       header={<FormLabel>{t('Editors')}</FormLabel>}
       allowClear
     />

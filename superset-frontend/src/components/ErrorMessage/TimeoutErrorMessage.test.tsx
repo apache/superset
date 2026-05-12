@@ -71,7 +71,7 @@ test('should render the issue codes', () => {
   expect(screen.getByText(/Issue code message B/)).toBeInTheDocument();
 });
 
-test('should render the owners', () => {
+test('should render the editors', () => {
   render(<TimeoutErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
   userEvent.click(button);
@@ -83,7 +83,7 @@ test('should render the owners', () => {
   ).toBeInTheDocument();
 });
 
-test('should NOT render the owners', () => {
+test('should NOT render the editors', () => {
   const noVisualizationProps = {
     ...mockedProps,
     source: 'sqllab' as ErrorSource,

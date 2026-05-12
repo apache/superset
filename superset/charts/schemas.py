@@ -95,10 +95,6 @@ id_description = "The id of the chart."
 slice_name_description = "The name of the chart."
 description_description = "A description of the chart propose."
 viz_type_description = "The type of chart visualization used."
-owners_description = (
-    "Owner are users ids allowed to delete or change this chart. "
-    "If left empty you will be one of the owners of the chart."
-)
 editors_description = (
     "A list of subject IDs (users, roles, or groups) that can alter the chart."
 )
@@ -145,7 +141,6 @@ form_data_description = (
     "Form data from the Explore controls used to form the chart's data query."
 )
 description_markeddown_description = "Sanitized HTML version of the chart description."
-owners_name_description = "Name of an owner of the chart."
 certified_by_description = "Person or group that has certified this chart"
 certification_details_description = "Details of the certification"
 tags_description = "Tags to be associated with the chart"
@@ -163,8 +158,8 @@ openapi_spec_methods_override = {
     "info": {"get": {"summary": "Get metadata information about this API resource"}},
     "related": {
         "get": {
-            "description": "Get a list of all possible owners for a chart. "
-            "Use `owners` has the `column_name` parameter"
+            "description": "Get a list of all possible related entities for a chart. "
+            "Use `editors` as the `column_name` parameter"
         }
     },
 }
@@ -211,7 +206,6 @@ class ChartPostSchema(Schema):
         },
         validate=Length(0, 250),
     )
-    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
     editors = fields.List(fields.Integer(metadata={"description": editors_description}))
     viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
     params = fields.String(
@@ -276,7 +270,6 @@ class ChartPutSchema(Schema):
         allow_none=True,
         validate=Length(0, 250),
     )
-    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
     editors = fields.List(fields.Integer(metadata={"description": editors_description}))
     viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
     params = fields.String(
@@ -1752,7 +1745,6 @@ class ChartGetResponseSchema(Schema):
     query_context = fields.String()
     is_managed_externally = fields.Boolean()
     tags = fields.Nested(TagSchema, many=True)
-    owners = fields.List(fields.Nested(UserSchema))
     editors = fields.List(fields.Nested(SubjectResponseSchema))
     viewers = fields.List(fields.Nested(SubjectResponseSchema))
     dashboards = fields.List(fields.Nested(DashboardSchema))

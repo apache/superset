@@ -57,8 +57,8 @@ from superset.views.base_api import (
 )
 from superset.views.filters import (
     BaseFilterRelatedUsers,
-    FilterRelatedOwners,
     FilterRelatedTables,
+    FilterRelatedUsers,
 )
 
 logger = logging.getLogger(__name__)
@@ -154,7 +154,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
     related_field_filters = {
         "tables": RelatedFieldFilter("table_name", FilterRelatedTables),
         "subjects": RelatedFieldFilter("label", FilterRelatedSubjects),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     base_related_field_filters = {
         "tables": [["id", DatasourceFilter, lambda: []]],

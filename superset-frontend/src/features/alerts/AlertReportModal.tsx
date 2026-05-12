@@ -943,9 +943,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       delete data.recipients;
     }
 
-    // Remove owners field from the spread since the backend uses editors
-    delete data.owners;
-
     data.context_markdown = 'string';
     if (isEditMode) {
       // Edit
@@ -1128,7 +1125,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
-  }, [dashboard, tabsEnabled, filtersEnabled, currentAlert?.extra, addDangerToast]);
+  }, [
+    dashboard,
+    tabsEnabled,
+    filtersEnabled,
+    currentAlert?.extra,
+    addDangerToast,
+  ]);
 
   const databaseLabel = currentAlert?.database && !currentAlert.database.label;
   useEffect(() => {

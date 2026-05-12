@@ -49,7 +49,7 @@ def create_dashboard_to_db(
     dashboard_title: Optional[str] = None,
     slug: Optional[str] = None,
     published: bool = False,
-    owners: Optional[list[User]] = None,
+    editors: Optional[list[User]] = None,
     slices: Optional[list[Slice]] = None,
     css: str = "",
     json_metadata: str = "",
@@ -59,7 +59,7 @@ def create_dashboard_to_db(
         dashboard_title,
         slug,
         published,
-        owners,
+        editors,
         slices,
         css,
         json_metadata,
@@ -75,7 +75,7 @@ def create_dashboard(
     dashboard_title: Optional[str] = None,
     slug: Optional[str] = None,
     published: bool = False,
-    owners: Optional[list[User]] = None,
+    editors: Optional[list[User]] = None,
     slices: Optional[list[Slice]] = None,
     css: str = "",
     json_metadata: str = "",
@@ -95,8 +95,8 @@ def create_dashboard(
         json_metadata=json_metadata,
         slices=slices,
     )
-    if owners:
-        dashboard.editors = subjects_from_users(owners)
+    if editors:
+        dashboard.editors = subjects_from_users(editors)
     return dashboard
 
 
@@ -109,9 +109,9 @@ def insert_model(dashboard: Model) -> None:
 def create_slice_to_db(
     name: Optional[str] = None,
     datasource_id: Optional[int] = None,
-    owners: Optional[list[User]] = None,
+    editors: Optional[list[User]] = None,
 ) -> Slice:
-    slice_ = create_slice(datasource_id, name=name, owners=owners)
+    slice_ = create_slice(datasource_id, name=name, editors=editors)
     insert_model(slice_)
     inserted_slices_ids.append(slice_.id)
     return slice_
@@ -121,16 +121,18 @@ def create_slice(
     datasource_id: Optional[int] = None,
     datasource: Optional[SqlaTable] = None,
     name: Optional[str] = None,
-    owners: Optional[list[User]] = None,
+    editors: Optional[list[User]] = None,
 ) -> Slice:
+    from tests.integration_tests.base_tests import subjects_from_users
+
     name = name if name is not None else random_str()
-    owners = owners if owners is not None else []
+    editor_subjects = subjects_from_users(editors) if editors else []
     datasource_type = "table"
     if datasource:
         return Slice(
             slice_name=name,
             table=datasource,
-            owners=owners,
+            editors=editor_subjects,
             datasource_type=datasource_type,
         )
 
@@ -143,7 +145,7 @@ def create_slice(
     return Slice(
         slice_name=name,
         datasource_id=datasource_id,
-        owners=owners,
+        editors=editor_subjects,
         datasource_type=datasource_type,
     )
 
@@ -151,9 +153,9 @@ def create_slice(
 def create_datasource_table_to_db(
     name: Optional[str] = None,
     db_id: Optional[int] = None,
-    owners: Optional[list[User]] = None,
+    editors: Optional[list[User]] = None,
 ) -> SqlaTable:
-    sqltable = create_datasource_table(name, db_id, owners=owners)
+    sqltable = create_datasource_table(name, db_id, editors=editors)
     insert_model(sqltable)
     inserted_sqltables_ids.append(sqltable.id)
     return sqltable
@@ -163,16 +165,16 @@ def create_datasource_table(
     name: Optional[str] = None,
     db_id: Optional[int] = None,
     database: Optional[Database] = None,
-    owners: Optional[list[User]] = None,
+    editors: Optional[list[User]] = None,
 ) -> SqlaTable:
     from tests.integration_tests.base_tests import subjects_from_users
 
     name = name if name is not None else random_str()
-    editors = subjects_from_users(owners) if owners else []
+    editor_subjects = subjects_from_users(editors) if editors else []
     if database:
-        return SqlaTable(table_name=name, database=database, editors=editors)
+        return SqlaTable(table_name=name, database=database, editors=editor_subjects)
     db_id = db_id if db_id is not None else create_database_to_db(name=name + "_db").id
-    return SqlaTable(table_name=name, database_id=db_id, editors=editors)
+    return SqlaTable(table_name=name, database_id=db_id, editors=editor_subjects)
 
 
 def create_database_to_db(name: Optional[str] = None) -> Database:

@@ -2,7 +2,7 @@
   {
     "slice_name": "1 - Sample chart",
     "description": "chart description",
-    "owners": [1],
+    "editors": [{ "id": 1, "label": "admin", "type": 1 }],
     "viz_type": "echarts_timeseries_line",
     "cache_timeout": 1000,
     "datasource_id": 2,
@@ -12,7 +12,7 @@
   {
     "slice_name": "2 - Sample chart",
     "description": "chart description",
-    "owners": [1],
+    "editors": [{ "id": 1, "label": "admin", "type": 1 }],
     "viz_type": "echarts_timeseries_line",
     "cache_timeout": 1000,
     "datasource_id": 2,
@@ -22,7 +22,7 @@
   {
     "slice_name": "3 - Sample chart",
     "description": "chart description",
-    "owners": [1],
+    "editors": [{ "id": 1, "label": "admin", "type": 1 }],
     "viz_type": "echarts_timeseries_line",
     "cache_timeout": 1000,
     "datasource_id": 2,
@@ -32,7 +32,7 @@
   {
     "slice_name": "4 - Sample chart",
     "description": "chart description",
-    "owners": [1],
+    "editors": [{ "id": 1, "label": "admin", "type": 1 }],
     "viz_type": "echarts_timeseries_line",
     "cache_timeout": 1000,
     "datasource_id": 2,

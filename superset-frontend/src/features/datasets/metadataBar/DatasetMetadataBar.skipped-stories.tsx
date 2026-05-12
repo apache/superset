@@ -38,10 +38,6 @@ export default {
             created_on: '2023-01-26T12:06:54.965034',
             created_on_humanized: 'a month ago',
             table_name: `This is dataset's name`,
-            owners: [
-              { first_name: 'John', last_name: 'Doe' },
-              { first_name: 'Luke', last_name: 'Skywalker' },
-            ],
             description: 'This is a dataset description',
           },
         },
@@ -62,10 +58,6 @@ export const DatasetSpecific = () => {
     created_on: '2023-01-26T12:06:54.965034',
     created_on_humanized: 'a month ago',
     table_name: `This is dataset's name`,
-    owners: [
-      { first_name: 'John', last_name: 'Doe' },
-      { first_name: 'Luke', last_name: 'Skywalker' },
-    ],
     description: 'This is a dataset description',
   };
 

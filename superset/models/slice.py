@@ -43,7 +43,6 @@ from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.subjects.models import chart_editors, chart_viewers, Subject
-from superset.subjects.types import SubjectType
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
@@ -51,8 +50,6 @@ from superset.utils import core as utils, json
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
-    from flask_appbuilder.security.sqla.models import User
-
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.sqla.models import SqlaTable
@@ -103,11 +100,6 @@ class Slice(  # pylint: disable=too-many-public-methods
         secondary=chart_viewers,
         passive_deletes=True,
     )
-
-    @property
-    def owners(self) -> list[User]:
-        """Derive owners from user-type editors (backwards compat)."""
-        return [s.user for s in self.editors if s.type == SubjectType.USER and s.user]
 
     tags = relationship(
         "Tag",
@@ -231,7 +223,6 @@ class Slice(  # pylint: disable=too-many-public-methods
             "form_data": self.form_data,
             "query_context": self.query_context,
             "modified": self.modified(),
-            "owners": [owner.id for owner in self.owners],
             "editors": [s.id for s in self.editors],
             "viewers": [s.id for s in self.viewers],
             "slice_id": self.id,

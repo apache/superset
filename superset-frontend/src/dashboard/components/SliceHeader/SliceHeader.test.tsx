@@ -170,7 +170,6 @@ const createProps = (overrides: any = {}) => ({
     datasource: '58__table',
     description: '',
     description_markeddown: '',
-    owners: [],
     modified: '<span class="no-wrap">20 hours ago</span>',
     changed_on: 1617143411366,
     slice_description: '',

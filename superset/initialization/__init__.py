@@ -854,12 +854,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         register_subject_hooks()
 
-        # Backward compat: DASHBOARD_RBAC implies ENABLE_VIEWERS
-        # and VIEWER_PROMISCUOUS_MODE are enabled
-        if feature_flag_manager.is_feature_enabled("DASHBOARD_RBAC"):
-            self.config["FEATURE_FLAGS"]["ENABLE_VIEWERS"] = True
-            self.config["VIEWER_PROMISCUOUS_MODE"] = True
-
     def configure_url_map_converters(self) -> None:
         #
         # Doing local imports here as model importing causes a reference to

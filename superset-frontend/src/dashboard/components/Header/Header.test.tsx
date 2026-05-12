@@ -59,7 +59,6 @@ const initialState = {
       first_name: 'Kay',
       last_name: 'Mon',
     },
-    owners: [{ first_name: 'John', last_name: 'Doe', id: 1 }],
     editors: [{ id: 1, label: 'John Doe', type: 1 }],
   },
   user: {

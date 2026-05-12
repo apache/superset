@@ -28,18 +28,18 @@ from superset import security_manager
 logger = logging.getLogger(__name__)
 
 
-class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
+class FilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-methods
     """
-    A filter to allow searching for related owners of a resource.
+    A filter to allow searching for related users of a resource.
 
     Use in the api by adding something like:
     related_field_filters = {
-      "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+      "editors": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     """
 
-    name = lazy_gettext("Owner")
-    arg_name = "owners"
+    name = lazy_gettext("User")
+    arg_name = "users"
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
         user_model = security_manager.user_model
@@ -60,7 +60,7 @@ class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-meth
     Use in the api by adding something like:
     ```
     base_related_field_filters = {
-        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "editors": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     ```

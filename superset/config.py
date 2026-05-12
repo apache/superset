@@ -710,11 +710,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "CSS_TEMPLATES": True,
-    # Role-based access control for dashboards
-    # @lifecycle: stable
-    # @category: runtime_config
-    # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
-    "DASHBOARD_RBAC": False,
     # Subject-based viewer access control for dashboards and charts.
     # When enabled, resources can have explicit viewer Subject assignments.
     # @lifecycle: experimental
@@ -1023,16 +1018,16 @@ THEME_FONT_URL_ALLOWED_DOMAINS: list[str] = [
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # User used to execute cache warmup tasks
-# By default, the cache is warmed up using the primary user-type editor (giving
-# priority to the last modifier, then the creator, then the first user-type editor).
-# Only user-type subjects from the editors list are considered, since tasks can only
-# be executed as actual users (not roles or groups). To fall back to using a fixed
-# user (admin in this example), use the following configuration:
+# By default, the cache is warmed up using the editor (giving priority to the
+# last modifier, then the creator, then the first direct user-type editor).
+# Editor resolution checks both direct user-type subjects and indirect membership
+# through role/group subjects. To fall back to using a fixed user (admin in this
+# example), use the following configuration:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
-# CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
-CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
+# CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR, FixedExecutor("admin")]
+CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR]
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
@@ -1368,7 +1363,7 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
 
 # Performance optimization: Return only custom tags in dashboard list API
 # When enabled, filters out implicit tags (owner, type, favorited_by) at SQL JOIN level
-# Reduces response payload and query time for dashboards with many owners
+# Reduces response payload and query time for dashboards with many editors
 DASHBOARD_LIST_CUSTOM_TAGS_ONLY: bool = False
 
 # This is used as a workaround for the alerts & reports scheduler task to get the time
@@ -1952,26 +1947,24 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
 # execute as the primary user-type editor of the alert/report (giving priority to
 # the last modifier and then the creator if either is a user-type editor, otherwise
-# the first user-type editor will be used). Only user-type subjects from the editors
-# list are considered, since tasks can only be executed as actual users (not roles
-# or groups).
+# the first editor will be used). Editor resolution checks both direct user-type
+# subjects and indirect membership through role/group subjects.
 #
-# To first try to execute as the creator in the editors list (if present), then fall
-# back to the creator, then the last modifier in the editors list (if present), then
-# the last modifier, then a user-type editor and finally the "admin" user, set as
-# follows:
+# To first try to execute as the creator if they're an editor (directly or via
+# role/group), then fall back to the creator, then the last modifier if they're an
+# editor, then the last modifier, then any editor, and finally the "admin" user:
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # ALERT_REPORTS_EXECUTORS = [
-#     ExecutorType.CREATOR_OWNER,
+#     ExecutorType.CREATOR_EDITOR,
 #     ExecutorType.CREATOR,
-#     ExecutorType.MODIFIER_OWNER,
+#     ExecutorType.MODIFIER_EDITOR,
 #     ExecutorType.MODIFIER,
-#     ExecutorType.OWNER,
+#     ExecutorType.EDITOR,
 #     FixedExecutor("admin"),
 # ]
-ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.OWNER]
+ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.EDITOR]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -2465,8 +2458,8 @@ class ExtraRelatedQueryFilters(TypedDict, total=False):
 
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
 
-# When True, viewers of a dashboard/chart bypass dataset-level RBAC checks,
-# similar to how DASHBOARD_RBAC works. Only effective when ENABLE_SUBJECTS is on.
+# When True, viewers of a dashboard/chart bypass dataset-level RBAC checks.
+# Only effective when ENABLE_VIEWERS is on.
 VIEWER_PROMISCUOUS_MODE = False
 
 # Controls which Subject types appear in the editor/viewer picker.

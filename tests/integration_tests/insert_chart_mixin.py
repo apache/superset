@@ -31,7 +31,7 @@ class InsertChartMixin:
     def insert_chart(
         self,
         slice_name: str,
-        owners: list[int],
+        editor_user_ids: list[int],
         datasource_id: int,
         created_by=None,
         datasource_type: str = "table",
@@ -43,10 +43,10 @@ class InsertChartMixin:
         certification_details: Optional[str] = None,
     ) -> Slice:
         obj_editors = list()  # noqa: C408
-        for owner in owners:
+        for user_id in editor_user_ids:
             subject = (
                 db.session.query(Subject)
-                .filter_by(user_id=owner, type=SubjectType.USER)
+                .filter_by(user_id=user_id, type=SubjectType.USER)
                 .first()
             )
             if subject:

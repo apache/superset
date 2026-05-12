@@ -87,8 +87,8 @@ operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.in_: lambda col, val: col.in_(
         val if isinstance(val, (list, tuple)) else [val]
     ),
-    ColumnOperatorEnum.nin: lambda col, val: ~col.in_(
-        val if isinstance(val, (list, tuple)) else [val]
+    ColumnOperatorEnum.nin: lambda col, val: (
+        ~col.in_(val if isinstance(val, (list, tuple)) else [val])
     ),
     ColumnOperatorEnum.gt: lambda col, val: col > val,
     ColumnOperatorEnum.gte: lambda col, val: col >= val,
@@ -384,21 +384,15 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
     def _bridge_legacy_attributes(
         cls, item: Any, attributes: dict[str, Any]
     ) -> dict[str, Any]:
-        """Bridge legacy ``owners`` and ``roles`` keys to ``editors``/``subjects``.
+        """Bridge legacy ``roles`` keys to ``subjects``.
 
-        Since ``owners`` and ``roles`` are now read-only computed properties,
+        Since ``roles`` are now read-only computed properties,
         they cannot be set via ``setattr``. This method converts them to
-        their editor/subject equivalents and removes them from the dict.
+        their subject equivalents and removes them from the dict.
         """
-        from superset.subjects.utils import subjects_from_owners, subjects_from_roles
+        from superset.subjects.utils import subjects_from_roles
 
         attrs = dict(attributes)
-
-        # Bridge owners → editors (only when editors not already provided)
-        if "owners" in attrs:
-            owners = attrs.pop("owners")
-            if "editors" not in attrs:
-                attrs["editors"] = subjects_from_owners(owners)
 
         # Bridge roles → viewers/subjects (only when the target not provided)
         if "roles" in attrs:
