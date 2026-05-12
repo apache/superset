@@ -1016,14 +1016,17 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           {/* eslint-enable @typescript-eslint/no-explicit-any */}
         </Resizable>
         {isCollapsed ? (
-          <Button
-            buttonStyle="link"
+          <div
             className="sidebar"
             onClick={toggleCollapse}
             data-test="open-datasource-tab"
-            aria-label={t('Open Datasource tab')}
           >
-            <span className="action-button">
+            <Button
+              buttonStyle="link"
+              className="action-button"
+              aria-label={t('Open Datasource tab')}
+              onClick={toggleCollapse}
+            >
               <Tooltip title={t('Open Datasource tab')}>
                 <Icons.VerticalAlignTopOutlined
                   iconSize="xl"
@@ -1034,8 +1037,8 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
                   iconColor={theme.colorPrimary}
                 />
               </Tooltip>
-            </span>
-          </Button>
+            </Button>
+          </div>
         ) : null}
         <Resizable
           onResizeStop={(evt, direction, ref, d) =>

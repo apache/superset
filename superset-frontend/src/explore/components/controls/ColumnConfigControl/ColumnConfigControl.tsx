@@ -166,8 +166,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           />
         ))}
         {needShowMoreButton && (
-          <Button
-            buttonStyle="link"
+          <div
             css={{
               padding: theme.sizeUnit * 2,
               textAlign: 'center',
@@ -177,18 +176,22 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
                 backgroundColor: theme.colorFillContentHover,
               },
             }}
-            onClick={() => setShowAllColumns(!showAllColumns)}
           >
-            {showAllColumns ? (
-              <>
-                <Icons.UpOutlined /> &nbsp; {t('Show less columns')}
-              </>
-            ) : (
-              <>
-                <Icons.DownOutlined /> &nbsp; {t('Show all columns')}
-              </>
-            )}
-          </Button>
+            <Button
+              buttonStyle="link"
+              onClick={() => setShowAllColumns(!showAllColumns)}
+            >
+              {showAllColumns ? (
+                <>
+                  <Icons.UpOutlined /> &nbsp; {t('Show less columns')}
+                </>
+              ) : (
+                <>
+                  <Icons.DownOutlined /> &nbsp; {t('Show all columns')}
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </div>
     </>
