@@ -241,52 +241,14 @@ function TextAreaControl({
     ],
   );
 
-  // Extract only ControlHeader-compatible props from restProps
-  const {
-    label,
-    description,
-    validationErrors,
-    renderTrigger,
-    rightNode,
-    leftNode,
-    onClick,
-    hovered,
-    tooltipOnClick,
-    warning,
-    danger,
-  } = restProps as Record<string, unknown>;
-
+  // Pass restProps directly to ControlHeader. The same pattern is used by
+  // ViewportControl elsewhere in this PR — listing every ControlHeader prop
+  // explicitly was a literal port of `this.props` access from the class
+  // version, but for a pure FC `{...restProps}` is equivalent and avoids the
+  // dep-array drift that a 12-key destructure tends to invite.
   const controlHeader = useMemo(
-    () => (
-      <ControlHeader
-        name={name}
-        label={label as React.ReactNode}
-        description={description as React.ReactNode}
-        validationErrors={validationErrors as string[] | undefined}
-        renderTrigger={renderTrigger as boolean | undefined}
-        rightNode={rightNode as React.ReactNode}
-        leftNode={leftNode as React.ReactNode}
-        onClick={onClick as (() => void) | undefined}
-        hovered={hovered as boolean | undefined}
-        tooltipOnClick={tooltipOnClick as (() => void) | undefined}
-        warning={warning as string | undefined}
-        danger={danger as string | undefined}
-      />
-    ),
-    [
-      name,
-      label,
-      description,
-      validationErrors,
-      renderTrigger,
-      rightNode,
-      leftNode,
-      onClick,
-      hovered,
-      tooltipOnClick,
-      warning,
-      danger,
-    ],
+    () => <ControlHeader name={name} {...restProps} />,
+    [name, restProps],
   );
 
   const modalBody = useMemo(
@@ -305,7 +267,7 @@ function TextAreaControl({
       {renderEditor()}
       {offerEditInModal && (
         <ModalTrigger
-          modalTitle={String(label || '')}
+          modalTitle={controlHeader}
           triggerNode={
             <Button
               buttonSize="small"
