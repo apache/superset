@@ -51,6 +51,18 @@ test('renders with number copyNode without crashing', () => {
   expect(screen.getByRole('button')).toHaveTextContent('42');
 });
 
+test('non-element copyNode wrapper is keyboard-activatable', async () => {
+  const onCopyEnd = jest.fn();
+  render(<CopyToClipboard copyNode="copy me" onCopyEnd={onCopyEnd} />, {
+    useRedux: true,
+  });
+  const button = screen.getByRole('button');
+  expect(button).toHaveAttribute('tabIndex', '0');
+  button.focus();
+  await userEvent.keyboard('{enter}');
+  await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
+});
+
 test('renders without text showing', () => {
   const text = 'Text';
   render(<CopyToClipboard text={text} shouldShowText={false} />, {

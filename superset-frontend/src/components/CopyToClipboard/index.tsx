@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cloneElement, isValidElement, ReactElement, useCallback } from 'react';
+import {
+  cloneElement,
+  isValidElement,
+  type KeyboardEvent,
+  ReactElement,
+  useCallback,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, SupersetTheme } from '@apache-superset/core/theme';
 import copyTextToClipboard from 'src/utils/copy';
@@ -84,13 +90,23 @@ function CopyToClip({
         tabIndex: disabled ? -1 : node.props.tabIndex,
       });
     }
+    const handleKeyDown = disabled
+      ? undefined
+      : (event: KeyboardEvent<HTMLSpanElement>) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            // Prevent space-scroll when the wrapper is focused.
+            event.preventDefault();
+            onClick();
+          }
+        };
     return (
       <span
         style={{ cursor }}
         onClick={disabled ? undefined : onClick}
+        onKeyDown={handleKeyDown}
         role="button"
         aria-disabled={disabled || undefined}
-        tabIndex={disabled ? -1 : undefined}
+        tabIndex={disabled ? -1 : 0}
       >
         {copyNode}
       </span>
