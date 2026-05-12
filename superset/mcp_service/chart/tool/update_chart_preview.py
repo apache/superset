@@ -259,7 +259,11 @@ def update_chart_preview(  # noqa: C901
                                 preview_result.error,
                             )
                         else:
-                            previews[format_type] = preview_result
+                            previews[format_type] = (
+                                preview_result.model_dump(mode="json")
+                                if hasattr(preview_result, "model_dump")
+                                else preview_result
+                            )
 
             except (CommandException, ValueError, KeyError) as e:
                 logger.warning("Preview generation failed: %s", e)

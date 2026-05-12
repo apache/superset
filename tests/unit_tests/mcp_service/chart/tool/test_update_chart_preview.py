@@ -32,6 +32,7 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     LegendConfig,
     TableChartConfig,
+    TablePreview,
     UpdateChartPreviewRequest,
     XYChartConfig,
 )
@@ -701,7 +702,7 @@ class TestUpdateChartPreview:
     @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
-    @patch("superset.mcp_service.chart.preview_utils.generate_preview_from_form_data")
+    @patch.object(update_chart_preview_module, "generate_preview_from_form_data")
     @patch.object(update_chart_preview_module, "analyze_chart_semantics")
     @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
     @patch.object(update_chart_preview_module, "generate_explore_link")
@@ -732,7 +733,12 @@ class TestUpdateChartPreview:
         )
         mock_analyze_chart_capabilities.return_value = None
         mock_analyze_chart_semantics.return_value = None
-        table_preview = {
+        table_preview = TablePreview(
+            table_data="Table Preview",
+            row_count=1,
+            supports_sorting=True,
+        )
+        expected_table_preview = {
             "type": "table",
             "table_data": "Table Preview",
             "row_count": 1,
@@ -759,7 +765,7 @@ class TestUpdateChartPreview:
         )
 
         assert result["success"] is True
-        assert result["previews"] == {"table": table_preview}
+        assert result["previews"] == {"table": expected_table_preview}
         mock_generate_preview_from_form_data.assert_called_once()
         preview_kwargs = mock_generate_preview_from_form_data.call_args.kwargs
         assert preview_kwargs["dataset_id"] == 3
