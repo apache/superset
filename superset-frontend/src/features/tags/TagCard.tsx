@@ -75,15 +75,14 @@ function TagCard({
           onConfirm={() => handleTagDelete(tag)}
         >
           {confirmDelete => (
-            <div
-              role="button"
-              tabIndex={0}
+            <Button
+              buttonStyle="link"
               className="action-button"
               onClick={confirmDelete}
               data-test="dashboard-card-option-delete-button"
             >
               <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
-            </div>
+            </Button>
           )}
         </ConfirmStatusChange>
       ),

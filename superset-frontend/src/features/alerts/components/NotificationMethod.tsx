@@ -34,7 +34,7 @@ import {
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Input, Select } from '@superset-ui/core/components';
+import { Button, Input, Select } from '@superset-ui/core/components';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import {
   NotificationMethodOption,
@@ -465,15 +465,14 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               loading={methodOptionsLoading}
             />
             {index !== 0 && !!onRemove ? (
-              // eslint-disable-next-line jsx-a11y/control-has-associated-label
-              <span
-                role="button"
-                tabIndex={0}
+              <Button
+                buttonStyle="link"
                 className="delete-button"
                 onClick={() => onRemove(index)}
+                aria-label={t('Delete notification method')}
               >
                 <Icons.DeleteOutlined iconSize="l" />
-              </span>
+              </Button>
             ) : null}
           </div>
         </StyledInputContainer>
@@ -634,26 +633,24 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               )}
               {/* New buttons container */}
               <div className="ghost-button">
-                <span
+                <Button
+                  buttonStyle="link"
                   className="ghost-button"
-                  role="button"
-                  tabIndex={0}
                   onClick={() => setCcVisible(true)}
                   style={{ display: ccVisible ? 'none' : 'inline-flex' }}
                 >
                   <Icons.MailOutlined iconSize="xs" className="icon" />
                   {t('Add CC Recipients')}
-                </span>
-                <span
+                </Button>
+                <Button
+                  buttonStyle="link"
                   className="ghost-button"
-                  role="button"
-                  tabIndex={0}
                   onClick={() => setBccVisible(true)}
                   style={{ display: bccVisible ? 'none' : 'inline-flex' }}
                 >
                   <Icons.MailOutlined iconSize="xs" className="icon" />
                   {t('Add BCC Recipients')}
-                </span>
+                </Button>
               </div>
             </StyledInputContainer>
           )}

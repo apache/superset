@@ -75,24 +75,18 @@ export const CopyToClipboardButton = ({
       disabled={disabled}
       wrapped={false}
       copyNode={
-        <span
-          role="button"
-          aria-label={t('Copy')}
-          aria-disabled={disabled}
-          tabIndex={disabled ? -1 : 0}
-        >
+        <Button buttonStyle="link" aria-label={t('Copy')} disabled={disabled}>
           <Icons.CopyOutlined
             iconColor={theme.colorIcon}
             iconSize="l"
             css={css`
               opacity: ${disabled ? 0.3 : 1};
-              cursor: ${disabled ? 'not-allowed' : 'pointer'};
               &.anticon > * {
                 line-height: 0;
               }
             `}
           />
-        </span>
+        </Button>
       }
     />
   );

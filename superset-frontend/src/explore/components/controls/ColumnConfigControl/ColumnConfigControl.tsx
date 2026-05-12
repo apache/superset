@@ -24,7 +24,7 @@ import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
 } from '@superset-ui/chart-controls';
-import { Icons } from '@superset-ui/core/components';
+import { Button, Icons } from '@superset-ui/core/components';
 import ColumnConfigItem from './ColumnConfigItem';
 import {
   ColumnConfigInfo,
@@ -166,13 +166,11 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           />
         ))}
         {needShowMoreButton && (
-          <div
-            role="button"
-            tabIndex={-1}
+          <Button
+            buttonStyle="link"
             css={{
               padding: theme.sizeUnit * 2,
               textAlign: 'center',
-              cursor: 'pointer',
               fontSize: theme.fontSizeXS,
               color: theme.colorTextLabel,
               ':hover': {
@@ -190,7 +188,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
                 <Icons.DownOutlined /> &nbsp; {t('Show all columns')}
               </>
             )}
-          </div>
+          </Button>
         )}
       </div>
     </>

@@ -479,16 +479,15 @@ class AdhocMetricEditPopover extends PureComponent<
                     title={t('No saved metrics found')}
                     description={
                       <>
-                        <span
-                          tabIndex={0}
-                          role="button"
+                        <Button
+                          buttonStyle="link"
                           onClick={() => {
                             this.props.handleDatasetModal?.(true);
                             this.props.onClose();
                           }}
                         >
                           {t('Create a dataset')}
-                        </span>
+                        </Button>
                         {t(' to add metrics')}
                       </>
                     }
@@ -594,13 +593,14 @@ class AdhocMetricEditPopover extends PureComponent<
           >
             {t('Save')}
           </Button>
-          <Icons.ArrowsAltOutlined
-            role="button"
+          <Button
+            buttonStyle="link"
             aria-label={t('Resize')}
-            tabIndex={0}
             onMouseDown={this.onDragDown}
             className="edit-popover-resize"
-          />
+          >
+            <Icons.ArrowsAltOutlined />
+          </Button>
         </div>
       </Form>
     );
