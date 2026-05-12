@@ -43,6 +43,7 @@ import {
   Flex,
   Typography,
   TreeSelect,
+  type SelectValue,
 } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
@@ -410,10 +411,15 @@ const SaveModal = ({
   );
 
   const onDashboardChange = useCallback(
-    async (
-      newDashboard: { label: string; value: string | number } | null,
-    ) => {
-      setDashboard(newDashboard ?? undefined);
+    async (value: SelectValue) => {
+      // AsyncSelect's onChange is typed with the broad antd SelectValue, but
+      // this Select is single-mode with labeled options, so the runtime value
+      // is either a { label, value } object or null/undefined when cleared.
+      const newDashboard =
+        value && typeof value === 'object' && !Array.isArray(value)
+          ? (value as { label: string; value: string | number })
+          : undefined;
+      setDashboard(newDashboard);
       setTabsData([]);
       setSelectedTab(undefined);
 
