@@ -19,10 +19,12 @@
 import fetchMock from 'fetch-mock';
 import { QueryFormData, SupersetClient } from '@superset-ui/core';
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
@@ -215,11 +217,14 @@ test('should render the metadata bar', async () => {
 });
 
 test('should render the error', async () => {
-  jest
+  const postSpy = jest
     .spyOn(SupersetClient, 'post')
     .mockRejectedValue(new Error('Something went wrong'));
   await waitForRender();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
+  // Restore so the rejection doesn't leak into subsequent tests that
+  // legitimately need SupersetClient.post to succeed.
+  postSpy.mockRestore();
 });
 
 describe('download actions', () => {
@@ -290,6 +295,39 @@ test('should render pagination when results exceed page size', async () => {
     const pagination = document.querySelector('.ant-pagination');
     expect(pagination).toBeTruthy();
   });
+});
+
+test('should offer the full set of page-size options', async () => {
+  fetchWithPaginatedData();
+  await waitForRender();
+
+  // The page-size changer renders as an antd Select. In jsdom, antd opens
+  // its overlay on mouseDown of the .ant-select-selector element rather
+  // than via a click on the inner combobox input.
+  const selector = await waitFor(() => {
+    const el = document.querySelector(
+      '.ant-pagination-options-size-changer .ant-select-selector',
+    ) as HTMLElement | null;
+    expect(el).toBeTruthy();
+    return el!;
+  });
+  fireEvent.mouseDown(selector);
+
+  // The opened listbox lives in a body portal; collect its options and assert
+  // exactly the canonical [5, 15, 25, 50, 100] set is offered. Without this
+  // guard, regressing to a single hardcoded option (the pre-rework approach)
+  // would silently pass CI.
+  const listbox = await screen.findByRole('listbox');
+  const offeredSizes = within(listbox)
+    .getAllByRole('option')
+    .map(el => el.getAttribute('title'));
+  expect(offeredSizes).toEqual([
+    '5 / page',
+    '15 / page',
+    '25 / page',
+    '50 / page',
+    '100 / page',
+  ]);
 });
 
 test('should use verbose_map for column headers when available', async () => {
