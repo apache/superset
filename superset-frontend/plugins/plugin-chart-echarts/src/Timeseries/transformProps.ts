@@ -111,6 +111,7 @@ import {
 import {
   OpacityEnum,
   StackControlsValue,
+  TIMEGRAIN_TO_MIN_INTERVAL,
   TIMEGRAIN_TO_TIMESTAMP,
   TIMESERIES_CONSTANTS,
 } from '../constants';
@@ -910,8 +911,8 @@ export default function transformProps(
     minorTick: { show: minorTicks },
     minInterval:
       xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
-        ? TIMEGRAIN_TO_TIMESTAMP[
-            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+        ? TIMEGRAIN_TO_MIN_INTERVAL[
+            timeGrainSqla as keyof typeof TIMEGRAIN_TO_MIN_INTERVAL
           ]
         : 0,
     maxInterval:

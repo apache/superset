@@ -1473,6 +1473,39 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   expect(label4).toBe('');
 });
 
+test('monthly x-axis minInterval allows consecutive calendar months', () => {
+  const monthData = [
+    { __timestamp: Date.UTC(2025, 3, 1), sales: 100 },
+    { __timestamp: Date.UTC(2025, 4, 1), sales: 200 },
+    { __timestamp: Date.UTC(2025, 5, 1), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
+      xAxisTimeFormat: '%b %Y',
+    },
+    queriesData: [
+      createTestQueryData(monthData, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const transformedProps = transformProps(chartProps);
+  const xAxisResult = transformedProps.echartOptions.xAxis as any;
+
+  expect(xAxisResult.minInterval).toBe(3600 * 1000 * 24 * 28);
+  expect(Date.UTC(2025, 4, 1) - Date.UTC(2025, 3, 1)).toBeGreaterThanOrEqual(
+    xAxisResult.minInterval,
+  );
+  expect(Date.UTC(2025, 5, 1) - Date.UTC(2025, 4, 1)).toBeGreaterThanOrEqual(
+    xAxisResult.minInterval,
+  );
+});
+
 test('numeric x coltype routes through the number formatter (not the time formatter)', () => {
   // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation.
   // When the query reports a Numeric x-axis coltype (including epoch-ms-like

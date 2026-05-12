@@ -97,6 +97,16 @@ export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 31 * 12,
 };
 
+export const TIMEGRAIN_TO_MIN_INTERVAL = {
+  ...TIMEGRAIN_TO_TIMESTAMP,
+  // ECharts applies minInterval as a lower bound between ticks. Use the
+  // shortest possible calendar interval for coarse grains so month-start ticks
+  // after 30-day months are still eligible.
+  [TimeGranularity.MONTH]: 3600 * 1000 * 24 * 28,
+  [TimeGranularity.QUARTER]: 3600 * 1000 * 24 * 90,
+  [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 365,
+};
+
 export const DEFAULT_LEGEND_FORM_DATA: LegendFormData = {
   legendMargin: null,
   legendOrientation: LegendOrientation.Top,

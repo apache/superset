@@ -95,7 +95,11 @@ import {
   transformSeries,
   transformTimeseriesAnnotation,
 } from '../Timeseries/transformers';
-import { TIMEGRAIN_TO_TIMESTAMP, TIMESERIES_CONSTANTS } from '../constants';
+import {
+  TIMEGRAIN_TO_MIN_INTERVAL,
+  TIMEGRAIN_TO_TIMESTAMP,
+  TIMESERIES_CONSTANTS,
+} from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
   getTooltipTimeFormatter,
@@ -700,8 +704,8 @@ export default function transformProps(
       minorTick: { show: minorTicks },
       minInterval:
         xAxisType === AxisType.Time && timeGrainSqla && !forceMaxInterval
-          ? TIMEGRAIN_TO_TIMESTAMP[
-              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ? TIMEGRAIN_TO_MIN_INTERVAL[
+              timeGrainSqla as keyof typeof TIMEGRAIN_TO_MIN_INTERVAL
             ]
           : 0,
       maxInterval:
