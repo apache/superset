@@ -11,6 +11,10 @@ on:
     workflows: ["Python-Integration"]
     types: [completed]
 
+permissions:
+  actions: read
+  contents: read
+
 # cancel previous workflow jobs for PRs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || github.run_id }}
