@@ -294,7 +294,7 @@ export function Menu({
     if (theme.brandLogoUrl) {
       link = (
         <StyledBrandWrapper margin={theme.brandLogoMargin}>
-          <StyledBrandLink href={ensureAppRoot(theme.brandLogoHref)}>
+          <StyledBrandLink href={ensureAppRoot(theme.brandLogoHref ?? '/')}>
             <StyledImage
               preview={false}
               src={ensureStaticPrefix(theme.brandLogoUrl)}
