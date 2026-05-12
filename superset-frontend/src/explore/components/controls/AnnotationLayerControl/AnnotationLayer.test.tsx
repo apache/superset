@@ -89,7 +89,7 @@ const waitForRender = (props?: any) =>
 test('renders with default props', async () => {
   await waitForRender();
   expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
-  expect(screen.getByRole('button', { name: 'OK' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Confirm' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
 });
 
@@ -127,7 +127,7 @@ test('enables apply and ok buttons', async () => {
 
   await waitFor(() => {
     expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Confirm' })).toBeEnabled();
   });
 });
 
@@ -142,7 +142,7 @@ test('triggers addAnnotationLayer and close when ok button is clicked', async ()
   const addAnnotationLayer = jest.fn();
   const close = jest.fn();
   await waitForRender({ name: 'Test', value: '2x', addAnnotationLayer, close });
-  userEvent.click(screen.getByRole('button', { name: 'OK' }));
+  userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
   expect(addAnnotationLayer).toHaveBeenCalled();
   expect(close).toHaveBeenCalled();
 });
@@ -236,7 +236,7 @@ test('Disable apply button if formula is incorrect', async () => {
 
   const formulaInput = screen.getByRole('textbox', { name: 'Formula' });
   const applyButton = screen.getByRole('button', { name: 'Apply' });
-  const okButton = screen.getByRole('button', { name: 'OK' });
+  const okButton = screen.getByRole('button', { name: 'Confirm' });
 
   userEvent.type(formulaInput, 'x+1');
   expect(formulaInput).toHaveValue('x+1');
