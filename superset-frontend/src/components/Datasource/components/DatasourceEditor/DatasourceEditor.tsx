@@ -1367,10 +1367,13 @@ function DatasourceEditor({
     // Mark initial mount as complete after first render cycle
     // This prevents useEffect hooks from firing on mount
     isInitialMount.current = false;
+    // Bind ctrl+shift+f once on mount and route through refs so we don't
+    // unbind/rebind on every SQL-editor keystroke (onQueryFormat's identity
+    // changes with datasource.sql).
     Mousetrap.bind('ctrl+shift+f', e => {
       e.preventDefault();
-      if (isEditMode) {
-        onQueryFormat();
+      if (isEditModeRef.current) {
+        onQueryFormatRef.current?.();
       }
       return false;
     });
@@ -1392,16 +1395,12 @@ function DatasourceEditor({
     };
   }, []);
 
-  // Update Mousetrap binding when isEditMode changes
+  // Keep the refs read by the (one-shot) Mousetrap handler up to date.
+  const isEditModeRef = useRef(isEditMode);
+  const onQueryFormatRef = useRef(onQueryFormat);
   useEffect(() => {
-    Mousetrap.unbind('ctrl+shift+f');
-    Mousetrap.bind('ctrl+shift+f', e => {
-      e.preventDefault();
-      if (isEditMode) {
-        onQueryFormat();
-      }
-      return false;
-    });
+    isEditModeRef.current = isEditMode;
+    onQueryFormatRef.current = onQueryFormat;
   }, [isEditMode, onQueryFormat]);
 
   // componentDidUpdate for props.datasource changes
