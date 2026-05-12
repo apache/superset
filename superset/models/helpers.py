@@ -1585,11 +1585,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 for metric in metric_names
             }
 
-            # When the original query has limit or offset we wont apply those
-            # to the subquery so we prevent data inconsistency due to missing records
-            # in the dataframes when performing the join
+            # The subquery drops row_offset (the offset period's own row ordering
+            # differs from the main query's, so applying the same offset would skew
+            # the join). It must still fetch enough rows to cover the main query's
+            # window, hence row_limit + row_offset when a chart limit is set.
             if query_object.row_limit or query_object.row_offset:
-                query_object_clone_dct["row_limit"] = app.config["ROW_LIMIT"]
+                if query_object.row_limit:
+                    query_object_clone_dct["row_limit"] = (
+                        query_object.row_limit + query_object.row_offset
+                    )
+                else:
+                    query_object_clone_dct["row_limit"] = app.config["ROW_LIMIT"]
                 query_object_clone_dct["row_offset"] = 0
 
             # Call the unified query method on the datasource
@@ -2471,7 +2477,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if rls_filters:
             qry = qry.where(and_(*rls_filters))
 
-        with self.database.get_sqla_engine() as engine:
+        with self.database.get_sqla_engine(
+            catalog=self.catalog, schema=self.schema
+        ) as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
             sql = self._apply_cte(sql, cte)
 
@@ -3027,6 +3035,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col_obj = columns_by_name.get(cast(str, flt_col))
                 # If not found in columns, check if it's a metric
                 # This supports filtering on metric columns for any chart type
+                if col_obj is None:
+                    # Fall back to verbose_name so filters produced by
+                    # right-click "Drill to detail by" (which can pass a
+                    # column's verbose label) still resolve to a real column.
+                    col_obj = next(
+                        (c for c in self.columns if c.verbose_name == flt_col),
+                        None,
+                    )
                 if (
                     col_obj is None
                     and isinstance(flt_col, str)
@@ -3070,6 +3086,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     sqla_col = self.convert_tbl_column_to_sqla_col(
                         tbl_column=col_obj, template_processor=template_processor
                     )
+                # Parenthesize expression-based columns to prevent operator
+                # precedence issues (e.g. OR in a calculated column breaking
+                # surrounding AND filters). Same pattern as extras.where
+                # wrapping added in PR #38183.
+                if sqla_col is not None and (
+                    (col_obj and col_obj.expression) or is_adhoc_column(flt_col)
+                ):
+                    sqla_col = Grouping(sqla_col)
                 col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(native_type=col_type)
                 is_list_target = op in (

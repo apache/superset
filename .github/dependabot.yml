@@ -37,6 +37,10 @@ updates:
       # `just-handlerbars-helpers` library in plugin-chart-handlebars requires `currencyformatter`` to be < 2
       - dependency-name: "currencyformatter.js"
         update-types: ["version-update:semver-major"]
+      # TODO: remove below clause once https://github.com/pmmmwh/react-refresh-webpack-plugin/pull/940 lands onto a future release
+      # and confirm the issue https://github.com/apache/superset/issues/39600 is fixed
+      - dependency-name: "react-checkbox-tree"
+        update-types: ["version-update:semver-major"]
     groups:
       storybook:
         applies-to: version-updates
@@ -55,15 +59,13 @@ updates:
     versioning-strategy: increase
 
 
-  # NOTE: `uv` support is in beta, more details here:
-  # https://github.com/dependabot/dependabot-core/pull/10040#issuecomment-2696978430
-  - package-ecosystem: "uv"
-    directory: "requirements/"
+  - package-ecosystem: "pip"
+    directory: "/"
     open-pull-requests-limit: 10
     schedule:
       interval: "weekly"
     labels:
-      - uv
+      - pip
       - dependabot
 
   - package-ecosystem: "npm"

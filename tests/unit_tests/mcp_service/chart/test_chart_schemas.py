@@ -25,7 +25,6 @@ from pydantic import ValidationError
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
     GenerateChartRequest,
-    parse_chart_config,
     TableChartConfig,
     XYChartConfig,
 )
@@ -671,48 +670,49 @@ class TestColumnRefSavedMetric:
             )
 
 
-class TestParseChartConfig:
-    """Tests for parse_chart_config and config coercion."""
+class TestChartConfigValidation:
+    """Tests for ChartConfig discriminated union validation via Pydantic."""
 
-    def test_parse_valid_xy_config(self) -> None:
-        config = parse_chart_config(
-            {"chart_type": "xy", "x": {"name": "date"}, "y": [{"name": "v"}]}
+    def test_valid_xy_config_via_request(self) -> None:
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config={"chart_type": "xy", "x": {"name": "date"}, "y": [{"name": "v"}]},
         )
-        assert config.chart_type == "xy"
-        assert config.x is not None
-        assert config.x.name == "date"
-        assert len(config.y) == 1
-        assert config.y[0].name == "v"
+        assert req.config.chart_type == "xy"
+        assert req.config.x is not None
+        assert req.config.x.name == "date"
+        assert len(req.config.y) == 1
+        assert req.config.y[0].name == "v"
 
-    def test_parse_valid_table_config(self) -> None:
-        config = parse_chart_config(
-            {"chart_type": "table", "columns": [{"name": "col1"}]}
+    def test_valid_table_config_via_request(self) -> None:
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config={"chart_type": "table", "columns": [{"name": "col1"}]},
         )
-        assert config.chart_type == "table"
-        assert len(config.columns) == 1
-        assert config.columns[0].name == "col1"
+        assert req.config.chart_type == "table"
+        assert len(req.config.columns) == 1
+        assert req.config.columns[0].name == "col1"
 
-    def test_parse_missing_chart_type_raises(self) -> None:
-        with pytest.raises(ValueError, match="chart://configs"):
-            parse_chart_config({"x": {"name": "date"}, "y": [{"name": "v"}]})
+    def test_missing_chart_type_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            GenerateChartRequest(
+                dataset_id=1,
+                config={"x": {"name": "date"}, "y": [{"name": "v"}]},
+            )
 
-    def test_parse_unknown_chart_type_raises(self) -> None:
-        with pytest.raises(ValueError, match="chart://configs"):
-            parse_chart_config({"chart_type": "nonexistent", "x": {"name": "d"}})
+    def test_unknown_chart_type_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            GenerateChartRequest(
+                dataset_id=1,
+                config={"chart_type": "nonexistent", "x": {"name": "d"}},
+            )
 
-    def test_coerce_json_string_config(self) -> None:
-        raw = '{"chart_type": "table", "columns": [{"name": "c"}]}'
-        req = GenerateChartRequest(dataset_id=1, config=raw)
-        assert isinstance(req.config, dict)
-        assert req.config["chart_type"] == "table"
-
-    def test_coerce_typed_config_object(self) -> None:
+    def test_typed_config_object_accepted(self) -> None:
         typed = TableChartConfig(chart_type="table", columns=[ColumnRef(name="c")])
         req = GenerateChartRequest(dataset_id=1, config=typed)
-        assert isinstance(req.config, dict)
-        assert req.config["chart_type"] == "table"
+        assert req.config.chart_type == "table"
 
-    def test_coerce_invalid_json_string_raises(self) -> None:
+    def test_invalid_config_raises(self) -> None:
         with pytest.raises(ValidationError):
             GenerateChartRequest(dataset_id=1, config="not valid json")
 

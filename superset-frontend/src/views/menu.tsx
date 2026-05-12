@@ -20,8 +20,9 @@ import 'src/public-path';
 
 // Menu App. Used in views that do not already include the Menu component in the layout.
 // eg, backend rendered views
+import { StrictMode } from 'react';
 import { Provider } from 'react-redux';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { CacheProvider } from '@emotion/react';
 import { QueryParamProvider } from 'use-query-params';
@@ -45,24 +46,29 @@ const emotionCache = createCache({
 });
 
 const app = (
-  <CacheProvider value={emotionCache}>
-    <ThemeProvider theme={theme}>
-      <Provider store={store}>
-        <BrowserRouter>
-          <QueryParamProvider
-            adapter={ReactRouter5Adapter}
-            options={{
-              searchStringToObject: querystring.parse,
-              objectToSearchString: (object: Record<string, any>) =>
-                querystring.stringify(object, { encode: false }),
-            }}
-          >
-            <Menu data={menu} />
-          </QueryParamProvider>
-        </BrowserRouter>
-      </Provider>
-    </ThemeProvider>
-  </CacheProvider>
+  <StrictMode>
+    <CacheProvider value={emotionCache}>
+      <ThemeProvider theme={theme}>
+        <Provider store={store}>
+          <BrowserRouter>
+            <QueryParamProvider
+              adapter={ReactRouter5Adapter}
+              options={{
+                searchStringToObject: querystring.parse,
+                objectToSearchString: (object: Record<string, any>) =>
+                  querystring.stringify(object, { encode: false }),
+              }}
+            >
+              <Menu data={menu} />
+            </QueryParamProvider>
+          </BrowserRouter>
+        </Provider>
+      </ThemeProvider>
+    </CacheProvider>
+  </StrictMode>
 );
 
-ReactDOM.render(app, document.getElementById('app-menu'));
+const menuMountPoint = document.getElementById('app-menu');
+if (menuMountPoint) {
+  createRoot(menuMountPoint).render(app);
+}

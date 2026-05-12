@@ -405,7 +405,8 @@ describe('ChartPage', () => {
       rejectFirstRequest = reject;
     });
 
-    fetchMock.get(exploreApiRoute, () => firstRequestPromise);
+    const firstRequestHandler = jest.fn(() => firstRequestPromise);
+    fetchMock.get(exploreApiRoute, firstRequestHandler);
 
     render(
       <>
@@ -419,16 +420,16 @@ describe('ChartPage', () => {
       },
     );
 
-    // Wait for the first request to be initiated
-    await waitFor(() =>
-      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
-    );
+    // Wait for the initial request cycle to begin. Under CI, mount/navigation
+    // setup can trigger more than one explore fetch before history is cleared.
+    await waitFor(() => expect(firstRequestHandler).toHaveBeenCalled());
 
     // Set up second request to return immediately
     fetchMock.clearHistory().removeRoutes();
-    fetchMock.get(exploreApiRoute, {
+    const secondRequestHandler = jest.fn(() => ({
       result: { dataset: { id: 1 }, form_data: exploreFormData },
-    });
+    }));
+    fetchMock.get(exploreApiRoute, secondRequestHandler);
 
     // Navigate to trigger a new request (which should abort the first)
     fireEvent.click(screen.getByText('Navigate'));
@@ -441,10 +442,8 @@ describe('ChartPage', () => {
     // Wait for the first request to settle before asserting
     await firstRequestPromise.catch(() => undefined);
 
-    // Wait for the second request to complete
-    await waitFor(() =>
-      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
-    );
+    // Wait for the replacement request to run after navigation.
+    await waitFor(() => expect(secondRequestHandler).toHaveBeenCalled());
 
     // No error toast should be shown from the aborted first request
     expect(addDangerToastSpy).not.toHaveBeenCalled();

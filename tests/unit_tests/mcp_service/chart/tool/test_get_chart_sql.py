@@ -33,13 +33,16 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.chart.tool.get_chart_sql import (
     _build_query_context_from_form_data,
     _extract_sql_from_result,
+    _extract_x_axis_col,
     _find_chart_by_identifier,
+    _resolve_datasource_name,
     _resolve_effective_form_data,
     _resolve_groupby,
     _resolve_metrics,
     _resolve_metrics_and_groupby,
     get_chart_sql,
 )
+from superset.mcp_service.utils import sanitize_for_llm_context
 
 _get_chart_sql_mod = importlib.import_module(
     "superset.mcp_service.chart.tool.get_chart_sql"
@@ -105,12 +108,39 @@ class TestExtractSqlFromResult:
             datasource_name="my_table",
         )
         assert isinstance(output, ChartSql)
-        assert output.sql == "SELECT * FROM my_table WHERE x > 1"
+        assert output.sql == sanitize_for_llm_context(
+            "SELECT * FROM my_table WHERE x > 1"
+        )
         assert output.language == "sql"
         assert output.chart_id == 10
-        assert output.chart_name == "Sales Chart"
-        assert output.datasource_name == "my_table"
+        assert output.chart_name == sanitize_for_llm_context("Sales Chart")
+        assert output.datasource_name == sanitize_for_llm_context("my_table")
         assert output.error is None
+
+    def test_successful_sql_extraction_sanitizes_datasource_name(self):
+        """Chart SQL wrapping treats datasource names as LLM-facing content."""
+        result = {
+            "queries": [
+                {
+                    "query": "SELECT * FROM orders",
+                    "language": "sql",
+                    "error": "Missing optional predicate",
+                }
+            ]
+        }
+
+        output = _extract_sql_from_result(
+            result,
+            chart_id=10,
+            chart_name="Orders",
+            datasource_name="analytics.orders",
+        )
+
+        assert isinstance(output, ChartSql)
+        assert output.datasource_name == sanitize_for_llm_context("analytics.orders")
+        assert output.error == sanitize_for_llm_context(
+            "Query 1: Missing optional predicate"
+        )
 
     def test_empty_queries_returns_error(self):
         """Test that empty query results return a ChartError."""
@@ -163,7 +193,7 @@ class TestExtractSqlFromResult:
             result, chart_id=7, chart_name="Partial", datasource_name="tbl"
         )
         assert isinstance(output, ChartSql)
-        assert output.sql == "SELECT col1 FROM tbl"
+        assert output.sql == sanitize_for_llm_context("SELECT col1 FROM tbl")
         assert output.error is not None
 
     def test_null_chart_metadata(self):
@@ -356,9 +386,14 @@ class TestBuildQueryContextFromFormData:
     """
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
-    def test_temporal_fields_passed_to_factory(self, mock_factory_cls):
-        """time_range, granularity_sqla, adhoc_filters from form_data are
-        forwarded via form_data= to the factory, not dropped."""
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_temporal_fields_passed_to_factory(self, mock_get_ds, mock_factory_cls):
+        """time_range, adhoc_filters from form_data are processed and
+        forwarded to the factory — not dropped."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
         mock_factory = Mock()
         mock_factory.create.return_value = Mock()
         mock_factory_cls.return_value = mock_factory
@@ -390,17 +425,22 @@ class TestBuildQueryContextFromFormData:
             mock_result_type.QUERY = "QUERY"
             _build_query_context_from_form_data(form_data, chart=None)
 
-        # Verify factory.create was called with form_data containing all fields
         call_kwargs = mock_factory.create.call_args[1]
         assert call_kwargs["form_data"] is form_data
         assert call_kwargs["form_data"]["time_range"] == "Last 7 days"
         assert call_kwargs["form_data"]["granularity_sqla"] == "created_at"
-        assert call_kwargs["form_data"]["adhoc_filters"] is not None
-        assert call_kwargs["form_data"]["where"] == "region = 'US'"
-        assert call_kwargs["form_data"]["having"] == "count > 10"
-        assert call_kwargs["form_data"]["filters"] == [
-            {"col": "city", "op": "==", "val": "NYC"}
-        ]
+
+        # adhoc_filters are preprocessed by split_adhoc_filters_into_base_filters
+        # into form_data["filters"]/["where"]/["having"], then included
+        # in the query dict as concrete filter clauses.
+        queries = call_kwargs["queries"]
+        assert len(queries) == 1
+        assert queries[0]["time_range"] == "Last 7 days"
+        assert "adhoc_filters" not in queries[0]
+        # The simple adhoc WHERE filter (status == active) should be
+        # merged into filters by split_adhoc_filters_into_base_filters.
+        filters = queries[0].get("filters", [])
+        assert {"col": "status", "op": "==", "val": "active"} in filters
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     def test_metrics_and_groupby_in_queries(self, mock_factory_cls):
@@ -427,6 +467,477 @@ class TestBuildQueryContextFromFormData:
         assert len(queries) == 1
         assert queries[0]["metrics"] == ["sum_revenue"]
         assert queries[0]["columns"] == ["product"]
+
+
+class TestExtractXAxisCol:
+    """Tests for the _extract_x_axis_col helper."""
+
+    def test_string_x_axis(self):
+        """Plain string x_axis returns the string directly."""
+        assert _extract_x_axis_col({"x_axis": "order_date"}) == "order_date"
+
+    def test_dict_x_axis(self):
+        """Adhoc column dict x_axis returns column_name."""
+        assert (
+            _extract_x_axis_col(
+                {
+                    "x_axis": {
+                        "column_name": "ds",
+                        "label": "ds",
+                        "expressionType": "SIMPLE",
+                    }
+                }
+            )
+            == "ds"
+        )
+
+    def test_missing_x_axis_returns_none(self):
+        """Missing x_axis key returns None."""
+        assert _extract_x_axis_col({}) is None
+
+    def test_none_x_axis_returns_none(self):
+        """Explicit None x_axis returns None."""
+        assert _extract_x_axis_col({"x_axis": None}) is None
+
+    def test_empty_string_x_axis_returns_none(self):
+        """Empty string x_axis returns None."""
+        assert _extract_x_axis_col({"x_axis": ""}) is None
+
+    def test_dict_missing_column_name_returns_none(self):
+        """Adhoc column dict without column_name returns None."""
+        assert _extract_x_axis_col({"x_axis": {"label": "ds"}}) is None
+
+    def test_sql_expression_x_axis_returns_none(self):
+        """SQL expression adhoc columns have no column_name; returns None."""
+        assert (
+            _extract_x_axis_col(
+                {
+                    "x_axis": {
+                        "expressionType": "SQL",
+                        "sqlExpression": "DATE_TRUNC('day', created_at)",
+                        "label": "day",
+                    }
+                }
+            )
+            is None
+        )
+
+
+class TestBuildQueryContextTimeseriesAndMixed:
+    """Regression tests for x_axis and mixed_timeseries query-context fixes.
+
+    Guards against two bugs: x_axis column dropped for echarts_timeseries_*
+    charts, and only one query rendered for mixed_timeseries charts.
+    """
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_echarts_timeseries_x_axis_included_in_columns(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """x_axis column is prepended to query columns for echarts_timeseries charts."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "ds",
+            "metrics": ["sum__sales"],
+            "groupby": ["region"],
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert len(queries) == 1
+        assert queries[0]["columns"][0] == "ds"
+        assert "region" in queries[0]["columns"]
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_echarts_timeseries_dict_x_axis_included_in_columns(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """Adhoc-column x_axis dict is resolved and prepended for echarts_timeseries."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "echarts_timeseries_bar",
+            "x_axis": {"column_name": "order_date", "expressionType": "SIMPLE"},
+            "metrics": ["count"],
+            "groupby": [],
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert queries[0]["columns"][0] == "order_date"
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_echarts_timeseries_x_axis_not_duplicated_if_already_in_groupby(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """x_axis is not duplicated if it is already in groupby."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "ds",
+            "metrics": ["count"],
+            "groupby": ["ds"],  # already present
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert queries[0]["columns"].count("ds") == 1
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_non_timeseries_x_axis_not_added(self, mock_get_ds, mock_factory_cls):
+        """x_axis is not added for non-timeseries chart types (e.g. table)."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "table",
+            "x_axis": "ds",
+            "metrics": ["count"],
+            "groupby": ["region"],
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert "ds" not in queries[0]["columns"]
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_mixed_timeseries_produces_two_queries(self, mock_get_ds, mock_factory_cls):
+        """mixed_timeseries builds two query dicts — one per series layer."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["sum__revenue"],
+            "groupby": ["country"],
+            "metrics_b": ["count"],
+            "groupby_b": ["channel"],
+            "time_range": "Last 30 days",
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert len(queries) == 2
+
+        # Primary query
+        assert "ds" in queries[0]["columns"]
+        assert "country" in queries[0]["columns"]
+        assert queries[0]["metrics"] == ["sum__revenue"]
+        assert queries[0]["time_range"] == "Last 30 days"
+
+        # Secondary query
+        assert "ds" in queries[1]["columns"]
+        assert "channel" in queries[1]["columns"]
+        assert queries[1]["metrics"] == ["count"]
+        assert queries[1]["time_range"] == "Last 30 days"
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_mixed_timeseries_x_axis_not_duplicated_in_secondary(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """x_axis is not duplicated in the secondary query if already in groupby_b."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["count"],
+            "groupby": [],
+            "metrics_b": ["sum__sales"],
+            "groupby_b": ["ds"],  # x_axis already present
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert queries[1]["columns"].count("ds") == 1
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_mixed_timeseries_empty_secondary(self, mock_get_ds, mock_factory_cls):
+        """mixed_timeseries with no metrics_b/groupby_b still produces two queries."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["count"],
+            "groupby": [],
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert len(queries) == 2
+        assert queries[1]["metrics"] == []
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_mixed_timeseries_time_range_b_overrides_secondary(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """time_range_b overrides the primary time_range for the secondary query."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["sum__revenue"],
+            "groupby": [],
+            "metrics_b": ["count"],
+            "groupby_b": [],
+            "time_range": "Last 30 days",
+            "time_range_b": "Last 7 days",
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert len(queries) == 2
+        assert queries[0]["time_range"] == "Last 30 days"
+        assert queries[1]["time_range"] == "Last 7 days"
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_mixed_timeseries_row_limit_b_overrides_secondary(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """row_limit_b overrides the primary row_limit for the secondary query."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["sum__revenue"],
+            "groupby": [],
+            "metrics_b": ["count"],
+            "groupby_b": [],
+            "row_limit": 100,
+            "row_limit_b": 50,
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert len(queries) == 2
+        assert queries[0]["row_limit"] == 100
+        assert queries[1]["row_limit"] == 50
+
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_mixed_timeseries_adhoc_filters_b_applied_to_secondary(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """adhoc_filters_b is processed and applied to the secondary query filters."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["sum__revenue"],
+            "groupby": [],
+            "metrics_b": ["count"],
+            "groupby_b": [],
+            "adhoc_filters_b": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "channel",
+                    "operator": "==",
+                    "comparator": "organic",
+                }
+            ],
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        queries = mock_factory.create.call_args[1]["queries"]
+        assert len(queries) == 2
+        secondary_filters = queries[1].get("filters", [])
+        assert {"col": "channel", "op": "==", "val": "organic"} in secondary_filters
+
+
+class TestResolveDatasourceName:
+    """Tests for _resolve_datasource_name helper."""
+
+    def test_returns_chart_datasource_name_when_chart_exists(self):
+        """When a chart object is provided, use its datasource_name."""
+        chart = Mock()
+        chart.datasource_name = "my_dataset"
+        result = _resolve_datasource_name({"datasource_id": 1}, chart)
+        assert result == "my_dataset"
+
+    @patch(
+        "superset.mcp_service.chart.tool.get_chart_sql.DatasourceDAO",
+        create=True,
+    )
+    def test_resolves_from_form_data_when_chart_is_none(self, mock_dao):
+        """Unsaved charts resolve datasource name via DAO lookup."""
+        mock_ds = Mock()
+        mock_ds.name = "resolved_dataset"
+
+        with patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            return_value=mock_ds,
+        ):
+            result = _resolve_datasource_name(
+                {"datasource_id": 42, "datasource_type": "table"}, chart=None
+            )
+        assert result == "resolved_dataset"
+
+    def test_returns_none_when_no_datasource_id(self):
+        """Returns None when form_data has no datasource info."""
+        result = _resolve_datasource_name({}, chart=None)
+        assert result is None
+
+    def test_returns_none_when_datasource_not_found(self):
+        """Returns None when DAO raises DatasourceNotFound."""
+        from superset.daos.exceptions import DatasourceNotFound
+
+        with patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            side_effect=DatasourceNotFound(),
+        ):
+            result = _resolve_datasource_name(
+                {"datasource_id": 999, "datasource_type": "table"}, chart=None
+            )
+        assert result is None
+
+    def test_returns_none_on_unsupported_type(self):
+        """Returns None when DAO raises DatasourceTypeNotSupportedError."""
+        from superset.daos.exceptions import DatasourceTypeNotSupportedError
+
+        with patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            side_effect=DatasourceTypeNotSupportedError(),
+        ):
+            result = _resolve_datasource_name(
+                {"datasource_id": 1, "datasource_type": "invalid"}, chart=None
+            )
+        assert result is None
+
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_resolves_combined_datasource_field(self, mock_get_ds):
+        """Handles combined 'datasource' field like '123__table'."""
+        mock_ds = Mock()
+        mock_ds.name = "combined_dataset"
+        mock_get_ds.return_value = mock_ds
+
+        result = _resolve_datasource_name({"datasource": "123__table"}, chart=None)
+        assert result == "combined_dataset"
 
 
 class TestGetChartSqlTool:
