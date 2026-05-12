@@ -33,6 +33,7 @@ from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
+    get_table_chart_type_label,
     map_config_to_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
@@ -243,6 +244,7 @@ async def generate_explore_link(
             "url": explore_url,
             "form_data": form_data,
             "form_data_key": form_data_key,
+            "chart_type_label": get_table_chart_type_label(form_data.get("viz_type")),
             "error": None,
         }
 
