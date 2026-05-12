@@ -242,7 +242,7 @@ class SecretsMigrator:
                 unencrypted_value = previous_encrypted_type.process_result_value(
                     raw_value, self._dialect
                 )
-            except Exception as prev_ex:  # pylint: disable=broad-except
+            except Exception as prev_ex:  # noqa: BLE001  # pylint: disable=broad-except
                 logger.error(
                     "Column [%s.%s] cannot be decrypted under the previous"
                     " or current secret key (%s: %s)",

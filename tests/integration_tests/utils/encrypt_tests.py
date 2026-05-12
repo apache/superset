@@ -213,12 +213,16 @@ class EncryptedFieldTest(SupersetTestCase):
         from sqlalchemy.engine import make_url
 
         dialect = make_url("sqlite://").get_dialect()
-        migrator = SecretsMigrator(self.app.config["SECRET_KEY"])
+        previous_key = "PREVIOUS_KEY_FOR_PK_COLUMN_TEST"
+        migrator = SecretsMigrator(previous_key)
         migrator._dialect = dialect  # noqa: SLF001
 
-        field = encrypted_field_factory.create(String(1024))
-        ciphertext = field.process_bind_param("hunter2", dialect)
+        # Encrypt under the previous key so the current-key decrypt fails
+        # and the re-encrypt path (which issues the UPDATE) is exercised.
+        previous_field = EncryptedType(type_in=String(1024), key=previous_key)
+        ciphertext = previous_field.process_bind_param("hunter2", dialect)
 
+        current_field = encrypted_field_factory.create(String(1024))
         conn = MagicMock()
         row = {"uuid": b"\x00" * 16, "configuration": ciphertext}
         stats = ReEncryptStats()
@@ -227,7 +231,7 @@ class EncryptedFieldTest(SupersetTestCase):
             conn,
             row,
             "semantic_layers",
-            {"configuration": field},
+            {"configuration": current_field},
             ["uuid"],
             stats,
         )
