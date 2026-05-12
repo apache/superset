@@ -131,6 +131,7 @@ async def generate_explore_link(
                     "url": "",
                     "form_data": {},
                     "form_data_key": None,
+                    "chart_type_label": None,
                     "error": (
                         f"Dataset not found: {request.dataset_id}. "
                         "Use list_datasets to find valid dataset IDs."
@@ -149,6 +150,7 @@ async def generate_explore_link(
                     "url": "",
                     "form_data": {},
                     "form_data_key": None,
+                    "chart_type_label": None,
                     "error": (
                         f"Dataset not found: {request.dataset_id}. "
                         "Use list_datasets to find valid dataset IDs."
@@ -218,6 +220,7 @@ async def generate_explore_link(
                 "url": "",
                 "form_data": form_data,
                 "form_data_key": None,
+                "chart_type_label": None,
                 "error": error_payload,
             }
 
@@ -262,5 +265,6 @@ async def generate_explore_link(
             "url": "",
             "form_data": {},
             "form_data_key": None,
+            "chart_type_label": None,
             "error": f"Failed to generate explore link: {str(e)}",
         }

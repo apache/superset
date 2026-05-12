@@ -719,6 +719,7 @@ class TestGenerateExploreLink:
                 assert result.data["url"] == ""
                 assert result.data["form_data"] == {}
                 assert result.data["form_data_key"] is None
+                assert result.data["chart_type_label"] is None
                 assert "Invalid config structure" in result.data["error"]
         finally:
             # Restore original function
@@ -804,6 +805,7 @@ class TestGenerateExploreLink:
             assert result.data["url"] == ""
             assert result.data["form_data"] == {}
             assert result.data["form_data_key"] is None
+            assert result.data["chart_type_label"] is None
             assert "Dataset not found: 99999" in result.data["error"]
             assert "list_datasets" in result.data["error"]
 
@@ -830,6 +832,7 @@ class TestGenerateExploreLink:
             assert result.data["url"] == ""
             assert result.data["form_data"] == {}
             assert result.data["form_data_key"] is None
+            assert result.data["chart_type_label"] is None
             assert "Dataset not found" in result.data["error"]
 
 
@@ -1044,6 +1047,7 @@ class TestGenerateExploreLinkValidation:
 
             assert result.data["url"] == ""
             assert result.data["form_data_key"] is None
+            assert result.data["chart_type_label"] is None
             error = result.data["error"]
             assert isinstance(error, dict)
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
@@ -1079,6 +1083,7 @@ class TestGenerateExploreLinkValidation:
             )
 
             assert result.data["url"] == ""
+            assert result.data["chart_type_label"] is None
             # Surface as "not found" rather than leaking that the dataset exists.
             assert "Dataset not found" in result.data["error"]
             mock_create_form_data.assert_not_called()
