@@ -298,7 +298,8 @@ class TestOpenSqlLabWithContext:
                 field_path=("title",),
             )
             assert response.error == sanitize_for_llm_context(
-                "Database with ID 404 not found",
+                "Database with ID 404 not found."
+                " Use list_databases to get valid database IDs.",
                 field_path=("error",),
             )
         finally:
