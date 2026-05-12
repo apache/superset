@@ -76,7 +76,7 @@
     "@types/d3-time-format": "^4.0.3",
     "@types/jquery": "^4.0.0",
     "@types/lodash": "^4.17.24",
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.7.0",
     "@types/prop-types": "^15.7.15",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/react-table": "^7.7.20",
