@@ -217,14 +217,11 @@ test('should render the metadata bar', async () => {
 });
 
 test('should render the error', async () => {
-  const postSpy = jest
+  jest
     .spyOn(SupersetClient, 'post')
     .mockRejectedValue(new Error('Something went wrong'));
   await waitForRender();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
-  // Restore so the rejection doesn't leak into subsequent tests that
-  // legitimately need SupersetClient.post to succeed.
-  postSpy.mockRestore();
 });
 
 describe('download actions', () => {
@@ -288,6 +285,11 @@ describe('download actions', () => {
 });
 
 test('should render pagination when results exceed page size', async () => {
+  // The "should render the error" test above leaves a SupersetClient.post
+  // rejection spy active (matching the existing pattern; "should use
+  // verbose_map" further down does the same cleanup). Reset it here so the
+  // fetch in this test actually returns data.
+  jest.restoreAllMocks();
   fetchWithPaginatedData();
   await waitForRender();
   // With total_count=100 and page size=50, pagination should render
