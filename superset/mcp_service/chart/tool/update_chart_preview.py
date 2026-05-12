@@ -40,7 +40,10 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
-from superset.mcp_service.chart.preview_utils import SUPPORTED_FORM_DATA_PREVIEW_FORMATS
+from superset.mcp_service.chart.preview_utils import (
+    generate_preview_from_form_data,
+    SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartError,
@@ -242,10 +245,6 @@ def update_chart_preview(  # noqa: C901
                         # Screenshot-based previews are not supported.
                         if format_type not in SUPPORTED_FORM_DATA_PREVIEW_FORMATS:
                             continue
-
-                        from superset.mcp_service.chart.preview_utils import (
-                            generate_preview_from_form_data,
-                        )
 
                         preview_result = generate_preview_from_form_data(
                             form_data=new_form_data,
