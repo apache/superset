@@ -191,7 +191,7 @@ async function openAndSaveChanges(
   await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
   await userEvent.click(await screen.findByTestId('edit-dataset'));
   await userEvent.click(await screen.findByTestId('datasource-modal-save'));
-  await userEvent.click(await screen.findByText('OK'));
+  await userEvent.click(await screen.findByText('Confirm'));
 }
 
 test('Should render', async () => {
