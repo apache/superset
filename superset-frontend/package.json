@@ -364,7 +364,7 @@
     "storybook": "8.6.18",
     "style-loader": "^4.0.0",
     "swc-loader": "^0.2.7",
-    "terser-webpack-plugin": "^5.5.0",
+    "terser-webpack-plugin": "^5.6.0",
     "ts-jest": "^29.4.9",
     "tscw-config": "^1.1.2",
     "tsx": "^4.21.0",
