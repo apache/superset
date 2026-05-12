@@ -454,18 +454,28 @@ function AnnotationLayer({
     string | number | SelectOption | null
   >(value);
 
-  // componentDidUpdate - fetch slice data when value changes
+  // Fetch slice data when value changes — but skip when slice is already
+  // populated, which means the change came from `fetchAppliedChart` (the
+  // mount-time hydration path that sets both value and slice in lockstep).
+  // The user-selection path (`handleSelectValue`) clears slice to null
+  // before setting the new value, so this watcher fires correctly there.
   useEffect(() => {
     if (value !== prevValue) {
       const isChart =
         sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE &&
         requiresQuery(sourceType ?? undefined);
-      if (isChart && value && typeof value === 'object' && 'value' in value) {
+      if (
+        isChart &&
+        value &&
+        typeof value === 'object' &&
+        'value' in value &&
+        !slice
+      ) {
         fetchSliceData(value.value);
       }
       setPrevValue(value);
     }
-  }, [value, prevValue, sourceType, fetchSliceData]);
+  }, [value, prevValue, sourceType, fetchSliceData, slice]);
 
   const isValidFormulaAnnotation = useCallback(
     (
@@ -530,6 +540,9 @@ function AnnotationLayer({
   const handleSelectValue = useCallback(
     (selectedValueObject: SelectOption): void => {
       setValue(selectedValueObject);
+      // Clear slice so the value-change watcher refetches for the new chart;
+      // see the watcher block above for why this gate exists.
+      setSlice(null);
       setDescriptionColumns([]);
       setIntervalEndColumn('');
       setTimeColumn('');
@@ -619,20 +632,22 @@ function AnnotationLayer({
     close?.();
   }, [applyAnnotation, close]);
 
-  const renderChartHeader = useCallback(
-    (
-      label: string,
-      description: string,
-      val: string | number | SelectOption | null,
-    ): React.ReactNode => (
-      <ControlHeader
-        hovered
-        label={label}
-        description={description}
-        validationErrors={!val ? ['Mandatory'] : []}
-      />
-    ),
-    [],
+  // Inlined: this is a pure helper that produces JSX from its args. The
+  // previous useCallback wrapper added no value — `renderChartHeader(label,
+  // description, value)` was called inline, so the produced ReactNode was
+  // recreated each call anyway, and no downstream consumer depended on the
+  // function's identity.
+  const buildChartHeader = (
+    label: string,
+    description: string,
+    val: string | number | SelectOption | null,
+  ): React.ReactNode => (
+    <ControlHeader
+      hovered
+      label={label}
+      description={description}
+      validationErrors={!val ? ['Mandatory'] : []}
+    />
   );
 
   const renderValueConfiguration = useCallback((): React.ReactNode => {
@@ -665,7 +680,7 @@ function AnnotationLayer({
           key={sourceType}
           ariaLabel={t('Annotation layer value')}
           name="annotation-layer-value"
-          header={renderChartHeader(label, description, value)}
+          header={buildChartHeader(label, description, value)}
           options={fetchOptions}
           value={value || null}
           onChange={handleSelectValue}
@@ -700,7 +715,6 @@ function AnnotationLayer({
     annotationType,
     value,
     getSupportedSourceTypes,
-    renderChartHeader,
     fetchOptions,
     handleSelectValue,
     handleTextValue,
