@@ -104,6 +104,15 @@ export default function CRUDCollection({
   );
   const [sortColumn, setSortColumn] = useState<string>('');
   const [sort, setSort] = useState<SortOrderEnum>(SortOrderEnum.Unsorted);
+  // Controlled pagination: tracked so that filtering can clamp currentPage
+  // back to a valid page (avoids the user being stranded on an empty page
+  // when filterTerm shrinks the result set).
+  const [pageSize, setPageSize] = useState<number>(() =>
+    typeof pagination === 'object' && pagination?.pageSize
+      ? pagination.pageSize
+      : 10,
+  );
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   // Sync with props.collection changes
   useEffect(() => {
@@ -271,10 +280,17 @@ export default function CRUDCollection({
 
   const handleTableChange = useCallback(
     (
-      _pagination: TablePaginationConfig,
+      paginationEvt: TablePaginationConfig,
       _filters: Record<string, FilterValue | null>,
       sorter: SorterResult<CollectionItem> | SorterResult<CollectionItem>[],
     ) => {
+      if (
+        paginationEvt.current !== undefined &&
+        paginationEvt.pageSize !== undefined
+      ) {
+        setCurrentPage(paginationEvt.current);
+        setPageSize(paginationEvt.pageSize);
+      }
       const columnSorter = Array.isArray(sorter) ? sorter[0] : sorter;
       let newSortColumn = '';
       let newSortOrder = SortOrderEnum.Unsorted;
@@ -462,8 +478,19 @@ export default function CRUDCollection({
     if (pagination === false || pagination === undefined) {
       return false;
     }
-    return typeof pagination === 'object' ? pagination : {};
-  }, [pagination]);
+    // Clamp currentPage to the valid range based on the filtered data
+    // length — without this, filtering down to fewer rows could leave the
+    // user on an empty page until they click somewhere.
+    const totalItems = displayData.length;
+    const maxPage = totalItems > 0 ? Math.ceil(totalItems / pageSize) : 1;
+    const clampedPage = Math.min(currentPage, maxPage);
+    return {
+      ...(typeof pagination === 'object' ? pagination : {}),
+      current: clampedPage,
+      pageSize,
+      total: totalItems,
+    };
+  }, [pagination, displayData.length, pageSize, currentPage]);
 
   const expandedRowKeys = useMemo(
     () => Object.keys(expandedColumns).filter(id => expandedColumns[id]),
