@@ -102,6 +102,18 @@ describe('getChartIdsFromLayout', () => {
     windowSpy.mockRestore();
   });
 
+  it('should pass through a router-relative pathname unchanged', () => {
+    const url = getDashboardUrl({
+      pathname: '/dashboard/1/',
+      filters: {},
+      hash: '',
+      standalone: DashboardStandaloneMode.HideNav,
+    });
+    expect(url).toBe(
+      `/dashboard/1/?standalone=${DashboardStandaloneMode.HideNav}`,
+    );
+  });
+
   it('should process native filters key', () => {
     const windowSpy = jest.spyOn(window, 'window', 'get');
     windowSpy.mockImplementation(() => ({

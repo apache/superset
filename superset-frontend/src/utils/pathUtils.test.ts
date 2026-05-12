@@ -158,3 +158,28 @@ test('makeUrl should handle URLs with anchors', async () => {
     '/superset/dashboard/123#anchor',
   );
 });
+
+// Sets up bootstrap data and returns a fresh pathUtils module instance.
+async function loadPathUtils(appRoot = '') {
+  const bootstrapData = { common: { application_root: appRoot } };
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(bootstrapData)}'></div>`;
+  jest.resetModules();
+  await import('./getBootstrapData');
+  return import('./pathUtils');
+}
+
+test('ensureAppRoot should be idempotent — not double-prefix an already-prefixed path', async () => {
+  const { ensureAppRoot } = await loadPathUtils('/superset/');
+
+  const once = ensureAppRoot('/sqllab');
+  const twice = ensureAppRoot(once);
+  expect(twice).toBe(once); // /superset/sqllab, NOT /superset/superset/sqllab
+});
+
+test('makeUrl should be idempotent with subdirectory prefix', async () => {
+  const { makeUrl } = await loadPathUtils('/superset/');
+
+  const once = makeUrl('/sqllab?new=true');
+  const twice = makeUrl(once);
+  expect(twice).toBe(once); // /superset/sqllab?new=true, NOT /superset/superset/sqllab?new=true
+});
