@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 from unittest.mock import MagicMock, patch
 
 from superset.themes.types import ThemeMode
+from superset.utils import json
 from superset.views.base import (
     _load_theme_from_model,
     _merge_theme_dicts,
