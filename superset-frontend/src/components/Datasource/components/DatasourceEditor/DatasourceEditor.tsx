@@ -1361,6 +1361,14 @@ function DatasourceEditor({
     [],
   );
 
+  // Keep the refs read by the (one-shot) Mousetrap handler up to date.
+  const isEditModeRef = useRef(isEditMode);
+  const onQueryFormatRef = useRef(onQueryFormat);
+  useEffect(() => {
+    isEditModeRef.current = isEditMode;
+    onQueryFormatRef.current = onQueryFormat;
+  }, [isEditMode, onQueryFormat]);
+
   // componentDidMount
   useEffect(() => {
     isComponentMounted.current = true;
@@ -1394,14 +1402,6 @@ function DatasourceEditor({
       resetQuery();
     };
   }, []);
-
-  // Keep the refs read by the (one-shot) Mousetrap handler up to date.
-  const isEditModeRef = useRef(isEditMode);
-  const onQueryFormatRef = useRef(onQueryFormat);
-  useEffect(() => {
-    isEditModeRef.current = isEditMode;
-    onQueryFormatRef.current = onQueryFormat;
-  }, [isEditMode, onQueryFormat]);
 
   // componentDidUpdate for props.datasource changes
   // Only run when the props.datasource reference actually changes from parent

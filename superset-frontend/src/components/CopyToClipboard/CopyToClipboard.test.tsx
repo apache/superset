@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -59,7 +60,9 @@ test('non-element copyNode wrapper is keyboard-activatable', async () => {
   const button = screen.getByRole('button');
   expect(button).toHaveAttribute('tabIndex', '0');
   button.focus();
-  await userEvent.keyboard('{enter}');
+  // user-event v12 (pinned in this repo) doesn't expose .keyboard(); use
+  // fireEvent to dispatch the Enter keydown directly to the focused button.
+  fireEvent.keyDown(button, { key: 'Enter' });
   await waitFor(() => expect(onCopyEnd).toHaveBeenCalled());
 });
 
