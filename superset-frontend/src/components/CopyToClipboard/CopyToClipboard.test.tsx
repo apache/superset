@@ -37,6 +37,20 @@ test('renders with custom copy node', () => {
   expect(screen.getByRole('link')).toBeInTheDocument();
 });
 
+// Regression guard: passing a non-element copyNode (string or number) used to
+// crash because cloneElement only accepts React elements. The render path now
+// gates the cloneElement call behind isValidElement and falls back to a span
+// wrapper, so plain primitives should render without throwing.
+test('renders with string copyNode without crashing', () => {
+  render(<CopyToClipboard copyNode="just text" />, { useRedux: true });
+  expect(screen.getByRole('button')).toHaveTextContent('just text');
+});
+
+test('renders with number copyNode without crashing', () => {
+  render(<CopyToClipboard copyNode={42} />, { useRedux: true });
+  expect(screen.getByRole('button')).toHaveTextContent('42');
+});
+
 test('renders without text showing', () => {
   const text = 'Text';
   render(<CopyToClipboard text={text} shouldShowText={false} />, {
