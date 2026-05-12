@@ -22,6 +22,7 @@ from urllib import parse
 from sqlalchemy.engine.url import make_url, URL  # noqa: F401
 
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.sql.parse import RLSMethod
 
 
 class TDengineEngineSpec(BaseEngineSpec):
@@ -29,6 +30,8 @@ class TDengineEngineSpec(BaseEngineSpec):
     engine_name = "TDengine"
     max_column_name_length = 64
     default_driver = "taosws"
+
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
     sqlalchemy_uri_placeholder = (
         "taosws://user:******@host:port/dbname[?key=value&key=value...]"
     )

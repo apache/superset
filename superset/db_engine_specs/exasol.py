@@ -21,6 +21,7 @@ from typing import Any, Optional
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
+from superset.sql.parse import RLSMethod
 
 
 class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -29,6 +30,7 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "exa"
     engine_name = "Exasol"
     max_column_name_length = 128
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     # Keep the server's message from its keyword onwards, including the
     # position/identifier. The passthrough placeholder has no translatable text.
