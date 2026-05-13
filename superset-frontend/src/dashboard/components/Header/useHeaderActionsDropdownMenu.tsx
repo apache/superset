@@ -19,7 +19,7 @@
 import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
 import { isEmpty } from 'lodash';
@@ -75,6 +75,7 @@ export const useHeaderActionsMenu = ({
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const { canExportImage } = usePermissions();
   const history = useHistory();
+  const location = useLocation();
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
@@ -101,8 +102,11 @@ export const useHeaderActionsMenu = ({
         case MenuKeys.ToggleFullscreen: {
           const isCurrentlyStandalone =
             Number(getUrlParam(URL_PARAMS.standalone)) === 1;
+          // Use location.pathname from React Router (relative to basename) rather than
+          // window.location.pathname to avoid duplicating the subdirectory prefix when
+          // history.replace prepends it again.
           const url = getDashboardUrl({
-            pathname: window.location.pathname,
+            pathname: location.pathname,
             filters: getActiveFilters(),
             hash: window.location.hash,
             standalone: isCurrentlyStandalone ? null : 1,
@@ -125,6 +129,7 @@ export const useHeaderActionsMenu = ({
       showRefreshModal,
       manageEmbedded,
       history,
+      location,
     ],
   );
 
@@ -133,6 +138,10 @@ export const useHeaderActionsMenu = ({
     [dashboardTitle],
   );
 
+  // window.location.pathname is intentional here: this URL is used for sharing
+  // (email, embed, copy link) and must be a full browser-absolute path that
+  // includes the application root. Do NOT replace with useLocation().pathname —
+  // that would strip the subdirectory prefix and produce a broken share link.
   const url = useMemo(
     () =>
       getDashboardUrl({
