@@ -30,6 +30,7 @@ from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import feature_flag_manager
 from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
+from superset.models.helpers import SKIP_VISIBILITY_FILTER
 from superset.tags.models import Tag, TaggedObject
 from superset.utils import json
 from superset.utils.core import check_is_safe_zip
@@ -402,7 +403,7 @@ def get_resource_mappings_batched(
     return mapping
 
 
-def find_existing_for_import(model_cls: Type[Any], uuid: str) -> Optional[Any]:
+def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
     """Look up an existing row by UUID for an import operation, including
     soft-deleted rows. If the match is soft-deleted, hard-delete it via
     ``db.session.delete()`` so the import can proceed without a
@@ -421,8 +422,6 @@ def find_existing_for_import(model_cls: Type[Any], uuid: str) -> Optional[Any]:
     and dataset permission-view rows (cleaned up by
     ``SqlaTable.after_delete`` in ``superset/connectors/sqla/models.py``).
     """
-    from superset.models.helpers import SKIP_VISIBILITY_FILTER
-
     existing = (
         db.session.query(model_cls)
         .execution_options(**{SKIP_VISIBILITY_FILTER: True})

@@ -720,13 +720,15 @@ def _should_apply_soft_delete_filter(execute_state: ORMExecuteState) -> bool:
     SQLAlchemy's documented soft-delete pattern at
     https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295).
     """
-    if execute_state.execution_options.get(SKIP_VISIBILITY_FILTER, False):
-        return False
-    return (
+    caller_opted_out = execute_state.execution_options.get(
+        SKIP_VISIBILITY_FILTER, False
+    )
+    is_primary_user_select = (
         execute_state.is_select
         and not execute_state.is_column_load
         and not execute_state.is_relationship_load
     )
+    return is_primary_user_select and not caller_opted_out
 
 
 def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
