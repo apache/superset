@@ -155,7 +155,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   const [description, setDescription] = useState('');
   const [label, setLabel] = useState(defaultLabel);
   const [showSchedule, setShowSchedule] = useState(false);
-  const saveModal: ModalTriggerRef | null = useRef() as ModalTriggerRef;
+  const saveModal = useRef<ModalTriggerRef | null>(null);
 
   const onScheduleSubmit = ({
     formData,

@@ -84,7 +84,7 @@ function SaveModal({
   lastModifiedTime,
 }: SaveModalProps) {
   const theme = useTheme();
-  const modal = useRef() as ModalTriggerRef;
+  const modal = useRef<ModalTriggerRef | null>(null);
 
   const [saveType, setSaveType] = useState<SaveType>(initialSaveType);
   const [newDashName, setNewDashName] = useState(
