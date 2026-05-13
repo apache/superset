@@ -35,7 +35,12 @@ from superset.utils.core import check_is_safe_zip
 
 logger = logging.getLogger(__name__)
 
-FRONTEND_REGEX = re.compile(r"^frontend/dist/([^/]+)$")
+# Accept nested paths inside frontend/dist so extensions can serve
+# worker / WASM / chunk subfolders. Reject any entry whose path contains "..",
+# conservatively excluding parent traversal segments so a crafted entry name
+# cannot escape the bundle directory (defense in depth; check_is_safe_zip runs
+# first).
+FRONTEND_REGEX = re.compile(r"^frontend/dist/(?!.*\.\.)(.+)$")
 # Reject any entry whose path contains "..", conservatively excluding parent
 # traversal segments along with the (in practice nonexistent) case of a module
 # path embedding consecutive dots, so a crafted entry name cannot produce a
