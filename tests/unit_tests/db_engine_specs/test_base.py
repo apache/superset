@@ -969,6 +969,10 @@ def test_get_oauth2_token_without_pkce(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
+    mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+        return_value=[(2, 1, 6, "", ("93.184.215.14", 0))],
+    )
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
@@ -1002,6 +1006,10 @@ def test_get_oauth2_token_with_pkce(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.utils.oauth2 import generate_code_verifier
 
+    mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+        return_value=[(2, 1, 6, "", ("93.184.215.14", 0))],
+    )
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
@@ -1086,6 +1094,10 @@ def test_get_oauth2_token_additional_params(mocker: MockerFixture) -> None:
             "audience": "https://api.example.com",
         }
 
+    mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+        return_value=[(2, 1, 6, "", ("93.184.215.14", 0))],
+    )
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
@@ -1123,6 +1135,10 @@ def test_get_oauth2_fresh_token_success(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
+    mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+        return_value=[(2, 1, 6, "", ("93.184.215.14", 0))],
+    )
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.status_code = 200
     mock_post.return_value.json.return_value = {
@@ -1156,6 +1172,10 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.exceptions import OAuth2TokenRefreshError
 
+    mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+        return_value=[(2, 1, 6, "", ("93.184.215.14", 0))],
+    )
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.status_code = status_code
     mock_post.return_value.text = '{"error": "invalid_grant"}'
@@ -1186,6 +1206,10 @@ def test_get_oauth2_fresh_token_raises_on_server_error(mocker: MockerFixture) ->
 
     from superset.db_engine_specs.base import BaseEngineSpec
 
+    mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+        return_value=[(2, 1, 6, "", ("93.184.215.14", 0))],
+    )
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.status_code = 500
     mock_post.return_value.raise_for_status.side_effect = HTTPError("500 Server Error")
@@ -1283,3 +1307,102 @@ def test_start_oauth2_dance_falls_back_to_url_for(mocker: MockerFixture) -> None
     error = exc_info.value.error
 
     assert error.extra["redirect_uri"] == fallback_uri
+
+
+def test_validate_oauth2_token_uri_valid_public_ip(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+        return_value=[
+            (2, 1, 6, "", ("93.184.215.14", 0)),
+        ],
+    )
+    BaseEngineSpec._validate_oauth2_token_uri("https://oauth.example.com/token")
+
+
+def test_validate_oauth2_token_uri_rejects_private_ip(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+        return_value=[
+            (2, 1, 6, "", ("10.0.0.1", 0)),
+        ],
+    )
+    with pytest.raises(ValueError, match="private or reserved"):
+        BaseEngineSpec._validate_oauth2_token_uri("https://internal.example.com/token")
+
+
+def test_validate_oauth2_token_uri_rejects_loopback(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+        return_value=[
+            (2, 1, 6, "", ("127.0.0.1", 0)),
+        ],
+    )
+    with pytest.raises(ValueError, match="private or reserved"):
+        BaseEngineSpec._validate_oauth2_token_uri("https://localhost/token")
+
+
+def test_validate_oauth2_token_uri_rejects_mixed_ips(mocker: MockerFixture) -> None:
+    """If ANY resolved IP is private, reject — prevents DNS-based SSRF bypass."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+        return_value=[
+            (2, 1, 6, "", ("93.184.215.14", 0)),
+            (2, 1, 6, "", ("10.0.0.5", 0)),
+        ],
+    )
+    with pytest.raises(ValueError, match="private or reserved"):
+        BaseEngineSpec._validate_oauth2_token_uri("https://mixed.example.com/token")
+
+
+def test_validate_oauth2_token_uri_rejects_invalid_scheme() -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    with pytest.raises(ValueError, match="must use http or https scheme"):
+        BaseEngineSpec._validate_oauth2_token_uri("ftp://evil.com/token")
+
+
+def test_validate_oauth2_token_uri_rejects_unresolvable_host(
+    mocker: MockerFixture,
+) -> None:
+    import socket
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+        side_effect=socket.gaierror("Name or service not known"),
+    )
+    with pytest.raises(ValueError, match="cannot be resolved"):
+        BaseEngineSpec._validate_oauth2_token_uri("https://nonexistent.invalid/token")
+
+
+@with_config({"DATABASE_OAUTH2_TOKEN_URI_SSRF_VALIDATION": False})
+def test_validate_oauth2_token_uri_disabled_by_config(
+    mocker: MockerFixture,
+) -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mock_getaddrinfo = mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+    )
+    BaseEngineSpec._validate_oauth2_token_uri("https://localhost/token")
+    mock_getaddrinfo.assert_not_called()
+
+
+@with_config({"DATABASE_OAUTH2_TOKEN_URI_ALLOWED_HOSTS": ["internal.corp.com"]})
+def test_validate_oauth2_token_uri_allowed_hosts(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mock_getaddrinfo = mocker.patch(
+        "superset.db_engine_specs.base.socket.getaddrinfo",
+    )
+    BaseEngineSpec._validate_oauth2_token_uri("https://internal.corp.com/token")
+    mock_getaddrinfo.assert_not_called()
