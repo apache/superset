@@ -103,7 +103,8 @@ def open_sql_lab_with_context(
             database = DatabaseDAO.find_by_id(request.database_connection_id)
         if not database:
             error_message = (
-                f"Database with ID {request.database_connection_id} not found"
+                f"Database with ID {request.database_connection_id} not found."
+                " Use list_databases to get valid database IDs."
             )
             return _sanitize_sql_lab_response_for_llm_context(
                 SqlLabResponse(
