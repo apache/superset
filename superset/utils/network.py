@@ -64,7 +64,7 @@ def is_safe_host(host: str) -> bool:
         # are checked against the IPv4 unsafe networks rather than bypassing.
         if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
             ip = ip.ipv4_mapped
-        if any(ip in net for net in _SSRF_UNSAFE_NETWORKS):
+        if not ip.is_global or any(ip in net for net in _SSRF_UNSAFE_NETWORKS):
             return False
     return True
 

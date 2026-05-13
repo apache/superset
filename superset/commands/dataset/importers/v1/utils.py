@@ -121,10 +121,16 @@ def validate_data_uri(data_uri: str) -> None:
     :raises DatasetForbiddenDataURI: if the URI is not permitted
     """
     if data_uri.startswith("file://"):
+        from urllib.request import url2pathname
+
         from superset.examples.helpers import get_examples_folder
 
-        # Strip the "file://" prefix to get the filesystem path.
-        file_path = data_uri[len("file://") :]
+        parsed = urlparse(data_uri)
+        # Reject non-local authority components (e.g. file://remotehost/path).
+        if parsed.netloc and parsed.netloc.lower() != "localhost":
+            raise DatasetForbiddenDataURI()
+        # url2pathname handles URL-encoded characters and platform path separators.
+        file_path = url2pathname(parsed.path)
         # Resolve symlinks and relative components before comparing.
         real_path = os.path.realpath(file_path)
         examples_folder = os.path.realpath(get_examples_folder())

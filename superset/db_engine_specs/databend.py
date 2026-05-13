@@ -355,7 +355,7 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
         if not is_safe_host(host):
             return [
                 SupersetError(
-                    "The hostname provided can't be resolved.",
+                    "The hostname provided can't be resolved or is not allowed.",
                     SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
                     ErrorLevel.ERROR,
                     {"invalid": ["host"]},
