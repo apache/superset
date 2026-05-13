@@ -157,35 +157,29 @@ def test_skip_visibility_filter_returns_soft_deleted_rows(
 
 
 @pytest.mark.usefixtures("_synthetic_table")
-def test_per_request_bypass_via_get_finds_soft_deleted_row(
+def test_get_without_bypass_filters_out_soft_deleted_row(
     app_context: None, session: Session
 ) -> None:
-    """The per-request ``g.skip_visibility_filter`` bypass works with
-    ``Query.get()`` — this is the path ``security_manager.raise_for_ownership``
-    relies on (it does ``session.query(cls).get(id)`` internally).
+    """Baseline: ``Query.get()`` without the bypass option does not find
+    soft-deleted rows. ``session.expunge_all()`` removes the instance
+    from the identity map so ``.get()`` is forced to issue SQL through
+    the listener (otherwise it short-circuits on the cached instance
+    and never exercises the filter).
     """
-    from flask import g
-
-    obj = _SoftDeletable(name="bypass_via_get")
+    obj = _SoftDeletable(name="hidden_by_listener")
     session.add(obj)
     session.flush()
     obj_id = obj.id
 
     obj.soft_delete()
     session.flush()
-    session.expire_all()
+    session.expunge_all()
 
-    previous = getattr(g, SKIP_VISIBILITY_FILTER, False)
-    setattr(g, SKIP_VISIBILITY_FILTER, True)
-    try:
-        result = session.query(_SoftDeletable).get(obj_id)
-    finally:
-        setattr(g, SKIP_VISIBILITY_FILTER, previous)
-
-    assert result is not None, (
-        "per-request bypass should let .get() find soft-deleted row"
+    result = session.query(_SoftDeletable).get(obj_id)
+    assert result is None, (
+        ".get() with no bypass and an empty identity map should be filtered "
+        "by the listener"
     )
-    assert result.deleted_at is not None
 
 
 @pytest.mark.usefixtures("_synthetic_table")
@@ -193,9 +187,15 @@ def test_per_query_bypass_via_get_finds_soft_deleted_row(
     app_context: None, session: Session
 ) -> None:
     """The per-query ``execution_options(skip_visibility_filter=True)`` bypass
-    works with ``Query.get()``. Verifies the proposed simplification for
-    ``raise_for_ownership`` (swap the per-request flag for the per-query
-    option) is behaviorally equivalent.
+    propagates through ``Query.get()`` to the listener. This is the
+    path ``security_manager.raise_for_ownership`` relies on so it can
+    look up the resource's current owners even when the resource is
+    soft-deleted.
+
+    Uses ``session.expunge_all()`` rather than ``expire_all()`` so the
+    instance is removed from the identity map entirely, forcing
+    ``.get()`` to issue SQL through the listener — the path where the
+    bypass actually matters.
     """
     obj = _SoftDeletable(name="per_query_via_get")
     session.add(obj)
@@ -204,7 +204,7 @@ def test_per_query_bypass_via_get_finds_soft_deleted_row(
 
     obj.soft_delete()
     session.flush()
-    session.expire_all()
+    session.expunge_all()
 
     result = (
         session.query(_SoftDeletable)

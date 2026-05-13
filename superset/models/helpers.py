@@ -712,34 +712,20 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
     Uses SQLAlchemy's recommended soft-delete pattern
     (``do_orm_execute`` + ``with_loader_criteria``).
 
-    Two opt-out paths:
-
-    * **Per-query** — ``execution_options(skip_visibility_filter=True)``.
-      The narrow tool, and the default choice. Affects only the query
-      it is attached to. Use this from list-endpoint filters,
-      background jobs, import pipelines, and any other code path that
-      needs a single query to see soft-deleted rows.
-    * **Per-request** — ``flask.g.skip_visibility_filter = True``.
-      The broad tool. Affects **every** ORM SELECT for the rest of the
-      Flask request, including incidental relationship loads. Used
-      sparingly and internally — the canonical case is inside
-      ``security_manager.raise_for_ownership``, which scopes the flag
-      around its own internal re-query so soft-deleted resources can be
-      ownership-checked. New callers should be rare and justified in
-      code review; if you need the bypass to propagate through a
-      function whose internal queries aren't otherwise reachable, set
-      the flag with a ``try/finally`` that restores the previous value
-      so the bypass does not leak past its intended scope.
+    Opt-out: attach
+    ``execution_options(skip_visibility_filter=True)`` to a Query (or
+    pass ``skip_visibility_filter=True`` to ``BaseDAO.find_by_id`` /
+    ``find_by_uuid`` / etc.). The option is scoped to the single
+    statement it is attached to, so other queries in the same request
+    are unaffected. Works with ``Query.get()``, ``Query.one_or_none()``,
+    ``Query.all()``, etc. Listener-internal callers include
+    ``security_manager.raise_for_ownership`` (which uses the option on
+    its internal re-query so soft-deleted resources can be
+    ownership-checked).
     """
     skip_visibility_filter = execute_state.execution_options.get(
         SKIP_VISIBILITY_FILTER, False
     )
-    try:
-        skip_visibility_filter = skip_visibility_filter or getattr(
-            g, SKIP_VISIBILITY_FILTER, False
-        )
-    except RuntimeError:
-        pass
 
     # Skip relationship and column loader paths: those re-execute against
     # already-loaded parents and re-applying the criteria stacks redundant

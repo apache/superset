@@ -3562,16 +3562,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # listener for any ``SoftDeleteMixin`` model. Callers that have
         # intentionally loaded a soft-deleted resource (e.g.,
         # ``BaseRestoreCommand``) need the re-query to see the row so the
-        # owners list can be read. Scope the bypass to the re-query and
-        # restore the previous flag value so it does not leak past this
-        # function.
-        previous_flag = getattr(g, SKIP_VISIBILITY_FILTER, False)
-        setattr(g, SKIP_VISIBILITY_FILTER, True)
-        try:
-            orig_resource = self.session.query(resource.__class__).get(resource.id)
-            owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
-        finally:
-            setattr(g, SKIP_VISIBILITY_FILTER, previous_flag)
+        # owners list can be read. Attach the bypass as a per-query
+        # execution option so the scope is exactly this one statement —
+        # nothing else in the request is affected.
+        orig_resource = (
+            self.session.query(resource.__class__)
+            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            .get(resource.id)
+        )
+        owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:
             raise SupersetSecurityException(
