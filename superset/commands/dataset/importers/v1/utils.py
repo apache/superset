@@ -204,18 +204,29 @@ def import_dataset(  # noqa: C901
         "can_write",
         "Dataset",
     )
-    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
+    from superset.commands.importers.v1.utils import (
+        clear_soft_deleted_for_import,
+        find_existing_for_import,
+    )
+
     user = get_user()
-    if existing:
+
+    if existing := find_existing_for_import(SqlaTable, config["uuid"]):
         if overwrite and can_write and user:
             if user not in existing.owners and not security_manager.is_admin():
                 raise ImportFailedError(
                     "A dataset already exists and user doesn't "
                     "have permissions to overwrite it"
                 )
-        if not overwrite or not can_write:
+            # Permission check passed. Hard-delete a soft-deleted match
+            # after the check so the fresh insert below doesn't collide
+            # on the UUID unique constraint.
+            if existing.deleted_at is not None:
+                clear_soft_deleted_for_import(existing)
+            else:
+                config["id"] = existing.id
+        elif not overwrite or not can_write:
             return existing
-        config["id"] = existing.id
 
     elif not can_write:
         raise ImportFailedError(
