@@ -852,7 +852,7 @@ class TestColumnRefNameRelaxedPattern:
         assert req.config.chart_type == "table"
 
     def test_xy_chart_with_hyphenated_column(self) -> None:
-        """Hyphenated column names must pass through GenerateChartRequest for XY charts."""
+        """Hyphenated columns must pass through GenerateChartRequest for XY charts."""
         req = GenerateChartRequest(
             dataset_id=1,
             config={

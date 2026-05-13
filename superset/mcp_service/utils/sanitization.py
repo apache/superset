@@ -360,6 +360,12 @@ def sanitize_user_input(
     # Strip all HTML tags using nh3
     value = _strip_html_tags(value)
 
+    # Re-check emptiness after HTML stripping (nh3 may remove entire elements)
+    if not value:
+        if allow_empty:
+            return None
+        raise ValueError(f"{field_name} cannot be empty after sanitization")
+
     # Check for dangerous patterns (URL schemes, event handlers)
     _check_dangerous_patterns(value, field_name)
 
