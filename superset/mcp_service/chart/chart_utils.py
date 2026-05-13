@@ -1220,6 +1220,8 @@ CHART_TYPE_LABELS = {
 
 def get_table_chart_type_label(viz_type: str | None) -> str | None:
     """Return a user-facing label for table-family Superset viz types."""
+    if viz_type is None:
+        return None
     return CHART_TYPE_LABELS.get(viz_type)
 
 
