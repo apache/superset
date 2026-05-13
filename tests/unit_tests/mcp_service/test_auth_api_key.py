@@ -49,6 +49,7 @@ def _passthrough_access_token(token: str) -> MagicMock:
     """Build an AccessToken matching what CompositeTokenVerifier emits."""
     access_token = MagicMock()
     access_token.token = token
+    access_token.client_id = "api_key"
     access_token.claims = {API_KEY_PASSTHROUGH_CLAIM: True}
     return access_token
 
@@ -265,9 +266,10 @@ def test_jwt_access_token_skips_api_key_auth(app: SupersetApp) -> None:
 def test_jwt_context_with_api_key_passthrough_returns_none(app: SupersetApp) -> None:
     """When CompositeTokenVerifier passes through an API key token,
     _resolve_user_from_jwt_context should detect the namespaced
-    pass-through claim and return None so get_user_from_request falls
-    through to _resolve_user_from_api_key."""
+    pass-through claim AND client_id=="api_key" and return None so
+    get_user_from_request falls through to _resolve_user_from_api_key."""
     mock_access_token = MagicMock()
+    mock_access_token.client_id = "api_key"
     mock_access_token.claims = {API_KEY_PASSTHROUGH_CLAIM: True}
 
     with patch(
@@ -277,6 +279,30 @@ def test_jwt_context_with_api_key_passthrough_returns_none(app: SupersetApp) -> 
         result = _resolve_user_from_jwt_context(app)
 
     assert result is None
+
+
+def test_namespaced_claim_without_api_key_client_id_is_ignored(
+    app: SupersetApp,
+) -> None:
+    """An external IdP JWT that includes the namespaced API_KEY_PASSTHROUGH_CLAIM
+    but does NOT have client_id=='api_key' must NOT divert into the API-key path.
+    The client_id guard prevents misclassification / DoS for affected JWT users."""
+    mock_sm = MagicMock()
+
+    rogue_token = MagicMock()
+    rogue_token.token = "eyJhbGciOiJSUzI1NiJ9.idp_jwt_with_rogue_claim"  # noqa: S105
+    rogue_token.client_id = "some-idp-client"
+    rogue_token.claims = {API_KEY_PASSTHROUGH_CLAIM: True, "sub": "alice"}
+
+    with _mock_sm_ctx(app, mock_sm):
+        with _patch_access_token(rogue_token):
+            # JWT path tries to resolve user "alice" from DB and raises
+            # ValueError in this isolated unit-test setup.
+            # validate_api_key must NOT be called — the rogue claim was ignored.
+            with pytest.raises(ValueError, match="not found"):
+                get_user_from_request()
+
+    mock_sm.validate_api_key.assert_not_called()
 
 
 # -- Plain JWT with a colliding non-namespaced claim is NOT mistaken for API key --
