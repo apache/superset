@@ -24,6 +24,7 @@ import { supersetTheme } from '@apache-superset/core/theme';
 import MatrixifyGridRenderer from './MatrixifyGridRenderer';
 import type { MatrixifyMode } from '../../types/matrixify';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
+import type { ReactElement } from 'react';
 
 // Mock the MatrixifyGridGenerator
 jest.mock('./MatrixifyGridGenerator', () => ({

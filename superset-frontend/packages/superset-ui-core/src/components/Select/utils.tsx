@@ -159,8 +159,8 @@ export const dropDownRenderHelper = (
   isLoading: boolean | undefined,
   optionsLength: number,
   helperText: string | undefined,
-  errorComponent?: JSX.Element,
-  bulkSelectComponents?: JSX.Element,
+  errorComponent?: ReactElement,
+  bulkSelectComponents?: ReactElement,
 ) => {
   if (!isDropdownVisible) {
     originNode.ref?.current?.scrollTo({ top: 0 });

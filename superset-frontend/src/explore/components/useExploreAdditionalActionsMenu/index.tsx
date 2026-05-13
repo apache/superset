@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, {
+import type { ReactElement } from 'react';
   ReactElement,
   useCallback,
   useDeferredValue,

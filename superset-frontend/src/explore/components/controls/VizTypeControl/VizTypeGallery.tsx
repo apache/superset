@@ -466,7 +466,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const isDarkMode = isThemeDark(theme);
   const { selectedViz, onChange, onDoubleClick, className, denyList } = props;
   const { mountedPluginMetadata } = usePluginContext();
-  const searchInputRef = useRef<HTMLInputElement>();
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [searchInputValue, setSearchInputValue] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(true);
   const isActivelySearching = isSearchFocused && !!searchInputValue;

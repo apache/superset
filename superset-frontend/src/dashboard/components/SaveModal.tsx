@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import { useRef, useState } from 'react';
+import { useRef, useState , ReactElement} from 'react';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 import {
   Button,
@@ -51,7 +51,7 @@ type SaveModalProps = {
   expandedSlices: Record<string, any>;
   layout: Record<string, any>;
   saveType: SaveType;
-  triggerNode: JSX.Element;
+  triggerNode: ReactElement;
   customCss: string;
   colorNamespace?: string;
   colorScheme?: string;

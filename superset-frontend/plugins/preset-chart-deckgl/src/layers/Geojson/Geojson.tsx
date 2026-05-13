@@ -394,7 +394,7 @@ export function getPoints(data?: Point[]) {
 }
 
 const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
-  const containerRef = useRef<DeckGLContainerHandle>();
+  const containerRef = useRef<DeckGLContainerHandle | null>(null);
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
     const { current } = containerRef;
     if (current) {

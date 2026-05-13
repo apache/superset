@@ -22,6 +22,7 @@ import {
   useEffect,
   useState,
   MouseEvent as ReactMouseEvent,
+  ReactElement,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { throttle } from 'lodash-es';
@@ -36,7 +37,7 @@ const RESIZE_THROTTLE_MS = 50;
 export default function useResizeButton(
   minWidth: number,
   minHeight: number,
-): [JSX.Element, number, number] {
+): [ReactElement, number, number] {
   const [width, setWidth] = useState(POPOVER_INITIAL_WIDTH);
   const [height, setHeight] = useState(POPOVER_INITIAL_HEIGHT);
   const [clientX, setClientX] = useState(0);

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject, useEffect, useRef, KeyboardEvent } from 'react';
+import { RefObject, useEffect, useRef, KeyboardEvent , ReactElement} from 'react';
 
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
@@ -36,7 +36,7 @@ export interface DetailsPanelProps {
   appliedCrossFilterIndicators: Indicator[];
   appliedIndicators: Indicator[];
   onHighlightFilterSource: (path: string[]) => void;
-  children: JSX.Element;
+  children: ReactElement;
   popoverVisible: boolean;
   popoverContentRef: RefObject<HTMLDivElement>;
   popoverTriggerRef: RefObject<HTMLDivElement>;

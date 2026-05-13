@@ -27,6 +27,7 @@ import {
   useMemo,
   useRef,
   useState,
+  ReactElement,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
 import {

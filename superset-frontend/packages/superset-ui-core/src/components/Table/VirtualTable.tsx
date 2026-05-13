@@ -126,7 +126,7 @@ const VirtualTable = <RecordType extends object>(
       (lastColumn.width as number) + Math.floor(tableWidth - totalWidth);
   }
 
-  const gridRef = useRef<any>();
+  const gridRef = useRef<any | null>(null);
   const [connectObject] = useState<any>(() => {
     const obj = {};
     Object.defineProperty(obj, 'scrollLeft', {

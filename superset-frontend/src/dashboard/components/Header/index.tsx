@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState , ReactElement} from 'react';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -219,7 +219,7 @@ const discardChanges = () => {
   window.location.assign(url);
 };
 
-const Header = (): JSX.Element => {
+const Header = (): ReactElement => {
   const dispatch = useDispatch();
   const [didNotifyMaxUndoHistoryToast, setDidNotifyMaxUndoHistoryToast] =
     useState(false);

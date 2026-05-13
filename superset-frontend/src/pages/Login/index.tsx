@@ -29,7 +29,7 @@ import {
   Typography,
   Icons,
 } from '@superset-ui/core/components';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo , ReactElement} from 'react';
 import { capitalize } from 'lodash/fp';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { useDispatch } from 'react-redux';
@@ -138,7 +138,7 @@ export default function Login() {
 
   const getAuthIconElement = (
     providerName: string,
-  ): React.JSX.Element | undefined => {
+  ): React.ReactElement | undefined => {
     if (!providerName || typeof providerName !== 'string') {
       return undefined;
     }

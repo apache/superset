@@ -263,7 +263,7 @@ export function getPoints(data: JsonObject[]) {
 }
 
 const DeckGLPolygon = (props: DeckGLPolygonProps) => {
-  const containerRef = useRef<DeckGLContainerHandle>();
+  const containerRef = useRef<DeckGLContainerHandle | null>(null);
 
   const getAdjustedViewport = useCallback(() => {
     let viewport = { ...props.viewport };

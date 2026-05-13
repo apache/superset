@@ -27,6 +27,7 @@ import {
   ChangeEvent,
   useEffect,
   type RefObject,
+  ReactElement,
 } from 'react';
 
 import { Constants, ThemedAgGridReact } from '@superset-ui/core/components';
@@ -102,7 +103,7 @@ export interface AgGridTableProps {
   handleCellClicked: (event: CellClickedEvent) => void;
   handleSelectionChanged: (event: SelectionChangedEvent) => void;
   filters?: Record<string, DataRecordValue[]> | null;
-  renderTimeComparisonDropdown: () => JSX.Element | null;
+  renderTimeComparisonDropdown: () => ReactElement | null;
   cleanedTotals: DataRecord;
   showTotals: boolean;
   width: number;

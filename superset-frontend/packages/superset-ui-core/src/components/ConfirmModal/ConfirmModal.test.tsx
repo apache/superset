@@ -19,6 +19,7 @@
 import { render, screen, userEvent } from '@superset-ui/core/spec';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import { ConfirmModal } from '.';
+import type { ReactElement } from 'react';
 
 const defaultProps = {
   show: true,

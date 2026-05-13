@@ -26,6 +26,7 @@ import {
   KeyboardEvent as ReactKeyboardEvent,
   useEffect,
   useRef,
+  ReactElement,
 } from 'react';
 
 import {
@@ -765,7 +766,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [comparisonLabels],
   );
 
-  const renderTimeComparisonDropdown = (): JSX.Element => {
+  const renderTimeComparisonDropdown = (): ReactElement => {
     const allKey = comparisonColumns[0].key;
     const handleOnClick = (data: any) => {
       const { key } = data;
@@ -872,7 +873,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [visibleColumnsMeta, getHeaderColumns, isUsingTimeComparison],
   );
 
-  const renderGroupingHeaders = (): JSX.Element => {
+  const renderGroupingHeaders = (): ReactElement => {
     // TODO: Make use of ColumnGroup to render the aditional headers
     const headers: any = [];
     let currentColumnIndex = 0;

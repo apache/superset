@@ -18,7 +18,7 @@
  */
 
 import '@testing-library/jest-dom';
-import { ComponentType } from 'react';
+import { ComponentType , ReactElement} from 'react';
 import { render as renderTestComponent, screen } from '@testing-library/react';
 import createLoadableRenderer, {
   LoadableRenderer as LoadableRendererType,
@@ -29,8 +29,8 @@ describe('createLoadableRenderer', () => {
     return <div className="test-component">test</div>;
   }
   let loadChartSuccess = jest.fn(() => Promise.resolve(TestComponent));
-  let render: (loaded: { Chart: ComponentType }) => JSX.Element;
-  let loading: () => JSX.Element;
+  let render: (loaded: { Chart: ComponentType }) => ReactElement;
+  let loading: () => ReactElement;
   let LoadableRenderer: LoadableRendererType<{}>;
 
   beforeEach(() => {

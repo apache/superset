@@ -26,7 +26,7 @@ export default function useMountedMemo<T>(
   factory: () => T,
   deps?: unknown[],
 ): T | undefined {
-  const mounted = useRef<typeof factory>();
+  const mounted = useRef<typeof factory | null>(null);
   useLayoutEffect(() => {
     mounted.current = factory;
   });

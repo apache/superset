@@ -18,6 +18,7 @@
  */
 import { t, tn } from '@apache-superset/core/translation';
 import { getNumberFormatter } from '@superset-ui/core';
+import type { ReactElement } from 'react';
 
 import { Label, Tooltip } from '@superset-ui/core/components';
 
@@ -25,7 +26,7 @@ type RowCountLabelProps = {
   rowcount?: number;
   limit?: number;
   loading?: boolean;
-  label?: JSX.Element;
+  label?: ReactElement;
 };
 
 const limitReachedMsg = t(

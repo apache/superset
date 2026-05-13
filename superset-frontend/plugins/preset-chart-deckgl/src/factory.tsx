@@ -93,7 +93,7 @@ export function createDeckGLComponent(
 ) {
   // Higher order component
   return memo((props: DeckGLComponentProps) => {
-    const containerRef = useRef<DeckGLContainerHandle>();
+    const containerRef = useRef<DeckGLContainerHandle | null>(null);
     const prevFormData = usePrevious(props.formData);
     const prevFilterState = usePrevious(props.filterState);
     const prevPayload = usePrevious(props.payload);

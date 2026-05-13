@@ -186,8 +186,8 @@ export default function StatefulChart(props: StatefulChartProps) {
   const [error, setError] = useState<Error>();
   const [formData, setFormData] = useState<QueryFormData>();
 
-  const chartClientRef = useRef<ChartClient>();
-  const abortControllerRef = useRef<AbortController>();
+  const chartClientRef = useRef<ChartClient | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Initialize chart client
   if (!chartClientRef.current) {
@@ -325,7 +325,7 @@ export default function StatefulChart(props: StatefulChartProps) {
   }, []);
 
   // Combined effect for all prop changes and lifecycle
-  const prevPropsRef = useRef<StatefulChartProps>();
+  const prevPropsRef = useRef<StatefulChartProps | null>(null);
   useEffect(() => {
     const currentProps = props;
     const prevProps = prevPropsRef.current;

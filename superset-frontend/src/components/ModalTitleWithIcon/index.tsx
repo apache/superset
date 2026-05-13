@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isValidElement, cloneElement } from 'react';
+import { isValidElement, cloneElement , ReactElement} from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Typography, Icons, TitleProps } from '@superset-ui/core/components';
 import type { IconType } from '@superset-ui/core/components/Icons/types';
