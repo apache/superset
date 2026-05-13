@@ -95,7 +95,6 @@ from superset.utils.screenshots import (
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
-    get_related_schema,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
@@ -1029,10 +1028,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @parse_rison(get_related_schema)
     @handle_api_exception
     def related(self, column_name: str, **kwargs: Any) -> Response:
         """Get related fields data, restricting owner lookup to users with write access.
+
+        The access check runs before RISON parsing so unauthorized callers receive
+        403 without triggering schema-validation errors on the request body.
         ---
         get:
           summary: Get related fields data
@@ -1067,7 +1068,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """
         if response := self.ensure_owners_write_access(column_name):
             return response
-        return super().related(column_name, **kwargs)
+        return super().related(column_name)
 
     def ensure_owners_write_access(self, column_name: str) -> Optional[Response]:
         """Restrict the owners related field to users with write access."""
