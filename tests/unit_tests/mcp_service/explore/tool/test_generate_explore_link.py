@@ -208,7 +208,7 @@ class TestGenerateExploreLink:
     @pytest.mark.asyncio
     async def test_generate_ag_grid_table_explore_link_label(
         self, mock_create_form_data, mock_find_dataset, mcp_server
-    ):
+    ) -> None:
         """Test generating explore link reports AG Grid table label."""
         mock_create_form_data.return_value = "ag_grid_key_123"
         mock_find_dataset.return_value = _mock_dataset(id=1)
@@ -265,6 +265,7 @@ class TestGenerateExploreLink:
                 result.data["url"]
                 == "http://localhost:9001/explore/?form_data_key=line_chart_key_789"
             )
+            assert result.data["chart_type_label"] is None
             mock_create_form_data.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")

@@ -1212,7 +1212,7 @@ def _resolve_viz_type(config: Any) -> str:
     return "unknown"
 
 
-CHART_TYPE_LABELS = {
+TABLE_VIZ_TYPE_LABELS = {
     "table": "table chart",
     "ag-grid-table": "interactive table chart",
 }
@@ -1220,9 +1220,7 @@ CHART_TYPE_LABELS = {
 
 def get_table_chart_type_label(viz_type: str | None) -> str | None:
     """Return a user-facing label for table-family Superset viz types."""
-    if viz_type is None:
-        return None
-    return CHART_TYPE_LABELS.get(viz_type)
+    return TABLE_VIZ_TYPE_LABELS.get(viz_type) if viz_type is not None else None
 
 
 def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:

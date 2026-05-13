@@ -47,7 +47,7 @@ class TestGenerateChart:
     """Tests for generate_chart MCP tool."""
 
     @pytest.mark.asyncio
-    async def test_generate_chart_returns_table_chart_type_label(self):
+    async def test_generate_chart_returns_table_chart_type_label(self) -> None:
         """Test chart generation response includes table chart type label."""
         request = GenerateChartRequest(
             dataset_id="1",
