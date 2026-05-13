@@ -40,9 +40,9 @@
     "handlebars": "^4.7.8",
     "lodash": "^4.18.1",
     "dayjs": "^1.11.21",
-    "react": "^18.3.0",
-    "react-ace": "^10.1.0",
-    "react-dom": "^18.3.0"
+    "react": "^18.3.0 || ^19.0.0",
+    "react-ace": "^14.0.1",
+    "react-dom": "^18.3.0 || ^19.0.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
