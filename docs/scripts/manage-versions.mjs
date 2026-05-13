@@ -269,10 +269,12 @@ function addVersion(section, version) {
     banner: 'none'
   };
 
-  // Optionally update lastVersion if this is the first non-current version
-  if (config[section].onlyIncludeVersions.length === 2) {
-    config[section].lastVersion = version;
-  }
+  // Note: we deliberately do NOT auto-bump `lastVersion` to the new
+  // version. Superset's docs site keeps `lastVersion: 'current'` so the
+  // canonical URLs (`/docs/...`, `/admin-docs/...`, etc.) always render
+  // master content; cut versions are accessed only via their explicit
+  // version segment. If you want a different policy, edit
+  // versions-config.json after cutting.
 
   saveConfig(config);
   console.log(`✅ Version ${version} added successfully to ${section}`);
