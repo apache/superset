@@ -18,9 +18,10 @@ from __future__ import annotations
 
 import functools
 import logging
+from datetime import datetime
 from typing import Any, Callable, cast
 
-from flask import request, Response
+from flask import g, request, Response
 from flask_appbuilder import Model, ModelRestApi
 from flask_appbuilder.api import (
     BaseApi,
@@ -43,6 +44,7 @@ from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager, stats_logger_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
+from superset.models.helpers import SKIP_VISIBILITY_FILTER
 from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
@@ -360,6 +362,30 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
                 DistincResponseSchema,
             )
         )
+
+    @staticmethod
+    def _serialize_deleted_at(value: datetime | None) -> str | None:
+        return value.isoformat() if value else None
+
+    def _get_deleted_at_map(self, ids: list[int]) -> dict[int, str | None]:
+        if not ids:
+            return {}
+
+        # Uses a raw session query rather than the DAO because this method lives
+        # on the base API class, which has no DAO reference — the DAO is only
+        # defined on concrete subclasses (ChartRestApi, DashboardRestApi, etc.).
+        # This is a read-only projection of two columns on already-known IDs, not
+        # a general entity lookup, so bypassing the DAO is acceptable here.
+        rows = (
+            db.session.query(self.datamodel.obj.id, self.datamodel.obj.deleted_at)
+            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            .filter(self.datamodel.obj.id.in_(ids))
+            .all()
+        )
+        return {
+            row_id: self._serialize_deleted_at(deleted_at)
+            for row_id, deleted_at in rows
+        }
 
     def _init_properties(self) -> None:
         """
@@ -713,3 +739,12 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             if item[0] is not None
         ]
         return self.response(200, count=count, result=result)
+
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        if not getattr(g, SKIP_VISIBILITY_FILTER, False):
+            return
+
+        ids = cast(list[int], data.get("ids", []))
+        deleted_at_map = self._get_deleted_at_map(ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            row["deleted_at"] = deleted_at_map.get(row_id)

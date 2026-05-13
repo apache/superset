@@ -400,3 +400,36 @@ def get_resource_mappings_batched(
         mapping.update({str(x.uuid): value_func(x) for x in batch})
         offset += batch_size
     return mapping
+
+
+def find_existing_for_import(model_cls: Type[Any], uuid: str) -> Optional[Any]:
+    """Look up an existing row by UUID for an import operation, including
+    soft-deleted rows. If the match is soft-deleted, hard-delete it via
+    direct SQL so the import can proceed without a unique-constraint
+    violation on ``uuid``.
+
+    Returns the existing live row (so the caller can decide overwrite
+    vs. skip), or ``None`` if no match exists or the match was
+    soft-deleted (and hence just removed by this function).
+
+    A direct SQL ``DELETE`` is used rather than ``db.session.delete()``
+    because ORM delete triggers cascade loading of relationships
+    (owners, tags, association tables) which can crash the server. The
+    database's ``ON DELETE CASCADE`` foreign keys handle dependent rows
+    cleanly without ORM involvement.
+    """
+    from superset.models.helpers import SKIP_VISIBILITY_FILTER
+
+    existing = (
+        db.session.query(model_cls)
+        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .filter_by(uuid=uuid)
+        .first()
+    )
+    if existing and getattr(existing, "deleted_at", None) is not None:
+        db.session.execute(
+            model_cls.__table__.delete().where(model_cls.id == existing.id)
+        )
+        db.session.flush()
+        return None
+    return existing

@@ -57,7 +57,8 @@ from pandas import DateOffset
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Mapper, validates
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import Mapper, validates, with_loader_criteria
 from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -610,7 +611,7 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("changed_on")
     def changed_on_(self) -> Markup:
-        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')
+        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')  # noqa: S704
 
     @renders("changed_on")
     def changed_on_delta_humanized(self) -> str:
@@ -654,7 +655,94 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("changed_on")
     def modified(self) -> Markup:
-        return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')
+        return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')  # noqa: S704
+
+
+SKIP_VISIBILITY_FILTER = "skip_visibility_filter"
+
+
+class SoftDeleteMixin:
+    """Mixin that adds soft-delete support to a SQLAlchemy model.
+
+    Adds a nullable ``deleted_at`` column. When set, the row is treated as
+    deleted and excluded from standard ORM queries via a global
+    ``do_orm_execute`` listener registered at app init.
+
+    Delete commands should call ``soft_delete()`` to mark the object as
+    deleted.  Use ``BaseDAO.delete()`` (which calls ``session.delete()``)
+    for permanent hard deletion.
+
+    See also: ``_add_soft_delete_filter`` (the listener function) and
+    ``SKIP_VISIBILITY_FILTER`` (the execution-option key used to opt out
+    of the filter in restore commands and admin tooling).
+    """
+
+    deleted_at = sa.Column(sa.DateTime, nullable=True, index=True)
+
+    @hybrid_property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
+
+    @is_deleted.expression  # type: ignore
+    def is_deleted(cls) -> ColumnElement:  # noqa: N805
+        return cls.deleted_at.is_not(None)
+
+    @classmethod
+    def not_deleted(cls) -> ColumnElement:
+        """Filter clause for active (non-deleted) rows."""
+        return cls.deleted_at.is_(None)
+
+    def soft_delete(self) -> None:
+        """Mark this object as soft-deleted."""
+        # Naive datetime, mirroring AuditMixinNullable.changed_on. PR #33693
+        # reverted a UTC migration on the audit columns; if/when those move
+        # to UTC-aware, this assignment should follow.
+        self.deleted_at = datetime.now()
+
+    def restore(self) -> None:
+        """Clear the soft-delete marker, making this object active again."""
+        self.deleted_at = None
+
+
+def _add_soft_delete_filter(execute_state):  # type: ignore
+    """Global ``do_orm_execute`` listener that automatically excludes
+    soft-deleted rows from every ORM SELECT.
+
+    Uses SQLAlchemy's recommended soft-delete pattern
+    (``do_orm_execute`` + ``with_loader_criteria``).
+
+    Two opt-out paths:
+
+    * **Per-query** — ``execution_options(skip_visibility_filter=True)``.
+      The narrow tool. Use this from any non-user-facing code path
+      (background jobs, import pipelines, internal admin tools) that
+      needs to query soft-deleted rows.
+    * **Per-request** — ``flask.g.skip_visibility_filter = True``.
+      The broad tool. Reserved for user-facing list endpoints whose
+      rison filter (``*_deleted_state=include|only``) explicitly asks
+      to surface soft-deleted rows for the rest of that request.
+      Anything else needing to bypass the filter should use the
+      per-query option, since the request-scoped flag also affects
+      any incidental query inside the same request.
+    """
+    skip_visibility_filter = execute_state.execution_options.get(
+        SKIP_VISIBILITY_FILTER, False
+    )
+    try:
+        skip_visibility_filter = skip_visibility_filter or getattr(
+            g, SKIP_VISIBILITY_FILTER, False
+        )
+    except RuntimeError:
+        pass
+
+    if execute_state.is_select and not skip_visibility_filter:
+        execute_state.statement = execute_state.statement.options(
+            with_loader_criteria(
+                SoftDeleteMixin,
+                lambda cls: cls.deleted_at.is_(None),
+                include_aliases=True,
+            )
+        )
 
 
 class QueryResult:  # pylint: disable=too-few-public-methods
