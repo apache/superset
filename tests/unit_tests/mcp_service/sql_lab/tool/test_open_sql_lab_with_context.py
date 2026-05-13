@@ -290,7 +290,7 @@ class TestOpenSqlLabWithContext:
         mod, saved_modules = _get_tool_module()
         try:
             request = OpenSqlLabRequest(
-                database_id=7,
+                database_connection_id=7,
                 sql="SELECT 1",
                 title="   ",
             )
