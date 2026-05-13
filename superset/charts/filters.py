@@ -32,6 +32,7 @@ from superset.utils.core import get_user_id
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
+from superset.views.filters import BaseDeletedStateFilter
 
 
 class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -196,3 +197,10 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
                 FavStar.user_id == get_user_id(),
             )
         )
+
+
+class ChartDeletedStateFilter(BaseDeletedStateFilter):  # pylint: disable=too-few-public-methods
+    """Rison filter for the GET list that exposes soft-deleted charts."""
+
+    arg_name = "chart_deleted_state"
+    model = Slice

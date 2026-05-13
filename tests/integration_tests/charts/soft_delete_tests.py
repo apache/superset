@@ -1,0 +1,376 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Integration tests for chart soft-delete and restore (sc-103157)."""
+
+from superset.extensions import db
+from superset.models.dashboard import Dashboard
+from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
+from superset.models.slice import Slice
+from superset.utils import json
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.insert_chart_mixin import InsertChartMixin
+
+
+def _hard_delete_chart(chart_id: int) -> None:
+    """Hard-delete a chart row regardless of soft-delete state."""
+    row = (
+        db.session.query(Slice)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+        .filter(Slice.id == chart_id)
+        .one_or_none()
+    )
+    if row:
+        db.session.delete(row)
+        db.session.commit()
+
+
+def _hard_delete_dashboard_for_charts_test(dashboard_id: int) -> None:
+    """Hard-delete a dashboard row regardless of soft-delete state."""
+    row = (
+        db.session.query(Dashboard)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+        .filter(Dashboard.id == dashboard_id)
+        .one_or_none()
+    )
+    if row:
+        db.session.delete(row)
+        db.session.commit()
+
+
+class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
+    """Tests for chart soft-delete behaviour (T013, T016)."""
+
+    def test_delete_chart_soft_deletes(self):
+        """DELETE /api/v1/chart/<pk> sets deleted_at instead of removing."""
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("soft_delete_test", [admin_id], 1)
+        chart_id = chart.id
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.delete(f"/api/v1/chart/{chart_id}")
+        assert rv.status_code == 200
+
+        # Row still exists in DB with deleted_at set
+        row = (
+            db.session.query(Slice)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+            .filter(Slice.id == chart_id)
+            .one_or_none()
+        )
+        assert row is not None
+        assert row.deleted_at is not None
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
+    def test_soft_deleted_chart_excluded_from_get(self):
+        """GET /api/v1/chart/<pk> returns 404 for a soft-deleted chart."""
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("invisible_chart", [admin_id], 1)
+        chart_id = chart.id
+        self.login(ADMIN_USERNAME)
+
+        self.client.delete(f"/api/v1/chart/{chart_id}")
+        rv = self.client.get(f"/api/v1/chart/{chart_id}")
+        assert rv.status_code == 404
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
+    def test_soft_deleted_chart_excluded_from_list(self):
+        """GET /api/v1/chart/ should not include soft-deleted charts."""
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("listed_then_deleted", [admin_id], 1)
+        chart_id = chart.id
+        self.login(ADMIN_USERNAME)
+
+        self.client.delete(f"/api/v1/chart/{chart_id}")
+        rv = self.client.get("/api/v1/chart/")
+        data = json.loads(rv.data)
+        chart_ids = [c["id"] for c in data["result"]]
+        assert chart_id not in chart_ids
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
+    def test_soft_deleted_chart_included_in_list_when_requested(self):
+        """GET /api/v1/chart/ with chart_deleted_state=include returns deleted charts."""  # noqa: E501
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("listed_with_deleted", [admin_id], 1)
+        chart_id = chart.id
+        self.login(ADMIN_USERNAME)
+
+        self.client.delete(f"/api/v1/chart/{chart_id}")
+
+        rison_query = "(filters:!((col:id,opr:chart_deleted_state,value:include)))"
+        rv = self.client.get(f"/api/v1/chart/?q={rison_query}")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data)
+        deleted_row = next(
+            (row for row in data["result"] if row["id"] == chart_id),
+            None,
+        )
+        assert deleted_row is not None
+        assert deleted_row["deleted_at"] is not None
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
+    def test_only_filter_returns_only_soft_deleted_charts(self):
+        """chart_deleted_state=only excludes live rows and returns only deleted ones."""
+        admin_id = self.get_user("admin").id
+        live_chart = self.insert_chart("only_live", [admin_id], 1)
+        deleted_chart = self.insert_chart("only_deleted", [admin_id], 1)
+        live_id = live_chart.id
+        deleted_id = deleted_chart.id
+        self.login(ADMIN_USERNAME)
+
+        self.client.delete(f"/api/v1/chart/{deleted_id}")
+
+        rison_query = "(filters:!((col:id,opr:chart_deleted_state,value:only)))"
+        rv = self.client.get(f"/api/v1/chart/?q={rison_query}")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data)
+        returned_ids = {row["id"] for row in data["result"]}
+        assert deleted_id in returned_ids
+        assert live_id not in returned_ids
+
+        # Cleanup
+        _hard_delete_chart(live_id)
+        _hard_delete_chart(deleted_id)
+
+    def test_delete_already_soft_deleted_chart_returns_404(self):
+        """DELETE on an already soft-deleted chart returns 404 (FR-008)."""
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("double_delete_test", [admin_id], 1)
+        chart_id = chart.id
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.delete(f"/api/v1/chart/{chart_id}")
+        assert rv.status_code == 200
+        rv = self.client.delete(f"/api/v1/chart/{chart_id}")
+        assert rv.status_code == 404
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
+    def test_delete_chart_blocked_when_active_report_references_it(self):
+        """DELETE /api/v1/chart/<id> returns 422 when a report references it.
+
+        Pins down the existing API protection in `DeleteChartCommand.validate()`:
+        when a `report_schedule` row references the chart, the validation
+        raises `ChartDeleteFailedReportsExistError` *before* `ChartDAO.delete()`
+        is invoked, so no soft-delete routing happens. This is the contract
+        soft-delete inherits from the pre-existing API and is what makes the
+        "report-execution against soft-deleted target" crash class
+        (commands/report/execute.py:_get_url) unreachable through the API.
+        """
+        from superset.reports.models import (
+            ReportCreationMethod,
+            ReportSchedule,
+            ReportScheduleType,
+        )
+
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("blocked_by_report_test", [admin_id], 1)
+        chart_id = chart.id
+
+        report = ReportSchedule(
+            type=ReportScheduleType.REPORT,
+            name="blocking_report_for_chart_delete",
+            description="Report that should block chart deletion",
+            crontab="0 9 * * *",
+            chart=chart,
+            creation_method=ReportCreationMethod.ALERTS_REPORTS,
+        )
+        db.session.add(report)
+        db.session.commit()
+        report_id = report.id
+
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.delete(f"/api/v1/chart/{chart_id}")
+        assert rv.status_code == 422
+        body = json.loads(rv.data)
+        assert "associated alerts or reports" in body.get("message", "").lower() or (
+            "associated" in body.get("message", "").lower()
+            and "report" in body.get("message", "").lower()
+        )
+        assert "blocking_report_for_chart_delete" in body.get("message", "")
+
+        # Confirm the chart was NOT soft-deleted (deleted_at remains NULL).
+        row = (
+            db.session.query(Slice)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+            .filter(Slice.id == chart_id)
+            .one()
+        )
+        assert row.deleted_at is None
+
+        # Cleanup
+        db.session.delete(
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.id == report_id)
+            .one()
+        )
+        db.session.commit()
+        _hard_delete_chart(chart_id)
+
+
+class TestChartRestore(InsertChartMixin, SupersetTestCase):
+    """Tests for chart restore behaviour (T025)."""
+
+    def test_restore_soft_deleted_chart(self):
+        """POST /api/v1/chart/<uuid>/restore makes the chart visible again."""
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("restore_test", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        self.login(ADMIN_USERNAME)
+
+        self.client.delete(f"/api/v1/chart/{chart_id}")
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/restore")
+        assert rv.status_code == 200
+
+        rv = self.client.get(f"/api/v1/chart/{chart_id}")
+        assert rv.status_code == 200
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
+    def test_restore_nonexistent_chart_returns_404(self):
+        """POST /api/v1/chart/<uuid>/restore returns 404 for unknown UUID."""
+        self.login(ADMIN_USERNAME)
+        rv = self.client.post(
+            "/api/v1/chart/00000000-0000-0000-0000-000000000000/restore"
+        )
+        assert rv.status_code == 404
+
+    def test_restore_active_chart_returns_404(self):
+        """POST /api/v1/chart/<uuid>/restore on active chart returns 404."""
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("active_restore_test", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/restore")
+        assert rv.status_code == 404
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
+    def test_restore_chart_reattaches_to_dashboards(self):
+        """Soft-deleting a chart preserves dashboard_slices junction rows;
+        restore makes the chart reappear in its dashboards automatically.
+
+        This is the positive test that pins down the SIP's "no cascade"
+        contract and the corrected commit ``feat(soft-delete): preserve
+        dashboard_slices on chart soft-delete (MissingChart handles UI)``.
+        Soft-delete leaves the junction intact so:
+
+          - dashboards continue to render the chart slot (frontend uses
+            ``MissingChart`` placeholder while the chart is hidden via the
+            visibility filter)
+          - on restore the chart is automatically a member of every
+            dashboard it was a member of before, with no manual
+            re-attachment step
+        """
+        from superset.models.dashboard import dashboard_slices
+
+        admin = self.get_user("admin")
+        admin_id = admin.id
+
+        chart = self.insert_chart("reattach_test_chart", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+
+        dashboard = Dashboard(
+            dashboard_title="reattach_test_dashboard",
+            slug="slug_reattach_test",
+            owners=[admin],
+            published=True,
+        )
+        dashboard.slices = [chart]
+        db.session.add(dashboard)
+        db.session.commit()
+        dashboard_id = dashboard.id
+
+        # Sanity: the junction row exists
+        junction_count = (
+            db.session.query(dashboard_slices)
+            .filter(
+                dashboard_slices.c.dashboard_id == dashboard_id,
+                dashboard_slices.c.slice_id == chart_id,
+            )
+            .count()
+        )
+        assert junction_count == 1, "junction row should exist after dashboard creation"
+
+        self.login(ADMIN_USERNAME)
+
+        # Soft-delete the chart
+        rv = self.client.delete(f"/api/v1/chart/{chart_id}")
+        assert rv.status_code == 200
+
+        # The junction row is preserved (no cascade)
+        junction_count_after_delete = (
+            db.session.query(dashboard_slices)
+            .filter(
+                dashboard_slices.c.dashboard_id == dashboard_id,
+                dashboard_slices.c.slice_id == chart_id,
+            )
+            .count()
+        )
+        assert junction_count_after_delete == 1, (
+            "junction row should remain intact on chart soft-delete; "
+            "MissingChart placeholder handles the UI gap"
+        )
+
+        # The dashboard's loaded `slices` collection no longer includes the
+        # soft-deleted chart (the global visibility filter applies to
+        # relationship loads via `with_loader_criteria(..., include_aliases=True)`).
+        db.session.expire_all()
+        dashboard_after_delete = (
+            db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+        )
+        assert chart_id not in [s.id for s in dashboard_after_delete.slices], (
+            "soft-deleted chart should be filtered out of dashboard.slices "
+            "by the visibility-filter listener"
+        )
+
+        # Restore the chart
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/restore")
+        assert rv.status_code == 200
+
+        # The chart automatically reappears in the dashboard — junction row
+        # was preserved, so no manual reattach was needed.
+        db.session.expire_all()
+        dashboard_after_restore = (
+            db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+        )
+        assert chart_id in [s.id for s in dashboard_after_restore.slices], (
+            "restored chart should reappear in dashboard.slices automatically; "
+            "the junction row was never removed by soft-delete"
+        )
+
+        # Cleanup
+        _hard_delete_dashboard_for_charts_test(dashboard_id)
+        _hard_delete_chart(chart_id)
