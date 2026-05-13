@@ -1,0 +1,161 @@
+# SIP: Granular (Component-Level) Theming for Dashboard Components
+
+**Status:** Draft — living doc, kept in lockstep with the work on `feat/granular-theming-v2`.
+**Champion:** @rusackas
+**Supersedes:** Closed PR [#36749](https://github.com/apache/superset/pull/36749) (became unrebasable after the .jsx → .tsx conversion, React 18 upgrade, and theme-controller churn since 2025-12).
+
+## Motivation
+
+Superset already supports themes at two levels:
+- **Instance** — the global default theme configured by the deployment.
+- **Dashboard** — a per-dashboard override (managed via `ThemeController.dashboardCrudTheme` + `createDashboardThemeProvider`).
+
+Users have repeatedly asked to override theme tokens at a finer granularity — for example to make a single chart match a brand color in a sales dashboard, to highlight a tab with a different palette, or to give a Markdown callout a distinct background. Today the only options are to (a) override the entire dashboard or (b) inject custom CSS.
+
+This SIP proposes a **third level**: per-component theme overrides on dashboard grid components (Charts, Markdown, Row, Column, Tabs), with an inheritance chain:
+
+```
+Instance Theme         (deployment default)
+  └── Dashboard Theme  (existing per-dashboard override)
+        └── Tab Theme           ┐
+              └── Row/Col Theme │  (new, per-component)
+                    └── Chart/Markdown Theme
+```
+
+Each level can override any subset of theme tokens; unspecified tokens are inherited from the parent.
+
+## Non-goals
+
+- **Custom CSS replacement.** This isn't trying to subsume CSS injection — only theme-token-level overrides (colors, font sizes, spacing, etc.).
+- **New theme authoring UI.** Users pick from existing themes (the CRUD `theme` resource); creating themes still happens in the existing Themes section.
+- **Backend schema changes.** All persistence lives on existing fields (`position_json` per-component `meta`, see Storage below).
+- **Cross-dashboard reuse of component theme assignments.** A theme can be reused, but an *assignment* of a theme to a specific component lives with that component.
+
+## Storage
+
+Dashboard layout items are stored in `position_json` and surfaced in Redux as `LayoutItem`s with a `meta: LayoutItemMeta` field already typed as open-ended:
+
+```ts
+export type LayoutItemMeta = {
+  // ...known fields...
+  [key: string]: unknown;
+};
+```
+
+We add an optional `themeId?: number | null` to `LayoutItemMeta`. No new tables, no migrations, no dashboard `json_metadata` changes.
+
+A `themeId === null` means "explicitly no override — inherit from parent." A missing key means the same thing semantically; we treat them identically when reading.
+
+Round-trip:
+- **Read**: `LayoutItem.meta.themeId` is parsed straight from `position_json` like any other meta property.
+- **Write**: dashboard save serializes the entire `position_json` already; storing `themeId` is free.
+- **Backwards compatibility**: pre-feature dashboards have no `themeId` keys, so they fall through to the dashboard/instance theme as today.
+
+## Architecture
+
+### `ComponentThemeProvider`
+
+A wrapper component placed inside each grid component, between the dashboard's existing `ThemeProvider` and the component's body:
+
+```tsx
+<ComponentThemeProvider layoutId={id}>
+  {/* component body */}
+</ComponentThemeProvider>
+```
+
+Responsibilities:
+1. Read `themeId` from the layout item via Redux selector.
+2. Walk up the layout tree (`parents`) to compute the effective theme — first non-null `themeId` wins; fall back to the dashboard/instance theme.
+3. Call `ThemeController.createDashboardThemeProvider(themeId)` (same code path used for dashboard CRUD themes — themes are themes, regardless of which scope picked them).
+4. Wrap children in `AntdThemeProvider` with the resolved theme.
+
+Caching: `ThemeController` already memoizes themes by id (`dashboardThemes: Map<string, Theme>`). We reuse that — same theme assigned to 100 charts costs one fetch.
+
+### `ComponentHeaderControls` (Phase 2, lands first)
+
+A shared vertical-dots `MenuDotsDropdown` for grid components, replacing the inconsistent per-component patterns:
+- **Chart**: extends today's `SliceHeaderControls` menu (adds an "Apply theme" item).
+- **Markdown**: replaces `MarkdownModeDropdown` (Edit/Preview still works through the same menu).
+- **Row / Column**: replaces today's gear icon.
+- **Tabs**: adds the menu (none today).
+
+This refactor is **valuable on its own** — converging on one menu component is a cleanup we should do regardless of theming. We land it first so the theming PR has a clean integration point.
+
+### `ThemeSelectorModal` (Phase 3)
+
+Modal triggered from "Apply theme" in `ComponentHeaderControls`. Shows:
+- A theme picker populated from the CRUD `/api/v1/theme/` endpoint (same source the dashboard-level picker uses).
+- A "Clear override (inherit)" button when `themeId` is already set.
+- Preview is **deferred** — initial scope is just save/cancel.
+
+On save it dispatches a Redux action that updates the component's `meta.themeId` and marks the dashboard dirty.
+
+## Phases
+
+| Phase | Scope | PR target |
+|---|---|---|
+| **1** | Storage shape (`LayoutItemMeta.themeId`) + `ComponentThemeProvider` skeleton wired to one component (Chart) for proof of concept. No UI. | One PR |
+| **2** | Extract `ComponentHeaderControls` and converge Markdown/Row/Column/Tabs/Chart on it. No theming dependency — pure refactor. | One PR |
+| **3** | `ThemeSelectorModal` + persistence + "Apply theme" menu item. End-to-end demo on Chart. | One PR |
+| **4** | Wire `ComponentThemeProvider` into Markdown, Row, Column, Tabs (one component per PR, ~4 PRs). | ~4 small PRs |
+
+Each phase is independently revertable. Phase 2 has standalone value.
+
+## Open questions / shortcomings
+
+These get refined as the work progresses; do not merge any phase without revisiting this section.
+
+- [ ] **Theme resolution caching at the component level.** `ThemeController` caches themes by id, but `ComponentThemeProvider` walks the parents tree every render to find the effective `themeId`. Need to confirm the walk is cheap enough at typical dashboard sizes (~50 components), or memoize via Redux reselect.
+- [ ] **Export / screenshot behavior.** The screenshot service (Playwright / WebDriver) reads the same DOM, so theme overrides should "just work" — but we need a screenshot regression test.
+- [ ] **Embedded SDK.** Embedded dashboards default to light mode (#38644). Need to confirm component-level themes still apply in embedded context, since embedded skips `ThemeController.setCrudTheme`.
+- [ ] **Theme deletion** — what happens if a `themeId` references a theme that's been deleted from the CRUD store? Likely fall back silently to parent; need a `useEffect` cleanup path.
+- [ ] **Permission model.** Should `theme_write` be required to assign a theme to a component? Currently any dashboard editor can do it. Probably fine, but worth confirming with @michael-s-molina.
+- [ ] **i18n / a11y of the modal.** Standard checklist — needs labels, focus management, keyboard.
+- [ ] **Mobile** — `ComponentHeaderControls` hover-to-reveal pattern needs a tap-equivalent.
+
+## Test plan
+
+Each phase brings its own tests; the cumulative bar:
+
+### Unit
+- `ComponentThemeProvider`: resolves theme from own `themeId`; resolves from parent when own is null; falls back to dashboard/instance when no ancestor sets one; reacts to Redux meta changes.
+- `useComponentThemeId` (selector / hook the provider uses): correctness on the parents-walk.
+- `ComponentHeaderControls`: shows correct menu items per component type; routes `onClick` for each.
+- `ThemeSelectorModal`: opens populated with available themes; "save" dispatches the right action; "clear override" sets `themeId: null`.
+
+### Integration (RTL)
+- Dashboard with one chart → assign a theme → chart re-renders with new tokens.
+- Same dashboard → assign theme to the Row containing the chart → chart inherits Row theme (no own override).
+- Set chart override + row override → chart wins (most-specific).
+- Clear chart override → chart inherits row.
+- Reload dashboard (re-render from `position_json`) → state preserved.
+
+### E2E (Playwright)
+- One scenario per component type: open dashboard → menu → apply theme → save → reload → verify.
+- Permission scenario: editor can apply, viewer cannot see the menu.
+
+### Manual / screenshot
+- Light theme dashboard with one dark-themed chart and one default-themed chart — visual diff in CI.
+- Embedded dashboard with a component theme — verify no host-CSS bleed.
+
+## Out-of-scope (potential follow-ups)
+
+- **Theme presets** — "apply this theme to all charts of viz type X" via a dashboard-level rule.
+- **Live preview** in `ThemeSelectorModal`.
+- **Theme inheritance debugger** — devtools view that shows which level set each token for a hovered component.
+- **Bulk operations** — multi-select components and apply a theme to all.
+
+## Implementation log
+
+- _(Phase 1)_ — in progress. See section below for status notes.
+- _(Phase 2)_ — pending.
+- _(Phase 3)_ — pending.
+- _(Phase 4)_ — pending.
+
+### Phase 1 status
+
+- [ ] Add optional `themeId` field to `LayoutItemMeta`.
+- [ ] Build `ComponentThemeProvider` (Redux selector + parents walk + AntD theme injection).
+- [ ] Wire into `ChartHolder` as the proof of concept (Chart is the leaf with the most existing theme integration, so it's the riskiest first target).
+- [ ] Add unit tests for the resolution hook.
+- [ ] Update this SIP with any architecture surprises uncovered during the wiring.
