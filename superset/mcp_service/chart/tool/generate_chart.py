@@ -43,6 +43,7 @@ from superset.mcp_service.chart.compile import (
     CompileResult,
     validate_and_compile,
 )
+from superset.mcp_service.chart.preview_utils import SUPPORTED_FORM_DATA_PREVIEW_FORMATS
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
@@ -630,11 +631,7 @@ async def generate_chart(  # noqa: C901
                             # For preview-only mode (save_chart=false)
                             # Note: Screenshot-based URL previews are not
                             # supported. Use explore_url to view interactively.
-                            if format_type in [
-                                "ascii",
-                                "table",
-                                "vega_lite",
-                            ]:
+                            if format_type in SUPPORTED_FORM_DATA_PREVIEW_FORMATS:
                                 # Generate preview from form data
                                 from superset.mcp_service.chart.preview_utils import (
                                     generate_preview_from_form_data,
