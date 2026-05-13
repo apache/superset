@@ -139,6 +139,7 @@ describe('DashboardBuilder', () => {
         ...overrideState,
       }),
       useDnd: true,
+      useRouter: true,
       useTheme: true,
     });
   }
@@ -473,6 +474,7 @@ test('should render ParentSize wrapper with height 100% for tabs', async () => {
       dashboardLayout: undoableDashboardLayoutWithTabs,
     }),
     useDnd: true,
+    useRouter: true,
     useTheme: true,
   });
 
@@ -506,6 +508,7 @@ test('should maintain layout when switching between tabs', async () => {
       dashboardLayout: undoableDashboardLayoutWithTabs,
     }),
     useDnd: true,
+    useRouter: true,
     useTheme: true,
   });
 

@@ -36,6 +36,8 @@ from superset.mcp_service.chart.schemas import (
 
 logger = logging.getLogger(__name__)
 
+SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
+
 
 def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
     """Build query columns list from form_data, including both x_axis and groupby."""

@@ -24,6 +24,7 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import StringEncryptedType
 from superset.extensions import encrypted_field_factory
 from superset.utils.encrypt import (
     AbstractEncryptedFieldAdapter,
+    ReEncryptStats,
     SecretsMigrator,
     SQLAlchemyUtilsAdapter,
 )
@@ -79,7 +80,7 @@ class EncryptedFieldTest(SupersetTestCase):
 
         migrator = SecretsMigrator("")
         encrypted_fields = migrator.discover_encrypted_fields()
-        for table_name, cols in encrypted_fields.items():
+        for table_name, (_table, cols) in encrypted_fields.items():
             for col_name, field in cols.items():
                 if not encrypted_field_factory.created_by_enc_field_factory(field):
                     self.fail(
@@ -101,8 +102,33 @@ class EncryptedFieldTest(SupersetTestCase):
             "dbs table not found in encrypted fields — "
             "discover_encrypted_fields may be using the wrong MetaData instance"
         )
-        dbs_cols = set(encrypted_fields["dbs"].keys())
-        assert {"password", "encrypted_extra", "server_cert"}.issubset(dbs_cols)
+        _table, dbs_cols = encrypted_fields["dbs"]
+        assert {"password", "encrypted_extra", "server_cert"}.issubset(
+            set(dbs_cols.keys())
+        )
+
+    def test_discover_encrypted_fields_returns_table_with_non_id_pk(self):
+        """
+        Ensure discover_encrypted_fields surfaces the Table object alongside
+        encrypted columns, and that the PK introspection works for tables
+        whose primary key is not a conventional integer `id` column
+        (e.g. `semantic_layers` uses `uuid` as its PK).
+        """
+        # Import triggers FAB metadata registration for the semantic_layers table.
+        from superset.semantic_layers.models import SemanticLayer  # noqa: F401
+
+        migrator = SecretsMigrator("")
+        encrypted_fields = migrator.discover_encrypted_fields()
+        assert "semantic_layers" in encrypted_fields, (
+            "semantic_layers table not found — it has an encrypted `configuration` "
+            "column and should be discovered"
+        )
+        table, cols = encrypted_fields["semantic_layers"]
+        assert "configuration" in cols
+        pk_columns = [c.name for c in table.primary_key.columns]
+        assert pk_columns == ["uuid"], (
+            f"Expected semantic_layers PK to be ['uuid'], got {pk_columns}"
+        )
 
     def test_lazy_key_resolution(self):
         """
@@ -175,3 +201,190 @@ class EncryptedFieldTest(SupersetTestCase):
 
         # Restore original key
         self.app.config["SECRET_KEY"] = key_a
+
+    def test_re_encrypt_row_uses_pk_columns(self):
+        """
+        Verify SecretsMigrator builds UPDATE statements targeting the table's
+        actual primary key columns rather than a hardcoded `id` column.
+        Regression guard for tables like `semantic_layers` whose PK is `uuid`.
+        """
+        from unittest.mock import MagicMock
+
+        from sqlalchemy.engine import make_url
+
+        dialect = make_url("sqlite://").get_dialect()
+        previous_key = "PREVIOUS_KEY_FOR_PK_COLUMN_TEST"
+        migrator = SecretsMigrator(previous_key)
+        migrator._dialect = dialect  # noqa: SLF001
+
+        # Encrypt under the previous key so the current-key decrypt fails
+        # and the re-encrypt path (which issues the UPDATE) is exercised.
+        previous_field = EncryptedType(type_in=String(1024), key=previous_key)
+        ciphertext = previous_field.process_bind_param("hunter2", dialect)
+
+        current_field = encrypted_field_factory.create(String(1024))
+        conn = MagicMock()
+        row = {"uuid": b"\x00" * 16, "configuration": ciphertext}
+        stats = ReEncryptStats()
+
+        migrator._re_encrypt_row(  # noqa: SLF001
+            conn,
+            row,
+            "semantic_layers",
+            {"configuration": current_field},
+            ["uuid"],
+            stats,
+        )
+
+        assert conn.execute.call_count == 1
+        stmt = str(conn.execute.call_args.args[0])
+        assert "WHERE uuid = :_pk_uuid" in stmt
+        kwargs = conn.execute.call_args.kwargs
+        assert kwargs["_pk_uuid"] == row["uuid"]
+        assert "configuration" in kwargs
+        assert stats == ReEncryptStats(re_encrypted=1, skipped=0, failed=0)
+
+    def test_re_encrypt_row_is_idempotent(self):
+        """
+        Re-running re-encryption on a row that is already encrypted under the
+        current key must be a no-op: no UPDATE is issued, no error is raised,
+        and the outcome is counted as skipped.
+        """
+        from unittest.mock import MagicMock
+
+        from sqlalchemy.engine import make_url
+
+        dialect = make_url("sqlite://").get_dialect()
+        current_key = self.app.config["SECRET_KEY"]
+        migrator = SecretsMigrator("WRONG_PREVIOUS_KEY_abcdef")
+        migrator._dialect = dialect  # noqa: SLF001
+
+        field = encrypted_field_factory.create(String(1024))
+        ciphertext = field.process_bind_param("hunter2", dialect)
+        assert field.process_result_value(ciphertext, dialect) == "hunter2"
+
+        conn = MagicMock()
+        row = {"uuid": b"\x00" * 16, "configuration": ciphertext}
+        stats = ReEncryptStats()
+
+        migrator._re_encrypt_row(  # noqa: SLF001
+            conn,
+            row,
+            "semantic_layers",
+            {"configuration": field},
+            ["uuid"],
+            stats,
+        )
+
+        assert conn.execute.call_count == 0, (
+            "Row already readable under current key should not trigger UPDATE"
+        )
+        assert stats == ReEncryptStats(re_encrypted=0, skipped=1, failed=0)
+        # Current key must still decrypt the original ciphertext — nothing
+        # was mutated.
+        self.app.config["SECRET_KEY"] = current_key
+        assert field.process_result_value(ciphertext, dialect) == "hunter2"
+
+    def test_re_encrypt_row_idempotent_when_previous_key_also_decrypts(self):
+        """
+        When the supplied previous_secret_key can also decrypt the value
+        (e.g. re-running after a successful rotation while still passing
+        the original secret, or mistakenly passing the current secret as
+        the previous one), the row must still be skipped. Idempotency is
+        anchored on whether the current key can already read the data,
+        not on whether the previous key fails to decrypt.
+        """
+        from unittest.mock import MagicMock
+
+        from sqlalchemy.engine import make_url
+
+        dialect = make_url("sqlite://").get_dialect()
+        # Previous key == current key — this is the "re-run with no actual
+        # rotation" scenario.
+        migrator = SecretsMigrator(self.app.config["SECRET_KEY"])
+        migrator._dialect = dialect  # noqa: SLF001
+
+        field = encrypted_field_factory.create(String(1024))
+        ciphertext = field.process_bind_param("hunter2", dialect)
+
+        conn = MagicMock()
+        row = {"uuid": b"\x00" * 16, "configuration": ciphertext}
+        stats = ReEncryptStats()
+
+        migrator._re_encrypt_row(  # noqa: SLF001
+            conn,
+            row,
+            "semantic_layers",
+            {"configuration": field},
+            ["uuid"],
+            stats,
+        )
+
+        assert conn.execute.call_count == 0, (
+            "Idempotency must hold even when previous_secret_key can also "
+            "decrypt the value"
+        )
+        assert stats == ReEncryptStats(re_encrypted=0, skipped=1, failed=0)
+
+    def test_re_encrypt_row_counts_failures_without_raising(self):
+        """
+        Per-column failures are accumulated onto the stats counter so the
+        caller can emit a summary covering every row. The row method itself
+        must not raise — run() decides whether to abort based on the totals.
+        """
+        from unittest.mock import MagicMock
+
+        from sqlalchemy.engine import make_url
+
+        dialect = make_url("sqlite://").get_dialect()
+        migrator = SecretsMigrator("WRONG_PREVIOUS_KEY_abcdef")
+        migrator._dialect = dialect  # noqa: SLF001
+
+        field = encrypted_field_factory.create(String(1024))
+        conn = MagicMock()
+        row = {"uuid": b"\x00" * 16, "configuration": b"not-valid-ciphertext"}
+        stats = ReEncryptStats()
+
+        migrator._re_encrypt_row(  # noqa: SLF001
+            conn,
+            row,
+            "semantic_layers",
+            {"configuration": field},
+            ["uuid"],
+            stats,
+        )
+
+        assert conn.execute.call_count == 0
+        assert stats == ReEncryptStats(re_encrypted=0, skipped=0, failed=1)
+
+    def test_re_encrypt_row_counts_nulls_separately(self):
+        """
+        NULL column values are not encrypted and therefore have nothing to
+        migrate. They must be counted as ``null`` (not ``skipped``) and
+        must not trigger an UPDATE, regardless of which key is supplied as
+        the previous secret.
+        """
+        from unittest.mock import MagicMock
+
+        from sqlalchemy.engine import make_url
+
+        dialect = make_url("sqlite://").get_dialect()
+        migrator = SecretsMigrator("WRONG_PREVIOUS_KEY_abcdef")
+        migrator._dialect = dialect  # noqa: SLF001
+
+        field = encrypted_field_factory.create(String(1024))
+        conn = MagicMock()
+        row = {"uuid": b"\x00" * 16, "configuration": None}
+        stats = ReEncryptStats()
+
+        migrator._re_encrypt_row(  # noqa: SLF001
+            conn,
+            row,
+            "semantic_layers",
+            {"configuration": field},
+            ["uuid"],
+            stats,
+        )
+
+        assert conn.execute.call_count == 0
+        assert stats == ReEncryptStats(re_encrypted=0, skipped=0, null=1, failed=0)
