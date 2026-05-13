@@ -145,6 +145,56 @@ def check_tool_permission(func: Callable[..., Any]) -> bool:
         return False
 
 
+def is_tool_visible_to_current_user(tool: Any) -> bool:
+    """Return whether the current user can see a tool in tools/list.
+
+    Checks both RBAC permissions and data-model metadata privacy. The caller
+    must set ``g.user`` before calling this function.
+
+    This is the single source of truth for tool visibility — called from both
+    ``RBACToolVisibilityMiddleware`` (``tools/list``) and
+    ``_tool_allowed_for_current_user()`` (tool search).
+
+    Args:
+        tool: A FastMCP Tool object.
+
+    Returns:
+        True if the tool is visible to the current user, False otherwise.
+    """
+    try:
+        from flask import current_app
+
+        if not current_app.config.get("MCP_RBAC_ENABLED", True):
+            return True
+
+        tool_func = getattr(tool, "fn", None)
+        if tool_func is None:
+            return True
+
+        from superset.mcp_service.privacy import (
+            tool_requires_data_model_metadata_access,
+            user_can_view_data_model_metadata,
+        )
+
+        if (
+            tool_requires_data_model_metadata_access(tool_func)
+            and not user_can_view_data_model_metadata()
+        ):
+            return False
+
+        class_permission_name = getattr(tool_func, CLASS_PERMISSION_ATTR, None)
+        if not class_permission_name:
+            return True
+
+        return check_tool_permission(tool_func)
+
+    except (AttributeError, RuntimeError, ValueError):
+        logger.debug(
+            "Could not evaluate tool visibility for current user", exc_info=True
+        )
+        return False
+
+
 def load_user_with_relationships(
     username: str | None = None, email: str | None = None
 ) -> User | None:
