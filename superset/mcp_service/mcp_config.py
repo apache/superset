@@ -339,8 +339,8 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                     public_key=public_key,
                     secret=secret,
                 )
-            except Exception:
-                # Do not log the exception — it may contain secrets
+            except Exception:  # noqa: BLE001 — JWT lib raises many types; broad catch intentional
+                # Do not log the exception — it may contain secrets (e.g., key material)
                 logger.error("Failed to create MCP JWT verifier")
                 if not api_key_enabled:
                     return None
