@@ -26,7 +26,7 @@ URL parameter extraction. Config mapping logic lives in chart_utils.py.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 if TYPE_CHECKING:
@@ -67,6 +67,89 @@ def get_cached_form_data(form_data_key: str) -> str | None:
     except (KeyError, ValueError, CommandException) as e:
         logger.warning("Failed to retrieve form_data from cache: %s", e)
         return None
+
+
+def resolve_datasource_engine(datasource_id: Any, datasource_type: str) -> str:
+    """Return the datasource engine name, or ``"base"`` if it cannot be resolved."""
+    if not isinstance(datasource_id, (int, str)):
+        return "base"
+    try:
+        from superset.daos.datasource import DatasourceDAO
+        from superset.utils.core import DatasourceType
+
+        datasource = DatasourceDAO.get_datasource(
+            datasource_type=DatasourceType(datasource_type),
+            database_id_or_uuid=datasource_id,
+        )
+        return datasource.database.db_engine_spec.engine
+    except Exception:  # noqa: BLE001
+        logger.debug("Could not resolve engine for datasource %s", datasource_id)
+        return "base"
+
+
+def prepare_form_data_for_query(
+    form_data: dict[str, Any],
+    datasource_id: Any,
+    datasource_type: str,
+    extra_form_data: dict[str, Any] | None = None,
+) -> None:
+    """Normalize form_data filters before building a QueryObject payload.
+
+    Explore and legacy viz query construction merge dashboard/native filter payloads
+    and split adhoc filters into the concrete ``filters``/``where``/``having``
+    fields consumed by QueryObject. MCP tools that build query payloads directly
+    must perform the same normalization before calling QueryContextFactory.
+    """
+    from superset.utils.core import (
+        convert_legacy_filters_into_adhoc,
+        form_data_to_adhoc,
+        merge_extra_filters,
+        simple_filter_to_adhoc,
+        split_adhoc_filters_into_base_filters,
+    )
+
+    if isinstance(form_data.get("adhoc_filters"), list):
+        adhoc_filters = [
+            *(
+                form_data_to_adhoc(form_data, clause)
+                for clause in ("having", "where")
+                if form_data.get(clause)
+            ),
+            *(
+                simple_filter_to_adhoc(filter_, "where")
+                for filter_ in form_data.get("filters") or []
+                if filter_ is not None
+            ),
+            *form_data["adhoc_filters"],
+        ]
+        form_data["adhoc_filters"] = adhoc_filters
+
+    if extra_form_data:
+        form_data["extra_form_data"] = extra_form_data
+    convert_legacy_filters_into_adhoc(form_data)
+    merge_extra_filters(form_data)
+    split_adhoc_filters_into_base_filters(
+        form_data,
+        resolve_datasource_engine(datasource_id, datasource_type),
+    )
+
+
+def apply_form_data_filters_to_query(
+    query: dict[str, Any],
+    form_data: dict[str, Any],
+) -> None:
+    """Copy normalized form_data filter fields into a query payload."""
+    if filters := form_data.get("filters"):
+        query["filters"] = filters
+    else:
+        query.setdefault("filters", [])
+
+    if time_range := form_data.get("time_range"):
+        query["time_range"] = time_range
+    if where := form_data.get("where"):
+        query["where"] = where
+    if having := form_data.get("having"):
+        query["having"] = having
 
 
 def extract_form_data_key_from_url(url: str | None) -> str | None:

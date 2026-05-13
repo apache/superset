@@ -33,7 +33,11 @@ from superset.mcp_service.chart.ascii_charts import (
     generate_ascii_chart,
     generate_ascii_table,
 )
-from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
+from superset.mcp_service.chart.chart_helpers import (
+    apply_form_data_filters_to_query,
+    find_chart_by_identifier,
+    prepare_form_data_for_query,
+)
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -242,21 +246,26 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                     error_type="UnsupportedChart",
                 )
 
+            prepare_form_data_for_query(
+                form_data,
+                self.chart.datasource_id,
+                self.chart.datasource_type,
+            )
+            query_dict: dict[str, Any] = {
+                "columns": columns,
+                "metrics": metrics,
+                "row_limit": 50,
+                "order_desc": True,
+            }
+            apply_form_data_filters_to_query(query_dict, form_data)
+
             factory = QueryContextFactory()
             query_context = factory.create(
                 datasource={
                     "id": self.chart.datasource_id,
                     "type": self.chart.datasource_type,
                 },
-                queries=[
-                    {
-                        "filters": form_data.get("filters", []),
-                        "columns": columns,
-                        "metrics": metrics,
-                        "row_limit": 50,
-                        "order_desc": True,
-                    }
-                ],
+                queries=[query_dict],
                 form_data=form_data,
                 force=False,
             )
@@ -317,21 +326,26 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 
             columns = _build_query_columns(form_data)
 
+            prepare_form_data_for_query(
+                form_data,
+                self.chart.datasource_id,
+                self.chart.datasource_type,
+            )
+            query_dict: dict[str, Any] = {
+                "columns": columns,
+                "metrics": form_data.get("metrics", []),
+                "row_limit": 20,
+                "order_desc": True,
+            }
+            apply_form_data_filters_to_query(query_dict, form_data)
+
             factory = QueryContextFactory()
             query_context = factory.create(
                 datasource={
                     "id": self.chart.datasource_id,
                     "type": self.chart.datasource_type,
                 },
-                queries=[
-                    {
-                        "filters": form_data.get("filters", []),
-                        "columns": columns,
-                        "metrics": form_data.get("metrics", []),
-                        "row_limit": 20,
-                        "order_desc": True,
-                    }
-                ],
+                queries=[query_dict],
                 form_data=form_data,
                 force=False,
             )
@@ -422,6 +436,19 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             # Build columns list: include both x_axis and groupby
             columns = _build_query_columns(form_data)
 
+            prepare_form_data_for_query(
+                form_data,
+                self.chart.datasource_id,
+                self.chart.datasource_type,
+            )
+            query_dict = {
+                "columns": columns,
+                "metrics": form_data.get("metrics", []),
+                "row_limit": 1000,  # More data for visualization
+                "order_desc": True,
+            }
+            apply_form_data_filters_to_query(query_dict, form_data)
+
             # Create query context for data retrieval
             factory = QueryContextFactory()
             query_context = factory.create(
@@ -429,15 +456,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     "id": self.chart.datasource_id,
                     "type": self.chart.datasource_type,
                 },
-                queries=[
-                    {
-                        "filters": form_data.get("filters", []),
-                        "columns": columns,
-                        "metrics": form_data.get("metrics", []),
-                        "row_limit": 1000,  # More data for visualization
-                        "order_desc": True,
-                    }
-                ],
+                queries=[query_dict],
                 form_data=form_data,
                 force=self.request.force_refresh,
             )

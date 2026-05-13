@@ -18,9 +18,11 @@
 from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.chart.chart_helpers import (
+    apply_form_data_filters_to_query,
     extract_form_data_key_from_url,
     find_chart_by_identifier,
     get_cached_form_data,
+    prepare_form_data_for_query,
 )
 
 
@@ -106,3 +108,33 @@ def test_get_cached_form_data_key_error(mock_init, mock_run):
     mock_init.return_value = None
     result = get_cached_form_data("bad_key")
     assert result is None
+
+
+def test_prepare_form_data_for_query_preserves_existing_filters_with_adhoc(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "filters": [{"col": "gender", "op": "==", "val": "boy"}],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "gender",
+                "operator": "==",
+                "comparator": "girl",
+            }
+        ],
+    }
+    query = {}
+
+    prepare_form_data_for_query(form_data, 1, "table")
+    apply_form_data_filters_to_query(query, form_data)
+
+    assert query["filters"] == [
+        {"col": "gender", "op": "==", "val": "boy"},
+        {"col": "gender", "op": "==", "val": "girl"},
+    ]

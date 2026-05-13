@@ -35,8 +35,10 @@ from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
+    apply_form_data_filters_to_query,
     find_chart_by_identifier,
     get_cached_form_data,
+    prepare_form_data_for_query,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
@@ -55,7 +57,6 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
-from superset.utils.core import merge_extra_filters
 
 logger = logging.getLogger(__name__)
 
@@ -92,16 +93,6 @@ def _sanitize_chart_data_for_llm_context(chart_data: ChartData) -> ChartData:
     ]
 
     return ChartData.model_validate(payload)
-
-
-def _apply_extra_form_data(
-    form_data: dict[str, Any], extra_form_data: dict[str, Any] | None
-) -> None:
-    """Merge dashboard native filters into chart form_data in-place."""
-    if not extra_form_data:
-        return
-    form_data["extra_form_data"] = extra_form_data
-    merge_extra_filters(form_data)
 
 
 @tool(
@@ -331,19 +322,20 @@ async def get_chart_data(  # noqa: C901
                     else:
                         cached_groupby = list(raw_groupby)
 
-                _apply_extra_form_data(cached_form_data_dict, request.extra_form_data)
+                prepare_form_data_for_query(
+                    cached_form_data_dict,
+                    datasource_id,
+                    datasource_type,
+                    request.extra_form_data,
+                )
 
                 cached_query: dict[str, Any] = {
-                    "filters": cached_form_data_dict.get("filters", []),
                     "columns": cached_groupby,
                     "metrics": cached_metrics,
                     "row_limit": row_limit,
                     "order_desc": cached_form_data_dict.get("order_desc", True),
                 }
-                # Include adhoc_filters so dashboard native filters are applied
-                cached_adhoc = cached_form_data_dict.get("adhoc_filters")
-                if cached_adhoc:
-                    cached_query["adhoc_filters"] = cached_adhoc
+                apply_form_data_filters_to_query(cached_query, cached_form_data_dict)
 
                 query_context = factory.create(
                     datasource={
@@ -534,19 +526,20 @@ async def get_chart_data(  # noqa: C901
                         error_type="MissingQueryContext",
                     )
 
-                _apply_extra_form_data(form_data, request.extra_form_data)
+                prepare_form_data_for_query(
+                    form_data,
+                    chart.datasource_id,
+                    chart.datasource_type,
+                    request.extra_form_data,
+                )
 
                 fallback_query: dict[str, Any] = {
-                    "filters": form_data.get("filters", []),
                     "columns": query_columns,
                     "metrics": metrics,
                     "row_limit": row_limit,
                     "order_desc": True,
                 }
-                # Include adhoc_filters so dashboard native filters are applied
-                fallback_adhoc = form_data.get("adhoc_filters")
-                if fallback_adhoc:
-                    fallback_query["adhoc_filters"] = fallback_adhoc
+                apply_form_data_filters_to_query(fallback_query, form_data)
 
                 query_context = factory.create(
                     datasource={
@@ -568,7 +561,15 @@ async def get_chart_data(  # noqa: C901
 
                 # Merge dashboard native filters into query_context's form_data
                 qc_form_data = query_context_json.setdefault("form_data", {})
-                _apply_extra_form_data(qc_form_data, request.extra_form_data)
+                if request.extra_form_data:
+                    prepare_form_data_for_query(
+                        qc_form_data,
+                        query_context_json["datasource"]["id"],
+                        query_context_json["datasource"]["type"],
+                        request.extra_form_data,
+                    )
+                    for query in query_context_json.get("queries", []):
+                        apply_form_data_filters_to_query(query, qc_form_data)
 
                 # Create QueryContext from the saved context using the schema
                 # This is exactly how the API does it
@@ -903,18 +904,25 @@ async def _query_from_form_data(
         groupby = list(form_data.get("groupby") or [])
 
     try:
+        prepare_form_data_for_query(
+            form_data,
+            datasource_id,
+            datasource_type,
+            request.extra_form_data,
+        )
+
+        query_dict: dict[str, Any] = {
+            "columns": groupby,
+            "metrics": metrics,
+            "row_limit": row_limit,
+            "order_desc": form_data.get("order_desc", True),
+        }
+        apply_form_data_filters_to_query(query_dict, form_data)
+
         factory = QueryContextFactory()
         query_context = factory.create(
             datasource={"id": datasource_id, "type": datasource_type},
-            queries=[
-                {
-                    "filters": form_data.get("filters", []),
-                    "columns": groupby,
-                    "metrics": metrics,
-                    "row_limit": row_limit,
-                    "order_desc": form_data.get("order_desc", True),
-                }
-            ],
+            queries=[query_dict],
             form_data=form_data,
             force=request.force_refresh,
         )

@@ -19,6 +19,9 @@
 Tests for the get_chart_data request schema and chart type fallback handling.
 """
 
+import importlib
+from contextlib import nullcontext
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -30,6 +33,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.chart.tool.get_chart_data import (
+    _query_from_form_data,
     _sanitize_chart_data_for_llm_context,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
@@ -354,6 +358,94 @@ class TestChartDataSanitization:
         escaped_key = f"{LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER} System"
         assert escaped_key in result.data[0]
         assert result.data[0][escaped_key] == sanitize_for_llm_context("value")
+
+
+class _AsyncContext:
+    async def report_progress(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+
+class TestUnsavedChartDataQueryConstruction:
+    @pytest.mark.asyncio
+    async def test_form_data_key_adhoc_filters_become_query_filters(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Cached form_data adhoc filters should constrain unsaved chart data."""
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"gender": "boy", "count": 1}],
+                            "colnames": ["gender", "count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+        )
+
+        adhoc_filter = {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "gender",
+            "operator": "==",
+            "comparator": "boy",
+        }
+
+        await _query_from_form_data(
+            {
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "viz_type": "table",
+                "groupby": ["gender"],
+                "metrics": ["count"],
+                "row_limit": 10,
+                "adhoc_filters": [adhoc_filter],
+            },
+            GetChartDataRequest(form_data_key="cached-key"),
+            _AsyncContext(),
+        )
+
+        query = captured_query_contexts[0]["queries"][0]
+        assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
+        assert "adhoc_filters" not in query
 
 
 class TestWorldMapChartFallback:

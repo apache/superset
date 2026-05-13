@@ -19,6 +19,10 @@
 Unit tests for get_chart_preview MCP tool
 """
 
+import importlib
+from types import SimpleNamespace
+from typing import Any
+
 import pytest
 
 from superset.mcp_service.chart.schemas import (
@@ -34,8 +38,10 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.tool.get_chart_preview import (
     _sanitize_chart_preview_for_llm_context,
+    TablePreviewStrategy,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.utils import json as utils_json
 
 
 class TestPreviewXAxisInQueryContext:
@@ -276,6 +282,85 @@ class TestGetChartPreview:
 
         # This is a structural test - actual integration tests would verify
         # the tool returns data matching this structure
+
+    def test_table_preview_converts_cached_adhoc_filters_to_query_filters(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Cached form_data adhoc filters should constrain table previews."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"gender": "boy", "count": 1}],
+                            "colnames": ["gender", "count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        adhoc_filter = {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "gender",
+            "operator": "==",
+            "comparator": "boy",
+        }
+        chart = SimpleNamespace(
+            id=0,
+            slice_name="Unsaved Chart Preview",
+            viz_type="table",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "table",
+                    "groupby": ["gender"],
+                    "metrics": ["count"],
+                    "adhoc_filters": [adhoc_filter],
+                }
+            ),
+        )
+
+        preview = TablePreviewStrategy(
+            chart,
+            GetChartPreviewRequest(form_data_key="cached-key", format="table"),
+        ).generate()
+
+        assert isinstance(preview, TablePreview)
+        query = captured_query_contexts[0]["queries"][0]
+        assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
+        assert "adhoc_filters" not in query
 
     @pytest.mark.asyncio
     async def test_preview_dimensions(self):
