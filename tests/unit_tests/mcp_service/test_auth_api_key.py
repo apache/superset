@@ -86,7 +86,14 @@ def _disable_api_keys(app: SupersetApp) -> Generator[None, None, None]:
 
 @contextmanager
 def _mock_sm_ctx(app: SupersetApp, mock_sm: MagicMock):
-    """Push an app context with g.user cleared and appbuilder.sm mocked."""
+    """Push an app context with g.user cleared and appbuilder.sm mocked.
+
+    Defaults find_user_with_relationships to None so JWT/dev-user lookups
+    that hit the SM (via load_user_with_relationships) behave as "user not
+    found" without a real DB, matching the pre-refactor db.session behavior.
+    Tests that need a specific return value should set it on mock_sm directly.
+    """
+    mock_sm.find_user_with_relationships.return_value = None
     with app.app_context():
         g.user = None
         app.appbuilder = MagicMock()
