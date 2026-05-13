@@ -46,7 +46,10 @@ from superset.mcp_service.chart.schemas import (
     GetChartDataRequest,
     PerformanceMetadata,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
+)
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -199,8 +202,12 @@ async def get_chart_data(  # noqa: C901
 
         if not chart:
             await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
+            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
             return ChartError(
-                error=f"No chart found with identifier: {request.identifier}",
+                error=(
+                    f"No chart found with identifier: {safe_id}."
+                    " Use list_charts to get valid chart IDs."
+                ),
                 error_type="NotFound",
             )
 
