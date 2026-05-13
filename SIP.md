@@ -73,13 +73,27 @@ Caching: `ThemeController` already memoizes themes by id (`dashboardThemes: Map<
 
 ### `ComponentHeaderControls` (Phase 2, lands first)
 
-A shared vertical-dots `MenuDotsDropdown` for grid components, replacing the inconsistent per-component patterns:
-- **Chart**: extends today's `SliceHeaderControls` menu (adds an "Apply theme" item).
-- **Markdown**: replaces `MarkdownModeDropdown` (Edit/Preview still works through the same menu).
-- **Row / Column**: replaces today's gear icon.
-- **Tabs**: adds the menu (none today).
+A shared vertical-dots menu for grid components. Each grid component type
+plugs in its own list of menu items via a `useComponentMenuItems` hook;
+the visual chrome (the dots icon button, the dropdown surface, the
+edit-mode visibility gating) lives in `ComponentHeaderControls` itself.
 
-This refactor is **valuable on its own** — converging on one menu component is a cleanup we should do regardless of theming. We land it first so the theming PR has a clean integration point.
+Per-component menu surfaces (informational — the actual conversions of
+the existing patterns happen as part of Phase 4 for each component, so
+we don't change user-visible UX in Phase 2):
+
+| Component | Current pattern | Converges to |
+|---|---|---|
+| Markdown | `MarkdownModeDropdown` (Edit/Preview popover) | dots menu w/ Edit + Preview items |
+| Row / Col | Gear icon → `WithPopoverMenu` with `BackgroundStyleDropdown` | dots menu w/ Background item |
+| Chart | `SliceHeaderControls` (already a dots menu — wraps `MenuDotsDropdown`) | reuses the same shared component |
+| Tabs | none | dots menu (new affordance) |
+
+Phase 2 itself only **builds the component** and converts **Markdown** as
+the PoC. The other components remain on their existing patterns until
+the per-component Phase-4 PRs wire them up together with their theme
+provider — that lets reviewers evaluate the menu unification + theming
+together rather than as separate churn passes.
 
 ### `ThemeSelectorModal` (Phase 3)
 
@@ -95,9 +109,9 @@ On save it dispatches a Redux action that updates the component's `meta.themeId`
 | Phase | Scope | PR target |
 |---|---|---|
 | **1** | Storage shape (`LayoutItemMeta.themeId`) + `ComponentThemeProvider` skeleton wired to one component (Chart) for proof of concept. No UI. | One PR |
-| **2** | Extract `ComponentHeaderControls` and converge Markdown/Row/Column/Tabs/Chart on it. No theming dependency — pure refactor. | One PR |
+| **2** | Build `ComponentHeaderControls` (shared dots menu) + tests. **Component creation only** — per-component conversions of the existing menu patterns happen in Phase 4 alongside theme wiring, so reviewers can evaluate the menu unification + theming together rather than as separate churn passes. | One PR |
 | **3** | `ThemeSelectorModal` + persistence + "Apply theme" menu item. End-to-end demo on Chart. | One PR |
-| **4** | Wire `ComponentThemeProvider` into Markdown, Row, Column, Tabs (one component per PR, ~4 PRs). | ~4 small PRs |
+| **4** | Per-component PRs (Markdown / Row / Column / Tabs): swap their existing menu pattern for `ComponentHeaderControls`, wire `ComponentThemeProvider` around the body, add the "Apply theme" item. One PR per component so each menu/UX change can be reviewed in isolation. | ~4 small PRs |
 
 Each phase is independently revertable. Phase 2 has standalone value.
 
@@ -151,7 +165,21 @@ Each phase brings its own tests; the cumulative bar:
   `ComponentThemeProvider` + `useEffectiveThemeId` hook, wired into
   `ChartHolder`. 8 passing unit tests. No UI yet — `themeId` has to be
   set via Redux devtools or position_json hand-edit to verify visually.
-- _(Phase 2)_ — pending.
+- _(Phase 2)_ — ✅ landed locally. `ComponentHeaderControls` shared dots
+  menu + 4 passing unit tests. Generic `items: ComponentMenuItem[]` API
+  so each grid component can plug in its own list (Edit/Preview for
+  Markdown, Background for Row/Col, Apply Theme/Delete for Chart, etc.).
+  Built on the existing `MenuDotsDropdown` so the trigger styling
+  matches Chart's `SliceHeaderControls` today (Phase 4 will converge
+  `SliceHeaderControls` onto this).
+
+  **Deferred to Phase 4**: actually swapping the existing per-component
+  menu UI (Markdown's `MarkdownModeDropdown` PopoverDropdown, Row/Col's
+  gear-icon-into-`WithPopoverMenu`, Tabs' nothing) for this component.
+  Those conversions are user-visible UX changes (e.g. Markdown loses
+  its toggle-style Edit/Preview switcher and gains a dots menu), so we
+  do them per-component alongside the theme wiring so each can be
+  reviewed in isolation.
 - _(Phase 3)_ — pending.
 - _(Phase 4)_ — pending.
 
