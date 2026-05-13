@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { type ReactChild } from 'react';
+import { type ReactNode } from 'react';
 import {
   render,
   screen,
@@ -96,7 +96,7 @@ jest.mock('src/components/StreamingExportModal/useStreamingExport', () => ({
 jest.mock(
   'react-virtualized-auto-sizer',
   () =>
-    ({ children }: { children: (params: { height: number }) => ReactChild }) =>
+    ({ children }: { children: (params: { height: number }) => ReactNode }) =>
       children({ height: 500 }),
 );
 const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');

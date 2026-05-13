@@ -33,7 +33,7 @@ import { useTheme } from '@apache-superset/core/theme';
 
 import {
   ModalTrigger,
-  ModalTriggerRef,
+  type ModalTriggerImperativeApi,
 } from '@superset-ui/core/components/ModalTrigger';
 import {
   SAVE_TYPE_OVERWRITE,
@@ -84,7 +84,7 @@ function SaveModal({
   lastModifiedTime,
 }: SaveModalProps) {
   const theme = useTheme();
-  const modal = useRef<ModalTriggerRef | null>(null);
+  const modal = useRef<ModalTriggerImperativeApi | null>(null);
 
   const [saveType, setSaveType] = useState<SaveType>(initialSaveType);
   const [newDashName, setNewDashName] = useState(
