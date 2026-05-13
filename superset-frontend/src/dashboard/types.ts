@@ -392,6 +392,7 @@ export enum MenuKeys {
   ExportFullXlsx = 'export_full_xlsx',
   ForceRefresh = 'force_refresh',
   Fullscreen = 'fullscreen',
+  ApplyTheme = 'apply_theme',
   ToggleChartDescription = 'toggle_chart_description',
   ViewQuery = 'view_query',
   ViewResults = 'view_results',
