@@ -607,6 +607,39 @@ def _remove_session_safe() -> None:
         db.session.remove()  # retry: session deregisters cleanly after invalidation
 
 
+def _get_app_context_manager() -> AbstractContextManager[None]:
+    """Return the right context manager for the current Flask state.
+
+    When a request context is present, external middleware (e.g.
+    Preset's WorkspaceContextMiddleware) has already set ``g.user``
+    on a per-request app context — reuse it via ``nullcontext()``.
+
+    When only a bare app context exists (no request context), push a
+    **new** app context so concurrent tool calls do not share one ``g``
+    namespace (which would cause ``g.user`` races under asyncio).
+
+    When no context exists at all, push a fresh app context from the
+    Flask singleton.
+
+    This is the single source of truth for context selection — called
+    from both ``mcp_auth_hook`` (tool execution) and
+    ``RBACToolVisibilityMiddleware`` (tools/list filtering).
+    """
+    import contextlib
+
+    from flask import current_app, has_app_context, has_request_context
+
+    if has_request_context():
+        return contextlib.nullcontext()
+    if has_app_context():
+        # Push a new context for the CURRENT app (not get_flask_app()
+        # which may return a different instance in test environments).
+        return current_app._get_current_object().app_context()
+    from superset.mcp_service.flask_singleton import get_flask_app
+
+    return get_flask_app().app_context()
+
+
 def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
@@ -621,41 +654,9 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
 
     Supports both sync and async tool functions.
     """
-    import contextlib
     import functools
     import inspect
     import types
-
-    from flask import current_app, has_app_context, has_request_context
-
-    def _get_app_context_manager() -> AbstractContextManager[None]:
-        """Push a fresh app context unless a request context is active.
-
-        When a request context is present, external middleware (e.g.
-        Preset's WorkspaceContextMiddleware) has already set ``g.user``
-        on a per-request app context — reuse it via ``nullcontext()``.
-
-        When only a bare app context exists (no request context), we must
-        push a **new** app context. The MCP server typically runs inside
-        a long-lived app context (e.g. ``__main__.py`` wraps
-        ``mcp.run()`` in ``app.app_context()``). When FastMCP dispatches
-        concurrent tool calls via ``asyncio.create_task()``, each task
-        inherits the parent's ``ContextVar`` *value* — a reference to the
-        **same** ``AppContext`` object. Without a fresh push, all tasks
-        share one ``g`` namespace and concurrent ``g.user`` mutations
-        race: one user's identity can overwrite another's before
-        ``get_user_id()`` runs during the SQLAlchemy INSERT flush,
-        attributing the created asset to the wrong user.
-        """
-        if has_request_context():
-            return contextlib.nullcontext()
-        if has_app_context():
-            # Push a new context for the CURRENT app (not get_flask_app()
-            # which may return a different instance in test environments).
-            return current_app._get_current_object().app_context()
-        from superset.mcp_service.flask_singleton import get_flask_app
-
-        return get_flask_app().app_context()
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
