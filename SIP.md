@@ -196,7 +196,26 @@ Each phase brings its own tests; the cumulative bar:
   3 passing tests on `setComponentThemeId`: preserves other meta keys
   + sets numeric `themeId`; stores explicit `null` for the clear path;
   no-op when the component id isn't in the layout.
-- _(Phase 4)_ — pending.
+- _(Phase 4)_ — in progress.
+  - **Chart (4a)**: ✅ landed locally. End-to-end demo on Chart works
+    now: `SliceHeaderControls` has a new "Apply theme" item (gated on
+    dashboard edit mode); clicking it opens the Phase-3
+    `ThemeSelectorModal` keyed to the component's layoutId; on save the
+    Phase-3 action updates `meta.themeId`; the Phase-1
+    `ComponentThemeProvider` (already wrapping ChartHolder) re-resolves
+    and re-renders the chart with the new theme tokens. The full
+    Instance → Dashboard → Tab → Row/Col → Chart inheritance chain is
+    functionally complete for Chart.
+
+    Open follow-ups for the **Markdown / Row / Column / Tabs** PRs:
+    - Each gets the menu-pattern conversion (`MarkdownModeDropdown`,
+      gear icon, none → shared `ComponentHeaderControls`).
+    - Each wraps its body in `<ComponentThemeProvider layoutId=...>`.
+    - Each mounts a `<ThemeSelectorModal>` with an "Apply theme" menu
+      item that opens it.
+    - Each per-component PR can be reviewed in isolation for the menu/UX
+      change without dragging in the theming framework changes (those
+      are already merged in Phases 1-3).
 
 ### Phase 1 status
 
