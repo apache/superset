@@ -785,8 +785,7 @@ export function exploreJSON(
         // its controller will have replaced ours in state, so ignore this
         // response to avoid clobbering newer data with older results.
         if (key != null) {
-          const currentController =
-            getState().charts?.[key]?.queryController;
+          const currentController = getState().charts?.[key]?.queryController;
           if (currentController && currentController !== controller) {
             return undefined;
           }
@@ -839,8 +838,7 @@ export function exploreJSON(
           // Drop stale failures the same way we drop stale successes,
           // so a slow earlier request can't mark a newer one as failed.
           if (key != null) {
-            const currentController =
-              getState().charts?.[key]?.queryController;
+            const currentController = getState().charts?.[key]?.queryController;
             if (currentController && currentController !== controller) {
               return undefined;
             }
