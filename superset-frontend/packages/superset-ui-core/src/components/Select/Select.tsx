@@ -586,7 +586,7 @@ const Select = forwardRef(
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
     ) =>
       dropDownRenderHelper(
-        originNode,
+        originNode as Parameters<typeof dropDownRenderHelper>[0],
         isDropdownVisible,
         isLoading,
         fullSelectOptions.length,

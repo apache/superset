@@ -17,7 +17,10 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useResizeDetector } from 'react-resize-detector';
+import {
+  useResizeDetector,
+  type OnResizeCallback,
+} from 'react-resize-detector';
 import { uniqWith } from 'lodash-es';
 import { styled } from '@apache-superset/core/theme';
 import { Tooltip } from '../Tooltip';
@@ -181,7 +184,7 @@ export interface MetadataBarProps {
  * This process is important to make sure the new type is reviewed by the design team, improving Superset consistency.
  */
 const MetadataBar = ({ items, tooltipPlacement = 'top' }: MetadataBarProps) => {
-  const [width, setWidth] = useState<number>();
+  const [width, setWidth] = useState<number | undefined>(undefined);
   const [collapsed, setCollapsed] = useState(false);
   const uniqueItems = uniqWith(items, (a, b) => a.type === b.type);
   const sortedItems = uniqueItems.sort((a, b) => ORDER[a.type] - ORDER[b.type]);
@@ -193,8 +196,9 @@ const MetadataBar = ({ items, tooltipPlacement = 'top' }: MetadataBarProps) => {
     throw new Error('The maximum number of items for the metadata bar is 6.');
   }
 
-  const onResize = useCallback(
-    (width: number | undefined) => {
+  const onResize = useCallback<OnResizeCallback>(
+    payload => {
+      const width = payload.width ?? undefined;
       // Calculates the breakpoint width to collapse the bar.
       // The last item does not have a space, so we subtract SPACE_BETWEEN_ITEMS from the total.
       const breakpoint =

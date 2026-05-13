@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement, cloneElement } from 'react';
+import {
+  cloneElement,
+  type FocusEventHandler,
+  type KeyboardEventHandler,
+  type ReactElement,
+} from 'react';
 
 import { Dropdown as AntdDropdown, DropdownProps } from 'antd';
 import { styled } from '@apache-superset/core/theme';
@@ -98,10 +103,16 @@ export const MenuDotsDropdown = ({
 
 export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   const { children, onBlur, onKeyDown, ...rest } = props;
-  const childrenWithProps = cloneElement(children as ReactElement, {
-    onBlur,
-    onKeyDown,
-  });
+  const childrenWithProps = cloneElement(
+    children as ReactElement<{
+      onBlur?: FocusEventHandler;
+      onKeyDown?: KeyboardEventHandler;
+    }>,
+    {
+      onBlur,
+      onKeyDown,
+    },
+  );
 
   return (
     <AntdDropdown autoFocus overlayStyle={props.overlayStyle} {...rest}>

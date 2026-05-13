@@ -20,8 +20,8 @@ import { useEffect, useRef, useState, RefObject } from 'react';
 
 export function useElementOnScreen<T extends Element>(
   options: IntersectionObserverInit,
-): [RefObject<T>, boolean] {
-  const containerRef = useRef<T>(null);
+): [RefObject<T | null>, boolean] {
+  const containerRef = useRef<T | null>(null);
   const [isSticky, setIsSticky] = useState(false);
 
   const callback = (entries: IntersectionObserverEntry[]) => {

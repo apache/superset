@@ -153,8 +153,14 @@ export const getSuffixIcon = (
   return <Icons.DownOutlined iconSize="s" aria-label="down" />;
 };
 
+type FlattenOptionsProps = {
+  flattenOptions?: Array<Record<string, any>>;
+};
+
 export const dropDownRenderHelper = (
-  originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+  originNode: ReactElement<FlattenOptionsProps> & {
+    ref?: RefObject<HTMLElement>;
+  },
   isDropdownVisible: boolean,
   isLoading: boolean | undefined,
   optionsLength: number,
@@ -172,17 +178,19 @@ export const dropDownRenderHelper = (
     return errorComponent;
   }
 
+  const originProps = originNode.props;
+
   // remap for accessibility for proper item count
   const accessibilityNode = {
     ...originNode,
     props: {
-      ...originNode.props,
-      flattenOptions: ensureIsArray(originNode.props.flattenOptions).map(
+      ...originProps,
+      flattenOptions: ensureIsArray(originProps.flattenOptions).map(
         (opt: Record<string, any>, idx: number) => ({
           ...opt,
           data: {
             ...opt.data,
-            'aria-setsize': originNode.props.flattenOptions?.length || 0,
+            'aria-setsize': originProps.flattenOptions?.length || 0,
             'aria-posinset': idx + 1,
           },
         }),

@@ -23,7 +23,10 @@ import {
   TableProps as AntTableProps,
 } from 'antd/es/table';
 import classNames from 'classnames';
-import { useResizeDetector } from 'react-resize-detector';
+import {
+  useResizeDetector,
+  type OnResizeCallback,
+} from 'react-resize-detector';
 import { useEffect, useRef, useState, useCallback, CSSProperties } from 'react';
 import { VariableSizeGrid as Grid } from 'react-window';
 import { safeHtmlSpan } from '@superset-ui/core';
@@ -84,8 +87,8 @@ const VirtualTable = <RecordType extends object>(
     allowHTML = false,
   } = props;
   const [tableWidth, setTableWidth] = useState<number>(0);
-  const onResize = useCallback((width?: number) => {
-    setTableWidth(width ?? 0);
+  const onResize = useCallback<OnResizeCallback>(payload => {
+    setTableWidth(payload.width ?? 0);
   }, []);
   const { ref } = useResizeDetector({ onResize });
   const theme = useTheme();
@@ -127,7 +130,7 @@ const VirtualTable = <RecordType extends object>(
   }
 
   const gridRef = useRef<any | null>(null);
-  const [connectObject] = useState<any>(() => {
+  const [connectObject] = useState<Record<string, unknown>>(() => {
     const obj = {};
     Object.defineProperty(obj, 'scrollLeft', {
       get: () => {
