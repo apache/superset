@@ -3551,11 +3551,27 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param resource: The dashboard, dataset, chart, etc. resource
         :raises SupersetSecurityException: If the current user is not an owner
         """
+        from superset.models.helpers import (  # pylint: disable=import-outside-toplevel  # noqa: E501
+            SKIP_VISIBILITY_FILTER,
+        )
 
         if self.is_admin():
             return
-        orig_resource = self.session.query(resource.__class__).get(resource.id)
-        owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
+
+        # The internal re-query below is filtered by the global soft-delete
+        # listener for any ``SoftDeleteMixin`` model. Callers that have
+        # intentionally loaded a soft-deleted resource (e.g.,
+        # ``BaseRestoreCommand``) need the re-query to see the row so the
+        # owners list can be read. Scope the bypass to the re-query and
+        # restore the previous flag value so it does not leak past this
+        # function.
+        previous_flag = getattr(g, SKIP_VISIBILITY_FILTER, False)
+        setattr(g, SKIP_VISIBILITY_FILTER, True)
+        try:
+            orig_resource = self.session.query(resource.__class__).get(resource.id)
+            owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
+        finally:
+            setattr(g, SKIP_VISIBILITY_FILTER, previous_flag)
 
         if g.user.is_anonymous or g.user not in owners:
             raise SupersetSecurityException(

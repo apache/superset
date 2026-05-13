@@ -721,14 +721,15 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
       needs a single query to see soft-deleted rows.
     * **Per-request** — ``flask.g.skip_visibility_filter = True``.
       The broad tool. Affects **every** ORM SELECT for the rest of the
-      Flask request, including incidental relationship loads. Reserve
-      this for cases where the bypass must propagate through a function
-      whose internal queries we don't directly control (e.g.,
-      ``security_manager.raise_for_ownership`` performs an internal
-      re-query that must see the soft-deleted row for the ownership
-      check to pass). Set it with a ``try/finally`` to restore the
-      previous value so the bypass does not leak past its intended
-      scope.
+      Flask request, including incidental relationship loads. Used
+      sparingly and internally — the canonical case is inside
+      ``security_manager.raise_for_ownership``, which scopes the flag
+      around its own internal re-query so soft-deleted resources can be
+      ownership-checked. New callers should be rare and justified in
+      code review; if you need the bypass to propagate through a
+      function whose internal queries aren't otherwise reachable, set
+      the flag with a ``try/finally`` that restores the previous value
+      so the bypass does not leak past its intended scope.
     """
     skip_visibility_filter = execute_state.execution_options.get(
         SKIP_VISIBILITY_FILTER, False
