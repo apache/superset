@@ -316,10 +316,21 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     # API key pass-through: CompositeTokenVerifier accepted this token
     # at the transport layer but defers actual validation to
     # _resolve_user_from_api_key() (priority 2 in get_user_from_request).
+    # Require client_id=="api_key" (set by CompositeTokenVerifier) in addition
+    # to the claim so that an external IdP JWT that happens to include the
+    # claim name is not misclassified as an API-key pass-through.
     claims = getattr(access_token, "claims", None)
     if isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM):
-        logger.debug("API key pass-through token detected, deferring to API key auth")
-        return None
+        if getattr(access_token, "client_id", None) == "api_key":
+            logger.debug(
+                "API key pass-through token detected, deferring to API key auth"
+            )
+            return None
+        logger.debug(
+            "Ignoring %s claim on non-API-key token (client_id=%r); processing as JWT",
+            API_KEY_PASSTHROUGH_CLAIM,
+            getattr(access_token, "client_id", None),
+        )
 
     # Use configurable resolver or default
     from superset.mcp_service.mcp_config import default_user_resolver
@@ -388,10 +399,18 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
     claims = getattr(access_token, "claims", None)
     if not (isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM)):
         return None
+    # Defense-in-depth: require client_id=="api_key" (set by CompositeTokenVerifier)
+    # to guard against rogue external IdP JWTs that include the passthrough claim.
+    if getattr(access_token, "client_id", None) != "api_key":
+        return None
 
     api_key_string = getattr(access_token, "token", None)
     if not api_key_string:
-        return None
+        # Passthrough claim is set but the raw token is absent — fail closed
+        # rather than silently falling through to weaker auth sources.
+        raise PermissionError(
+            "API key pass-through token is missing the raw token value."
+        )
 
     sm = app.appbuilder.sm
     if not hasattr(sm, "validate_api_key"):
@@ -633,7 +652,7 @@ def _setup_user_context() -> User | None:
             logger.error("DB connection failed on retry during user setup: %s", e)
             _cleanup_session_on_error()
             raise
-        except ValueError as e:
+        except (ValueError, PermissionError) as e:
             # User resolution failed — fail closed. Do not fall back to
             # g.user from middleware, as that could allow a request to
             # proceed as a different user in multi-tenant deployments.
