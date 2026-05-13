@@ -64,6 +64,12 @@ class TestGetTableChartTypeLabel:
     def test_non_table_viz_type_has_no_label(self) -> None:
         assert get_table_chart_type_label("echarts_timeseries_bar") is None
 
+    def test_unknown_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label("my-custom-chart") is None
+
+    def test_missing_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label(None) is None
+
 
 class TestCreateMetricObject:
     """Test create_metric_object function"""
