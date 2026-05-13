@@ -18,8 +18,7 @@
  */
 import { isCustomControlItem } from '@superset-ui/chart-controls';
 import controlPanel from '../src/plugin/controlPanel';
-import React, { ReactElement } from 'react';
-import type { ReactElement } from 'react';
+import React, { type ReactElement } from 'react';
 
 const isNameControl = (
   item: unknown,

@@ -158,7 +158,7 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
               onResizeStop={onResizeStop}
             >
               <div
-                ref={dragSourceRef}
+                ref={dragSourceRef as unknown as React.Ref<HTMLDivElement>}
                 className="dashboard-component"
                 data-test="dashboard-component-chart-holder"
               >

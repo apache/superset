@@ -141,7 +141,9 @@ const DetailsPanelPopover = ({
             <FiltersContainer>
               {appliedCrossFilterIndicators.map(indicator => (
                 <FilterIndicator
-                  ref={el => indicatorRefs.current.push(el)}
+                  ref={el => {
+                    indicatorRefs.current.push(el);
+                  }}
                   key={indicatorKey(indicator)}
                   indicator={indicator}
                   onClick={onHighlightFilterSource}
@@ -164,7 +166,9 @@ const DetailsPanelPopover = ({
                 renderItem={indicator => (
                   <List.Item>
                     <FilterIndicator
-                      ref={el => indicatorRefs.current.push(el)}
+                      ref={el => {
+                    indicatorRefs.current.push(el);
+                  }}
                       key={indicatorKey(indicator)}
                       indicator={indicator}
                       onClick={onHighlightFilterSource}

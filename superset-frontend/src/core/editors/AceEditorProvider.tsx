@@ -183,9 +183,9 @@ const createAceEditorHandle = (
   },
 
   registerCompletionProvider: (provider: CompletionProvider): Disposable => {
-    completionProviders.current.set(provider.id, provider);
+    completionProviders.current?.set(provider.id, provider);
     return new Disposable(() => {
-      completionProviders.current.delete(provider.id);
+      completionProviders.current?.delete(provider.id);
     });
   },
 
