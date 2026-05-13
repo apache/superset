@@ -34,10 +34,16 @@ export function createPersistentState(
         `Persistent storage key must be ${MAX_KEY_LENGTH} characters or less.`,
       );
     }
-    const basePath = '/api/v1/extensions/storage/persistent';
-    const encodedId = encodeURIComponent(extensionId);
+    const dotIndex = extensionId.indexOf('.');
+    if (dotIndex === -1) {
+      throw new Error(
+        `Invalid extensionId "${extensionId}": expected format "publisher.name"`,
+      );
+    }
+    const publisher = encodeURIComponent(extensionId.slice(0, dotIndex));
+    const name = encodeURIComponent(extensionId.slice(dotIndex + 1));
     const encodedKey = encodeURIComponent(key);
-    const url = `${basePath}/${encodedId}/${encodedKey}`;
+    const url = `/api/v1/extensions/${publisher}/${name}/storage/persistent/${encodedKey}`;
     return shared ? `${url}?shared=true` : url;
   };
 

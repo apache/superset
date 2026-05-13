@@ -27,10 +27,16 @@ export function createEphemeralState(
   extensionId: string,
 ): typeof StorageTypes.ephemeralState {
   const buildUrl = (key: string, shared?: boolean): string => {
-    const basePath = '/api/v1/extensions/storage/ephemeral';
-    const encodedId = encodeURIComponent(extensionId);
+    const dotIndex = extensionId.indexOf('.');
+    if (dotIndex === -1) {
+      throw new Error(
+        `Invalid extensionId "${extensionId}": expected format "publisher.name"`,
+      );
+    }
+    const publisher = encodeURIComponent(extensionId.slice(0, dotIndex));
+    const name = encodeURIComponent(extensionId.slice(dotIndex + 1));
     const encodedKey = encodeURIComponent(key);
-    const url = `${basePath}/${encodedId}/${encodedKey}`;
+    const url = `/api/v1/extensions/${publisher}/${name}/storage/ephemeral/${encodedKey}`;
     return shared ? `${url}?shared=true` : url;
   };
 
