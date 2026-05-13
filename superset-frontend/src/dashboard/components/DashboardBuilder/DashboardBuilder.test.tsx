@@ -507,6 +507,7 @@ test('should apply min-height to the top-level tab drop target so tabs can be dr
     }),
     useDnd: true,
     useTheme: true,
+    useRouter: true,
   });
 
   const headerWrapper = getByTestId('dashboard-header-wrapper');
