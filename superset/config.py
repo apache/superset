@@ -643,7 +643,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Experimental with potential security/performance risks.
     # See SUPERSET_META_DB_LIMIT.
     # @lifecycle: testing
-    # @docs: https://superset.apache.org/docs/configuration/databases/#querying-across-databases
+    # @docs: https://superset.apache.org/user-docs/databases/supported/superset-meta-database
     "ENABLE_SUPERSET_META_DB": False,
     # Enable query cost estimation. Supported in Presto, Postgres, and BigQuery.
     # Requires `cost_estimate_enabled: true` in database `extra` attribute.
