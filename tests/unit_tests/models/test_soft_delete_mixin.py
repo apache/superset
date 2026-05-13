@@ -157,6 +157,68 @@ def test_skip_visibility_filter_returns_soft_deleted_rows(
 
 
 @pytest.mark.usefixtures("_synthetic_table")
+def test_per_request_bypass_via_get_finds_soft_deleted_row(
+    app_context: None, session: Session
+) -> None:
+    """The per-request ``g.skip_visibility_filter`` bypass works with
+    ``Query.get()`` — this is the path ``security_manager.raise_for_ownership``
+    relies on (it does ``session.query(cls).get(id)`` internally).
+    """
+    from flask import g
+
+    obj = _SoftDeletable(name="bypass_via_get")
+    session.add(obj)
+    session.flush()
+    obj_id = obj.id
+
+    obj.soft_delete()
+    session.flush()
+    session.expire_all()
+
+    previous = getattr(g, SKIP_VISIBILITY_FILTER, False)
+    setattr(g, SKIP_VISIBILITY_FILTER, True)
+    try:
+        result = session.query(_SoftDeletable).get(obj_id)
+    finally:
+        setattr(g, SKIP_VISIBILITY_FILTER, previous)
+
+    assert result is not None, (
+        "per-request bypass should let .get() find soft-deleted row"
+    )
+    assert result.deleted_at is not None
+
+
+@pytest.mark.usefixtures("_synthetic_table")
+def test_per_query_bypass_via_get_finds_soft_deleted_row(
+    app_context: None, session: Session
+) -> None:
+    """The per-query ``execution_options(skip_visibility_filter=True)`` bypass
+    works with ``Query.get()``. Verifies the proposed simplification for
+    ``raise_for_ownership`` (swap the per-request flag for the per-query
+    option) is behaviorally equivalent.
+    """
+    obj = _SoftDeletable(name="per_query_via_get")
+    session.add(obj)
+    session.flush()
+    obj_id = obj.id
+
+    obj.soft_delete()
+    session.flush()
+    session.expire_all()
+
+    result = (
+        session.query(_SoftDeletable)
+        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .get(obj_id)
+    )
+
+    assert result is not None, (
+        "per-query bypass should let .get() find soft-deleted row"
+    )
+    assert result.deleted_at is not None
+
+
+@pytest.mark.usefixtures("_synthetic_table")
 def test_session_delete_permanently_removes_row(
     app_context: None, session: Session
 ) -> None:
