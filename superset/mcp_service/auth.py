@@ -49,7 +49,7 @@ from contextlib import AbstractContextManager, nullcontext
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from flask import current_app, g, has_app_context, has_request_context
-from flask_appbuilder.security.sqla.models import Group, User
+from flask_appbuilder.security.sqla.models import User
 
 from superset.mcp_service.composite_token_verifier import API_KEY_PASSTHROUGH_CLAIM
 
@@ -217,23 +217,14 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
 def load_user_with_relationships(
     username: str | None = None, email: str | None = None
 ) -> User | None:
-    """
-    Load a user with all relationships needed for permission checks.
+    """Load a user with roles and group roles eagerly loaded.
 
-    This function eagerly loads User.roles, User.groups, and Group.roles
-    to prevent detached instance errors when the session is closed/rolled back.
-
-    IMPORTANT: Always use this function instead of security_manager.find_user()
-    when loading users for MCP tool execution. The find_user() method doesn't
-    eagerly load Group.roles, causing "detached instance" errors when permission
-    checks access group.roles after the session is rolled back.
-
-    Args:
-        username: The username to look up (optional if email provided)
-        email: The email to look up (optional if username provided)
-
-    Returns:
-        User object with relationships loaded, or None if not found
+    Delegates to :meth:`SupersetSecurityManager.find_user_with_relationships`,
+    which mirrors FAB's ``find_user`` (including ``auth_username_ci`` and
+    ``MultipleResultsFound`` handling) while adding eager loading of
+    ``User.roles`` and ``User.groups.roles`` to prevent detached-instance
+    errors when the SQLAlchemy session is closed or rolled back after the
+    lookup — as happens in MCP tool-execution contexts.
 
     Raises:
         ValueError: If neither username nor email is provided
@@ -241,21 +232,9 @@ def load_user_with_relationships(
     if not username and not email:
         raise ValueError("Either username or email must be provided")
 
-    from sqlalchemy.orm import joinedload
+    from superset import security_manager
 
-    from superset.extensions import db
-
-    query = db.session.query(User).options(
-        joinedload(User.roles),
-        joinedload(User.groups).joinedload(Group.roles),
-    )
-
-    if username:
-        query = query.filter(User.username == username)
-    else:
-        query = query.filter(User.email == email)
-
-    return query.first()
+    return security_manager.find_user_with_relationships(username=username, email=email)
 
 
 def _resolve_user_from_jwt_context(app: Any) -> User | None:

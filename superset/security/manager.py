@@ -52,7 +52,8 @@ from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import eagerload
+from sqlalchemy.orm import eagerload, joinedload
+from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
@@ -3167,6 +3168,60 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(self.user_model.username == username)
             .one_or_none()
         )
+
+    def find_user_with_relationships(
+        self,
+        username: Optional[str] = None,
+        email: Optional[str] = None,
+    ) -> Optional[User]:
+        """Find a user with roles and group roles eagerly loaded.
+
+        Mirrors FAB's ``SecurityManager.find_user``
+        (including ``auth_username_ci`` case-insensitive handling and
+        ``MultipleResultsFound`` guard) and additionally eager-loads
+        ``User.roles`` and ``User.groups.roles`` to prevent detached-instance
+        errors when the SQLAlchemy session is closed or rolled back after the
+        lookup — as happens in MCP tool-execution contexts.
+        """
+        eager = [
+            joinedload(self.user_model.roles),
+            joinedload(self.user_model.groups).joinedload("roles"),
+        ]
+        if username:
+            try:
+                if self.auth_username_ci:
+                    from sqlalchemy import func as sa_func
+
+                    return (
+                        self.session.query(self.user_model)
+                        .options(*eager)
+                        .filter(
+                            sa_func.lower(self.user_model.username)
+                            == sa_func.lower(username)
+                        )
+                        .one_or_none()
+                    )
+                return (
+                    self.session.query(self.user_model)
+                    .options(*eager)
+                    .filter(self.user_model.username == username)
+                    .one_or_none()
+                )
+            except MultipleResultsFound:
+                logger.error("Multiple results found for user %s", username)
+                return None
+        if email:
+            try:
+                return (
+                    self.session.query(self.user_model)
+                    .options(*eager)
+                    .filter_by(email=email)
+                    .one_or_none()
+                )
+            except MultipleResultsFound:
+                logger.error("Multiple results found for user with email %s", email)
+                return None
+        return None
 
     def get_anonymous_user(self) -> User:
         return AnonymousUserMixin()
