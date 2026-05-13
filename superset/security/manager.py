@@ -971,7 +971,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # resolve permissions directly from the roles attached to the guest
         # token (typically the Public role).
         if self.is_guest_user():
-            role_ids = [role.id for role in g.user.roles if role.id is not None]
+            role_ids = [
+                role.id for role in g.user.roles if role and role.id is not None
+            ]
             if not role_ids:
                 return set()
             view_menu_names = (
