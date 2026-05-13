@@ -815,8 +815,9 @@ class TestColumnRefNameRelaxedPattern:
         try:
             col = ColumnRef(name="<script>alert(1)</script>")
             assert "<script>" not in col.name
-        except ValidationError:
-            pass  # nh3 stripped entire element; empty-value guard raised
+        except ValidationError as exc:
+            # nh3 stripped entire element; empty-value guard raises with this message
+            assert "cannot be empty" in str(exc)  # noqa: PT017
 
     def test_event_handler_injection_blocked(self) -> None:
         """sanitize_name() rejects event-handler injection patterns (on...=)."""
@@ -879,3 +880,35 @@ class TestFilterConfigColumnRelaxedPattern:
 
         with pytest.raises(ValidationError):
             FilterConfig(column="col; DROP TABLE users; --", op="=", value="x")
+
+
+class TestFormatSingleError:
+    """Unit tests for SchemaValidator._format_single_error."""
+
+    def test_missing_field_message(self) -> None:
+        """'missing' error type surfaces a clear 'required field' message."""
+        from superset.mcp_service.chart.validation.schema_validator import (
+            SchemaValidator,
+        )
+
+        err = {"loc": ("config", "x"), "type": "missing", "msg": "Field required"}
+        detail, suggestion = SchemaValidator._format_single_error(err)
+        assert "required" in detail.lower()
+        assert "'x'" in detail
+        assert "chart_type examples" in suggestion
+
+    def test_literal_error_preserves_pydantic_message(self) -> None:
+        """'literal_error' surfaces the pydantic 'Input should be ...' message."""
+        from superset.mcp_service.chart.validation.schema_validator import (
+            SchemaValidator,
+        )
+
+        err = {
+            "loc": ("config", "aggregate"),
+            "type": "literal_error",
+            "msg": "Input should be 'SUM' or 'COUNT'",
+        }
+        detail, suggestion = SchemaValidator._format_single_error(err)
+        assert "Input should be" in detail
+        assert "'aggregate'" in detail
+        assert suggestion == ""
