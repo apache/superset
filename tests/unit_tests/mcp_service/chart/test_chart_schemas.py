@@ -795,14 +795,17 @@ class TestColumnRefNameRelaxedPattern:
         assert col.name == "1Q_revenue"
 
     def test_name_with_hyphen_accepted(self) -> None:
+        """Hyphenated column names (e.g. 'order-date') must be accepted."""
         col = ColumnRef(name="order-date")
         assert col.name == "order-date"
 
     def test_name_with_dot_accepted(self) -> None:
+        """Dot-qualified names (e.g. 'schema.column') must be accepted."""
         col = ColumnRef(name="schema.column")
         assert col.name == "schema.column"
 
     def test_name_with_spaces_accepted(self) -> None:
+        """Column names with spaces (e.g. 'Total Revenue') must be accepted."""
         col = ColumnRef(name="Total Revenue")
         assert col.name == "Total Revenue"
 
@@ -815,6 +818,7 @@ class TestColumnRefNameRelaxedPattern:
         try:
             col = ColumnRef(name="<script>alert(1)</script>")
             assert "<script>" not in col.name
+            assert col.name  # sanitized result must not be empty
         except ValidationError as exc:
             # nh3 stripped entire element; empty-value guard raises with this message
             assert "cannot be empty" in str(exc)  # noqa: PT017
@@ -848,6 +852,7 @@ class TestColumnRefNameRelaxedPattern:
         assert req.config.chart_type == "table"
 
     def test_xy_chart_with_hyphenated_column(self) -> None:
+        """Hyphenated column names must pass through GenerateChartRequest for XY charts."""
         req = GenerateChartRequest(
             dataset_id=1,
             config={
