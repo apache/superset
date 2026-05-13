@@ -280,9 +280,14 @@ def import_dashboard(  # noqa: C901
         "can_write",
         "Dashboard",
     )
-    existing = db.session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
+    from superset.commands.importers.v1.utils import (
+        clear_soft_deleted_for_import,
+        find_existing_for_import,
+    )
+
     user = get_user()
-    if existing:
+
+    if existing := find_existing_for_import(Dashboard, config["uuid"]):
         if overwrite and can_write and user:
             if not security_manager.can_access_dashboard(existing) or (
                 user not in existing.owners and not security_manager.is_admin()
@@ -291,9 +296,17 @@ def import_dashboard(  # noqa: C901
                     "A dashboard already exists and user doesn't "
                     "have permissions to overwrite it"
                 )
+            # Permission check passed. If the existing row is
+            # soft-deleted, hard-delete it now so the fresh insert
+            # below doesn't collide on the UUID unique constraint.
+            # Destructive op happens *after* the permission check, not
+            # as a side effect of the lookup.
+            if existing.deleted_at is not None:
+                clear_soft_deleted_for_import(existing)
+            else:
+                config["id"] = existing.id
         elif not overwrite or not can_write:
             return existing
-        config["id"] = existing.id
     elif not can_write:
         raise ImportFailedError(
             "Dashboard doesn't exist and user doesn't "

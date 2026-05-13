@@ -20,6 +20,7 @@ from flask_babel import lazy_gettext as _
 from marshmallow.validate import ValidationError
 
 from superset.commands.exceptions import (
+    CommandException,
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
@@ -68,6 +69,10 @@ class DashboardChartCustomizationsUpdateFailedError(UpdateFailedError):
 
 class DashboardColorsConfigUpdateFailedError(UpdateFailedError):
     message = _("Dashboard color configuration could not be updated.")
+
+
+class DashboardRestoreFailedError(CommandException):
+    message = _("Dashboard could not be restored.")
 
 
 class DashboardDeleteFailedError(DeleteFailedError):
