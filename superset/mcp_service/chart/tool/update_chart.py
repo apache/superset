@@ -247,7 +247,8 @@ def _validate_update_against_dataset(
             }
         )
 
-    # Column existence + fuzzy-match validation (mirrors generate_chart pipeline layer 2)
+    # Column existence + fuzzy-match validation
+    # (mirrors generate_chart pipeline layer 2)
     from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 
     is_col_valid, col_error = DatasetValidator.validate_against_dataset(
@@ -495,11 +496,13 @@ async def update_chart(  # noqa: C901
 
         # Normalize column case to match dataset canonical names
         # (mirrors generate_chart pipeline layer 4)
-        if parsed_config is not None and getattr(chart, "datasource_id", None) is not None:
+        chart_datasource_id = getattr(chart, "datasource_id", None)
+        if parsed_config is not None and chart_datasource_id is not None:
             from superset.mcp_service.chart.validation.dataset_validator import (
                 DatasetValidator,
                 NORMALIZATION_EXCEPTIONS,
             )
+
             try:
                 parsed_config = DatasetValidator.normalize_column_names(
                     parsed_config, chart.datasource_id
