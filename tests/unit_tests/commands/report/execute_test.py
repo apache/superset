@@ -2312,6 +2312,8 @@ def test_get_url_raises_when_target_chart_soft_deleted(
     report_schedule = mocker.MagicMock()
     report_schedule.chart_id = 42
     report_schedule.chart = None
+    report_schedule.dashboard_id = None
+    report_schedule.dashboard = None
 
     state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
     with pytest.raises(ReportScheduleTargetChartDeletedError):
@@ -2341,6 +2343,33 @@ def test_get_url_raises_when_target_dashboard_soft_deleted(
         state._get_url()
 
 
+def test_get_url_uses_valid_chart_with_stale_dashboard_reference(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """A stale non-target dashboard must not block a valid chart report."""
+    report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    report_schedule.chart_id = 42
+    report_schedule.chart = mocker.sentinel.chart
+    report_schedule.dashboard_id = 7
+    report_schedule.dashboard = None
+    report_schedule.force_screenshot = False
+    get_url_path = mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/chart",
+    )
+
+    state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
+
+    assert state._get_url() == "/chart"
+    get_url_path.assert_called_once_with(
+        "ExploreView.root",
+        user_friendly=False,
+        form_data=json.dumps({"slice_id": 42}),
+        force="false",
+    )
+
+
 def test_get_dashboard_urls_raises_when_target_dashboard_soft_deleted(
     mocker: MockerFixture,
     app_context: None,
@@ -2359,3 +2388,32 @@ def test_get_dashboard_urls_raises_when_target_dashboard_soft_deleted(
     state = BaseReportState(report_schedule, datetime.utcnow(), uuid4())
     with pytest.raises(ReportScheduleTargetDashboardDeletedError):
         state.get_dashboard_urls()
+
+
+def test_get_url_raises_unexpected_error_when_target_is_missing(
+    mocker: MockerFixture,
+    app: SupersetApp,
+) -> None:
+    """A malformed schedule without either target raises a useful error."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.id = 42
+    mock_report_schedule.name = "orphan_report"
+    mock_report_schedule.chart = None
+    mock_report_schedule.chart_id = None
+    mock_report_schedule.dashboard = None
+    mock_report_schedule.dashboard_id = None
+    mock_report_schedule.force_screenshot = False
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    with pytest.raises(ReportScheduleUnexpectedError) as excinfo:
+        class_instance._get_url()
+
+    message: str = str(excinfo.value)
+    assert "Report schedule 42" in message
+    assert "orphan_report" in message
+    assert "chart_id=None" in message
+    assert "dashboard_id=None" in message
