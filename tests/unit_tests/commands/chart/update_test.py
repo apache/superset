@@ -19,32 +19,51 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.commands.chart.exceptions import ChartForbiddenError
+from superset.commands.chart.update import UpdateChartCommand
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 
 
-@patch("superset.commands.chart.update.ChartDAO.find_by_id")
-@patch("superset.commands.chart.update.security_manager")
-def test_update_chart_ownership_enforced_for_query_context_update(
-    mock_sm: MagicMock,
-    mock_find_by_id: MagicMock,
-) -> None:
-    """Non-owners must not be able to update a chart via query_context payload."""
-    from superset.commands.chart.update import UpdateChartCommand
-    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-
-    mock_find_by_id.return_value = MagicMock(id=1, tags=[], dashboards=[])
-    exc = SupersetSecurityException(
+def _make_ownership_exc() -> SupersetSecurityException:
+    return SupersetSecurityException(
         SupersetError(
             error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
             message="User does not own this chart",
             level=ErrorLevel.ERROR,
         )
     )
-    mock_sm.raise_for_ownership = MagicMock(side_effect=exc)
+
+
+@patch("superset.commands.chart.update.ChartDAO.find_by_id")
+@patch("superset.commands.chart.update.security_manager")
+def test_update_chart_ownership_enforced_for_regular_update(
+    mock_sm: MagicMock,
+    mock_find_by_id: MagicMock,
+) -> None:
+    """Non-owners must not be able to update a chart via a regular payload."""
+    mock_find_by_id.return_value = MagicMock(id=1, tags=[], dashboards=[])
+    mock_sm.raise_for_ownership = MagicMock(side_effect=_make_ownership_exc())
+
+    command = UpdateChartCommand(1, {"slice_name": "My Chart"})
+
+    with pytest.raises(ChartForbiddenError):
+        command.validate()
+
+
+@patch("superset.commands.chart.update.ChartDAO.find_by_id")
+@patch("superset.commands.chart.update.security_manager")
+def test_update_chart_query_context_skips_ownership_check(
+    mock_sm: MagicMock,
+    mock_find_by_id: MagicMock,
+) -> None:
+    """Query-context-only updates skip ownership so report workers can save context."""
+    mock_find_by_id.return_value = MagicMock(id=1, tags=[], dashboards=[])
+    mock_sm.raise_for_ownership = MagicMock(side_effect=_make_ownership_exc())
 
     command = UpdateChartCommand(
         1, {"query_context": "{}", "query_context_generation": True}
     )
 
-    with pytest.raises(ChartForbiddenError):
-        command.validate()
+    # Should not raise — report workers can update query_context without ownership
+    command.validate()
+    mock_sm.raise_for_ownership.assert_not_called()
