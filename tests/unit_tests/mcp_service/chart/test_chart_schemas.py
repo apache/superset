@@ -887,6 +887,60 @@ class TestFilterConfigColumnRelaxedPattern:
             FilterConfig(column="col; DROP TABLE users; --", op="=", value="x")
 
 
+class TestBigNumberTemporalColumnRelaxedPattern:
+    """BigNumberChartConfig.temporal_column mirrors ColumnRef.name — no strict regex."""
+
+    def test_digit_prefixed_temporal_column_accepted(self) -> None:
+        """Digit-prefixed temporal columns (e.g. '1Q_date') must be accepted."""
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config={
+                "chart_type": "big_number",
+                "metric": {"name": "revenue", "aggregate": "SUM"},
+                "temporal_column": "1Q_date",
+            },
+        )
+        assert req.config.temporal_column == "1Q_date"
+
+    def test_hyphenated_temporal_column_accepted(self) -> None:
+        """Hyphenated temporal columns (e.g. 'order-date') must be accepted."""
+        req = GenerateChartRequest(
+            dataset_id=1,
+            config={
+                "chart_type": "big_number",
+                "metric": {"name": "revenue", "aggregate": "SUM"},
+                "temporal_column": "order-date",
+            },
+        )
+        assert req.config.temporal_column == "order-date"
+
+    def test_sql_injection_in_temporal_column_blocked(self) -> None:
+        """sanitize_temporal_column uses check_sql_keywords=True."""
+        with pytest.raises(ValidationError):
+            GenerateChartRequest(
+                dataset_id=1,
+                config={
+                    "chart_type": "big_number",
+                    "metric": {"name": "revenue", "aggregate": "SUM"},
+                    "temporal_column": "date; DROP TABLE users; --",
+                },
+            )
+
+
+class TestLocaleColumnNamesAccepted:
+    """Non-ASCII column names that are valid dataset identifiers must be accepted."""
+
+    def test_locale_column_name_accepted(self) -> None:
+        """Locale-specific chars (e.g. 'café_revenue') must pass ColumnRef."""
+        col = ColumnRef(name="café_revenue")
+        assert col.name == "café_revenue"
+
+    def test_cjk_column_name_accepted(self) -> None:
+        """CJK characters (e.g. '订单日期') must pass ColumnRef."""
+        col = ColumnRef(name="订单日期")
+        assert col.name == "订单日期"
+
+
 class TestFormatSingleError:
     """Unit tests for SchemaValidator._format_single_error."""
 

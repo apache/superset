@@ -376,6 +376,12 @@ def sanitize_user_input(
     # Remove dangerous Unicode characters
     value = _remove_dangerous_unicode(value)
 
+    # Final emptiness check — zero-width / control chars may have been the entire input
+    if not value:
+        if allow_empty:
+            return None
+        raise ValueError(f"{field_name} cannot be empty after sanitization")
+
     return value
 
 

@@ -317,9 +317,28 @@ def test_sanitize_user_input_removes_zero_width_chars():
 
 
 def test_sanitize_user_input_xss_entity_encoded():
-    """Entity-encoded XSS attempts must be neutralized."""
-    result = sanitize_user_input("&lt;script&gt;alert(1)&lt;/script&gt;", "test")
-    assert "<script>" not in result
+    """Entity-encoded script tags are stripped; if only tags remain, raises."""
+    # nh3 decodes entity-encoded tags then strips them; the inner text may or
+    # may not be preserved depending on nh3 version.  Either way no raw <script>
+    # should survive, and an empty result must raise rather than return "".
+    try:
+        result = sanitize_user_input("&lt;script&gt;alert(1)&lt;/script&gt;", "test")
+        assert "<script>" not in result
+        assert result  # must not silently return an empty string
+    except ValueError as exc:
+        assert "cannot be empty" in str(exc)  # noqa: PT017
+
+
+def test_sanitize_user_input_zero_width_only_raises():
+    """Inputs that reduce to empty after Unicode stripping raise ValueError."""
+    with pytest.raises(ValueError, match="cannot be empty"):
+        sanitize_user_input("​‌‍", "test")
+
+
+def test_sanitize_user_input_zero_width_allow_empty_returns_none():
+    """Same zero-width input returns None when allow_empty=True."""
+    result = sanitize_user_input("​‌‍", "test", allow_empty=True)
+    assert result is None
 
 
 def test_sanitize_user_input_entity_encoded_javascript():
