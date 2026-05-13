@@ -280,7 +280,7 @@ class BaseReportState:
                 f"({self._report_schedule.name!r}) has no resolvable target "
                 f"(chart_id={self._report_schedule.chart_id}, "
                 f"dashboard_id={self._report_schedule.dashboard_id}); "
-                f"the underlying entity may have been soft- or hard-deleted."
+                "the underlying entity may have been soft- or hard-deleted."
             )
 
         force = "true" if self._report_schedule.force_screenshot else "false"
