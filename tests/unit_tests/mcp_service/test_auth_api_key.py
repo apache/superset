@@ -351,3 +351,17 @@ def test_security_manager_has_expected_api_key_methods(app: SupersetApp) -> None
             "auth._resolve_user_from_api_key() references this method by name — "
             "update auth.py if the FAB API changed."
         )
+
+
+def test_security_manager_has_find_user_with_relationships(app: SupersetApp) -> None:
+    """Regression test: verify SupersetSecurityManager.find_user_with_relationships
+    exists. load_user_with_relationships() in auth.py delegates to it — a rename
+    or removal would silently break MCP user resolution at runtime."""
+    with app.app_context():
+        from superset import security_manager
+
+        assert hasattr(security_manager, "find_user_with_relationships"), (
+            "SupersetSecurityManager is missing 'find_user_with_relationships'. "
+            "auth.load_user_with_relationships() delegates to this method — "
+            "update auth.py if the method was renamed or removed."
+        )
