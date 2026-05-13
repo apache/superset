@@ -59,6 +59,7 @@ from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapper, validates, with_loader_criteria
+from sqlalchemy.orm.session import ORMExecuteState
 from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -704,7 +705,7 @@ class SoftDeleteMixin:
         self.deleted_at = None
 
 
-def _add_soft_delete_filter(execute_state):  # type: ignore
+def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
     """Global ``do_orm_execute`` listener that automatically excludes
     soft-deleted rows from every ORM SELECT.
 
