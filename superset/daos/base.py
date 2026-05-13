@@ -182,6 +182,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         cls,
         model_id_or_uuid: str,
         skip_base_filter: bool = False,
+        *,
         skip_visibility_filter: bool = False,
     ) -> T | None:
         """
@@ -252,8 +253,9 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         column_name: str,
         value: str | int,
         skip_base_filter: bool = False,
-        skip_visibility_filter: bool = False,
         query_options: list[Any] | None = None,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> T | None:
         """
         Private method to find a model by any column value.
@@ -296,9 +298,10 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         cls,
         model_id: str | int,
         skip_base_filter: bool = False,
-        skip_visibility_filter: bool = False,
         id_column: str | None = None,
         query_options: list[Any] | None = None,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> T | None:
         """
         Find a model by ID using specified or default ID column.
@@ -306,17 +309,22 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         Args:
             model_id: ID value to search for
             skip_base_filter: Whether to skip base filtering
-            skip_visibility_filter: Whether to skip the soft-delete visibility filter
             id_column: Column name to use (defaults to cls.id_column_name)
             query_options: SQLAlchemy query options (e.g., joinedload,
                 subqueryload) to apply to the query for eager loading
+            skip_visibility_filter: Keyword-only. Whether to skip the
+                soft-delete visibility filter
 
         Returns:
             Model instance or None if not found
         """
         column = id_column or cls.id_column_name
         return cls._find_by_column(
-            column, model_id, skip_base_filter, skip_visibility_filter, query_options
+            column,
+            model_id,
+            skip_base_filter,
+            query_options,
+            skip_visibility_filter=skip_visibility_filter,
         )
 
     @classmethod
@@ -324,18 +332,19 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         cls,
         model_ids: Sequence[str | int],
         skip_base_filter: bool = False,
-        skip_visibility_filter: bool = False,
         id_column: str | None = None,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> list[T]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
 
         :param model_ids: List of IDs to find
         :param skip_base_filter: If true, skip applying the base filter
-        :param skip_visibility_filter: If true, skip the soft-delete visibility
-            filter so soft-deleted rows are returned
         :param id_column: Optional column name to use for ID lookup
                          (defaults to id_column_name)
+        :param skip_visibility_filter: Keyword-only. If true, skip the
+            soft-delete visibility filter so soft-deleted rows are returned
         """
         column = id_column or cls.id_column_name
         id_col = getattr(cls.model_cls, column, None)

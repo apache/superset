@@ -124,6 +124,9 @@ class FilterRelatedTables(BaseFilter):  # pylint: disable=too-few-public-methods
         return query.filter(SqlaTable.table_name.ilike(like_value))
 
 
+AUGMENT_RESPONSE_WITH_DELETED_AT = "_augment_response_with_deleted_at"
+
+
 class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """Base class for ``*_deleted_state`` rison filters.
 
@@ -134,12 +137,19 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
       * ``only``     — return only soft-deleted rows
       * absent / any other value — default behaviour (live rows only)
 
-    When ``include`` or ``only`` is set, the filter sets
-    ``g.skip_visibility_filter = True`` so the do_orm_execute listener
-    at ``superset.models.helpers._add_soft_delete_filter`` opts the
-    request out of the global soft-delete WHERE clause. The mutation
-    happens during query construction (before execution), so the flag
-    is in place by the time the listener fires.
+    Scope decisions:
+
+      * The visibility-filter bypass is applied **per-query** via
+        ``query.execution_options(skip_visibility_filter=True)`` so it
+        affects only the primary list query for this entity, not any
+        incidental relationship loads or helper queries the request
+        might issue against other ``SoftDeleteMixin`` models.
+      * The response-augmentation step (which adds a ``deleted_at``
+        field to each result row) is signalled via a separate
+        request-scoped flag ``g._augment_response_with_deleted_at``.
+        Keeping the two concerns separate prevents the broad
+        per-request bypass from leaking soft-deleted rows of unrelated
+        entities into the response.
     """
 
     name = lazy_gettext("Deleted state")
@@ -148,17 +158,22 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
     def apply(self, query: Query, value: Any) -> Query:
         normalized = str(value).lower().strip() if value is not None else ""
         if normalized == "include":
-            self._opt_out_of_visibility_filter()
-            return query
+            self._mark_response_for_deleted_at_augmentation()
+            return query.execution_options(**{SKIP_VISIBILITY_FILTER: True})
         if normalized == "only":
-            self._opt_out_of_visibility_filter()
-            return query.filter(self.model.deleted_at.is_not(None))
+            self._mark_response_for_deleted_at_augmentation()
+            return query.execution_options(**{SKIP_VISIBILITY_FILTER: True}).filter(
+                self.model.deleted_at.is_not(None)
+            )
         return query
 
     @staticmethod
-    def _opt_out_of_visibility_filter() -> None:
-        """Set the request-scoped flag so the do_orm_execute listener
-        bypasses the soft-delete WHERE clause for the rest of the
-        request. Named to make the side effect visible at the call site.
+    def _mark_response_for_deleted_at_augmentation() -> None:
+        """Signal to ``BaseSupersetModelRestApi.pre_get_list`` that this
+        request opted into surfacing soft-deleted rows, so the response
+        rows should be augmented with their ``deleted_at`` value.
+
+        Distinct from the visibility-filter bypass, which is applied
+        per-query on the list query itself.
         """
-        setattr(g, SKIP_VISIBILITY_FILTER, True)
+        setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, True)

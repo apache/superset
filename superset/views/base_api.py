@@ -51,6 +51,7 @@ from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import get_user_id, time_function
 from superset.views.error_handling import handle_api_exception
+from superset.views.filters import AUGMENT_RESPONSE_WITH_DELETED_AT
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -741,7 +742,13 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         return self.response(200, count=count, result=result)
 
     def pre_get_list(self, data: dict[str, Any]) -> None:
-        if not getattr(g, SKIP_VISIBILITY_FILTER, False):
+        # Augmentation is decoupled from the visibility-filter bypass: the
+        # filter on the primary list query uses a per-query execution
+        # option (see BaseDeletedStateFilter), and this separate flag tells
+        # us whether the request explicitly opted into surfacing
+        # soft-deleted rows so the response should include the deleted_at
+        # column on each row.
+        if not getattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False):
             return
 
         ids = cast(list[int], data.get("ids", []))
