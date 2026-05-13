@@ -34,6 +34,7 @@ from superset.mcp_service.auth import has_dataset_access, mcp_auth_hook
 from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
+    get_table_chart_type_label,
     map_config_to_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
@@ -131,6 +132,7 @@ async def generate_explore_link(
                     "url": "",
                     "form_data": {},
                     "form_data_key": None,
+                    "chart_type_label": None,
                     "error": (
                         f"Dataset not found: {request.dataset_id}. "
                         "Use list_datasets to find valid dataset IDs."
@@ -149,6 +151,7 @@ async def generate_explore_link(
                     "url": "",
                     "form_data": {},
                     "form_data_key": None,
+                    "chart_type_label": None,
                     "error": (
                         f"Dataset not found: {request.dataset_id}. "
                         "Use list_datasets to find valid dataset IDs."
@@ -218,6 +221,7 @@ async def generate_explore_link(
                 "url": "",
                 "form_data": form_data,
                 "form_data_key": None,
+                "chart_type_label": None,
                 "error": error_payload,
             }
 
@@ -244,6 +248,7 @@ async def generate_explore_link(
             "url": explore_url,
             "form_data": form_data,
             "form_data_key": form_data_key,
+            "chart_type_label": get_table_chart_type_label(form_data.get("viz_type")),
             "error": None,
         }
 
@@ -261,5 +266,6 @@ async def generate_explore_link(
             "url": "",
             "form_data": {},
             "form_data_key": None,
+            "chart_type_label": None,
             "error": f"Failed to generate explore link: {str(e)}",
         }
