@@ -147,15 +147,47 @@ Each phase brings its own tests; the cumulative bar:
 
 ## Implementation log
 
-- _(Phase 1)_ — in progress. See section below for status notes.
+- _(Phase 1)_ — ✅ landed locally. `LayoutItemMeta.themeId`,
+  `ComponentThemeProvider` + `useEffectiveThemeId` hook, wired into
+  `ChartHolder`. 8 passing unit tests. No UI yet — `themeId` has to be
+  set via Redux devtools or position_json hand-edit to verify visually.
 - _(Phase 2)_ — pending.
 - _(Phase 3)_ — pending.
 - _(Phase 4)_ — pending.
 
 ### Phase 1 status
 
-- [ ] Add optional `themeId` field to `LayoutItemMeta`.
-- [ ] Build `ComponentThemeProvider` (Redux selector + parents walk + AntD theme injection).
-- [ ] Wire into `ChartHolder` as the proof of concept (Chart is the leaf with the most existing theme integration, so it's the riskiest first target).
-- [ ] Add unit tests for the resolution hook.
-- [ ] Update this SIP with any architecture surprises uncovered during the wiring.
+- [x] Add optional `themeId` field to `LayoutItemMeta`. (`src/dashboard/types.ts`)
+- [x] Build `ComponentThemeProvider` — `pickEffectiveThemeId` resolver (pure
+  function, walks `parents` up the layout map until it finds a non-null
+  `themeId` or hits `DASHBOARD_ROOT_ID`) + `useEffectiveThemeId` Redux hook
+  + `ComponentThemeProvider` that lazy-fetches the resolved theme via the
+  existing `ThemeController.createDashboardThemeProvider` (which caches by
+  id, so N components referencing the same theme = 1 fetch). Renders as a
+  pass-through when no ancestor sets a `themeId`.
+- [x] Wire into `ChartHolder` — wrapped around the existing
+  `<AntdThemeProvider>` so per-component theme tokens apply to the chart
+  body while the existing popup-container `ConfigProvider` continues to
+  work in fullscreen mode.
+- [x] Add unit tests — 8 cases for `pickEffectiveThemeId` covering own-id /
+  inheritance / null-skip / no-ancestor / root-stop / malformed-parents /
+  other-meta-keys / missing-id.
+- [x] Update SIP with surprises uncovered during wiring (none significant —
+  the existing `createDashboardThemeProvider` did exactly what we needed,
+  including caching by id; the only structural decision was treating the
+  ChartHolder's `<AntdThemeProvider>` as a popup-container shim rather than
+  a token provider, and nesting our provider outside it).
+
+#### Phase 1 surprises / notes
+
+- `ThemeController.createDashboardThemeProvider` already does Theme.fromConfig
+  with the right dark/light base + font loading + caching. We did not need
+  to duplicate any of that logic in the component-level provider.
+- The provider is `useState` + `useEffect` rather than `useMemo` because the
+  fetch is async. That means there's a one-frame flash of the parent theme
+  before the component theme kicks in. Probably acceptable; if not, we can
+  Suspense-ify in Phase 4.
+- `useEffectiveThemeId` re-runs on every Redux state change because the
+  selector returns a primitive `number | null` — that's fine for now, but
+  if dashboards get bigger we may want a memoized selector via reselect
+  keyed on `(layoutId, layout)` — file in the open questions section.
