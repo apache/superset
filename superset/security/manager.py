@@ -3548,6 +3548,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         Note admins are deemed owners of all resources.
 
+        The internal re-query opts out of the soft-delete visibility
+        listener via ``execution_options(skip_visibility_filter=True)`` so
+        callers passing a soft-deleted resource (e.g.,
+        ``BaseRestoreCommand``) get the correct ownership decision. Be
+        aware that with SQLAlchemy's ``with_loader_criteria`` semantics,
+        this bypass also propagates to subsequent lazy loads of
+        ``SoftDeleteMixin`` children from ``orig_resource``. The only
+        relationship currently read here is ``.owners`` (User, not
+        soft-deletable), so the propagation is harmless. If this function
+        is extended to access soft-deletable relationships of
+        ``orig_resource``, consider whether the bypass should follow.
+
         :param resource: The dashboard, dataset, chart, etc. resource
         :raises SupersetSecurityException: If the current user is not an owner
         """

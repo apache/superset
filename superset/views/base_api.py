@@ -756,6 +756,12 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         if not getattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False):
             return
 
+        # Consume the flag so it can't leak to a subsequent list operation
+        # in the same request (e.g., a batch endpoint dispatching multiple
+        # list views). Today the request lifecycle scopes this to one list
+        # query in practice; clearing keeps it that way explicitly.
+        setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False)
+
         ids = cast(list[Any], data.get("ids", []))
         deleted_at_map = self._get_deleted_at_map(ids)
         for row, row_id in zip(data.get("result", []), ids, strict=False):
