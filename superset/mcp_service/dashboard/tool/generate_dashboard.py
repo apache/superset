@@ -230,7 +230,10 @@ def generate_dashboard(  # noqa: C901
                 return GenerateDashboardResponse(
                     dashboard=None,
                     dashboard_url=None,
-                    error=f"Charts not found: {list(missing_chart_ids)}",
+                    error=(
+                        f"Charts not found: {sorted(missing_chart_ids)}."
+                        " Use list_charts to get valid chart IDs."
+                    ),
                 )
 
             # Validate dataset access for each chart.
