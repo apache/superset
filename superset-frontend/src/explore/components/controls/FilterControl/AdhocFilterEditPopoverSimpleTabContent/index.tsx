@@ -523,8 +523,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   const subjectComponent = (
     <Select
       css={{
-        marginTop: theme.sizeUnit * 4,
-        marginBottom: theme.sizeUnit * 4,
+        marginBottom: theme.marginXS,
       }}
       data-test="select-element"
       options={columns.map(column => ({
@@ -565,7 +564,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         >
           <SelectWithLabel
             css={css`
-              margin-top: ${theme.sizeUnit * 4}px;
+              margin-top: ${theme.marginXS}px;
             `}
             labelText={labelText}
             options={suggestions}
@@ -581,7 +580,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         >
           <div
             css={css`
-              margin-top: ${theme.sizeUnit * 4}px;
+              margin-top: ${theme.marginXS}px;
             `}
           />
           <Input
