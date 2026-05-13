@@ -122,6 +122,14 @@ import KeyboardShortcutButton, {
 } from '../KeyboardShortcutButton';
 import SqlEditorTopBar from '../SqlEditorTopBar';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
+import {
+  ViewLocations,
+  PENDING_NORTH_PANE_VIEW_KEY,
+} from 'src/SqlLab/contributions';
+import { resolveView, useViews } from 'src/core/views';
+
+/** Per-tab localStorage key storing the active northPane view ID. */
+const NORTH_PANE_VIEW_KEY = (tabId: string) => `sqllab.northPaneView.${tabId}`;
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -274,6 +282,44 @@ const SqlEditor: FC<Props> = ({
 
   const logAction = useLogAction({ queryEditorId: queryEditor.id });
   const isActive = currentQueryEditorId === queryEditor.id;
+
+  // Re-renders when an extension registers a northPane view after async load.
+  const northPaneViews = useViews(ViewLocations.sqllab.northPane) || [];
+
+  // ID of the northPane view active for this tab, or null for the default
+  // SQL editor layout.  Set by an extension via PENDING_NORTH_PANE_VIEW_KEY
+  // before calling createTab(); persisted per-tab in localStorage.
+  const [northPaneViewId, setNorthPaneViewId] = useState<string | null>(() => {
+    const pendingViewId = localStorage.getItem(PENDING_NORTH_PANE_VIEW_KEY);
+    if (pendingViewId) {
+      localStorage.removeItem(PENDING_NORTH_PANE_VIEW_KEY);
+      localStorage.setItem(NORTH_PANE_VIEW_KEY(queryEditor.id), pendingViewId);
+      return pendingViewId;
+    }
+    return localStorage.getItem(NORTH_PANE_VIEW_KEY(queryEditor.id));
+  });
+
+  useEffect(() => {
+    const persistKey = NORTH_PANE_VIEW_KEY(
+      queryEditor.tabViewId ?? queryEditor.id,
+    );
+    if (northPaneViewId) {
+      localStorage.setItem(persistKey, northPaneViewId);
+    } else {
+      localStorage.removeItem(persistKey);
+    }
+  }, [queryEditor.tabViewId, queryEditor.id, northPaneViewId]);
+
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === NORTH_PANE_VIEW_KEY(queryEditor.id)) {
+        setNorthPaneViewId(e.newValue || null);
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, [queryEditor.id]);
+
   const [autorun, setAutorun] = useState(queryEditor.autorun);
   const [ctas, setCtas] = useState('');
   const [northPercent, setNorthPercent] = useState(
@@ -1054,6 +1100,30 @@ const SqlEditor: FC<Props> = ({
             'Choose one of the available databases from the panel on the left.',
           )}
         />
+      ) : northPaneViewId &&
+        northPaneViews.some(v => v.id === northPaneViewId) ? (
+        <div
+          css={css`
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+          `}
+        >
+          <SqlEditorTopBar
+            queryEditorId={queryEditor.id}
+            defaultPrimaryActions={null}
+            defaultSecondaryActions={[]}
+          />
+          <div
+            css={css`
+              flex: 1;
+              overflow: auto;
+              padding: 0 ${theme.sizeUnit * 4}px;
+            `}
+          >
+            {resolveView(northPaneViewId)}
+          </div>
+        </div>
       ) : (
         queryPane()
       )}
