@@ -37,6 +37,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+import threading
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -46,6 +47,7 @@ logger = logging.getLogger(__name__)
 
 _REGISTRY: dict[str, "ChartTypePlugin"] = {}
 _plugins_loaded = False
+_plugins_lock = threading.Lock()
 
 
 def _ensure_plugins_loaded() -> None:
@@ -56,9 +58,12 @@ def _ensure_plugins_loaded() -> None:
     directly without first importing app.py.
     """
     global _plugins_loaded
-    if not _plugins_loaded:
-        _plugins_loaded = True
-        import superset.mcp_service.chart.plugins  # noqa: F401
+    if _plugins_loaded:
+        return
+    with _plugins_lock:
+        if not _plugins_loaded:
+            _plugins_loaded = True
+            import superset.mcp_service.chart.plugins  # noqa: F401
 
 
 def register(plugin: "ChartTypePlugin") -> None:
