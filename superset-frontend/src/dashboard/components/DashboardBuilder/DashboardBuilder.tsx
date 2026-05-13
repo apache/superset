@@ -105,6 +105,10 @@ const StyledHeader = styled.div<{ filterBarWidth: number }>`
     z-index: 99;
     max-width: calc(100vw - ${filterBarWidth}px);
 
+    .empty-droptarget {
+      min-height: ${theme.sizeUnit * 4}px;
+    }
+
     .empty-droptarget:before {
       position: absolute;
       content: '';
