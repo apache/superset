@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { EditableTabs } from '@superset-ui/core/components/Tabs';
 import { connect } from 'react-redux';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
@@ -24,11 +24,14 @@ import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/theme';
 import { Logger } from 'src/logger/LogUtils';
-import { EmptyState, Tooltip } from '@superset-ui/core/components';
+import { Dropdown, EmptyState, Tooltip } from '@superset-ui/core/components';
+import { MenuItemType } from '@superset-ui/core/components/Menu';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { menus, commands } from 'src/core';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -92,6 +95,86 @@ const TabTitle = styled.span`
 
 // Get the user's OS
 const userOS = detectOS();
+
+const newTabTooltip =
+  userOS === 'Windows' ? t('New tab (Ctrl + q)') : t('New tab (Ctrl + t)');
+
+const PlusIcon = (
+  <Icons.PlusOutlined
+    iconSize="l"
+    css={css`
+      vertical-align: middle;
+    `}
+    data-test="add-tab-icon"
+  />
+);
+
+function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
+  const [open, setOpen] = useState(false);
+
+  const dropdownItems = useMemo<MenuItemType[]>(() => {
+    if (!open) return [];
+    const primaryItems =
+      menus.getMenu(ViewLocations.sqllab.newTab)?.primary ?? [];
+    return [
+      {
+        key: 'sql-editor',
+        label: t('SQL Editor'),
+        icon: <Icons.TableOutlined iconSize="m" />,
+        onClick: () => {
+          setOpen(false);
+          onAddSqlEditor();
+        },
+      },
+      ...primaryItems.map(item => {
+        const command = commands.getCommand(item.command);
+        const Icon = command?.icon
+          ? ((Icons as Record<string, typeof Icons.FileOutlined>)[
+              command.icon
+            ] ?? Icons.FileOutlined)
+          : Icons.FileOutlined;
+        return {
+          key: command?.id ?? item.command,
+          label: command?.title ?? item.command,
+          icon: <Icon iconSize="m" />,
+          onClick: () => {
+            setOpen(false);
+            commands.executeCommand(item.command);
+          },
+        } as MenuItemType;
+      }),
+    ];
+  }, [open, onAddSqlEditor]);
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Antd's Tabs wraps addIcon in its own <button onClick={() => onEdit('add')}>.
+    // Stop propagation so antd doesn't also call newQueryEditor() while we handle it.
+    e.stopPropagation();
+    const primaryItems =
+      menus.getMenu(ViewLocations.sqllab.newTab)?.primary ?? [];
+    if (primaryItems.length === 0) {
+      onAddSqlEditor();
+    } else {
+      setOpen(prev => !prev);
+    }
+  };
+
+  return (
+    <Tooltip id="add-tab" placement="left" title={newTabTooltip}>
+      <Dropdown
+        open={open}
+        onOpenChange={setOpen}
+        menu={{ items: dropdownItems }}
+        trigger={[]}
+      >
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
+        <span role="button" tabIndex={0} onClick={handleClick}>
+          {PlusIcon}
+        </span>
+      </Dropdown>
+    </Tooltip>
+  );
+}
 
 type TabbedSqlEditorsProps = ReturnType<typeof mergeProps>;
 
@@ -263,25 +346,7 @@ function TabbedSqlEditors({
       onTabClick={onTabClicked}
       onEdit={handleEdit}
       type={queryEditors?.length === 0 ? 'card' : 'editable-card'}
-      addIcon={
-        <Tooltip
-          id="add-tab"
-          placement="left"
-          title={
-            userOS === 'Windows'
-              ? t('New tab (Ctrl + q)')
-              : t('New tab (Ctrl + t)')
-          }
-        >
-          <Icons.PlusOutlined
-            iconSize="l"
-            css={css`
-              vertical-align: middle;
-            `}
-            data-test="add-tab-icon"
-          />
-        </Tooltip>
-      }
+      addIcon={<NewTabButton onAddSqlEditor={() => newQueryEditor()} />}
       items={tabItems}
     />
   );
