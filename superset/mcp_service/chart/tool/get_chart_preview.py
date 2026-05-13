@@ -47,7 +47,10 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
+)
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -1201,8 +1204,22 @@ async def _get_chart_preview_internal(  # noqa: C901
 
         if not chart:
             await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
+            is_form_data_key = (
+                isinstance(request.identifier, str)
+                and len(request.identifier) > 8
+                and not request.identifier.isdigit()
+            )
+            if is_form_data_key:
+                recovery = (
+                    "If using a form_data_key, it may have expired — "
+                    "use generate_explore_link to get a fresh key, "
+                    "or use list_charts to find a saved chart by ID."
+                )
+            else:
+                recovery = "Use list_charts to get valid chart IDs."
+            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
             return ChartError(
-                error=f"No chart found with identifier: {request.identifier}",
+                error=f"No chart found with identifier: {safe_id}. {recovery}",
                 error_type="NotFound",
             )
 

@@ -31,6 +31,7 @@ from superset.mcp_service.chart.chart_utils import (
     create_metric_object,
     generate_chart_name,
     generate_explore_link,
+    get_table_chart_type_label,
     is_column_truly_temporal,
     map_config_to_form_data,
     map_filter_operator,
@@ -47,6 +48,27 @@ from superset.mcp_service.chart.schemas import (
     XYChartConfig,
 )
 from superset.utils.core import FilterOperator, GenericDataType
+
+
+class TestGetTableChartTypeLabel:
+    """Test user-facing labels for table-family chart types."""
+
+    def test_regular_table_label(self) -> None:
+        assert get_table_chart_type_label("table") == "table chart"
+
+    def test_ag_grid_table_label(self) -> None:
+        assert get_table_chart_type_label("ag-grid-table") == (
+            "interactive table chart"
+        )
+
+    def test_non_table_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label("echarts_timeseries_bar") is None
+
+    def test_unknown_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label("my-custom-chart") is None
+
+    def test_missing_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label(None) is None
 
 
 class TestCreateMetricObject:
