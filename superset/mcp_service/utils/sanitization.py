@@ -338,12 +338,7 @@ def sanitize_user_input(
         - Removes dangerous Unicode characters (zero-width, control chars)
         - SQL keywords and shell metacharacters (when check_sql_keywords=True)
     """
-    if value is None:
-        if allow_empty:
-            return None
-        raise ValueError(f"{field_name} cannot be empty")
-
-    value = value.strip()
+    value = (value or "").strip()
 
     if not value:
         if allow_empty:
