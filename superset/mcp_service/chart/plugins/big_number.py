@@ -201,3 +201,20 @@ class BigNumberChartPlugin(BaseChartPlugin):
             )
         DatasetValidator._normalize_filters(config_dict, dataset_context)
         return BigNumberChartConfig.model_validate(config_dict)
+
+    def schema_error_hint(self) -> ChartGenerationError | None:
+        return ChartGenerationError(
+            error_type="big_number_validation_error",
+            message="Big Number chart configuration validation failed",
+            details=(
+                "The Big Number chart configuration is missing required "
+                "fields or has invalid structure"
+            ),
+            suggestions=[
+                "Ensure 'metric' field has 'name' and 'aggregate'",
+                "Example: 'metric': {'name': 'revenue', 'aggregate': 'SUM'}",
+                "For trendline: add show_trendline=true and temporal_column='col'",
+                "Without trendline: just provide the metric",
+            ],
+            error_code="BIG_NUMBER_VALIDATION_ERROR",
+        )

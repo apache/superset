@@ -132,3 +132,22 @@ class PivotTableChartPlugin(BaseChartPlugin):
         _norm_col_list("columns")
         DatasetValidator._normalize_filters(config_dict, dataset_context)
         return PivotTableChartConfig.model_validate(config_dict)
+
+    def schema_error_hint(self) -> ChartGenerationError | None:
+        return ChartGenerationError(
+            error_type="pivot_table_validation_error",
+            message="Pivot table configuration validation failed",
+            details=(
+                "The pivot table configuration is missing required "
+                "fields or has invalid structure"
+            ),
+            suggestions=[
+                "Ensure 'rows' field is an array of column specs",
+                "Ensure 'metrics' field is an array with aggregate funcs",
+                "Optional: add 'columns' for column grouping",
+                "Example: {'chart_type': 'pivot_table', "
+                "'rows': [{'name': 'region'}], "
+                "'metrics': [{'name': 'revenue', 'aggregate': 'SUM'}]}",
+            ],
+            error_code="PIVOT_TABLE_VALIDATION_ERROR",
+        )

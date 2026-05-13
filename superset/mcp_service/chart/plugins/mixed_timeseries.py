@@ -143,3 +143,23 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
         _norm_list("group_by_secondary")
         DatasetValidator._normalize_filters(config_dict, dataset_context)
         return MixedTimeseriesChartConfig.model_validate(config_dict)
+
+    def schema_error_hint(self) -> ChartGenerationError | None:
+        return ChartGenerationError(
+            error_type="mixed_timeseries_validation_error",
+            message="Mixed timeseries chart configuration validation failed",
+            details=(
+                "The mixed timeseries configuration is missing "
+                "required fields or has invalid structure"
+            ),
+            suggestions=[
+                "Ensure 'x' field has 'name' for the time axis column",
+                "Ensure 'y' is an array of primary-axis metrics",
+                "Ensure 'y_secondary' is an array of secondary-axis metrics",
+                "Example: {'chart_type': 'mixed_timeseries', "
+                "'x': {'name': 'order_date'}, "
+                "'y': [{'name': 'revenue', 'aggregate': 'SUM'}], "
+                "'y_secondary': [{'name': 'orders', 'aggregate': 'COUNT'}]}",
+            ],
+            error_code="MIXED_TIMESERIES_VALIDATION_ERROR",
+        )

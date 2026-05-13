@@ -109,3 +109,20 @@ class PieChartPlugin(BaseChartPlugin):
             )
         DatasetValidator._normalize_filters(config_dict, dataset_context)
         return PieChartConfig.model_validate(config_dict)
+
+    def schema_error_hint(self) -> ChartGenerationError | None:
+        return ChartGenerationError(
+            error_type="pie_validation_error",
+            message="Pie chart configuration validation failed",
+            details=(
+                "The pie chart configuration is missing required "
+                "fields or has invalid structure"
+            ),
+            suggestions=[
+                "Ensure 'dimension' field has 'name' for the slice label",
+                "Ensure 'metric' field has 'name' and 'aggregate'",
+                "Example: {'chart_type': 'pie', 'dimension': {'name': 'category'}, "
+                "'metric': {'name': 'revenue', 'aggregate': 'SUM'}}",
+            ],
+            error_code="PIE_VALIDATION_ERROR",
+        )

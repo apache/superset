@@ -108,3 +108,21 @@ class TableChartPlugin(BaseChartPlugin):
 
         DatasetValidator._normalize_filters(config_dict, dataset_context)
         return TableChartConfig.model_validate(config_dict)
+
+    def schema_error_hint(self) -> ChartGenerationError | None:
+        return ChartGenerationError(
+            error_type="table_validation_error",
+            message="Table chart configuration validation failed",
+            details=(
+                "The table chart configuration is missing required "
+                "fields or has invalid structure"
+            ),
+            suggestions=[
+                "Ensure 'columns' field is an array of column specifications",
+                "Each column needs {'name': 'column_name'}",
+                "Optional: add 'aggregate' for metrics",
+                "Example: 'columns': [{'name': 'product'}, "
+                "{'name': 'sales', 'aggregate': 'SUM'}]",
+            ],
+            error_code="TABLE_VALIDATION_ERROR",
+        )

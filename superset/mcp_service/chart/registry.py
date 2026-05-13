@@ -62,8 +62,12 @@ def _ensure_plugins_loaded() -> None:
         return
     with _plugins_lock:
         if not _plugins_loaded:
-            _plugins_loaded = True
-            import superset.mcp_service.chart.plugins  # noqa: F401
+            try:
+                import superset.mcp_service.chart.plugins  # noqa: F401
+
+                _plugins_loaded = True
+            except Exception:
+                logger.exception("Failed to load built-in chart type plugins")
 
 
 def register(plugin: "ChartTypePlugin") -> None:

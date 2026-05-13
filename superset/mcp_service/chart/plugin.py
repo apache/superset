@@ -172,6 +172,15 @@ class ChartTypePlugin(Protocol):
         """
         ...
 
+    def schema_error_hint(self) -> "ChartGenerationError | None":
+        """
+        Return a user-friendly error for Pydantic discriminated-union parse failures.
+
+        Called by SchemaValidator when Pydantic cannot parse the config union and
+        the chart_type is known. Returning None falls back to the generic error.
+        """
+        ...
+
 
 class BaseChartPlugin:
     """
@@ -236,6 +245,9 @@ class BaseChartPlugin:
 
     def resolve_viz_type(self, config: Any) -> str:
         return "unknown"
+
+    def schema_error_hint(self) -> ChartGenerationError | None:
+        return None
 
     @staticmethod
     def _with_context(what: str, context: str | None) -> str:

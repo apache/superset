@@ -167,3 +167,23 @@ class HandlebarsChartPlugin(BaseChartPlugin):
         _norm_list("groupby")
         DatasetValidator._normalize_filters(config_dict, dataset_context)
         return HandlebarsChartConfig.model_validate(config_dict)
+
+    def schema_error_hint(self) -> ChartGenerationError | None:
+        return ChartGenerationError(
+            error_type="handlebars_validation_error",
+            message="Handlebars chart configuration validation failed",
+            details=(
+                "The handlebars chart configuration is missing "
+                "required fields or has invalid structure"
+            ),
+            suggestions=[
+                "Ensure 'handlebars_template' is a non-empty string",
+                "For aggregate mode: add 'metrics' with aggregate functions",
+                "For raw mode: set 'query_mode': 'raw' and add 'columns'",
+                "Example: {'chart_type': 'handlebars', "
+                "'handlebars_template': "
+                "'<ul>{{#each data}}<li>{{this.name}}</li>{{/each}}</ul>', "
+                "'metrics': [{'name': 'sales', 'aggregate': 'SUM'}]}",
+            ],
+            error_code="HANDLEBARS_VALIDATION_ERROR",
+        )

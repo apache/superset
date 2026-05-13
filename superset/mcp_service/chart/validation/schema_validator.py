@@ -186,115 +186,6 @@ class SchemaValidator:
             return False, error
         return True, None
 
-    # Per-chart-type error details used by _enhance_validation_error.
-    # Keyed by chart_type discriminator value.
-    # NOTE: Keep this dict in sync with the plugin registry in
-    # superset/mcp_service/chart/plugins/ — each registered chart_type must
-    # have a corresponding entry here so Pydantic parse errors produce
-    # helpful, type-specific messages.
-    _CHART_TYPE_ERROR_HINTS: Dict[str, Dict[str, Any]] = {
-        "xy": {
-            "error_type": "xy_validation_error",
-            "message": "XY chart configuration validation failed",
-            "details": "The XY chart configuration is missing required "
-            "fields or has invalid structure",
-            "suggestions": [
-                "Note: 'x' is optional and defaults to the dataset's primary "
-                "datetime column",
-                "Ensure 'y' is an array: [{'name': 'metric', 'aggregate': 'SUM'}]",
-                "Check that all column names are strings",
-                "Verify aggregate functions are valid: SUM, COUNT, AVG, MIN, MAX",
-            ],
-            "error_code": "XY_VALIDATION_ERROR",
-        },
-        "table": {
-            "error_type": "table_validation_error",
-            "message": "Table chart configuration validation failed",
-            "details": "The table chart configuration is missing required "
-            "fields or has invalid structure",
-            "suggestions": [
-                "Ensure 'columns' field is an array of column specifications",
-                "Each column needs {'name': 'column_name'}",
-                "Optional: add 'aggregate' for metrics",
-                "Example: 'columns': [{'name': 'product'}, "
-                "{'name': 'sales', 'aggregate': 'SUM'}]",
-            ],
-            "error_code": "TABLE_VALIDATION_ERROR",
-        },
-        "pie": {
-            "error_type": "pie_validation_error",
-            "message": "Pie chart configuration validation failed",
-            "details": "The pie chart configuration is missing required "
-            "fields or has invalid structure",
-            "suggestions": [
-                "Ensure 'dimension' field has 'name' for the slice label",
-                "Ensure 'metric' field has 'name' and 'aggregate'",
-                "Example: {'chart_type': 'pie', 'dimension': {'name': 'category'}, "
-                "'metric': {'name': 'revenue', 'aggregate': 'SUM'}}",
-            ],
-            "error_code": "PIE_VALIDATION_ERROR",
-        },
-        "pivot_table": {
-            "error_type": "pivot_table_validation_error",
-            "message": "Pivot table configuration validation failed",
-            "details": "The pivot table configuration is missing required "
-            "fields or has invalid structure",
-            "suggestions": [
-                "Ensure 'rows' field is an array of column specs",
-                "Ensure 'metrics' field is an array with aggregate funcs",
-                "Optional: add 'columns' for column grouping",
-                "Example: {'chart_type': 'pivot_table', 'rows': [{'name': 'region'}], "
-                "'metrics': [{'name': 'revenue', 'aggregate': 'SUM'}]}",
-            ],
-            "error_code": "PIVOT_TABLE_VALIDATION_ERROR",
-        },
-        "mixed_timeseries": {
-            "error_type": "mixed_timeseries_validation_error",
-            "message": "Mixed timeseries chart configuration validation failed",
-            "details": "The mixed timeseries configuration is missing "
-            "required fields or has invalid structure",
-            "suggestions": [
-                "Ensure 'x' field has 'name' for the time axis column",
-                "Ensure 'y' is an array of primary-axis metrics",
-                "Ensure 'y_secondary' is an array of secondary-axis metrics",
-                "Example: {'chart_type': 'mixed_timeseries', "
-                "'x': {'name': 'order_date'}, "
-                "'y': [{'name': 'revenue', 'aggregate': 'SUM'}], "
-                "'y_secondary': [{'name': 'orders', 'aggregate': 'COUNT'}]}",
-            ],
-            "error_code": "MIXED_TIMESERIES_VALIDATION_ERROR",
-        },
-        "handlebars": {
-            "error_type": "handlebars_validation_error",
-            "message": "Handlebars chart configuration validation failed",
-            "details": "The handlebars chart configuration is missing "
-            "required fields or has invalid structure",
-            "suggestions": [
-                "Ensure 'handlebars_template' is a non-empty string",
-                "For aggregate mode: add 'metrics' with aggregate functions",
-                "For raw mode: set 'query_mode': 'raw' and add 'columns'",
-                "Example: {'chart_type': 'handlebars', "
-                "'handlebars_template': '<ul>{{#each data}}<li>"
-                "{{this.name}}</li>{{/each}}</ul>', "
-                "'metrics': [{'name': 'sales', 'aggregate': 'SUM'}]}",
-            ],
-            "error_code": "HANDLEBARS_VALIDATION_ERROR",
-        },
-        "big_number": {
-            "error_type": "big_number_validation_error",
-            "message": "Big Number chart configuration validation failed",
-            "details": "The Big Number chart configuration is missing required "
-            "fields or has invalid structure",
-            "suggestions": [
-                "Ensure 'metric' field has 'name' and 'aggregate'",
-                "Example: 'metric': {'name': 'revenue', 'aggregate': 'SUM'}",
-                "For trendline: add show_trendline=true and temporal_column='col'",
-                "Without trendline: just provide the metric",
-            ],
-            "error_code": "BIG_NUMBER_VALIDATION_ERROR",
-        },
-    }
-
     @staticmethod
     def _enhance_validation_error(
         error: PydanticValidationError, request_data: Dict[str, Any]
@@ -307,10 +198,14 @@ class SchemaValidator:
             if err.get("type") == "union_tag_invalid" or "discriminator" in str(
                 err.get("ctx", {})
             ):
+                from superset.mcp_service.chart.registry import get_registry
+
                 chart_type = request_data.get("config", {}).get("chart_type", "")
-                hint = SchemaValidator._CHART_TYPE_ERROR_HINTS.get(chart_type)
-                if hint:
-                    return ChartGenerationError(**hint)
+                plugin = get_registry().get(chart_type)
+                if plugin is not None:
+                    hint = plugin.schema_error_hint()
+                    if hint is not None:
+                        return hint
 
         # Default enhanced error
         error_details = []
