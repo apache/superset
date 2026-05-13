@@ -47,6 +47,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     UpdateChartRequest,
 )
+from superset.mcp_service.utils import escape_llm_context_delimiters
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -337,17 +338,18 @@ async def update_chart(  # noqa: C901
             chart = find_chart_by_identifier(request.identifier)
 
         if not chart:
+            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
+            not_found_msg = (
+                f"No chart found with identifier: {safe_id}."
+                " Use list_charts to get valid chart IDs."
+            )
             return GenerateChartResponse.model_validate(
                 {
                     "chart": None,
                     "error": {
                         "error_type": "NotFound",
-                        "message": (
-                            f"No chart found with identifier: {request.identifier}"
-                        ),
-                        "details": (
-                            f"No chart found with identifier: {request.identifier}"
-                        ),
+                        "message": not_found_msg,
+                        "details": not_found_msg,
                     },
                     "success": False,
                     "schema_version": "2.0",

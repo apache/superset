@@ -158,6 +158,7 @@ class TestGenerateExploreLink:
                 result.data["url"]
                 == "http://localhost:9001/explore/?form_data_key=test_form_data_key_123"
             )
+            assert result.data["chart_type_label"] == "table chart"
             mock_create_form_data.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -197,7 +198,35 @@ class TestGenerateExploreLink:
                 result.data["url"]
                 == "http://localhost:9001/explore/?form_data_key=comprehensive_key_456"
             )
+            assert result.data["chart_type_label"] == "table chart"
             mock_create_form_data.assert_called_once()
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch(
+        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
+    )
+    @pytest.mark.asyncio
+    async def test_generate_ag_grid_table_explore_link_label(
+        self, mock_create_form_data, mock_find_dataset, mcp_server
+    ) -> None:
+        """Test generating explore link reports AG Grid table label."""
+        mock_create_form_data.return_value = "ag_grid_key_123"
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[ColumnRef(name="region")],
+        )
+        request = GenerateExploreLinkRequest(dataset_id="1", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_explore_link", {"request": request.model_dump()}
+            )
+
+            assert result.data["error"] is None
+            assert result.data["chart_type_label"] == "interactive table chart"
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
@@ -236,6 +265,7 @@ class TestGenerateExploreLink:
                 result.data["url"]
                 == "http://localhost:9001/explore/?form_data_key=line_chart_key_789"
             )
+            assert result.data["chart_type_label"] is None
             mock_create_form_data.assert_called_once()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -690,6 +720,7 @@ class TestGenerateExploreLink:
                 assert result.data["url"] == ""
                 assert result.data["form_data"] == {}
                 assert result.data["form_data_key"] is None
+                assert result.data["chart_type_label"] is None
                 assert "Invalid config structure" in result.data["error"]
         finally:
             # Restore original function
@@ -775,6 +806,7 @@ class TestGenerateExploreLink:
             assert result.data["url"] == ""
             assert result.data["form_data"] == {}
             assert result.data["form_data_key"] is None
+            assert result.data["chart_type_label"] is None
             assert "Dataset not found: 99999" in result.data["error"]
             assert "list_datasets" in result.data["error"]
 
@@ -801,6 +833,7 @@ class TestGenerateExploreLink:
             assert result.data["url"] == ""
             assert result.data["form_data"] == {}
             assert result.data["form_data_key"] is None
+            assert result.data["chart_type_label"] is None
             assert "Dataset not found" in result.data["error"]
 
 
@@ -1015,6 +1048,7 @@ class TestGenerateExploreLinkValidation:
 
             assert result.data["url"] == ""
             assert result.data["form_data_key"] is None
+            assert result.data["chart_type_label"] is None
             error = result.data["error"]
             assert isinstance(error, dict)
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
@@ -1050,6 +1084,7 @@ class TestGenerateExploreLinkValidation:
             )
 
             assert result.data["url"] == ""
+            assert result.data["chart_type_label"] is None
             # Surface as "not found" rather than leaking that the dataset exists.
             assert "Dataset not found" in result.data["error"]
             mock_create_form_data.assert_not_called()
