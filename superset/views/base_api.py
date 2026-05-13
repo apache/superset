@@ -18,10 +18,9 @@ from __future__ import annotations
 
 import functools
 import logging
-from datetime import datetime
 from typing import Any, Callable, cast
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder import Model, ModelRestApi
 from flask_appbuilder.api import (
     BaseApi,
@@ -44,14 +43,12 @@ from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager, stats_logger_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
-from superset.models.helpers import SKIP_VISIBILITY_FILTER
 from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import get_user_id, time_function
 from superset.views.error_handling import handle_api_exception
-from superset.views.filters import AUGMENT_RESPONSE_WITH_DELETED_AT
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -363,35 +360,6 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
                 DistincResponseSchema,
             )
         )
-
-    @staticmethod
-    def _serialize_deleted_at(value: datetime | None) -> str | None:
-        return value.isoformat() if value else None
-
-    def _get_deleted_at_map(self, ids: list[Any]) -> dict[Any, str | None]:
-        if not ids:
-            return {}
-
-        # Uses a raw session query rather than the DAO because this method lives
-        # on the base API class, which has no DAO reference — the DAO is only
-        # defined on concrete subclasses (ChartRestApi, DashboardRestApi, etc.).
-        # This is a read-only projection of two columns on already-known IDs, not
-        # a general entity lookup, so bypassing the DAO is acceptable here.
-        # The primary-key column name is resolved via the datamodel rather than
-        # hardcoded to ``id`` so future soft-deletable entities with a different
-        # PK (e.g., UUID-only models) work without changes here.
-        pk_name = self.datamodel.get_pk_name()
-        pk_col = getattr(self.datamodel.obj, pk_name)
-        rows = (
-            db.session.query(pk_col, self.datamodel.obj.deleted_at)
-            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
-            .filter(pk_col.in_(ids))
-            .all()
-        )
-        return {
-            row_id: self._serialize_deleted_at(deleted_at)
-            for row_id, deleted_at in rows
-        }
 
     def _init_properties(self) -> None:
         """
@@ -745,24 +713,3 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             if item[0] is not None
         ]
         return self.response(200, count=count, result=result)
-
-    def pre_get_list(self, data: dict[str, Any]) -> None:
-        # Augmentation is decoupled from the visibility-filter bypass: the
-        # filter on the primary list query uses a per-query execution
-        # option (see BaseDeletedStateFilter), and this separate flag tells
-        # us whether the request explicitly opted into surfacing
-        # soft-deleted rows so the response should include the deleted_at
-        # column on each row.
-        if not getattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False):
-            return
-
-        # Consume the flag so it can't leak to a subsequent list operation
-        # in the same request (e.g., a batch endpoint dispatching multiple
-        # list views). Today the request lifecycle scopes this to one list
-        # query in practice; clearing keeps it that way explicitly.
-        setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False)
-
-        ids = cast(list[Any], data.get("ids", []))
-        deleted_at_map = self._get_deleted_at_map(ids)
-        for row, row_id in zip(data.get("result", []), ids, strict=False):
-            row["deleted_at"] = deleted_at_map.get(row_id)

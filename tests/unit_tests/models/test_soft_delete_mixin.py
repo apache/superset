@@ -90,8 +90,8 @@ def test_restore_clears_deleted_at(app_context: None, session: Session) -> None:
 
 
 @pytest.mark.usefixtures("_synthetic_table")
-def test_not_deleted_filter_clause(app_context: None, session: Session) -> None:
-    """not_deleted() returns a filter clause usable in queries."""
+def test_where_not_deleted_filter_clause(app_context: None, session: Session) -> None:
+    """where_not_deleted() returns a SQL WHERE clause usable in queries."""
     active = _SoftDeletable(name="active")
     deleted = _SoftDeletable(name="deleted")
     session.add_all([active, deleted])
@@ -102,7 +102,7 @@ def test_not_deleted_filter_clause(app_context: None, session: Session) -> None:
 
     results = (
         session.query(_SoftDeletable)
-        .filter(_SoftDeletable.not_deleted())
+        .filter(_SoftDeletable.where_not_deleted())
         .execution_options(**{SKIP_VISIBILITY_FILTER: True})
         .all()
     )

@@ -689,8 +689,13 @@ class SoftDeleteMixin:
         return cls.deleted_at.is_not(None)
 
     @classmethod
-    def not_deleted(cls) -> ColumnElement:
-        """Filter clause for active (non-deleted) rows."""
+    def where_not_deleted(cls) -> ColumnElement:
+        """Return a SQL WHERE clause that excludes soft-deleted rows.
+
+        Returns a ``ColumnElement`` (a SQL expression), not a Python bool —
+        use this in a query's ``.filter(...)`` call. The name reflects the
+        intent ("WHERE NOT deleted") rather than reading like a predicate.
+        """
         return cls.deleted_at.is_(None)
 
     def soft_delete(self) -> None:
@@ -703,6 +708,25 @@ class SoftDeleteMixin:
     def restore(self) -> None:
         """Clear the soft-delete marker, making this object active again."""
         self.deleted_at = None
+
+
+def _should_apply_soft_delete_filter(execute_state: ORMExecuteState) -> bool:
+    """Whether the listener should attach the soft-delete criterion to
+    this statement.
+
+    Skips relationship and column loader paths: those re-execute against
+    already-loaded parents and re-applying the criteria stacks redundant
+    ``deleted_at IS NULL`` clauses (also explicitly excluded in
+    SQLAlchemy's documented soft-delete pattern at
+    https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295).
+    """
+    if execute_state.execution_options.get(SKIP_VISIBILITY_FILTER, False):
+        return False
+    return (
+        execute_state.is_select
+        and not execute_state.is_column_load
+        and not execute_state.is_relationship_load
+    )
 
 
 def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
@@ -723,25 +747,11 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
     its internal re-query so soft-deleted resources can be
     ownership-checked).
     """
-    skip_visibility_filter = execute_state.execution_options.get(
-        SKIP_VISIBILITY_FILTER, False
-    )
-
-    # Skip relationship and column loader paths: those re-execute against
-    # already-loaded parents and re-applying the criteria stacks redundant
-    # ``deleted_at IS NULL`` clauses (and is also explicitly excluded in
-    # SQLAlchemy's documented soft-delete pattern at
-    # https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295).
-    if (
-        execute_state.is_select
-        and not execute_state.is_column_load
-        and not execute_state.is_relationship_load
-        and not skip_visibility_filter
-    ):
+    if _should_apply_soft_delete_filter(execute_state):
         execute_state.statement = execute_state.statement.options(
             with_loader_criteria(
                 SoftDeleteMixin,
-                lambda cls: cls.deleted_at.is_(None),
+                lambda cls: cls.where_not_deleted(),
                 include_aliases=True,
             )
         )

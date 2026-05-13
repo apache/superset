@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime
 from typing import Any, cast, Optional
 
 from flask import current_app as app, g
@@ -24,6 +25,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Query
 
 from superset import security_manager
+from superset.extensions import db
 from superset.models.helpers import SKIP_VISIBILITY_FILTER
 
 logger = logging.getLogger(__name__)
@@ -169,11 +171,73 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
 
     @staticmethod
     def _mark_response_for_deleted_at_augmentation() -> None:
-        """Signal to ``BaseSupersetModelRestApi.pre_get_list`` that this
-        request opted into surfacing soft-deleted rows, so the response
-        rows should be augmented with their ``deleted_at`` value.
+        """Signal to ``SoftDeleteApiMixin.pre_get_list`` that this request
+        opted into surfacing soft-deleted rows, so the response rows
+        should be augmented with their ``deleted_at`` value.
 
         Distinct from the visibility-filter bypass, which is applied
         per-query on the list query itself.
         """
         setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, True)
+
+
+class SoftDeleteApiMixin:
+    """API mixin that augments list responses with a ``deleted_at``
+    field on each row when the request opted into surfacing soft-deleted
+    rows via the entity's ``BaseDeletedStateFilter`` subclass.
+
+    Mount this on concrete REST API classes for entities that include
+    ``SoftDeleteMixin``::
+
+        class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
+            ...
+
+    The mixin chains via ``super().pre_get_list(data)``, so other
+    ``pre_get_list`` behaviour in the inheritance chain still runs.
+    When the request has not opted into soft-deleted visibility, the
+    augmentation is a no-op.
+    """
+
+    # Concrete subclasses bind these via FAB's ModelRestApi machinery.
+    datamodel: Any  # SQLAInterface providing get_pk_name() and .obj
+
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        super().pre_get_list(data)  # type: ignore[misc]
+        if not getattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False):
+            return
+
+        # Consume the flag so it can't leak to a subsequent list operation
+        # in the same request (e.g., a batch endpoint dispatching multiple
+        # list views). Today the request lifecycle scopes this to one list
+        # query in practice; clearing keeps it that way explicitly.
+        setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False)
+
+        ids = cast(list[Any], data.get("ids", []))
+        deleted_at_map = self._get_deleted_at_map(ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            row["deleted_at"] = deleted_at_map.get(row_id)
+
+    def _get_deleted_at_map(self, ids: list[Any]) -> dict[Any, str | None]:
+        if not ids:
+            return {}
+        # Raw session query — read-only projection of two columns on
+        # already-known IDs, not a general entity lookup. The
+        # primary-key column is resolved via the datamodel rather than
+        # hardcoded to ``id`` so entities with non-integer PKs work
+        # without changes here.
+        pk_name = self.datamodel.get_pk_name()
+        pk_col = getattr(self.datamodel.obj, pk_name)
+        rows = (
+            db.session.query(pk_col, self.datamodel.obj.deleted_at)
+            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            .filter(pk_col.in_(ids))
+            .all()
+        )
+        return {
+            row_id: self._serialize_deleted_at(deleted_at)
+            for row_id, deleted_at in rows
+        }
+
+    @staticmethod
+    def _serialize_deleted_at(value: datetime | None) -> str | None:
+        return value.isoformat() if value else None
