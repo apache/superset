@@ -38,6 +38,7 @@ from superset.commands.exceptions import (
 )
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import event_logger
+from superset.mcp_service.auth import MCPPermissionDeniedError
 from superset.mcp_service.constants import (
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
@@ -130,6 +131,7 @@ _USER_ERROR_TYPES = (
     ToolError,
     ValidationError,
     PermissionError,
+    MCPPermissionDeniedError,
     ValueError,
     FileNotFoundError,
     CommandInvalidError,
@@ -413,6 +415,46 @@ class StructuredContentStripperMiddleware(Middleware):
         return result
 
 
+class RBACToolVisibilityMiddleware(Middleware):
+    """Filter tools/list response based on current user's RBAC permissions.
+
+    Intercepts every ``tools/list`` request and removes tools the calling user
+    is not permitted to execute. Public tools (no ``class_permission_name``) and
+    tools whose permission check passes are included; all others are hidden.
+
+    Fails open: if user resolution fails (no auth header, bad credentials) all
+    tools are returned. Call-time RBAC still enforces permissions — this
+    middleware only improves the UX by hiding inaccessible tools from the LLM.
+    """
+
+    async def on_list_tools(
+        self,
+        context: MiddlewareContext[mt.ListToolsRequest],
+        call_next: CallNext[mt.ListToolsRequest, list[Tool]],
+    ) -> list[Tool]:
+        tools = await call_next(context)
+
+        try:
+            from flask import g
+
+            from superset.mcp_service.auth import (
+                _setup_user_context,
+                is_tool_visible_to_current_user,
+            )
+            from superset.mcp_service.flask_singleton import get_flask_app
+
+            with get_flask_app().app_context():
+                user = _setup_user_context()
+                if user is None:
+                    return tools  # no auth context — fail open
+                g.user = user
+                return [t for t in tools if is_tool_visible_to_current_user(t)]
+        except Exception:  # noqa: BLE001
+            # Invalid credentials / setup failure — fail open
+            # (call-time RBAC still enforces)
+            return tools
+
+
 class GlobalErrorHandlerMiddleware(Middleware):
     """
     Global error handler middleware that provides consistent error responses
@@ -521,6 +563,9 @@ class GlobalErrorHandlerMiddleware(Middleware):
             raise ToolError(
                 f"Invalid request for {tool_name}: {_sanitize_error_for_logging(error)}"
             ) from error
+        elif isinstance(error, MCPPermissionDeniedError):
+            # MCP RBAC permission denied — convert to structured ToolError
+            raise ToolError(str(error)) from error
         elif isinstance(error, (ForbiddenError, SupersetSecurityException)):
             # Superset access denied — agent tried a tool it can't use
             raise ToolError(

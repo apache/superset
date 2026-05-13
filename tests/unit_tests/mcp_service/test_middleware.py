@@ -1030,12 +1030,162 @@ class TestGlobalErrorHandlerLogLevels:
         error.status = 500
         call_next = AsyncMock(side_effect=error)
 
+        mock_logger = MagicMock()
         with (
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
-            patch("superset.mcp_service.middleware.logger") as mock_logger,
+            patch("superset.mcp_service.middleware.logger", mock_logger),
             pytest.raises(ToolError, match="Internal error"),
         ):
             await middleware.on_message(context, call_next)
 
         mock_logger.error.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_mcp_permission_denied_error_becomes_tool_error(self) -> None:
+        """MCPPermissionDeniedError must convert to ToolError, not a generic error."""
+        from superset.mcp_service.auth import MCPPermissionDeniedError
+
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "generate_dashboard"
+        context.method = "tools/call"
+
+        error = MCPPermissionDeniedError(
+            permission_name="can_write",
+            view_name="Dashboard",
+            user="viewer",
+            tool_name="generate_dashboard",
+        )
+        call_next = AsyncMock(side_effect=error)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=42),
+            patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError) as exc_info,
+        ):
+            await middleware.on_message(context, call_next)
+
+        assert "can_write" in str(exc_info.value)
+        assert "Dashboard" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_mcp_permission_denied_error_is_user_error(self) -> None:
+        """MCPPermissionDeniedError must be classified as a user error (WARNING)."""
+        from superset.mcp_service.auth import MCPPermissionDeniedError
+
+        error = MCPPermissionDeniedError(
+            permission_name="can_write",
+            view_name="Chart",
+        )
+        assert _is_user_error(error) is True
+
+    @pytest.mark.asyncio
+    async def test_mcp_permission_denied_error_logs_at_warning(self) -> None:
+        """MCPPermissionDeniedError should log at WARNING, not ERROR."""
+        from superset.mcp_service.auth import MCPPermissionDeniedError
+
+        middleware = GlobalErrorHandlerMiddleware()
+
+        context = MagicMock()
+        context.message.name = "generate_chart"
+        context.method = "tools/call"
+
+        error = MCPPermissionDeniedError(
+            permission_name="can_write",
+            view_name="Chart",
+            user="reader",
+        )
+        call_next = AsyncMock(side_effect=error)
+
+        mock_logger = MagicMock()
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=5),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch("superset.mcp_service.middleware.logger", mock_logger),
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_message(context, call_next)
+
+        mock_logger.warning.assert_called()
+        mock_logger.error.assert_not_called()
+
+
+class TestRBACToolVisibilityMiddleware:
+    """Tests for RBACToolVisibilityMiddleware.on_list_tools."""
+
+    def _make_tool(self, name: str = "test_tool") -> Any:
+        """Create a minimal mock tool object."""
+        tool = MagicMock()
+        tool.name = name
+        return tool
+
+    @pytest.mark.asyncio
+    async def test_fails_open_on_exception(self) -> None:
+        """Returns all tools when get_flask_app raises (fail open)."""
+        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
+
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            side_effect=RuntimeError("no app"),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools
+
+    @pytest.mark.asyncio
+    async def test_fails_open_when_user_is_none(self, app) -> None:
+        """Returns all tools when _setup_user_context returns None."""
+        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
+
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch("superset.mcp_service.auth._setup_user_context", return_value=None),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools
+
+    @pytest.mark.asyncio
+    async def test_filters_tools_by_rbac(self, app) -> None:
+        """Tools denied by is_tool_visible_to_current_user are removed."""
+        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
+
+        read_tool = self._make_tool("list_charts")
+        write_tool = self._make_tool("generate_chart")
+        tools = [read_tool, write_tool]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        mock_user = MagicMock()
+
+        def _visible(tool: Any) -> bool:
+            return tool.name == "list_charts"
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.auth._setup_user_context", return_value=mock_user
+            ),
+            patch(
+                "superset.mcp_service.auth.is_tool_visible_to_current_user",
+                side_effect=_visible,
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert read_tool in result
+        assert write_tool not in result

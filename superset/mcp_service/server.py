@@ -41,11 +41,8 @@ from superset.mcp_service.middleware import (
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
+    RBACToolVisibilityMiddleware,
     StructuredContentStripperMiddleware,
-)
-from superset.mcp_service.privacy import (
-    tool_requires_data_model_metadata_access,
-    user_can_view_data_model_metadata,
 )
 from superset.mcp_service.storage import _create_redis_store
 from superset.utils import json
@@ -403,28 +400,12 @@ def _build_summary_serializer(max_desc: int) -> Any:
 def _tool_allowed_for_current_user(tool: Any) -> bool:
     """Return whether the current Flask user can see this tool in search results."""
     try:
-        from flask import current_app, g
+        from flask import g
 
-        if not current_app.config.get("MCP_RBAC_ENABLED", True):
-            return True
-
-        from superset import security_manager
         from superset.mcp_service.auth import (
-            CLASS_PERMISSION_ATTR,
             get_user_from_request,
-            METHOD_PERMISSION_ATTR,
-            PERMISSION_PREFIX,
+            is_tool_visible_to_current_user,
         )
-
-        tool_func = getattr(tool, "fn", None)
-        if tool_requires_data_model_metadata_access(tool_func) and not (
-            user_can_view_data_model_metadata()
-        ):
-            return False
-
-        class_permission_name = getattr(tool_func, CLASS_PERMISSION_ATTR, None)
-        if not class_permission_name:
-            return True
 
         if not getattr(g, "user", None):
             try:
@@ -432,9 +413,7 @@ def _tool_allowed_for_current_user(tool: Any) -> bool:
             except ValueError:
                 return False
 
-        method_permission_name = getattr(tool_func, METHOD_PERMISSION_ATTR, "read")
-        permission_name = f"{PERMISSION_PREFIX}{method_permission_name}"
-        return security_manager.can_access(permission_name, class_permission_name)
+        return is_tool_visible_to_current_user(tool)
     except (AttributeError, RuntimeError, ValueError):
         logger.debug("Could not evaluate tool search permission", exc_info=True)
         return False
@@ -711,11 +690,15 @@ def build_middleware_list() -> list[Middleware]:
 
     1. StructuredContentStripper — safety net, converts exceptions
        to safe ToolResult text for transports that can't encode errors
-    2. LoggingMiddleware — logs tool calls with success/failure status
-    3. GlobalErrorHandler — catches tool exceptions, raises ToolError
+    2. RBACToolVisibilityMiddleware — filters tools/list by RBAC;
+       positioned inside the Stripper so it sees full tool objects
+       (with outputSchema) before stripping occurs
+    3. LoggingMiddleware — logs tool calls with success/failure status
+    4. GlobalErrorHandler — catches tool exceptions, raises ToolError
     """
     return [
         StructuredContentStripperMiddleware(),
+        RBACToolVisibilityMiddleware(),
         LoggingMiddleware(),
         GlobalErrorHandlerMiddleware(),
     ]
