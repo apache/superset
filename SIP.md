@@ -180,7 +180,22 @@ Each phase brings its own tests; the cumulative bar:
   its toggle-style Edit/Preview switcher and gains a dots menu), so we
   do them per-component alongside the theme wiring so each can be
   reviewed in isolation.
-- _(Phase 3)_ — pending.
+- _(Phase 3)_ — ✅ landed locally. `ThemeSelectorModal` (fetches non-system
+  themes via the same `/api/v1/theme/?q=...` query that the dashboard
+  Properties modal uses; preselects the currently-resolved override;
+  "Apply" / "Cancel" / "Clear override (inherit)" buttons) and the
+  thin `setComponentThemeId(componentId, themeId | null)` action that
+  merges into `meta.themeId` via the existing `updateComponents` thunk.
+
+  No call site for the modal yet — Phase 4's per-component PRs add the
+  "Apply theme" item to each component's menu that opens this modal.
+  The modal is parent-controlled (`show`/`onHide`), parent-owned, so
+  there's no wiring needed beyond `<ThemeSelectorModal layoutId={id}
+  show={open} onHide={...} />` in each call site.
+
+  3 passing tests on `setComponentThemeId`: preserves other meta keys
+  + sets numeric `themeId`; stores explicit `null` for the clear path;
+  no-op when the component id isn't in the layout.
 - _(Phase 4)_ — pending.
 
 ### Phase 1 status
