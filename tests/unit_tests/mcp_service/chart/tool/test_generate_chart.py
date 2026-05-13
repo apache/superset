@@ -86,11 +86,6 @@ class TestGenerateChart:
                 return_value=validation_result,
             ),
             patch(
-                "superset.mcp_service.chart.tool.generate_chart."
-                "map_config_to_form_data",
-                return_value={"viz_type": "table"},
-            ),
-            patch(
                 "superset.mcp_service.chart.chart_utils.generate_explore_link",
                 return_value=(
                     "http://localhost:9001/explore/?"
