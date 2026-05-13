@@ -405,18 +405,21 @@ def get_resource_mappings_batched(
 def find_existing_for_import(model_cls: Type[Any], uuid: str) -> Optional[Any]:
     """Look up an existing row by UUID for an import operation, including
     soft-deleted rows. If the match is soft-deleted, hard-delete it via
-    direct SQL so the import can proceed without a unique-constraint
-    violation on ``uuid``.
+    ``db.session.delete()`` so the import can proceed without a
+    unique-constraint violation on ``uuid``.
 
     Returns the existing live row (so the caller can decide overwrite
     vs. skip), or ``None`` if no match exists or the match was
     soft-deleted (and hence just removed by this function).
 
-    A direct SQL ``DELETE`` is used rather than ``db.session.delete()``
-    because ORM delete triggers cascade loading of relationships
-    (owners, tags, association tables) which can crash the server. The
-    database's ``ON DELETE CASCADE`` foreign keys handle dependent rows
-    cleanly without ORM involvement.
+    Uses ``db.session.delete()`` rather than a raw Core ``DELETE`` so
+    the ORM ``after_delete`` event listeners fire. Cleanup that depends
+    on those listeners would otherwise be skipped — notably tag rows in
+    ``tagged_object`` (cleaned up by ``ObjectUpdater.after_delete`` in
+    ``superset/tags/core.py``; the table's ``object_id`` is a plain
+    integer, not a foreign key, so the database cannot cascade them)
+    and dataset permission-view rows (cleaned up by
+    ``SqlaTable.after_delete`` in ``superset/connectors/sqla/models.py``).
     """
     from superset.models.helpers import SKIP_VISIBILITY_FILTER
 
@@ -427,9 +430,7 @@ def find_existing_for_import(model_cls: Type[Any], uuid: str) -> Optional[Any]:
         .first()
     )
     if existing and getattr(existing, "deleted_at", None) is not None:
-        db.session.execute(
-            model_cls.__table__.delete().where(model_cls.id == existing.id)
-        )
+        db.session.delete(existing)
         db.session.flush()
         return None
     return existing

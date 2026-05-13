@@ -368,7 +368,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     def _serialize_deleted_at(value: datetime | None) -> str | None:
         return value.isoformat() if value else None
 
-    def _get_deleted_at_map(self, ids: list[int]) -> dict[int, str | None]:
+    def _get_deleted_at_map(self, ids: list[Any]) -> dict[Any, str | None]:
         if not ids:
             return {}
 
@@ -377,10 +377,15 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         # defined on concrete subclasses (ChartRestApi, DashboardRestApi, etc.).
         # This is a read-only projection of two columns on already-known IDs, not
         # a general entity lookup, so bypassing the DAO is acceptable here.
+        # The primary-key column name is resolved via the datamodel rather than
+        # hardcoded to ``id`` so future soft-deletable entities with a different
+        # PK (e.g., UUID-only models) work without changes here.
+        pk_name = self.datamodel.get_pk_name()
+        pk_col = getattr(self.datamodel.obj, pk_name)
         rows = (
-            db.session.query(self.datamodel.obj.id, self.datamodel.obj.deleted_at)
+            db.session.query(pk_col, self.datamodel.obj.deleted_at)
             .execution_options(**{SKIP_VISIBILITY_FILTER: True})
-            .filter(self.datamodel.obj.id.in_(ids))
+            .filter(pk_col.in_(ids))
             .all()
         )
         return {
@@ -751,7 +756,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         if not getattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False):
             return
 
-        ids = cast(list[int], data.get("ids", []))
+        ids = cast(list[Any], data.get("ids", []))
         deleted_at_map = self._get_deleted_at_map(ids)
         for row, row_id in zip(data.get("result", []), ids, strict=False):
             row["deleted_at"] = deleted_at_map.get(row_id)
