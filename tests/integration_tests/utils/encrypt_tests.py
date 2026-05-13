@@ -239,7 +239,6 @@ class EncryptedFieldTest(SupersetTestCase):
         assert conn.execute.call_count == 1
         stmt = str(conn.execute.call_args.args[0])
         assert "WHERE uuid = :_pk_uuid" in stmt
-        assert "id" not in stmt.split("WHERE", 1)[1]
         kwargs = conn.execute.call_args.kwargs
         assert kwargs["_pk_uuid"] == row["uuid"]
         assert "configuration" in kwargs
