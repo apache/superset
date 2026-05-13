@@ -29,7 +29,7 @@ import {
   Typography,
   Icons,
 } from '@superset-ui/core/components';
-import { useState, useEffect, useMemo , ReactElement} from 'react';
+import { useState, useEffect, useMemo , } from 'react';
 import { capitalize } from 'lodash/fp';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { useDispatch } from 'react-redux';

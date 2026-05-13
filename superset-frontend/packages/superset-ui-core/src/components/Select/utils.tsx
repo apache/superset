@@ -159,7 +159,7 @@ type FlattenOptionsProps = {
 
 export const dropDownRenderHelper = (
   originNode: ReactElement<FlattenOptionsProps> & {
-    ref?: RefObject<HTMLElement>;
+    ref?: RefObject<HTMLElement | null>;
   },
   isDropdownVisible: boolean,
   isLoading: boolean | undefined,

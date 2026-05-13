@@ -36,7 +36,7 @@ import { SQLPopover } from './SQLPopover';
 export type ColumnOptionProps = {
   column: ColumnMeta;
   showType?: boolean;
-  labelRef?: RefObject<any>;
+  labelRef?: RefObject<any | null>;
 };
 
 const StyleOverrides = styled.span`

@@ -98,7 +98,7 @@ export interface TabsRendererProps {
   tabItems: TabItem[];
   editMode: boolean;
   renderHoverMenu?: boolean;
-  tabsDragSourceRef?: RefObject<HTMLDivElement>;
+  tabsDragSourceRef?: RefObject<HTMLDivElement | null>;
   handleDeleteComponent: () => void;
   tabsComponent: TabsComponent;
   activeKey: string;

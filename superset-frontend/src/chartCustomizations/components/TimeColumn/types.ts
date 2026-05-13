@@ -28,7 +28,7 @@ import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeColumnCustomizeProps {
   defaultValue?: string[] | null;
-  inputRef?: RefObject<HTMLInputElement>;
+  inputRef?: RefObject<HTMLInputElement | null>;
 }
 
 export type PluginFilterTimeColumnQueryFormData = QueryFormData &
@@ -40,7 +40,7 @@ export type PluginFilterTimeColumnProps = PluginFilterStylesProps & {
   data: DataRecord[];
   filterState: FilterState;
   formData: PluginFilterTimeColumnQueryFormData;
-  inputRef: RefObject<RefSelectProps>;
+  inputRef: RefObject<RefSelectProps | null>;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterTimeColumnCustomizeProps = {

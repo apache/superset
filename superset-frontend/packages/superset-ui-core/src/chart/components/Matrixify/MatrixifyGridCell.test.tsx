@@ -22,7 +22,6 @@ import '@testing-library/jest-dom';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import MatrixifyGridCell from './MatrixifyGridCell';
 import { MatrixifyGridCell as MatrixifyGridCellType } from '../../types/matrixify';
-import type { ReactElement } from 'react';
 
 // Mock StatefulChart component
 jest.mock('../StatefulChart', () => {

@@ -21,8 +21,8 @@ import {
   useRef,
   useState,
   cloneElement,
-  type Ref,
   type ReactElement,
+  type Ref,
 } from 'react';
 import { PopoverContainer, PopoverWrapper } from '../../styles';
 

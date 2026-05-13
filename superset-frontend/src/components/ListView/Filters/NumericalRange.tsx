@@ -57,7 +57,7 @@ interface NumericalRangeFilterProps extends BaseFilter {
 
 function NumericalRangeFilter(
   { Header, initialValue, onSubmit }: NumericalRangeFilterProps,
-  ref: RefObject<FilterHandler>,
+  ref: RefObject<FilterHandler | null>,
 ) {
   const [value, setValue] = useState<[number | null, number | null]>(
     initialValue ?? [null, null],

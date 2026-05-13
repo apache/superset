@@ -58,7 +58,7 @@ const TooltipSection = ({
   </TooltipSectionWrapper>
 );
 
-export const isLabelTruncated = (labelRef?: RefObject<any>): boolean =>
+export const isLabelTruncated = (labelRef?: RefObject<any | null>): boolean =>
   !!(labelRef?.current?.scrollWidth > labelRef?.current?.clientWidth);
 
 export const getColumnLabelText = (column: ColumnMeta): string =>
@@ -92,7 +92,7 @@ export const getColumnTypeTooltipNode = (column: ColumnMeta): ReactNode => {
 
 export const getColumnTooltipNode = (
   column: ColumnMeta,
-  labelRef?: RefObject<any>,
+  labelRef?: RefObject<any | null>,
 ): ReactNode => {
   if (
     (!column.column_name || !column.verbose_name) &&
@@ -121,7 +121,7 @@ type MetricType = Omit<Metric, 'id' | 'uuid'> & { label?: string };
 
 export const getMetricTooltipNode = (
   metric: MetricType,
-  labelRef?: RefObject<any>,
+  labelRef?: RefObject<any | null>,
 ): ReactNode => {
   if (
     !metric.verbose_name &&

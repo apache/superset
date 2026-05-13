@@ -80,7 +80,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   noResults?: string | ((filterString: string) => ReactNode);
   sticky?: boolean;
   rowCount: number;
-  wrapperRef?: MutableRefObject<HTMLDivElement>;
+  wrapperRef?: MutableRefObject<HTMLDivElement | null>;
   onColumnOrderChange?: () => void;
   renderGroupingHeaders?: () => ReactElement;
   renderTimeComparisonDropdown?: () => ReactElement;

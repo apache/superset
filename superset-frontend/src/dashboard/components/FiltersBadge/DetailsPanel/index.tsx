@@ -38,8 +38,8 @@ export interface DetailsPanelProps {
   onHighlightFilterSource: (path: string[]) => void;
   children: ReactElement;
   popoverVisible: boolean;
-  popoverContentRef: RefObject<HTMLDivElement>;
-  popoverTriggerRef: RefObject<HTMLDivElement>;
+  popoverContentRef: RefObject<HTMLDivElement | null>;
+  popoverTriggerRef: RefObject<HTMLDivElement | null>;
   setPopoverVisible: (visible: boolean) => void;
 }
 

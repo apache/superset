@@ -30,10 +30,10 @@ const genElements = (
   offsetWidth: number | undefined,
   childNodes: any = [],
 ) => {
-  const elementRef: RefObject<Partial<HTMLElement>> = {
+  const elementRef: RefObject<Partial<HTMLElement> | null> = {
     current: { scrollWidth, clientWidth, childNodes },
   };
-  const plusRef: RefObject<Partial<HTMLElement>> = {
+  const plusRef: RefObject<Partial<HTMLElement> | null> = {
     current: { offsetWidth },
   };
   return [elementRef, plusRef];

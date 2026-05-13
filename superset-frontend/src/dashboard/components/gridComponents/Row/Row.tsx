@@ -269,7 +269,7 @@ const Row = memo((props: RowProps) => {
 
   const remainColumnCount = availableColumnCount - occupiedColumnCount;
   const renderChild = useCallback(
-    ({ dragSourceRef }: { dragSourceRef: RefObject<HTMLDivElement> }) => (
+    ({ dragSourceRef }: { dragSourceRef: RefObject<HTMLDivElement | null> }) => (
       <WithPopoverMenu
         isFocused={isFocused}
         onChangeFocus={handleChangeFocus}

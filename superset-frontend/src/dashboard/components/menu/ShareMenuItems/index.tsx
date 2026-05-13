@@ -47,8 +47,8 @@ export interface ShareMenuItemProps extends ComponentProps<
   dashboardComponentId?: string;
   latestQueryFormData?: LatestQueryFormData;
   maxWidth?: string;
-  copyMenuItemRef?: RefObject<HTMLElement>;
-  shareByEmailMenuItemRef?: RefObject<HTMLElement>;
+  copyMenuItemRef?: RefObject<HTMLElement | null>;
+  shareByEmailMenuItemRef?: RefObject<HTMLElement | null>;
   selectedKeys?: string[];
   setOpenKeys?: (keys: string[] | undefined) => void;
   title: string;

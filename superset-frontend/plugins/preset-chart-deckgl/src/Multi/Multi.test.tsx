@@ -24,7 +24,6 @@ import { configureStore } from '@reduxjs/toolkit';
 import { DatasourceType, SupersetClient } from '@superset-ui/core';
 import DeckMulti from './Multi';
 import * as fitViewportModule from '../utils/fitViewport';
-import type { ReactElement } from 'react';
 
 // Mock DeckGLContainer
 jest.mock('../DeckGLContainer', () => ({

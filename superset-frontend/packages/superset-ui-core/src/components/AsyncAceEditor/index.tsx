@@ -238,7 +238,7 @@ export function AsyncAceEditor(
 
         // Move autocomplete popup to the nearest parent container with data-ace-container
         useEffect(() => {
-          const editorInstance = (ref as React.RefObject<AceEditor>)?.current
+          const editorInstance = (ref as React.RefObject<AceEditor | null>)?.current
             ?.editor;
           if (!editorInstance) return;
 

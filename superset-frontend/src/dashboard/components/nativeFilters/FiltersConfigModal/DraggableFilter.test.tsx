@@ -17,7 +17,6 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-import type { ReactElement } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -51,7 +50,7 @@ const DndWrapper: React.FC<{
   );
 };
 
-const renderWithDnd = (component: React.ReactElement, items: string[] = []) =>
+const renderWithDnd = (component: React.ReactNode, items: string[] = []) =>
   render(<DndWrapper items={items}>{component}</DndWrapper>);
 
 test('identifies divider items correctly', () => {

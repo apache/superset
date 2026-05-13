@@ -79,7 +79,7 @@ const LabelContainer = styled.div<{
 `;
 
 export const DateLabel = forwardRef(
-  (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => (
+  (props: DateLabelProps, ref: RefObject<HTMLSpanElement | null>) => (
     <LabelContainer {...props} tabIndex={0} role="button">
       <span
         id={`date-label-${props.name}`}

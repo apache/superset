@@ -236,7 +236,7 @@ const Column = (props: ColumnProps) => {
           {editMode && (
             <HoverMenu
               innerRef={
-                dragSourceRef as unknown as React.RefObject<HTMLDivElement>
+                dragSourceRef as unknown as React.RefObject<HTMLDivElement | null>
               }
               position="top"
             >

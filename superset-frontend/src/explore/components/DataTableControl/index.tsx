@@ -95,7 +95,7 @@ export const FilterInput = ({
   onChangeHandler(filterText: string): void;
   shouldFocus?: boolean;
 }) => {
-  const inputRef: RefObject<any> = useRef(null);
+  const inputRef: RefObject<any | null> = useRef(null);
 
   useEffect(() => {
     if (inputRef.current && shouldFocus) {

@@ -583,7 +583,7 @@ const Select = forwardRef(
     const isLoading = loading ?? false;
 
     const popupRender = (
-      originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+      originNode: ReactElement & { ref?: RefObject<HTMLElement | null> },
     ) =>
       dropDownRenderHelper(
         originNode as Parameters<typeof dropDownRenderHelper>[0],

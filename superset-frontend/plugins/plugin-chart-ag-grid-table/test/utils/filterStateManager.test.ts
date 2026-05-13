@@ -24,7 +24,7 @@ import { FILTER_INPUT_POSITIONS } from '../../src/consts';
 describe('filterStateManager', () => {
   describe('getCompleteFilterState', () => {
     test('should return empty state when gridRef.current is null', async () => {
-      const gridRef = { current: null } as RefObject<AgGridReact>;
+      const gridRef = { current: null } as RefObject<AgGridReact | null>;
 
       const result = await getCompleteFilterState(gridRef, []);
 
@@ -41,7 +41,7 @@ describe('filterStateManager', () => {
     test('should return empty state when gridRef.current.api is undefined', async () => {
       const gridRef = {
         current: { api: undefined } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       const result = await getCompleteFilterState(gridRef, []);
 
@@ -68,7 +68,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       const result = await getCompleteFilterState(gridRef, []);
 
@@ -103,7 +103,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       const result = await getCompleteFilterState(gridRef, ['SUM(revenue)']);
 
@@ -138,7 +138,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       // Mock activeElement
       Object.defineProperty(document, 'activeElement', {
@@ -182,7 +182,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       // Mock activeElement
       Object.defineProperty(document, 'activeElement', {
@@ -217,7 +217,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       // Mock activeElement as something outside the filter
       const outsideElement = document.createElement('div');
@@ -272,7 +272,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       // Mock activeElement in age filter
       Object.defineProperty(document, 'activeElement', {
@@ -306,7 +306,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       const result = await getCompleteFilterState(gridRef, []);
 
@@ -324,7 +324,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       const result = await getCompleteFilterState(gridRef, []);
 
@@ -356,7 +356,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       const result = await getCompleteFilterState(gridRef, []);
 
@@ -378,7 +378,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       const result = await getCompleteFilterState(gridRef, []);
 
@@ -422,7 +422,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       Object.defineProperty(document, 'activeElement', {
         writable: true,
@@ -449,7 +449,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       const result = await getCompleteFilterState(gridRef, []);
 
@@ -469,7 +469,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       const result = await getCompleteFilterState(gridRef, []);
 
@@ -509,7 +509,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       // Mock activeElement in join AND operator
       Object.defineProperty(document, 'activeElement', {
@@ -556,7 +556,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       // Mock activeElement in join OR operator
       Object.defineProperty(document, 'activeElement', {
@@ -598,7 +598,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       Object.defineProperty(document, 'activeElement', {
         writable: true,
@@ -641,7 +641,7 @@ describe('filterStateManager', () => {
 
       const gridRef = {
         current: { api: mockApi } as any,
-      } as RefObject<AgGridReact>;
+      } as RefObject<AgGridReact | null>;
 
       Object.defineProperty(document, 'activeElement', {
         writable: true,
