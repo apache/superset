@@ -47,31 +47,26 @@ from superset.mcp_service.app import init_fastmcp_server, mcp
 def _add_default_middlewares() -> None:
     """Add the standard middleware stack to the MCP instance.
 
-    This ensures all entry points (stdio, streamable-http, etc.) get
-    the same protection middlewares that the Flask CLI and server.py add.
-    Order is innermost → outermost (last-added wraps everything).
-    """
-    from superset.mcp_service.middleware import (
-        create_response_size_guard_middleware,
-        GlobalErrorHandlerMiddleware,
-        LoggingMiddleware,
-        StructuredContentStripperMiddleware,
-    )
+    Delegates to ``server.build_middleware_list()`` for the core stack so
+    the stdio entry point stays in sync with the HTTP server without
+    duplicating middleware ordering.  The optional response size guard is
+    appended separately (innermost position, same as in run_server()).
 
-    # Response size guard (innermost among these)
+    FastMCP wraps handlers so that the FIRST-added middleware is outermost.
+    ``build_middleware_list()`` already returns middlewares in the correct
+    outermost-first order.
+    """
+    from superset.mcp_service.middleware import create_response_size_guard_middleware
+    from superset.mcp_service.server import build_middleware_list
+
+    for middleware in build_middleware_list():
+        mcp.add_middleware(middleware)
+
+    # Response size guard is innermost (added last)
     if size_guard := create_response_size_guard_middleware():
         mcp.add_middleware(size_guard)
         limit = size_guard.token_limit
         sys.stderr.write(f"[MCP] Response size guard enabled (token_limit={limit})\n")
-
-    # Logging
-    mcp.add_middleware(LoggingMiddleware())
-
-    # Global error handler
-    mcp.add_middleware(GlobalErrorHandlerMiddleware())
-
-    # Structured content stripper (must be outermost)
-    mcp.add_middleware(StructuredContentStripperMiddleware())
 
 
 def main() -> None:

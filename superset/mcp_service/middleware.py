@@ -422,10 +422,23 @@ class RBACToolVisibilityMiddleware(Middleware):
     is not permitted to execute. Public tools (no ``class_permission_name``) and
     tools whose permission check passes are included; all others are hidden.
 
-    Fails open: if user resolution fails (no auth header, bad credentials) all
-    tools are returned. Call-time RBAC still enforces permissions — this
-    middleware only improves the UX by hiding inaccessible tools from the LLM.
+    Fail-open vs fail-closed behaviour:
+    - No auth context at all (no Flask context, no auth header, no dev user
+      configured) → fail open (return all tools). Call-time RBAC enforces.
+    - Auth was attempted but credentials are invalid (bad API key, dev
+      username not in DB, etc.) → fail closed (return only public tools,
+      i.e. those with no ``class_permission_name``).
+    - Unexpected errors → fail open. Call-time RBAC still enforces.
     """
+
+    @staticmethod
+    def _public_tools_only(tools: list[Tool]) -> list[Tool]:
+        """Return only tools that require no class-level permission."""
+        return [
+            t
+            for t in tools
+            if getattr(getattr(t, "fn", None), "_class_permission_name", None) is None
+        ]
 
     async def on_list_tools(
         self,
@@ -438,20 +451,40 @@ class RBACToolVisibilityMiddleware(Middleware):
             from flask import g
 
             from superset.mcp_service.auth import (
+                _get_app_context_manager,
                 _setup_user_context,
                 is_tool_visible_to_current_user,
             )
-            from superset.mcp_service.flask_singleton import get_flask_app
 
-            with get_flask_app().app_context():
-                user = _setup_user_context()
+            with _get_app_context_manager():
+                try:
+                    user = _setup_user_context()
+                except ValueError as exc:
+                    if "No authenticated user found" in str(exc):
+                        # No auth source configured at all → fail open
+                        return tools
+                    # Auth was attempted (e.g. MCP_DEV_USERNAME set) but the
+                    # user was not found in the DB → fail closed
+                    logger.warning(
+                        "MCP tool list: credential failure, hiding protected tools: %s",
+                        exc,
+                    )
+                    return self._public_tools_only(tools)
+                except PermissionError as exc:
+                    # API key present but invalid/expired → fail closed
+                    logger.warning(
+                        "MCP tool list: credential failure, hiding protected tools: %s",
+                        exc,
+                    )
+                    return self._public_tools_only(tools)
+
                 if user is None:
-                    return tools  # no auth context — fail open
+                    return tools  # no Flask app context → fail open
                 g.user = user
                 return [t for t in tools if is_tool_visible_to_current_user(t)]
         except Exception:  # noqa: BLE001
-            # Invalid credentials / setup failure — fail open
-            # (call-time RBAC still enforces)
+            # Unexpected setup errors (ImportError, etc.) → fail open.
+            # Call-time RBAC still enforces permissions.
             return tools
 
 
