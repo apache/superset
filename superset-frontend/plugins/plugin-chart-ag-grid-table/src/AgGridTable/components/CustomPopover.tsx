@@ -16,12 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState, cloneElement , ReactElement} from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  cloneElement,
+  type Ref,
+  type ReactElement,
+} from 'react';
 import { PopoverContainer, PopoverWrapper } from '../../styles';
 
 interface Props {
   content: React.ReactNode;
-  children: React.ReactElement;
+  children: ReactElement<{ ref?: Ref<HTMLElement> }>;
   isOpen: boolean;
   onClose: () => void;
 }

@@ -174,7 +174,7 @@ function Echart(
   const previousSelection = useRef<string[]>([]);
 
   useImperativeHandle(ref, () => ({
-    getEchartInstance: () => chartRef.current,
+    getEchartInstance: () => chartRef.current ?? undefined,
   }));
 
   const locale = useSelector(

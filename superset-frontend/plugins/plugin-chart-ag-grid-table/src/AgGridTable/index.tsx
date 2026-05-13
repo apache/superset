@@ -24,7 +24,7 @@ import {
   memo,
   FunctionComponent,
   useState,
-  ChangeEvent,
+  FormEvent,
   useEffect,
   type RefObject,
   ReactElement,
@@ -110,7 +110,7 @@ export interface AgGridTableProps {
   onColumnStateChange?: (state: AgGridChartStateWithMetadata) => void;
   onFilterChanged?: (filterModel: Record<string, any>) => void;
   metricColumns?: string[];
-  gridRef?: RefObject<AgGridReact>;
+  gridRef?: RefObject<AgGridReact | null>;
   chartState?: AgGridChartState;
 }
 
@@ -247,7 +247,8 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     }, []);
 
     const onFilterTextBoxChanged = useCallback(
-      ({ target: { value } }: ChangeEvent<HTMLInputElement>) => {
+      (event: FormEvent<HTMLInputElement>) => {
+        const value = (event.target as HTMLInputElement).value;
         if (serverPagination) {
           setSearchValue(value);
           debouncedSearch(value);

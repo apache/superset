@@ -66,7 +66,9 @@ export default function EchartsTimeseries({
   const echartRef = useRef<EchartsHandler | null>(null);
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
-  const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
   useEffect(() => {
