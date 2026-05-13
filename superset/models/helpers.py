@@ -736,7 +736,17 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
     except RuntimeError:
         pass
 
-    if execute_state.is_select and not skip_visibility_filter:
+    # Skip relationship and column loader paths: those re-execute against
+    # already-loaded parents and re-applying the criteria stacks redundant
+    # ``deleted_at IS NULL`` clauses (and is also explicitly excluded in
+    # SQLAlchemy's documented soft-delete pattern at
+    # https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295).
+    if (
+        execute_state.is_select
+        and not execute_state.is_column_load
+        and not execute_state.is_relationship_load
+        and not skip_visibility_filter
+    ):
         execute_state.statement = execute_state.statement.options(
             with_loader_criteria(
                 SoftDeleteMixin,

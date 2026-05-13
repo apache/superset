@@ -18,10 +18,12 @@
 
 from typing import Any, ClassVar, Generic, TypeVar
 
+from flask import g
+
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.exceptions import SupersetSecurityException
-from superset.models.helpers import SoftDeleteMixin
+from superset.models.helpers import SKIP_VISIBILITY_FILTER, SoftDeleteMixin
 
 T = TypeVar("T", bound=SoftDeleteMixin)
 
@@ -75,8 +77,19 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
                 f"Row with uuid={self._model_uuid!r} is not soft-deleted; "
                 "nothing to restore"
             )
+        # ``raise_for_ownership`` re-queries the row internally to fetch
+        # its current owners. That re-query goes through the global
+        # soft-delete listener; without temporarily opting out, the
+        # re-query returns ``None`` for soft-deleted rows, the owners list
+        # comes back empty, and legitimate owners are denied. Set the
+        # per-request flag for the scope of the security check only, then
+        # restore the previous value.
+        previous_flag = getattr(g, SKIP_VISIBILITY_FILTER, False)
+        setattr(g, SKIP_VISIBILITY_FILTER, True)
         try:
             security_manager.raise_for_ownership(model)
         except SupersetSecurityException as ex:
             raise self.forbidden_exc() from ex
+        finally:
+            setattr(g, SKIP_VISIBILITY_FILTER, previous_flag)
         return model
