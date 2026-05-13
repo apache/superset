@@ -24,6 +24,7 @@ The streamable-http transport does not push a Flask request context, so
 """
 
 from collections.abc import Generator
+from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -82,6 +83,16 @@ def _disable_api_keys(app: SupersetApp) -> Generator[None, None, None]:
         app.config["MCP_DEV_USERNAME"] = old_dev
 
 
+@contextmanager
+def _mock_sm_ctx(app: SupersetApp, mock_sm: MagicMock):
+    """Push an app context with g.user cleared and appbuilder.sm mocked."""
+    with app.app_context():
+        g.user = None
+        app.appbuilder = MagicMock()
+        app.appbuilder.sm = mock_sm
+        yield
+
+
 # -- Valid API key -> user loaded --
 
 
@@ -91,11 +102,7 @@ def test_valid_api_key_returns_user(app: SupersetApp, mock_user: MagicMock) -> N
     mock_sm = MagicMock()
     mock_sm.validate_api_key.return_value = mock_user
 
-    with app.app_context():
-        g.user = None
-        app.appbuilder = MagicMock()
-        app.appbuilder.sm = mock_sm
-
+    with _mock_sm_ctx(app, mock_sm):
         with (
             _patch_access_token(_passthrough_access_token("sst_abc123")),
             patch(
@@ -124,11 +131,7 @@ def test_invalid_api_key_raises(app: SupersetApp) -> None:
     # mask the rejection.
     app.config["MCP_DEV_USERNAME"] = "admin"
     try:
-        with app.app_context():
-            g.user = None
-            app.appbuilder = MagicMock()
-            app.appbuilder.sm = mock_sm
-
+        with _mock_sm_ctx(app, mock_sm):
             with _patch_access_token(_passthrough_access_token("sst_bad_key")):
                 with pytest.raises(PermissionError, match="Invalid or expired API key"):
                     get_user_from_request()
@@ -145,11 +148,7 @@ def test_api_key_disabled_skips_auth(app: SupersetApp) -> None:
     even if an AccessToken is present."""
     mock_sm = MagicMock()
 
-    with app.app_context():
-        g.user = None
-        app.appbuilder = MagicMock()
-        app.appbuilder.sm = mock_sm
-
+    with _mock_sm_ctx(app, mock_sm):
         with _patch_access_token(_passthrough_access_token("sst_abc123")):
             with pytest.raises(ValueError, match="No authenticated user found"):
                 get_user_from_request()
@@ -166,11 +165,7 @@ def test_no_access_token_skips_api_key_auth(app: SupersetApp) -> None:
     auth provider installed), API key auth is skipped."""
     mock_sm = MagicMock()
 
-    with app.app_context():
-        g.user = None
-        app.appbuilder = MagicMock()
-        app.appbuilder.sm = mock_sm
-
+    with _mock_sm_ctx(app, mock_sm):
         with _patch_access_token(None):
             with pytest.raises(ValueError, match="No authenticated user found"):
                 get_user_from_request()
@@ -204,11 +199,7 @@ def test_fab_without_validate_method_raises(app: SupersetApp) -> None:
     PermissionError about unavailable validation."""
     mock_sm = MagicMock(spec=[])  # empty spec = no attributes
 
-    with app.app_context():
-        g.user = None
-        app.appbuilder = MagicMock()
-        app.appbuilder.sm = mock_sm
-
+    with _mock_sm_ctx(app, mock_sm):
         with _patch_access_token(_passthrough_access_token("sst_abc123")):
             with pytest.raises(
                 PermissionError, match="API key validation is not available"
@@ -228,11 +219,7 @@ def test_relationship_reload_failure_returns_original_user(
     mock_sm = MagicMock()
     mock_sm.validate_api_key.return_value = mock_user
 
-    with app.app_context():
-        g.user = None
-        app.appbuilder = MagicMock()
-        app.appbuilder.sm = mock_sm
-
+    with _mock_sm_ctx(app, mock_sm):
         with (
             _patch_access_token(_passthrough_access_token("sst_abc123")),
             patch(
@@ -259,11 +246,7 @@ def test_jwt_access_token_skips_api_key_auth(app: SupersetApp) -> None:
     jwt_access_token.token = "eyJhbGciOiJIUzI1NiJ9.not-an-api-key"  # noqa: S105
     jwt_access_token.claims = {"sub": "alice"}
 
-    with app.app_context():
-        g.user = None
-        app.appbuilder = MagicMock()
-        app.appbuilder.sm = mock_sm
-
+    with _mock_sm_ctx(app, mock_sm):
         with _patch_access_token(jwt_access_token):
             # _resolve_user_from_jwt_context will try to resolve the user
             # from the JWT claims and (in this isolated unit-test setup)
@@ -313,11 +296,7 @@ def test_unnamespaced_passthrough_claim_does_not_trigger_api_key_path(
     rogue_token.token = "eyJhbGciOiJSUzI1NiJ9.rogue_jwt"  # noqa: S105
     rogue_token.claims = {"_api_key_passthrough": True, "sub": "alice"}
 
-    with app.app_context():
-        g.user = None
-        app.appbuilder = MagicMock()
-        app.appbuilder.sm = mock_sm
-
+    with _mock_sm_ctx(app, mock_sm):
         with _patch_access_token(rogue_token):
             # JWT path tries to resolve user "alice" from DB and (in this
             # isolated unit-test setup) raises ValueError. The assertion
