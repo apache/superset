@@ -22,6 +22,11 @@ import {
   createListenerMiddleware,
   StoreEnhancer,
 } from '@reduxjs/toolkit';
+import {
+  useDispatch,
+  useSelector,
+  type TypedUseSelectorHook,
+} from 'react-redux';
 import thunk from 'redux-thunk';
 import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
@@ -177,3 +182,12 @@ export function setupStore({
 
 export const store = setupStore();
 export type RootState = ReturnType<typeof store.getState>;
+
+// Typed Redux hooks. Prefer these over the raw `useDispatch` / `useSelector`
+// from react-redux: `useAppDispatch` understands the store's middleware (so
+// thunks resolve correctly), and `useAppSelector` infers `RootState` without
+// callers having to annotate every selector. Required ahead of the
+// react-redux v8+ bump, which tightens dispatch typing — see #39927.
+export type AppDispatch = typeof store.dispatch;
+export const useAppDispatch: () => AppDispatch = useDispatch;
+export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
