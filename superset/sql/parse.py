@@ -45,7 +45,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot
+from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot, Vertica
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -113,7 +113,7 @@ SQLGLOT_DIALECTS = {
     # "taosws": ???
     "teradatasql": Dialects.TERADATA,
     "trino": Dialects.TRINO,
-    "vertica": Dialects.POSTGRES,
+    "vertica": Vertica,
     "yql": Dialects.CLICKHOUSE,
 }
 

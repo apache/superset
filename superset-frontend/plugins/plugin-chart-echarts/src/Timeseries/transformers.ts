@@ -389,6 +389,9 @@ export function transformSeries(
     ...(colorByPrimaryAxis ? {} : { itemStyle }),
     // @ts-ignore
     type: plotType,
+    // Cap bar width so a single data point doesn't stretch across the
+    // entire chart area. Bars with many categories auto-size below this cap.
+    ...(plotType === 'bar' ? { barMaxWidth: 100 } : {}),
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
     // @ts-expect-error
