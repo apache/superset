@@ -250,7 +250,7 @@ def test_relationship_reload_failure_returns_original_user(
 
 @pytest.mark.usefixtures("_enable_api_keys")
 def test_jwt_access_token_skips_api_key_auth(app: SupersetApp) -> None:
-    """When the AccessToken is a plain JWT (no ``_api_key_passthrough`` claim),
+    """When the AccessToken is a plain JWT (no API_KEY_PASSTHROUGH_CLAIM),
     API key auth is skipped — the JWT was already validated by the JWT
     verifier and resolved in _resolve_user_from_jwt_context."""
     mock_sm = MagicMock()
