@@ -346,7 +346,13 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                     return None
 
     if api_key_enabled:
-        api_key_prefixes = app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
+        raw_prefixes = app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
+        # Normalize: a plain string (e.g. "sst_") would iterate as characters;
+        # wrap it in a list so CompositeTokenVerifier receives a proper sequence.
+        if isinstance(raw_prefixes, str):
+            api_key_prefixes = [raw_prefixes]
+        else:
+            api_key_prefixes = list(raw_prefixes)
         logger.info("API key auth enabled for MCP")
         return CompositeTokenVerifier(
             jwt_verifier=jwt_verifier,
