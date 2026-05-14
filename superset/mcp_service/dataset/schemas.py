@@ -291,7 +291,9 @@ class CreateDatasetRequest(BaseModel):
 
     database_id: Annotated[
         int,
-        Field(description="ID of the database connection to register the table against"),
+        Field(
+            description="ID of the database connection to register the table against"
+        ),
     ]
     schema: Annotated[
         str,

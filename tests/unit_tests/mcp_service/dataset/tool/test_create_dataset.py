@@ -87,9 +87,7 @@ def mock_auth():
 class TestCreateDataset:
     """Tests for the create_dataset MCP tool."""
 
-    @patch(
-        "superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand"
-    )
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_success(self, mock_command_class, mcp_server):
         """Happy path: tool creates dataset and returns DatasetInfo."""
@@ -123,9 +121,7 @@ class TestCreateDataset:
         assert call_kwargs["table_name"] == "orders"
         assert "owners" not in call_kwargs
 
-    @patch(
-        "superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand"
-    )
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_with_owners(self, mock_command_class, mcp_server):
         """Owners list is forwarded to the command when supplied."""
@@ -153,9 +149,7 @@ class TestCreateDataset:
         call_kwargs = mock_command_class.call_args[0][0]
         assert call_kwargs["owners"] == [5, 10]
 
-    @patch(
-        "superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand"
-    )
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_already_exists(self, mock_command_class, mcp_server):
         """Returns DatasetError when a dataset for the table already exists."""
@@ -184,13 +178,9 @@ class TestCreateDataset:
         assert data["error_type"] == "DatasetExistsError"
         assert "error" in data
 
-    @patch(
-        "superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand"
-    )
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_table_not_found(
-        self, mock_command_class, mcp_server
-    ):
+    async def test_create_dataset_table_not_found(self, mock_command_class, mcp_server):
         """Returns DatasetError when the physical table does not exist in the DB."""
         from superset.commands.dataset.exceptions import TableNotFoundValidationError
         from superset.sql.parse import Table
@@ -216,9 +206,7 @@ class TestCreateDataset:
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "TableNotFoundError"
 
-    @patch(
-        "superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand"
-    )
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_unexpected_error(
         self, mock_command_class, mcp_server
@@ -259,15 +247,15 @@ class TestCreateDataset:
                     },
                 )
 
-    @patch(
-        "superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand"
-    )
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_returns_full_dataset_info(
         self, mock_command_class, mcp_server
     ):
         """The returned DatasetInfo includes columns, metrics, and all core fields."""
-        mock_dataset = _make_mock_dataset(dataset_id=99, table_name="sales", schema="dw")
+        mock_dataset = _make_mock_dataset(
+            dataset_id=99, table_name="sales", schema="dw"
+        )
 
         col = MagicMock()
         col.column_name = "amount"
