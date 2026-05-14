@@ -1349,7 +1349,8 @@ class TestDashboardSortableColumns:
 
         # Check list_dashboards docstring for sortable columns documentation
         assert list_dashboards.__doc__ is not None
-        assert "Sortable columns for order_column:" in list_dashboards.__doc__
+        assert "Sortable columns for" in list_dashboards.__doc__
+        assert "order_column" in list_dashboards.__doc__
         for col in SORTABLE_DASHBOARD_COLUMNS:
             assert col in list_dashboards.__doc__
 

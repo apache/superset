@@ -71,7 +71,7 @@ dependencies = [
     "marshmallow>=3.0, <4",
     "marshmallow-union>=0.1",
     "msgpack>=1.0.0, <1.2",
-    "nh3>=0.2.11, <0.3",
+    "nh3>=0.2.11, <0.4",
     "numpy>1.23.5, <2.3",
     "packaging",
     # --------------------------
@@ -95,7 +95,7 @@ dependencies = [
     "redis>=5.0.0, <6.0",
     "rison>=2.0.0, <3.0",
     "selenium>=4.14.0, <5.0",
-    "shillelagh[gsheetsapi]>=1.4.3, <2.0",
+    "shillelagh[gsheetsapi]>=1.4.4, <2.0",
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=3.15.0",
     "slack_sdk>=3.19.0, <4",
@@ -114,7 +114,7 @@ dependencies = [
 
 [project.optional-dependencies]
 
-athena = ["pyathena[pandas]>=2, <3"]
+athena = ["pyathena[pandas]>=2, <4"]
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
 bigquery = [
     "pandas-gbq>=0.19.1",
@@ -131,25 +131,31 @@ d1 = [
 ]
 databend = ["databend-sqlalchemy>=0.3.2, <1.0"]
 databricks = [
-    "databricks-sql-connector==4.1.2",
+    "databricks-sql-connector==4.2.6",
     "databricks-sqlalchemy==1.0.5",
 ]
-db2 = ["ibm-db-sa>0.3.8, <=0.4.0"]
-denodo = ["denodo-sqlalchemy~=1.0.6"]
+db2 = ["ibm-db-sa>0.3.8, <=0.4.4"]
+denodo = ["denodo-sqlalchemy>=1.0.6,<2.1.0"]
 dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
 drill = ["sqlalchemy-drill>=1.1.4, <2"]
 druid = ["pydruid>=0.6.5,<0.7"]
 duckdb = ["duckdb>=1.4.2,<2", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.4.2"]
 solr = ["sqlalchemy-solr >= 0.2.0"]
-elasticsearch = ["elasticsearch-dbapi>=0.2.12, <0.3.0"]
+elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
 exasol = ["sqlalchemy-exasol >= 2.4.0, <3.0"]
 excel = ["xlrd>=1.2.0, <1.3"]
-fastmcp = ["fastmcp>=3.2.4,<4.0"]
-firebird = ["sqlalchemy-firebird>=0.7.0, <0.8"]
+fastmcp = [
+    "fastmcp>=3.2.4,<4.0",
+    # tiktoken backs the response-size-guard token estimator. Without
+    # it, the middleware falls back to a coarser character-based
+    # heuristic that under-counts JSON-heavy MCP responses.
+    "tiktoken>=0.7.0,<1.0",
+]
+firebird = ["sqlalchemy-firebird>=0.7.0, <2.2"]
 firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
 gevent = ["gevent>=23.9.1"]
-gsheets = ["shillelagh[gsheetsapi]>=1.4.3, <2"]
+gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
 hana = ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"]
 hive = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
@@ -158,7 +164,7 @@ hive = [
     "thrift>=0.14.1, <1.0.0",
     "thrift_sasl>=0.4.3, < 1.0.0",
 ]
-impala = ["impyla>0.16.2, <0.17"]
+impala = ["impyla>0.16.2, <0.23"]
 kusto = ["sqlalchemy-kusto>=3.0.0, <4"]
 kylin = ["kylinpy>=2.8.1, <2.9"]
 mssql = ["pymssql>=2.2.8, <3"]
@@ -171,9 +177,9 @@ ocient = [
     "shapely",
     "geojson",
 ]
-oracle = ["cx-Oracle>8.0.0, <8.1"]
+oracle = ["cx-Oracle>8.0.0, <8.4"]
 parseable = ["sqlalchemy-parseable>=0.1.3,<0.2.0"]
-pinot = ["pinotdb>=5.0.0, <6.0.0"]
+pinot = ["pinotdb>=5.0.0, <10.0.0"]
 playwright = ["playwright>=1.37.0, <2"]
 postgres = ["psycopg2-binary==2.9.12"]
 presto = ["pyhive[presto]>=0.6.5"]
@@ -181,7 +187,7 @@ trino = ["trino>=0.328.0"]
 prophet = ["prophet>=1.1.6, <2"]
 redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
 risingwave = ["sqlalchemy-risingwave"]
-shillelagh = ["shillelagh[all]>=1.4.3, <2"]
+shillelagh = ["shillelagh[all]>=1.4.4, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.2.4, <2"]
 sqlite = ["syntaqlite>=0.1.0"]
@@ -197,7 +203,7 @@ tdengine = [
 ]
 teradata = ["teradatasql>=16.20.0.23"]
 thumbnails = [] # deprecated, will be removed in 7.0
-vertica = ["sqlalchemy-vertica-python>=0.5.9, < 0.6"]
+vertica = ["sqlalchemy-vertica-python>= 0.5.9, < 0.7"]
 netezza = ["nzalchemy>=11.0.2"]
 starrocks = ["starrocks>=1.0.0"]
 doris = ["pydoris>=1.0.0, <2.0.0"]
@@ -218,7 +224,7 @@ development = [
     "progress>=1.5,<2",
     "psutil",
     "pyfakefs",
-    "pyinstrument>=4.0.2,<5",
+    "pyinstrument>=4.0.2,<6",
     "pylint",
     "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
     "pytest-asyncio",
@@ -288,6 +294,7 @@ module = [
     "superset.tags.filters",
     "superset.commands.security.update",
     "superset.commands.security.create",
+    "superset.semantic_layers.api",
 ]
 warn_unused_ignores = false
 
@@ -376,6 +383,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.per-file-ignores]
 "superset/mcp_service/app.py" = ["S608", "E501"]  # LLM instruction text: SQL examples (S608) and long lines in multiline string (E501)
+"superset/mcp_service/*/tool/list_*.py" = ["E501"]  # LLM docstring examples show full request shapes which exceed line length
 "scripts/*" = ["TID251"]
 "setup.py" = ["TID251"]
 "superset/config.py" = ["TID251"]

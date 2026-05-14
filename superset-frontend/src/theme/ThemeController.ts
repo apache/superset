@@ -111,7 +111,7 @@ export class ThemeController {
     defaultTheme = (supersetThemeObject.theme as AnyThemeConfig) ?? {},
     onChange = undefined,
     initialMode = undefined,
-  }: ThemeControllerOptions = {}) {
+  }: ThemeControllerOptions & { initialMode?: ThemeMode } = {}) {
     this.storage = storage;
     this.modeStorageKey = modeStorageKey;
     this.initialMode = initialMode;
@@ -305,6 +305,20 @@ export class ThemeController {
    */
   public getCurrentMode(): ThemeMode {
     return this.currentMode;
+  }
+
+  /**
+   * Returns the resolved theme mode as 'dark' or 'light'.
+   * Takes into account SYSTEM mode and returns the actual resolved preference.
+   */
+  public getCurrentModeResolved(): 'dark' | 'light' {
+    const activeTheme = this.getThemeForMode(this.currentMode);
+    if (activeTheme) {
+      const normalizedTheme = this.normalizeTheme(activeTheme);
+      return isThemeConfigDark(normalizedTheme) ? 'dark' : 'light';
+    }
+
+    return this.currentMode === ThemeMode.DARK ? 'dark' : 'light';
   }
 
   /**

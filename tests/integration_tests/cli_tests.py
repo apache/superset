@@ -28,6 +28,7 @@ from freezegun import freeze_time
 
 import superset.cli.importexport
 import superset.cli.thumbnails
+import superset.cli.update
 from superset import db
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -322,3 +323,44 @@ def test_compute_thumbnails(thumbnail_mock, app_context, fs):
 
     thumbnail_mock.assert_called_with(None, dashboard.id, force=False)
     assert response.exit_code == 0
+
+
+def test_re_encrypt_secrets_without_previous_key_is_noop(app_context):
+    """
+    When neither --previous_secret_key nor config.PREVIOUS_SECRET_KEY is set,
+    the command should exit cleanly (0) rather than error out, so that
+    scheduled re-encryption runs don't start failing after a successful
+    rotation is complete.
+    """
+    current_app.config.pop("PREVIOUS_SECRET_KEY", None)
+    runner = current_app.test_cli_runner()
+    with mock.patch.object(superset.cli.update.SecretsMigrator, "run") as run_mock:
+        response = runner.invoke(superset.cli.update.re_encrypt_secrets, [])
+
+    assert response.exit_code == 0
+    assert "nothing to re-encrypt" in response.output.lower()
+    run_mock.assert_not_called()
+
+
+def test_re_encrypt_secrets_failure_exits_nonzero(app_context):
+    """
+    When re-encryption fails for any field, SecretsMigrator.run raises to
+    trigger rollback. The CLI must surface that as a non-zero exit with a
+    clear error message — not as an uncaught exception.
+    """
+    runner = current_app.test_cli_runner()
+    with mock.patch.object(
+        superset.cli.update.SecretsMigrator,
+        "run",
+        side_effect=Exception("Re-encryption failed for 2 value(s)"),
+    ):
+        response = runner.invoke(
+            superset.cli.update.re_encrypt_secrets,
+            ["--previous_secret_key", "old-key"],
+        )
+
+    assert response.exit_code == 1
+    assert "Re-encryption failed" in response.output
+    # The failure path must be handled by the CLI, not leaked as an
+    # uncaught exception.
+    assert response.exception is None or isinstance(response.exception, SystemExit)
