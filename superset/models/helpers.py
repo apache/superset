@@ -662,6 +662,12 @@ class AuditMixinNullable(AuditMixin):
 
 SKIP_VISIBILITY_FILTER_CLASSES = "_skip_visibility_filter_classes"
 
+# Shared sentinel for "no bypass requested" — returned by
+# ``_collect_bypass_classes`` on the common path so every primary SELECT
+# does not allocate a fresh empty set. ``frozenset`` so accidental
+# mutation by a caller is a TypeError, not silent corruption.
+_NO_BYPASS: frozenset[type] = frozenset()
+
 
 class SoftDeleteMixin:
     """Mixin that adds soft-delete support to a SQLAlchemy model.
@@ -712,7 +718,7 @@ class SoftDeleteMixin:
         self.deleted_at = None
 
 
-def _collect_bypass_classes(execute_state: ORMExecuteState) -> set[type]:
+def _collect_bypass_classes(execute_state: ORMExecuteState) -> frozenset[type]:
     """Union of bypass class sets from per-query and per-session sources.
 
     Per-query: ``execution_options[SKIP_VISIBILITY_FILTER_CLASSES]`` — set
@@ -726,18 +732,32 @@ def _collect_bypass_classes(execute_state: ORMExecuteState) -> set[type]:
     issued on the same session (e.g., FAB list endpoints that build a
     count query plus an inner+outer pair, where per-query options are
     stripped between count and outer fetch).
+
+    Returns the shared empty ``_NO_BYPASS`` sentinel when neither source
+    has a bypass set — the common case for every ORM SELECT in the app —
+    so the listener's hot path does not allocate per-call empty sets.
     """
-    per_query = execute_state.execution_options.get(
-        SKIP_VISIBILITY_FILTER_CLASSES, set()
-    )
-    per_session = execute_state.session.info.get(SKIP_VISIBILITY_FILTER_CLASSES, set())
-    return set(per_query) | set(per_session)
+    per_query = execute_state.execution_options.get(SKIP_VISIBILITY_FILTER_CLASSES)
+    per_session = execute_state.session.info.get(SKIP_VISIBILITY_FILTER_CLASSES)
+    if not per_query and not per_session:
+        return _NO_BYPASS
+    return frozenset(per_query or ()) | frozenset(per_session or ())
 
 
-def _all_soft_delete_subclasses() -> set[type]:
+def _all_soft_delete_subclasses() -> list[type]:
     """All concrete ``SoftDeleteMixin`` subclasses, transitively. Walks
     the inheritance tree so an intermediate abstract subclass between
     the mixin and a concrete model does not hide leaf classes.
+
+    Assumes all soft-deletable models have been imported by the time the
+    listener fires. Superset imports models eagerly at app init via
+    ``superset.models``; if that ever changes to lazy import, the
+    listener would silently stop filtering un-imported classes.
+
+    Returned in a stable sorted order so SQLAlchemy's compiled-statement
+    cache key (which incorporates the option chain order) is
+    deterministic across processes — set iteration is hash-order, and
+    type hashes derive from ``id()`` which differs per process.
     """
     seen: set[type] = set()
     todo = list(SoftDeleteMixin.__subclasses__())
@@ -747,7 +767,7 @@ def _all_soft_delete_subclasses() -> set[type]:
             continue
         seen.add(cls)
         todo.extend(cls.__subclasses__())
-    return seen
+    return sorted(seen, key=lambda c: c.__qualname__)
 
 
 def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
@@ -785,6 +805,15 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
       use the ``skip_visibility_filter`` context manager. Survives FAB's
       inner/outer query reconstruction (and any future framework that
       strips per-query options).
+
+    Performance: the listener attaches one ``with_loader_criteria``
+    option per non-bypassed ``SoftDeleteMixin`` subclass to every
+    primary SELECT, including queries that don't reference any
+    soft-deletable entity. SQLAlchemy no-ops the criteria when the
+    targeted class isn't in the statement, so the cost is small per
+    query, but linear in the number of soft-delete classes. At ~10
+    entities this is still negligible on typical endpoints; profile
+    before adding many more.
     """
     if (
         not execute_state.is_select
@@ -823,7 +852,8 @@ def skip_visibility_filter(session: Session, *classes: type) -> Iterator[None]:
             return session.query(Dashboard).filter_by(uuid=u).first()
 
     Prefer this over manually setting ``session.info`` so the cleanup is
-    guaranteed even on exceptions.
+    guaranteed even on exceptions. Calling with no classes is a no-op
+    (the block runs with no bypass added).
     """
     bypass = session.info.setdefault(SKIP_VISIBILITY_FILTER_CLASSES, set())
     added = set(classes) - bypass

@@ -170,6 +170,26 @@ def test_global_filter_excludes_soft_deleted_rows(
 
 
 @pytest.mark.usefixtures("_synthetic_tables")
+def test_listener_does_not_affect_non_soft_deletable_queries(
+    app_context: None, session: Session
+) -> None:
+    """Queries against a class that does NOT inherit ``SoftDeleteMixin``
+    pass through the listener unchanged. The listener still iterates
+    soft-delete subclasses and attaches a ``with_loader_criteria`` per
+    class to every primary SELECT, but each is a no-op when the targeted
+    class isn't in the statement. Pins that the listener does not
+    silently break unrelated queries.
+    """
+    parent_a = _SoftDeletableParent(name="a")
+    parent_b = _SoftDeletableParent(name="b")
+    session.add_all([parent_a, parent_b])
+    session.flush()
+
+    rows = session.query(_SoftDeletableParent).order_by(_SoftDeletableParent.id).all()
+    assert [r.name for r in rows] == ["a", "b"]
+
+
+@pytest.mark.usefixtures("_synthetic_tables")
 def test_per_query_class_bypass_returns_soft_deleted_rows(
     app_context: None, session: Session
 ) -> None:
