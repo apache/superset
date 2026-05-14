@@ -83,6 +83,7 @@ def resolve_datasource_engine(datasource_id: Any, datasource_type: str) -> str:
     if not isinstance(datasource_id, (int, str)):
         return "base"
     try:
+        # avoid circular import
         from superset.daos.datasource import DatasourceDAO
         from superset.utils.core import DatasourceType
 
@@ -92,6 +93,7 @@ def resolve_datasource_engine(datasource_id: Any, datasource_type: str) -> str:
         )
         return datasource.database.db_engine_spec.engine
     except Exception:  # noqa: BLE001
+        # Engine lookup is best-effort; fall back to generic filter normalization.
         logger.debug("Could not resolve engine for datasource %s", datasource_id)
         return "base"
 
@@ -112,6 +114,7 @@ def prepare_form_data_for_query(
 
     Mutates ``form_data`` in place.
     """
+    # avoid circular import
     from superset.utils.core import (
         convert_legacy_filters_into_adhoc,
         form_data_to_adhoc,
@@ -352,6 +355,7 @@ def _build_mixed_timeseries_secondary(
     order_desc: bool | None = None,
 ) -> dict[str, Any]:
     """Build the secondary query dict for the ``mixed_timeseries`` viz type."""
+    # avoid circular import
     from superset.utils.core import split_adhoc_filters_into_base_filters
 
     metrics_b: list[Any] = list(form_data.get("metrics_b") or [])
@@ -478,6 +482,7 @@ def build_query_context_from_form_data(
     force: bool = False,
 ) -> Any:
     """Build a QueryContext from chart-type-aware Explore form_data."""
+    # avoid circular import
     from superset.common.query_context_factory import QueryContextFactory
 
     datasource_id, datasource_type = resolve_form_data_datasource(form_data, chart)
