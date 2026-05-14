@@ -1060,11 +1060,12 @@ class TestAddChartToExistingDashboard:
             assert "TAB-tab2" in chart_parents
             assert "TAB-tab1" not in chart_parents
 
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_add_chart_target_tab_not_found(
-        self, mock_db_session, mock_find_dashboard, mcp_server
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
         """target_tab specified but no matching tab → descriptive error listing
         available tabs, not a silent fallback to the first tab."""
@@ -1120,12 +1121,15 @@ class TestAddChartToExistingDashboard:
             # Available tabs should be listed
             assert "Overview" in error
             assert "Details" in error
+            # No layout mutation should have been persisted
+            mock_update_command.assert_not_called()
 
+    @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
     async def test_add_chart_target_tab_on_non_tabbed_dashboard(
-        self, mock_db_session, mock_find_dashboard, mcp_server
+        self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
     ):
         """target_tab on a dashboard with no tabs → descriptive error."""
         mock_dashboard = _mock_dashboard(id=5, title="Flat Dashboard")
@@ -1157,6 +1161,8 @@ class TestAddChartToExistingDashboard:
             error = result.structured_content["error"]
             assert "no tabs" in error.lower()
             assert "target_tab" in error
+            # No layout mutation should have been persisted
+            mock_update_command.assert_not_called()
 
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -1428,6 +1434,16 @@ class TestLayoutHelpers:
             },
         }
         assert _find_tab_insert_target(layout, target_tab="Nonexistent Tab") is None
+
+    def test_find_tab_insert_target_empty_string_returns_none(self):
+        """An empty-string target_tab is treated as specified-but-not-found,
+        not as 'no tab requested', so it returns None rather than first tab."""
+        layout = {
+            "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
+            "TABS-main": {"children": ["TAB-first"], "type": "TABS"},
+            "TAB-first": {"children": [], "type": "TAB", "meta": {"text": "Tab 1"}},
+        }
+        assert _find_tab_insert_target(layout, target_tab="") is None
 
     def test_find_tab_insert_target_tabs_under_root(self):
         """Test _find_tab_insert_target when TABS are under ROOT_ID (real layout)."""
