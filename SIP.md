@@ -100,7 +100,12 @@ together rather than as separate churn passes.
 Modal triggered from "Apply theme" in `ComponentHeaderControls`. Shows:
 - A theme picker populated from the CRUD `/api/v1/theme/` endpoint (same source the dashboard-level picker uses).
 - A "Clear override (inherit)" button when `themeId` is already set.
-- Preview is **deferred** — initial scope is just save/cancel.
+- **Live preview**: as the user picks options the targeted component
+  re-renders with the candidate theme tokens immediately, *without*
+  marking the dashboard dirty. Cancel reverts; Apply commits to Redux.
+  Implemented via a tiny module-level subscribable `previewThemeStore`
+  + `useSyncExternalStore` in `useEffectiveThemeId` (preview wins over
+  the Redux-resolved id when present).
 
 On save it dispatches a Redux action that updates the component's `meta.themeId` and marks the dashboard dirty.
 
@@ -155,7 +160,6 @@ Each phase brings its own tests; the cumulative bar:
 ## Out-of-scope (potential follow-ups)
 
 - **Theme presets** — "apply this theme to all charts of viz type X" via a dashboard-level rule.
-- **Live preview** in `ThemeSelectorModal`.
 - **Theme inheritance debugger** — devtools view that shows which level set each token for a hovered component.
 - **Bulk operations** — multi-select components and apply a theme to all.
 
