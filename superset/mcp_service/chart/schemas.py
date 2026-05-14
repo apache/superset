@@ -1872,6 +1872,12 @@ class GenerateChartResponse(BaseModel):
 
     # Navigation and context
     explore_url: str | None = Field(None, description="Edit chart in Superset")
+    chart_type_label: str | None = Field(
+        None,
+        description=(
+            "User-facing chart type label derived from the rendered visualization type"
+        ),
+    )
     embed_code: str | None = Field(None, description="HTML embed snippet")
     api_endpoints: Dict[str, str] = Field(
         default_factory=dict, description="Related API endpoints for data/updates"

@@ -48,7 +48,6 @@ import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import type { Dispatch, Action, AnyAction } from 'redux';
@@ -934,7 +933,7 @@ export function redirectSQLLab(
             requestedQuery: payload,
           });
         } else {
-          SupersetClient.postForm(ensureAppRoot(redirectUrl), {
+          SupersetClient.postForm(redirectUrl, {
             form_data: safeStringify(payload),
           });
         }
