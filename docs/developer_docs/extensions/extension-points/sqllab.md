@@ -51,7 +51,7 @@ SQL Lab provides 4 extension points where extensions can contribute custom UI co
 | **Right Sidebar** | `sqllab.rightSidebar` | ✓     | —     | Custom panels (AI assistants, query analysis)  |
 | **Panels**        | `sqllab.panels`       | ✓     | ✓     | Custom tabs + toolbar actions (data profiling) |
 
-\*Editor views are contributed via [Editor Contributions](./editors), not standard view contributions.
+\*Editor views are contributed via [Editor Contributions](./editors.md), not standard view contributions.
 
 ## Customization Types
 
@@ -78,7 +78,7 @@ Extensions can add toolbar actions to **Left Sidebar**, **Editor**, and **Panels
 
 ### Custom Editors
 
-Extensions can replace the default SQL editor with custom implementations (Monaco, CodeMirror, etc.). See [Editor Contributions](./editors) for details.
+Extensions can replace the default SQL editor with custom implementations (Monaco, CodeMirror, etc.). See [Editor Contributions](./editors.md) for details.
 
 ## Examples
 

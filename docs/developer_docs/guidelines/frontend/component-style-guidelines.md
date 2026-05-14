@@ -31,7 +31,7 @@ This guide is intended primarily for reusable components. Whenever possible, all
 ## General Guidelines
 
 - We use [Ant Design](https://ant.design/) as our component library. Do not build a new component if Ant Design provides one but rather instead extend or customize what the library provides
-- Always style your component using Emotion and always prefer the theme variables whenever applicable. See: [Emotion Styling Guidelines and Best Practices](./emotion-styling-guidelines)
+- Always style your component using Emotion and always prefer the theme variables whenever applicable. See: [Emotion Styling Guidelines and Best Practices](./emotion-styling-guidelines.md)
 - All components should be made to be reusable whenever possible
 - All components should follow the structure and best practices as detailed below
 

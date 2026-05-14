@@ -158,9 +158,9 @@ Security team members should also follow these general expectations:
 
 Ready to contribute? Here's how to get started:
 
-1. **[Set up your environment](./development-setup)** - Get Superset running locally
+1. **[Set up your environment](./development-setup.md)** - Get Superset running locally
 2. **[Find something to work on](#types-of-contributions)** - Pick an issue or feature
-3. **[Submit your contribution](./submitting-pr)** - Create a pull request
-4. **[Follow guidelines](./guidelines)** - Ensure code quality
+3. **[Submit your contribution](./submitting-pr.md)** - Create a pull request
+4. **[Follow guidelines](./guidelines.md)** - Ensure code quality
 
 Welcome to the Apache Superset community! 🚀

@@ -336,4 +336,4 @@ stats.sort_stats('cumulative').print_stats(10)
 - [Best Practices for Code Review](https://smartbear.com/learn/code-review/best-practices-for-peer-code-review/)
 - [The Art of Readable Code](https://www.oreilly.com/library/view/the-art-of/9781449318482/)
 
-Next: [Reporting issues effectively](./issue-reporting)
+Next: [Reporting issues effectively](./issue-reporting.md)

@@ -254,7 +254,7 @@ const config: Config = {
     'Apache Superset is a modern data exploration and visualization platform',
   url: 'https://superset.apache.org',
   baseUrl: '/',
-  onBrokenLinks: 'warn',
+  onBrokenLinks: 'throw',
   markdown: {
     mermaid: true,
     hooks: {
