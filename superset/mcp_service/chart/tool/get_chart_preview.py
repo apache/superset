@@ -35,6 +35,7 @@ from superset.mcp_service.chart.ascii_charts import (
 )
 from superset.mcp_service.chart.chart_helpers import (
     apply_form_data_filters_to_query,
+    build_query_context_from_form_data,
     find_chart_by_identifier,
     prepare_form_data_for_query,
 )
@@ -312,7 +313,6 @@ class TablePreviewStrategy(PreviewFormatStrategy):
     def generate(self) -> TablePreview | ChartError:
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
             from superset.utils import json as utils_json
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
@@ -324,29 +324,11 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
-            columns = _build_query_columns(form_data)
-
-            prepare_form_data_for_query(
+            query_context = build_query_context_from_form_data(
                 form_data,
-                self.chart.datasource_id,
-                self.chart.datasource_type,
-            )
-            query_dict: dict[str, Any] = {
-                "columns": columns,
-                "metrics": form_data.get("metrics", []),
-                "row_limit": 20,
-                "order_desc": True,
-            }
-            apply_form_data_filters_to_query(query_dict, form_data)
-
-            factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={
-                    "id": self.chart.datasource_id,
-                    "type": self.chart.datasource_type,
-                },
-                queries=[query_dict],
-                form_data=form_data,
+                chart=self.chart,
+                row_limit=20,
+                order_desc=True,
                 force=False,
             )
 
@@ -400,7 +382,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             # Get chart data directly using the same logic as get_chart_data tool
             # but without calling the MCP tool wrapper
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
             from superset.daos.chart import ChartDAO
             from superset.utils import json as utils_json
 
@@ -433,31 +414,11 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     utils_json.loads(self.chart.params) if self.chart.params else {}
                 )
 
-            # Build columns list: include both x_axis and groupby
-            columns = _build_query_columns(form_data)
-
-            prepare_form_data_for_query(
+            query_context = build_query_context_from_form_data(
                 form_data,
-                self.chart.datasource_id,
-                self.chart.datasource_type,
-            )
-            query_dict = {
-                "columns": columns,
-                "metrics": form_data.get("metrics", []),
-                "row_limit": 1000,  # More data for visualization
-                "order_desc": True,
-            }
-            apply_form_data_filters_to_query(query_dict, form_data)
-
-            # Create query context for data retrieval
-            factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={
-                    "id": self.chart.datasource_id,
-                    "type": self.chart.datasource_type,
-                },
-                queries=[query_dict],
-                form_data=form_data,
+                chart=self.chart,
+                row_limit=1000,
+                order_desc=True,
                 force=self.request.force_refresh,
             )
 

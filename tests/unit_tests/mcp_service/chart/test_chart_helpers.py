@@ -142,6 +142,56 @@ def test_prepare_form_data_for_query_preserves_existing_filters_with_adhoc(
     ]
 
 
+def test_prepare_form_data_for_query_merges_cached_and_request_extra_form_data(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "country",
+                    "operator": "==",
+                    "comparator": "US",
+                }
+            ],
+            "time_range": "Last year",
+        },
+    }
+    query = {}
+
+    prepare_form_data_for_query(
+        form_data,
+        1,
+        "table",
+        {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "gender",
+                    "operator": "==",
+                    "comparator": "boy",
+                }
+            ],
+            "time_range": "No filter",
+        },
+    )
+    apply_form_data_filters_to_query(query, form_data)
+
+    assert query["filters"] == [
+        {"col": "country", "op": "==", "val": "US"},
+        {"col": "gender", "op": "==", "val": "boy"},
+    ]
+    assert query["time_range"] == "No filter"
+
+
 def test_merge_form_data_filters_into_query_preserves_existing_query_fields():
     query = {
         "filters": [{"col": "country", "op": "==", "val": "US"}],

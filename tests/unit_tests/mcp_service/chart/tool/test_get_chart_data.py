@@ -447,6 +447,93 @@ class TestUnsavedChartDataQueryConstruction:
         assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
         assert "adhoc_filters" not in query
 
+    @pytest.mark.asyncio
+    async def test_form_data_key_mixed_timeseries_builds_secondary_query(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Unsaved mixed-timeseries form_data should preserve both query layers."""
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"ds": "2024-01-01", "sales": 1}],
+                            "colnames": ["ds", "sales"],
+                            "rowcount": 1,
+                        },
+                        {
+                            "data": [{"ds": "2024-01-01", "profit": 2}],
+                            "colnames": ["ds", "profit"],
+                            "rowcount": 1,
+                        },
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+        )
+        monkeypatch.setattr(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            lambda datasource_id, datasource_type: "base",
+        )
+
+        await _query_from_form_data(
+            {
+                "datasource": "1__table",
+                "viz_type": "mixed_timeseries",
+                "x_axis": "ds",
+                "groupby": ["country"],
+                "metrics": ["sum__sales"],
+                "groupby_b": ["state"],
+                "metrics_b": ["sum__profit"],
+            },
+            GetChartDataRequest(form_data_key="cached-key", limit=99),
+            _AsyncContext(),
+        )
+
+        queries = captured_query_contexts[0]["queries"]
+        assert len(queries) == 2
+        assert queries[0]["columns"] == ["ds", "country"]
+        assert queries[0]["metrics"] == ["sum__sales"]
+        assert queries[0]["row_limit"] == 99
+        assert queries[1]["columns"] == ["ds", "state"]
+        assert queries[1]["metrics"] == ["sum__profit"]
+        assert queries[1]["row_limit"] == 99
+
 
 class TestWorldMapChartFallback:
     """Tests for world_map chart fallback query construction."""

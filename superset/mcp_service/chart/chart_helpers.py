@@ -128,7 +128,10 @@ def prepare_form_data_for_query(
         form_data["adhoc_filters"] = adhoc_filters
 
     if extra_form_data:
-        form_data["extra_form_data"] = extra_form_data
+        form_data["extra_form_data"] = merge_extra_form_data(
+            form_data.get("extra_form_data"),
+            extra_form_data,
+        )
     convert_legacy_filters_into_adhoc(form_data)
     merge_extra_filters(form_data)
     split_adhoc_filters_into_base_filters(
@@ -137,11 +140,28 @@ def prepare_form_data_for_query(
     )
 
 
+def merge_extra_form_data(
+    existing: Any,
+    incoming: dict[str, Any],
+) -> dict[str, Any]:
+    """Merge cached and request-level extra_form_data payloads."""
+    merged: dict[str, Any] = dict(existing) if isinstance(existing, dict) else {}
+    for key, value in incoming.items():
+        current = merged.get(key)
+        if isinstance(current, list) and isinstance(value, list):
+            merged[key] = [*current, *value]
+        elif isinstance(current, dict) and isinstance(value, dict):
+            merged[key] = {**current, **value}
+        else:
+            merged[key] = value
+    return merged
+
+
 def apply_form_data_filters_to_query(
     query: dict[str, Any],
     form_data: dict[str, Any],
 ) -> None:
-    """Copy normalized form_data filter fields into a query payload."""
+    """Copy normalized form_data filter fields into a fresh query payload."""
     if filters := form_data.get("filters"):
         query["filters"] = filters
     else:
@@ -202,6 +222,255 @@ def merge_extra_form_data_filters_into_query(
         extra_form_data,
     )
     merge_form_data_filters_into_query(query, extra_query_form_data)
+
+
+def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
+    """Extract metrics from form_data, handling chart-type-specific fields."""
+    if viz_type == "bubble":
+        return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
+
+    metrics = form_data.get("metrics", [])
+    if not metrics and (metric := form_data.get("metric")):
+        metrics = [metric]
+    return metrics
+
+
+def resolve_groupby(form_data: dict[str, Any]) -> list[Any]:
+    """Extract groupby columns from form_data with fallback aliases."""
+    raw_groupby = form_data.get("groupby") or []
+    if isinstance(raw_groupby, str):
+        groupby: list[Any] = [raw_groupby]
+    else:
+        groupby = list(raw_groupby)
+
+    if groupby:
+        return groupby
+
+    for field in ("entity", "series"):
+        value = form_data.get(field)
+        if isinstance(value, str) and value not in groupby:
+            groupby.append(value)
+
+    form_columns = form_data.get("columns")
+    if isinstance(form_columns, list):
+        for col in form_columns:
+            if isinstance(col, str) and col not in groupby:
+                groupby.append(col)
+
+    return groupby
+
+
+def resolve_metrics_and_groupby(
+    form_data: dict[str, Any],
+    chart: Any | None = None,
+) -> tuple[list[Any], list[Any]]:
+    """Resolve metrics and groupby columns from form_data."""
+    viz_type = form_data.get(
+        "viz_type", getattr(chart, "viz_type", "") if chart else ""
+    )
+    singular_metric_no_groupby = (
+        "big_number",
+        "big_number_total",
+        "pop_kpi",
+    )
+    if viz_type in singular_metric_no_groupby:
+        metrics: list[Any] = [metric] if (metric := form_data.get("metric")) else []
+        return metrics, []
+
+    return resolve_metrics(form_data, viz_type), resolve_groupby(form_data)
+
+
+def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
+    """Return the x_axis column name from form_data, or None if not set."""
+    x_axis = form_data.get("x_axis")
+    if isinstance(x_axis, str) and x_axis:
+        return x_axis
+    if isinstance(x_axis, dict):
+        col_name = x_axis.get("column_name")
+        return col_name if isinstance(col_name, str) and col_name else None
+    return None
+
+
+def _build_single_query_dict(
+    form_data: dict[str, Any],
+    columns: list[Any],
+    metrics: list[Any],
+    row_limit: int | None = None,
+    order_desc: bool | None = None,
+) -> dict[str, Any]:
+    """Build one query entry for QueryContextFactory from form_data fields."""
+    qd: dict[str, Any] = {"columns": columns, "metrics": metrics}
+    effective_row_limit = row_limit
+    if effective_row_limit is None:
+        effective_row_limit = form_data.get("row_limit")
+    if effective_row_limit is not None:
+        qd["row_limit"] = effective_row_limit
+    if order_desc is not None:
+        qd["order_desc"] = order_desc
+    apply_form_data_filters_to_query(qd, form_data)
+    return qd
+
+
+def _build_mixed_timeseries_secondary(
+    form_data: dict[str, Any],
+    x_axis_col: str | None,
+    engine: str,
+    row_limit: int | None = None,
+    order_desc: bool | None = None,
+) -> dict[str, Any]:
+    """Build the secondary query dict for the ``mixed_timeseries`` viz type."""
+    from superset.utils.core import split_adhoc_filters_into_base_filters
+
+    metrics_b: list[Any] = list(form_data.get("metrics_b") or [])
+    raw_b = form_data.get("groupby_b") or []
+    groupby_b: list[Any] = [raw_b] if isinstance(raw_b, str) else list(raw_b)
+    if x_axis_col and x_axis_col not in groupby_b:
+        groupby_b = [x_axis_col] + groupby_b
+
+    qd = _build_single_query_dict(
+        form_data,
+        groupby_b,
+        metrics_b,
+        row_limit=row_limit,
+        order_desc=order_desc,
+    )
+    if time_range_b := form_data.get("time_range_b"):
+        qd["time_range"] = time_range_b
+    if row_limit is None and (row_limit_b := form_data.get("row_limit_b")) is not None:
+        qd["row_limit"] = row_limit_b
+
+    if adhoc_filters_b := form_data.get("adhoc_filters_b"):
+        secondary_fd: dict[str, Any] = {"adhoc_filters": adhoc_filters_b}
+        split_adhoc_filters_into_base_filters(secondary_fd, engine)
+        if secondary_filters := secondary_fd.get("filters"):
+            qd["filters"] = secondary_filters
+        else:
+            qd.pop("filters", None)
+        for clause in ("where", "having"):
+            if secondary_clause := secondary_fd.get(clause):
+                qd[clause] = secondary_clause
+            else:
+                qd.pop(clause, None)
+    return qd
+
+
+def build_query_dicts_from_form_data(
+    form_data: dict[str, Any],
+    datasource_id: Any,
+    datasource_type: str,
+    chart: Any | None = None,
+    extra_form_data: dict[str, Any] | None = None,
+    row_limit: int | None = None,
+    order_desc: bool | None = None,
+) -> list[dict[str, Any]]:
+    """Build chart-type-aware query dicts from Explore form_data."""
+    engine = resolve_datasource_engine(datasource_id, datasource_type)
+    prepare_form_data_for_query(
+        form_data,
+        datasource_id,
+        datasource_type,
+        extra_form_data,
+        datasource_engine=engine,
+    )
+
+    metrics, groupby = resolve_metrics_and_groupby(form_data, chart)
+    viz_type: str = (
+        form_data.get("viz_type")
+        or (getattr(chart, "viz_type", "") if chart else "")
+        or ""
+    )
+    is_timeseries = (
+        viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
+    )
+
+    x_axis_col: str | None = None
+    if is_timeseries:
+        x_axis_col = extract_x_axis_col(form_data)
+        if x_axis_col and x_axis_col not in groupby:
+            groupby = [x_axis_col] + groupby
+
+    queries = [
+        _build_single_query_dict(
+            form_data,
+            groupby,
+            metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+    ]
+    if viz_type == "mixed_timeseries":
+        queries.append(
+            _build_mixed_timeseries_secondary(
+                form_data,
+                x_axis_col,
+                engine,
+                row_limit=row_limit,
+                order_desc=order_desc,
+            )
+        )
+    return queries
+
+
+def resolve_form_data_datasource(
+    form_data: dict[str, Any],
+    chart: Any | None = None,
+) -> tuple[int | str | None, str]:
+    """Resolve datasource id/type from form_data with chart fallbacks."""
+    datasource_id = form_data.get("datasource_id")
+    datasource_type = form_data.get("datasource_type")
+
+    if not datasource_id and (combined := form_data.get("datasource")):
+        if isinstance(combined, str) and "__" in combined:
+            parts = combined.split("__", 1)
+            datasource_id = int(parts[0]) if parts[0].isdigit() else parts[0]
+            datasource_type = parts[1] if len(parts) > 1 else None
+
+    if not datasource_id and chart:
+        datasource_id = getattr(chart, "datasource_id", None)
+    if not datasource_type and chart:
+        datasource_type = getattr(chart, "datasource_type", None)
+
+    return datasource_id, datasource_type if isinstance(
+        datasource_type, str
+    ) else "table"
+
+
+def build_query_context_from_form_data(
+    form_data: dict[str, Any],
+    chart: Any | None = None,
+    extra_form_data: dict[str, Any] | None = None,
+    row_limit: int | None = None,
+    order_desc: bool | None = None,
+    result_type: Any = None,
+    force: bool = False,
+) -> Any:
+    """Build a QueryContext from chart-type-aware Explore form_data."""
+    from superset.common.query_context_factory import QueryContextFactory
+
+    datasource_id, datasource_type = resolve_form_data_datasource(form_data, chart)
+    if not isinstance(datasource_id, (int, str)):
+        raise ValueError(
+            "Cannot determine datasource ID from form_data. "
+            "Provide a chart identifier or ensure form_data contains "
+            "'datasource_id' or 'datasource'."
+        )
+
+    queries = build_query_dicts_from_form_data(
+        form_data,
+        datasource_id,
+        datasource_type,
+        chart=chart,
+        extra_form_data=extra_form_data,
+        row_limit=row_limit,
+        order_desc=order_desc,
+    )
+    return QueryContextFactory().create(
+        datasource={"id": datasource_id, "type": datasource_type},
+        queries=queries,
+        form_data=form_data,
+        result_type=result_type,
+        force=force,
+    )
 
 
 def extract_form_data_key_from_url(url: str | None) -> str | None:
