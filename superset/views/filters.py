@@ -161,15 +161,21 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
 
     def apply(self, query: Query, value: Any) -> Query:
         normalized = str(value).lower().strip() if value is not None else ""
-        if normalized == "include":
-            self._mark_response_for_deleted_at_augmentation()
-            self._add_session_bypass(query)
+        if normalized not in {"include", "only"}:
             return query
+        self._opt_into_deleted_state(query)
         if normalized == "only":
-            self._mark_response_for_deleted_at_augmentation()
-            self._add_session_bypass(query)
             return query.filter(self.model.deleted_at.is_not(None))
         return query
+
+    def _opt_into_deleted_state(self, query: Query) -> None:
+        """The two-step opt-in shared by ``include`` and ``only``: install
+        the per-class session bypass so the listener stops filtering this
+        entity, and signal to ``SoftDeleteApiMixin.pre_get_list`` that
+        result rows should carry a ``deleted_at`` field.
+        """
+        self._add_session_bypass(query)
+        self._mark_response_for_deleted_at_augmentation()
 
     def _add_session_bypass(self, query: Query) -> None:
         """Add ``self.model`` to the session's bypass class set, so the
@@ -214,15 +220,27 @@ class SoftDeleteApiMixin:
 
     def pre_get_list(self, data: dict[str, Any]) -> None:
         super().pre_get_list(data)  # type: ignore[misc]
-        if not getattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False):
+        if not self._consume_augmentation_flag():
             return
+        self._inject_deleted_at(data)
 
-        # Consume the flag so it can't leak to a subsequent list operation
-        # in the same request (e.g., a batch endpoint dispatching multiple
-        # list views). Today the request lifecycle scopes this to one list
-        # query in practice; clearing keeps it that way explicitly.
+    @staticmethod
+    def _consume_augmentation_flag() -> bool:
+        """Read-and-clear the request-scoped augmentation flag. Returning
+        ``True`` means the caller should inject ``deleted_at`` into the
+        response. Clearing prevents the flag from leaking to a later
+        list operation within the same request (e.g., a batch endpoint
+        dispatching multiple list views).
+        """
+        requested = getattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False)
         setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False)
+        return requested
 
+    def _inject_deleted_at(self, data: dict[str, Any]) -> None:
+        """Augment each result row with its ``deleted_at`` value, fetched
+        from the DB in a single projection query keyed by the IDs FAB
+        already collected.
+        """
         ids = cast(list[Any], data.get("ids", []))
         deleted_at_map = self._get_deleted_at_map(ids)
         for row, row_id in zip(data.get("result", []), ids, strict=False):

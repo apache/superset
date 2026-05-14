@@ -746,6 +746,22 @@ def _collect_bypass_classes(execute_state: ORMExecuteState) -> frozenset[type]:
     return frozenset(per_query or ()) | frozenset(per_session or ())
 
 
+def _is_primary_user_select(execute_state: ORMExecuteState) -> bool:
+    """The event classes where the listener attaches loader criteria.
+
+    Relationship and column loads are excluded: SQLAlchemy propagates
+    ``with_loader_criteria(..., propagate_to_loaders=True)`` from the
+    parent statement to those loads automatically (see
+    ``_add_soft_delete_filter`` docstring). Re-attaching here would
+    stack redundant ``deleted_at IS NULL`` clauses.
+    """
+    return (
+        execute_state.is_select
+        and not execute_state.is_column_load
+        and not execute_state.is_relationship_load
+    )
+
+
 def _all_soft_delete_subclasses() -> list[type]:
     """All concrete ``SoftDeleteMixin`` subclasses, transitively. Walks
     the inheritance tree so an intermediate abstract subclass between
@@ -817,11 +833,7 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
     entities this is still negligible on typical endpoints; profile
     before adding many more.
     """
-    if (
-        not execute_state.is_select
-        or execute_state.is_column_load
-        or execute_state.is_relationship_load
-    ):
+    if not _is_primary_user_select(execute_state):
         return
 
     bypass_classes = _collect_bypass_classes(execute_state)
