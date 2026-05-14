@@ -487,7 +487,15 @@ class AddChartToDashboardRequest(BaseModel):
     )
     chart_id: int = Field(..., description="ID of the chart to add to the dashboard")
     target_tab: str | None = Field(
-        None, description="Target tab name (if dashboard has tabs)"
+        None,
+        description=(
+            "Tab to place the chart in. Accepts a tab display name "
+            "(e.g. 'Sales') or a tab component ID (e.g. 'TAB-abc123'). "
+            "Matching is case-insensitive and ignores leading/trailing emoji. "
+            "Returns an error if the specified tab is not found. "
+            "When omitted on a tabbed dashboard the chart is placed in the "
+            "first tab. Use get_dashboard_info to discover available tabs."
+        ),
     )
 
 
