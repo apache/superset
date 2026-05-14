@@ -601,6 +601,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
                   : (trigger: HTMLElement) =>
                       (trigger?.parentNode as HTMLElement) || document.body
               }
+              dropdownAlign={
+                filterBarOrientation === FilterBarOrientation.Horizontal
+                  ? { overflow: { adjustY: false } }
+                  : undefined
+              }
               showSearch={showSearch}
               mode={multiSelect ? 'multiple' : 'single'}
               placeholder={placeholderText}
