@@ -18,7 +18,7 @@ import mimetypes
 from io import BytesIO
 from typing import Any
 
-from flask import send_file
+from flask import after_this_request, send_file
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
@@ -221,13 +221,17 @@ class ExtensionsRestApi(BaseApi):
         if not chunk:
             return self.response_404()
 
+        @after_this_request
+        def set_cache_headers(response: Response) -> Response:
+            # Chunk filenames include a content hash, so they are immutable.
+            response.cache_control.max_age = 31536000
+            response.cache_control.public = True
+            response.cache_control.immutable = True
+            response.vary.discard("Cookie")
+            return response
+
         mimetype, _ = mimetypes.guess_type(file)
         if not mimetype:
             mimetype = "application/octet-stream"
 
-        response = send_file(BytesIO(chunk), mimetype=mimetype)
-        # Chunk filenames include a content hash, so they are immutable.
-        response.cache_control.max_age = 31536000
-        response.cache_control.public = True
-        response.cache_control.immutable = True
-        return response
+        return send_file(BytesIO(chunk), mimetype=mimetype)

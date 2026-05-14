@@ -895,12 +895,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         for middleware in self.config["ADDITIONAL_MIDDLEWARE"]:
             self.superset_app.wsgi_app = middleware(self.superset_app.wsgi_app)
 
-        from superset.extensions.middleware import ExtensionStaticCacheMiddleware
-
-        self.superset_app.wsgi_app = ExtensionStaticCacheMiddleware(
-            self.superset_app.wsgi_app
-        )
-
         # Flask-Compress
         Compress(self.superset_app)
 
