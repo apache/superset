@@ -182,7 +182,7 @@ def _find_tab_insert_target(
     """
     groups = _collect_tabs_groups(layout)
 
-    if target_tab:
+    if target_tab is not None:
         for tabs_children in groups:
             matched = _match_tab_in_children(layout, tabs_children, target_tab)
             if matched:
@@ -345,7 +345,7 @@ def _resolve_parent_container(
     """
     tab_target = _find_tab_insert_target(layout, target_tab=target_tab)
 
-    if target_tab and tab_target is None:
+    if target_tab is not None and tab_target is None:
         available = _collect_available_tab_names(layout)
         if available:
             tab_list = ", ".join(f"'{t}'" for t in available)
