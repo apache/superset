@@ -159,6 +159,7 @@ type Dataset = {
   cache_timeout?: number | null;
   extra?: string | DatasetExtra | null;
   sql?: string | null;
+  rls_filters?: Array<{ id: number; name: string; filter_type?: string; group_key?: string | null }>;
 };
 
 interface VirtualDataset extends Dataset {
