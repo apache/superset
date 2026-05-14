@@ -157,6 +157,6 @@ menus.registerMenuItem(
 
 ## Next Steps
 
-- **[Contribution Types](../contribution-types)** - Learn about other contribution types (commands, menus)
-- **[Development](../development)** - Set up your development environment
-- **[Quick Start](../quick-start)** - Build a complete extension
+- **[Contribution Types](../contribution-types.md)** - Learn about other contribution types (commands, menus)
+- **[Development](../development.md)** - Set up your development environment
+- **[Quick Start](../quick-start.md)** - Build a complete extension

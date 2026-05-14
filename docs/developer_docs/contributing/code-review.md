@@ -327,9 +327,9 @@ stats.sort_stats('cumulative').print_stats(10)
 ## Resources
 
 ### Internal
-- [Coding Guidelines](../guidelines/design-guidelines)
-- [Testing Guide](../testing/overview)
-- [Extension Architecture](../extensions/architecture)
+- [Coding Guidelines](../guidelines/design-guidelines.md)
+- [Testing Guide](../testing/overview.md)
+- [Extension Architecture](../extensions/architecture.md)
 
 ### External
 - [Google's Code Review Guide](https://google.github.io/eng-practices/review/)

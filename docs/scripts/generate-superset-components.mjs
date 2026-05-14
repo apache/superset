@@ -1260,7 +1260,13 @@ function generateCategoryIndex(category, components) {
   };
   const componentList = components
     .sort((a, b) => a.componentName.localeCompare(b.componentName))
-    .map(c => `- [${c.componentName}](./${c.componentName.toLowerCase()})`)
+    // `.md` suffix on the relative link is required: Docusaurus only
+    // validates and rewrites *file-based* references (.md/.mdx). Bare
+    // relative paths bypass the file resolver and get emitted as raw
+    // HTML hrefs that the browser resolves against the current URL —
+    // which gives the wrong directory for trailing-slash routes and
+    // breaks SPA navigation. See docs/scripts/lint-docs-links.mjs.
+    .map(c => `- [${c.componentName}](./${c.componentName.toLowerCase()}.md)`)
     .join('\n');
 
   return `---
@@ -1366,7 +1372,7 @@ This documentation is auto-generated from Storybook stories. To add or update co
 4. Run \`yarn generate:superset-components\` in the \`docs/\` directory
 
 :::info Work in Progress
-This component library is actively being documented. See the [Components TODO](./TODO) page for a list of components awaiting documentation.
+This component library is actively being documented. See the [Components TODO](./TODO.md) page for a list of components awaiting documentation.
 :::
 
 ---

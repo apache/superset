@@ -218,5 +218,5 @@ const disposable = handle.registerCompletionProvider(provider);
 ## Next Steps
 
 - **[SQL Lab Extension Points](./sqllab.md)** - Learn about other SQL Lab customizations
-- **[Contribution Types](../contribution-types)** - Explore other contribution types
-- **[Development](../development)** - Set up your development environment
+- **[Contribution Types](../contribution-types.md)** - Explore other contribution types
+- **[Development](../development.md)** - Set up your development environment

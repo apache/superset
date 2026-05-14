@@ -110,7 +110,7 @@ editors.registerEditor(
 );
 ```
 
-See [Editors Extension Point](./extension-points/editors) for implementation details.
+See [Editors Extension Point](./extension-points/editors.md) for implementation details.
 
 ## Backend
 

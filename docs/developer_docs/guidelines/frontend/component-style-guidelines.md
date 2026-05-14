@@ -53,7 +53,7 @@ superset-frontend/src/components
 
 **Storybook:** Components should come with a storybook file whenever applicable, with the following naming convention `\{ComponentName\}.stories.tsx`. More details about Storybook below
 
-**Unit and end-to-end tests:** All components should come with unit tests using Jest and React Testing Library. The file name should follow this naming convention `\{ComponentName\}.test.tsx`. Read the [Testing Guidelines and Best Practices](../../testing/testing-guidelines) for more details
+**Unit and end-to-end tests:** All components should come with unit tests using Jest and React Testing Library. The file name should follow this naming convention `\{ComponentName\}.test.tsx`. Read the [Testing Guidelines and Best Practices](../../testing/testing-guidelines.md) for more details
 
 **Reference naming:** Use `PascalCase` for React components and `camelCase` for component instances
 
