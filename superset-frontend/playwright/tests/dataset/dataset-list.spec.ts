@@ -134,7 +134,7 @@ test('should delete a dataset with confirmation', async ({
   await expect(toast.getSuccess()).toBeVisible();
   await expect(toast.getMessage()).toContainText('Deleted');
 
-  // Verify dataset is removed from list (deleted rows leave the DOM)
+  // Verify dataset is removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
   await expect(datasetListPage.getDatasetRow(datasetName)).toHaveCount(0);
 
   // Verify via API that dataset no longer exists (404)
@@ -440,7 +440,7 @@ test('should bulk delete multiple datasets', async ({
   const toast = new Toast(page);
   await expect(toast.getSuccess()).toBeVisible();
 
-  // Verify both datasets are removed from list (deleted rows leave the DOM)
+  // Verify both datasets are removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
   await expect(datasetListPage.getDatasetRow(dataset1.name)).toHaveCount(0);
   await expect(datasetListPage.getDatasetRow(dataset2.name)).toHaveCount(0);
 
@@ -487,7 +487,7 @@ test.describe('import dataset', () => {
       label: `Dataset ${datasetId}`,
     });
 
-    // Refresh to confirm dataset is no longer in the list (deleted rows leave the DOM)
+    // Refresh to confirm dataset is no longer in the list (deleted rows are removed from the DOM, so assert count rather than visibility)
     await datasetListPage.goto();
     await datasetListPage.waitForTableLoad();
     await expect(datasetListPage.getDatasetRow(datasetName)).toHaveCount(0);

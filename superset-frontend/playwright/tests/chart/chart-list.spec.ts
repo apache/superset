@@ -89,7 +89,7 @@ test('should delete a chart with confirmation', async ({
   const toast = new Toast(page);
   await expect(toast.getSuccess()).toBeVisible();
 
-  // Verify chart is removed from list (deleted rows leave the DOM)
+  // Verify chart is removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
   await expect(chartListPage.getChartRow(chartName)).toHaveCount(0);
 
   // Backend verification: API returns 404
@@ -248,7 +248,7 @@ test('should bulk delete multiple charts', async ({
   const toast = new Toast(page);
   await expect(toast.getSuccess()).toBeVisible();
 
-  // Verify both charts are removed from list (deleted rows leave the DOM)
+  // Verify both charts are removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
   await expect(chartListPage.getChartRow(chart1.name)).toHaveCount(0);
   await expect(chartListPage.getChartRow(chart2.name)).toHaveCount(0);
 

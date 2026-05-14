@@ -79,7 +79,7 @@ test('should delete a dashboard with confirmation', async ({
 
   // Delete confirmation modal should appear
   const deleteModal = new DeleteConfirmationModal(page);
-  await deleteModal.waitForReady();
+  await deleteModal.waitForVisible();
 
   // Type "DELETE" to confirm
   await deleteModal.fillConfirmationInput('DELETE');
@@ -197,7 +197,7 @@ test('should bulk delete multiple dashboards', async ({
   const toast = new Toast(page);
   await expect(toast.getSuccess()).toBeVisible();
 
-  // Verify both dashboards are removed from list (deleted rows leave the DOM)
+  // Verify both dashboards are removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
   await expect(dashboardListPage.getDashboardRow(dashboard1.name)).toHaveCount(
     0,
   );
@@ -308,7 +308,7 @@ test.describe('import dashboard', () => {
       label: `Dashboard ${dashboardId}`,
     });
 
-    // Refresh to confirm dashboard is no longer in the list (deleted rows leave the DOM)
+    // Refresh to confirm dashboard is no longer in the list (deleted rows are removed from the DOM, so assert count rather than visibility)
     await dashboardListPage.goto();
     await dashboardListPage.waitForTableLoad();
     await expect(dashboardListPage.getDashboardRow(dashboardName)).toHaveCount(
