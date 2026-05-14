@@ -270,11 +270,14 @@ function addVersion(section, version) {
   };
 
   // Note: we deliberately do NOT auto-bump `lastVersion` to the new
-  // version. Superset's docs site keeps `lastVersion: 'current'` so the
-  // canonical URLs (`/docs/...`, `/admin-docs/...`, etc.) always render
-  // master content; cut versions are accessed only via their explicit
-  // version segment. If you want a different policy, edit
-  // versions-config.json after cutting.
+  // version. Superset's docs site keeps `lastVersion: 'current'` so
+  // the canonical URLs (`/user-docs/...`, `/admin-docs/...`,
+  // `/developer-docs/...`, `/components/...`) always render master
+  // content; cut versions are accessed only via their explicit version
+  // segment. (`/docs/...` paths are legacy and handled via per-page
+  // redirects in docusaurus.config.ts — not a current canonical
+  // form.) If you want a different policy, edit versions-config.json
+  // after cutting.
 
   saveConfig(config);
   console.log(`✅ Version ${version} added successfully to ${section}`);
