@@ -128,7 +128,10 @@ const createEditorProxy = (tabId: string): sqlLabApi.Editor =>
     get(_, prop: keyof sqlLabApi.Editor) {
       const handle = editorHandleRegistry.get(tabId);
       if (!handle) {
-        throw new Error(`Editor handle not found for tab ${tabId}`);
+        // The tab was closed or unmounted between getEditorAsync resolving and
+        // the caller accessing this property. Return a no-op so callers that
+        // race a tab switch degrade silently instead of throwing.
+        return () => undefined;
       }
       const value = handle[prop];
       return typeof value === 'function' ? value.bind(handle) : value;
