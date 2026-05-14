@@ -73,8 +73,12 @@ class CompositeTokenVerifier(TokenVerifier):
         ]
         invalid = [p for p in api_key_prefixes if p not in valid]
         if invalid:
+            # Log count only — actual values may be config secrets
+            # (CodeQL py/clear-text-logging-sensitive-data).
             logger.warning(
-                "FAB_API_KEY_PREFIXES contains invalid entries (ignored): %r", invalid
+                "FAB_API_KEY_PREFIXES has %d invalid entries (empty/non-string)"
+                " — ignored",
+                len(invalid),
             )
         self._api_key_prefixes = tuple(valid)
 
