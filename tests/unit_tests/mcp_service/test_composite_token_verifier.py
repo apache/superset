@@ -140,6 +140,66 @@ async def test_api_key_only_mode_rejects_non_api_key_tokens() -> None:
 
 
 @pytest.mark.asyncio
+async def test_empty_string_prefix_is_filtered_out() -> None:
+    """An empty-string prefix would match every Bearer token (DoS vector).
+    It must be silently dropped and never stored in _api_key_prefixes."""
+    verifier = CompositeTokenVerifier(jwt_verifier=None, api_key_prefixes=[""])
+
+    assert "" not in verifier._api_key_prefixes
+    # A plain JWT must NOT be misidentified as an API key.
+    result = await verifier.verify_token("eyJhbGciOiJSUzI1NiJ9.jwt_payload")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_whitespace_only_prefix_is_filtered_out() -> None:
+    """A whitespace-only prefix is also invalid and must be dropped."""
+    verifier = CompositeTokenVerifier(jwt_verifier=None, api_key_prefixes=["   "])
+
+    assert "   " not in verifier._api_key_prefixes
+    result = await verifier.verify_token("   starts_with_spaces")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_non_string_prefix_is_filtered_out() -> None:
+    """Non-string entries (e.g. None, int) must not be stored and must not
+    cause a TypeError during verify_token."""
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=None,
+        api_key_prefixes=[None, 42, "sst_"],  # type: ignore[list-item]
+    )
+
+    assert None not in verifier._api_key_prefixes
+    assert 42 not in verifier._api_key_prefixes
+    assert verifier._api_key_prefixes == ("sst_",)
+
+
+@pytest.mark.asyncio
+async def test_invalid_prefixes_emit_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """Invalid prefix entries must trigger a logger.warning so operators can
+    detect misconfiguration in FAB_API_KEY_PREFIXES."""
+    import logging
+
+    logger_name = "superset.mcp_service.composite_token_verifier"
+    with caplog.at_level(logging.WARNING, logger=logger_name):
+        CompositeTokenVerifier(jwt_verifier=None, api_key_prefixes=["", "sst_"])
+
+    assert any("invalid" in record.message.lower() for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_all_invalid_prefixes_accepts_no_api_keys() -> None:
+    """When all prefixes are invalid and filtered out, no token should match
+    the API key path."""
+    verifier = CompositeTokenVerifier(jwt_verifier=None, api_key_prefixes=["", "  "])
+
+    assert verifier._api_key_prefixes == ()
+    result = await verifier.verify_token("sst_abc123")
+    assert result is None
+
+
+@pytest.mark.asyncio
 async def test_api_key_passthrough_propagates_required_scopes() -> None:
     """The pass-through AccessToken must carry the verifier's required_scopes
     so FastMCP's transport-level ``RequireAuthMiddleware`` does not 403 the
