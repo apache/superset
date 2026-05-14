@@ -122,15 +122,10 @@ def test_disabled_tools_are_removed_from_mcp_server() -> None:
 
     with (
         patch(
-            "superset.mcp_service.app.flask_app",
-            flask_app,
-            create=True,
-        ),
-        patch(
             "superset.mcp_service.flask_singleton.app",
             flask_app,
         ),
-        patch.object(mcp._local_provider, "remove_tool") as mock_remove,
+        patch.object(mcp.local_provider, "remove_tool") as mock_remove,
     ):
         init_fastmcp_server()
 
@@ -150,7 +145,7 @@ def test_unknown_disabled_tool_logs_warning_not_raises(caplog) -> None:
             flask_app,
         ),
         patch.object(
-            mcp._local_provider,
+            mcp.local_provider,
             "remove_tool",
             side_effect=KeyError("nonexistent_tool_xyz"),
         ),
@@ -173,7 +168,7 @@ def test_empty_disabled_tools_removes_nothing() -> None:
             "superset.mcp_service.flask_singleton.app",
             flask_app,
         ),
-        patch.object(mcp._local_provider, "remove_tool") as mock_remove,
+        patch.object(mcp.local_provider, "remove_tool") as mock_remove,
     ):
         init_fastmcp_server()
 
@@ -193,7 +188,7 @@ def test_disabled_tools_read_from_flask_app_config() -> None:
             "superset.mcp_service.flask_singleton.app",
             flask_app,
         ),
-        patch.object(mcp._local_provider, "remove_tool") as mock_remove,
+        patch.object(mcp.local_provider, "remove_tool") as mock_remove,
     ):
         init_fastmcp_server()
 
@@ -218,6 +213,23 @@ def test_disabled_tools_absent_from_instructions() -> None:
     # Non-disabled tools must still be present
     assert "- list_charts:" in instructions
     assert "- list_dashboards:" in instructions
+
+
+def test_disabling_get_instance_info_removes_all_prose_references() -> None:
+    """Disabling get_instance_info must remove ALL prose references to it,
+    not only the bullet-point entry in the Available tools section."""
+    instructions = get_default_instructions(disabled_tools={"get_instance_info"})
+
+    # Bullet entry must be gone
+    assert "- get_instance_info:" not in instructions
+    # Prose directives that instruct the LLM to call the tool must also be gone
+    assert "start with get_instance_info" not in instructions
+    assert "call get_instance_info" not in instructions
+    assert "check their accessible_menus in" not in instructions
+    assert "Feature Availability" not in instructions
+    # Instructions for other tools must be unaffected
+    assert "- list_charts:" in instructions
+    assert "- execute_sql:" in instructions
 
 
 def test_no_disabled_tools_returns_full_instructions() -> None:
@@ -246,7 +258,7 @@ def test_instructions_generated_after_disabled_tools_removed() -> None:
 
     with (
         patch("superset.mcp_service.flask_singleton.app", flask_app),
-        patch.object(mcp._local_provider, "remove_tool"),
+        patch.object(mcp.local_provider, "remove_tool"),
         patch(
             "superset.mcp_service.app.get_default_instructions",
             fake_get_instructions,

@@ -30,6 +30,36 @@ from fastmcp.server.middleware import Middleware
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Prose snippets that reference get_instance_info.
+# These are included in the generated instructions only when that tool is
+# enabled; each snippet is a plain string constant so they can be read
+# independently of the filtering logic in get_default_instructions().
+# ---------------------------------------------------------------------------
+_SNIPPET_FEATURE_AVAILABILITY = (
+    "Feature Availability:\n"
+    "- Call get_instance_info to discover accessible menus for the current user.\n"
+    "- Do NOT assume features exist; always check get_instance_info first.\n"
+    "\n"
+)
+_SNIPPET_INSTANCE_INFO_ROLE_BULLET = (
+    "- get_instance_info returns current_user.roles"
+    ' (e.g., ["Admin"], ["Alpha"], ["Viewer"]).\n'
+)
+_SNIPPET_ACCESSIBLE_MENUS_BULLET = (
+    "- If you are unsure about a user's capabilities,"
+    " check their accessible_menus in\n"
+    "  feature_availability from get_instance_info.\n"
+)
+_SNIPPET_UNSURE_GUIDANCE = (
+    "\nIf you are unsure which tool to use, start with get_instance_info\n"
+    "or use the quickstart prompt for an interactive guide.\n"
+)
+_SNIPPET_CONNECT_GUIDANCE = (
+    "\nWhen you first connect, call get_instance_info to learn the user's identity.\n"
+    "Greet them by their first name (from current_user) and offer to help.\n"
+)
+
 
 def get_default_instructions(
     branding: str = "Apache Superset",
@@ -50,6 +80,17 @@ def get_default_instructions(
     Returns:
         Formatted instructions string with branding applied
     """
+    _disabled = disabled_tools or set()
+
+    # Prose sections that reference get_instance_info are omitted when that
+    # tool is disabled so the LLM is never directed to call a removed tool.
+    _show = "get_instance_info" not in _disabled
+    _feature_availability = _SNIPPET_FEATURE_AVAILABILITY if _show else ""
+    _instance_info_role_bullet = _SNIPPET_INSTANCE_INFO_ROLE_BULLET if _show else ""
+    _accessible_menus_bullet = _SNIPPET_ACCESSIBLE_MENUS_BULLET if _show else ""
+    _unsure_guidance = _SNIPPET_UNSURE_GUIDANCE if _show else ""
+    _connect_guidance = _SNIPPET_CONNECT_GUIDANCE if _show else ""
+
     instructions = f"""
 You are connected to the {branding} MCP (Model Context Protocol) service.
 This service provides programmatic access to {branding} dashboards, charts, datasets,
@@ -311,13 +352,8 @@ Input format:
 - Tool request parameters accept structured objects (dicts/JSON)
 - FastMCP 3.1+ handles Pydantic BaseModel parameters natively
 
-Feature Availability:
-- Call get_instance_info to discover accessible menus for the current user.
-- Do NOT assume features exist; always check get_instance_info first.
-
-Permission Awareness:
-- get_instance_info returns current_user.roles (e.g., ["Admin"], ["Alpha"], ["Viewer"]).
-- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
+{_feature_availability}Permission Awareness:
+{_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, dashboards, or running SQL).
 - Do NOT disclose dashboard access lists, dashboard owners, chart owners, dataset
   owners, workspace admins, or other users' names, usernames, email addresses,
@@ -341,16 +377,8 @@ Permission Awareness:
   1. Explain that they may not have access to the requested resources
   2. Suggest they ask a workspace admin to grant them access or share content with them
   3. Offer to help with what they CAN do (e.g., viewing dashboards they have access to)
-- If you are unsure about a user's capabilities, check their accessible_menus in
-  feature_availability from get_instance_info.
-
-If you are unsure which tool to use, start with get_instance_info
-or use the quickstart prompt for an interactive guide.
-
-When you first connect, call get_instance_info to learn the user's identity.
-Greet them by their first name (from current_user) and offer to help.
-"""
-    if not disabled_tools:
+{_accessible_menus_bullet}{_unsure_guidance}{_connect_guidance}"""
+    if not _disabled:
         return instructions
 
     # Strip bullet-point lines for any disabled tool so the LLM is never told
@@ -364,7 +392,7 @@ Greet them by their first name (from current_user) and offer to help.
         stripped = line.lstrip()
         if stripped.startswith("- "):
             tool_part = stripped[2:].split(":")[0].strip()
-            if tool_part in disabled_tools:
+            if tool_part in _disabled:
                 skip_continuation = True
                 continue
             skip_continuation = False
@@ -612,7 +640,7 @@ def _remove_disabled_tools(disabled_tools: set[str]) -> None:
     """
     for tool_name in disabled_tools:
         try:
-            mcp._local_provider.remove_tool(tool_name)
+            mcp.local_provider.remove_tool(tool_name)
             logger.info("Disabled MCP tool: %s (MCP_DISABLED_TOOLS)", tool_name)
         except KeyError:
             logger.warning(
