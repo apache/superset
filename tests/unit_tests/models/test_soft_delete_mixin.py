@@ -73,9 +73,7 @@ class _SoftDeletableParent(_TestBase):  # type: ignore[misc, valid-type]
     children = relationship("_SoftDeletableChild", back_populates="parent")
 
 
-class _SoftDeletableChild(  # type: ignore[misc, valid-type]
-    SoftDeleteMixin, _TestBase
-):
+class _SoftDeletableChild(SoftDeleteMixin, _TestBase):  # type: ignore[misc, valid-type]
     __tablename__ = "_soft_deletable_child"
 
     id = Column(Integer, primary_key=True)

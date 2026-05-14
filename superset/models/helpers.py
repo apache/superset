@@ -762,7 +762,7 @@ def _is_primary_user_select(execute_state: ORMExecuteState) -> bool:
     )
 
 
-def _all_soft_delete_subclasses() -> list[type]:
+def _all_soft_delete_subclasses() -> list[type[SoftDeleteMixin]]:
     """All concrete ``SoftDeleteMixin`` subclasses, transitively. Walks
     the inheritance tree so an intermediate abstract subclass between
     the mixin and a concrete model does not hide leaf classes.
