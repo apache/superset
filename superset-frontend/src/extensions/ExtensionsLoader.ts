@@ -34,6 +34,8 @@ class ExtensionsLoader {
 
   private extensionIndex: Map<string, Extension> = new Map();
 
+  private loadedRemoteEntries: Set<string> = new Set();
+
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
     // Private constructor for singleton pattern
@@ -93,6 +95,11 @@ class ExtensionsLoader {
    */
   private async loadModule(extension: Extension): Promise<void> {
     const { remoteEntry, id } = extension;
+
+    if (this.loadedRemoteEntries.has(remoteEntry)) {
+      return;
+    }
+    this.loadedRemoteEntries.add(remoteEntry);
 
     // Load the remote entry script
     await new Promise<void>((resolve, reject) => {
