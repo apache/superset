@@ -22,6 +22,8 @@ from superset.mcp_service.chart.chart_helpers import (
     extract_form_data_key_from_url,
     find_chart_by_identifier,
     get_cached_form_data,
+    merge_extra_form_data_filters_into_query,
+    merge_form_data_filters_into_query,
     prepare_form_data_for_query,
 )
 
@@ -138,3 +140,59 @@ def test_prepare_form_data_for_query_preserves_existing_filters_with_adhoc(
         {"col": "gender", "op": "==", "val": "boy"},
         {"col": "gender", "op": "==", "val": "girl"},
     ]
+
+
+def test_merge_form_data_filters_into_query_preserves_existing_query_fields():
+    query = {
+        "filters": [{"col": "country", "op": "==", "val": "US"}],
+        "time_range": "Last year",
+        "where": "region = 'NA'",
+        "having": "SUM(num) > 10",
+    }
+
+    merge_form_data_filters_into_query(
+        query,
+        {
+            "filters": [{"col": "gender", "op": "==", "val": "boy"}],
+            "time_range": "No filter",
+            "where": "name IS NOT NULL",
+            "having": "COUNT(*) > 1",
+        },
+    )
+
+    assert query["filters"] == [
+        {"col": "country", "op": "==", "val": "US"},
+        {"col": "gender", "op": "==", "val": "boy"},
+    ]
+    assert query["time_range"] == "Last year"
+    assert query["where"] == "(region = 'NA') AND (name IS NOT NULL)"
+    assert query["having"] == "(SUM(num) > 10) AND (COUNT(*) > 1)"
+
+
+def test_merge_extra_form_data_filters_into_query_adds_only_extra_predicates(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    query = {
+        "filters": [{"col": "country", "op": "==", "val": "US"}],
+        "time_range": "Last year",
+    }
+
+    merge_extra_form_data_filters_into_query(
+        query,
+        {
+            "filters": [{"col": "gender", "op": "==", "val": "boy"}],
+            "time_range": "No filter",
+        },
+        1,
+        "table",
+    )
+
+    assert query["filters"] == [
+        {"col": "country", "op": "==", "val": "US"},
+        {"col": "gender", "op": "==", "val": "boy"},
+    ]
+    assert query["time_range"] == "Last year"

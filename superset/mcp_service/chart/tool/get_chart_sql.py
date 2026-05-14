@@ -32,6 +32,10 @@ from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_helpers import (
+    apply_form_data_filters_to_query,
+    prepare_form_data_for_query,
+)
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartError,
@@ -184,16 +188,8 @@ def _build_single_query_dict(
 ) -> dict[str, Any]:
     """Build one query entry for QueryContextFactory from form_data fields."""
     qd: dict[str, Any] = {"columns": columns, "metrics": metrics}
-    if time_range := form_data.get("time_range"):
-        qd["time_range"] = time_range
-    if filters := form_data.get("filters"):
-        qd["filters"] = filters
     if (row_limit := form_data.get("row_limit")) is not None:
         qd["row_limit"] = row_limit
-    from superset.mcp_service.chart.chart_helpers import (
-        apply_form_data_filters_to_query,
-    )
-
     apply_form_data_filters_to_query(qd, form_data)
     return qd
 
@@ -266,16 +262,19 @@ def _build_query_context_from_form_data(
 
     metrics, groupby = _resolve_metrics_and_groupby(form_data, chart)
 
-    # Preprocess adhoc_filters into where/having/filters on form_data so
-    # that the QueryObject receives concrete filter clauses.  This mirrors
-    # the view-layer call in viz.py:process_query_filters.
-    from superset.mcp_service.chart.chart_helpers import prepare_form_data_for_query
-
     resolved_type_str: str = (
         datasource_type if isinstance(datasource_type, str) else "table"
     )
     engine = _resolve_engine(datasource_id, resolved_type_str)
-    prepare_form_data_for_query(form_data, datasource_id, resolved_type_str)
+    # Preprocess adhoc_filters into where/having/filters on form_data so
+    # that the QueryObject receives concrete filter clauses.  This mirrors
+    # the view-layer call in viz.py:process_query_filters.
+    prepare_form_data_for_query(
+        form_data,
+        datasource_id,
+        resolved_type_str,
+        datasource_engine=engine,
+    )
 
     viz_type: str = (
         form_data.get("viz_type")

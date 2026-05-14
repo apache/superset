@@ -38,6 +38,7 @@ from superset.mcp_service.chart.chart_helpers import (
     apply_form_data_filters_to_query,
     find_chart_by_identifier,
     get_cached_form_data,
+    merge_extra_form_data_filters_into_query,
     prepare_form_data_for_query,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
@@ -559,17 +560,14 @@ async def get_chart_data(  # noqa: C901
                     for query in query_context_json.get("queries", []):
                         query["row_limit"] = request.limit
 
-                # Merge dashboard native filters into query_context's form_data
-                qc_form_data = query_context_json.setdefault("form_data", {})
                 if request.extra_form_data:
-                    prepare_form_data_for_query(
-                        qc_form_data,
-                        query_context_json["datasource"]["id"],
-                        query_context_json["datasource"]["type"],
-                        request.extra_form_data,
-                    )
                     for query in query_context_json.get("queries", []):
-                        apply_form_data_filters_to_query(query, qc_form_data)
+                        merge_extra_form_data_filters_into_query(
+                            query,
+                            request.extra_form_data,
+                            query_context_json["datasource"]["id"],
+                            query_context_json["datasource"]["type"],
+                        )
 
                 # Create QueryContext from the saved context using the schema
                 # This is exactly how the API does it

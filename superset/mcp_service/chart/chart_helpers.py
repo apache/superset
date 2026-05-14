@@ -92,6 +92,7 @@ def prepare_form_data_for_query(
     datasource_id: Any,
     datasource_type: str,
     extra_form_data: dict[str, Any] | None = None,
+    datasource_engine: str | None = None,
 ) -> None:
     """Normalize form_data filters before building a QueryObject payload.
 
@@ -99,6 +100,8 @@ def prepare_form_data_for_query(
     and split adhoc filters into the concrete ``filters``/``where``/``having``
     fields consumed by QueryObject. MCP tools that build query payloads directly
     must perform the same normalization before calling QueryContextFactory.
+
+    Mutates ``form_data`` in place.
     """
     from superset.utils.core import (
         convert_legacy_filters_into_adhoc,
@@ -130,7 +133,7 @@ def prepare_form_data_for_query(
     merge_extra_filters(form_data)
     split_adhoc_filters_into_base_filters(
         form_data,
-        resolve_datasource_engine(datasource_id, datasource_type),
+        datasource_engine or resolve_datasource_engine(datasource_id, datasource_type),
     )
 
 
@@ -150,6 +153,55 @@ def apply_form_data_filters_to_query(
         query["where"] = where
     if having := form_data.get("having"):
         query["having"] = having
+
+
+def _join_sql_clause(existing_clause: str, additional_clause: str) -> str:
+    """AND two SQL filter clauses while preserving their original grouping."""
+    return f"({existing_clause}) AND ({additional_clause})"
+
+
+def merge_form_data_filters_into_query(
+    query: dict[str, Any],
+    form_data: dict[str, Any],
+) -> None:
+    """Merge normalized form_data filters into an existing query payload.
+
+    Saved query contexts can contain query-specific filter, time, where, or
+    having fields. This helper adds normalized predicates without replacing
+    those query-level overrides.
+    """
+    if filters := form_data.get("filters"):
+        query["filters"] = [
+            *(query.get("filters") or []),
+            *filters,
+        ]
+
+    if time_range := form_data.get("time_range"):
+        query.setdefault("time_range", time_range)
+
+    for clause in ("where", "having"):
+        if additional_clause := form_data.get(clause):
+            if existing_clause := query.get(clause):
+                query[clause] = _join_sql_clause(existing_clause, additional_clause)
+            else:
+                query[clause] = additional_clause
+
+
+def merge_extra_form_data_filters_into_query(
+    query: dict[str, Any],
+    extra_form_data: dict[str, Any],
+    datasource_id: Any,
+    datasource_type: str,
+) -> None:
+    """Merge request extra_form_data predicates into an existing query payload."""
+    extra_query_form_data: dict[str, Any] = {"adhoc_filters": []}
+    prepare_form_data_for_query(
+        extra_query_form_data,
+        datasource_id,
+        datasource_type,
+        extra_form_data,
+    )
+    merge_form_data_filters_into_query(query, extra_query_form_data)
 
 
 def extract_form_data_key_from_url(url: str | None) -> str | None:
