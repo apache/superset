@@ -36,6 +36,7 @@ else:
 from flask import Flask, Response
 from werkzeug.exceptions import NotFound
 
+from superset.extensions.cache_middleware import ExtensionCacheMiddleware
 from superset.extensions.local_extensions_watcher import (
     start_local_extensions_watcher_thread,
 )
@@ -76,6 +77,7 @@ def create_app(
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
+        app.wsgi_app = ExtensionCacheMiddleware(app.wsgi_app)
 
         # Set up LOCAL_EXTENSIONS file watcher when in debug mode
         if app.debug:
