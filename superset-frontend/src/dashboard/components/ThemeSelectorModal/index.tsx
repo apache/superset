@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import rison from 'rison';
 import { useDispatch } from 'react-redux';
 import { SupersetClient } from '@superset-ui/core';
@@ -24,6 +24,7 @@ import { t } from '@apache-superset/core/translation';
 import { Button, Modal, Select } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useEffectiveThemeId } from 'src/dashboard/components/ComponentThemeProvider';
+import { previewThemeStore } from 'src/dashboard/components/ComponentThemeProvider/previewThemeStore';
 import { setComponentThemeId } from 'src/dashboard/actions/setComponentThemeId';
 
 interface ThemeOption {
@@ -57,17 +58,43 @@ export default function ThemeSelectorModal({
   const currentThemeId = useEffectiveThemeId(layoutId);
 
   // Modal-local draft of the selection. Synced from the resolved id when
-  // the modal opens; only committed to Redux on save.
+  // the modal opens; live-previewed via the previewThemeStore as the user
+  // picks options; only committed to Redux on Apply.
   const [selectedId, setSelectedId] = useState<number | null>(currentThemeId);
   const [themes, setThemes] = useState<ThemeOption[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Keep the draft in sync if the resolved id changes while the modal is
-  // open (e.g. another tab updated the dashboard). Cheap because the
-  // selector returns a primitive.
+  // Snapshot the resolved id at open-time so we can revert correctly when
+  // the user cancels — `currentThemeId` itself is reactive (and would
+  // already reflect the in-flight preview), so we can't use it directly.
+  const initialIdRef = useRef<number | null>(currentThemeId);
+
   useEffect(() => {
-    if (show) setSelectedId(currentThemeId);
-  }, [show, currentThemeId]);
+    if (show) {
+      initialIdRef.current = currentThemeId;
+      setSelectedId(currentThemeId);
+    }
+    // No `show` cleanup here — the close handlers below clear the preview
+    // explicitly so we don't fight with the Apply path (which keeps the
+    // theme applied).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show]);
+
+  // Push the user's draft selection through the preview store. The
+  // ComponentThemeProvider prefers preview > Redux, so the targeted
+  // component re-renders with the candidate theme as soon as this updates.
+  useEffect(() => {
+    if (!show) return undefined;
+    previewThemeStore.set(layoutId, selectedId);
+    return () => {
+      // Cleanup runs on close + on every selectedId change; the next
+      // effect call re-sets it. On unmount/close we want the preview
+      // gone so the provider re-resolves from Redux. Safe because Apply
+      // commits to Redux *before* hiding the modal, so the post-clear
+      // resolution lands on the saved value, not the original.
+      previewThemeStore.clear(layoutId);
+    };
+  }, [show, layoutId, selectedId]);
 
   useEffect(() => {
     if (!show) return;

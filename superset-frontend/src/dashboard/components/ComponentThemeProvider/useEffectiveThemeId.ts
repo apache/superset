@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useSyncExternalStore } from 'react';
 import { useSelector } from 'react-redux';
 import type { DashboardLayout, RootState } from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { previewThemeStore } from './previewThemeStore';
 
 /**
  * Walks up the dashboard layout tree from `layoutId` and returns the first
@@ -59,11 +61,22 @@ export function pickEffectiveThemeId(
  * Redux hook variant of `pickEffectiveThemeId`. Memoizes on the layout
  * reference; consumers that only care about the resolved id (not the layout
  * map itself) won't re-render when sibling components change their meta.
+ *
+ * If `ThemeSelectorModal` has registered a preview override for this
+ * `layoutId` via `previewThemeStore`, the preview wins — that's how the
+ * modal applies a draft selection visually without committing to Redux.
  */
 export function useEffectiveThemeId(
   layoutId: string | undefined,
 ): number | null {
-  return useSelector<RootState, number | null>(state =>
+  const reduxResolved = useSelector<RootState, number | null>(state =>
     pickEffectiveThemeId(layoutId, state.dashboardLayout?.present),
   );
+  const preview = useSyncExternalStore(
+    previewThemeStore.subscribe,
+    () =>
+      layoutId === undefined ? undefined : previewThemeStore.get(layoutId),
+    () => undefined,
+  );
+  return preview === undefined ? reduxResolved : preview;
 }
