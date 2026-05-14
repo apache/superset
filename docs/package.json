@@ -33,10 +33,12 @@
     "version:add": "node scripts/manage-versions.mjs add",
     "version:remove": "node scripts/manage-versions.mjs remove",
     "version:add:docs": "node scripts/manage-versions.mjs add docs",
-    "version:add:developer_portal": "node scripts/manage-versions.mjs add developer_portal",
+    "version:add:admin_docs": "node scripts/manage-versions.mjs add admin_docs",
+    "version:add:developer_docs": "node scripts/manage-versions.mjs add developer_docs",
     "version:add:components": "node scripts/manage-versions.mjs add components",
     "version:remove:docs": "node scripts/manage-versions.mjs remove docs",
-    "version:remove:developer_portal": "node scripts/manage-versions.mjs remove developer_portal",
+    "version:remove:admin_docs": "node scripts/manage-versions.mjs remove admin_docs",
+    "version:remove:developer_docs": "node scripts/manage-versions.mjs remove developer_docs",
     "version:remove:components": "node scripts/manage-versions.mjs remove components"
   },
   "dependencies": {

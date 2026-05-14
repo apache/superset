@@ -30,19 +30,30 @@ import { DownOutlined } from '@ant-design/icons';
 
 import styles from './styles.module.css';
 
+// Map each versioned plugin id to the URL prefix it actually serves
+// content from. Three of the four routeBasePath values differ from
+// their pluginId — the default preset-classic docs plugin lives at
+// `/user-docs`, and admin_docs / developer_docs use hyphens in their
+// URLs even though the plugin ids use underscores. Without this map
+// the basePath derivation below would mis-split the pathname for
+// those sections and the version dropdown would jump to the section
+// root instead of preserving the current page.
+//
+// Keep in sync with the `routeBasePath` values in docusaurus.config.ts.
+const PLUGIN_ID_TO_BASE_PATH = {
+  default: '/user-docs',
+  components: '/components',
+  admin_docs: '/admin-docs',
+  developer_docs: '/developer-docs',
+};
+
 export default function DocVersionBadge() {
   const activePlugin = useActivePlugin();
   const { pathname } = useLocation();
   const pluginId = activePlugin?.pluginId;
   const [versionedPath, setVersionedPath] = React.useState('');
 
-  // Show version selector for all versioned sections
-  const isVersioned = [
-    'default',  // main docs
-    'components',
-    'tutorials',
-    'developer_portal',
-  ].includes(pluginId);
+  const isVersioned = pluginId && pluginId in PLUGIN_ID_TO_BASE_PATH;
 
   const { preferredVersion } = useDocsPreferredVersion(pluginId);
   const versions = useVersions(pluginId);
@@ -53,7 +64,8 @@ export default function DocVersionBadge() {
     if (!pathname || !version || !pluginId) return;
 
     let relativePath = '';
-    const basePath = pluginId === 'default' ? '/docs' : `/${pluginId}`;
+    const basePath = PLUGIN_ID_TO_BASE_PATH[pluginId];
+    if (!basePath) return;
 
     // Handle different version path patterns
     if (pathname.includes(basePath)) {

@@ -30,9 +30,11 @@ const __dirname = path.dirname(__filename);
 const CONFIG_FILE = path.join(__dirname, '..', 'versions-config.json');
 
 // Parse command line arguments
-const args = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+const skipGenerate = rawArgs.includes('--skip-generate');
+const args = rawArgs.filter((a) => a !== '--skip-generate');
 const command = args[0]; // 'add' or 'remove'
-const section = args[1]; // 'docs', 'developer_portal', or 'components'
+const section = args[1]; // 'docs', 'admin_docs', 'developer_docs', or 'components'
 const version = args[2]; // version string like '1.2.0'
 
 function loadConfig() {
@@ -43,36 +45,158 @@ function saveConfig(config) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2) + '\n');
 }
 
-function fixVersionedImports(version) {
-  const versionedDocsPath = path.join(__dirname, '..', 'versioned_docs', `version-${version}`);
+function freezeDataImports(section, version) {
+  // MDX files can `import` JSON/YAML data from outside the section, either
+  // via escaping relative paths (e.g. country-map-tools.mdx imports
+  // `../../data/countries.json`) or via the `@site/` alias (e.g.
+  // feature-flags.mdx imports `@site/static/feature-flags.json`). Without
+  // intervention the snapshot keeps reading the live file, so the
+  // historical version's content silently changes whenever the data file
+  // is updated. Copy each escaping data import into a snapshot-local
+  // `_versioned_data/` dir and rewrite the import to point there.
+  const sectionRoot = section === 'docs'
+    ? path.join(__dirname, '..', 'docs')
+    : path.join(__dirname, '..', section);
+  const docsRoot = path.join(__dirname, '..');
+  const versionedDocsDir = section === 'docs'
+    ? `versioned_docs/version-${version}`
+    : `${section}_versioned_docs/version-${version}`;
+  const versionedDocsPath = path.join(__dirname, '..', versionedDocsDir);
+  const frozenDataDir = path.join(versionedDocsPath, '_versioned_data');
 
-  // Files that need import path fixes
-  const filesToFix = [
-    'contributing/resources.mdx',
-    'configuration/country-map-tools.mdx'
-  ];
+  if (!fs.existsSync(versionedDocsPath)) {
+    return;
+  }
 
-  console.log(`  Fixing relative imports in versioned docs...`);
+  console.log(`  Freezing data imports in ${versionedDocsDir}...`);
 
-  filesToFix.forEach(filePath => {
-    const fullPath = path.join(versionedDocsPath, filePath);
-    if (fs.existsSync(fullPath)) {
-      let content = fs.readFileSync(fullPath, 'utf8');
+  // Matches data file imports in two flavors:
+  //   `from '../../foo/bar.json'`  (relative, must escape one or more dirs)
+  //   `from '@site/static/foo.json'`  (Docusaurus site-root alias)
+  const dataImportRe = /(from\s+['"])((?:\.\.\/)+|@site\/)([^'"\s]+\.(?:json|ya?ml))(['"])/g;
 
-      // Fix imports that go up two directories to go up three instead
-      content = content.replace(
-        /from ['"]\.\.\/\.\.\/src\//g,
-        "from '../../../src/"
-      );
-      content = content.replace(
-        /from ['"]\.\.\/\.\.\/data\//g,
-        "from '../../../data/"
-      );
-
-      fs.writeFileSync(fullPath, content);
-      console.log(`    Fixed imports in ${filePath}`);
+  function freezeOne(fullPath, depth, prefix, pathSpec, importPath, suffix) {
+    let resolvedSource;
+    if (pathSpec === '@site/') {
+      // `@site/...` always resolves relative to the docs root.
+      resolvedSource = path.join(docsRoot, importPath);
+    } else {
+      // Relative path — must escape the file's depth within the section
+      // to point at content outside the section. Imports that stay inside
+      // are copied wholesale by Docusaurus, so we leave them alone.
+      const upCount = pathSpec.match(/\.\.\//g).length;
+      if (upCount <= depth) return null;
+      const relativeFromVersioned = path.relative(versionedDocsPath, fullPath);
+      const originalDir = path.dirname(path.join(sectionRoot, relativeFromVersioned));
+      resolvedSource = path.resolve(originalDir, pathSpec + importPath);
     }
-  });
+    // Skip imports that land inside the section root — those get copied
+    // with the section snapshot already.
+    const relFromSection = path.relative(sectionRoot, resolvedSource);
+    if (!relFromSection.startsWith('..')) return null;
+    const relFromDocsRoot = path.relative(docsRoot, resolvedSource);
+    if (relFromDocsRoot.startsWith('..') || !fs.existsSync(resolvedSource)) {
+      return null;
+    }
+    const destPath = path.join(frozenDataDir, relFromDocsRoot);
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+    fs.copyFileSync(resolvedSource, destPath);
+    const rewritten = path
+      .relative(path.dirname(fullPath), destPath)
+      .split(path.sep)
+      .join('/');
+    const finalImport = rewritten.startsWith('.') ? rewritten : `./${rewritten}`;
+    return `${prefix}${finalImport}${suffix}`;
+  }
+
+  function walk(dir, depth) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name.startsWith('_')) continue;
+        walk(fullPath, depth + 1);
+      } else if (entry.isFile() && /\.(md|mdx)$/.test(entry.name)) {
+        const original = fs.readFileSync(fullPath, 'utf8');
+        let inFence = false;
+        let mutated = false;
+        const updated = original.split('\n').map(line => {
+          if (/^\s*(```|~~~)/.test(line)) {
+            inFence = !inFence;
+            return line;
+          }
+          if (inFence) return line;
+          return line.replace(dataImportRe, (match, prefix, pathSpec, importPath, suffix) => {
+            const rewritten = freezeOne(fullPath, depth, prefix, pathSpec, importPath, suffix);
+            if (rewritten === null) return match;
+            mutated = true;
+            return rewritten;
+          });
+        }).join('\n');
+        if (mutated) {
+          fs.writeFileSync(fullPath, updated);
+          const rel = path.relative(versionedDocsPath, fullPath);
+          console.log(`    Froze data imports in ${rel}`);
+        }
+      }
+    }
+  }
+
+  walk(versionedDocsPath, 0);
+}
+
+function fixVersionedImports(section, version) {
+  // Versioned content lands one directory deeper than the source content,
+  // so any `../../src/` or `../../data/` imports in .md/.mdx files need
+  // an extra `../` to keep reaching docs/src and docs/data.
+  const versionedDocsDir = section === 'docs'
+    ? `versioned_docs/version-${version}`
+    : `${section}_versioned_docs/version-${version}`;
+  const versionedDocsPath = path.join(__dirname, '..', versionedDocsDir);
+
+  if (!fs.existsSync(versionedDocsPath)) {
+    return;
+  }
+
+  console.log(`  Fixing relative imports in ${versionedDocsDir}...`);
+
+  // Imports whose `../` count exceeds the file's depth within the section
+  // escape the section root, so they need one extra `../` once the file
+  // lives one level deeper inside the snapshot dir. Imports that stay
+  // inside the section are unaffected (the section copies wholesale).
+  function walk(dir, depth) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath, depth + 1);
+      } else if (entry.isFile() && /\.(md|mdx)$/.test(entry.name)) {
+        const original = fs.readFileSync(fullPath, 'utf8');
+        // Track fenced code blocks so we don't rewrite import samples inside
+        // ```ts / ```js (etc.) blocks that are documentation, not real imports.
+        let inFence = false;
+        const updated = original.split('\n').map(line => {
+          if (/^\s*(```|~~~)/.test(line)) {
+            inFence = !inFence;
+            return line;
+          }
+          if (inFence) return line;
+          return line.replace(
+            /(from\s+['"])((?:\.\.\/)+)/g,
+            (match, prefix, dots) => {
+              const upCount = dots.match(/\.\.\//g).length;
+              return upCount > depth ? `${prefix}../${dots}` : match;
+            },
+          );
+        }).join('\n');
+        if (updated !== original) {
+          fs.writeFileSync(fullPath, updated);
+          const rel = path.relative(versionedDocsPath, fullPath);
+          console.log(`    Fixed imports in ${rel}`);
+        }
+      }
+    }
+  }
+
+  walk(versionedDocsPath, 0);
 }
 
 function addVersion(section, version) {
@@ -91,6 +215,28 @@ function addVersion(section, version) {
 
   console.log(`Creating version ${version} for ${section}...`);
 
+  // Refresh auto-generated content (database pages, API reference,
+  // component playground) so the snapshot captures the current state of
+  // master rather than whatever happened to be on disk. `generate:smart`
+  // hashes its inputs and skips unchanged generators, so this is cheap
+  // when the dev already has fresh output.
+  //
+  // Use --skip-generate if you've placed a CI-artifact databases.json
+  // (the `database-diagnostics` artifact from Python-Integration) and
+  // want to preserve it instead of letting the local env regenerate it.
+  // See docs/README.md "Before You Cut" for the canonical release flow.
+  if (skipGenerate) {
+    console.log(`  Skipping auto-gen refresh (--skip-generate set)`);
+  } else {
+    console.log(`  Refreshing auto-generated docs...`);
+    try {
+      execSync('yarn run generate:smart', { stdio: 'inherit' });
+    } catch (error) {
+      console.error(`Failed to refresh auto-generated docs: ${error.message}`);
+      process.exit(1);
+    }
+  }
+
   // Run Docusaurus version command
   const docusaurusCommand = section === 'docs'
     ? `yarn docusaurus docs:version ${version}`
@@ -103,10 +249,12 @@ function addVersion(section, version) {
     process.exit(1);
   }
 
-  // Fix relative imports in versioned docs (for main docs section only)
-  if (section === 'docs') {
-    fixVersionedImports(version);
-  }
+  // Freeze data imports BEFORE adjusting paths, so the depth-aware rewriter
+  // doesn't process the now-local imports we just rewrote.
+  freezeDataImports(section, version);
+
+  // Fix relative imports in versioned content
+  fixVersionedImports(section, version);
 
   // Update config
   // Add to onlyIncludeVersions array (after 'current')
@@ -121,10 +269,15 @@ function addVersion(section, version) {
     banner: 'none'
   };
 
-  // Optionally update lastVersion if this is the first non-current version
-  if (config[section].onlyIncludeVersions.length === 2) {
-    config[section].lastVersion = version;
-  }
+  // Note: we deliberately do NOT auto-bump `lastVersion` to the new
+  // version. Superset's docs site keeps `lastVersion: 'current'` so
+  // the canonical URLs (`/user-docs/...`, `/admin-docs/...`,
+  // `/developer-docs/...`, `/components/...`) always render master
+  // content; cut versions are accessed only via their explicit version
+  // segment. (`/docs/...` paths are legacy and handled via per-page
+  // redirects in docusaurus.config.ts — not a current canonical
+  // form.) If you want a different policy, edit versions-config.json
+  // after cutting.
 
   saveConfig(config);
   console.log(`✅ Version ${version} added successfully to ${section}`);
@@ -185,8 +338,17 @@ function removeVersion(section, version) {
     const versionIndex = versions.indexOf(version);
     if (versionIndex > -1) {
       versions.splice(versionIndex, 1);
-      fs.writeFileSync(versionsJsonPath, JSON.stringify(versions, null, 2) + '\n');
-      console.log(`  Updated ${versionsJsonFile}`);
+      if (versions.length === 0) {
+        // Sections with no versions shouldn't carry an empty versions file
+        // on disk — Docusaurus doesn't require it, and an empty `[]` file
+        // gets picked up by `docusaurus version` and snapshotted into the
+        // next cut.
+        fs.unlinkSync(versionsJsonPath);
+        console.log(`  Removed empty ${versionsJsonFile}`);
+      } else {
+        fs.writeFileSync(versionsJsonPath, JSON.stringify(versions, null, 2) + '\n');
+        console.log(`  Updated ${versionsJsonFile}`);
+      }
     }
   }
 
@@ -211,17 +373,20 @@ function removeVersion(section, version) {
 function printUsage() {
   console.log(`
 Usage:
-  node scripts/manage-versions.js add <section> <version>
-  node scripts/manage-versions.js remove <section> <version>
+  node scripts/manage-versions.mjs add <section> <version> [--skip-generate]
+  node scripts/manage-versions.mjs remove <section> <version>
 
 Where:
-  - section: 'docs', 'developer_portal', or 'components'
+  - section: 'docs', 'developer_docs', 'admin_docs', or 'components'
   - version: version string (e.g., '1.2.0', '2.0.0')
+  - --skip-generate: skip refreshing auto-generated docs before snapshotting
+                     (use when you've already placed a fresh databases.json
+                     from CI and want to preserve it)
 
 Examples:
-  node scripts/manage-versions.js add docs 2.0.0
-  node scripts/manage-versions.js add developer_portal 1.3.0
-  node scripts/manage-versions.js remove components 1.0.0
+  node scripts/manage-versions.mjs add docs 2.0.0
+  node scripts/manage-versions.mjs add developer_docs 1.3.0
+  node scripts/manage-versions.mjs remove components 1.0.0
 `);
 }
 
