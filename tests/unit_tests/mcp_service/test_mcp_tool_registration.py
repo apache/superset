@@ -232,6 +232,21 @@ def test_disabling_get_instance_info_removes_all_prose_references() -> None:
     assert "- execute_sql:" in instructions
 
 
+def test_disabling_execute_sql_removes_all_prose_references() -> None:
+    """Disabling execute_sql must remove all workflow and example lines that
+    mention it, not only the bullet-point entry."""
+    instructions = get_default_instructions(disabled_tools={"execute_sql"})
+
+    # Bullet entry must be gone
+    assert "- execute_sql:" not in instructions
+    # Workflow steps and request wrapper examples must also be gone
+    assert "execute_sql(" not in instructions
+    assert "execute_sql" not in instructions
+    # Instructions for unrelated tools must be unaffected
+    assert "- list_charts:" in instructions
+    assert "- get_instance_info:" in instructions
+
+
 def test_no_disabled_tools_returns_full_instructions() -> None:
     """Passing no disabled_tools (or empty set) returns the full instructions."""
     full = get_default_instructions()

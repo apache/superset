@@ -381,11 +381,14 @@ Input format:
     if not _disabled:
         return instructions
 
-    # Strip bullet-point lines for any disabled tool so the LLM is never told
-    # to call a tool that has been suppressed.  Bullet lines have the form:
-    #   "- tool_name: ..."
-    # including optional leading whitespace for multi-line continuations
-    # (those lines don't start with "- " so they're kept as-is).
+    # Strip any line that mentions a disabled tool — this covers both the
+    # "- tool_name: ..." bullet entries and all prose/workflow references
+    # (request wrapper examples, workflow steps, CRITICAL RULES, etc.).
+    # Tool names are specific enough (e.g. execute_sql, generate_chart) that
+    # false positives are not a practical concern.
+    #
+    # Bullet continuation lines (indented lines belonging to a disabled bullet)
+    # are also dropped via the skip_continuation flag.
     filtered_lines = []
     skip_continuation = False
     for line in instructions.splitlines(keepends=True):
@@ -401,6 +404,9 @@ Input format:
             continue
         else:
             skip_continuation = False
+        # Drop any prose line that names a disabled tool
+        if any(tool in line for tool in _disabled):
+            continue
         filtered_lines.append(line)
     return "".join(filtered_lines)
 
