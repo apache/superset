@@ -1260,13 +1260,15 @@ function generateCategoryIndex(category, components) {
   };
   const componentList = components
     .sort((a, b) => a.componentName.localeCompare(b.componentName))
-    // `.md` suffix on the relative link is required: Docusaurus only
-    // validates and rewrites *file-based* references (.md/.mdx). Bare
-    // relative paths bypass the file resolver and get emitted as raw
-    // HTML hrefs that the browser resolves against the current URL —
-    // which gives the wrong directory for trailing-slash routes and
-    // breaks SPA navigation. See docs/scripts/lint-docs-links.mjs.
-    .map(c => `- [${c.componentName}](./${c.componentName.toLowerCase()}.md)`)
+    // `.mdx` suffix matches the actual component page files emitted
+    // by this generator (see the MDX wrappers below). The extension
+    // is required: Docusaurus only validates and rewrites *file-based*
+    // references (.md/.mdx). Bare relative paths bypass the file
+    // resolver and get emitted as raw HTML hrefs that the browser
+    // resolves against the current URL — which gives the wrong
+    // directory for trailing-slash routes and breaks SPA navigation.
+    // See docs/scripts/lint-docs-links.mjs.
+    .map(c => `- [${c.componentName}](./${c.componentName.toLowerCase()}.mdx)`)
     .join('\n');
 
   return `---
