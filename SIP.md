@@ -196,26 +196,46 @@ Each phase brings its own tests; the cumulative bar:
   3 passing tests on `setComponentThemeId`: preserves other meta keys
   + sets numeric `themeId`; stores explicit `null` for the clear path;
   no-op when the component id isn't in the layout.
-- _(Phase 4)_ — in progress.
-  - **Chart (4a)**: ✅ landed locally. End-to-end demo on Chart works
-    now: `SliceHeaderControls` has a new "Apply theme" item (gated on
-    dashboard edit mode); clicking it opens the Phase-3
-    `ThemeSelectorModal` keyed to the component's layoutId; on save the
-    Phase-3 action updates `meta.themeId`; the Phase-1
-    `ComponentThemeProvider` (already wrapping ChartHolder) re-resolves
-    and re-renders the chart with the new theme tokens. The full
-    Instance → Dashboard → Tab → Row/Col → Chart inheritance chain is
-    functionally complete for Chart.
+- _(Phase 4)_ — ✅ landed locally for all five grid-component types.
+  Same three-step recipe applied to each:
+  (a) wrap body in `<ComponentThemeProvider layoutId={id}>`,
+  (b) add "Apply theme" item to the component's menu via
+      `ComponentHeaderControls`,
+  (c) mount `<ThemeSelectorModal>` gated on `editMode`.
 
-    Open follow-ups for the **Markdown / Row / Column / Tabs** PRs:
-    - Each gets the menu-pattern conversion (`MarkdownModeDropdown`,
-      gear icon, none → shared `ComponentHeaderControls`).
-    - Each wraps its body in `<ComponentThemeProvider layoutId=...>`.
-    - Each mounts a `<ThemeSelectorModal>` with an "Apply theme" menu
-      item that opens it.
-    - Each per-component PR can be reviewed in isolation for the menu/UX
-      change without dragging in the theming framework changes (those
-      are already merged in Phases 1-3).
+  - **Chart (4a)**: `SliceHeaderControls` gets the menu item; the
+    provider was already wrapping `ChartHolder` from Phase 1.
+  - **Tabs (4b)**: `TabsRenderer` wraps `<StyledTabsContainer>` in the
+    provider; adds the dots-menu trigger inside the existing left
+    `HoverMenu` next to the drag handle and delete button.
+  - **Row (4c)**: wraps the `<WithPopoverMenu>` body; adds the
+    dots-menu trigger to the left `HoverMenu` next to drag/delete/
+    setting-icon. The existing gear icon (which opens the
+    BackgroundStyleDropdown focus popover) is preserved as-is.
+  - **Column (4d)**: same recipe as Row, wrapping its
+    `<WithPopoverMenu>` body and adding the dots menu to the top
+    `HoverMenu` next to drag/delete/setting-icon.
+  - **Markdown (4e)**: class component, so theme-modal state goes
+    through `this.state.themeModalOpen`. Adds a second
+    `ComponentHeaderControls` to the existing `<WithPopoverMenu
+    menuItems>` array next to the `MarkdownModeDropdown`
+    (Edit/Preview toggle is preserved as-is — the full menu-pattern
+    convergence onto a single dots menu is intentionally deferred so
+    Markdown's Edit/Preview UX is not changed in this phase).
+
+  Functional outcome: every grid-component type now supports the full
+  Instance → Dashboard → Tab → Row/Col → Chart/Markdown inheritance
+  chain end-to-end. Setting a `themeId` at any level applies to that
+  subtree; clearing it falls through to the parent.
+
+  Note on the broader menu-pattern unification: the SIP originally
+  imagined Phase 4 PRs would also converge `MarkdownModeDropdown`
+  (Edit/Preview popover) and the Row/Column gear icon into the shared
+  dots menu. We deferred those user-visible UX displacements so each
+  Phase-4 PR adds the theming affordance *additively* — i.e. the
+  existing menu controls are untouched, the dots menu sits alongside.
+  A follow-up SIP (or single sweep PR) can take the menu unification
+  later without coupling it to the theming work.
 
 ### Phase 1 status
 
