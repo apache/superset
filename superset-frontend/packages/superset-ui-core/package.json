@@ -24,7 +24,7 @@
     "lib"
   ],
   "dependencies": {
-    "@ant-design/icons": "^6.2.2",
+    "@ant-design/icons": "^6.2.3",
     "@apache-superset/core": "*",
     "@babel/runtime": "^7.29.2",
     "@types/json-bigint": "^1.0.4",
