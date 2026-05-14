@@ -161,7 +161,6 @@ const AsyncSelect = forwardRef(
     const selectValueRef = useRef(selectValue);
     const fetchedQueries = useRef(new Map<string, number>());
     const initialOptionsRef = useRef<SelectOptionsType>(EMPTY_OPTIONS);
-    const wasSearchingRef = useRef(false);
     const mappedMode = isSingleMode ? undefined : 'multiple';
     const allowFetch = !fetchOnlyOnSearch || inputValue;
     const [maxTagCount, setMaxTagCount] = useState(
@@ -337,38 +336,31 @@ const AsyncSelect = forwardRef(
         const fetchOptions = options as SelectOptionsPagePromise;
         fetchOptions(search, page, pageSize)
           .then(({ data, totalCount }: SelectOptionsTypePage) => {
-            let resultData: SelectOptionsType = data;
             if (search && page === 0) {
-              // Preserve optimistic isNewOption entries inserted by
-              // handleOnSearch so allowNewOptions users can still click
-              // the value they typed when the server returns no match.
-              setSelectOptions((prevOptions: SelectOptionsType) => {
-                const dataValues = new Set(
-                  data.map((opt: SelectOptionsType[number]) => opt.value),
-                );
+              // Replace cached options with server results; preserve
+              // optimistic isNewOption entries inserted by handleOnSearch
+              // so allowNewOptions users can still click the value they
+              // typed when the server returns no match.
+              setSelectOptions(prevOptions => {
+                const dataValues = new Set(data.map(opt => opt.value));
                 const preservedNew = prevOptions.filter(
-                  (opt: SelectOptionsType[number]) =>
-                    opt.isNewOption && !dataValues.has(opt.value),
+                  opt => opt.isNewOption && !dataValues.has(opt.value),
                 );
                 return preservedNew
                   .concat(data)
                   .sort(sortComparatorForNoSearch);
               });
             } else {
-              resultData = mergeData(data);
+              const mergedData = mergeData(data);
               if (!search) {
-                initialOptionsRef.current = resultData;
+                initialOptionsRef.current = mergedData;
+                if (!fetchOnlyOnSearch && mergedData.length >= totalCount) {
+                  setAllValuesLoaded(true);
+                }
               }
             }
             fetchedQueries.current.set(key, totalCount);
             setTotalCount(totalCount);
-            if (
-              !fetchOnlyOnSearch &&
-              search === '' &&
-              resultData.length >= totalCount
-            ) {
-              setAllValuesLoaded(true);
-            }
           })
           .catch(internalOnError)
           .finally(() => {
@@ -526,7 +518,6 @@ const AsyncSelect = forwardRef(
       setAllValuesLoaded(false);
       setSelectOptions(EMPTY_OPTIONS);
       initialOptionsRef.current = EMPTY_OPTIONS;
-      wasSearchingRef.current = false;
     }, [options]);
 
     useEffect(() => {
@@ -541,19 +532,21 @@ const AsyncSelect = forwardRef(
       [debouncedFetchPage],
     );
 
+    const previousInputValue = usePrevious(inputValue, '');
     useEffect(() => {
       if (loadingEnabled && allowFetch) {
         // trigger fetch every time inputValue changes
         if (inputValue) {
-          wasSearchingRef.current = true;
           debouncedFetchPage(inputValue, 0);
         } else {
-          if (wasSearchingRef.current && initialOptionsRef.current.length > 0) {
+          // On returning to empty input after a search, restore the cached
+          // base options so the dropdown shows the original page-0 list
+          // instead of the stale search results.
+          if (previousInputValue && initialOptionsRef.current.length > 0) {
             setSelectOptions(
               [...initialOptionsRef.current].sort(sortComparatorForNoSearch),
             );
           }
-          wasSearchingRef.current = false;
           fetchPage('', 0);
         }
       }
@@ -562,6 +555,7 @@ const AsyncSelect = forwardRef(
       fetchPage,
       allowFetch,
       inputValue,
+      previousInputValue,
       debouncedFetchPage,
       sortComparatorForNoSearch,
     ]);

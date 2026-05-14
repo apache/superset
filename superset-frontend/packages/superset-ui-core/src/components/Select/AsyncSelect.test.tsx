@@ -926,10 +926,19 @@ test('replaces cached options with search results instead of merging', async () 
 });
 
 test('shows all options when filterOption is false', async () => {
-  const loadOptions = jest.fn(async () => ({
-    data: OPTIONS.slice(0, 10),
-    totalCount: 20,
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Base ${i}`,
+    value: i,
   }));
+  const searchData = Array.from({ length: 5 }, (_, i) => ({
+    label: `Server ${i}`,
+    value: 100 + i,
+  }));
+  const loadOptions = jest.fn(async (search: string) =>
+    search === ''
+      ? { data: page0Data, totalCount: 100 }
+      : { data: searchData, totalCount: 5 },
+  );
 
   render(
     <AsyncSelect
@@ -945,7 +954,8 @@ test('shows all options when filterOption is false', async () => {
   await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
 
   const options = await findAllSelectOptions();
-  expect(options).toHaveLength(10);
+  expect(options).toHaveLength(5);
+  expect(options[0]).toHaveTextContent('Server 0');
 });
 
 test('preserves new option entry across search fetch when allowNewOptions is on', async () => {
@@ -972,6 +982,8 @@ test('preserves new option entry across search fetch when allowNewOptions is on'
   const options = await findAllSelectOptions();
   expect(options).toHaveLength(1);
   expect(options[0]).toHaveTextContent('newval');
+  // Stale page-0 options must not bleed through.
+  expect(screen.queryByText('Option 0')).not.toBeInTheDocument();
 });
 
 test('restores base options when search is cleared', async () => {
@@ -995,12 +1007,16 @@ test('restores base options when search is cleared', async () => {
   await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
   let options = await findAllSelectOptions();
   expect(options).toHaveLength(1);
+  expect(options[0]).toHaveTextContent('Search Match');
 
-  await type('{backspace}{backspace}{backspace}{backspace}{backspace}{backspace}');
+  // type() clears the input before typing, so passing '' clears the search.
+  await type('');
   await waitFor(async () => {
     options = await findAllSelectOptions();
     expect(options).toHaveLength(10);
   });
+  expect(options[0]).toHaveTextContent('Option 0');
+  expect(screen.queryByText('Search Match')).not.toBeInTheDocument();
 });
 
 test('does not duplicate options when using numeric values', async () => {
