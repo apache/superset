@@ -34,7 +34,7 @@ const rawArgs = process.argv.slice(2);
 const skipGenerate = rawArgs.includes('--skip-generate');
 const args = rawArgs.filter((a) => a !== '--skip-generate');
 const command = args[0]; // 'add' or 'remove'
-const section = args[1]; // 'docs', 'developer_docs', or 'components'
+const section = args[1]; // 'docs', 'admin_docs', 'developer_docs', or 'components'
 const version = args[2]; // version string like '1.2.0'
 
 function loadConfig() {
@@ -370,8 +370,8 @@ function removeVersion(section, version) {
 function printUsage() {
   console.log(`
 Usage:
-  node scripts/manage-versions.js add <section> <version> [--skip-generate]
-  node scripts/manage-versions.js remove <section> <version>
+  node scripts/manage-versions.mjs add <section> <version> [--skip-generate]
+  node scripts/manage-versions.mjs remove <section> <version>
 
 Where:
   - section: 'docs', 'developer_docs', 'admin_docs', or 'components'
@@ -381,9 +381,9 @@ Where:
                      from CI and want to preserve it)
 
 Examples:
-  node scripts/manage-versions.js add docs 2.0.0
-  node scripts/manage-versions.js add developer_docs 1.3.0
-  node scripts/manage-versions.js remove components 1.0.0
+  node scripts/manage-versions.mjs add docs 2.0.0
+  node scripts/manage-versions.mjs add developer_docs 1.3.0
+  node scripts/manage-versions.mjs remove components 1.0.0
 `);
 }
 
