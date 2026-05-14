@@ -746,9 +746,10 @@ class FilterConfig(BaseModel):
         ...,
         min_length=1,
         max_length=255,
-        # No regex pattern: sanitize_column() already blocks XSS/SQL injection;
-        # many valid column names (digit-prefixed, locale chars, etc.) would
-        # be rejected by a strict pattern while posing no security risk.
+        # No regex pattern: sanitize_column() blocks XSS/SQL injection with
+        # check_sql_keywords=True (tightened from master, which had no SQL check
+        # here). Column names that are exact SQL keywords (e.g. "update", "delete")
+        # will be rejected; real-world identifiers like "deleted_at" are fine.
         # Use get_dataset_info to find exact column names.
         validation_alias=AliasChoices("column", "col"),
     )
@@ -1090,7 +1091,10 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         ),
         min_length=1,
         max_length=255,
-        # No regex pattern — see field description above.
+        # No regex pattern: sanitize_temporal_column() blocks XSS/SQL injection
+        # with check_sql_keywords=True (this PR adds the validator; previously
+        # there was only a regex with no sanitizer). Exact SQL keywords as column
+        # names will be rejected; compound identifiers like "created_date" are fine.
     )
 
     @field_validator("temporal_column")

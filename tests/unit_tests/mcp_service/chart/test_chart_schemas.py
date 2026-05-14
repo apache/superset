@@ -818,6 +818,7 @@ class TestColumnRefNameRelaxedPattern:
         try:
             col = ColumnRef(name="<script>alert(1)</script>")
             assert "<script>" not in col.name
+            assert "alert" not in col.name  # inner payload must not survive either
             assert col.name  # sanitized result must not be empty
         except ValidationError as exc:
             # nh3 stripped entire element; empty-value guard raises with this message
@@ -926,6 +927,18 @@ class TestBigNumberTemporalColumnRelaxedPattern:
                 },
             )
 
+    def test_event_handler_injection_blocked(self) -> None:
+        """sanitize_temporal_column rejects event-handler injection (on...= pattern)."""
+        with pytest.raises(ValidationError):
+            GenerateChartRequest(
+                dataset_id=1,
+                config={
+                    "chart_type": "big_number",
+                    "metric": {"name": "revenue", "aggregate": "SUM"},
+                    "temporal_column": "date onclick=alert(1)",
+                },
+            )
+
 
 class TestLocaleColumnNamesAccepted:
     """Non-ASCII column names that are valid dataset identifiers must be accepted."""
@@ -970,4 +983,4 @@ class TestFormatSingleError:
         detail, suggestion = SchemaValidator._format_single_error(err)
         assert "Input should be" in detail
         assert "'aggregate'" in detail
-        assert suggestion == ""
+        assert suggestion is None

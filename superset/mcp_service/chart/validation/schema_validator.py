@@ -526,7 +526,7 @@ class SchemaValidator:
         return True, None
 
     @staticmethod
-    def _format_single_error(err: Dict[str, Any]) -> tuple[str, str]:
+    def _format_single_error(err: Dict[str, Any]) -> tuple[str, str | None]:
         """Return (detail_message, optional_suggestion) for one pydantic error."""
         loc_parts = [str(p) for p in err.get("loc", [])]
         loc = " -> ".join(loc_parts)
@@ -544,7 +544,7 @@ class SchemaValidator:
         if err_type == "literal_error":
             # Preserve the pydantic message ("Input should be ...") which is
             # already human-readable; just prefix with the field name for context.
-            return f"'{field}': {msg}", ""
+            return f"'{field}': {msg}", None
         if err_type == "missing":
             return (
                 f"Required field '{field}' is missing",
@@ -555,7 +555,7 @@ class SchemaValidator:
                 f"{loc}: {msg}",
                 "Use get_dataset_info to verify column names and types",
             )
-        return f"{loc}: {msg}", ""
+        return f"{loc}: {msg}", None
 
     @staticmethod
     def _enhance_validation_error(
