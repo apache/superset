@@ -48,7 +48,7 @@ from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
-from superset.models.helpers import SKIP_VISIBILITY_FILTER
+from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 
 T = TypeVar("T", bound=CoreModel)
 
@@ -190,7 +190,9 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         """
         query = db.session.query(cls.model_cls)
         if skip_visibility_filter:
-            query = query.execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
         if cls.base_filter and not skip_base_filter:
             data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
@@ -273,7 +275,9 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         """
         query = db.session.query(cls.model_cls)
         if skip_visibility_filter:
-            query = query.execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
         query = cls._apply_base_filter(query, skip_base_filter)
 
         if query_options:
@@ -373,7 +377,9 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         query = db.session.query(cls.model_cls)
         if skip_visibility_filter:
-            query = query.execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
         query = query.filter(id_col.in_(converted_ids))
         query = cls._apply_base_filter(query, skip_base_filter)
 

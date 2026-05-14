@@ -16,10 +16,11 @@
 # under the License.
 """Tests for SoftDeleteMixin and the do_orm_execute visibility filter.
 
-These tests use a synthetic model (``_SoftDeletable``) rather than a real
-Superset entity (Slice / Dashboard / SqlaTable). Real entities acquire
-the mixin in their respective entity-rollout PRs; the infrastructure
-itself is verified here in isolation.
+Synthetic models (``_SoftDeletable`` + ``_SoftDeletableTwo``) rather than
+real Superset entities so the infrastructure is exercised in isolation
+from any concrete adoption. Two soft-deletable models lets us pin
+per-class scoping: a bypass for one class must not unhide soft-deleted
+rows of the other.
 """
 
 from __future__ import annotations
@@ -28,11 +29,15 @@ from collections.abc import Generator
 from datetime import datetime
 
 import pytest
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm.session import Session
 
-from superset.models.helpers import SKIP_VISIBILITY_FILTER, SoftDeleteMixin
+from superset.models.helpers import (
+    skip_visibility_filter,
+    SKIP_VISIBILITY_FILTER_CLASSES,
+    SoftDeleteMixin,
+)
 
 _TestBase = declarative_base()
 
@@ -46,15 +51,48 @@ class _SoftDeletable(SoftDeleteMixin, _TestBase):  # type: ignore[misc, valid-ty
     name = Column(String, nullable=False)
 
 
+class _SoftDeletableTwo(SoftDeleteMixin, _TestBase):  # type: ignore[misc, valid-type]
+    """A second soft-deletable model so isolation tests can prove a
+    bypass for one class does not affect the other."""
+
+    __tablename__ = "_soft_deletable_test_two"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+
+
+class _SoftDeletableParent(_TestBase):  # type: ignore[misc, valid-type]
+    """A non-soft-deletable parent so relationship-load tests can verify
+    that ``with_loader_criteria``'s ``propagate_to_loaders`` carries the
+    per-class criteria along to lazy/selectin loads."""
+
+    __tablename__ = "_soft_deletable_parent"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    children = relationship("_SoftDeletableChild", back_populates="parent")
+
+
+class _SoftDeletableChild(  # type: ignore[misc, valid-type]
+    SoftDeleteMixin, _TestBase
+):
+    __tablename__ = "_soft_deletable_child"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    parent_id = Column(Integer, ForeignKey("_soft_deletable_parent.id"))
+    parent = relationship("_SoftDeletableParent", back_populates="children")
+
+
 @pytest.fixture
-def _synthetic_table(session: Session) -> Generator[None, None, None]:
-    """Create the synthetic table for the test session and drop it after."""
-    _SoftDeletable.metadata.create_all(session.get_bind())
+def _synthetic_tables(session: Session) -> Generator[None, None, None]:
+    """Create the synthetic tables for the test session and drop them after."""
+    _TestBase.metadata.create_all(session.get_bind())
     yield
-    _SoftDeletable.metadata.drop_all(session.get_bind())
+    _TestBase.metadata.drop_all(session.get_bind())
 
 
-@pytest.mark.usefixtures("_synthetic_table")
+@pytest.mark.usefixtures("_synthetic_tables")
 def test_soft_delete_sets_deleted_at(app_context: None, session: Session) -> None:
     """soft_delete() sets deleted_at to a non-null datetime."""
     obj = _SoftDeletable(name="row1")
@@ -72,7 +110,7 @@ def test_soft_delete_sets_deleted_at(app_context: None, session: Session) -> Non
     assert obj.is_deleted
 
 
-@pytest.mark.usefixtures("_synthetic_table")
+@pytest.mark.usefixtures("_synthetic_tables")
 def test_restore_clears_deleted_at(app_context: None, session: Session) -> None:
     """restore() clears deleted_at back to None."""
     obj = _SoftDeletable(name="row1")
@@ -89,7 +127,7 @@ def test_restore_clears_deleted_at(app_context: None, session: Session) -> None:
     assert not obj.is_deleted
 
 
-@pytest.mark.usefixtures("_synthetic_table")
+@pytest.mark.usefixtures("_synthetic_tables")
 def test_where_not_deleted_filter_clause(app_context: None, session: Session) -> None:
     """where_not_deleted() returns a SQL WHERE clause usable in queries."""
     active = _SoftDeletable(name="active")
@@ -103,7 +141,7 @@ def test_where_not_deleted_filter_clause(app_context: None, session: Session) ->
     results = (
         session.query(_SoftDeletable)
         .filter(_SoftDeletable.where_not_deleted())
-        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {_SoftDeletable}})
         .all()
     )
 
@@ -111,7 +149,7 @@ def test_where_not_deleted_filter_clause(app_context: None, session: Session) ->
     assert results[0].name == "active"
 
 
-@pytest.mark.usefixtures("_synthetic_table")
+@pytest.mark.usefixtures("_synthetic_tables")
 def test_global_filter_excludes_soft_deleted_rows(
     app_context: None, session: Session
 ) -> None:
@@ -131,12 +169,15 @@ def test_global_filter_excludes_soft_deleted_rows(
     assert result is None
 
 
-@pytest.mark.usefixtures("_synthetic_table")
-def test_skip_visibility_filter_returns_soft_deleted_rows(
+@pytest.mark.usefixtures("_synthetic_tables")
+def test_per_query_class_bypass_returns_soft_deleted_rows(
     app_context: None, session: Session
 ) -> None:
-    """The skip_visibility_filter execution option makes soft-deleted rows
-    visible (needed by restore commands and admin tooling)."""
+    """Per-query bypass set on ``execution_options`` (scoped to a specific
+    class) makes that class's soft-deleted rows visible. Used by
+    ``BaseDAO.find_by_id(skip_visibility_filter=True)``,
+    ``find_existing_for_import``, and ``raise_for_ownership``.
+    """
     obj = _SoftDeletable(name="soon_deleted")
     session.add(obj)
     session.flush()
@@ -148,7 +189,7 @@ def test_skip_visibility_filter_returns_soft_deleted_rows(
 
     visible = (
         session.query(_SoftDeletable)
-        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {_SoftDeletable}})
         .filter(_SoftDeletable.id == obj_id)
         .one_or_none()
     )
@@ -156,15 +197,51 @@ def test_skip_visibility_filter_returns_soft_deleted_rows(
     assert visible.name == "soon_deleted"
 
 
-@pytest.mark.usefixtures("_synthetic_table")
+@pytest.mark.usefixtures("_synthetic_tables")
+def test_per_query_bypass_for_one_class_does_not_unhide_other(
+    app_context: None, session: Session
+) -> None:
+    """A per-query bypass scoped to ``_SoftDeletable`` does not let a
+    statement that also queries ``_SoftDeletableTwo`` see its soft-deleted
+    rows. Pins per-class scoping at the listener level: the loader
+    criteria evaluates the bypass set per concrete subclass, not as a
+    blanket exemption.
+    """
+    one = _SoftDeletable(name="one")
+    two = _SoftDeletableTwo(name="two")
+    session.add_all([one, two])
+    session.flush()
+    one.soft_delete()
+    two.soft_delete()
+    session.flush()
+    session.expire_all()
+
+    # Bypass scoped to _SoftDeletable only.
+    one_seen = (
+        session.query(_SoftDeletable)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {_SoftDeletable}})
+        .one_or_none()
+    )
+    assert one_seen is not None
+    assert one_seen.name == "one"
+
+    # Same execution_options on a query for the OTHER class. _SoftDeletableTwo
+    # is not in the bypass set, so it stays filtered.
+    two_seen = (
+        session.query(_SoftDeletableTwo)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {_SoftDeletable}})
+        .one_or_none()
+    )
+    assert two_seen is None
+
+
+@pytest.mark.usefixtures("_synthetic_tables")
 def test_get_without_bypass_filters_out_soft_deleted_row(
     app_context: None, session: Session
 ) -> None:
-    """Baseline: ``Query.get()`` without the bypass option does not find
-    soft-deleted rows. ``session.expunge_all()`` removes the instance
-    from the identity map so ``.get()`` is forced to issue SQL through
-    the listener (otherwise it short-circuits on the cached instance
-    and never exercises the filter).
+    """Baseline: ``Query.get()`` without bypass does not find soft-deleted
+    rows. ``session.expunge_all()`` empties the identity map so ``.get()``
+    is forced to issue SQL through the listener.
     """
     obj = _SoftDeletable(name="hidden_by_listener")
     session.add(obj)
@@ -182,20 +259,14 @@ def test_get_without_bypass_filters_out_soft_deleted_row(
     )
 
 
-@pytest.mark.usefixtures("_synthetic_table")
+@pytest.mark.usefixtures("_synthetic_tables")
 def test_per_query_bypass_via_get_finds_soft_deleted_row(
     app_context: None, session: Session
 ) -> None:
-    """The per-query ``execution_options(skip_visibility_filter=True)`` bypass
-    propagates through ``Query.get()`` to the listener. This is the
-    path ``security_manager.raise_for_ownership`` relies on so it can
-    look up the resource's current owners even when the resource is
-    soft-deleted.
-
-    Uses ``session.expunge_all()`` rather than ``expire_all()`` so the
-    instance is removed from the identity map entirely, forcing
-    ``.get()`` to issue SQL through the listener — the path where the
-    bypass actually matters.
+    """Per-query class bypass propagates through ``Query.get()`` — the
+    path ``security_manager.raise_for_ownership`` relies on. Identity-map
+    cleared via ``session.expunge_all()`` to force SQL through the
+    listener.
     """
     obj = _SoftDeletable(name="per_query_via_get")
     session.add(obj)
@@ -208,17 +279,210 @@ def test_per_query_bypass_via_get_finds_soft_deleted_row(
 
     result = (
         session.query(_SoftDeletable)
-        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {_SoftDeletable}})
         .get(obj_id)
     )
 
     assert result is not None, (
-        "per-query bypass should let .get() find soft-deleted row"
+        "per-query class bypass should let .get() find soft-deleted row"
     )
     assert result.deleted_at is not None
 
 
-@pytest.mark.usefixtures("_synthetic_table")
+@pytest.mark.usefixtures("_synthetic_tables")
+def test_session_bypass_survives_query_reconstruction(
+    app_context: None, session: Session
+) -> None:
+    """The FAB list-endpoint failure mode: a derived query is built from
+    a fresh ``session.query(Model)`` (no ``execution_options``) and
+    joined to a previously-filtered subquery. Per-query
+    ``execution_options`` would not survive that construction. Per-session
+    bypass via ``session.info`` does — because the listener reads from
+    ``execute_state.session.info`` regardless of how the statement was
+    built.
+    """
+    obj = _SoftDeletable(name="visible_via_session_bypass")
+    session.add(obj)
+    session.flush()
+    obj_id = obj.id
+
+    obj.soft_delete()
+    session.flush()
+    session.expire_all()
+
+    # Set up a FAB-style fork: an "inner" query that selects the row's id
+    # via the bypass, then an outer query that joins to the inner as a
+    # subquery — but the outer query is built fresh from session.query()
+    # and has NO execution_options on it. This is exactly the shape that
+    # SQLAInterface.get_outer_query_from_inner_query produces.
+    session.info[SKIP_VISIBILITY_FILTER_CLASSES] = {_SoftDeletable}
+
+    inner_subquery = (
+        session.query(_SoftDeletable.id).filter(_SoftDeletable.id == obj_id).subquery()
+    )
+    outer = session.query(_SoftDeletable).join(
+        inner_subquery, _SoftDeletable.id == inner_subquery.c.id
+    )
+    rows = outer.all()
+
+    # Clean up so subsequent tests in the same session see a fresh state.
+    session.info.pop(SKIP_VISIBILITY_FILTER_CLASSES, None)
+
+    assert len(rows) == 1
+    assert rows[0].id == obj_id
+    assert rows[0].deleted_at is not None
+
+
+@pytest.mark.usefixtures("_synthetic_tables")
+def test_session_bypass_does_not_leak_across_classes(
+    app_context: None, session: Session
+) -> None:
+    """A session-level bypass for ``_SoftDeletable`` only does NOT make
+    soft-deleted ``_SoftDeletableTwo`` rows visible — even though both
+    queries run on the same session that has the bypass flag set. The
+    per-class scoping in the listener's loader-criteria lambda is what
+    prevents this leak.
+    """
+    one = _SoftDeletable(name="one")
+    two = _SoftDeletableTwo(name="two")
+    session.add_all([one, two])
+    session.flush()
+    one.soft_delete()
+    two.soft_delete()
+    session.flush()
+    session.expire_all()
+
+    session.info[SKIP_VISIBILITY_FILTER_CLASSES] = {_SoftDeletable}
+    try:
+        one_seen = session.query(_SoftDeletable).one_or_none()
+        two_seen = session.query(_SoftDeletableTwo).one_or_none()
+    finally:
+        session.info.pop(SKIP_VISIBILITY_FILTER_CLASSES, None)
+
+    assert one_seen is not None
+    assert one_seen.name == "one"
+    assert two_seen is None, (
+        "_SoftDeletableTwo should still be filtered — only _SoftDeletable "
+        "is in the bypass set"
+    )
+
+
+@pytest.mark.usefixtures("_synthetic_tables")
+def test_context_manager_adds_and_removes_bypass(
+    app_context: None, session: Session
+) -> None:
+    """``skip_visibility_filter`` context manager adds classes on entry,
+    removes them on exit, restoring the prior visibility state.
+    """
+    obj = _SoftDeletable(name="cm_target")
+    session.add(obj)
+    session.flush()
+    obj_id = obj.id
+
+    obj.soft_delete()
+    session.flush()
+    session.expire_all()
+
+    # Filtered before the block.
+    assert (
+        session.query(_SoftDeletable).filter(_SoftDeletable.id == obj_id).one_or_none()
+        is None
+    )
+
+    # Visible inside the block.
+    with skip_visibility_filter(session, _SoftDeletable):
+        inside = (
+            session.query(_SoftDeletable)
+            .filter(_SoftDeletable.id == obj_id)
+            .one_or_none()
+        )
+        assert inside is not None
+        assert inside.id == obj_id
+
+    # Filtered again after the block (state restored).
+    session.expire_all()
+    assert (
+        session.query(_SoftDeletable).filter(_SoftDeletable.id == obj_id).one_or_none()
+        is None
+    )
+
+
+@pytest.mark.usefixtures("_synthetic_tables")
+def test_context_manager_nested_preserves_outer_scope(
+    app_context: None, session: Session
+) -> None:
+    """Nested ``skip_visibility_filter`` blocks compose correctly: an
+    inner block only removes the classes it added, so the outer block's
+    bypass remains in effect after the inner exits.
+    """
+    one = _SoftDeletable(name="outer_target")
+    two = _SoftDeletableTwo(name="inner_target")
+    session.add_all([one, two])
+    session.flush()
+    one.soft_delete()
+    two.soft_delete()
+    session.flush()
+    session.expire_all()
+
+    with skip_visibility_filter(session, _SoftDeletable):
+        # Outer bypass: _SoftDeletable visible, _SoftDeletableTwo still filtered.
+        assert session.query(_SoftDeletable).one_or_none() is not None
+        assert session.query(_SoftDeletableTwo).one_or_none() is None
+
+        with skip_visibility_filter(session, _SoftDeletableTwo):
+            # Both visible inside the inner block.
+            session.expire_all()
+            assert session.query(_SoftDeletable).one_or_none() is not None
+            assert session.query(_SoftDeletableTwo).one_or_none() is not None
+
+        # Inner exited — _SoftDeletableTwo back to filtered, outer still
+        # in effect.
+        session.expire_all()
+        assert session.query(_SoftDeletable).one_or_none() is not None
+        assert session.query(_SoftDeletableTwo).one_or_none() is None
+
+    # Outermost exited — both filtered.
+    session.expire_all()
+    assert session.query(_SoftDeletable).one_or_none() is None
+    assert session.query(_SoftDeletableTwo).one_or_none() is None
+
+
+@pytest.mark.usefixtures("_synthetic_tables")
+def test_relationship_load_filters_child_independently_of_parent_bypass(
+    app_context: None, session: Session
+) -> None:
+    """``with_loader_criteria(..., propagate_to_loaders=True)`` carries
+    the criteria *function* along to relationship loads, where it is
+    re-evaluated per concrete child class. So even if the parent's
+    statement is processed with a bypass set, a lazy/selectin load of
+    soft-deletable children whose class is NOT in the bypass set still
+    gets filtered.
+    """
+    parent = _SoftDeletableParent(name="p")
+    live_child = _SoftDeletableChild(name="live")
+    deleted_child = _SoftDeletableChild(name="deleted")
+    parent.children = [live_child, deleted_child]
+    session.add(parent)
+    session.flush()
+    deleted_child.soft_delete()
+    session.flush()
+    session.expunge_all()
+
+    # Parent itself isn't soft-deletable; bypass set has no effect on the
+    # parent query. But _SoftDeletableChild is soft-deletable, and is NOT
+    # in the bypass set, so children should be filtered via propagation.
+    session.info[SKIP_VISIBILITY_FILTER_CLASSES] = {_SoftDeletable}
+    try:
+        p = session.query(_SoftDeletableParent).first()
+        assert p is not None
+        kids = list(p.children)
+    finally:
+        session.info.pop(SKIP_VISIBILITY_FILTER_CLASSES, None)
+
+    assert [c.name for c in kids] == ["live"]
+
+
+@pytest.mark.usefixtures("_synthetic_tables")
 def test_session_delete_permanently_removes_row(
     app_context: None, session: Session
 ) -> None:
@@ -236,7 +500,7 @@ def test_session_delete_permanently_removes_row(
 
     result = (
         session.query(_SoftDeletable)
-        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {_SoftDeletable}})
         .filter(_SoftDeletable.id == obj_id)
         .one_or_none()
     )

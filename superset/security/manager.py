@@ -3549,22 +3549,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Note admins are deemed owners of all resources.
 
         The internal re-query opts out of the soft-delete visibility
-        listener via ``execution_options(skip_visibility_filter=True)`` so
-        callers passing a soft-deleted resource (e.g.,
-        ``BaseRestoreCommand``) get the correct ownership decision. Be
-        aware that with SQLAlchemy's ``with_loader_criteria`` semantics,
-        this bypass also propagates to subsequent lazy loads of
-        ``SoftDeleteMixin`` children from ``orig_resource``. The only
-        relationship currently read here is ``.owners`` (User, not
-        soft-deletable), so the propagation is harmless. If this function
-        is extended to access soft-deletable relationships of
-        ``orig_resource``, consider whether the bypass should follow.
+        listener via ``execution_options(_skip_visibility_filter_classes=
+        {resource.__class__})`` so callers passing a soft-deleted resource
+        (e.g., ``BaseRestoreCommand``) get the correct ownership
+        decision. The bypass is scoped to ``resource.__class__`` only —
+        any soft-deletable relationships read from ``orig_resource``
+        (none today; ``.owners`` is a User) remain filtered.
 
         :param resource: The dashboard, dataset, chart, etc. resource
         :raises SupersetSecurityException: If the current user is not an owner
         """
         from superset.models.helpers import (  # pylint: disable=import-outside-toplevel  # noqa: E501
-            SKIP_VISIBILITY_FILTER,
+            SKIP_VISIBILITY_FILTER_CLASSES,
         )
 
         if self.is_admin():
@@ -3574,12 +3570,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # listener for any ``SoftDeleteMixin`` model. Callers that have
         # intentionally loaded a soft-deleted resource (e.g.,
         # ``BaseRestoreCommand``) need the re-query to see the row so the
-        # owners list can be read. Attach the bypass as a per-query
-        # execution option so the scope is exactly this one statement —
-        # nothing else in the request is affected.
+        # owners list can be read. Attach the bypass scoped to this
+        # resource's class only — the per-query option is enough here
+        # because ``.get()`` resolves directly without going through any
+        # framework that strips options.
         orig_resource = (
             self.session.query(resource.__class__)
-            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {resource.__class__}})
             .get(resource.id)
         )
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []

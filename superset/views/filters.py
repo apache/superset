@@ -26,7 +26,7 @@ from sqlalchemy.orm import Query
 
 from superset import security_manager
 from superset.extensions import db
-from superset.models.helpers import SKIP_VISIBILITY_FILTER
+from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 
 logger = logging.getLogger(__name__)
 
@@ -141,17 +141,19 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
 
     Scope decisions:
 
-      * The visibility-filter bypass is applied **per-query** via
-        ``query.execution_options(skip_visibility_filter=True)`` so it
-        affects only the primary list query for this entity, not any
-        incidental relationship loads or helper queries the request
-        might issue against other ``SoftDeleteMixin`` models.
+      * The visibility-filter bypass is applied at the **session** level
+        and scoped to the filter's own ``model`` class only. FAB list
+        endpoints construct multiple statements per request (count, then
+        an inner + outer pair for many-to-many ``list_columns``) and the
+        outer fetch is built from a fresh ``session.query(self.obj)``
+        that drops per-query ``execution_options``. Session-scoped
+        bypass survives that reconstruction; per-class scoping prevents
+        the bypass from unhiding soft-deleted rows of any *other*
+        ``SoftDeleteMixin`` entity that the request might touch.
       * The response-augmentation step (which adds a ``deleted_at``
         field to each result row) is signalled via a separate
         request-scoped flag ``g._augment_response_with_deleted_at``.
-        Keeping the two concerns separate prevents the broad
-        per-request bypass from leaking soft-deleted rows of unrelated
-        entities into the response.
+        Two concerns, two channels.
     """
 
     name = lazy_gettext("Deleted state")
@@ -161,13 +163,22 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         normalized = str(value).lower().strip() if value is not None else ""
         if normalized == "include":
             self._mark_response_for_deleted_at_augmentation()
-            return query.execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            self._add_session_bypass(query)
+            return query
         if normalized == "only":
             self._mark_response_for_deleted_at_augmentation()
-            return query.execution_options(**{SKIP_VISIBILITY_FILTER: True}).filter(
-                self.model.deleted_at.is_not(None)
-            )
+            self._add_session_bypass(query)
+            return query.filter(self.model.deleted_at.is_not(None))
         return query
+
+    def _add_session_bypass(self, query: Query) -> None:
+        """Add ``self.model`` to the session's bypass class set, so the
+        listener stops filtering this entity for the duration of the
+        session (request). Cleared at request teardown when the scoped
+        session is removed.
+        """
+        bypass = query.session.info.setdefault(SKIP_VISIBILITY_FILTER_CLASSES, set())
+        bypass.add(self.model)
 
     @staticmethod
     def _mark_response_for_deleted_at_augmentation() -> None:
@@ -175,8 +186,8 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         opted into surfacing soft-deleted rows, so the response rows
         should be augmented with their ``deleted_at`` value.
 
-        Distinct from the visibility-filter bypass, which is applied
-        per-query on the list query itself.
+        Distinct from the visibility-filter bypass, which is applied at
+        the session level on the filter's own model class.
         """
         setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, True)
 
@@ -229,7 +240,7 @@ class SoftDeleteApiMixin:
         pk_col = getattr(self.datamodel.obj, pk_name)
         rows = (
             db.session.query(pk_col, self.datamodel.obj.deleted_at)
-            .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {self.datamodel.obj}})
             .filter(pk_col.in_(ids))
             .all()
         )

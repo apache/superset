@@ -25,7 +25,8 @@ import dataclasses
 import logging
 import re
 import uuid
-from collections.abc import Hashable
+from collections.abc import Hashable, Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import (
     Any,
@@ -58,7 +59,7 @@ from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapper, validates, with_loader_criteria
+from sqlalchemy.orm import Mapper, Session, validates, with_loader_criteria
 from sqlalchemy.orm.session import ORMExecuteState
 from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
@@ -659,7 +660,7 @@ class AuditMixinNullable(AuditMixin):
         return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')  # noqa: S704
 
 
-SKIP_VISIBILITY_FILTER = "skip_visibility_filter"
+SKIP_VISIBILITY_FILTER_CLASSES = "_skip_visibility_filter_classes"
 
 
 class SoftDeleteMixin:
@@ -673,9 +674,10 @@ class SoftDeleteMixin:
     deleted.  Use ``BaseDAO.delete()`` (which calls ``session.delete()``)
     for permanent hard deletion.
 
-    See also: ``_add_soft_delete_filter`` (the listener function) and
-    ``SKIP_VISIBILITY_FILTER`` (the execution-option key used to opt out
-    of the filter in restore commands and admin tooling).
+    The listener can be bypassed per-entity, either for one statement (via
+    ``execution_options``) or for a session-scoped block (via
+    ``session.info`` / the ``skip_visibility_filter`` context manager).
+    See ``_add_soft_delete_filter`` for the precise semantics.
     """
 
     deleted_at = sa.Column(sa.DateTime, nullable=True, index=True)
@@ -710,25 +712,42 @@ class SoftDeleteMixin:
         self.deleted_at = None
 
 
-def _should_apply_soft_delete_filter(execute_state: ORMExecuteState) -> bool:
-    """Whether the listener should attach the soft-delete criterion to
-    this statement.
+def _collect_bypass_classes(execute_state: ORMExecuteState) -> set[type]:
+    """Union of bypass class sets from per-query and per-session sources.
 
-    Skips relationship and column loader paths: those re-execute against
-    already-loaded parents and re-applying the criteria stacks redundant
-    ``deleted_at IS NULL`` clauses (also explicitly excluded in
-    SQLAlchemy's documented soft-delete pattern at
-    https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295).
+    Per-query: ``execution_options[SKIP_VISIBILITY_FILTER_CLASSES]`` — set
+    by ``BaseDAO.find_by_id(skip_visibility_filter=True)``,
+    ``find_existing_for_import``, ``raise_for_ownership``, etc., for
+    narrow one-statement bypass.
+
+    Per-session: ``session.info[SKIP_VISIBILITY_FILTER_CLASSES]`` — set by
+    ``BaseDeletedStateFilter.apply`` and the ``skip_visibility_filter``
+    context manager, for request-scoped bypass across multiple queries
+    issued on the same session (e.g., FAB list endpoints that build a
+    count query plus an inner+outer pair, where per-query options are
+    stripped between count and outer fetch).
     """
-    caller_opted_out = execute_state.execution_options.get(
-        SKIP_VISIBILITY_FILTER, False
+    per_query = execute_state.execution_options.get(
+        SKIP_VISIBILITY_FILTER_CLASSES, set()
     )
-    is_primary_user_select = (
-        execute_state.is_select
-        and not execute_state.is_column_load
-        and not execute_state.is_relationship_load
-    )
-    return is_primary_user_select and not caller_opted_out
+    per_session = execute_state.session.info.get(SKIP_VISIBILITY_FILTER_CLASSES, set())
+    return set(per_query) | set(per_session)
+
+
+def _all_soft_delete_subclasses() -> set[type]:
+    """All concrete ``SoftDeleteMixin`` subclasses, transitively. Walks
+    the inheritance tree so an intermediate abstract subclass between
+    the mixin and a concrete model does not hide leaf classes.
+    """
+    seen: set[type] = set()
+    todo = list(SoftDeleteMixin.__subclasses__())
+    while todo:
+        cls = todo.pop()
+        if cls in seen:
+            continue
+        seen.add(cls)
+        todo.extend(cls.__subclasses__())
+    return seen
 
 
 def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
@@ -736,27 +755,83 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
     soft-deleted rows from every ORM SELECT.
 
     Uses SQLAlchemy's recommended soft-delete pattern
-    (``do_orm_execute`` + ``with_loader_criteria``).
+    (``do_orm_execute`` + ``with_loader_criteria`` — see
+    https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295).
 
-    Opt-out: attach
-    ``execution_options(skip_visibility_filter=True)`` to a Query (or
-    pass ``skip_visibility_filter=True`` to ``BaseDAO.find_by_id`` /
-    ``find_by_uuid`` / etc.). The option is scoped to the single
-    statement it is attached to, so other queries in the same request
-    are unaffected. Works with ``Query.get()``, ``Query.one_or_none()``,
-    ``Query.all()``, etc. Listener-internal callers include
-    ``security_manager.raise_for_ownership`` (which uses the option on
-    its internal re-query so soft-deleted resources can be
-    ownership-checked).
+    Skips relationship and column loader paths: those propagate the
+    criteria from the parent statement via
+    ``with_loader_criteria(..., propagate_to_loaders=True)`` (the default)
+    rather than re-attaching it here, which would stack redundant
+    ``deleted_at IS NULL`` clauses.
+
+    Per-class scoping: the listener iterates concrete ``SoftDeleteMixin``
+    subclasses and attaches a ``with_loader_criteria`` only for those
+    NOT in the request's bypass set. A bypass for ``Dashboard`` therefore
+    does not unhide soft-deleted ``Slice`` or ``SqlaTable`` rows in the
+    same statement. Each criteria is a concrete SQL expression rather
+    than a callable, so SQLAlchemy compiles it normally (passing a
+    callable triggers ``DeferredLambdaElement`` parsing, which does not
+    support Python control flow like ``if cls in bypass``).
+
+    Opt-out:
+
+    * **One statement**: attach
+      ``execution_options(_skip_visibility_filter_classes={Model})`` to a
+      Query, or pass ``skip_visibility_filter=True`` to ``BaseDAO``
+      methods (which translate the boolean into a one-class set
+      internally).
+    * **Session-scoped**: set
+      ``session.info[SKIP_VISIBILITY_FILTER_CLASSES] = {Model, ...}`` or
+      use the ``skip_visibility_filter`` context manager. Survives FAB's
+      inner/outer query reconstruction (and any future framework that
+      strips per-query options).
     """
-    if _should_apply_soft_delete_filter(execute_state):
+    if (
+        not execute_state.is_select
+        or execute_state.is_column_load
+        or execute_state.is_relationship_load
+    ):
+        return
+
+    bypass_classes = _collect_bypass_classes(execute_state)
+
+    for cls in _all_soft_delete_subclasses():
+        if cls in bypass_classes:
+            continue
         execute_state.statement = execute_state.statement.options(
             with_loader_criteria(
-                SoftDeleteMixin,
-                lambda cls: cls.where_not_deleted(),
+                cls,
+                cls.where_not_deleted(),
                 include_aliases=True,
             )
         )
+
+
+@contextmanager
+def skip_visibility_filter(session: Session, *classes: type) -> Iterator[None]:
+    """Bypass the soft-delete listener for the given classes within this
+    session for the duration of the ``with`` block.
+
+    Adds ``classes`` to ``session.info[SKIP_VISIBILITY_FILTER_CLASSES]``
+    on entry and removes them on exit, restoring the prior state. Nesting
+    is safe: an inner block only removes the classes *it* added, so the
+    outer block's bypass remains in effect.
+
+    Usage::
+
+        with skip_visibility_filter(session, Dashboard):
+            return session.query(Dashboard).filter_by(uuid=u).first()
+
+    Prefer this over manually setting ``session.info`` so the cleanup is
+    guaranteed even on exceptions.
+    """
+    bypass = session.info.setdefault(SKIP_VISIBILITY_FILTER_CLASSES, set())
+    added = set(classes) - bypass
+    bypass.update(added)
+    try:
+        yield
+    finally:
+        bypass -= added
 
 
 class QueryResult:  # pylint: disable=too-few-public-methods

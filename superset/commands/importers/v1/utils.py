@@ -30,7 +30,7 @@ from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import feature_flag_manager
 from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
-from superset.models.helpers import SKIP_VISIBILITY_FILTER
+from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.tags.models import Tag, TaggedObject
 from superset.utils import json
 from superset.utils.core import check_is_safe_zip
@@ -424,7 +424,7 @@ def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
     """
     existing = (
         db.session.query(model_cls)
-        .execution_options(**{SKIP_VISIBILITY_FILTER: True})
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {model_cls}})
         .filter_by(uuid=uuid)
         .first()
     )
