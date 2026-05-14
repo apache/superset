@@ -945,7 +945,33 @@ test('shows all options when filterOption is false', async () => {
   await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
 
   const options = await findAllSelectOptions();
-  expect(options.length).toBeGreaterThan(0);
+  expect(options).toHaveLength(10);
+});
+
+test('preserves new option entry across search fetch when allowNewOptions is on', async () => {
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      return { data: page0Data, totalCount: 100 };
+    }
+    return { data: [], totalCount: 0 };
+  });
+
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />,
+  );
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  await type('newval');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+
+  const options = await findAllSelectOptions();
+  expect(options).toHaveLength(1);
+  expect(options[0]).toHaveTextContent('newval');
 });
 
 test('restores base options when search is cleared', async () => {

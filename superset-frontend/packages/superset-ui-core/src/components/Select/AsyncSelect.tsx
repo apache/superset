@@ -337,10 +337,23 @@ const AsyncSelect = forwardRef(
         const fetchOptions = options as SelectOptionsPagePromise;
         fetchOptions(search, page, pageSize)
           .then(({ data, totalCount }: SelectOptionsTypePage) => {
-            let resultData: SelectOptionsType;
+            let resultData: SelectOptionsType = data;
             if (search && page === 0) {
-              resultData = data.slice().sort(sortComparatorForNoSearch);
-              setSelectOptions(resultData);
+              // Preserve optimistic isNewOption entries inserted by
+              // handleOnSearch so allowNewOptions users can still click
+              // the value they typed when the server returns no match.
+              setSelectOptions((prevOptions: SelectOptionsType) => {
+                const dataValues = new Set(
+                  data.map((opt: SelectOptionsType[number]) => opt.value),
+                );
+                const preservedNew = prevOptions.filter(
+                  (opt: SelectOptionsType[number]) =>
+                    opt.isNewOption && !dataValues.has(opt.value),
+                );
+                return preservedNew
+                  .concat(data)
+                  .sort(sortComparatorForNoSearch);
+              });
             } else {
               resultData = mergeData(data);
               if (!search) {
@@ -512,6 +525,8 @@ const AsyncSelect = forwardRef(
       fetchedQueries.current.clear();
       setAllValuesLoaded(false);
       setSelectOptions(EMPTY_OPTIONS);
+      initialOptionsRef.current = EMPTY_OPTIONS;
+      wasSearchingRef.current = false;
     }, [options]);
 
     useEffect(() => {
