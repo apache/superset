@@ -331,9 +331,12 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     if not user:
         # Fail closed: JWT says this user should exist but they don't.
         # Do NOT fall through to MCP_DEV_USERNAME or stale g.user.
+        # Avoid echoing the JWT-extracted username in the exception message
+        # (CodeQL py/clear-text-logging-sensitive-data).
+        logger.debug("JWT-authenticated user not found in database (identity from JWT)")
         raise ValueError(
-            f"JWT authenticated user '{username}' not found in Superset database. "
-            f"Ensure the user exists before granting MCP access."
+            "JWT authenticated user not found in Superset database. "
+            "Ensure the user exists before granting MCP access."
         )
 
     return user
