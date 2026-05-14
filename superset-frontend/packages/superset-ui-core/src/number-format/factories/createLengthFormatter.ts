@@ -19,25 +19,29 @@
 
 import NumberFormatter from '../NumberFormatter';
 
-export default function createLengthFormatter(config: {
-  description?: string;
-  id?: string;
-  label?: string;
-  convertType?: string;
-}) {
+export type LengthConvertType = 'm => km' | 'cm => km' | 'cm => m';
+
+export default function createLengthFormatter(
+  config: {
+    description?: string;
+    id?: string;
+    label?: string;
+    convertType?: LengthConvertType;
+  } = {},
+) {
   const { description, id, label, convertType } = config;
 
   return new NumberFormatter({
     description,
     formatFunc: value => {
       if (convertType === 'm => km') {
-        return `${(value / 1000).toFixed(2).toString()}KM`;
+        return `${(value / 1000).toFixed(2)}km`;
       }
       if (convertType === 'cm => km') {
-        return `${(value / 100_000).toFixed(2).toString()}KM`;
+        return `${(value / 100_000).toFixed(2)}km`;
       }
       if (convertType === 'cm => m') {
-        return `${(value / 100).toFixed(2).toString()}M`;
+        return `${(value / 100).toFixed(2)}m`;
       }
       return value.toString();
     },
