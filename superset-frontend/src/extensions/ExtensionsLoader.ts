@@ -88,9 +88,6 @@ class ExtensionsLoader {
   public async initializeExtension(extension: Extension) {
     try {
       if (extension.remoteEntry) {
-        console.log(
-          `Loading extension: ${extension.name} from ${extension.remoteEntry}`,
-        );
         await this.loadModule(extension);
       }
       this.extensionIndex.set(extension.id, extension);
