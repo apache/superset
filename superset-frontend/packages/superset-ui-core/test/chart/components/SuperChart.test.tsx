@@ -19,7 +19,6 @@
 
 import '@testing-library/jest-dom';
 import { render, screen } from '@superset-ui/core/spec';
-import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -66,8 +65,6 @@ function getDimensionText(container: HTMLElement) {
 describe('SuperChart', () => {
   jest.setTimeout(5000);
 
-  let restoreConsole: RestoreConsole;
-
   const plugins = [
     new DiligentChartPlugin().configure({ key: ChartKeys.DILIGENT }),
     new BuggyChartPlugin().configure({ key: ChartKeys.BUGGY }),
@@ -80,12 +77,7 @@ describe('SuperChart', () => {
   });
 
   beforeEach(() => {
-    restoreConsole = mockConsole();
     triggerResizeObserver([]); // Reset any pending resize observers
-  });
-
-  afterEach(() => {
-    restoreConsole();
   });
 
   describe('includes ErrorBoundary', () => {

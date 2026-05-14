@@ -37,23 +37,45 @@ Each section maintains its own version history and can be versioned independentl
 
 To create a new version for any section, use the Docusaurus version command with the appropriate plugin ID or use our automated scripts:
 
+#### Before You Cut
+
+The cut snapshots whatever's on disk into a frozen historical version, including auto-generated content (database pages from `superset/db_engine_specs/`, API reference from `static/resources/openapi.json`, component pages from Storybook stories). The cut script refreshes these via `generate:smart` before snapshotting, but the **`databases.json` diagnostics file** needs special care to capture full detail:
+
+1. **Canonical release cut**: download the `database-diagnostics` artifact from a green `Python-Integration` run on master, place it at `docs/src/data/databases.json`, then run the cut script with `--skip-generate` to preserve it. This is what the production deploy uses and includes full Flask-context diagnostics (driver versions, feature support matrix, etc.).
+2. **Local dev cut**: just run the script normally. `generate:smart` will regenerate `databases.json` using your local Flask environment — accurate to whatever drivers/extras you have installed, but typically less complete than the CI artifact.
+3. **No Flask available**: also fine — the database generator falls back to AST parsing of engine spec files. The MDX pages are still correct; only the diagnostics JSON is leaner.
+
+Also: confirm `master` CI is green, and that your local checkout matches the SHA you intend to cut from.
+
 #### Using Automated Scripts (Required)
 
-**⚠️ Important:** Always use these custom commands instead of the native Docusaurus commands. These scripts ensure that both the Docusaurus versioning system AND the `versions-config.json` file are updated correctly.
+**⚠️ Important:** Always use these custom commands instead of the native Docusaurus commands. These scripts ensure that both the Docusaurus versioning system AND the `versions-config.json` file are updated correctly, AND that auto-generated content is refreshed before snapshotting.
 
 ```bash
 # Main Documentation
 yarn version:add:docs 1.2.0
 
-# Developer Portal
-yarn version:add:developer_portal 1.2.0
+# Admin Docs
+yarn version:add:admin_docs 1.2.0
 
-# Component Playground (when enabled)
+# Developer Docs
+yarn version:add:developer_docs 1.2.0
+
+# Component Playground
 yarn version:add:components 1.2.0
 ```
 
+What the script does:
+1. Refreshes auto-generated content via `generate:smart` (database pages, API reference, component pages).
+2. Calls `yarn docusaurus docs:version` (or the per-section equivalent) to snapshot the section.
+3. Freezes any data-file imports (`@site/static/*.json`, `../../data/*.json`) into a snapshot-local `_versioned_data/` dir so the historical version doesn't silently mutate when the source files change.
+4. Adjusts relative import paths (`../../src/...` → `../../../src/...`) for files now one directory deeper.
+5. Updates `versions-config.json` and `<section>_versions.json`.
+
 **Do NOT use** the native Docusaurus commands directly (`yarn docusaurus docs:version`), as they will:
 - ❌ Create version files but NOT update `versions-config.json`
+- ❌ Skip auto-gen refresh, freezing whatever was on disk
+- ❌ Skip data-import freezing, leaving the snapshot pointed at live data
 - ❌ Cause versions to not appear in dropdown menus
 - ❌ Require manual fixes to synchronize the configuration
 
@@ -91,8 +113,11 @@ If creating versions manually, you'll need to:
 # Main Documentation
 yarn version:remove:docs 1.0.0
 
-# Developer Portal
-yarn version:remove:developer_portal 1.0.0
+# Admin Docs
+yarn version:remove:admin_docs 1.0.0
+
+# Developer Docs
+yarn version:remove:developer_docs 1.0.0
 
 # Component Playground
 yarn version:remove:components 1.0.0
@@ -103,17 +128,20 @@ To manually remove a version:
 
 1. **Delete the version folder** from the appropriate location:
    - Main docs: `versioned_docs/version-X.X.X/` (no prefix for main)
-   - Developer Portal: `developer_portal_versioned_docs/version-X.X.X/`
+   - Admin Docs: `admin_docs_versioned_docs/version-X.X.X/`
+   - Developer Docs: `developer_docs_versioned_docs/version-X.X.X/`
    - Components: `components_versioned_docs/version-X.X.X/`
 
 2. **Delete the version metadata file**:
    - Main docs: `versioned_sidebars/version-X.X.X-sidebars.json` (no prefix)
-   - Developer Portal: `developer_portal_versioned_sidebars/version-X.X.X-sidebars.json`
+   - Admin Docs: `admin_docs_versioned_sidebars/version-X.X.X-sidebars.json`
+   - Developer Docs: `developer_docs_versioned_sidebars/version-X.X.X-sidebars.json`
    - Components: `components_versioned_sidebars/version-X.X.X-sidebars.json`
 
 3. **Update the versions list file**:
    - Main docs: `versions.json`
-   - Developer Portal: `developer_portal_versions.json`
+   - Admin Docs: `admin_docs_versions.json`
+   - Developer Docs: `developer_docs_versions.json`
    - Components: `components_versions.json`
 
 4. **Update configuration**:
@@ -145,12 +173,12 @@ docs: {
 }
 ```
 
-#### Developer Portal & Components (custom plugins)
+#### Developer Docs & Components (custom plugins)
 ```typescript
 {
-  id: 'developer_portal',
-  path: 'developer_portal',
-  routeBasePath: 'developer_portal',
+  id: 'developer_docs',
+  path: 'developer_docs',
+  routeBasePath: 'developer-docs',
   includeCurrentVersion: true,
   lastVersion: '1.1.0',  // Default version
   onlyIncludeVersions: ['current', '1.1.0', '1.0.0'],
@@ -194,7 +222,7 @@ For other issues:
 
 #### Broken Links in Versioned Documentation
 When creating a new version, links in the documentation are preserved as-is. Common issues:
-- **Cross-section links**: Links between sections (e.g., from developer_portal to docs) need to be version-aware
+- **Cross-section links**: Links between sections (e.g., from developer_docs to docs) need to be version-aware
 - **Absolute vs relative paths**: Use relative paths within the same section
 - **Version-specific URLs**: Update hardcoded URLs to use version variables
 
