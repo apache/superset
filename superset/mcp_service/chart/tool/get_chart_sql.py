@@ -43,6 +43,7 @@ from superset.mcp_service.chart.schemas import (
     GetChartSqlRequest,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.utils.core import split_adhoc_filters_into_base_filters
 
 logger = logging.getLogger(__name__)
 
@@ -221,12 +222,17 @@ def _build_mixed_timeseries_secondary(
     # query, mirroring how split_adhoc_filters_into_base_filters handles the
     # primary adhoc_filters in _build_query_context_from_form_data.
     if adhoc_filters_b := form_data.get("adhoc_filters_b"):
-        from superset.utils.core import split_adhoc_filters_into_base_filters
-
         secondary_fd: dict[str, Any] = {"adhoc_filters": adhoc_filters_b}
         split_adhoc_filters_into_base_filters(secondary_fd, engine)
         if secondary_filters := secondary_fd.get("filters"):
             qd["filters"] = secondary_filters
+        else:
+            qd.pop("filters", None)
+        for clause in ("where", "having"):
+            if secondary_clause := secondary_fd.get(clause):
+                qd[clause] = secondary_clause
+            else:
+                qd.pop(clause, None)
     return qd
 
 
