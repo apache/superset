@@ -25,9 +25,25 @@ from pydantic import ValidationError
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
     GenerateChartRequest,
+    GenerateChartResponse,
     TableChartConfig,
     XYChartConfig,
 )
+
+
+class TestGenerateChartResponse:
+    """Test GenerateChartResponse validation."""
+
+    def test_chart_type_label_accepted(self) -> None:
+        response = GenerateChartResponse.model_validate(
+            {
+                "success": True,
+                "chart_type_label": "table chart",
+                "form_data": {"viz_type": "table"},
+            }
+        )
+
+        assert response.chart_type_label == "table chart"
 
 
 class TestTableChartConfig:

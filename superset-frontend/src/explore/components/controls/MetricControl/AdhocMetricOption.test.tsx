@@ -61,7 +61,11 @@ function setup(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return render(<AdhocMetricOption {...(props as any)} />, { useDnd: true });
+  return render(<AdhocMetricOption {...(props as any)} />, {
+    useDnd: true,
+    useRedux: true,
+    initialState: { explore: {} },
+  });
 }
 
 test('renders an overlay trigger wrapper for the label', () => {

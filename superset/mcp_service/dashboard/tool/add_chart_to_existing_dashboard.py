@@ -334,7 +334,10 @@ def _find_and_authorize_dashboard(
             dashboard=None,
             dashboard_url=None,
             position=None,
-            error=f"Dashboard with ID {dashboard_id} not found",
+            error=(
+                f"Dashboard with ID {dashboard_id} not found."
+                " Use list_dashboards to get valid dashboard IDs."
+            ),
         )
 
     try:
@@ -392,7 +395,10 @@ def add_chart_to_existing_dashboard(
                     dashboard=None,
                     dashboard_url=None,
                     position=None,
-                    error=f"Chart with ID {request.chart_id} not found",
+                    error=(
+                        f"Chart with ID {request.chart_id} not found."
+                        " Use list_charts to get valid chart IDs."
+                    ),
                 )
 
             # Validate dataset access for the chart.
