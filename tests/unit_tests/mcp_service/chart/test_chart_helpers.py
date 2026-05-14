@@ -192,10 +192,13 @@ def test_prepare_form_data_for_query_merges_cached_and_request_extra_form_data(
     assert query["time_range"] == "No filter"
 
 
-def test_merge_form_data_filters_into_query_preserves_existing_query_fields():
+def test_merge_form_data_filters_into_query_applies_regular_overrides():
     query = {
         "filters": [{"col": "country", "op": "==", "val": "US"}],
         "time_range": "Last year",
+        "granularity": "created_at",
+        "time_grain": "P1Y",
+        "time_grain_sqla": "P1Y",
         "where": "region = 'NA'",
         "having": "SUM(num) > 10",
     }
@@ -205,6 +208,9 @@ def test_merge_form_data_filters_into_query_preserves_existing_query_fields():
         {
             "filters": [{"col": "gender", "op": "==", "val": "boy"}],
             "time_range": "No filter",
+            "granularity": "updated_at",
+            "time_grain": "P1D",
+            "time_grain_sqla": "P1D",
             "where": "name IS NOT NULL",
             "having": "COUNT(*) > 1",
         },
@@ -214,7 +220,10 @@ def test_merge_form_data_filters_into_query_preserves_existing_query_fields():
         {"col": "country", "op": "==", "val": "US"},
         {"col": "gender", "op": "==", "val": "boy"},
     ]
-    assert query["time_range"] == "Last year"
+    assert query["time_range"] == "No filter"
+    assert query["granularity"] == "updated_at"
+    assert query["time_grain"] == "P1D"
+    assert query["time_grain_sqla"] == "P1D"
     assert query["where"] == "(region = 'NA') AND (name IS NOT NULL)"
     assert query["having"] == "(SUM(num) > 10) AND (COUNT(*) > 1)"
 
@@ -229,13 +238,17 @@ def test_merge_extra_form_data_filters_into_query_adds_only_extra_predicates(
     query = {
         "filters": [{"col": "country", "op": "==", "val": "US"}],
         "time_range": "Last year",
+        "granularity": "created_at",
+        "time_grain_sqla": "P1Y",
     }
 
     merge_extra_form_data_filters_into_query(
         query,
         {
             "filters": [{"col": "gender", "op": "==", "val": "boy"}],
+            "granularity_sqla": "updated_at",
             "time_range": "No filter",
+            "time_grain_sqla": "P1D",
         },
         1,
         "table",
@@ -245,4 +258,6 @@ def test_merge_extra_form_data_filters_into_query_adds_only_extra_predicates(
         {"col": "country", "op": "==", "val": "US"},
         {"col": "gender", "op": "==", "val": "boy"},
     ]
-    assert query["time_range"] == "Last year"
+    assert query["time_range"] == "No filter"
+    assert query["granularity"] == "updated_at"
+    assert query["time_grain_sqla"] == "P1D"

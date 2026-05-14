@@ -29,10 +29,19 @@ import logging
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
+from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS
+
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
+
+QUERY_CONTEXT_EXTRA_FORM_DATA_OVERRIDE_KEYS = {
+    "granularity",
+    "time_grain",
+    "time_grain_sqla",
+    "time_range",
+}
 
 
 def find_chart_by_identifier(identifier: int | str) -> Slice | None:
@@ -180,24 +189,48 @@ def _join_sql_clause(existing_clause: str, additional_clause: str) -> str:
     return f"({existing_clause}) AND ({additional_clause})"
 
 
+def _is_temporal_override_filter(
+    filter_: dict[str, Any],
+    form_data: dict[str, Any],
+) -> bool:
+    return (
+        filter_.get("op") == "TEMPORAL_RANGE"
+        and form_data.get("time_range") is not None
+        and filter_.get("val") == form_data.get("time_range")
+        and (
+            form_data.get("granularity") is None
+            or filter_.get("col") == form_data.get("granularity")
+        )
+    )
+
+
 def merge_form_data_filters_into_query(
     query: dict[str, Any],
     form_data: dict[str, Any],
 ) -> None:
     """Merge normalized form_data filters into an existing query payload.
 
-    Saved query contexts can contain query-specific filter, time, where, or
-    having fields. This helper adds normalized predicates without replacing
-    those query-level overrides.
+    Saved query contexts can contain query-specific filter, where, or having
+    fields. This helper adds normalized predicates while applying request-level
+    extra_form_data overrides for temporal query fields.
     """
-    if filters := form_data.get("filters"):
+    if filters := [
+        filter_
+        for filter_ in form_data.get("filters") or []
+        if not _is_temporal_override_filter(filter_, form_data)
+    ]:
         query["filters"] = [
             *(query.get("filters") or []),
             *filters,
         ]
 
-    if time_range := form_data.get("time_range"):
-        query.setdefault("time_range", time_range)
+    for key in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.values():
+        if (
+            key in QUERY_CONTEXT_EXTRA_FORM_DATA_OVERRIDE_KEYS
+            and key in form_data
+            and form_data[key] is not None
+        ):
+            query[key] = form_data[key]
 
     for clause in ("where", "having"):
         if additional_clause := form_data.get(clause):

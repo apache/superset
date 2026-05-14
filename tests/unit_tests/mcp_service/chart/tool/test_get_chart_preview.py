@@ -38,6 +38,7 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.tool.get_chart_preview import (
     _sanitize_chart_preview_for_llm_context,
+    ASCIIPreviewStrategy,
     TablePreviewStrategy,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
@@ -432,6 +433,78 @@ class TestGetChartPreview:
         query = captured_query_contexts[0]["queries"][0]
         assert query["columns"] == []
         assert query["metrics"] == [metric]
+
+    def test_ascii_preview_uses_shared_query_builder(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """ASCII preview should use chart-type-aware query construction."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"count": 10}],
+                            "colnames": ["count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        metric = {"label": "count", "expressionType": "SIMPLE"}
+        chart = SimpleNamespace(
+            id=0,
+            slice_name="Big Number Preview",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "big_number",
+                    "metric": metric,
+                }
+            ),
+        )
+
+        preview = ASCIIPreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=1, format="ascii"),
+        ).generate()
+
+        assert isinstance(preview, ASCIIPreview)
+        query = captured_query_contexts[0]["queries"][0]
+        assert query["columns"] == []
+        assert query["metrics"] == [metric]
+        assert query["row_limit"] == 50
 
     @pytest.mark.asyncio
     async def test_form_data_key_overrides_saved_params_for_table_preview(

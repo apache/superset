@@ -34,10 +34,8 @@ from superset.mcp_service.chart.ascii_charts import (
     generate_ascii_table,
 )
 from superset.mcp_service.chart.chart_helpers import (
-    apply_form_data_filters_to_query,
     build_query_context_from_form_data,
     find_chart_by_identifier,
-    prepare_form_data_for_query,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
@@ -202,7 +200,6 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
     def generate(self) -> ASCIIPreview | ChartError:
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
             from superset.utils import json as utils_json
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
@@ -219,55 +216,11 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
-            # Build query for chart data
-            x_axis_config = form_data.get("x_axis")
-            groupby_columns = form_data.get("groupby", [])
-            metrics = form_data.get("metrics", [])
-
-            # Table charts in raw mode use all_columns or columns
-            all_columns = form_data.get("all_columns", [])
-            raw_columns = form_data.get("columns", [])
-            if form_data.get("query_mode") == "raw" and (all_columns or raw_columns):
-                columns = list(all_columns or raw_columns)
-            else:
-                columns = groupby_columns.copy()
-                if x_axis_config and isinstance(x_axis_config, str):
-                    columns.append(x_axis_config)
-                elif x_axis_config and isinstance(x_axis_config, dict):
-                    if "column_name" in x_axis_config:
-                        columns.append(x_axis_config["column_name"])
-
-            if not columns and not metrics:
-                return ChartError(
-                    error=(
-                        "Cannot generate ASCII preview: chart has no columns or "
-                        "metrics in its configuration. This chart type may not "
-                        "support ASCII preview."
-                    ),
-                    error_type="UnsupportedChart",
-                )
-
-            prepare_form_data_for_query(
+            query_context = build_query_context_from_form_data(
                 form_data,
-                self.chart.datasource_id,
-                self.chart.datasource_type,
-            )
-            query_dict: dict[str, Any] = {
-                "columns": columns,
-                "metrics": metrics,
-                "row_limit": 50,
-                "order_desc": True,
-            }
-            apply_form_data_filters_to_query(query_dict, form_data)
-
-            factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={
-                    "id": self.chart.datasource_id,
-                    "type": self.chart.datasource_type,
-                },
-                queries=[query_dict],
-                form_data=form_data,
+                chart=self.chart,
+                row_limit=50,
+                order_desc=True,
                 force=False,
             )
 
