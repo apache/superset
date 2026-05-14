@@ -333,12 +333,22 @@ class CreateDatasetRequest(BaseModel):
         ),
     ]
     schema: Annotated[
-        str,
-        Field(description="Schema (namespace) where the table lives, e.g. 'public'"),
+        str | None,
+        Field(
+            default=None,
+            description="Schema where the table lives (optional).",
+        ),
     ]
     table_name: Annotated[
         str,
         Field(description="Name of the physical table to register as a dataset"),
+    ]
+    catalog: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Catalog where the table lives (optional).",
+        ),
     ]
     owners: Annotated[
         List[int] | None,

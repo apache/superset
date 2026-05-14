@@ -21,6 +21,7 @@ from typing import Any
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     CreateDatasetRequest,
     DatasetError,
@@ -72,13 +73,17 @@ async def create_dataset(
 
         dataset_properties: dict[str, Any] = {
             "database": request.database_id,
-            "schema": request.schema,
             "table_name": request.table_name,
         }
+        if request.schema is not None:
+            dataset_properties["schema"] = request.schema
+        if request.catalog is not None:
+            dataset_properties["catalog"] = request.catalog
         if request.owners is not None:
             dataset_properties["owners"] = request.owners
 
-        dataset = CreateDatasetCommand(dataset_properties).run()
+        with event_logger.log_context(action="mcp.create_dataset.create"):
+            dataset = CreateDatasetCommand(dataset_properties).run()
 
         result = serialize_dataset_object(dataset)
         if result is None:
