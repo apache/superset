@@ -207,6 +207,8 @@ def dumps(  # pylint: disable=too-many-arguments
     :param indent: when set elements and object members will be pretty-printed
     :param separators: when specified dumps will use (item_separator, key_separator)
     :param cls: custom `JSONEncoder` subclass
+    :param encoding: character encoding used to interpret byte strings
+    :param ensure_ascii: when set to False non-ASCII characters are emitted as-is
     :returns: String object in the JSON compatible form
     """
 

@@ -90,6 +90,16 @@ def test_json_dumps():
     assert reloaded_data["bool"] is True
 
 
+def test_json_dumps_ensure_ascii_disabled() -> None:
+    data = {"text": "日本語 😁"}
+
+    json_str = json.dumps(data, ensure_ascii=False)
+
+    assert json.loads(json_str) == data
+    assert "\\u" not in json_str
+    assert data["text"] in json_str
+
+
 def test_json_dumps_encoding():
     data = {
         "utf8": b"Hello World",

@@ -28,6 +28,7 @@ from pytest_mock import MockerFixture
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.result_set import stringify_values, SupersetResultSet
 from superset.superset_typing import DbapiDescription, DbapiResult
+from superset.utils import json
 
 
 def test_column_names_as_bytes() -> None:
@@ -148,33 +149,27 @@ def test_stringify_with_null_timestamps():
 
 
 @pytest.mark.parametrize(
-    ("nested_value", "expected"),
+    "nested_value",
     [
         pytest.param(
             ["ASCII", "plain text"],
-            '["ASCII", "plain text"]',
             id="ascii",
         ),
         pytest.param(
             ["日本語", "ひらがな"],
-            '["日本語", "ひらがな"]',
             id="japanese",
         ),
         pytest.param(
             ["móre", "áccent"],
-            '["móre", "áccent"]',
             id="accented-latin",
         ),
         pytest.param(
             ["emoji", "😁"],
-            '["emoji", "😁"]',
             id="emoji",
         ),
     ],
 )
-def test_stringify_nested_values_preserves_unicode(
-    nested_value: list[str], expected: str
-) -> None:
+def test_stringify_nested_values_preserves_unicode(nested_value: list[str]) -> None:
     """
     Nested values should be stringified without escaping Unicode characters.
     """
@@ -186,8 +181,12 @@ def test_stringify_nested_values_preserves_unicode(
 
     result_set = SupersetResultSet(data, description, BaseEngineSpec)
     df = result_set.to_pandas_df()
+    serialized_value = df["tags"].iloc[0]
 
-    assert df["tags"].iloc[0] == expected
+    assert json.loads(serialized_value) == nested_value
+    assert "\\u" not in serialized_value
+    for value in nested_value:
+        assert value in serialized_value
 
 
 def test_timezone_series(mocker: MockerFixture) -> None:
