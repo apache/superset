@@ -19,6 +19,7 @@ from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.chart.chart_helpers import (
     apply_form_data_filters_to_query,
+    build_query_dicts_from_form_data,
     extract_form_data_key_from_url,
     find_chart_by_identifier,
     get_cached_form_data,
@@ -190,6 +191,29 @@ def test_prepare_form_data_for_query_merges_cached_and_request_extra_form_data(
         {"col": "gender", "op": "==", "val": "boy"},
     ]
     assert query["time_range"] == "No filter"
+
+
+def test_build_query_dicts_from_form_data_uses_raw_all_columns(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "handlebars",
+        "query_mode": "raw",
+        "all_columns": ["state", "city"],
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries == [
+        {
+            "columns": ["state", "city"],
+            "metrics": [],
+            "filters": [],
+        }
+    ]
 
 
 def test_merge_form_data_filters_into_query_applies_regular_overrides():

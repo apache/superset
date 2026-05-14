@@ -273,6 +273,10 @@ def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
 
 def resolve_groupby(form_data: dict[str, Any]) -> list[Any]:
     """Extract groupby columns from form_data with fallback aliases."""
+    raw_columns = form_data.get("all_columns")
+    if form_data.get("query_mode") == "raw" and isinstance(raw_columns, list):
+        return list(raw_columns)
+
     raw_groupby = form_data.get("groupby") or []
     if isinstance(raw_groupby, str):
         groupby: list[Any] = [raw_groupby]
@@ -292,6 +296,9 @@ def resolve_groupby(form_data: dict[str, Any]) -> list[Any]:
         for col in form_columns:
             if isinstance(col, str) and col not in groupby:
                 groupby.append(col)
+
+    if not groupby and isinstance(raw_columns, list):
+        groupby.extend(raw_columns)
 
     return groupby
 
