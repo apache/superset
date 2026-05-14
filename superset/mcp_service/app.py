@@ -130,20 +130,17 @@ Dashboard Management:
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 
-Database Connections:
-- list_databases: List database connections with advanced filters (1-based pagination)
-- get_database_info: Get detailed database connection info by ID (backend, capabilities)
-
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
+- create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
 - get_chart_info: Get detailed chart information by ID
-- get_chart_preview: Get a visual preview of a chart as formatted content or URL
+- get_chart_preview: Get a visual preview of a chart with image URL
 - get_chart_data: Get underlying chart data in text-friendly format
 - get_chart_sql: Get the rendered SQL query for a chart (without executing it)
 - generate_chart: Create and save a new chart permanently (requires write access)
@@ -163,30 +160,25 @@ System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
 - find_users: Resolve a person's name to user IDs for use as a filter value
 - health_check: Simple health check tool (takes NO parameters, call without arguments)
-- generate_bug_report: Build a PII-sanitized bug report to send to Preset support
-  (use when the user says the MCP is broken or asks how to report an issue)
 
 Available Resources:
-- instance://metadata: Instance configuration, stats, and available dataset IDs
-- chart://configs: Valid chart configuration examples and best practices
+- instance/metadata: Access instance configuration and metadata
+- chart/templates: Access chart configuration templates
 
 Available Prompts:
 - quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
 
-IMPORTANT - Using Saved Metrics vs Columns:
-When get_dataset_info returns a dataset, it includes both 'columns' and 'metrics'.
-- 'columns' are raw database columns (e.g., order_date, product_name, revenue)
-- 'metrics' are pre-defined saved metrics with SQL expressions
-  (e.g., count, total_revenue)
+Common Chart Types (viz_type) and Behaviors:
 
-When building chart configurations
-(generate_chart, generate_explore_link, update_chart):
-- For raw columns: use {{"name": "col_name", "aggregate": "SUM"}}
-- For saved metrics: use {{"name": "metric", "saved_metric": true}}
-  Do NOT add an aggregate when using saved_metric=true
-  (it's already defined in the metric).
-  Do NOT use a saved metric name as if it were a column — it will fail.
+Interactive Charts (support sorting, filtering, drill-down):
+- table: Standard table view with sorting and filtering
+- pivot_table_v2: Pivot table with grouping and aggregations
+- echarts_timeseries_line: Time series line chart
+- echarts_timeseries_bar: Time series bar chart
+- echarts_timeseries_area: Time series area chart
+- echarts_timeseries_scatter: Time series scatter plot
+- mixed_timeseries: Combined line/bar time series
 
 Example: If get_dataset_info returns metrics=[{{"metric_name": "count", ...}}], use:
   {{"name": "count", "saved_metric": true}}  ← CORRECT
@@ -315,52 +307,11 @@ Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 - word_cloud, world_map, box_plot, bubble, mixed_timeseries
 
 Query Examples:
-- List all tables:
-  list_charts(request={{"filters": [{{"col": "viz_type",
-    "opr": "in",
-    "value": ["table", "pivot_table_v2"]}}]}})
+- List all interactive tables:
+  filters=[{{"col": "viz_type", "opr": "in", "value": ["table", "pivot_table_v2"]}}]
 - List time series charts:
-  list_charts(request={{"filters": [{{"col": "viz_type",
-    "opr": "sw", "value": "echarts_timeseries"}}]}})
-- Search by name: list_charts(request={{"search": "sales"}})
-- My charts: list_charts(request={{"created_by_me": true}})
-- My dashboards: list_dashboards(request={{"created_by_me": true}})
-- My databases: list_databases(request={{"created_by_me": true}})
-To modify an existing chart (add filters, change metrics, etc.):
-1. get_chart_info(request={{"identifier": <chart_id>}})
-   -> examine current configuration
-2. update_chart(request={{
-     "identifier": <chart_id>, "config": {{...}}
-   }}) -> apply changes
-Do NOT use execute_sql for chart modifications.
-Use update_chart instead.
-
-CRITICAL RULES - NEVER VIOLATE:
-- NEVER fabricate or invent URLs. ALL URLs must come from tool call results.
-  If you need a link, call the appropriate tool (generate_explore_link, generate_chart,
-  open_sql_lab_with_context, etc.) and use the URL it returns.
-- NEVER call generate_dashboard when the user wants to add a chart to an EXISTING
-  dashboard. Always use add_chart_to_existing_dashboard. Only call generate_dashboard
-  to create a brand-new dashboard, or after the user explicitly confirms they want
-  a new one (e.g., after a permission_denied=True response from
-  add_chart_to_existing_dashboard).
-- To modify an existing chart's filters, metrics, or dimensions, use update_chart.
-  Do NOT use execute_sql for chart modifications.
-- Parameter name reminders: ALWAYS use the EXACT parameter names from the tool schema.
-  Do NOT use Superset's internal form_data names.
-
-IMPORTANT - Tool-Only Interaction:
-- Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
-  for the user to run. All visualization, data retrieval, and authentication are handled
-  by the provided MCP tools.
-- Always call the appropriate tool directly instead of writing code. For example, use
-  generate_chart to create visualizations rather than generating plotting code.
-- When a tool returns a URL (chart URL, dashboard URL, explore link, SQL Lab link),
-  return that URL to the user. Do NOT attempt to recreate the visualization in code.
-- Do NOT generate HTML dashboards, embed scripts, or custom frontend code. Use
-  generate_dashboard and add_chart_to_existing_dashboard for dashboard operations.
-- If a user asks for something the tools cannot do, explain the limitation and suggest
-  the closest available tool rather than generating code as a workaround.
+  filters=[{{"col": "viz_type", "opr": "sw", "value": "echarts_timeseries"}}]
+- Search by name: search="sales"
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
@@ -368,7 +319,7 @@ General usage tips:
 - Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
-- Chart previews can return ASCII text, Explore URLs, table data, or Vega-Lite specs
+- Chart previews are served as PNG images via custom screenshot endpoints
 
 Input format:
 - Tool request parameters accept structured objects (dicts/JSON)
@@ -377,10 +328,11 @@ Input format:
 {_feature_availability}Permission Awareness:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
-- Write tools (generate_chart, generate_dashboard, update_chart, create_virtual_dataset,
-  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview) require write
-  permissions. These tools are only listed for users who have the necessary access.
-  If a write tool does not appear in the tool list, the current user lacks write access.
+- Write tools (generate_chart, generate_dashboard, update_chart, create_dataset,
+  create_virtual_dataset, save_sql_query, add_chart_to_existing_dashboard,
+  update_chart_preview) require write permissions. These tools are only listed for
+  users who have the necessary access. If a write tool does not appear in the tool
+  list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
   from write access. A user may have SQL Lab access without having write access to charts
   or dashboards, and vice versa.
@@ -584,39 +536,13 @@ def create_mcp_app(
 
 
 # Create default MCP instance for backward compatibility
+# Tool modules can import this and use @mcp.tool decorators
 mcp = create_mcp_app()
-
-# Initialize MCP dependency injection BEFORE importing tools/prompts
-# This replaces the abstract @tool and @prompt decorators in superset_core.api.mcp
-# with concrete implementations that can register with the mcp instance
-from superset.core.mcp.core_mcp_injection import (  # noqa: E402
-    initialize_core_mcp_dependencies,
-)
-
-initialize_core_mcp_dependencies()
-
-# Suppress known third-party deprecation warnings that leak to MCP clients.
-# The MCP SDK captures Python warnings and forwards them to clients via
-# server log entries, wasting LLM tokens and causing clients to act on
-# irrelevant internal warnings. These warnings come from transitive imports
-# triggered by tool/schema registration below.
-import warnings  # noqa: E402
-
-warnings.filterwarnings(
-    "ignore",
-    category=DeprecationWarning,
-    module=r"marshmallow\..*",
-)
-warnings.filterwarnings(
-    "ignore",
-    category=FutureWarning,
-    module=r"google\..*",
-)
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
-# Tools use the @tool decorator from `superset-core` and register automatically
-# on import. Import prompts and resources to register them with the mcp instance
+# Tools use @mcp.tool decorators and register automatically on import.
+# Import prompts and resources to register them with the mcp instance
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
@@ -629,8 +555,6 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_data,
     get_chart_info,
     get_chart_preview,
-    get_chart_sql,
-    get_chart_type_schema,
     list_charts,
     update_chart,
     update_chart_preview,
@@ -641,15 +565,10 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     get_dashboard_info,
     list_dashboards,
 )
-from superset.mcp_service.database.tool import (  # noqa: F401, E402
-    get_database_info,
-    list_databases,
-)
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
-    create_virtual_dataset,
+    create_dataset,
     get_dataset_info,
     list_datasets,
-    query_dataset,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
@@ -657,7 +576,6 @@ from superset.mcp_service.explore.tool import (  # noqa: F401, E402
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
     open_sql_lab_with_context,
-    save_sql_query,
 )
 from superset.mcp_service.system import (  # noqa: F401, E402
     prompts as system_prompts,
