@@ -810,15 +810,13 @@ class TestColumnRefNameRelaxedPattern:
         assert col.name == "Total Revenue"
 
     def test_script_tag_neutralized(self) -> None:
-        """sanitize_name() neutralizes script-tag XSS via nh3.
-        Depending on nh3 version, nh3 either strips the entire script element
-        including its content (leaving empty → ValidationError) or strips only
-        the tag delimiters (leaving 'alert(1)'). Either way, no raw <script>
-        tag is stored in the column name."""
+        """sanitize_name() strips script tags via nh3; no raw <script> survives.
+        nh3 either strips the entire element (leaving empty → ValidationError)
+        or strips only the tag delimiters (leaving plain text like 'alert(1)').
+        Plain text is not executable, so either outcome is safe."""
         try:
             col = ColumnRef(name="<script>alert(1)</script>")
             assert "<script>" not in col.name
-            assert "alert" not in col.name  # inner payload must not survive either
             assert col.name  # sanitized result must not be empty
         except ValidationError as exc:
             # nh3 stripped entire element; empty-value guard raises with this message
@@ -967,6 +965,7 @@ class TestFormatSingleError:
         detail, suggestion = SchemaValidator._format_single_error(err)
         assert "required" in detail.lower()
         assert "'x'" in detail
+        assert suggestion is not None
         assert "chart_type examples" in suggestion
 
     def test_literal_error_preserves_pydantic_message(self) -> None:

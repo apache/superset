@@ -535,7 +535,8 @@ class SchemaValidator:
         field = loc_parts[-1] if loc_parts else "field"
 
         if err_type == "string_pattern_mismatch":
-            pattern = err.get("ctx", {}).get("pattern", "")
+            ctx = err.get("ctx") or {}
+            pattern = ctx.get("pattern", "") if isinstance(ctx, dict) else ""
             pattern_info = f" (required pattern: `{pattern}`)" if pattern else ""
             return (
                 f"'{field}' value does not match the required format{pattern_info}.",
