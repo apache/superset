@@ -31,11 +31,11 @@ Learn how to create and submit high-quality pull requests to Apache Superset.
 ### Prerequisites
 - [ ] Development environment is set up
 - [ ] You've forked and cloned the repository
-- [ ] You've read the [contributing overview](./overview)
+- [ ] You've read the [contributing overview](./overview.md)
 - [ ] You've found or created an issue to work on
 
 ### PR Readiness Checklist
-- [ ] Code follows [coding guidelines](../guidelines/design-guidelines)
+- [ ] Code follows [coding guidelines](../guidelines/design-guidelines.md)
 - [ ] Tests are passing locally
 - [ ] Linting passes (`pre-commit run --all-files`)
 - [ ] Documentation is updated if needed
@@ -318,4 +318,4 @@ git push origin master
 - **GitHub**: Tag @apache/superset-committers for attention
 - **Mailing List**: dev@superset.apache.org
 
-Next: [Understanding code review process](./code-review)
+Next: [Understanding code review process](./code-review.md)

@@ -37,16 +37,16 @@ Superset embraces a testing pyramid approach:
 ## Testing Documentation
 
 ### Frontend Testing
-- **[Frontend Testing](./frontend-testing)** - Jest, React Testing Library, and component testing strategies
+- **[Frontend Testing](./frontend-testing.md)** - Jest, React Testing Library, and component testing strategies
 
 ### Backend Testing  
-- **[Backend Testing](./backend-testing)** - pytest, database testing, and API testing patterns
+- **[Backend Testing](./backend-testing.md)** - pytest, database testing, and API testing patterns
 
 ### End-to-End Testing
-- **[E2E Testing](./e2e-testing)** - Playwright testing for complete user workflows
+- **[E2E Testing](./e2e-testing.md)** - Playwright testing for complete user workflows
 
 ### CI/CD Integration
-- **[CI/CD](./ci-cd)** - Continuous integration, automated testing, and deployment pipelines
+- **[CI/CD](./ci-cd.md)** - Continuous integration, automated testing, and deployment pipelines
 
 ## Testing Tools & Frameworks
 

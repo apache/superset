@@ -18,9 +18,14 @@
 from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.chart.chart_helpers import (
+    apply_form_data_filters_to_query,
+    build_query_dicts_from_form_data,
     extract_form_data_key_from_url,
     find_chart_by_identifier,
     get_cached_form_data,
+    merge_extra_form_data_filters_into_query,
+    merge_form_data_filters_into_query,
+    prepare_form_data_for_query,
 )
 
 
@@ -106,3 +111,177 @@ def test_get_cached_form_data_key_error(mock_init, mock_run):
     mock_init.return_value = None
     result = get_cached_form_data("bad_key")
     assert result is None
+
+
+def test_prepare_form_data_for_query_preserves_existing_filters_with_adhoc(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "filters": [{"col": "gender", "op": "==", "val": "boy"}],
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "gender",
+                "operator": "==",
+                "comparator": "girl",
+            }
+        ],
+    }
+    query = {}
+
+    prepare_form_data_for_query(form_data, 1, "table")
+    apply_form_data_filters_to_query(query, form_data)
+
+    assert query["filters"] == [
+        {"col": "gender", "op": "==", "val": "boy"},
+        {"col": "gender", "op": "==", "val": "girl"},
+    ]
+
+
+def test_prepare_form_data_for_query_merges_cached_and_request_extra_form_data(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "country",
+                    "operator": "==",
+                    "comparator": "US",
+                }
+            ],
+            "time_range": "Last year",
+        },
+    }
+    query = {}
+
+    prepare_form_data_for_query(
+        form_data,
+        1,
+        "table",
+        {
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "gender",
+                    "operator": "==",
+                    "comparator": "boy",
+                }
+            ],
+            "time_range": "No filter",
+        },
+    )
+    apply_form_data_filters_to_query(query, form_data)
+
+    assert query["filters"] == [
+        {"col": "country", "op": "==", "val": "US"},
+        {"col": "gender", "op": "==", "val": "boy"},
+    ]
+    assert query["time_range"] == "No filter"
+
+
+def test_build_query_dicts_from_form_data_uses_raw_all_columns(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "handlebars",
+        "query_mode": "raw",
+        "all_columns": ["state", "city"],
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries == [
+        {
+            "columns": ["state", "city"],
+            "metrics": [],
+            "filters": [],
+        }
+    ]
+
+
+def test_merge_form_data_filters_into_query_applies_regular_overrides():
+    query = {
+        "filters": [{"col": "country", "op": "==", "val": "US"}],
+        "time_range": "Last year",
+        "granularity": "created_at",
+        "time_grain": "P1Y",
+        "time_grain_sqla": "P1Y",
+        "where": "region = 'NA'",
+        "having": "SUM(num) > 10",
+    }
+
+    merge_form_data_filters_into_query(
+        query,
+        {
+            "filters": [{"col": "gender", "op": "==", "val": "boy"}],
+            "time_range": "No filter",
+            "granularity": "updated_at",
+            "time_grain": "P1D",
+            "time_grain_sqla": "P1D",
+            "where": "name IS NOT NULL",
+            "having": "COUNT(*) > 1",
+        },
+    )
+
+    assert query["filters"] == [
+        {"col": "country", "op": "==", "val": "US"},
+        {"col": "gender", "op": "==", "val": "boy"},
+    ]
+    assert query["time_range"] == "No filter"
+    assert query["granularity"] == "updated_at"
+    assert query["time_grain"] == "P1D"
+    assert query["time_grain_sqla"] == "P1D"
+    assert query["where"] == "(region = 'NA') AND (name IS NOT NULL)"
+    assert query["having"] == "(SUM(num) > 10) AND (COUNT(*) > 1)"
+
+
+def test_merge_extra_form_data_filters_into_query_adds_only_extra_predicates(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    query = {
+        "filters": [{"col": "country", "op": "==", "val": "US"}],
+        "time_range": "Last year",
+        "granularity": "created_at",
+        "time_grain_sqla": "P1Y",
+    }
+
+    merge_extra_form_data_filters_into_query(
+        query,
+        {
+            "filters": [{"col": "gender", "op": "==", "val": "boy"}],
+            "granularity_sqla": "updated_at",
+            "time_range": "No filter",
+            "time_grain_sqla": "P1D",
+        },
+        1,
+        "table",
+    )
+
+    assert query["filters"] == [
+        {"col": "country", "op": "==", "val": "US"},
+        {"col": "gender", "op": "==", "val": "boy"},
+    ]
+    assert query["time_range"] == "No filter"
+    assert query["granularity"] == "updated_at"
+    assert query["time_grain_sqla"] == "P1D"

@@ -94,7 +94,7 @@ Look through the GitHub issues. Issues tagged with
 Superset could always use better documentation,
 whether as part of the official Superset docs,
 in docstrings, `docs/*.rst` or even on the web as blog posts or
-articles. See [Documentation](./howtos#contributing-to-documentation) for more details.
+articles. See [Documentation](./howtos.md#contributing-to-documentation) for more details.
 
 ### Add Translations
 
@@ -103,7 +103,7 @@ text strings from Superset's UI. You can jump into the existing
 language dictionaries at
 `superset/translations/<language_code>/LC_MESSAGES/messages.po`, or
 even create a dictionary for a new language altogether.
-See [Translating](./howtos#contributing-translations) for more details.
+See [Translating](./howtos.md#contributing-translations) for more details.
 
 ### Ask Questions
 
@@ -158,9 +158,9 @@ Security team members should also follow these general expectations:
 
 Ready to contribute? Here's how to get started:
 
-1. **[Set up your environment](./development-setup)** - Get Superset running locally
+1. **[Set up your environment](./development-setup.md)** - Get Superset running locally
 2. **[Find something to work on](#types-of-contributions)** - Pick an issue or feature
-3. **[Submit your contribution](./submitting-pr)** - Create a pull request
-4. **[Follow guidelines](./guidelines)** - Ensure code quality
+3. **[Submit your contribution](./submitting-pr.md)** - Create a pull request
+4. **[Follow guidelines](./guidelines.md)** - Ensure code quality
 
 Welcome to the Apache Superset community! 🚀

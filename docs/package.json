@@ -30,6 +30,7 @@
     "lint:db-metadata:report": "python3 ../superset/db_engine_specs/lint_metadata.py --markdown -o ../superset/db_engine_specs/METADATA_STATUS.md",
     "update:readme-db-logos": "node scripts/generate-database-docs.mjs --update-readme",
     "eslint": "eslint .",
+    "lint:docs-links": "node scripts/lint-docs-links.mjs",
     "version:add": "node scripts/manage-versions.mjs add",
     "version:remove": "node scripts/manage-versions.mjs remove",
     "version:add:docs": "node scripts/manage-versions.mjs add docs",
