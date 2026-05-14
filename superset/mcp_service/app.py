@@ -76,6 +76,7 @@ Database Connections:
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
+- create_dataset: Register an existing physical table as a dataset against a DB connection
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
@@ -544,6 +545,7 @@ from superset.mcp_service.database.tool import (  # noqa: F401, E402
     list_databases,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
+    create_dataset,
     create_virtual_dataset,
     get_dataset_info,
     list_datasets,
