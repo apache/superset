@@ -68,7 +68,15 @@ class CompositeTokenVerifier(TokenVerifier):
             required_scopes=getattr(jwt_verifier, "required_scopes", None) or [],
         )
         self._jwt_verifier = jwt_verifier
-        self._api_key_prefixes = tuple(api_key_prefixes)
+        valid: list[str] = [
+            p for p in api_key_prefixes if isinstance(p, str) and p.strip()
+        ]
+        invalid = [p for p in api_key_prefixes if p not in valid]
+        if invalid:
+            logger.warning(
+                "FAB_API_KEY_PREFIXES contains invalid entries (ignored): %r", invalid
+            )
+        self._api_key_prefixes = tuple(valid)
 
     async def verify_token(self, token: str) -> AccessToken | None:
         """Verify a Bearer token.
