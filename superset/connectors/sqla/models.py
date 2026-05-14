@@ -2033,6 +2033,7 @@ class SqlaTable(
                 self.database,
                 self.catalog,
                 self.schema or default_schema or "",
+                exclude_dataset_id=self.id,
             )
             # Add each predicate as a separate cache key component
             extra_cache_keys.extend(rls_predicates)
