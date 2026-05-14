@@ -780,6 +780,15 @@ export function exploreJSON(
         handleChartDataResponse(response, json, useLegacyApi),
       )
       .then(queriesResponse => {
+        // Drop stale responses: if a newer query has started for this chart,
+        // its controller will have replaced ours in state, so ignore this
+        // response to avoid clobbering newer data with older results.
+        if (key != null) {
+          const currentController = getState().charts?.[key]?.queryController;
+          if (currentController && currentController !== controller) {
+            return undefined;
+          }
+        }
         (queriesResponse as QueryData[]).forEach(
           (resultItem: QueryData & { applied_filters?: JsonObject[] }) =>
             dispatch(
@@ -823,6 +832,15 @@ export function exploreJSON(
             return dispatch(
               chartUpdateStopped(key as string | number, controller),
             );
+          }
+
+          // Drop stale failures the same way we drop stale successes,
+          // so a slow earlier request can't mark a newer one as failed.
+          if (key != null) {
+            const currentController = getState().charts?.[key]?.queryController;
+            if (currentController && currentController !== controller) {
+              return undefined;
+            }
           }
 
           if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
