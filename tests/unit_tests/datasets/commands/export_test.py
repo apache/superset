@@ -18,6 +18,7 @@
 
 from uuid import UUID
 
+import yaml
 from sqlalchemy.orm.session import Session
 
 from superset import db
@@ -351,7 +352,7 @@ def test_export_two_datasets_same_table_name_different_schema(
 
     # And both YAML payloads must reflect their own schema, not be
     # silently merged or overwritten.
-    schemas_in_yaml = {c.split("schema:")[1].splitlines()[0].strip() for c in contents}
+    schemas_in_yaml = {yaml.safe_load(c)["schema"] for c in contents}
     assert schemas_in_yaml == {"prod", "dev"}, (
         f"Expected both prod and dev schemas in export, got {schemas_in_yaml}"
     )
