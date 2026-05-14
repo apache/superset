@@ -116,6 +116,7 @@ export async function getGuestToken(
   // session, JWT, or both.
   const { token: csrfToken } = await getCsrfToken(page);
   const guestResponse = await page.request.post(ENDPOINTS.GUEST_TOKEN, {
+    failOnStatusCode: true,
     data: {
       user: {
         username: 'embedded_test_user',

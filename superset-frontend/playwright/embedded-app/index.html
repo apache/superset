@@ -52,18 +52,14 @@ under the License.
       const statusEl = document.getElementById('status');
 
       // fetchGuestToken is injected by Playwright via page.exposeFunction()
-      // Falls back to window.__guestToken for simple/static token injection
       async function fetchGuestToken() {
-        if (typeof window.__fetchGuestToken === 'function') {
-          statusEl.textContent = 'Fetching guest token...';
-          const token = await window.__fetchGuestToken();
-          statusEl.textContent = 'Guest token received, loading dashboard...';
-          return token;
+        if (typeof window.__fetchGuestToken !== 'function') {
+          throw new Error('No guest token source available');
         }
-        if (window.__guestToken) {
-          return window.__guestToken;
-        }
-        throw new Error('No guest token source available');
+        statusEl.textContent = 'Fetching guest token...';
+        const token = await window.__fetchGuestToken();
+        statusEl.textContent = 'Guest token received, loading dashboard...';
+        return token;
       }
 
       try {

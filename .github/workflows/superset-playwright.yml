@@ -44,6 +44,7 @@ jobs:
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
       SUPERSET_FEATURE_EMBEDDED_SUPERSET: "true"
+      INCLUDE_EMBEDDED: "true"
     services:
       postgres:
         image: postgres:17-alpine
@@ -131,6 +132,13 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
           run: playwright-run "${{ matrix.app_root }}" experimental/
+      - name: Run Playwright (Embedded Tests)
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" embedded
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root

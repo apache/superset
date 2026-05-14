@@ -53,16 +53,17 @@ FEATURE_FLAGS = {
     },
 }
 
-# Disable Talisman so /embedded/<uuid> doesn't return X-Frame-Options:SAMEORIGIN.
-# Without this, browsers refuse to render Superset inside an iframe from a
-# different origin (i.e. the embedded SDK use case). Production/CI configures
-# Talisman with explicit `frame-ancestors`; for the lightweight local stack we
-# just turn it off.
-TALISMAN_ENABLED = False
+if os.environ.get("SUPERSET_FEATURE_EMBEDDED_SUPERSET", "").strip().lower() == "true":
+    # Disable Talisman so /embedded/<uuid> doesn't return X-Frame-Options:SAMEORIGIN.
+    # Without this, browsers refuse to render Superset inside an iframe from a
+    # different origin (i.e. the embedded SDK use case). Production/CI configures
+    # Talisman with explicit `frame-ancestors`; for the lightweight local stack we
+    # just turn it off.
+    TALISMAN_ENABLED = False
 
-# Guest tokens (used by the embedded SDK) inherit the "Public" role's perms.
-# Out of the box Public has zero perms, so embedded dashboards immediately fail
-# their first call (`/api/v1/me/roles/`) with 403. Mirror Public to Gamma —
-# the standard read-only viewer role — so the embedded flow can authenticate
-# and load dashboard data in local dev.
-PUBLIC_ROLE_LIKE = "Gamma"
+    # Guest tokens (used by the embedded SDK) inherit the "Public" role's perms.
+    # Out of the box Public has zero perms, so embedded dashboards immediately fail
+    # their first call (`/api/v1/me/roles/`) with 403. Mirror Public to Gamma —
+    # the standard read-only viewer role — so the embedded flow can authenticate
+    # and load dashboard data in local dev.
+    PUBLIC_ROLE_LIKE = "Gamma"

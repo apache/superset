@@ -215,8 +215,9 @@ test.describe('Embedded Dashboard E2E', () => {
       try {
         const setupPage = await context.newPage();
         await apiEnableEmbedding(setupPage, dashboardId, []);
-      } catch {
-        // Best-effort cleanup — never fail teardown.
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[embedded teardown] restore failed:', err);
       } finally {
         await context.close();
       }
@@ -320,7 +321,12 @@ test.describe('Embedded Dashboard E2E', () => {
       expect(response.status()).toBe(403);
     } finally {
       // Restore the open embedding config for other tests in this file.
-      await apiEnableEmbedding(setupPage, dashboardId, []);
+      try {
+        await apiEnableEmbedding(setupPage, dashboardId, []);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[embedded teardown] restore failed:', err);
+      }
       await context.close();
     }
   });
