@@ -19,37 +19,34 @@
  */
 
 /**
- * lint-docs-links — fail on bare relative internal links in markdown.
+ * lint-docs-links — source-level checks for internal markdown links.
  *
- * Why this exists
- * ───────────────
- * Docusaurus's `onBrokenLinks: 'throw'` build setting only validates
- * *file-based* markdown references — links whose URL ends in `.md` or
- * `.mdx`. Those go through the file resolver, which knows how to map
- * a source file to its final URL and can flag a missing target.
+ * Catches three failure modes that combine to break SPA navigation in
+ * a Docusaurus build:
  *
- * Bare relative URL paths like `[Foo](../foo)` or `[Bar](./bar)` skip
- * the file resolver entirely. Docusaurus emits them as raw `href`
- * attributes that the browser then resolves against the *current*
- * page URL. For trailing-slash routes (which is what Docusaurus uses
- * by default), `../foo` from `/section/group/page/` lands on
- * `/section/group/foo` — usually the wrong directory. The page
- * navigates client-side and 404s.
+ *   1. BARE             — `[X](../foo)` with no extension. Skips
+ *                         Docusaurus's file resolver entirely. Emitted
+ *                         as a raw href and resolved by the browser
+ *                         against the current page URL — usually the
+ *                         wrong directory for trailing-slash routes.
+ *                         `onBrokenLinks: 'throw'` cannot catch this.
  *
- * The `build` job + `onBrokenLinks: 'throw'` cannot catch this class
- * of bug. The `linkinator` job *can* (it crawls rendered HTML) but is
- * configured `continue-on-error: true` so failures are advisory.
+ *   2. MISSING_TARGET   — `[X](./gone.md)` with an extension, but no
+ *                         file at that path. The Docusaurus build
+ *                         catches this too (via
+ *                         `onBrokenMarkdownLinks: 'throw'`) but only
+ *                         after a multi-minute build. This script
+ *                         flags it in ~1s.
  *
- * This script runs at PR time as a fast, blocking source-level check.
- * It scans every `.md` and `.mdx` file under the active content
- * trees (skipping `versioned_docs/` snapshots, which are frozen
- * historical content) and fails if it finds any markdown link whose
- * URL starts with `./` or `../` and does NOT end in `.md`/`.mdx`.
+ *   3. WRONG_EXTENSION  — `[X](./foo.md)` where the file is actually
+ *                         `foo.mdx` (or vice versa). Same end result
+ *                         as MISSING_TARGET, but the fix is one
+ *                         character — so we report it as its own
+ *                         category with the actual extension on disk.
  *
- * Excluded:
- *   - URLs inside fenced code blocks
- *   - URLs that point at images / static assets (`.png`, `.svg`, …)
- *   - URLs that point at non-content files (`.json`, `.yaml`, …)
+ * Skips: fenced code blocks, asset-style targets (.png/.json/etc.),
+ * external URLs, in-page anchors, and the `versioned_docs/`
+ * snapshots (those are frozen historical content).
  *
  * Run from `docs/`:
  *   node scripts/lint-docs-links.mjs
@@ -65,14 +62,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const docsRoot = path.join(__dirname, '..');
 
-// Active content trees. We deliberately skip `*_versioned_docs/` —
-// those are snapshots of historical content; even if they have
-// pre-existing issues we don't want to rewrite history.
 const ROOTS = ['docs', 'admin_docs', 'developer_docs', 'components'];
 
-// Link target file extensions that are NOT documentation pages
-// (images, data, etc.) — these are legitimately allowed to be bare
-// relative paths.
 const NON_DOC_EXTENSIONS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico',
   '.json', '.yaml', '.yml', '.txt', '.csv',
@@ -81,17 +72,40 @@ const NON_DOC_EXTENSIONS = new Set([
   '.mp4', '.webm', '.mov',
 ]);
 
-// Matches `[label](url)` where url starts with `./` or `../`.
-// Multiline-safe inside a single line.
 const LINK_RE = /\[[^\]\n]+?\]\((?<url>\.{1,2}\/[^)\s]+?)\)/g;
 
-function classifyUrl(url) {
-  // Strip anchor / query before extension test.
-  const main = url.split('#', 1)[0].split('?', 1)[0];
-  const ext = path.extname(main).toLowerCase();
-  if (ext === '.md' || ext === '.mdx') return 'doc-with-ext';
-  if (ext && NON_DOC_EXTENSIONS.has(ext)) return 'asset';
-  return 'bare';
+/**
+ * Classify a single markdown link from a source file.
+ * Returns one of: ok / bare / asset / missing-target / wrong-extension.
+ */
+function classifyLink(sourceFile, url) {
+  const stripped = url.split('#', 1)[0].split('?', 1)[0];
+  const ext = path.extname(stripped).toLowerCase();
+
+  // Non-doc assets — legit bare extensions, leave alone.
+  if (ext && NON_DOC_EXTENSIONS.has(ext)) {
+    return { kind: 'asset' };
+  }
+
+  // Anything that doesn't end in .md/.mdx is a bare relative URL.
+  if (ext !== '.md' && ext !== '.mdx') {
+    return { kind: 'bare' };
+  }
+
+  // Has a .md/.mdx extension — make sure the target exists.
+  const target = path.normalize(path.join(path.dirname(sourceFile), stripped));
+  if (fs.existsSync(target)) {
+    return { kind: 'ok' };
+  }
+
+  // Target doesn't exist — check if the OTHER extension does.
+  const otherExt = ext === '.md' ? '.mdx' : '.md';
+  const otherTarget = target.slice(0, -ext.length) + otherExt;
+  if (fs.existsSync(otherTarget)) {
+    return { kind: 'wrong-extension', actualExt: otherExt };
+  }
+
+  return { kind: 'missing-target' };
 }
 
 function* walk(dir) {
@@ -99,7 +113,6 @@ function* walk(dir) {
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      // Skip versioned snapshots and node_modules etc.
       if (
         entry.name.startsWith('.') ||
         entry.name === 'node_modules' ||
@@ -131,8 +144,9 @@ function lintFile(file) {
     if (inFence) continue;
     for (const m of line.matchAll(LINK_RE)) {
       const url = m.groups.url;
-      if (classifyUrl(url) === 'bare') {
-        findings.push({ line: i + 1, url, raw: line.trim() });
+      const result = classifyLink(file, url);
+      if (result.kind !== 'ok' && result.kind !== 'asset') {
+        findings.push({ line: i + 1, url, ...result });
       }
     }
   }
@@ -144,35 +158,73 @@ for (const root of ROOTS) {
   const abs = path.join(docsRoot, root);
   if (!fs.existsSync(abs)) continue;
   for (const file of walk(abs)) {
-    const fileFindings = lintFile(file);
-    for (const f of fileFindings) {
+    for (const f of lintFile(file)) {
       findings.push({ file: path.relative(docsRoot, file), ...f });
     }
   }
 }
 
 if (findings.length === 0) {
-  console.log('✓ lint-docs-links: no bare relative internal links found');
+  console.log('✓ lint-docs-links: no broken internal links found');
   process.exit(0);
 }
 
-console.error(
-  `✗ lint-docs-links: found ${findings.length} bare relative internal link(s)`
-);
-console.error('');
-console.error(
-  'Bare relative links like `[X](../foo)` skip Docusaurus\'s file resolver'
-);
-console.error(
-  'and get emitted as raw hrefs that the browser resolves against the'
-);
-console.error(
-  'current page URL — wrong directory for trailing-slash routes. Add a'
-);
-console.error('`.md` (or `.mdx`) extension so the file resolver picks them up.');
-console.error('');
+// Group by kind for readable output.
+const groups = {
+  bare: [],
+  'wrong-extension': [],
+  'missing-target': [],
+};
 for (const f of findings) {
-  console.error(`  ${f.file}:${f.line}  ${f.url}`);
+  groups[f.kind].push(f);
 }
+
+console.error(
+  `✗ lint-docs-links: found ${findings.length} broken internal link(s)`
+);
 console.error('');
+
+if (groups.bare.length) {
+  console.error(
+    `  ${groups.bare.length} bare relative link(s) (no .md/.mdx extension)`
+  );
+  console.error(
+    "  Docusaurus's file resolver skips these; the browser resolves them"
+  );
+  console.error(
+    '  against the current page URL — wrong directory for trailing-slash routes.'
+  );
+  console.error('  Add the extension so the file resolver picks them up.');
+  console.error('');
+  for (const f of groups.bare) {
+    console.error(`    ${f.file}:${f.line}  ${f.url}`);
+  }
+  console.error('');
+}
+
+if (groups['wrong-extension'].length) {
+  console.error(
+    `  ${groups['wrong-extension'].length} wrong-extension link(s) (.md vs .mdx mismatch)`
+  );
+  console.error('  The target file exists with the other extension on disk.');
+  console.error('');
+  for (const f of groups['wrong-extension']) {
+    console.error(
+      `    ${f.file}:${f.line}  ${f.url}  →  use ${f.actualExt}`
+    );
+  }
+  console.error('');
+}
+
+if (groups['missing-target'].length) {
+  console.error(
+    `  ${groups['missing-target'].length} missing-target link(s) (file doesn't exist)`
+  );
+  console.error('');
+  for (const f of groups['missing-target']) {
+    console.error(`    ${f.file}:${f.line}  ${f.url}`);
+  }
+  console.error('');
+}
+
 process.exit(1);
