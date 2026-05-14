@@ -45,6 +45,10 @@ class _ForbiddenError(Exception):
     """Synthetic forbidden exception for tests."""
 
 
+class _RestoreFailedError(Exception):
+    """Synthetic restore-failed exception used by the transaction wrapper."""
+
+
 def _make_command(
     dao_find_result: object,
 ) -> BaseRestoreCommand[SoftDeleteMixin]:
@@ -58,6 +62,7 @@ def _make_command(
         dao: ClassVar[MagicMock] = dao_mock
         not_found_exc: ClassVar[type[Exception]] = _NotFoundError
         forbidden_exc: ClassVar[type[Exception]] = _ForbiddenError
+        restore_failed_exc: ClassVar[type[Exception]] = _RestoreFailedError
 
     return _SyntheticRestoreCommand("uuid-1")
 
@@ -119,11 +124,13 @@ def test_validate_raises_forbidden_when_ownership_check_fails(
             cmd.validate()
 
 
-def test_validate_calls_dao_with_skip_visibility_filter(app_context: None) -> None:
-    """The DAO load must use ``skip_visibility_filter=True`` (so the
-    soft-deleted row is visible to validate), with ``id_column='uuid'``
-    and ``skip_base_filter=True``. Pinning this prevents a refactor
-    from silently removing the bypass flags."""
+def test_validate_calls_dao_with_visibility_bypass_only(app_context: None) -> None:
+    """The DAO load uses ``skip_visibility_filter=True`` (so the
+    soft-deleted row is visible) and ``id_column='uuid'`` — but does
+    NOT bypass the entity's ``base_filter``. Restore should honor RBAC
+    the same way ``delete`` does (which loads through ``find_by_ids``
+    without ``skip_base_filter=True``); the visibility bypass is the
+    only escape hatch needed for restore."""
     soft_deleted = MagicMock()
     soft_deleted.deleted_at = datetime(2026, 1, 1)
     cmd = _make_command(dao_find_result=soft_deleted)
@@ -135,6 +142,46 @@ def test_validate_calls_dao_with_skip_visibility_filter(app_context: None) -> No
     cmd.dao.find_by_id.assert_called_once_with(
         "uuid-1",
         id_column="uuid",
-        skip_base_filter=True,
         skip_visibility_filter=True,
     )
+
+
+def test_run_calls_model_restore_on_success(app_context: None) -> None:
+    """The happy path: ``run()`` resolves the model via ``validate()`` and
+    calls ``model.restore()`` on it. The transactional wrapper applied
+    by the base ``run()`` commits the cleared ``deleted_at`` to the DB.
+    """
+    soft_deleted = MagicMock()
+    soft_deleted.deleted_at = datetime(2026, 1, 1)
+    cmd = _make_command(dao_find_result=soft_deleted)
+
+    with patch("superset.commands.restore.security_manager") as mock_sec:
+        mock_sec.raise_for_ownership = MagicMock(return_value=None)
+        cmd.run()
+
+    soft_deleted.restore.assert_called_once_with()
+
+
+def test_run_translates_sqlalchemy_errors_via_restore_failed_exc(
+    app_context: None,
+) -> None:
+    """The base ``run()`` wraps the operation in ``@transaction(on_error=
+    partial(on_error, reraise=self.restore_failed_exc))``. A SQLAlchemy
+    error raised below (e.g., during commit) gets caught and re-raised
+    as the subclass's ``restore_failed_exc``. Pinning this prevents a
+    refactor from accidentally dropping the transaction wrapper or
+    pointing it at the wrong exception type.
+    """
+    from sqlalchemy.exc import SQLAlchemyError
+
+    soft_deleted = MagicMock()
+    soft_deleted.deleted_at = datetime(2026, 1, 1)
+    # model.restore() raises during the transactional block — simulates a
+    # SQLAlchemy failure inside the unit-of-work.
+    soft_deleted.restore.side_effect = SQLAlchemyError("simulated commit failure")
+    cmd = _make_command(dao_find_result=soft_deleted)
+
+    with patch("superset.commands.restore.security_manager") as mock_sec:
+        mock_sec.raise_for_ownership = MagicMock(return_value=None)
+        with pytest.raises(_RestoreFailedError):
+            cmd.run()

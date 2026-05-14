@@ -676,9 +676,11 @@ class SoftDeleteMixin:
     deleted and excluded from standard ORM queries via a global
     ``do_orm_execute`` listener registered at app init.
 
-    Delete commands should call ``soft_delete()`` to mark the object as
-    deleted.  Use ``BaseDAO.delete()`` (which calls ``session.delete()``)
-    for permanent hard deletion.
+    Delete commands route through ``BaseDAO.delete()``, which detects
+    the mixin and calls ``soft_delete()`` to mark the row as deleted
+    (without removing it). ``BaseDAO.hard_delete()`` is the permanent
+    hard-deletion path; it bypasses the mixin and calls
+    ``session.delete()`` directly.
 
     The listener can be bypassed per-entity, either for one statement (via
     ``execution_options``) or for a session-scoped block (via

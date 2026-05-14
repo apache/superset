@@ -16,12 +16,14 @@
 # under the License.
 """Base class shared by all soft-delete restore commands."""
 
+from functools import partial
 from typing import Any, ClassVar, Generic, TypeVar
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.exceptions import SupersetSecurityException
 from superset.models.helpers import SoftDeleteMixin
+from superset.utils.decorators import on_error, transaction
 
 T = TypeVar("T", bound=SoftDeleteMixin)
 
@@ -29,21 +31,23 @@ T = TypeVar("T", bound=SoftDeleteMixin)
 class BaseRestoreCommand(BaseCommand, Generic[T]):
     """Base class for soft-delete restore commands.
 
-    Subclasses provide the entity-specific bindings as class variables:
+    Subclasses provide the entity-specific bindings as class variables —
+    no method override required:
 
       - ``dao``: the DAO class (e.g. ``ChartDAO``)
-      - ``not_found_exc``: exception type raised when the row doesn't
-        exist OR isn't soft-deleted
-      - ``forbidden_exc``: exception type raised when the caller doesn't
-        have ownership of the row
+      - ``not_found_exc``: raised when the row doesn't exist OR isn't
+        soft-deleted
+      - ``forbidden_exc``: raised when the caller doesn't have ownership
+      - ``restore_failed_exc``: re-raised by the transactional wrapper
+        when an underlying SQLAlchemy error aborts the commit
 
-    Subclasses MUST override ``run()`` only to apply the
-    ``@transaction(on_error=partial(on_error, reraise=<RestoreFailed>))``
-    decorator with their concrete restore-failed exception type — the
-    body should be a single ``super().run()`` call. The base class does
-    not enforce this in code; Python decorators don't compose well with
-    class-var-driven configuration. The contract lives in this
-    docstring and in code review.
+    The transactional wrapper is applied by this class's ``run()``
+    using ``restore_failed_exc`` as the rethrow type, so each subclass
+    just declares the four ClassVars and is done. There is no
+    subclass-managed decorator contract — earlier iterations of this
+    PR required subclasses to override ``run()`` purely to add a
+    ``@transaction`` decorator, which was fragile (every new entity
+    rollout had to remember).
 
     The model returned from ``validate()`` is the soft-deleted row,
     type-narrowed via ``Generic[T]``. ``run()`` calls ``model.restore()``
@@ -53,19 +57,31 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
     dao: ClassVar[Any]
     not_found_exc: ClassVar[type[Exception]]
     forbidden_exc: ClassVar[type[Exception]]
+    restore_failed_exc: ClassVar[type[Exception]]
 
     def __init__(self, model_uuid: str) -> None:
         self._model_uuid = model_uuid
 
     def run(self) -> None:
-        model = self.validate()
-        model.restore()
+        # Build the transactional wrapper at call time so ``on_error`` can
+        # reference ``self.restore_failed_exc`` — a per-subclass ClassVar
+        # that isn't available when this method is defined on the base.
+        @transaction(on_error=partial(on_error, reraise=self.restore_failed_exc))
+        def _perform() -> None:
+            model = self.validate()
+            model.restore()
+
+        _perform()
 
     def validate(self) -> T:  # type: ignore[override]
+        # ``skip_visibility_filter=True`` is the *only* bypass — the
+        # entity's RBAC ``base_filter`` stays in effect, matching the
+        # behavior of ``find_by_ids`` on the existing delete paths.
+        # Restore should not see rows the user cannot see in the live
+        # UI; ownership is then verified by ``raise_for_ownership``.
         model = self.dao.find_by_id(
             self._model_uuid,
             id_column="uuid",
-            skip_base_filter=True,
             skip_visibility_filter=True,
         )
         if model is None:

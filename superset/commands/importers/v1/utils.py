@@ -404,14 +404,33 @@ def get_resource_mappings_batched(
 
 
 def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
-    """Look up an existing row by UUID for an import operation, including
-    soft-deleted rows. If the match is soft-deleted, hard-delete it via
-    ``db.session.delete()`` so the import can proceed without a
-    unique-constraint violation on ``uuid``.
+    """Look up an existing row by UUID for an import operation,
+    bypassing the soft-delete visibility filter so soft-deleted matches
+    are returned too.
 
-    Returns the existing live row (so the caller can decide overwrite
-    vs. skip), or ``None`` if no match exists or the match was
-    soft-deleted (and hence just removed by this function).
+    Side-effect-free: returns the row as-is whether it's live or
+    soft-deleted (or ``None`` if no row exists). The caller is
+    responsible for deciding what to do with a soft-deleted match —
+    typically calling :func:`clear_soft_deleted_for_import` to remove
+    it before re-import, but only after the caller has validated
+    overwrite/permission decisions.
+
+    Splitting the lookup from the destructive cleanup keeps the
+    destructive action explicit at the call site, so a future change
+    that adds a permission check on the overwrite path doesn't
+    silently leave a "duck around it via soft-delete" backdoor.
+    """
+    return (
+        db.session.query(model_cls)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {model_cls}})
+        .filter_by(uuid=uuid)
+        .first()
+    )
+
+
+def clear_soft_deleted_for_import(existing: Any) -> None:
+    """Hard-delete a soft-deleted row so a subsequent import of the
+    same UUID does not collide with the unique constraint.
 
     Uses ``db.session.delete()`` rather than a raw Core ``DELETE`` so
     the ORM ``after_delete`` event listeners fire. Cleanup that depends
@@ -421,15 +440,12 @@ def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
     integer, not a foreign key, so the database cannot cascade them)
     and dataset permission-view rows (cleaned up by
     ``SqlaTable.after_delete`` in ``superset/connectors/sqla/models.py``).
+
+    Caller contract: ``existing`` must be a soft-deleted row returned
+    from :func:`find_existing_for_import`. Callers should run their
+    overwrite / permission validation *before* invoking this so the
+    destructive action only happens once the import path is committed
+    to proceeding.
     """
-    existing = (
-        db.session.query(model_cls)
-        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {model_cls}})
-        .filter_by(uuid=uuid)
-        .first()
-    )
-    if existing and getattr(existing, "deleted_at", None) is not None:
-        db.session.delete(existing)
-        db.session.flush()
-        return None
-    return existing
+    db.session.delete(existing)
+    db.session.flush()
