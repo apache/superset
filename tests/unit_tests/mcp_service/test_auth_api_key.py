@@ -86,19 +86,25 @@ def _disable_api_keys(app: SupersetApp) -> Generator[None, None, None]:
 
 @contextmanager
 def _mock_sm_ctx(app: SupersetApp, mock_sm: MagicMock):
-    """Push an app context with g.user cleared and appbuilder.sm mocked.
-
-    Defaults find_user_with_relationships to None so JWT/dev-user lookups
-    that hit the SM (via load_user_with_relationships) behave as "user not
-    found" without a real DB, matching the pre-refactor db.session behavior.
-    Tests that need a specific return value should set it on mock_sm directly.
-    """
-    mock_sm.find_user_with_relationships.return_value = None
+    """Push an app context with g.user cleared and appbuilder.sm mocked."""
     with app.app_context():
         g.user = None
         app.appbuilder = MagicMock()
         app.appbuilder.sm = mock_sm
         yield
+
+
+def _patch_load_user_not_found():
+    """Patch load_user_with_relationships to return None (user not found).
+
+    load_user_with_relationships delegates to the global security_manager
+    (not app.appbuilder.sm), so tests that need the JWT path to raise
+    ValueError("not found") must patch it directly at the module level.
+    """
+    return patch(
+        "superset.mcp_service.auth.load_user_with_relationships",
+        return_value=None,
+    )
 
 
 # -- Valid API key -> user loaded --
@@ -255,10 +261,9 @@ def test_jwt_access_token_skips_api_key_auth(app: SupersetApp) -> None:
     jwt_access_token.claims = {"sub": "alice"}
 
     with _mock_sm_ctx(app, mock_sm):
-        with _patch_access_token(jwt_access_token):
-            # _resolve_user_from_jwt_context will try to resolve the user
-            # from the JWT claims and (in this isolated unit-test setup)
-            # raise ValueError because the username is not a real user.
+        with _patch_access_token(jwt_access_token), _patch_load_user_not_found():
+            # _resolve_user_from_jwt_context resolves "alice" from JWT claims
+            # and raises ValueError because the username is not a real user.
             # We assert that _resolve_user_from_api_key did NOT short-circuit
             # to the API key path.
             with pytest.raises(ValueError, match="not found"):
@@ -302,9 +307,9 @@ def test_namespaced_claim_without_api_key_client_id_is_ignored(
     rogue_token.claims = {API_KEY_PASSTHROUGH_CLAIM: True, "sub": "alice"}
 
     with _mock_sm_ctx(app, mock_sm):
-        with _patch_access_token(rogue_token):
-            # JWT path tries to resolve user "alice" from DB and raises
-            # ValueError in this isolated unit-test setup.
+        with _patch_access_token(rogue_token), _patch_load_user_not_found():
+            # JWT path resolves "alice" from claims and raises ValueError
+            # because no such user exists.
             # validate_api_key must NOT be called — the rogue claim was ignored.
             with pytest.raises(ValueError, match="not found"):
                 get_user_from_request()
@@ -330,11 +335,9 @@ def test_unnamespaced_passthrough_claim_does_not_trigger_api_key_path(
     rogue_token.claims = {"_api_key_passthrough": True, "sub": "alice"}
 
     with _mock_sm_ctx(app, mock_sm):
-        with _patch_access_token(rogue_token):
-            # JWT path tries to resolve user "alice" from DB and (in this
-            # isolated unit-test setup) raises ValueError. The assertion
-            # below confirms validate_api_key was never called — i.e., the
-            # rogue claim did NOT divert into _resolve_user_from_api_key.
+        with _patch_access_token(rogue_token), _patch_load_user_not_found():
+            # JWT path resolves "alice" from claims and raises ValueError.
+            # validate_api_key must NOT be called — the rogue claim was ignored.
             with pytest.raises(ValueError, match="not found"):
                 get_user_from_request()
 
