@@ -16,7 +16,7 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Callable
 
 import numpy
@@ -202,20 +202,15 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
 
 @pytest.mark.parametrize(
     "dttm,col,database,result",
-    # Make sure that dttm and result share the same timezone awareness.
-    # Either dttm and result are both timezone-naive.
-    # Or dttm and result are both timezone-aware, e.g. dttm is a datetime object with
-    # non-null tzinfo and result is a UNIX timestamp with epoch (sub-)seconds since
-    # 1970-01-01 00:00:00 UTC.
     [
         (
-            datetime(2023, 1, 1, 1, 23, 45, 600000, timezone.utc),
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
             TableColumn(python_date_format="epoch_s"),
             Database(),
             "1672536225",
         ),
         (
-            datetime(2023, 1, 1, 1, 23, 45, 600000, timezone.utc),
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
             TableColumn(python_date_format="epoch_ms"),
             Database(),
             "1672536225000",
