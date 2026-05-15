@@ -58,7 +58,7 @@ function UIFilters(
 
   useImperativeHandle(ref, () => ({
     clearFilters: () => {
-      filterRefs.forEach((filter: any) => {
+      filterRefs.forEach(filter => {
         filter.current?.clearFilter?.();
       });
     },
@@ -96,9 +96,8 @@ function UIFilters(
           index,
         ) => {
           const initialValue = internalFilters?.[index]?.value;
-          const filterValue = internalFilters?.[index]?.value;
           if (input === 'select') {
-            const selectValue = filterValue as SelectOption | undefined;
+            const selectValue = initialValue as SelectOption | undefined;
             const tooltipTitle = selectValue
               ? typeof selectValue.label === 'string'
                 ? selectValue.label
@@ -130,7 +129,6 @@ function UIFilters(
                     }
                     updateFilterValue(index, option);
                   }}
-                  onClose={() => {}}
                 />
               </CompactFilterTrigger>
             );
@@ -157,9 +155,11 @@ function UIFilters(
           }
           if (input === 'datetime_range') {
             const hasDateValue =
-              Array.isArray(filterValue) && filterValue.some(Boolean);
+              Array.isArray(initialValue) && initialValue.some(Boolean);
             const dateTooltip = hasDateValue
-              ? (filterValue as (string | number)[]).filter(Boolean).join(' – ')
+              ? (initialValue as (string | number)[])
+                  .filter(Boolean)
+                  .join(' – ')
               : undefined;
             return (
               <CompactFilterTrigger
@@ -167,6 +167,7 @@ function UIFilters(
                 label={Header}
                 hasValue={hasDateValue}
                 tooltipTitle={dateTooltip}
+                popupType="dialog"
                 onClear={() => {
                   filterRefs[index]?.current?.clearFilter?.();
                   updateFilterValue(index, undefined);
@@ -187,10 +188,10 @@ function UIFilters(
           }
           if (input === 'numerical_range') {
             const hasRangeValue =
-              Array.isArray(filterValue) &&
-              filterValue.some(v => v !== null && v !== undefined);
+              Array.isArray(initialValue) &&
+              initialValue.some(v => v !== null && v !== undefined);
             const rangeTooltip = hasRangeValue
-              ? (filterValue as (number | null | undefined)[])
+              ? (initialValue as (number | null | undefined)[])
                   .filter(v => v !== null && v !== undefined)
                   .join(' – ')
               : undefined;
@@ -200,6 +201,7 @@ function UIFilters(
                 label={Header}
                 hasValue={hasRangeValue}
                 tooltipTitle={rangeTooltip}
+                popupType="dialog"
                 onClear={() => {
                   filterRefs[index]?.current?.clearFilter?.();
                   updateFilterValue(index, undefined);

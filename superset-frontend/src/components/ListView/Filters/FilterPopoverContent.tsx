@@ -36,9 +36,18 @@ const Wrapper = styled.div`
     flex-direction: column;
     gap: ${theme.sizeUnit * 2}px;
 
-    /* Hide the redundant label inside the popover — the pill already shows it */
+    /* Visually hide the redundant label — the pill already shows it, but keep it
+       accessible to screen readers so filter inputs have a named context. */
     label {
-      display: none;
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
   `}
 `;

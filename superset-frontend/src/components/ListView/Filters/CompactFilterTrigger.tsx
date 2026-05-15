@@ -20,6 +20,11 @@ import React, { useState, type ReactNode, type MouseEvent } from 'react';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
 import { Dropdown, Tooltip, Icons } from '@superset-ui/core/components';
 
+type FilterPanelInjectedProps = {
+  onClose?: () => void;
+  isOpen?: boolean;
+};
+
 interface CompactFilterTriggerProps {
   label: ReactNode;
   hasValue: boolean;
@@ -27,6 +32,9 @@ interface CompactFilterTriggerProps {
   children: ReactNode;
   /** Shown as a hover tooltip when a value is selected (e.g. the selected label). */
   tooltipTitle?: string;
+  /** ARIA popup role for the trigger button. Use 'listbox' for option panels,
+   *  'dialog' for form panels (date range, numerical range). */
+  popupType?: 'listbox' | 'dialog';
 }
 
 const FilterPill = styled.button<{ $active: boolean }>`
@@ -77,6 +85,7 @@ export default function CompactFilterTrigger({
   onClear,
   children,
   tooltipTitle,
+  popupType = 'listbox',
 }: CompactFilterTriggerProps) {
   const [open, setOpen] = useState(false);
   const theme = useTheme();
@@ -92,7 +101,7 @@ export default function CompactFilterTrigger({
       $active={hasValue}
       type="button"
       data-test="compact-filter-pill"
-      aria-haspopup="dialog"
+      aria-haspopup={popupType}
       aria-expanded={open}
       aria-label={typeof label === 'string' ? label : undefined}
     >
@@ -120,10 +129,13 @@ export default function CompactFilterTrigger({
       trigger={['click']}
       popupRender={() =>
         React.isValidElement(children)
-          ? React.cloneElement(children, {
-              onClose: () => setOpen(false),
-              isOpen: open,
-            } as Record<string, unknown>)
+          ? React.cloneElement(
+              children as React.ReactElement<FilterPanelInjectedProps>,
+              {
+                onClose: () => setOpen(false),
+                isOpen: open,
+              },
+            )
           : (children as React.ReactElement)
       }
       placement="bottomLeft"
