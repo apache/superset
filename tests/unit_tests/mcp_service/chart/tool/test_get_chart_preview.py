@@ -19,6 +19,10 @@
 Unit tests for get_chart_preview MCP tool
 """
 
+import importlib
+from types import SimpleNamespace
+from typing import Any
+
 import pytest
 
 from superset.mcp_service.chart.schemas import (
@@ -34,8 +38,11 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.tool.get_chart_preview import (
     _sanitize_chart_preview_for_llm_context,
+    ASCIIPreviewStrategy,
+    TablePreviewStrategy,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.utils import json as utils_json
 
 
 class TestPreviewXAxisInQueryContext:
@@ -276,6 +283,385 @@ class TestGetChartPreview:
 
         # This is a structural test - actual integration tests would verify
         # the tool returns data matching this structure
+
+    def test_table_preview_converts_saved_adhoc_filters_to_query_filters(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Saved chart adhoc filters should constrain table previews."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"gender": "boy", "count": 1}],
+                            "colnames": ["gender", "count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        adhoc_filter = {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "gender",
+            "operator": "==",
+            "comparator": "boy",
+        }
+        chart = SimpleNamespace(
+            id=0,
+            slice_name="Unsaved Chart Preview",
+            viz_type="table",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "table",
+                    "groupby": ["gender"],
+                    "metrics": ["count"],
+                    "adhoc_filters": [adhoc_filter],
+                }
+            ),
+        )
+
+        preview = TablePreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=1, format="table"),
+        ).generate()
+
+        assert isinstance(preview, TablePreview)
+        query = captured_query_contexts[0]["queries"][0]
+        assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
+        assert "adhoc_filters" not in query
+
+    def test_table_preview_uses_singular_metric(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Preview query construction should handle charts without metrics[]."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"count": 10}],
+                            "colnames": ["count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        metric = {"label": "count", "expressionType": "SIMPLE"}
+        chart = SimpleNamespace(
+            id=0,
+            slice_name="Big Number Preview",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "big_number",
+                    "metric": metric,
+                }
+            ),
+        )
+
+        preview = TablePreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=1, format="table"),
+        ).generate()
+
+        assert isinstance(preview, TablePreview)
+        query = captured_query_contexts[0]["queries"][0]
+        assert query["columns"] == []
+        assert query["metrics"] == [metric]
+
+    def test_ascii_preview_uses_shared_query_builder(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """ASCII preview should use chart-type-aware query construction."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"count": 10}],
+                            "colnames": ["count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        metric = {"label": "count", "expressionType": "SIMPLE"}
+        chart = SimpleNamespace(
+            id=0,
+            slice_name="Big Number Preview",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "big_number",
+                    "metric": metric,
+                }
+            ),
+        )
+
+        preview = ASCIIPreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=1, format="ascii"),
+        ).generate()
+
+        assert isinstance(preview, ASCIIPreview)
+        query = captured_query_contexts[0]["queries"][0]
+        assert query["columns"] == []
+        assert query["metrics"] == [metric]
+        assert query["row_limit"] == 50
+
+    @pytest.mark.asyncio
+    async def test_form_data_key_overrides_saved_params_for_table_preview(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """form_data_key should drive table preview query construction."""
+        from contextlib import nullcontext
+
+        get_chart_preview_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_preview"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        get_form_data_module = importlib.import_module(
+            "superset.commands.explore.form_data.get"
+        )
+
+        class AsyncContext:
+            async def debug(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def error(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def info(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def report_progress(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def warning(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"gender": "boy", "count": 1}],
+                            "colnames": ["gender", "count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        saved_filter = {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "gender",
+            "operator": "==",
+            "comparator": "girl",
+        }
+        cached_filter = {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "gender",
+            "operator": "==",
+            "comparator": "boy",
+        }
+        chart = SimpleNamespace(
+            id=42,
+            slice_name="Saved Chart Preview",
+            viz_type="table",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "table",
+                    "groupby": ["gender"],
+                    "metrics": ["count"],
+                    "adhoc_filters": [saved_filter],
+                }
+            ),
+        )
+
+        monkeypatch.setattr(
+            get_chart_preview_module,
+            "find_chart_by_identifier",
+            lambda identifier: chart,
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module,
+            "validate_chart_dataset",
+            lambda *args, **kwargs: SimpleNamespace(
+                is_valid=True,
+                warnings=[],
+                error=None,
+            ),
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module.db.session,
+            "refresh",
+            lambda chart: None,
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module.event_logger,
+            "log_context",
+            lambda **kwargs: nullcontext(),
+        )
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module,
+            "ChartDataCommand",
+            ChartDataCommand,
+        )
+        monkeypatch.setattr(
+            get_form_data_module.GetFormDataCommand,
+            "__init__",
+            lambda self, cmd_params: None,
+        )
+        monkeypatch.setattr(
+            get_form_data_module.GetFormDataCommand,
+            "run",
+            lambda self: utils_json.dumps(
+                {
+                    "viz_type": "table",
+                    "groupby": ["gender"],
+                    "metrics": ["count"],
+                    "adhoc_filters": [cached_filter],
+                }
+            ),
+        )
+
+        result = await get_chart_preview_module._get_chart_preview_internal(
+            GetChartPreviewRequest(
+                identifier=42,
+                form_data_key="cached-key",
+                format="table",
+            ),
+            AsyncContext(),
+        )
+
+        assert isinstance(result, ChartPreview)
+        query = captured_query_contexts[0]["queries"][0]
+        assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
 
     @pytest.mark.asyncio
     async def test_preview_dimensions(self):
