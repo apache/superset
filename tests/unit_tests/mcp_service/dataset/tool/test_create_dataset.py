@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 
 # Patch at source so lazy imports inside the tool function are intercepted.
 _CMD_PATH = "superset.commands.dataset.create.CreateDatasetCommand"
+_DAO_PATH = "superset.mcp_service.dataset.tool.create_dataset.DatasetDAO"
+_SEC_PATH = "superset.mcp_service.dataset.tool.create_dataset.security_manager"
 
 
 def _make_mock_dataset(
@@ -90,6 +92,19 @@ def mock_auth():
 
 class TestCreateDataset:
     """Tests for the create_dataset MCP tool."""
+
+    @pytest.fixture(autouse=True)
+    def mock_dao_and_security(self):
+        """Default: valid database exists and access is granted.
+
+        Patches the pre-command access check so individual tests that only care
+        about command behavior don't need to replicate this setup.
+        """
+        with patch(_DAO_PATH) as mock_dao, patch(_SEC_PATH) as mock_sec:
+            mock_dao.get_database_by_id.return_value = MagicMock(
+                id=1, database_name="test_db"
+            )
+            yield mock_dao, mock_sec
 
     @patch(_CMD_PATH)
     @pytest.mark.asyncio
@@ -319,3 +334,100 @@ class TestCreateDataset:
         assert data["columns"][0]["column_name"] == "amount"
         assert len(data["metrics"]) == 1
         assert data["metrics"][0]["metric_name"] == "total_sales"
+
+    @pytest.mark.asyncio
+    async def test_create_dataset_database_not_found(
+        self, mock_dao_and_security, mcp_server
+    ):
+        """Returns DatabaseNotFoundError when the database_id does not exist."""
+        mock_dao, _ = mock_dao_and_security
+        mock_dao.get_database_by_id.return_value = None
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_dataset",
+                {"request": {"database_id": 999, "table_name": "orders"}},
+            )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "DatabaseNotFoundError"
+        assert "999" in data["error"]
+
+    @pytest.mark.asyncio
+    async def test_create_dataset_access_denied(
+        self, mock_dao_and_security, mcp_server
+    ):
+        """Returns AccessDeniedError when the caller lacks table-level access."""
+        from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+        from superset.exceptions import SupersetSecurityException
+
+        _, mock_sec = mock_dao_and_security
+        mock_sec.raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                message="Access denied",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_dataset",
+                {"request": {"database_id": 1, "table_name": "secret_table"}},
+            )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "AccessDeniedError"
+
+    @patch(_CMD_PATH)
+    @pytest.mark.asyncio
+    async def test_create_dataset_no_schema(
+        self, mock_command_class, mock_dao_and_security, mcp_server
+    ):
+        """schema is optional; omitting it does not pass it to the command."""
+        mock_dataset = _make_mock_dataset()
+        mock_command = MagicMock()
+        mock_command.run.return_value = mock_dataset
+        mock_command_class.return_value = mock_command
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_dataset",
+                {"request": {"database_id": 1, "table_name": "orders"}},
+            )
+
+        data = json.loads(result.content[0].text)
+        assert data["id"] == 42
+
+        call_kwargs = mock_command_class.call_args[0][0]
+        assert "schema" not in call_kwargs
+
+    @patch(_CMD_PATH)
+    @pytest.mark.asyncio
+    async def test_create_dataset_with_catalog(
+        self, mock_command_class, mock_dao_and_security, mcp_server
+    ):
+        """catalog is forwarded to CreateDatasetCommand when provided."""
+        mock_dataset = _make_mock_dataset()
+        mock_command = MagicMock()
+        mock_command.run.return_value = mock_dataset
+        mock_command_class.return_value = mock_command
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_dataset",
+                {
+                    "request": {
+                        "database_id": 1,
+                        "table_name": "orders",
+                        "catalog": "prod_catalog",
+                    }
+                },
+            )
+
+        data = json.loads(result.content[0].text)
+        assert data["id"] == 42
+
+        call_kwargs = mock_command_class.call_args[0][0]
+        assert call_kwargs["catalog"] == "prod_catalog"
+        assert "schema" not in call_kwargs

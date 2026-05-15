@@ -21,13 +21,16 @@ from typing import Any
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset.daos.dataset import DatasetDAO
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import event_logger, security_manager
 from superset.mcp_service.dataset.schemas import (
     CreateDatasetRequest,
     DatasetError,
     DatasetInfo,
     serialize_dataset_object,
 )
+from superset.sql.parse import Table
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +65,23 @@ async def create_dataset(
         % (request.database_id, request.schema, request.table_name)
     )
 
+    # Verify the database exists and the caller has table-level access before
+    # registering. Mirrors the check in DatabaseRestApi.table_metadata().
+    database = DatasetDAO.get_database_by_id(request.database_id)
+    if database is None:
+        await ctx.warning("Database %s not found" % request.database_id)
+        return DatasetError.create(
+            error=f"Database {request.database_id} not found",
+            error_type="DatabaseNotFoundError",
+        )
+
+    table = Table(request.table_name, request.schema, request.catalog)
+    try:
+        security_manager.raise_for_access(database=database, table=table)
+    except SupersetSecurityException as exc:
+        await ctx.warning("Access denied for table %r: %s" % (str(table), str(exc)))
+        return DatasetError.create(error=str(exc), error_type="AccessDeniedError")
+
     try:
         from superset.commands.dataset.create import CreateDatasetCommand
         from superset.commands.dataset.exceptions import (
@@ -72,15 +92,16 @@ async def create_dataset(
         )
 
         dataset_properties: dict[str, Any] = {
-            "database": request.database_id,
-            "table_name": request.table_name,
+            k: v
+            for k, v in {
+                "database": request.database_id,
+                "table_name": request.table_name,
+                "schema": request.schema,
+                "catalog": request.catalog,
+                "owners": request.owners,
+            }.items()
+            if v is not None
         }
-        if request.schema is not None:
-            dataset_properties["schema"] = request.schema
-        if request.catalog is not None:
-            dataset_properties["catalog"] = request.catalog
-        if request.owners is not None:
-            dataset_properties["owners"] = request.owners
 
         with event_logger.log_context(action="mcp.create_dataset.create"):
             dataset = CreateDatasetCommand(dataset_properties).run()
