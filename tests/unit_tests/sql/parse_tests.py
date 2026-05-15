@@ -1228,7 +1228,7 @@ def test_with_clause_containing_union_all_is_not_mutating_oracle() -> None:
     a generic ``SELECT 1`` test might miss.
     """
     sql = """
-    WITH SET1 AS (SELECT SYSDATE FROM DUAL UNION SELECT SYSDATE FROM DUAL),
+    WITH SET1 AS (SELECT SYSDATE FROM DUAL UNION ALL SELECT SYSDATE FROM DUAL),
          SET2 AS (SELECT * FROM SET1)
     SELECT * FROM SET2
     """
