@@ -110,7 +110,7 @@ editors.registerEditor(
 );
 ```
 
-See [Editors Extension Point](./extension-points/editors) for implementation details.
+See [Editors Extension Point](./extension-points/editors.md) for implementation details.
 
 ## Backend
 
@@ -146,7 +146,7 @@ class MyExtensionAPI(RestApi):
 from .api import MyExtensionAPI
 ```
 
-**Note**: The [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects context and generates appropriate paths:
+**Note**: The [`@api`](https://github.com/apache/superset/blob/master/superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects context and generates appropriate paths:
 
 - **Extension context**: `/extensions/{publisher}/{name}/` with ID prefixed as `extensions.{publisher}.{name}.{id}`
 - **Host context**: `/api/v1/` with original ID
@@ -193,7 +193,7 @@ def get_summary() -> dict:
     return {"status": "success", "result": {"queries_today": 42}}
 ```
 
-See [MCP Integration](./mcp) for implementation details.
+See [MCP Integration](./mcp.md) for implementation details.
 
 ### MCP Prompts
 
@@ -223,7 +223,7 @@ async def analysis_guide(ctx: Context) -> str:
     """
 ```
 
-See [MCP Integration](./mcp) for implementation details.
+See [MCP Integration](./mcp.md) for implementation details.
 
 ### Semantic Layers
 
