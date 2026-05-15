@@ -162,4 +162,7 @@ class Db2EngineSpec(BaseEngineSpec):
         be anything, and we would have to block users from running any queries
         referencing tables without an explicit schema.
         """
-        return [f'set current_schema "{schema}"'] if schema else []
+        if not schema:
+            return []
+        escaped = schema.replace('"', '""')
+        return [f'set current_schema "{escaped}"']
