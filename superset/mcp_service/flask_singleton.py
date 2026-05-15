@@ -81,6 +81,17 @@ try:
         mcp_config = get_mcp_config(_mcp_app.config)
         _mcp_app.config.update(mcp_config)
 
+        # Re-configure chart registry so MCP-specific overrides (e.g.
+        # MCP_DISABLED_CHART_PLUGINS set by the operator) take effect after
+        # the MCP config overlay.  SupersetAppInitializer.configure_mcp_chart_registry()
+        # ran earlier with pre-overlay values; this call corrects them.
+        from superset.mcp_service.chart import registry as _chart_registry
+
+        _chart_registry.configure(
+            disabled=_mcp_app.config.get("MCP_DISABLED_CHART_PLUGINS"),
+            enabled_func=_mcp_app.config.get("MCP_CHART_PLUGIN_ENABLED_FUNC"),
+        )
+
         with _mcp_app.app_context():
             from superset.core.mcp.core_mcp_injection import (
                 initialize_core_mcp_dependencies,

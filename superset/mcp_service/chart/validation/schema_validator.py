@@ -172,6 +172,21 @@ class SchemaValidator:
                 error_code="INVALID_CHART_TYPE",
             )
 
+        if not registry.is_enabled(chart_type):
+            valid_types = ", ".join(registry.all_types())
+            return False, ChartGenerationError(
+                error_type="disabled_chart_type",
+                message=f"Chart type '{chart_type}' is not enabled on this instance",
+                details=f"Chart type '{chart_type}' is registered but has been "
+                f"disabled by the operator. "
+                f"Enabled chart types: {valid_types}",
+                suggestions=[
+                    f"Use one of the enabled chart types: {valid_types}",
+                    "Contact your administrator if you believe this is an error",
+                ],
+                error_code="DISABLED_CHART_TYPE",
+            )
+
         plugin = registry.get(chart_type)
         if plugin is None:
             return False, ChartGenerationError(

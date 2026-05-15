@@ -38,6 +38,8 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -48,6 +50,22 @@ logger = logging.getLogger(__name__)
 _REGISTRY: dict[str, "ChartTypePlugin"] = {}
 _plugins_loaded = False
 _plugins_lock = threading.Lock()
+
+# ---------------------------------------------------------------------------
+# Plugin filter — replaced atomically by configure() at app startup.
+# Default: all registered plugins visible (no disabled set, no callable).
+# ---------------------------------------------------------------------------
+
+PluginEnabledFunc = Callable[[str], bool]
+
+
+@dataclass(frozen=True)
+class _PluginFilterConfig:
+    disabled_plugins: frozenset[str] = field(default_factory=frozenset)
+    enabled_func: PluginEnabledFunc | None = None
+
+
+_filter_config: _PluginFilterConfig = _PluginFilterConfig()
 
 
 def _ensure_plugins_loaded() -> None:
@@ -70,6 +88,60 @@ def _ensure_plugins_loaded() -> None:
                 logger.exception("Failed to load built-in chart type plugins")
 
 
+def configure(
+    disabled: Iterable[str] | None = None,
+    enabled_func: PluginEnabledFunc | None = None,
+) -> None:
+    """Set runtime plugin filters. Called once during app initialization.
+
+    Replaces the filter config atomically with a single assignment so concurrent
+    readers always observe a consistent (disabled_plugins, enabled_func) pair.
+
+    Args:
+        disabled: chart_type strings to suppress. Accepts any iterable (set,
+            frozenset, list, tuple). Ignored when enabled_func is provided.
+        enabled_func: callable(chart_type) -> bool.  When set, overrides
+            ``disabled``.  Must be cheap and in-process — no network I/O per
+            call.  On exception the registry fails *closed* (plugin hidden).
+    """
+    global _filter_config
+
+    if enabled_func is not None and not callable(enabled_func):
+        raise TypeError("enabled_func must be callable or None")
+
+    new_config = _PluginFilterConfig(
+        disabled_plugins=frozenset(disabled or ()),
+        enabled_func=enabled_func,
+    )
+    _filter_config = new_config
+
+    if new_config.disabled_plugins:
+        logger.info(
+            "MCP chart plugins disabled: %s", sorted(new_config.disabled_plugins)
+        )
+    if new_config.enabled_func is not None:
+        logger.info(
+            "MCP chart plugin dynamic filter configured: %r", new_config.enabled_func
+        )
+
+
+def _is_plugin_enabled(chart_type: str) -> bool:
+    """Return True if the plugin is currently enabled (not filtered out)."""
+    config = _filter_config  # read once — atomic reference in CPython
+    if config.enabled_func is not None:
+        try:
+            return bool(config.enabled_func(chart_type))
+        except Exception:
+            logger.warning(
+                "MCP_CHART_PLUGIN_ENABLED_FUNC raised for chart_type=%r; "
+                "failing closed (plugin hidden)",
+                chart_type,
+                exc_info=True,
+            )
+            return False
+    return chart_type not in config.disabled_plugins
+
+
 def register(plugin: "ChartTypePlugin") -> None:
     """Register a chart type plugin in the global registry."""
     if not plugin.chart_type:
@@ -83,21 +155,33 @@ def register(plugin: "ChartTypePlugin") -> None:
 
 
 def get(chart_type: str) -> "ChartTypePlugin | None":
-    """Return the plugin for a given chart_type, or None if not registered."""
+    """Return the plugin for chart_type, or None if unknown or disabled."""
     _ensure_plugins_loaded()
-    return _REGISTRY.get(chart_type)
+    if chart_type not in _REGISTRY or not _is_plugin_enabled(chart_type):
+        return None
+    return _REGISTRY[chart_type]
 
 
 def all_types() -> list[str]:
-    """Return all registered chart type strings in insertion order."""
+    """Return enabled registered chart type strings in insertion order."""
     _ensure_plugins_loaded()
-    return list(_REGISTRY.keys())
+    return [ct for ct in _REGISTRY if _is_plugin_enabled(ct)]
 
 
 def is_registered(chart_type: str) -> bool:
-    """Return True if chart_type has a registered plugin."""
+    """Return True if chart_type has a registered plugin, regardless of enabled state.
+
+    Use this to distinguish an unknown chart type from a disabled one.
+    Use is_enabled() to check whether the plugin is currently available.
+    """
     _ensure_plugins_loaded()
     return chart_type in _REGISTRY
+
+
+def is_enabled(chart_type: str) -> bool:
+    """Return True if chart_type is registered AND currently enabled."""
+    _ensure_plugins_loaded()
+    return chart_type in _REGISTRY and _is_plugin_enabled(chart_type)
 
 
 def display_name_for_viz_type(viz_type: str) -> str | None:
@@ -136,6 +220,9 @@ class _RegistryProxy:
 
     def is_registered(self, chart_type: str) -> bool:
         return is_registered(chart_type)
+
+    def is_enabled(self, chart_type: str) -> bool:
+        return is_enabled(chart_type)
 
     def display_name_for_viz_type(self, viz_type: str) -> str | None:
         return display_name_for_viz_type(viz_type)

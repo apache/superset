@@ -18,6 +18,7 @@
 
 import logging
 import secrets
+from collections.abc import Callable
 from typing import Any, Dict, Optional, Sequence
 
 from fastmcp.server.auth.providers.jwt import JWTVerifier
@@ -82,6 +83,46 @@ MCP_RBAC_ENABLED = True
 # Extension-prefixed tools can also be disabled using their full name:
 #   MCP_DISABLED_TOOLS = {"extensions.myorg.myext.some_tool"}
 MCP_DISABLED_TOOLS: set[str] = set()
+
+# =============================================================================
+# MCP Chart Plugin Filtering
+# =============================================================================
+#
+# Overview:
+# ---------
+# These two settings let operators enable/disable individual chart type plugins
+# at runtime without a code deploy.
+#
+# Use cases:
+#   - Emergency kill switch: add "handlebars" to MCP_DISABLED_CHART_PLUGINS and
+#     restart to immediately hide it from all callers.
+#   - Dynamic per-request control (A/B test, gradual rollout): set
+#     MCP_CHART_PLUGIN_ENABLED_FUNC to an in-process predicate that can vary
+#     by user, request header, or any other context available at call time.
+#
+# Priority:
+#   MCP_CHART_PLUGIN_ENABLED_FUNC takes precedence over MCP_DISABLED_CHART_PLUGINS.
+#   When the callable is set, the deny-list is ignored entirely.
+#
+# MCP_CHART_PLUGIN_ENABLED_FUNC contract:
+#   - Called as enabled_func(chart_type: str) -> bool for every registry lookup.
+#   - Must be cheap and in-process: consult already-loaded feature flags or
+#     request-local context (e.g. Flask g). Do NOT perform network I/O per call.
+#   - On exception, the registry fails CLOSED (plugin hidden) and logs a warning.
+#   - Example (Harness / Split via pre-fetched flags in g):
+#       from flask import g
+#       def MCP_CHART_PLUGIN_ENABLED_FUNC(chart_type: str) -> bool:
+#           flags = getattr(g, "feature_flags", {})
+#           return flags.get(f"mcp_chart_{chart_type}", True)
+# =============================================================================
+
+# Chart types in this set are hidden from all registry lookups.
+# Use frozenset to avoid accidental mutation.
+MCP_DISABLED_CHART_PLUGINS: frozenset[str] = frozenset()
+
+# Dynamic per-call predicate. When set, overrides MCP_DISABLED_CHART_PLUGINS.
+# Signature: (chart_type: str) -> bool
+MCP_CHART_PLUGIN_ENABLED_FUNC: Callable[[str], bool] | None = None
 
 # MCP JWT Debug Errors - controls server-side JWT debug logging.
 # When False (default), uses the default JWTVerifier with minimal logging.
@@ -544,6 +585,8 @@ def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
         "MCP_DEBUG": MCP_DEBUG,
         "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
         "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
+        "MCP_DISABLED_CHART_PLUGINS": MCP_DISABLED_CHART_PLUGINS,
+        "MCP_CHART_PLUGIN_ENABLED_FUNC": MCP_CHART_PLUGIN_ENABLED_FUNC,
         **MCP_SESSION_CONFIG,
         **MCP_CSRF_CONFIG,
     }

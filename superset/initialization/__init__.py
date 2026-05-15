@@ -863,6 +863,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_feature_flags()
         self.check_guest_token_secret()
         self.check_async_query_secret()
+        self.configure_mcp_chart_registry()
         self.configure_db_encrypt()
         self.setup_db()
 
@@ -943,6 +944,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_feature_flags(self) -> None:
         feature_flag_manager.init_app(self.superset_app)
+
+    def configure_mcp_chart_registry(self) -> None:
+        from superset.mcp_service.chart import registry
+        from superset.mcp_service.mcp_config import (
+            MCP_CHART_PLUGIN_ENABLED_FUNC,
+            MCP_DISABLED_CHART_PLUGINS,
+        )
+
+        registry.configure(
+            disabled=self.config.get(
+                "MCP_DISABLED_CHART_PLUGINS", MCP_DISABLED_CHART_PLUGINS
+            ),
+            enabled_func=self.config.get(
+                "MCP_CHART_PLUGIN_ENABLED_FUNC", MCP_CHART_PLUGIN_ENABLED_FUNC
+            ),
+        )
 
     def configure_sqlglot_dialects(self) -> None:
         extensions = self.config["SQLGLOT_DIALECTS_EXTENSIONS"]
