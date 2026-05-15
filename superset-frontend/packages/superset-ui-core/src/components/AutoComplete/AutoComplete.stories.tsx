@@ -217,6 +217,15 @@ export default {
   },
 } as Meta<typeof AutoComplete>;
 
+// Static options for docs and simple demos
+const staticOptions = [
+  { value: 'Dashboard', label: 'Dashboard' },
+  { value: 'Chart', label: 'Chart' },
+  { value: 'Dataset', label: 'Dataset' },
+  { value: 'Database', label: 'Database' },
+  { value: 'Query', label: 'Query' },
+];
+
 const getRandomInt = (max: number, min = 0) =>
   Math.floor(Math.random() * (max - min + 1)) + min;
 
@@ -243,7 +252,7 @@ const searchResult = (query: string) =>
     };
   });
 
-const AutoCompleteWithOptions = (args: AutoCompleteProps) => {
+const AutoCompleteWithDynamicSearch = (args: AutoCompleteProps) => {
   const [options, setOptions] = useState<AutoCompleteProps['options']>([]);
 
   const handleSearch = (value: string) => {
@@ -252,16 +261,60 @@ const AutoCompleteWithOptions = (args: AutoCompleteProps) => {
 
   return <AutoComplete {...args} options={options} onSearch={handleSearch} />;
 };
+
 type Story = StoryObj<typeof AutoComplete>;
 
-export const AutoCompleteStory: Story = {
+// Interactive story with static options - works in both Storybook and Docs
+export const InteractiveAutoComplete: Story = {
+  args: {
+    style: { width: 300 },
+    placeholder: 'Type to search...',
+    options: staticOptions,
+    filterOption: true, // Enable built-in filtering for static options
+  },
+  argTypes: {
+    options: {
+      control: false,
+      description: 'The dropdown options',
+    },
+    filterOption: {
+      control: 'boolean',
+      description: 'Enable filtering of options based on input',
+    },
+  },
+};
+
+// Docs configuration - provides static options for documentation rendering
+InteractiveAutoComplete.parameters = {
+  docs: {
+    staticProps: {
+      options: [
+        { value: 'Dashboard', label: 'Dashboard' },
+        { value: 'Chart', label: 'Chart' },
+        { value: 'Dataset', label: 'Dataset' },
+        { value: 'Database', label: 'Database' },
+        { value: 'Query', label: 'Query' },
+      ],
+      style: { width: 300 },
+      filterOption: true,
+    },
+  },
+};
+
+// Dynamic search demo - Storybook only (uses render function)
+export const DynamicSearchDemo: Story = {
   args: {
     style: { width: 300 },
     placeholder: 'Type to search...',
   },
   render: (args: AutoCompleteProps) => (
     <div style={{ margin: '20px' }}>
-      <AutoCompleteWithOptions {...args} />
+      <AutoCompleteWithDynamicSearch {...args} />
     </div>
   ),
+  parameters: {
+    docs: {
+      disable: true, // Hide from docs, it's a Storybook-specific demo
+    },
+  },
 };

@@ -117,6 +117,33 @@ testdata() {
   say "::endgroup::"
 }
 
+playwright_testdata() {
+  cd "$GITHUB_WORKSPACE"
+  say "::group::Load all examples for Playwright tests"
+  # must specify PYTHONPATH to make `tests.superset_test_config` importable
+  export PYTHONPATH="$GITHUB_WORKSPACE"
+  pip install -e .
+  superset db upgrade
+  superset load_test_users
+  superset load_examples
+  superset init
+  # Enable DML on the examples database so Playwright tests can create/drop
+  # temporary tables via SQL Lab without depending on external data sources.
+  superset shell <<'PYEOF'
+import sys
+from superset.extensions import db
+from superset.models.core import Database
+examples_db = db.session.query(Database).filter_by(database_name='examples').first()
+if not examples_db:
+    sys.exit('ERROR: examples database not found. load_examples may have failed.')
+
+examples_db.allow_dml = True
+db.session.commit()
+print('Enabled allow_dml on examples database')
+PYEOF
+  say "::endgroup::"
+}
+
 celery-worker() {
   cd "$GITHUB_WORKSPACE"
   say "::group::Start Celery worker"
@@ -290,27 +317,4 @@ monitor_memory() {
     ps -eo pid,comm,%mem --sort=-%mem | head -n 6  # First line is the header, next 5 are top processes
     sleep 2
   done
-}
-
-cypress-run-applitools() {
-  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
-
-  local flasklog="${HOME}/flask.log"
-  local port=8081
-  local cypress="./node_modules/.bin/cypress run"
-  local browser=${CYPRESS_BROWSER:-chrome}
-
-  export CYPRESS_BASE_URL="http://localhost:${port}"
-
-  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
-  local flaskProcessId=$!
-
-  $cypress --spec "cypress/applitools/**/*" --browser "$browser" --headless
-
-  say "::group::Flask log for default run"
-  cat "$flasklog"
-  say "::endgroup::"
-
-  # make sure the program exits
-  kill $flaskProcessId
 }

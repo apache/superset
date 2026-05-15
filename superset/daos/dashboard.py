@@ -23,6 +23,8 @@ from typing import Any, Dict, List
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Query
 
 from superset import is_feature_enabled, security_manager
 from superset.commands.dashboard.exceptions import (
@@ -31,12 +33,12 @@ from superset.commands.dashboard.exceptions import (
     DashboardNotFoundError,
     DashboardUpdateFailedError,
 )
-from superset.daos.base import BaseDAO
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.dashboards.filters import DashboardAccessFilter, is_uuid
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, id_or_slug_filter
+from superset.models.dashboard import Dashboard, dashboard_user, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.utils import json
@@ -47,14 +49,81 @@ logger = logging.getLogger(__name__)
 
 # Custom filterable fields for dashboards
 DASHBOARD_CUSTOM_FIELDS = {
-    "tags": ["eq", "in_", "like"],
-    "owners": ["eq", "in_"],
+    "tags": ["eq", "in", "like"],
+    "owners": ["eq", "in"],
     "published": ["eq"],
+    "owner": ["eq", "in"],
+    "favorite": ["eq"],
 }
 
 
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
+    # Column used by MCP tools for title-based identifier fallback, so a
+    # slug-like identifier can resolve to a dashboard even when its slug
+    # field is empty.
+    title_column = "dashboard_title"
+
+    @classmethod
+    def apply_column_operators(
+        cls,
+        query: Query,
+        column_operators: list[ColumnOperator] | None = None,
+    ) -> Query:
+        """Override to handle owner and favorite filters via subqueries.
+
+        - owner: filters dashboards by owner user ID via dashboard_user M2M table
+        - favorite: filters dashboards by whether the current user has favorited them
+        """
+        if not column_operators:
+            return query
+
+        remaining_operators: list[ColumnOperator] = []
+        for c in column_operators:
+            if not isinstance(c, ColumnOperator):
+                c = ColumnOperator.model_validate(c)
+            if c.col == "owner":
+                operator_enum = ColumnOperatorEnum(c.opr)
+                subq = select(dashboard_user.c.dashboard_id).where(
+                    operator_enum.apply(dashboard_user.c.user_id, c.value)
+                )
+                query = query.filter(
+                    Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
+            elif c.col == "created_by_fk_or_owner":
+                if c.opr != "eq":
+                    raise ValueError(
+                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                    )
+                owner_subq = select(dashboard_user.c.dashboard_id).where(
+                    dashboard_user.c.user_id == c.value
+                )
+                query = query.filter(
+                    or_(
+                        Dashboard.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
+                        Dashboard.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                    )
+                )
+            elif c.col == "favorite":
+                user_id = get_user_id()
+                fav_subq = select(FavStar.obj_id).where(
+                    FavStar.class_name == FavStarClassName.DASHBOARD,
+                    FavStar.user_id == user_id,
+                )
+                if c.value is True or c.value == 1:
+                    query = query.filter(
+                        Dashboard.id.in_(fav_subq)  # type: ignore[attr-defined,unused-ignore]
+                    )
+                else:
+                    query = query.filter(
+                        ~Dashboard.id.in_(fav_subq)  # type: ignore[attr-defined,unused-ignore]
+                    )
+            else:
+                remaining_operators.append(c)
+
+        if remaining_operators:
+            query = super().apply_column_operators(query, remaining_operators)
+        return query
 
     @classmethod
     def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
@@ -419,6 +488,70 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 ]
 
             metadata["native_filter_configuration"] = updated_configuration
+            dashboard.json_metadata = json.dumps(metadata)
+
+        return updated_configuration
+
+    @classmethod
+    def update_chart_customizations_config(
+        cls,
+        dashboard: Dashboard,
+        attributes: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        updated_configuration = []
+
+        if attributes:
+            chart_customization_config = metadata.get("chart_customization_config", [])
+            reordered_customization_ids: list[str] = attributes.get("reordered", [])
+
+            for conf in chart_customization_config:
+                deleted_customization = next(
+                    (c for c in attributes.get("deleted", []) if c == conf.get("id")),
+                    None,
+                )
+                if deleted_customization:
+                    continue
+
+                modified_customization = next(
+                    (
+                        c
+                        for c in attributes.get("modified", [])
+                        if c.get("id") == conf.get("id")
+                    ),
+                    None,
+                )
+                if modified_customization:
+                    updated_configuration.append(modified_customization)
+                else:
+                    updated_configuration.append(conf)
+
+            for new_customization in attributes.get("modified", []):
+                new_customization_id = new_customization.get("id")
+                if new_customization_id not in [
+                    c.get("id") for c in updated_configuration
+                ]:
+                    updated_configuration.append(new_customization)
+
+                    if (
+                        reordered_customization_ids
+                        and new_customization_id not in reordered_customization_ids
+                    ):
+                        reordered_customization_ids.append(new_customization_id)
+
+            if reordered_customization_ids:
+                customization_map = {
+                    customization_config["id"]: customization_config
+                    for customization_config in updated_configuration
+                }
+
+                updated_configuration = [
+                    customization_map[customization_id]
+                    for customization_id in reordered_customization_ids
+                    if customization_id in customization_map
+                ]
+
+            metadata["chart_customization_config"] = updated_configuration
             dashboard.json_metadata = json.dumps(metadata)
 
         return updated_configuration

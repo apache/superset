@@ -73,6 +73,7 @@ FEATURE_FLAGS = {
     "AVOID_COLORS_COLLISION": True,
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
+    "GLOBAL_TASK_FRAMEWORK": True,
 }
 
 WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
@@ -148,4 +149,8 @@ CUSTOM_TEMPLATE_PROCESSORS = {
 }
 
 PRESERVE_CONTEXT_ON_EXCEPTION = False
+
+# Dashboard API: Return only custom tags (performance optimization)
+DASHBOARD_LIST_CUSTOM_TAGS_ONLY = True
+
 print("Loaded TEST config for INTEGRATION tests")

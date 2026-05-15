@@ -10,6 +10,8 @@
     # via
     #   -r requirements/development.in
     #   apache-superset
+aiofile==3.9.0
+    # via py-key-value-aio
 alembic==1.15.2
     # via
     #   -c requirements/base-constraint.txt
@@ -26,8 +28,10 @@ anyio==4.11.0
     # via
     #   httpx
     #   mcp
+    #   py-key-value-aio
     #   sse-starlette
     #   starlette
+    #   watchfiles
 apispec==6.6.1
     # via
     #   -c requirements/base-constraint.txt
@@ -48,7 +52,7 @@ attrs==25.3.0
     #   referencing
     #   requests-cache
     #   trio
-authlib==1.6.4
+authlib==1.6.9
     # via fastmcp
 babel==2.17.0
     # via
@@ -65,9 +69,7 @@ bcrypt==4.3.0
     #   -c requirements/base-constraint.txt
     #   paramiko
 beartype==0.22.5
-    # via
-    #   py-key-value-aio
-    #   py-key-value-shared
+    # via py-key-value-aio
 billiard==4.2.1
     # via
     #   -c requirements/base-constraint.txt
@@ -76,11 +78,17 @@ blinker==1.9.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask
+boto3==1.42.39
+    # via apache-superset
+botocore==1.42.39
+    # via
+    #   boto3
+    #   s3transfer
 bottleneck==1.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-brotli==1.1.0
+brotli==1.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-compress
@@ -94,6 +102,8 @@ cachetools==6.2.1
     #   -c requirements/base-constraint.txt
     #   google-auth
     #   py-key-value-aio
+caio==0.9.25
+    # via aiofile
 cattrs==25.1.1
     # via
     #   -c requirements/base-constraint.txt
@@ -109,7 +119,7 @@ certifi==2025.6.15
     #   httpx
     #   requests
     #   selenium
-cffi==1.17.1
+cffi==2.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   cryptography
@@ -168,7 +178,7 @@ croniter==6.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-cryptography==44.0.3
+cryptography==46.0.7
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -176,9 +186,10 @@ cryptography==44.0.3
     #   paramiko
     #   pyjwt
     #   pyopenssl
+    #   secretstorage
 cycler==0.12.1
     # via matplotlib
-cyclopts==3.24.0
+cyclopts==4.2.4
     # via fastmcp
 db-dtypes==1.3.1
     # via pandas-gbq
@@ -196,8 +207,6 @@ deprecation==2.1.0
     #   apache-superset
 dill==0.4.0
     # via pylint
-diskcache==5.6.3
-    # via py-key-value-aio
 distlib==0.3.8
     # via virtualenv
 dnspython==2.7.0
@@ -227,10 +236,12 @@ et-xmlfile==2.0.0
     #   openpyxl
 exceptiongroup==1.3.0
     # via fastmcp
-fastmcp==2.13.0.2
+fastmcp==3.2.4
     # via apache-superset
-filelock==3.12.2
-    # via virtualenv
+filelock==3.20.3
+    # via
+    #   -c requirements/base-constraint.txt
+    #   virtualenv
 flask==2.3.3
     # via
     #   -c requirements/base-constraint.txt
@@ -248,7 +259,7 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==5.0.2
+flask-appbuilder==5.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -265,7 +276,7 @@ flask-compress==1.17
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-flask-cors==4.0.2
+flask-cors==6.0.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -367,6 +378,9 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
+griffelib==2.0.2
+    # via fastmcp
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -417,7 +431,9 @@ idna==3.10
     #   trio
     #   url-normalize
 importlib-metadata==8.7.0
-    # via keyring
+    # via
+    #   keyring
+    #   opentelemetry-api
 importlib-resources==6.5.2
     # via prophet
 iniconfig==2.0.0
@@ -426,6 +442,7 @@ isodate==0.7.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
 isort==6.0.1
     # via pylint
 itsdangerous==2.2.0
@@ -439,16 +456,26 @@ jaraco-context==6.0.1
     # via keyring
 jaraco-functools==4.3.0
     # via keyring
+jeepney==0.9.0
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==3.1.6
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset-extensions-cli
     #   flask
     #   flask-babel
+jmespath==1.1.0
+    # via
+    #   boto3
+    #   botocore
 jsonpath-ng==1.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+jsonref==1.1.0
+    # via fastmcp
 jsonschema==4.23.0
     # via
     #   -c requirements/base-constraint.txt
@@ -465,7 +492,7 @@ jsonschema-specifications==2025.4.1
     #   -c requirements/base-constraint.txt
     #   jsonschema
     #   openapi-schema-validator
-keyring==25.6.0
+keyring==25.7.0
     # via py-key-value-aio
 kiwisolver==1.4.7
     # via matplotlib
@@ -479,12 +506,12 @@ limits==5.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-limiter
-mako==1.3.10
+mako==1.3.11
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
     #   apache-superset
-markdown==3.8
+markdown==3.8.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -499,7 +526,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.26.1
+marshmallow==3.26.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -518,7 +545,7 @@ matplotlib==3.9.0
     # via prophet
 mccabe==0.7.0
     # via pylint
-mcp==1.20.0
+mcp==1.24.0
     # via fastmcp
 mdurl==0.1.2
     # via
@@ -556,7 +583,6 @@ numpy==1.26.4
     #   pandas
     #   pandas-gbq
     #   prophet
-    #   pyarrow
 oauthlib==3.2.2
     # via requests-oauthlib
 odfpy==1.4.1
@@ -575,6 +601,8 @@ openpyxl==3.1.5
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
+opentelemetry-api==1.39.1
+    # via fastmcp
 ordered-set==4.1.0
     # via
     #   -c requirements/base-constraint.txt
@@ -593,6 +621,7 @@ packaging==25.0
     #   deprecation
     #   docker
     #   duckdb-engine
+    #   fastmcp
     #   google-cloud-bigquery
     #   gunicorn
     #   limits
@@ -624,13 +653,11 @@ parsedatetime==2.6
     #   apache-superset
 pathable==0.4.3
     # via jsonschema-path
-pathvalidate==3.3.1
-    # via py-key-value-aio
 pgsanity==0.2.9
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-pillow==11.3.0
+pillow==12.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -672,7 +699,7 @@ proto-plus==1.25.0
     # via
     #   google-api-core
     #   google-cloud-bigquery-storage
-protobuf==4.25.5
+protobuf==4.25.8
     # via
     #   google-api-core
     #   google-cloud-bigquery-storage
@@ -681,19 +708,18 @@ protobuf==4.25.5
     #   proto-plus
 psutil==6.1.0
     # via apache-superset
-psycopg2-binary==2.9.6
+psycopg2-binary==2.9.12
     # via apache-superset
-py-key-value-aio==0.2.8
+py-key-value-aio==0.4.4
     # via fastmcp
-py-key-value-shared==0.2.8
-    # via py-key-value-aio
-pyarrow==16.1.0
+pyarrow==20.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
     #   db-dtypes
     #   pandas-gbq
-pyasn1==0.6.1
+pyasn1==0.6.3
     # via
     #   -c requirements/base-constraint.txt
     #   pyasn1-modules
@@ -712,6 +738,7 @@ pydantic==2.11.7
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
     #   fastmcp
     #   mcp
     #   openapi-pydantic
@@ -728,7 +755,11 @@ pydruid==0.6.9
     # via apache-superset
 pyfakefs==5.3.5
     # via apache-superset
-pygments==2.19.1
+pygeohash==3.2.2
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
+pygments==2.20.0
     # via
     #   -c requirements/base-constraint.txt
     #   rich
@@ -736,20 +767,21 @@ pyhive==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
-pyjwt==2.10.1
+pyjwt==2.12.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   flask-appbuilder
     #   flask-jwt-extended
     #   mcp
+    #   redis
 pylint==3.3.7
     # via apache-superset
-pynacl==1.5.0
+pynacl==1.6.2
     # via
     #   -c requirements/base-constraint.txt
     #   paramiko
-pyopenssl==25.1.0
+pyopenssl==26.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   shillelagh
@@ -768,8 +800,11 @@ pytest==7.4.4
     # via
     #   apache-superset
     #   apache-superset-extensions-cli
+    #   pytest-asyncio
     #   pytest-cov
     #   pytest-mock
+pytest-asyncio==0.23.8
+    # via apache-superset
 pytest-cov==6.0.0
     # via
     #   apache-superset
@@ -782,6 +817,7 @@ python-dateutil==2.9.0.post0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   botocore
     #   celery
     #   croniter
     #   flask-appbuilder
@@ -793,16 +829,12 @@ python-dateutil==2.9.0.post0
     #   pyhive
     #   shillelagh
     #   trino
-python-dotenv==1.1.0
+python-dotenv==1.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   fastmcp
     #   pydantic-settings
-python-geohash==0.8.5
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 python-ldap==3.4.4
     # via apache-superset
 python-multipart==0.0.20
@@ -823,9 +855,10 @@ pyyaml==6.0.2
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   apispec
+    #   fastmcp
     #   jsonschema-path
     #   pre-commit
-redis==4.6.0
+redis==5.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -835,7 +868,9 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
-requests==2.32.4
+regex==2026.4.4
+    # via tiktoken
+requests==2.33.0
     # via
     #   -c requirements/base-constraint.txt
     #   docker
@@ -847,6 +882,7 @@ requests==2.32.4
     #   requests-cache
     #   requests-oauthlib
     #   shillelagh
+    #   tiktoken
     #   trino
 requests-cache==1.2.1
     # via
@@ -867,6 +903,10 @@ rich==13.9.4
     #   rich-rst
 rich-rst==1.3.1
     # via cyclopts
+rison==2.0.0
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 rpds-py==0.25.0
     # via
     #   -c requirements/base-constraint.txt
@@ -876,8 +916,12 @@ rsa==4.9.1
     # via
     #   -c requirements/base-constraint.txt
     #   google-auth
-ruff==0.8.0
+ruff==0.9.7
     # via apache-superset
+s3transfer==0.16.0
+    # via boto3
+secretstorage==3.5.0
+    # via keyring
 selenium==4.32.0
     # via
     #   -c requirements/base-constraint.txt
@@ -892,7 +936,7 @@ setuptools==80.9.0
     #   pydata-google-auth
     #   zope-event
     #   zope-interface
-shillelagh==1.4.3
+shillelagh==1.4.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -935,13 +979,13 @@ sqlalchemy==1.4.54
     #   sqlalchemy-utils
 sqlalchemy-bigquery==1.15.0
     # via apache-superset
-sqlalchemy-utils==0.38.3
+sqlalchemy-utils==0.42.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==27.15.2
+sqlglot==28.10.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -954,14 +998,20 @@ sshtunnel==0.4.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-starlette==0.48.0
+starlette==0.49.1
     # via mcp
 statsd==4.0.1
+    # via apache-superset
+syntaqlite==0.1.0
     # via apache-superset
 tabulate==0.9.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+tiktoken==0.12.0
+    # via apache-superset
+tomli-w==1.2.0
+    # via apache-superset-extensions-cli
 tomlkit==0.13.3
     # via pylint
 tqdm==4.67.1
@@ -989,7 +1039,9 @@ typing-extensions==4.15.0
     #   cattrs
     #   exceptiongroup
     #   limits
-    #   py-key-value-shared
+    #   mcp
+    #   opentelemetry-api
+    #   py-key-value-aio
     #   pydantic
     #   pydantic-core
     #   pyopenssl
@@ -1001,6 +1053,7 @@ typing-extensions==4.15.0
 typing-inspection==0.4.1
     # via
     #   -c requirements/base-constraint.txt
+    #   mcp
     #   pydantic
     #   pydantic-settings
 tzdata==2025.2
@@ -1010,19 +1063,24 @@ tzdata==2025.2
     #   pandas
 tzlocal==5.2
     # via trino
+uncalled-for==0.2.0
+    # via fastmcp
 url-normalize==2.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   requests-cache
-urllib3==2.5.0
+urllib3==2.6.3
     # via
     #   -c requirements/base-constraint.txt
+    #   botocore
     #   docker
     #   requests
     #   requests-cache
     #   selenium
 uvicorn==0.37.0
-    # via mcp
+    # via
+    #   fastmcp
+    #   mcp
 vine==5.1.0
     # via
     #   -c requirements/base-constraint.txt
@@ -1036,6 +1094,8 @@ watchdog==6.0.0
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   apache-superset-extensions-cli
+watchfiles==1.1.1
+    # via fastmcp
 wcwidth==0.2.13
     # via
     #   -c requirements/base-constraint.txt
@@ -1046,11 +1106,12 @@ websocket-client==1.8.0
     #   selenium
 websockets==15.0.1
     # via fastmcp
-werkzeug==3.1.3
+werkzeug==3.1.6
     # via
     #   -c requirements/base-constraint.txt
     #   flask
     #   flask-appbuilder
+    #   flask-cors
     #   flask-jwt-extended
     #   flask-login
 wrapt==1.17.2

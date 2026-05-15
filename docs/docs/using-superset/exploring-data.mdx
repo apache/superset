@@ -9,9 +9,11 @@ import useBaseUrl from "@docusaurus/useBaseUrl";
 
 ## Exploring Data in Superset
 
-In this tutorial, we will introduce key concepts in Apache Superset through the exploration of a
-real dataset which contains the flights made by employees of a UK-based organization in 2011. The
-following information about each flight is given:
+Apache Superset enables users to explore data interactively through SQL queries, visual query builders, and rich visualizations, making it easier to understand datasets before building charts and dashboards.
+
+In this tutorial, we will introduce key concepts in Apache Superset through the exploration of a real dataset which contains the flights made by employees of a UK-based organization in 2011.
+
+The following information about each flight is given:
 
 - The traveler’s department. For the purposes of this tutorial the departments have been renamed
   Orange, Yellow and Purple.
@@ -326,3 +328,33 @@ various options in this section, refer to the
 
 Lastly, save your chart as Tutorial Resample and add it to the Tutorial Dashboard. Go to the
 tutorial dashboard to see the four charts side by side and compare the different outputs.
+
+### SQL Lab Tips
+
+**Schema and table browser**: The left-side table browser uses a collapsible treeview — click a schema to expand its tables, and click a table to see its columns and sample data inline. This makes navigating large schemas much faster than the previous flat list.
+
+**Find in editor**: Press **Ctrl+F** (or **Cmd+F** on Mac) to open the Monaco find/replace widget inside the SQL editor without leaving the editor.
+
+**Resizable panels**: The dividers between the SQL editor, schema browser, and results pane are draggable. Adjust them to match your workflow and screen size.
+
+**Dialect-aware Format SQL**: The **Format SQL** button applies the SQL dialect of the currently selected database — Trino, Presto, MySQL, PostgreSQL, etc. — rather than a generic formatter. Switch to a different database in the toolbar and re-format to get dialect-specific output. Jinja template syntax (`{{ }}`, `{% %}`) is preserved during formatting and will not cause format errors.
+
+### Time Range Natural Language Expressions
+
+The **Custom** time range picker accepts natural language expressions alongside specific dates:
+
+- **Relative**: `Last 7 days`, `Last month`, `Last quarter`, `Last year`
+- **Anchored**: `previous calendar week`, `previous calendar month`
+- **"First of" expressions**: `first day of this week`, `first day of this month`, `first day of this quarter`, `first day of this year`, `first week of this year`
+- **Offsets**: `30 days ago`, `1 year ago`, `next week`
+
+These expressions are evaluated at query time, so saved charts always display data relative to the current date.
+
+:::resources
+- [Chart Walkthroughs](https://docs.preset.io/docs/chart-walkthroughs) - Detailed guides for most chart types
+- [Blog: Why Apache ECharts is the Future of Apache Superset](https://preset.io/blog/2021-4-1-why-echarts/)
+- [Blog: ECharts Time-Series Visualizations in Superset](https://preset.io/blog/echarts-time-series-visualizations-in-superset/)
+- [Blog: Finding New Insights with Drill By](https://preset.io/blog/drill-by/)
+- [Blog: From Drill Down to Drill By](https://preset.io/blog/drill-down-and-drill-by/)
+- [Blog: Cross-Filtering in Apache Superset](https://preset.io/blog/cross-filtering-in-Superset-and-Preset/)
+:::

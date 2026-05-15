@@ -17,8 +17,8 @@
  * under the License.
  */
 import { EventHandler, ChangeEvent, MouseEvent, ReactNode } from 'react';
-import { t } from '@superset-ui/core';
-import { SupersetTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import SupersetText from 'src/utils/textUtils';
 import { Input, Button } from '@superset-ui/core/components';
 import { StyledInputContainer, wideButton, marginBottom } from './styles';

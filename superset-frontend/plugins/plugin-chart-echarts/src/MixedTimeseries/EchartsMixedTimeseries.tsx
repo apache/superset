@@ -57,7 +57,7 @@ export default function EchartsMixedTimeseries({
   );
 
   const getCrossFilterDataMask = useCallback(
-    (seriesName, seriesIndex) => {
+    (seriesName: string, seriesIndex: number) => {
       const selected: string[] = Object.values(selectedValues || {});
       let values: string[];
       if (selected.includes(seriesName)) {
@@ -75,7 +75,6 @@ export default function EchartsMixedTimeseries({
       return {
         dataMask: {
           extraFormData: {
-            // @ts-ignore
             filters:
               values.length === 0
                 ? []
@@ -215,6 +214,7 @@ export default function EchartsMixedTimeseries({
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
+      vizType={formData.vizType}
     />
   );
 }

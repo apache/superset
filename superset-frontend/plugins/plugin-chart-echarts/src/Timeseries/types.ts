@@ -97,12 +97,12 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   onlyTotal: boolean;
   showExtraControls: boolean;
   percentageThreshold: number;
+  colorByPrimaryAxis?: boolean;
   orientation?: OrientationType;
 } & LegendFormData &
   TitleFormData;
 
-export interface EchartsTimeseriesChartProps
-  extends BaseChartProps<EchartsTimeseriesFormData> {
+export interface EchartsTimeseriesChartProps extends BaseChartProps<EchartsTimeseriesFormData> {
   formData: EchartsTimeseriesFormData;
 }
 
@@ -111,6 +111,7 @@ export type TimeseriesChartTransformedProps =
     ContextMenuTransformedProps &
     CrossFilterTransformedProps & {
       legendData?: OptionName[];
+      isRefreshing?: boolean;
       xValueFormatter: TimeFormatter | StringConstructor;
       xAxis: {
         label: string;

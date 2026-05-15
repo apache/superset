@@ -21,8 +21,8 @@ import {
   EmptyState as EmptyStateComponent,
 } from '@superset-ui/core/components';
 import { TableTab } from 'src/views/CRUD/types';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WelcomeTable } from './types';
 
@@ -58,6 +58,8 @@ const REDIRECTS = {
   create: {
     [WelcomeTable.Charts]: '/chart/add',
     [WelcomeTable.Dashboards]: '/dashboard/new',
+    // navigateTo() applies the application root internally; keep this
+    // relative so the prefix isn't added twice.
     [WelcomeTable.SavedQueries]: '/sqllab?new=true',
   },
   viewAll: {

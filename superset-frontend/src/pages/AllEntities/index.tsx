@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { t } from '@superset-ui/core';
-import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
 import { NumberParam, useQueryParam } from 'use-query-params';
 import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
 import { Button, Loading } from '@superset-ui/core/components';

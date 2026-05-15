@@ -20,7 +20,7 @@
 import CartodiagramPlugin from '../../src/CartodiagramPlugin';
 
 describe('CartodiagramPlugin', () => {
-  it('exists', () => {
+  test('exists', () => {
     expect(CartodiagramPlugin).toBeDefined();
   });
 });

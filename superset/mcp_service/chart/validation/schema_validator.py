@@ -126,59 +126,74 @@ class SchemaValidator:
             return False, ChartGenerationError(
                 error_type="missing_chart_type",
                 message="Missing required field: chart_type",
-                details="Chart configuration must specify 'chart_type' as either 'xy' "
-                "or 'table'",
+                details="Chart configuration must specify 'chart_type'",
                 suggestions=[
                     "Add 'chart_type': 'xy' for line/bar/area/scatter charts",
                     "Add 'chart_type': 'table' for table visualizations",
+                    "Add 'chart_type': 'pie' for pie or donut charts",
+                    "Add 'chart_type': 'pivot_table' for interactive pivot tables",
+                    "Add 'chart_type': 'mixed_timeseries' for dual-series time charts",
+                    "Add 'chart_type': 'handlebars' for custom HTML template charts",
+                    "Add 'chart_type': 'big_number' for big number display",
                     "Example: 'config': {'chart_type': 'xy', ...}",
                 ],
                 error_code="MISSING_CHART_TYPE",
             )
 
-        if chart_type not in ["xy", "table"]:
+        return SchemaValidator._pre_validate_chart_type(chart_type, config)
+
+    @staticmethod
+    def _pre_validate_chart_type(
+        chart_type: str,
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Validate chart type and dispatch to type-specific pre-validation."""
+        chart_type_validators = {
+            "xy": SchemaValidator._pre_validate_xy_config,
+            "table": SchemaValidator._pre_validate_table_config,
+            "pie": SchemaValidator._pre_validate_pie_config,
+            "pivot_table": SchemaValidator._pre_validate_pivot_table_config,
+            "mixed_timeseries": SchemaValidator._pre_validate_mixed_timeseries_config,
+            "handlebars": SchemaValidator._pre_validate_handlebars_config,
+            "big_number": SchemaValidator._pre_validate_big_number_config,
+        }
+
+        if not isinstance(chart_type, str) or chart_type not in chart_type_validators:
+            valid_types = ", ".join(chart_type_validators.keys())
             return False, ChartGenerationError(
                 error_type="invalid_chart_type",
                 message=f"Invalid chart_type: '{chart_type}'",
-                details=f"Chart type '{chart_type}' is not supported. Must be 'xy' or "
-                f"'table'",
+                details=f"Chart type '{chart_type}' is not supported. "
+                f"Must be one of: {valid_types}",
                 suggestions=[
                     "Use 'chart_type': 'xy' for line, bar, area, or scatter charts",
                     "Use 'chart_type': 'table' for tabular data display",
+                    "Use 'chart_type': 'pie' for pie or donut charts",
+                    "Use 'chart_type': 'pivot_table' for interactive pivot tables",
+                    "Use 'chart_type': 'mixed_timeseries' for dual-series time charts",
+                    "Use 'chart_type': 'handlebars' for custom HTML template charts",
+                    "Use 'chart_type': 'big_number' for big number display",
                     "Check spelling and ensure lowercase",
                 ],
                 error_code="INVALID_CHART_TYPE",
             )
 
-        # Pre-validate structure based on chart type
-        if chart_type == "xy":
-            return SchemaValidator._pre_validate_xy_config(config)
-        elif chart_type == "table":
-            return SchemaValidator._pre_validate_table_config(config)
-
-        return True, None
+        return chart_type_validators[chart_type](config)
 
     @staticmethod
     def _pre_validate_xy_config(
         config: Dict[str, Any],
     ) -> Tuple[bool, ChartGenerationError | None]:
         """Pre-validate XY chart configuration."""
-        missing_fields = []
-
-        if "x" not in config:
-            missing_fields.append("'x' (X-axis column)")
+        # x is optional — defaults to dataset's main_dttm_col in map_xy_config
         if "y" not in config:
-            missing_fields.append("'y' (Y-axis metrics)")
-
-        if missing_fields:
             return False, ChartGenerationError(
                 error_type="missing_xy_fields",
-                message=f"XY chart missing required "
-                f"fields: {', '.join(missing_fields)}",
-                details="XY charts require both X-axis (dimension) and Y-axis ("
-                "metrics) specifications",
+                message="XY chart missing required field: 'y' (Y-axis metrics)",
+                details="XY charts require Y-axis (metrics) specifications. "
+                "X-axis is optional and defaults to the dataset's primary "
+                "datetime column when omitted.",
                 suggestions=[
-                    "Add 'x' field: {'name': 'column_name'} for X-axis",
                     "Add 'y' field: [{'name': 'metric_column', 'aggregate': 'SUM'}] "
                     "for Y-axis",
                     "Example: {'chart_type': 'xy', 'x': {'name': 'date'}, "
@@ -238,6 +253,279 @@ class SchemaValidator:
         return True, None
 
     @staticmethod
+    def _pre_validate_pie_config(
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Pre-validate pie chart configuration."""
+        missing_fields = []
+
+        if "dimension" not in config:
+            missing_fields.append("'dimension' (category column for slices)")
+        if "metric" not in config:
+            missing_fields.append("'metric' (value metric for slice sizes)")
+
+        if missing_fields:
+            return False, ChartGenerationError(
+                error_type="missing_pie_fields",
+                message=f"Pie chart missing required "
+                f"fields: {', '.join(missing_fields)}",
+                details="Pie charts require a dimension (categories) and a metric "
+                "(values)",
+                suggestions=[
+                    "Add 'dimension' field: {'name': 'category_column'}",
+                    "Add 'metric' field: {'name': 'value_column', 'aggregate': 'SUM'}",
+                    "Example: {'chart_type': 'pie', 'dimension': {'name': "
+                    "'product'}, 'metric': {'name': 'revenue', 'aggregate': 'SUM'}}",
+                ],
+                error_code="MISSING_PIE_FIELDS",
+            )
+
+        return True, None
+
+    @staticmethod
+    def _pre_validate_handlebars_config(
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Pre-validate handlebars chart configuration."""
+        if "handlebars_template" not in config:
+            return False, ChartGenerationError(
+                error_type="missing_handlebars_template",
+                message="Handlebars chart missing required field: handlebars_template",
+                details="Handlebars charts require a 'handlebars_template' string "
+                "containing Handlebars HTML template markup",
+                suggestions=[
+                    "Add 'handlebars_template' with a Handlebars HTML template",
+                    "Data is available as {{data}} array in the template",
+                    "Example: '<ul>{{#each data}}<li>{{this.name}}: "
+                    "{{this.value}}</li>{{/each}}</ul>'",
+                ],
+                error_code="MISSING_HANDLEBARS_TEMPLATE",
+            )
+
+        template = config.get("handlebars_template")
+        if not isinstance(template, str) or not template.strip():
+            return False, ChartGenerationError(
+                error_type="invalid_handlebars_template",
+                message="Handlebars template must be a non-empty string",
+                details="The 'handlebars_template' field must be a non-empty string "
+                "containing valid Handlebars HTML template markup",
+                suggestions=[
+                    "Ensure handlebars_template is a non-empty string",
+                    "Example: '<ul>{{#each data}}<li>{{this.name}}</li>{{/each}}</ul>'",
+                ],
+                error_code="INVALID_HANDLEBARS_TEMPLATE",
+            )
+
+        query_mode = config.get("query_mode", "aggregate")
+        if query_mode not in ("aggregate", "raw"):
+            return False, ChartGenerationError(
+                error_type="invalid_query_mode",
+                message="Invalid query_mode for handlebars chart",
+                details="query_mode must be either 'aggregate' or 'raw'",
+                suggestions=[
+                    "Use 'aggregate' for aggregated data (default)",
+                    "Use 'raw' for individual rows",
+                ],
+                error_code="INVALID_QUERY_MODE",
+            )
+
+        if query_mode == "raw" and not config.get("columns"):
+            return False, ChartGenerationError(
+                error_type="missing_raw_columns",
+                message="Handlebars chart in 'raw' mode requires 'columns'",
+                details="When query_mode is 'raw', you must specify which columns "
+                "to include in the query results",
+                suggestions=[
+                    "Add 'columns': [{'name': 'column_name'}] for raw mode",
+                    "Or use query_mode='aggregate' with 'metrics' "
+                    "and optional 'groupby'",
+                ],
+                error_code="MISSING_RAW_COLUMNS",
+            )
+
+        if query_mode == "aggregate" and not config.get("metrics"):
+            return False, ChartGenerationError(
+                error_type="missing_aggregate_metrics",
+                message="Handlebars chart in 'aggregate' mode requires 'metrics'",
+                details="When query_mode is 'aggregate' (default), you must specify "
+                "at least one metric with an aggregate function",
+                suggestions=[
+                    "Add 'metrics': [{'name': 'column', 'aggregate': 'SUM'}]",
+                    "Or use query_mode='raw' with 'columns' for individual rows",
+                ],
+                error_code="MISSING_AGGREGATE_METRICS",
+            )
+
+        return True, None
+
+    @staticmethod
+    def _pre_validate_big_number_config(
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Pre-validate big number chart configuration."""
+        if "metric" not in config:
+            return False, ChartGenerationError(
+                error_type="missing_metric",
+                message="Big Number chart missing required field: metric",
+                details="Big Number charts require a 'metric' field "
+                "specifying the value to display",
+                suggestions=[
+                    "Add 'metric' with name and aggregate: "
+                    "{'name': 'revenue', 'aggregate': 'SUM'}",
+                    "The aggregate function is required (SUM, COUNT, AVG, MIN, MAX)",
+                    "Example: {'chart_type': 'big_number', "
+                    "'metric': {'name': 'sales', 'aggregate': 'SUM'}}",
+                ],
+                error_code="MISSING_BIG_NUMBER_METRIC",
+            )
+
+        metric = config.get("metric", {})
+        if not isinstance(metric, dict):
+            return False, ChartGenerationError(
+                error_type="invalid_metric_type",
+                message="Big Number metric must be a dict with 'name' and 'aggregate'",
+                details="The 'metric' field must be an object, "
+                f"got {type(metric).__name__}",
+                suggestions=[
+                    "Use a dict: {'name': 'col', 'aggregate': 'SUM'}",
+                    "Valid aggregates: SUM, COUNT, AVG, MIN, MAX",
+                ],
+                error_code="INVALID_BIG_NUMBER_METRIC_TYPE",
+            )
+        if not metric.get("aggregate") and not metric.get("saved_metric"):
+            return False, ChartGenerationError(
+                error_type="missing_metric_aggregate",
+                message="Big Number metric must include an aggregate function "
+                "or reference a saved metric",
+                details="The metric must have an 'aggregate' field "
+                "or 'saved_metric': true",
+                suggestions=[
+                    "Add 'aggregate' to your metric: "
+                    "{'name': 'col', 'aggregate': 'SUM'}",
+                    "Or use a saved metric: "
+                    "{'name': 'total_sales', 'saved_metric': true}",
+                    "Valid aggregates: SUM, COUNT, AVG, MIN, MAX",
+                ],
+                error_code="MISSING_BIG_NUMBER_AGGREGATE",
+            )
+
+        show_trendline = config.get("show_trendline", False)
+        temporal_column = config.get("temporal_column")
+        if show_trendline and not temporal_column:
+            return False, ChartGenerationError(
+                error_type="missing_temporal_column",
+                message="Trendline requires a temporal column",
+                details="When 'show_trendline' is True, a "
+                "'temporal_column' must be specified",
+                suggestions=[
+                    "Add 'temporal_column': 'date_column_name'",
+                    "Or set 'show_trendline': false for number only",
+                    "Use get_dataset_info to find temporal columns",
+                ],
+                error_code="MISSING_TEMPORAL_COLUMN",
+            )
+
+        return True, None
+
+    @staticmethod
+    def _pre_validate_pivot_table_config(
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Pre-validate pivot table configuration."""
+        missing_fields = []
+
+        if "rows" not in config:
+            missing_fields.append("'rows' (row grouping columns)")
+        if "metrics" not in config:
+            missing_fields.append("'metrics' (aggregation metrics)")
+
+        if missing_fields:
+            return False, ChartGenerationError(
+                error_type="missing_pivot_fields",
+                message=f"Pivot table missing required "
+                f"fields: {', '.join(missing_fields)}",
+                details="Pivot tables require row groupings and metrics",
+                suggestions=[
+                    "Add 'rows' field: [{'name': 'category'}]",
+                    "Add 'metrics' field: [{'name': 'sales', 'aggregate': 'SUM'}]",
+                    "Optional 'columns' for cross-tabulation: [{'name': 'region'}]",
+                ],
+                error_code="MISSING_PIVOT_FIELDS",
+            )
+
+        if not isinstance(config.get("rows", []), list):
+            return False, ChartGenerationError(
+                error_type="invalid_rows_format",
+                message="Rows must be a list of columns",
+                details="The 'rows' field must be an array of column specifications",
+                suggestions=[
+                    "Wrap row columns in array: 'rows': [{'name': 'category'}]",
+                ],
+                error_code="INVALID_ROWS_FORMAT",
+            )
+
+        if not isinstance(config.get("metrics", []), list):
+            return False, ChartGenerationError(
+                error_type="invalid_metrics_format",
+                message="Metrics must be a list",
+                details="The 'metrics' field must be an array of metric specifications",
+                suggestions=[
+                    "Wrap metrics in array: 'metrics': [{'name': 'sales', "
+                    "'aggregate': 'SUM'}]",
+                ],
+                error_code="INVALID_METRICS_FORMAT",
+            )
+
+        return True, None
+
+    @staticmethod
+    def _pre_validate_mixed_timeseries_config(
+        config: Dict[str, Any],
+    ) -> Tuple[bool, ChartGenerationError | None]:
+        """Pre-validate mixed timeseries configuration."""
+        missing_fields = []
+
+        if "x" not in config:
+            missing_fields.append("'x' (X-axis temporal column)")
+        if "y" not in config:
+            missing_fields.append("'y' (primary Y-axis metrics)")
+        if "y_secondary" not in config:
+            missing_fields.append("'y_secondary' (secondary Y-axis metrics)")
+
+        if missing_fields:
+            return False, ChartGenerationError(
+                error_type="missing_mixed_timeseries_fields",
+                message=f"Mixed timeseries chart missing required "
+                f"fields: {', '.join(missing_fields)}",
+                details="Mixed timeseries charts require an x-axis, primary metrics, "
+                "and secondary metrics",
+                suggestions=[
+                    "Add 'x' field: {'name': 'date_column'}",
+                    "Add 'y' field: [{'name': 'revenue', 'aggregate': 'SUM'}]",
+                    "Add 'y_secondary' field: [{'name': 'orders', "
+                    "'aggregate': 'COUNT'}]",
+                    "Optional: 'primary_kind' and 'secondary_kind' for chart types",
+                ],
+                error_code="MISSING_MIXED_TIMESERIES_FIELDS",
+            )
+
+        for field_name in ["y", "y_secondary"]:
+            if not isinstance(config.get(field_name, []), list):
+                return False, ChartGenerationError(
+                    error_type=f"invalid_{field_name}_format",
+                    message=f"'{field_name}' must be a list of metrics",
+                    details=f"The '{field_name}' field must be an array of metric "
+                    "specifications",
+                    suggestions=[
+                        f"Wrap in array: '{field_name}': "
+                        "[{'name': 'col', 'aggregate': 'SUM'}]",
+                    ],
+                    error_code=f"INVALID_{field_name.upper()}_FORMAT",
+                )
+
+        return True, None
+
+    @staticmethod
     def _enhance_validation_error(
         error: PydanticValidationError, request_data: Dict[str, Any]
     ) -> ChartGenerationError:
@@ -284,6 +572,41 @@ class SchemaValidator:
                             "'sales', 'aggregate': 'SUM'}]",
                         ],
                         error_code="TABLE_VALIDATION_ERROR",
+                    )
+                elif chart_type == "handlebars":
+                    return ChartGenerationError(
+                        error_type="handlebars_validation_error",
+                        message="Handlebars chart configuration validation failed",
+                        details="The handlebars chart configuration is missing "
+                        "required fields or has invalid structure",
+                        suggestions=[
+                            "Ensure 'handlebars_template' is a non-empty string",
+                            "For aggregate mode: add 'metrics' with aggregate "
+                            "functions",
+                            "For raw mode: set 'query_mode': 'raw' and add 'columns'",
+                            "Example: {'chart_type': 'handlebars', "
+                            "'handlebars_template': '<ul>{{#each data}}<li>"
+                            "{{this.name}}</li>{{/each}}</ul>', "
+                            "'metrics': [{'name': 'sales', 'aggregate': 'SUM'}]}",
+                        ],
+                        error_code="HANDLEBARS_VALIDATION_ERROR",
+                    )
+                elif chart_type == "big_number":
+                    return ChartGenerationError(
+                        error_type="big_number_validation_error",
+                        message="Big Number chart configuration validation failed",
+                        details="The Big Number chart configuration is "
+                        "missing required fields or has invalid "
+                        "structure",
+                        suggestions=[
+                            "Ensure 'metric' field has 'name' and 'aggregate'",
+                            "Example: 'metric': {'name': 'revenue', "
+                            "'aggregate': 'SUM'}",
+                            "For trendline: add 'show_trendline': true "
+                            "and 'temporal_column': 'date_col'",
+                            "Without trendline: just provide the metric",
+                        ],
+                        error_code="BIG_NUMBER_VALIDATION_ERROR",
                     )
 
         # Default enhanced error

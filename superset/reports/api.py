@@ -18,7 +18,13 @@ import logging
 from typing import Any, Optional
 
 from flask import request, Response
-from flask_appbuilder.api import expose, permission_name, protect, rison, safe
+from flask_appbuilder.api import (
+    expose,
+    permission_name,
+    protect,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -82,6 +88,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     resource_name = "report"
     allow_browser_login = True
 
+    extra_fields_rel_fields = {
+        **BaseSupersetModelRestApi.extra_fields_rel_fields,
+        "created_by": ["email", "active"],
+    }
+
     base_filters = [
         ["id", ReportScheduleFilter, lambda: []],
     ]
@@ -113,6 +124,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.id",
         "owners.last_name",
+        "owners.email",
         "recipients.id",
         "recipients.recipient_config_json",
         "recipients.type",
@@ -152,6 +164,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.id",
         "owners.last_name",
+        "owners.email",
         "recipients.id",
         "recipients.type",
         "timezone",
@@ -464,7 +477,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
@@ -522,7 +535,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     @expose("/slack_channels/", methods=("GET",))
     @protect()
-    @rison(get_slack_channels_schema)
+    @parse_rison(get_slack_channels_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(

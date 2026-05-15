@@ -20,6 +20,7 @@ from typing import Any, Optional, TypedDict
 class ExplorePermalinkState(TypedDict, total=False):
     formData: dict[str, Any]
     urlParams: Optional[list[tuple[str, str]]]
+    chartState: Optional[dict[str, Any]]
 
 
 class ExplorePermalinkValue(TypedDict):

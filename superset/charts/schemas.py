@@ -459,7 +459,7 @@ class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSch
                 allow_none=False,
                 metadata={"description": "Columns by which to group by"},
             ),
-            minLength=1,
+            metadata={"minLength": 1},
             required=True,
         ),
     )
@@ -656,8 +656,8 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "description": "Time periods (in units of `time_grain`) to predict into "
             "the future",
             "example": 7,
+            "min": 0,
         },
-        min=0,
         required=True,
     )
     confidence_interval = fields.Float(
@@ -790,8 +790,10 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
     index = (
         fields.List(
             fields.String(allow_none=False),
-            metadata={"description": "Columns to group by on the table index (=rows)"},
-            minLength=1,
+            metadata={
+                "description": "Columns to group by on the table index (=rows)",
+                "minLength": 1,
+            },
             required=True,
         ),
     )
@@ -1026,6 +1028,13 @@ class ChartDataExtrasSchema(Schema):
                 "Used to preserve user's column reordering (including mixed "
                 "dimension columns and metrics)"
             )
+        },
+        allow_none=True,
+    )
+    transpile_to_dialect = fields.Boolean(
+        metadata={
+            "description": "If true, WHERE/HAVING clauses will be transpiled to the "
+            "target database dialect using SQLGlot."
         },
         allow_none=True,
     )
@@ -1464,6 +1473,13 @@ class ChartDataResponseResult(Schema):
         required=True,
         allow_none=True,
     )
+    queried_dttm = fields.String(
+        metadata={
+            "description": "UTC timestamp when the query was executed (ISO 8601 format)"
+        },
+        required=True,
+        allow_none=True,
+    )
     cache_timeout = fields.Integer(
         metadata={
             "description": "Cache timeout in following order: custom timeout, datasource "  # noqa: E501
@@ -1526,6 +1542,15 @@ class ChartDataResponseResult(Schema):
     rejected_filters = fields.List(
         fields.Dict(), metadata={"description": "A list with rejected filters"}
     )
+    detected_currency = fields.String(
+        metadata={
+            "description": "Detected ISO 4217 currency code when AUTO mode is used. "
+            "Returns the currency code if all filtered data contains a single currency "
+            "or null if multiple currencies are present."
+        },
+        allow_none=True,
+        load_default=None,
+    )
     from_dttm = fields.Integer(
         metadata={"description": "Start timestamp of time range"},
         required=False,
@@ -1538,6 +1563,42 @@ class ChartDataResponseResult(Schema):
     )
 
 
+class DashboardFilterInfoSchema(Schema):
+    id = fields.String(
+        metadata={"description": "The native filter ID"},
+        required=True,
+    )
+    name = fields.String(
+        metadata={"description": "The native filter name"},
+        required=True,
+    )
+    status = fields.String(
+        metadata={
+            "description": "Filter status: 'applied' (default value was included "
+            "in the query), 'not_applied' (filter had no default value and was "
+            "omitted, matching dashboard initial-load behavior), or "
+            "'not_applied_uses_default_to_first_item_prequery' (filter uses "
+            "defaultToFirstItem which requires a pre-query to resolve and cannot "
+            "be applied server-side)",
+        },
+        required=True,
+    )
+    column = fields.String(
+        metadata={"description": "Target column name for the filter"},
+        allow_none=True,
+    )
+
+
+class DashboardFiltersResponseSchema(Schema):
+    filters = fields.List(
+        fields.Nested(DashboardFilterInfoSchema),
+        metadata={
+            "description": "Metadata about each in-scope dashboard native filter "
+            "and whether its default value was applied to the query"
+        },
+    )
+
+
 class ChartDataResponseSchema(Schema):
     result = fields.List(
         fields.Nested(ChartDataResponseResult),
@@ -1545,6 +1606,14 @@ class ChartDataResponseSchema(Schema):
             "description": "A list of results for each corresponding query in the "
             "request."
         },
+    )
+    dashboard_filters = fields.Nested(
+        DashboardFiltersResponseSchema,
+        metadata={
+            "description": "Metadata about dashboard native filters applied to "
+            "the query. Only present when filters_dashboard_id is provided."
+        },
+        required=False,
     )
 
 
@@ -1648,6 +1717,7 @@ class UserSchema(Schema):
     id = fields.Int()
     first_name = fields.String()
     last_name = fields.String()
+    email = fields.String()
 
 
 class DashboardSchema(Schema):
@@ -1657,7 +1727,7 @@ class DashboardSchema(Schema):
 
 
 class ChartGetResponseSchema(Schema):
-    id = fields.Int(description=id_description)
+    id = fields.Int(metadata={"description": id_description})
     url = fields.String()
     cache_timeout = fields.String()
     certified_by = fields.String()
@@ -1685,6 +1755,7 @@ CHART_SCHEMAS = (
     ChartCacheWarmUpRequestSchema,
     ChartCacheWarmUpResponseSchema,
     ChartDataQueryContextSchema,
+    DashboardFiltersResponseSchema,
     ChartDataResponseSchema,
     ChartDataAsyncResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`

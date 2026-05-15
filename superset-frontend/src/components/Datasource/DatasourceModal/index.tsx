@@ -18,13 +18,16 @@
  */
 import { FunctionComponent, useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   getClientErrorObject,
-  t,
   SupersetError,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
-import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 
 import {
   Icons,
@@ -42,24 +45,25 @@ const DatasourceEditor = AsyncEsmComponent(
   () => import('../components/DatasourceEditor'),
 );
 
+const MODAL_HEIGHT_VH = 90;
+const TOP_MARGIN_VH = (100 - MODAL_HEIGHT_VH) / 2;
+
 const StyledDatasourceModal = styled(Modal)`
-  .modal-content {
-    height: 900px;
+  top: ${TOP_MARGIN_VH}vh;
+  padding-bottom: 0;
+
+  && .ant-modal-content {
+    max-height: ${MODAL_HEIGHT_VH}vh;
+    margin-top: 0;
+    margin-bottom: 0;
+    min-height: 500px;
+    min-width: 500px;
+  }
+
+  && .ant-modal-body {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-  }
-
-  .modal-header {
-    flex: 0 1 auto;
-  }
-  .modal-body {
-    flex: 1 1 auto;
-    overflow: auto;
-  }
-
-  .modal-footer {
-    flex: 0 1 auto;
   }
 
   .ant-tabs-top {
@@ -119,6 +123,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         datasource.schema,
       description: datasource.description,
       main_dttm_col: datasource.main_dttm_col,
+      currency_code_column: datasource.currency_code_column ?? null,
       normalize_columns: datasource.normalize_columns,
       always_filter_main_dttm: datasource.always_filter_main_dttm,
       offset: datasource.offset,
@@ -172,6 +177,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         (o: Record<string, number>) => o.value || o.id,
       ),
     };
+    // Add folders if DATASET_FOLDERS feature is enabled
+    if (isFeatureEnabled(FeatureFlag.DatasetFolders) && datasource.folders) {
+      payload.folders = datasource.folders;
+    }
     // Handle catalog based on database's allow_multi_catalog setting
     // If multi-catalog is disabled, don't include catalog in payload
     // The backend will use the default catalog
@@ -355,7 +364,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 ? t(
                     "This dataset is managed externally, and can't be edited in Superset",
                   )
-                : ''
+                : errors.length > 0
+                  ? errors.join('\n')
+                  : ''
             }
           >
             {t('Save')}
@@ -363,6 +374,12 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         </>
       }
       responsive
+      resizable
+      resizableConfig={{
+        defaultSize: { width: 'auto', height: `${MODAL_HEIGHT_VH}vh` },
+        maxHeight: `${MODAL_HEIGHT_VH}vh`,
+      }}
+      draggable
     >
       <DatasourceEditor
         showLoadingForImport

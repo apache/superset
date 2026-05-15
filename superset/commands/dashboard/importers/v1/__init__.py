@@ -22,7 +22,7 @@ from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
-from sqlalchemy.sql import select
+from sqlalchemy.sql import delete, select
 
 from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
@@ -157,9 +157,14 @@ class ImportDashboardsCommand(ImportModelsCommand):
                         )
 
         # store the existing relationship between dashboards and charts
-        existing_relationships = db.session.execute(
-            select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
-        ).fetchall()
+        # (only used when overwrite=False to avoid inserting duplicates)
+        existing_relationships: set[tuple[int, int]] = set()
+        if not overwrite:
+            existing_relationships = set(
+                db.session.execute(
+                    select(dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id)
+                ).fetchall()
+            )
 
         # import dashboards
         dashboards: list[Dashboard] = []
@@ -177,11 +182,25 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     del config["theme_uuid"]
                 dashboard = import_dashboard(config, overwrite=overwrite)
                 dashboards.append(dashboard)
+
+                # When overwriting, first delete all existing chart relationships
+                # so the dashboard is replaced rather than merged
+                if overwrite:
+                    db.session.execute(
+                        delete(dashboard_slices).where(
+                            dashboard_slices.c.dashboard_id == dashboard.id
+                        )
+                    )
+
+                # Collect chart IDs to associate with this dashboard
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:
-                        break
+                        continue
                     chart_id = chart_ids[uuid]
-                    if (dashboard.id, chart_id) not in existing_relationships:
+                    if (
+                        overwrite
+                        or (dashboard.id, chart_id) not in existing_relationships
+                    ):
                         dashboard_chart_ids.append((dashboard.id, chart_id))
 
                 # Handle tags using import_tag function
@@ -197,11 +216,12 @@ class ImportDashboardsCommand(ImportModelsCommand):
                         )
 
         # set ref in the dashboard_slices table
-        values = [
-            {"dashboard_id": dashboard_id, "slice_id": chart_id}
-            for (dashboard_id, chart_id) in dashboard_chart_ids
-        ]
-        db.session.execute(dashboard_slices.insert(), values)
+        if dashboard_chart_ids:
+            values = [
+                {"dashboard_id": dashboard_id, "slice_id": chart_id}
+                for (dashboard_id, chart_id) in dashboard_chart_ids
+            ]
+            db.session.execute(dashboard_slices.insert(), values)
 
         # Migrate any filter-box charts to native dashboard filters.
         for dashboard in dashboards:

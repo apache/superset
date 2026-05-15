@@ -16,80 +16,97 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { action } from '@storybook/addon-actions';
-import { Icons } from '@superset-ui/core/components/Icons';
-import { Dropdown } from '../Dropdown';
-import { FaveStar } from '../FaveStar';
+import type { Meta, StoryObj } from '@storybook/react';
 import { ListViewCard } from '.';
 
 export default {
   title: 'Components/ListViewCard',
   component: ListViewCard,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'ListViewCard is a card component used to display items in list views with an image, title, description, and optional cover sections.',
+      },
+    },
+  },
+} as Meta<typeof ListViewCard>;
+
+type Story = StoryObj<typeof ListViewCard>;
+
+export const InteractiveListViewCard: Story = {
+  args: {
+    title: 'Superset Card Title',
+    loading: false,
+    url: '/superset/dashboard/births/',
+    imgURL: 'https://picsum.photos/seed/superset/300/200',
+    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+    coverLeft: 'Left Section',
+    coverRight: 'Right Section',
+  },
   argTypes: {
-    loading: { control: 'boolean', defaultValue: false },
+    title: {
+      control: { type: 'text' },
+      description: 'Title displayed on the card.',
+    },
+    loading: {
+      control: { type: 'boolean' },
+      description: 'Whether the card is in loading state.',
+    },
+    url: {
+      name: 'url',
+      control: { type: 'text' },
+      description: 'URL the card links to.',
+    },
     imgURL: {
-      control: 'text',
-      defaultValue:
-        'https://images.unsplash.com/photo-1658163724548-29ef00812a54?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
+      name: 'imgURL',
+      control: { type: 'text' },
+      description: 'Primary image URL for the card.',
     },
-    imgFallbackURL: {
-      control: 'text',
-      defaultValue:
-        'https://images.unsplash.com/photo-1658208193219-e859d9771912?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
+    description: {
+      control: { type: 'text' },
+      description: 'Description text displayed on the card.',
     },
-    isStarred: { control: 'boolean', defaultValue: false },
+    coverLeft: {
+      control: { type: 'text' },
+      description: 'Content for the left section of the cover.',
+    },
+    coverRight: {
+      control: { type: 'text' },
+      description: 'Content for the right section of the cover.',
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'A card component for displaying items in list views with images and descriptions.',
+      },
+      liveExample: `function Demo() {
+  return (
+    <ListViewCard
+      title="My Dashboard"
+      description="A sample dashboard card"
+      url="/dashboard/1"
+      imgURL="https://picsum.photos/seed/demo/300/200"
+      coverLeft="Created: Jan 2024"
+      coverRight="Views: 1,234"
+    />
+  );
+}`,
+    },
   },
 };
 
-export const SupersetListViewCard = ({
-  loading,
-  imgURL,
-  imgFallbackURL,
-  isStarred,
-}: {
-  loading: boolean;
-  imgURL: string;
-  imgFallbackURL: string;
-  isStarred: boolean;
-}) => (
-  <ListViewCard
-    title="Superset Card Title"
-    loading={loading}
-    url="/superset/dashboard/births/"
-    imgURL={imgURL}
-    imgFallbackURL={imgFallbackURL}
-    description="Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
-    coverLeft="Left Section"
-    coverRight="Right Section"
-    actions={
-      <ListViewCard.Actions>
-        <FaveStar
-          itemId={0}
-          fetchFaveStar={action('fetchFaveStar')}
-          saveFaveStar={action('saveFaveStar')}
-          isStarred={isStarred}
-        />
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: 'delete',
-                label: 'Delete',
-                icon: <Icons.DeleteOutlined />,
-                onClick: action('Delete'),
-              },
-              {
-                key: 'edit',
-                label: 'Edit',
-                icon: <Icons.EditOutlined />,
-                onClick: action('Edit'),
-              },
-            ],
-          }}
-        >
-          <Icons.EllipsisOutlined />
-        </Dropdown>
-      </ListViewCard.Actions>
-    }
-  />
-);
+// Keep original for backwards compatibility
+export const SupersetListViewCard: Story = {
+  args: {
+    title: 'Superset Card Title',
+    loading: false,
+    url: '/superset/dashboard/births/',
+    imgURL: 'https://picsum.photos/seed/superset2/300/200',
+    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...',
+    coverLeft: 'Left Section',
+    coverRight: 'Right Section',
+  },
+};
