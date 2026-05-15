@@ -145,6 +145,18 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
                 id_map[old_id] for old_id in scope_excluded if old_id in id_map
             ]
 
+        # chartsInScope is a denormalized cache of the charts the filter
+        # currently applies to. It holds source-env chart IDs and must be
+        # remapped to destination IDs; otherwise the imported dashboard's
+        # filtersInScope / filtersOutScope computation operates on stale
+        # IDs and filters end up applied to the wrong charts (or none at
+        # all). Drop unresolvable IDs rather than passing them through.
+        charts_in_scope = native_filter.get("chartsInScope")
+        if isinstance(charts_in_scope, list):
+            native_filter["chartsInScope"] = [
+                id_map[old_id] for old_id in charts_in_scope if old_id in id_map
+            ]
+
     # fix display control dataset references
     for customization in (
         fixed.get("metadata", {}).get("chart_customization_config") or []
@@ -170,7 +182,7 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     return fixed
 
 
-def update_cross_filter_scoping(
+def update_cross_filter_scoping(  # noqa: C901
     config: dict[str, Any], id_map: dict[int, int]
 ) -> dict[str, Any]:
     # fix cross filter references
@@ -209,6 +221,18 @@ def update_cross_filter_scoping(
                         chart_config["crossFilters"]["scope"]["excluded"] = [
                             id_map[old_id]
                             for old_id in excluded_scope
+                            if old_id in id_map
+                        ]
+
+                # Cross-filter chartsInScope mirrors the native-filter case
+                # above: source-env IDs that must be remapped on import.
+                cross_filters = chart_config.get("crossFilters")
+                if isinstance(cross_filters, dict):
+                    charts_in_scope = cross_filters.get("chartsInScope")
+                    if isinstance(charts_in_scope, list):
+                        cross_filters["chartsInScope"] = [
+                            id_map[old_id]
+                            for old_id in charts_in_scope
                             if old_id in id_map
                         ]
 
