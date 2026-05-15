@@ -2320,3 +2320,22 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
         security_manager.add_permission_role(alpha_role, tag_charts_perm)
+
+    def test_related_owners_blocked_for_read_only_user(self):
+        """
+        Chart API: GET /api/v1/chart/related/owners returns 403 for Gamma (read-only).
+
+        The chart related/owners endpoint is restricted to users with can_write
+        on Chart to prevent information disclosure via owner enumeration.
+        """
+        self.login(GAMMA_USERNAME)
+        rv = self.client.get("api/v1/chart/related/owners")
+        assert rv.status_code == 403
+
+    def test_related_owners_allowed_for_write_user(self):
+        """
+        Chart API: GET /api/v1/chart/related/owners returns 200 for Admin.
+        """
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get("api/v1/chart/related/owners")
+        assert rv.status_code == 200
