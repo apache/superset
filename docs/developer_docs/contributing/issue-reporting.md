@@ -413,6 +413,6 @@ Consider:
 - **Feature Request**: Use feature request template
 - **Question**: Use GitHub Discussions
 - **Configuration Help**: Ask in Slack
-- **Development Help**: See [Contributing Guide](./overview)
+- **Development Help**: See [Contributing Guide](./overview.md)
 
-Next: [Understanding the release process](./release-process)
+Next: [Understanding the release process](./release-process.md)

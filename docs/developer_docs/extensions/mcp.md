@@ -455,5 +455,5 @@ async def metrics_guide(ctx: Context) -> str:
 
 ## Next Steps
 
-- **[Development](./development)** - Project structure, APIs, and dev workflow
-- **[Security](./security)** - Security best practices for extensions
+- **[Development](./development.md)** - Project structure, APIs, and dev workflow
+- **[Security](./security.md)** - Security best practices for extensions

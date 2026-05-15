@@ -233,7 +233,7 @@ This architecture provides several key benefits:
 
 Now that you understand the architecture, explore:
 
-- **[Dependencies](./dependencies)** - Managing dependencies and understanding API stability
-- **[Quick Start](./quick-start)** - Build your first extension
-- **[Contribution Types](./contribution-types)** - What kinds of extensions you can build
-- **[Development](./development)** - Project structure, APIs, and development workflow
+- **[Dependencies](./dependencies.md)** - Managing dependencies and understanding API stability
+- **[Quick Start](./quick-start.md)** - Build your first extension
+- **[Contribution Types](./contribution-types.md)** - What kinds of extensions you can build
+- **[Development](./development.md)** - Project structure, APIs, and development workflow
