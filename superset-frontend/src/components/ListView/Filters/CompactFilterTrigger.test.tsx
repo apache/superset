@@ -44,7 +44,6 @@ test('renders as inactive pill with down chevron when hasValue is false', () => 
 
 test('renders active state with close icon when hasValue is true', () => {
   render(<CompactFilterTrigger {...defaultProps} hasValue />);
-  // The close icon has role="button" with aria-label="close"
   expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
 });
 
@@ -59,8 +58,26 @@ test('toggles aria-expanded when pill is clicked', async () => {
 test('calls onClear when clear icon is clicked', async () => {
   const onClear = jest.fn();
   render(<CompactFilterTrigger {...defaultProps} hasValue onClear={onClear} />);
-  // The close icon has role="button" with aria-label="close"
   const closeIcon = screen.getByRole('button', { name: /close/i });
   await userEvent.click(closeIcon);
   expect(onClear).toHaveBeenCalledTimes(1);
+});
+
+test('does not render tooltip wrapper when tooltipTitle is absent', () => {
+  const { container } = render(<CompactFilterTrigger {...defaultProps} />);
+  // No ant-tooltip-open class expected when no tooltip
+  expect(container.querySelector('.ant-tooltip')).not.toBeInTheDocument();
+});
+
+test('renders tooltip span wrapper when hasValue and tooltipTitle are set', () => {
+  const { container } = render(
+    <CompactFilterTrigger
+      {...defaultProps}
+      hasValue
+      tooltipTitle="Some Owner"
+    />,
+  );
+  // The span wrapper should be present as direct parent of the Dropdown trigger
+  const span = container.querySelector('span[style*="inline-flex"]');
+  expect(span).toBeInTheDocument();
 });

@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, type ReactNode, type MouseEvent } from 'react';
+import React, { useState, type ReactNode, type MouseEvent } from 'react';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
-import { Popover, Icons } from '@superset-ui/core/components';
+import { Dropdown, Tooltip, Icons } from '@superset-ui/core/components';
 
 interface CompactFilterTriggerProps {
   label: ReactNode;
   hasValue: boolean;
   onClear: () => void;
   children: ReactNode;
+  /** Shown as a hover tooltip when a value is selected (e.g. the selected label). */
+  tooltipTitle?: string;
 }
 
 const FilterPill = styled.button<{ $active: boolean }>`
@@ -32,9 +34,9 @@ const FilterPill = styled.button<{ $active: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: ${theme.sizeUnit}px;
-    height: 32px;
+    height: ${theme.controlHeight}px;
     padding: 0 ${theme.sizeUnit * 3}px;
-    border-radius: 16px;
+    border-radius: ${theme.borderRadius}px;
     border: 1px solid ${$active ? theme.colorPrimary : theme.colorBorder};
     background: ${$active ? theme.colorPrimaryBg : theme.colorBgContainer};
     color: ${$active ? theme.colorPrimary : theme.colorText};
@@ -66,24 +68,12 @@ const ActiveDot = styled.span`
   `}
 `;
 
-const PopoverContent = styled.div`
-  ${({ theme }) => css`
-    min-width: 220px;
-
-    label {
-      display: block;
-      font-size: ${theme.fontSizeSM}px;
-      color: ${theme.colorTextLabel};
-      margin-bottom: ${theme.sizeUnit}px;
-    }
-  `}
-`;
-
 export default function CompactFilterTrigger({
   label,
   hasValue,
   onClear,
   children,
+  tooltipTitle,
 }: CompactFilterTriggerProps) {
   const [open, setOpen] = useState(false);
   const theme = useTheme();
@@ -94,38 +84,61 @@ export default function CompactFilterTrigger({
     setOpen(false);
   };
 
-  return (
-    <Popover
-      trigger="click"
+  const pill = (
+    <FilterPill
+      $active={hasValue}
+      type="button"
+      data-test="compact-filter-pill"
+      aria-haspopup="dialog"
+      aria-expanded={open}
+    >
+      {hasValue && <ActiveDot />}
+      <span>{label}</span>
+      {hasValue ? (
+        <Icons.CloseOutlined
+          iconSize="xs"
+          iconColor={theme.colorPrimary}
+          onClick={handleClear}
+        />
+      ) : (
+        <Icons.DownOutlined
+          iconSize="xs"
+          iconColor={theme.colorTextSecondary}
+        />
+      )}
+    </FilterPill>
+  );
+
+  const dropdown = (
+    <Dropdown
       open={open}
       onOpenChange={setOpen}
-      content={<PopoverContent>{children}</PopoverContent>}
+      trigger={['click']}
+      popupRender={() =>
+        React.isValidElement(children)
+          ? React.cloneElement(children, {
+              onClose: () => setOpen(false),
+            } as Record<string, unknown>)
+          : (children as React.ReactElement)
+      }
       placement="bottomLeft"
-      arrow={false}
-      destroyTooltipOnHide
+      destroyPopupOnHide
     >
-      <FilterPill
-        $active={hasValue}
-        type="button"
-        data-test="compact-filter-pill"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-      >
-        {hasValue && <ActiveDot />}
-        <span>{label}</span>
-        {hasValue ? (
-          <Icons.CloseOutlined
-            iconSize="xs"
-            iconColor={theme.colorPrimary}
-            onClick={handleClear}
-          />
-        ) : (
-          <Icons.DownOutlined
-            iconSize="xs"
-            iconColor={theme.colorTextSecondary}
-          />
-        )}
-      </FilterPill>
-    </Popover>
+      {pill}
+    </Dropdown>
   );
+
+  // Wrap in Tooltip (via span) when a value is selected to preview selection on hover
+  if (tooltipTitle && hasValue) {
+    return (
+      <Tooltip
+        title={open ? undefined : tooltipTitle}
+        mouseEnterDelay={0.5}
+      >
+        <span style={{ display: 'inline-flex' }}>{dropdown}</span>
+      </Tooltip>
+    );
+  }
+
+  return dropdown;
 }

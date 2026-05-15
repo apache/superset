@@ -34,10 +34,10 @@ import type {
 } from '../types';
 import type { FilterHandler } from './types';
 import SearchFilter from './Search';
-import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
 import NumericalRangeFilter from './NumericalRange';
 import CompactFilterTrigger from './CompactFilterTrigger';
+import CompactSelectPanel from './CompactSelectPanel';
 
 interface UIFiltersProps {
   filters: Filters;
@@ -97,37 +97,35 @@ function UIFilters(
           const initialValue = internalFilters?.[index]?.value;
           const filterValue = internalFilters?.[index]?.value;
           if (input === 'select') {
+            const selectValue = filterValue as SelectOption | undefined;
+            const tooltipTitle = selectValue
+              ? typeof selectValue.label === 'string'
+                ? selectValue.label
+                : String(selectValue.value ?? '')
+              : undefined;
             return (
               <CompactFilterTrigger
                 key={key}
                 label={Header}
-                hasValue={!!filterValue}
+                hasValue={!!selectValue}
+                tooltipTitle={tooltipTitle}
                 onClear={() => filterRefs[index]?.current?.clearFilter?.()}
               >
-                <SelectFilter
+                <CompactSelectPanel
                   ref={filterRefs[index]}
-                  Header={Header}
+                  selects={selects}
                   fetchSelects={fetchSelects}
-                  initialValue={initialValue}
-                  name={id}
+                  value={initialValue as SelectOption | undefined}
                   onSelect={(
                     option: SelectOption | undefined,
                     isClear?: boolean,
                   ) => {
-                    if (onFilterUpdate) {
-                      // Filter change triggers both onChange AND onClear, only want to track onChange
-                      if (!isClear) {
-                        onFilterUpdate(option);
-                      }
+                    if (onFilterUpdate && !isClear) {
+                      onFilterUpdate(option);
                     }
-
                     updateFilterValue(index, option);
                   }}
-                  optionFilterProps={optionFilterProps}
-                  paginate={paginate}
-                  selects={selects}
-                  loading={loading ?? false}
-                  dropdownStyle={popupStyle}
+                  onClose={() => {}}
                 />
               </CompactFilterTrigger>
             );
@@ -155,11 +153,15 @@ function UIFilters(
           if (input === 'datetime_range') {
             const hasDateValue =
               Array.isArray(filterValue) && filterValue.some(Boolean);
+            const dateTooltip = hasDateValue
+              ? (filterValue as (string | number)[]).filter(Boolean).join(' – ')
+              : undefined;
             return (
               <CompactFilterTrigger
                 key={key}
                 label={Header}
                 hasValue={hasDateValue}
+                tooltipTitle={dateTooltip}
                 onClear={() => filterRefs[index]?.current?.clearFilter?.()}
               >
                 <DateRangeFilter
@@ -177,11 +179,17 @@ function UIFilters(
             const hasRangeValue =
               Array.isArray(filterValue) &&
               filterValue.some(v => v !== null && v !== undefined);
+            const rangeTooltip = hasRangeValue
+              ? (filterValue as (number | null | undefined)[])
+                  .filter(v => v !== null && v !== undefined)
+                  .join(' – ')
+              : undefined;
             return (
               <CompactFilterTrigger
                 key={key}
                 label={Header}
                 hasValue={hasRangeValue}
+                tooltipTitle={rangeTooltip}
                 onClear={() => filterRefs[index]?.current?.clearFilter?.()}
               >
                 <NumericalRangeFilter

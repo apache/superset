@@ -70,7 +70,7 @@ const ListViewStyles = styled.div`
         & .controls {
           display: flex;
           flex-wrap: wrap;
-          align-items: center;
+          align-items: flex-end;
           column-gap: ${theme.sizeUnit * 2}px;
           row-gap: ${theme.sizeUnit * 2}px;
         }
