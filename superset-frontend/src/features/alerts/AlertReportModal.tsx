@@ -1076,7 +1076,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const dashboard = currentAlert?.dashboard;
   useEffect(() => {
-    if (!tabsEnabled) return;
+    if (!tabsEnabled && !filtersEnabled) return;
 
     if (dashboard?.value) {
       SupersetClient.get({
@@ -1156,7 +1156,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
-  }, [dashboard, tabsEnabled, currentAlert?.extra, addDangerToast]);
+  }, [
+    dashboard,
+    tabsEnabled,
+    filtersEnabled,
+    currentAlert?.extra,
+    addDangerToast,
+  ]);
 
   const databaseLabel = currentAlert?.database && !currentAlert.database.label;
   useEffect(() => {
@@ -1264,10 +1270,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     [],
   );
 
-  const getChartVisualizationType = (chart: SelectValue) =>
-    SupersetClient.get({
+  const getChartVisualizationType = (chart: SelectValue) => {
+    if (!chart || typeof chart !== 'object' || chart.value === undefined) {
+      return;
+    }
+    return SupersetClient.get({
       endpoint: `/api/v1/chart/${chart.value}`,
     }).then(response => setChartVizType(response.json.result.viz_type));
+  };
 
   const updateEmailSubject = () => {
     const chartLabel = currentAlert?.chart?.label;
@@ -1368,8 +1378,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('chart', null);
     if (tabsEnabled) {
       setTabOptions([]);
-      setNativeFilterOptions([]);
       updateAnchorState('');
+    }
+    if (tabsEnabled || filtersEnabled) {
+      setNativeFilterOptions([]);
     }
     if (filtersEnabled) {
       setNativeFilterData([
@@ -2333,6 +2345,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         <AsyncSelect
                           ariaLabel={t('Chart')}
                           name="chart"
+                          allowClear
                           value={
                             currentAlert?.chart?.label &&
                             currentAlert?.chart?.value

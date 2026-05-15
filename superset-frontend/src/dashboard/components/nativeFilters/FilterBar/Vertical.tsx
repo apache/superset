@@ -119,6 +119,7 @@ const FilterControlsWrapper = styled.div`
     flex-direction: column;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 4}px;
+    padding-top: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
     // 108px padding to make room for buttons with position: absolute
     padding-bottom: ${theme.sizeUnit * 27}px;
   `}
@@ -287,8 +288,15 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         <Bar className={cx({ open: filtersOpen })} width={width}>
           <Header toggleFiltersBar={toggleFiltersBar} />
           {!isInitialized ? (
-            <div css={{ height }}>
-              <Loading size="s" muted />
+            <div
+              css={{
+                height,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Loading position="inline-centered" size="s" muted />
             </div>
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>

@@ -76,3 +76,16 @@ test('returns true for set feature flag', () => {
   });
   expect(isFeatureEnabled(FeatureFlag.DrillBy)).toEqual(true);
 });
+
+test('GranularExportControls feature flag has expected string value', () => {
+  expect(FeatureFlag.GranularExportControls).toBe('GRANULAR_EXPORT_CONTROLS');
+});
+
+test('returns true for set GranularExportControls feature flag', () => {
+  Object.defineProperty(window, 'featureFlags', {
+    value: {
+      GRANULAR_EXPORT_CONTROLS: true,
+    },
+  });
+  expect(isFeatureEnabled(FeatureFlag.GranularExportControls)).toEqual(true);
+});

@@ -25,6 +25,11 @@ that replaces the abstract functions in superset-core during initialization.
 import logging
 from typing import Any, Callable, Optional, TypeVar
 
+try:
+    from mcp.types import ToolAnnotations
+except ImportError:
+    ToolAnnotations = dict
+
 from superset.extensions.context import get_current_extension_context
 
 # Type variable for decorated functions
@@ -60,12 +65,15 @@ def create_tool_decorator(
     description: Optional[str] = None,
     tags: Optional[list[str]] = None,
     protect: bool = True,
+    class_permission_name: Optional[str] = None,
+    method_permission_name: Optional[str] = None,
+    annotations: ToolAnnotations | None = None,
 ) -> Callable[[F], F] | F:
     """
     Create the concrete MCP tool decorator implementation.
 
-    This combines FastMCP tool registration with optional Superset authentication,
-    replacing the need for separate @mcp.tool and @mcp_auth_hook decorators.
+    This combines FastMCP tool registration with optional Superset authentication
+    and RBAC permission checking.
 
     Supports both @tool and @tool() syntax.
 
@@ -76,6 +84,11 @@ def create_tool_decorator(
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorization (defaults to empty list)
         protect: Whether to apply Superset authentication (defaults to True)
+        class_permission_name: FAB view/resource name for RBAC
+            (e.g., "Chart", "Dashboard", "SQLLab"). Enables permission checking.
+        method_permission_name: FAB action name (e.g., "read", "write").
+            Defaults to "write" if tags has "mutate", else "read".
+        annotations: MCP tool annotations (title, readOnlyHint, destructiveHint, etc.)
 
     Returns:
         Decorator that registers and wraps the tool with optional authentication,
@@ -95,6 +108,20 @@ def create_tool_decorator(
             # Get prefixed ID based on ambient context
             tool_name, context_type = _get_prefixed_id_with_context(base_tool_name)
 
+            # Store RBAC permission metadata on the function so
+            # mcp_auth_hook can read them at call time.
+            if class_permission_name:
+                from superset.mcp_service.auth import (
+                    CLASS_PERMISSION_ATTR,
+                    METHOD_PERMISSION_ATTR,
+                )
+
+                setattr(func, CLASS_PERMISSION_ATTR, class_permission_name)
+                actual_method = method_permission_name
+                if actual_method is None:
+                    actual_method = "write" if "mutate" in tool_tags else "read"
+                setattr(func, METHOD_PERMISSION_ATTR, actual_method)
+
             # Conditionally apply authentication wrapper
             if protect:
                 from superset.mcp_service.auth import mcp_auth_hook
@@ -110,6 +137,7 @@ def create_tool_decorator(
                 name=tool_name,
                 description=tool_description,
                 tags=tool_tags,
+                annotations=annotations,
             )
             mcp.add_tool(tool)
 

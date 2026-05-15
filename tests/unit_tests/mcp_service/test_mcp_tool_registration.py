@@ -17,25 +17,32 @@
 
 """Test MCP app imports and tool/prompt registration."""
 
+import asyncio
+
+
+def _run(coro):
+    """Run an async coroutine synchronously."""
+    return asyncio.run(coro)
+
 
 def test_mcp_app_imports_successfully():
     """Test that the MCP app can be imported without errors."""
     from superset.mcp_service.app import mcp
 
     assert mcp is not None
-    assert hasattr(mcp, "_tool_manager")
 
-    tools = mcp._tool_manager._tools
-    assert len(tools) > 0
-    assert "health_check" in tools
-    assert "list_charts" in tools
+    tools = _run(mcp.list_tools())
+    tool_names = [t.name for t in tools]
+    assert len(tool_names) > 0
+    assert "health_check" in tool_names
+    assert "list_charts" in tool_names
 
 
 def test_mcp_prompts_registered():
     """Test that MCP prompts are registered."""
     from superset.mcp_service.app import mcp
 
-    prompts = mcp._prompt_manager._prompts
+    prompts = _run(mcp.list_prompts())
     assert len(prompts) > 0
 
 
@@ -48,12 +55,10 @@ def test_mcp_resources_registered():
     """
     from superset.mcp_service.app import mcp
 
-    resource_manager = mcp._resource_manager
-    resources = resource_manager._resources
+    resources = _run(mcp.list_resources())
     assert len(resources) > 0, "No MCP resources registered"
 
-    # Verify the two documented resources are registered
-    resource_uris = set(resources.keys())
+    resource_uris = {str(r.uri) for r in resources}
     assert "chart://configs" in resource_uris, (
         "chart://configs resource not registered - "
         "check superset/mcp_service/chart/__init__.py exists"

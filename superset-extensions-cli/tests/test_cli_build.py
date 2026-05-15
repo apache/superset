@@ -121,7 +121,7 @@ def test_build_command_success_flow(
     # Setup mocks
     mock_rebuild_frontend.return_value = "remoteEntry.abc123.js"
     mock_read_toml.return_value = {
-        "project": {"name": "test"},
+        "project": {"name": "test", "version": "1.0.0"},
         "tool": {
             "apache_superset_extensions": {
                 "build": {"include": ["src/test_org/test_extension/**/*.py"]}
@@ -162,7 +162,7 @@ def test_build_command_handles_frontend_build_failure(
     # Setup mocks
     mock_rebuild_frontend.return_value = None  # Indicates failure
     mock_read_toml.return_value = {
-        "project": {"name": "test"},
+        "project": {"name": "test", "version": "1.0.0"},
         "tool": {
             "apache_superset_extensions": {
                 "build": {"include": ["src/test_org/test_extension/**/*.py"]}

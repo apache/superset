@@ -839,3 +839,73 @@ test('Theme includes both echartsOptionsOverrides and echartsOptionsOverridesByC
     },
   });
 });
+
+test('colorLink derives from colorPrimary when merging with base theme', () => {
+  const baseTheme: AnyThemeConfig = {
+    token: {
+      colorPrimary: '#2893B3',
+      colorLink: '#2893B3',
+      colorInfo: '#66bcfe',
+    },
+  };
+
+  const userTheme: AnyThemeConfig = {
+    token: {
+      colorPrimary: '#f759ab',
+    },
+  };
+
+  const theme = Theme.fromConfig(userTheme, baseTheme);
+
+  expect(theme.theme.colorPrimary).toBe('#f759ab');
+  expect(theme.theme.colorLink).toBe('#f759ab');
+  expect(theme.theme.colorInfo).toBe('#66bcfe');
+});
+
+test('colorLink is not overridden when user explicitly sets it', () => {
+  const baseTheme: AnyThemeConfig = {
+    token: {
+      colorPrimary: '#2893B3',
+      colorLink: '#2893B3',
+    },
+  };
+
+  const userTheme: AnyThemeConfig = {
+    token: {
+      colorPrimary: '#f759ab',
+      colorLink: '#ff0000',
+    },
+  };
+
+  const theme = Theme.fromConfig(userTheme, baseTheme);
+
+  expect(theme.theme.colorPrimary).toBe('#f759ab');
+  expect(theme.theme.colorLink).toBe('#ff0000');
+});
+
+test('colorLink derives from colorPrimary in setConfig when not explicitly set', () => {
+  const theme = Theme.fromConfig();
+
+  theme.setConfig({
+    token: {
+      colorPrimary: '#f759ab',
+    },
+  });
+
+  expect(theme.theme.colorPrimary).toBe('#f759ab');
+  expect(theme.theme.colorLink).toBe('#f759ab');
+});
+
+test('colorLink is preserved in setConfig when explicitly set', () => {
+  const theme = Theme.fromConfig();
+
+  theme.setConfig({
+    token: {
+      colorPrimary: '#f759ab',
+      colorLink: '#ff0000',
+    },
+  });
+
+  expect(theme.theme.colorPrimary).toBe('#f759ab');
+  expect(theme.theme.colorLink).toBe('#ff0000');
+});

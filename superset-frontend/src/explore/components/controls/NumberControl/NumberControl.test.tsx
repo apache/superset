@@ -82,6 +82,21 @@ test('can clear field completely', async () => {
   expect(props.onChange).toHaveBeenLastCalledWith(undefined);
 });
 
+test('stepper arrows trigger onChange immediately', async () => {
+  const props = {
+    ...mockedProps,
+    value: 5,
+    onChange: jest.fn(),
+  };
+  render(<NumberControl {...props} />);
+  const upButton = document.querySelector(
+    '.ant-input-number-handler-up',
+  ) as HTMLElement;
+  expect(upButton).toBeInTheDocument();
+  await userEvent.click(upButton);
+  expect(props.onChange).toHaveBeenCalledWith(6);
+});
+
 test('updates local value when prop changes', () => {
   const props = {
     ...mockedProps,

@@ -39,13 +39,17 @@ superset-extensions bundle: Packages the extension into a .supx file.
 
 superset-extensions dev: Automatically rebuilds the extension as files change.
 
-superset-extensions validate: Validates the extension structure and metadata.
+superset-extensions validate: Validates the extension structure and metadata consistency.
+
+superset-extensions update: Updates derived and generated files in the extension project.
+  Use --version [<version>] to update the version (prompts if no value given).
+  Use --license [<license>] to update the license (prompts if no value given).
 ```
 
 When creating a new extension with `superset-extensions init`, the CLI generates a standardized folder structure:
 
 ```
-my-org.dataset-references/
+dataset-references/
 ├── extension.json
 ├── frontend/
 │   ├── src/
@@ -76,7 +80,7 @@ my-org.dataset-references/
 ```
 
 **Note**: With publisher `my-org` and name `dataset-references`, the technical names are:
-- Directory name: `my-org.dataset-references` (kebab-case)
+- Directory name: `dataset-references` (kebab-case)
 - Backend Python namespace: `my_org.dataset_references`
 - Backend distribution package: `my_org-dataset_references`
 - Frontend package name: `@my-org/dataset-references` (scoped)
@@ -248,7 +252,7 @@ class DatasetReferencesAPI(RestApi):
 
 ### Automatic Context Detection
 
-The [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects whether it's being used in host or extension code:
+The [`@api`](https://github.com/apache/superset/blob/master/superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects whether it's being used in host or extension code:
 
 - **Extension APIs**: Registered under `/extensions/{publisher}/{name}/` with IDs prefixed as `extensions.{publisher}.{name}.{id}`
 - **Host APIs**: Registered under `/api/v1/` with original IDs
