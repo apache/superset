@@ -120,11 +120,13 @@ async def create_dataset(
 
     except DatasetInvalidError as exc:
         # CreateDatasetCommand.validate() aggregates individual validation errors
-        # into DatasetInvalidError; inspect them for specific error types.
-        if any(isinstance(e, DatasetExistsValidationError) for e in exc._exceptions):
+        # into DatasetInvalidError; use the public get_list_classnames() helper
+        # to identify which specific validation errors are present.
+        classnames = exc.get_list_classnames()
+        if DatasetExistsValidationError.__name__ in classnames:
             await ctx.warning("Dataset already exists: %s" % str(exc))
             return DatasetError.create(error=str(exc), error_type="DatasetExistsError")
-        if any(isinstance(e, TableNotFoundValidationError) for e in exc._exceptions):
+        if TableNotFoundValidationError.__name__ in classnames:
             await ctx.warning("Table not found: %s" % str(exc))
             return DatasetError.create(error=str(exc), error_type="TableNotFoundError")
         messages = exc.normalized_messages()

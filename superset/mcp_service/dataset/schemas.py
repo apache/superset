@@ -361,6 +361,13 @@ class CreateDatasetRequest(BaseModel):
         ),
     ]
 
+    @field_validator("table_name")
+    @classmethod
+    def table_name_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("table_name must not be empty")
+        return v.strip()
+
 
 class CreateVirtualDatasetRequest(BaseModel):
     """Request schema for create_virtual_dataset."""
