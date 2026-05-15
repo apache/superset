@@ -22,7 +22,9 @@ import subprocess
 # Networks that must never be reached via user-supplied hostnames.
 # Includes loopback, RFC-1918 private ranges, link-local (covers cloud
 # metadata endpoints such as 169.254.169.254), shared address space
-# (RFC 6598, 100.64.0.0/10), and IPv6 equivalents.
+# (RFC 6598, 100.64.0.0/10), multicast (ip.is_global returns True for
+# multicast addresses in Python, so explicit blocking is required), and
+# IPv6 equivalents.
 _SSRF_UNSAFE_NETWORKS = (
     ipaddress.ip_network("0.0.0.0/8"),
     ipaddress.ip_network("10.0.0.0/8"),
@@ -31,9 +33,11 @@ _SSRF_UNSAFE_NETWORKS = (
     ipaddress.ip_network("169.254.0.0/16"),
     ipaddress.ip_network("172.16.0.0/12"),
     ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("224.0.0.0/4"),  # IPv4 multicast — is_global is True in Python
     ipaddress.ip_network("::1/128"),
     ipaddress.ip_network("fc00::/7"),
     ipaddress.ip_network("fe80::/10"),
+    ipaddress.ip_network("ff00::/8"),  # IPv6 multicast
 )
 
 PORT_TIMEOUT = 5

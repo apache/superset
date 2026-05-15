@@ -902,17 +902,15 @@ def test_validate_data_uri_allow_internal_flag_bypasses_host_check() -> None:
         mock_check.assert_not_called()
 
 
-def test_validate_data_uri_no_hostname_passes_host_check() -> None:
-    """A URI that produces no hostname from urlparse (e.g. opaque URIs) must
-    not call is_safe_host and must pass the allowlist check cleanly."""
+def test_validate_data_uri_no_hostname_raises() -> None:
+    """A URI that produces no parseable hostname (e.g. opaque data: URIs) must
+    be rejected — fail-closed: no hostname means no safe host confirmation."""
     current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = [r".*"]
     current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
-    with patch(
-        "superset.commands.dataset.importers.v1.utils.is_safe_host",
-    ) as mock_check:
-        # urlparse("data:text/csv,...").hostname is None
+    # urlparse("data:text/csv,...").hostname is None, which fails the
+    # "not hostname or not is_safe_host(hostname)" guard.
+    with pytest.raises(DatasetForbiddenDataURI):
         validate_data_uri("data:text/csv,col1,col2")
-        mock_check.assert_not_called()
 
 
 def test_redirect_handler_blocks_disallowed_redirect_target() -> None:

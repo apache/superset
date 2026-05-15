@@ -157,7 +157,9 @@ def validate_data_uri(data_uri: str) -> None:
             )
             if not allow_internal:
                 hostname = urlparse(data_uri).hostname
-                if hostname and not is_safe_host(hostname):
+                # Fail-closed: reject URIs that have no parseable hostname as
+                # well as those that resolve to non-public addresses.
+                if not hostname or not is_safe_host(hostname):
                     raise DatasetForbiddenDataURI()
             return
     raise DatasetForbiddenDataURI()

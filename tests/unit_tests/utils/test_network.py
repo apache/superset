@@ -43,9 +43,16 @@ from superset.utils.network import is_safe_host
         ("169.254.0.1", False),
         # 0.0.0.0/8 → unsafe
         ("0.0.0.1", False),
+        # IPv4 multicast (224.0.0.0/4) → unsafe; ip.is_global returns True for
+        # multicast in Python, so the explicit blocklist entry is the only guard.
+        ("224.0.0.1", False),
+        ("239.255.255.255", False),
         # IPv6 private → unsafe
         ("fc00::1", False),
         ("fe80::1", False),
+        # IPv6 multicast (ff00::/8) → unsafe
+        ("ff02::1", False),
+        ("ff0e::1", False),
     ],
 )
 def test_is_safe_host_ip_classification(resolved_ip: str, expected: bool) -> None:
