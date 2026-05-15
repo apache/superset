@@ -59,7 +59,7 @@ const PanelContainer = styled.div`
     flex-direction: column;
     border-radius: ${theme.borderRadius}px;
     overflow: hidden;
-    background: ${theme.colorBgContainer};
+    background: ${theme.colorBgElevated};
     box-shadow: ${theme.boxShadowSecondary};
     padding: ${theme.sizeUnit * 2}px;
 
@@ -84,16 +84,17 @@ const OptionItem = styled.li<{ $active: boolean }>`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 ${theme.sizeUnit * 3}px;
-    min-height: 35px;
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 3}px;
+    min-height: 32px;
     cursor: pointer;
-    font-size: ${theme.fontSizeSM}px;
-    color: ${$active ? theme.colorPrimary : theme.colorText};
+    font-size: ${theme.fontSize}px;
+    color: ${theme.colorText};
     background: ${$active ? theme.colorPrimaryBg : 'transparent'};
+    border-radius: ${theme.borderRadiusSM}px;
     transition: background 0.15s;
 
     &:hover {
-      background: ${$active ? theme.colorPrimaryBgHover : theme.colorFillAlter};
+      background: ${$active ? theme.colorPrimaryBgHover : theme.colorFillTertiary};
     }
   `}
 `;
@@ -214,7 +215,16 @@ function CompactSelectPanel(
 
   const handleSelect = (opt: SelectOption) => {
     const isDeselect = selectedOption?.value === opt.value;
-    const next = isDeselect ? undefined : opt;
+    // Normalize to a plain object so the value can be safely serialized to
+    // URL query params without circular-reference errors from emotion metadata
+    // on styled ReactNode labels.
+    const next = isDeselect
+      ? undefined
+      : {
+          label:
+            typeof opt.label === 'string' ? opt.label : String(opt.value ?? ''),
+          value: opt.value,
+        };
     setSelectedOption(next);
     onSelect(next, isDeselect);
     onClose?.();
