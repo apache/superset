@@ -16,8 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { AppDispatch, GetState } from 'src/dashboard/types';
+import type { AnyAction } from 'redux';
+import type { ThunkDispatch } from 'redux-thunk';
+import type { GetState, RootState } from 'src/dashboard/types';
 import { updateComponents } from './dashboardLayout';
+
+// Match the local pattern used by `dashboardLayout.ts` and `hydrate.ts` —
+// the project doesn't export a shared `AppDispatch` from
+// `src/dashboard/types`; the closest exported one is
+// `src/views/store`'s `typeof store.dispatch`, which we don't want to
+// import here just to type a thunk.
+type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
 /**
  * Sets (or clears) the per-component theme override on a dashboard
