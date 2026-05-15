@@ -37,7 +37,7 @@ from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET, CHANGE_ME_SECRET_KEY
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
@@ -667,10 +667,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def check_guest_token_secret(self) -> None:
         """Refuse to start with default guest JWT secret when embedding is enabled."""
-        default_secret = "test-guest-secret-change-me"  # noqa: S105
         if not feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
             return
-        if self.config.get("GUEST_TOKEN_JWT_SECRET") != default_secret:
+        if (
+            self.config.get("GUEST_TOKEN_JWT_SECRET")
+            != CHANGE_ME_GUEST_TOKEN_JWT_SECRET
+        ):
             return
         self._log_config_warning(
             "EMBEDDED_SUPERSET is enabled but GUEST_TOKEN_JWT_SECRET has not "
