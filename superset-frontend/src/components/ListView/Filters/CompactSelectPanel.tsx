@@ -23,12 +23,18 @@ import {
   useRef,
   useState,
   useEffect,
+  type KeyboardEvent,
   type RefObject,
 } from 'react';
 import { debounce } from 'lodash';
 import { t } from '@apache-superset/core/translation';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
-import { Icons, Input, Constants, type InputRef } from '@superset-ui/core/components';
+import {
+  Icons,
+  Input,
+  Constants,
+  type InputRef,
+} from '@superset-ui/core/components';
 import type { SelectOption, ListViewFilter as Filter } from '../types';
 import type { FilterHandler } from './types';
 
@@ -137,6 +143,13 @@ function CompactSelectPanel(
     [],
   );
 
+  useEffect(
+    () => () => {
+      debouncedSetSearch.cancel();
+    },
+    [debouncedSetSearch],
+  );
+
   // Sync selected state when external value changes (e.g. clearFilters called from parent)
   useEffect(() => {
     setSelectedOption(value);
@@ -161,12 +174,18 @@ function CompactSelectPanel(
   // Fetch remote options when debounced search changes
   useEffect(() => {
     if (!fetchSelects) return;
+    let cancelled = false;
     setInternalLoading(true);
     fetchSelects(debouncedSearch, 0, 50)
       .then(result => {
-        setRemoteOptions(result.data);
+        if (!cancelled) setRemoteOptions(result.data);
       })
-      .finally(() => setInternalLoading(false));
+      .finally(() => {
+        if (!cancelled) setInternalLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [debouncedSearch, fetchSelects]);
 
   useImperativeHandle(ref, () => ({
@@ -202,10 +221,7 @@ function CompactSelectPanel(
         <Input
           ref={inputRef}
           prefix={
-            <Icons.SearchOutlined
-              iconSize="l"
-              iconColor={theme.colorIcon}
-            />
+            <Icons.SearchOutlined iconSize="l" iconColor={theme.colorIcon} />
           }
           placeholder={t('Search')}
           value={search}
@@ -220,7 +236,7 @@ function CompactSelectPanel(
           `}
         />
       )}
-      <OptionList>
+      <OptionList role="listbox">
         {isLoading ? (
           <StatusText>{t('Loading...')}</StatusText>
         ) : displayOptions.length === 0 ? (
@@ -228,11 +244,21 @@ function CompactSelectPanel(
         ) : (
           displayOptions.map(opt => {
             const isActive = selectedOption?.value === opt.value;
+            const onKeyDown = (e: KeyboardEvent<HTMLLIElement>) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSelect(opt);
+              }
+            };
             return (
               <OptionItem
                 key={opt.value}
                 $active={isActive}
+                role="option"
+                aria-selected={isActive}
+                tabIndex={0}
                 onClick={() => handleSelect(opt)}
+                onKeyDown={onKeyDown}
               >
                 <OptionLabel>{opt.label}</OptionLabel>
                 {isActive && (

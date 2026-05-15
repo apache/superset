@@ -81,3 +81,42 @@ test('renders tooltip span wrapper when hasValue and tooltipTitle are set', () =
   const span = container.querySelector('span[style*="inline-flex"]');
   expect(span).toBeInTheDocument();
 });
+
+test('injects isOpen and onClose props into child element when dropdown opens', async () => {
+  const RecordingChild = jest.fn(() => (
+    <div data-testid="recording-child">content</div>
+  ));
+  render(
+    <CompactFilterTrigger {...defaultProps}>
+      <RecordingChild />
+    </CompactFilterTrigger>,
+  );
+  const pill = screen.getByTestId('compact-filter-pill');
+  await userEvent.click(pill);
+  // After opening, the child should receive isOpen=true and an onClose function
+  expect(RecordingChild).toHaveBeenLastCalledWith(
+    expect.objectContaining({ isOpen: true, onClose: expect.any(Function) }),
+    expect.anything(),
+  );
+});
+
+test('sets aria-haspopup to listbox by default', () => {
+  render(<CompactFilterTrigger {...defaultProps} />);
+  const pill = screen.getByTestId('compact-filter-pill');
+  expect(pill).toHaveAttribute('aria-haspopup', 'listbox');
+});
+
+test('sets aria-haspopup to dialog when popupType is dialog', () => {
+  render(<CompactFilterTrigger {...defaultProps} popupType="dialog" />);
+  const pill = screen.getByTestId('compact-filter-pill');
+  expect(pill).toHaveAttribute('aria-haspopup', 'dialog');
+});
+
+test('closing dropdown resets aria-expanded to false', async () => {
+  render(<CompactFilterTrigger {...defaultProps} />);
+  const pill = screen.getByTestId('compact-filter-pill');
+  await userEvent.click(pill);
+  expect(pill).toHaveAttribute('aria-expanded', 'true');
+  await userEvent.click(pill);
+  expect(pill).toHaveAttribute('aria-expanded', 'false');
+});

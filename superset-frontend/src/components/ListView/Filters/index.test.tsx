@@ -97,6 +97,63 @@ test('search filter passes autoComplete prop correctly', () => {
   expect(input.autocomplete).toBe('new-password');
 });
 
+test('renders a compact pill trigger for select filters', () => {
+  const filters = [
+    {
+      Header: 'Owner',
+      key: 'owner',
+      id: 'owner',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.RelationOneMany,
+      selects: [
+        { label: 'Alice', value: 1 },
+        { label: 'Bob', value: 2 },
+      ],
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  expect(screen.getByTestId('compact-filter-pill')).toBeInTheDocument();
+  expect(screen.getByText('Owner')).toBeInTheDocument();
+});
+
+test('select pill shows active state when a value is selected', () => {
+  const filters = [
+    {
+      Header: 'Owner',
+      key: 'owner',
+      id: 'owner',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.RelationOneMany,
+      selects: [{ label: 'Alice', value: 1 }],
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'owner',
+          operator: ListViewFilterOperator.RelationOneMany,
+          value: { label: 'Alice', value: 1 },
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  // When a value is present, the clear (close) icon should be shown
+  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+});
+
 test('renders multiple search filters with different inputName values', () => {
   const filters = [
     {
