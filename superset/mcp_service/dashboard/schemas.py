@@ -493,9 +493,9 @@ class AddChartToDashboardRequest(BaseModel):
             "(e.g. 'Sales') or a tab component ID (e.g. 'TAB-abc123'). "
             "Display-name matching is case-insensitive and strips all emoji; "
             "component ID matching is case-sensitive and exact. "
-            "Returns an error if the specified tab is not found. "
+            "When not found, the error response lists all available tab names. "
             "When omitted on a tabbed dashboard the chart is placed in the "
-            "first tab. Use get_dashboard_info to discover available tabs."
+            "first tab."
         ),
     )
 
