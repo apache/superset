@@ -1215,7 +1215,7 @@ class TestRBACToolVisibilityMiddleware:
 
     @pytest.mark.asyncio
     async def test_fails_closed_on_bad_credentials_value_error(self, app) -> None:
-        """Returns empty list when auth was attempted but user not found (ValueError)."""
+        """Returns empty list when auth was attempted but user not found."""
         from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
 
         tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]

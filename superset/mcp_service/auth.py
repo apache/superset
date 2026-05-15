@@ -88,9 +88,7 @@ class MCPPermissionDeniedError(Exception):
         super().__init__(message)
 
 
-def check_tool_permission(
-    func: Callable[..., Any], *, log_denial: bool = True
-) -> bool:
+def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) -> bool:
     """Check if the current user has RBAC permission for an MCP tool.
 
     Reads permission metadata stored on the function by the @tool decorator
@@ -499,6 +497,21 @@ def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
     return validate_chart_dataset(chart, check_access=True)
 
 
+def _log_user_resolution_failure(exc: ValueError) -> None:
+    """Log a user-resolution ValueError at the appropriate level.
+
+    "No authenticated user found" is expected in unauthenticated/dev
+    deployments (no JWT, no API key, no MCP_DEV_USERNAME configured) and
+    during tools/list scanning — log at DEBUG to avoid ERROR noise.
+    All other ValueErrors (e.g. dev username not in DB) are genuine
+    credential failures and are logged at ERROR.
+    """
+    if "No authenticated user found" in str(exc):
+        logger.debug("MCP: no auth source configured, unauthenticated request")
+    else:
+        logger.error("MCP user resolution failed, denying request: %s", exc)
+
+
 def _setup_user_context() -> User | None:
     """
     Set up user context for MCP tool execution.
@@ -564,17 +577,7 @@ def _setup_user_context() -> User | None:
             # proceed as a different user in multi-tenant deployments.
             # Clear g.user so error/audit logging doesn't attribute
             # the denied request to the middleware-provided identity.
-            #
-            # "No authenticated user found" means no auth source is configured
-            # at all (no JWT, no API key, no MCP_DEV_USERNAME). This is the
-            # expected state in unauthenticated/dev deployments and at
-            # tools/list time — log at DEBUG to avoid ERROR noise in those
-            # environments. All other ValueErrors (e.g. dev username not in DB)
-            # are genuine credential failures and are logged at ERROR.
-            if "No authenticated user found" in str(e):
-                logger.debug("MCP: no auth source configured, unauthenticated request")
-            else:
-                logger.error("MCP user resolution failed, denying request: %s", e)
+            _log_user_resolution_failure(e)
             if has_request_context():
                 g.pop("user", None)
             raise
