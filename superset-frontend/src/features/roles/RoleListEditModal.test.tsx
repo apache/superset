@@ -147,8 +147,8 @@ describe('RoleListEditModal', () => {
 
     // Wait for user hydration to complete so setFieldsValue has populated
     // the form with the fetched users before submitting.
-    await screen.findByText('johndoe');
-    await screen.findByText('janesmith');
+    await screen.findByText('John Doe');
+    await screen.findByText('Jane Smith');
 
     fireEvent.change(screen.getByTestId('role-name-input'), {
       target: { value: 'Updated Role' },

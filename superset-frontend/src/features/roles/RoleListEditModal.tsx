@@ -49,7 +49,7 @@ import {
   updateRoleUsers,
   formatPermissionLabel,
 } from './utils';
-import { getUserDisplayLabel } from '../groups/utils';
+import { getUserDisplayLabel } from 'src/features/users/utils';
 
 export interface RoleListEditModalProps extends BaseModalProps {
   role: RoleObject;

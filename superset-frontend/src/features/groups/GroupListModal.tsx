@@ -28,13 +28,9 @@ import {
   Select,
   AsyncSelect,
 } from '@superset-ui/core/components';
+import { getUserDisplayLabel } from 'src/features/users/utils';
 import { FormValues, GroupModalProps } from './types';
-import {
-  createGroup,
-  fetchUserOptions,
-  getUserDisplayLabel,
-  updateGroup,
-} from './utils';
+import { createGroup, fetchUserOptions, updateGroup } from './utils';
 
 function GroupListModal({
   show,

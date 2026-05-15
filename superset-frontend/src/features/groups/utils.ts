@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
+import { getUserDisplayLabel } from 'src/features/users/utils';
 import { FormValues } from './types';
 
 export const createGroup = async (values: FormValues) => {
@@ -39,15 +40,6 @@ export const deleteGroup = async (groupId: number) =>
   SupersetClient.delete({
     endpoint: `/api/v1/security/groups/${groupId}`,
   });
-
-export const getUserDisplayLabel = (user: {
-  first_name?: string;
-  last_name?: string;
-  username?: string;
-}): string =>
-  [user.first_name, user.last_name].filter(Boolean).join(' ') ||
-  user.username ||
-  '';
 
 export const fetchUserOptions = async (
   filterValue: string,
