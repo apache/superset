@@ -97,32 +97,37 @@ export default function CompactFilterTrigger({
   };
 
   const pill = (
-    <FilterPill
-      $active={hasValue}
-      type="button"
-      data-test="compact-filter-pill"
-      aria-haspopup={popupType}
-      aria-expanded={open}
-      aria-label={typeof label === 'string' ? label : undefined}
+    <Tooltip
+      title={hasValue && !open ? tooltipTitle : undefined}
+      mouseEnterDelay={0.5}
     >
-      {hasValue && <ActiveDot />}
-      <span>{label}</span>
-      {hasValue ? (
-        <Icons.CloseOutlined
-          iconSize="xs"
-          iconColor={theme.colorPrimary}
-          onClick={handleClear}
-        />
-      ) : (
-        <Icons.DownOutlined
-          iconSize="xs"
-          iconColor={theme.colorTextSecondary}
-        />
-      )}
-    </FilterPill>
+      <FilterPill
+        $active={hasValue}
+        type="button"
+        data-test="compact-filter-pill"
+        aria-haspopup={popupType}
+        aria-expanded={open}
+        aria-label={typeof label === 'string' ? label : undefined}
+      >
+        {hasValue && <ActiveDot />}
+        <span>{label}</span>
+        {hasValue ? (
+          <Icons.CloseOutlined
+            iconSize="xs"
+            iconColor={theme.colorPrimary}
+            onClick={handleClear}
+          />
+        ) : (
+          <Icons.DownOutlined
+            iconSize="xs"
+            iconColor={theme.colorTextSecondary}
+          />
+        )}
+      </FilterPill>
+    </Tooltip>
   );
 
-  const dropdown = (
+  return (
     <Dropdown
       open={open}
       onOpenChange={setOpen}
@@ -143,15 +148,4 @@ export default function CompactFilterTrigger({
       {pill}
     </Dropdown>
   );
-
-  // Wrap in Tooltip (via span) when a value is selected to preview selection on hover
-  if (tooltipTitle && hasValue) {
-    return (
-      <Tooltip title={open ? undefined : tooltipTitle} mouseEnterDelay={0.5}>
-        <span style={{ display: 'inline-flex' }}>{dropdown}</span>
-      </Tooltip>
-    );
-  }
-
-  return dropdown;
 }
