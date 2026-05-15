@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 import sshtunnel
 from flask import Flask
-from paramiko import RSAKey
+from paramiko import ECDSAKey, Ed25519Key, PKey, RSAKey, SSHException
 
 from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelDatabasePortError
 from superset.databases.utils import make_url_safe
@@ -29,6 +29,32 @@ from superset.utils.class_utils import load_class_from_name
 
 if TYPE_CHECKING:
     from superset.databases.ssh_tunnel.models import SSHTunnel
+
+# Order matters: paramiko's per-class loaders raise SSHException with vague
+# "unpack requires 4 bytes" messages on type mismatches, so we try the more
+# modern key types first (ed25519, ECDSA) and fall back to RSA, which is the
+# most permissive parser and the historical default in this codebase.
+_SSH_KEY_TYPES: tuple[type[PKey], ...] = (Ed25519Key, ECDSAKey, RSAKey)
+
+
+def _load_private_key(pem: str, password: str | None) -> PKey:
+    """Load a private key PEM regardless of algorithm (ed25519, ECDSA, RSA).
+
+    paramiko does not expose a polymorphic ``PKey.from_private_key``; each
+    key class only accepts its own format. Iterate over the supported types
+    and return the first that parses cleanly.
+    """
+    last_exc: Exception | None = None
+    for key_class in _SSH_KEY_TYPES:
+        try:
+            return key_class.from_private_key(StringIO(pem), password=password)
+        except SSHException as exc:
+            last_exc = exc
+            continue
+    raise SSHException(
+        "Unable to parse SSH private key as any of "
+        f"{', '.join(k.__name__ for k in _SSH_KEY_TYPES)}: {last_exc}"
+    )
 
 
 class SSHManager:
@@ -71,11 +97,9 @@ class SSHManager:
         if ssh_tunnel.password:
             params["ssh_password"] = ssh_tunnel.password
         elif ssh_tunnel.private_key:
-            private_key_file = StringIO(ssh_tunnel.private_key)
-            private_key = RSAKey.from_private_key(
-                private_key_file, ssh_tunnel.private_key_password
+            params["ssh_pkey"] = _load_private_key(
+                ssh_tunnel.private_key, ssh_tunnel.private_key_password
             )
-            params["ssh_pkey"] = private_key
 
         return sshtunnel.open_tunnel(**params)
 
