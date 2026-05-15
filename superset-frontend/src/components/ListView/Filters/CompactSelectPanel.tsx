@@ -19,13 +19,16 @@
 import {
   forwardRef,
   useImperativeHandle,
+  useMemo,
+  useRef,
   useState,
   useEffect,
   type RefObject,
 } from 'react';
+import { debounce } from 'lodash';
 import { t } from '@apache-superset/core/translation';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
-import { Icons, Input } from '@superset-ui/core/components';
+import { Icons, Input, Constants, type InputRef } from '@superset-ui/core/components';
 import type { SelectOption, ListViewFilter as Filter } from '../types';
 import type { FilterHandler } from './types';
 
@@ -35,11 +38,15 @@ interface CompactSelectPanelProps {
   value?: SelectOption;
   onSelect: (option: SelectOption | undefined, isClear?: boolean) => void;
   onClose?: () => void;
+  /** Injected by CompactFilterTrigger via cloneElement — true when dropdown is open */
+  isOpen?: boolean;
+  /** External loading state from filter config */
+  loading?: boolean;
 }
 
 const PanelContainer = styled.div`
   ${({ theme }) => css`
-    min-width: 200px;
+    min-width: 220px;
     max-width: 320px;
     max-height: 320px;
     display: flex;
@@ -48,20 +55,18 @@ const PanelContainer = styled.div`
     overflow: hidden;
     background: ${theme.colorBgContainer};
     box-shadow: ${theme.boxShadowSecondary};
-  `}
-`;
+    padding: ${theme.sizeUnit * 2}px;
 
-const SearchRow = styled.div`
-  ${({ theme }) => css`
-    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
-    border-bottom: 1px solid ${theme.colorBorderSecondary};
+    .ant-input-affix-wrapper {
+      margin-bottom: ${theme.sizeUnit * 2}px;
+    }
   `}
 `;
 
 const OptionList = styled.ul`
   ${({ theme }) => css`
     margin: 0;
-    padding: ${theme.sizeUnit}px 0;
+    padding: 0;
     overflow-y: auto;
     flex: 1;
     list-style: none;
@@ -73,7 +78,8 @@ const OptionItem = styled.li<{ $active: boolean }>`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 3}px;
+    padding: 0 ${theme.sizeUnit * 3}px;
+    min-height: 35px;
     cursor: pointer;
     font-size: ${theme.fontSizeSM}px;
     color: ${$active ? theme.colorPrimary : theme.colorText};
@@ -97,7 +103,7 @@ const StatusText = styled.div`
   ${({ theme }) => css`
     padding: ${theme.sizeUnit * 2}px;
     text-align: center;
-    color: ${theme.colorTextDescription};
+    color: ${theme.colorTextDisabled};
     font-size: ${theme.fontSizeSM}px;
   `}
 `;
@@ -109,37 +115,65 @@ function CompactSelectPanel(
     value,
     onSelect,
     onClose,
+    isOpen,
+    loading: externalLoading,
   }: CompactSelectPanelProps,
   ref: RefObject<FilterHandler>,
 ) {
   const theme = useTheme();
+  const inputRef = useRef<InputRef>(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [remoteOptions, setRemoteOptions] = useState<SelectOption[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [internalLoading, setInternalLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<
     SelectOption | undefined
   >(value);
+
+  const isLoading = externalLoading || internalLoading;
+
+  const debouncedSetSearch = useMemo(
+    () => debounce(setDebouncedSearch, Constants.FAST_DEBOUNCE),
+    [],
+  );
 
   // Sync selected state when external value changes (e.g. clearFilters called from parent)
   useEffect(() => {
     setSelectedOption(value);
   }, [value]);
 
-  // Fetch remote options on mount and when search changes
+  // Focus search input when dropdown opens; reset search when it closes
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    if (isOpen) {
+      timeoutId = setTimeout(() => {
+        inputRef.current?.input?.focus({ preventScroll: true });
+      }, 100);
+    } else {
+      setSearch('');
+      setDebouncedSearch('');
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isOpen]);
+
+  // Fetch remote options when debounced search changes
   useEffect(() => {
     if (!fetchSelects) return;
-    setLoading(true);
-    fetchSelects(search, 0, 50)
+    setInternalLoading(true);
+    fetchSelects(debouncedSearch, 0, 50)
       .then(result => {
         setRemoteOptions(result.data);
       })
-      .finally(() => setLoading(false));
-  }, [search, fetchSelects]);
+      .finally(() => setInternalLoading(false));
+  }, [debouncedSearch, fetchSelects]);
 
   useImperativeHandle(ref, () => ({
     clearFilter: () => {
       setSelectedOption(undefined);
       setSearch('');
+      setDebouncedSearch('');
       onSelect(undefined, true);
     },
   }));
@@ -165,25 +199,29 @@ function CompactSelectPanel(
   return (
     <PanelContainer>
       {showSearch && (
-        <SearchRow>
-          <Input
-            size="small"
-            prefix={
-              <Icons.SearchOutlined
-                iconSize="s"
-                iconColor={theme.colorTextDescription}
-              />
-            }
-            placeholder={t('Search')}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            allowClear
-            autoFocus
-          />
-        </SearchRow>
+        <Input
+          ref={inputRef}
+          prefix={
+            <Icons.SearchOutlined
+              iconSize="l"
+              iconColor={theme.colorIcon}
+            />
+          }
+          placeholder={t('Search')}
+          value={search}
+          onChange={e => {
+            setSearch(e.target.value);
+            debouncedSetSearch(e.target.value);
+          }}
+          allowClear
+          css={css`
+            width: 100%;
+            box-shadow: none;
+          `}
+        />
       )}
       <OptionList>
-        {loading ? (
+        {isLoading ? (
           <StatusText>{t('Loading...')}</StatusText>
         ) : displayOptions.length === 0 ? (
           <StatusText>{t('No results')}</StatusText>

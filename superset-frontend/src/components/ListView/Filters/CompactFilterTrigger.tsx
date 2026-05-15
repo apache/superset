@@ -44,7 +44,10 @@ const FilterPill = styled.button<{ $active: boolean }>`
     font-weight: ${$active ? 600 : 400};
     cursor: pointer;
     white-space: nowrap;
-    transition: border-color 0.2s, background 0.2s, color 0.2s;
+    transition:
+      border-color 0.2s,
+      background 0.2s,
+      color 0.2s;
 
     &:hover {
       border-color: ${theme.colorPrimary};
@@ -91,6 +94,7 @@ export default function CompactFilterTrigger({
       data-test="compact-filter-pill"
       aria-haspopup="dialog"
       aria-expanded={open}
+      aria-label={typeof label === 'string' ? label : undefined}
     >
       {hasValue && <ActiveDot />}
       <span>{label}</span>
@@ -118,6 +122,7 @@ export default function CompactFilterTrigger({
         React.isValidElement(children)
           ? React.cloneElement(children, {
               onClose: () => setOpen(false),
+              isOpen: open,
             } as Record<string, unknown>)
           : (children as React.ReactElement)
       }
@@ -130,10 +135,7 @@ export default function CompactFilterTrigger({
   // Wrap in Tooltip (via span) when a value is selected to preview selection on hover
   if (tooltipTitle && hasValue) {
     return (
-      <Tooltip
-        title={open ? undefined : tooltipTitle}
-        mouseEnterDelay={0.5}
-      >
+      <Tooltip title={open ? undefined : tooltipTitle} mouseEnterDelay={0.5}>
         <span style={{ display: 'inline-flex' }}>{dropdown}</span>
       </Tooltip>
     );
