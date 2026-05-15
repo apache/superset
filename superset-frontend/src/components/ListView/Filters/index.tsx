@@ -38,6 +38,7 @@ import DateRangeFilter from './DateRange';
 import NumericalRangeFilter from './NumericalRange';
 import CompactFilterTrigger from './CompactFilterTrigger';
 import CompactSelectPanel from './CompactSelectPanel';
+import FilterPopoverContent from './FilterPopoverContent';
 
 interface UIFiltersProps {
   filters: Filters;
@@ -119,6 +120,7 @@ function UIFilters(
                   selects={selects}
                   fetchSelects={fetchSelects}
                   value={initialValue as SelectOption | undefined}
+                  loading={loading ?? false}
                   onSelect={(
                     option: SelectOption | undefined,
                     isClear?: boolean,
@@ -170,14 +172,16 @@ function UIFilters(
                   updateFilterValue(index, undefined);
                 }}
               >
-                <DateRangeFilter
-                  ref={filterRefs[index]}
-                  Header={Header}
-                  initialValue={initialValue}
-                  name={id}
-                  onSubmit={value => updateFilterValue(index, value)}
-                  dateFilterValueType={dateFilterValueType || 'unix'}
-                />
+                <FilterPopoverContent>
+                  <DateRangeFilter
+                    ref={filterRefs[index]}
+                    Header={Header}
+                    initialValue={initialValue}
+                    name={id}
+                    onSubmit={value => updateFilterValue(index, value)}
+                    dateFilterValueType={dateFilterValueType || 'unix'}
+                  />
+                </FilterPopoverContent>
               </CompactFilterTrigger>
             );
           }
@@ -201,15 +205,17 @@ function UIFilters(
                   updateFilterValue(index, undefined);
                 }}
               >
-                <NumericalRangeFilter
-                  ref={filterRefs[index]}
-                  Header={Header}
-                  initialValue={initialValue}
-                  min={min}
-                  max={max}
-                  name={id}
-                  onSubmit={value => updateFilterValue(index, value)}
-                />
+                <FilterPopoverContent>
+                  <NumericalRangeFilter
+                    ref={filterRefs[index]}
+                    Header={Header}
+                    initialValue={initialValue}
+                    min={min}
+                    max={max}
+                    name={id}
+                    onSubmit={value => updateFilterValue(index, value)}
+                  />
+                </FilterPopoverContent>
               </CompactFilterTrigger>
             );
           }

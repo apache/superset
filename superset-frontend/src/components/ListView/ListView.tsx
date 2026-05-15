@@ -70,9 +70,13 @@ const ListViewStyles = styled.div`
         & .controls {
           display: flex;
           flex-wrap: wrap;
-          align-items: flex-end;
+          align-items: center;
           column-gap: ${theme.sizeUnit * 2}px;
           row-gap: ${theme.sizeUnit * 2}px;
+
+          [data-test='search-filter-container'] label {
+            display: none;
+          }
         }
       }
 
