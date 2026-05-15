@@ -694,7 +694,10 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         be anything, and we would have to block users from running any queries
         referencing tables without an explicit schema.
         """
-        return [f'set search_path = "{schema}"'] if schema else []
+        if not schema:
+            return []
+        escaped = schema.replace('"', '""')
+        return [f'set search_path = "{escaped}"']
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
