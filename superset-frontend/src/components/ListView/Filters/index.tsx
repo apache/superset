@@ -21,6 +21,7 @@ import {
   forwardRef,
   useImperativeHandle,
   useMemo,
+  useState,
   RefObject,
 } from 'react';
 
@@ -56,16 +57,28 @@ function UIFilters(
     [filters.length],
   );
 
+  // Cache display labels for select filters so tooltip works after URL round-trip
+  // (URL serialization strips the label, leaving only the value).
+  const [tooltipLabels, setTooltipLabels] = useState<Record<number, string>>(
+    {},
+  );
+
   useImperativeHandle(ref, () => ({
     clearFilters: () => {
       filterRefs.forEach(filter => {
         filter.current?.clearFilter?.();
       });
+      setTooltipLabels({});
     },
     clearFilterById: (id: string) => {
       const index = filters.findIndex(f => f.id === id);
       if (index >= 0) {
         filterRefs[index]?.current?.clearFilter?.();
+        setTooltipLabels(prev => {
+          const next = { ...prev };
+          delete next[index];
+          return next;
+        });
       }
     },
   }));
@@ -95,10 +108,10 @@ function UIFilters(
           const initialValue = internalFilters?.[index]?.value;
           if (input === 'select') {
             const selectValue = initialValue as SelectOption | undefined;
-            const tooltipTitle = selectValue
-              ? typeof selectValue.label === 'string'
-                ? selectValue.label
-                : String(selectValue.value ?? '')
+            // Use cached label — URL round-trip strips the label from internalFilters,
+            // leaving only the value (e.g. {value: 1} with no label field).
+            const tooltipTitle = !!selectValue
+              ? tooltipLabels[index]
               : undefined;
             return (
               <CompactFilterTrigger
@@ -109,6 +122,11 @@ function UIFilters(
                 onClear={() => {
                   filterRefs[index]?.current?.clearFilter?.();
                   updateFilterValue(index, undefined);
+                  setTooltipLabels(prev => {
+                    const next = { ...prev };
+                    delete next[index];
+                    return next;
+                  });
                 }}
               >
                 <CompactSelectPanel
@@ -121,6 +139,15 @@ function UIFilters(
                     option: SelectOption | undefined,
                     isClear?: boolean,
                   ) => {
+                    if (option && !isClear) {
+                      setTooltipLabels(prev => ({
+                        ...prev,
+                        [index]:
+                          typeof option.label === 'string'
+                            ? option.label
+                            : String(option.value ?? ''),
+                      }));
+                    }
                     if (onFilterUpdate && !isClear) {
                       onFilterUpdate(option);
                     }
