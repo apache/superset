@@ -142,16 +142,14 @@ def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) 
         if not has_permission:
             if log_denial:
                 logger.warning(
-                    "Permission denied for user %s: %s on %s (tool: %s)",
-                    g.user.username,
+                    "Permission denied: %s on %s (tool: %s)",
                     permission_str,
                     class_permission_name,
                     func.__name__,
                 )
             else:
                 logger.debug(
-                    "Tool hidden for user %s: %s on %s (tool: %s)",
-                    g.user.username,
+                    "Tool hidden: %s on %s (tool: %s)",
                     permission_str,
                     class_permission_name,
                     func.__name__,
@@ -280,9 +278,8 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
             )
             return None
         logger.debug(
-            "Ignoring %s claim on non-API-key token (client_id=%r); processing as JWT",
-            API_KEY_PASSTHROUGH_CLAIM,
-            getattr(access_token, "client_id", None),
+            "API key passthrough claim present but client_id is not 'api_key';"
+            " processing as JWT"
         )
 
     # Use configurable resolver or default
