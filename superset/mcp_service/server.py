@@ -410,8 +410,14 @@ def _tool_allowed_for_current_user(tool: Any) -> bool:
         if not getattr(g, "user", None):
             try:
                 g.user = get_user_from_request()
-            except (ValueError, PermissionError):
-                return False
+            except ValueError as exc:
+                if "No authenticated user found" in str(exc):
+                    # No auth source configured → fail open, consistent with
+                    # RBACToolVisibilityMiddleware's tools/list behavior
+                    return True
+                return False  # bad credentials → fail closed
+            except PermissionError:
+                return False  # invalid API key → fail closed
 
         return is_tool_visible_to_current_user(tool)
     except (AttributeError, RuntimeError, ValueError):

@@ -1140,7 +1140,7 @@ class TestRBACToolVisibilityMiddleware:
 
     @pytest.mark.asyncio
     async def test_fails_open_when_user_is_none(self, app) -> None:
-        """Returns all tools when _setup_user_context returns None."""
+        """Returns all tools when get_user_from_request returns None."""
         from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
 
         tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
@@ -1151,7 +1151,7 @@ class TestRBACToolVisibilityMiddleware:
             patch(
                 "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
             ),
-            patch("superset.mcp_service.auth._setup_user_context", return_value=None),
+            patch("superset.mcp_service.auth.get_user_from_request", return_value=None),
         ):
             result = await middleware.on_list_tools(MagicMock(), call_next)
 
@@ -1178,7 +1178,8 @@ class TestRBACToolVisibilityMiddleware:
                 "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
             ),
             patch(
-                "superset.mcp_service.auth._setup_user_context", return_value=mock_user
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=mock_user,
             ),
             patch(
                 "superset.mcp_service.auth.is_tool_visible_to_current_user",
@@ -1204,7 +1205,7 @@ class TestRBACToolVisibilityMiddleware:
                 "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
             ),
             patch(
-                "superset.mcp_service.auth._setup_user_context",
+                "superset.mcp_service.auth.get_user_from_request",
                 side_effect=PermissionError("Invalid API key"),
             ),
         ):
@@ -1226,7 +1227,7 @@ class TestRBACToolVisibilityMiddleware:
                 "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
             ),
             patch(
-                "superset.mcp_service.auth._setup_user_context",
+                "superset.mcp_service.auth.get_user_from_request",
                 side_effect=ValueError("User 'ghost' not found in database"),
             ),
         ):
@@ -1248,7 +1249,7 @@ class TestRBACToolVisibilityMiddleware:
                 "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
             ),
             patch(
-                "superset.mcp_service.auth._setup_user_context",
+                "superset.mcp_service.auth.get_user_from_request",
                 side_effect=ValueError("No authenticated user found"),
             ),
         ):

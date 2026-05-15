@@ -442,16 +442,21 @@ class RBACToolVisibilityMiddleware(Middleware):
 
             from superset.mcp_service.auth import (
                 _get_app_context_manager,
-                _setup_user_context,
+                get_user_from_request,
                 is_tool_visible_to_current_user,
             )
 
             with _get_app_context_manager():
+                # Use get_user_from_request directly rather than
+                # _setup_user_context, which carries per-call execution
+                # overhead (retry loop, session management, error logging)
+                # that is unnecessary and noisy during tools/list.
                 try:
-                    user = _setup_user_context()
+                    user = get_user_from_request()
                 except ValueError as exc:
                     if "No authenticated user found" in str(exc):
-                        # No auth source configured at all → fail open
+                        # No auth source configured at all → fail open.
+                        # No log: this is expected in dev/internal deployments.
                         return tools
                     # Auth was attempted (e.g. MCP_DEV_USERNAME set) but the
                     # user was not found in the DB → fail closed
