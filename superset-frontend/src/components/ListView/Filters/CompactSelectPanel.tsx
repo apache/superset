@@ -178,7 +178,10 @@ function CompactSelectPanel(
     setInternalLoading(true);
     fetchSelects(debouncedSearch, 0, 50)
       .then(result => {
-        if (!cancelled) setRemoteOptions(result.data);
+        if (!cancelled) setRemoteOptions(result?.data ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setRemoteOptions([]);
       })
       .finally(() => {
         if (!cancelled) setInternalLoading(false);
@@ -197,12 +200,14 @@ function CompactSelectPanel(
     },
   }));
 
-  const displayOptions = fetchSelects
-    ? remoteOptions
-    : selects.filter(o => {
-        const label = typeof o.label === 'string' ? o.label : String(o.value);
-        return label.toLowerCase().includes(search.toLowerCase());
-      });
+  const displayOptions = (
+    fetchSelects
+      ? remoteOptions
+      : selects.filter(o => {
+          const label = typeof o.label === 'string' ? o.label : String(o.value);
+          return label.toLowerCase().includes(search.toLowerCase());
+        })
+  ).filter(o => o != null);
 
   // Show search for async selects or large static lists
   const showSearch = !!fetchSelects || selects.length > 6;
