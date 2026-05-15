@@ -1189,3 +1189,69 @@ class TestRBACToolVisibilityMiddleware:
 
         assert read_tool in result
         assert write_tool not in result
+
+    @pytest.mark.asyncio
+    async def test_fails_closed_on_permission_error(self, app) -> None:
+        """Returns empty list when credentials are invalid (PermissionError)."""
+        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
+
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.auth._setup_user_context",
+                side_effect=PermissionError("Invalid API key"),
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_fails_closed_on_bad_credentials_value_error(self, app) -> None:
+        """Returns empty list when auth was attempted but user not found (ValueError)."""
+        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
+
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.auth._setup_user_context",
+                side_effect=ValueError("User 'ghost' not found in database"),
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_fails_open_when_no_auth_configured(self, app) -> None:
+        """Returns all tools when no auth source is configured at all."""
+        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
+
+        tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
+        call_next = AsyncMock(return_value=tools)
+        middleware = RBACToolVisibilityMiddleware()
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch(
+                "superset.mcp_service.auth._setup_user_context",
+                side_effect=ValueError("No authenticated user found"),
+            ),
+        ):
+            result = await middleware.on_list_tools(MagicMock(), call_next)
+
+        assert result == tools
