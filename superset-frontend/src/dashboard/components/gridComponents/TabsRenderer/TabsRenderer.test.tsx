@@ -102,7 +102,7 @@ describe('TabsRenderer', () => {
   });
 
   test('renders tabs container with correct test attributes', () => {
-    render(<TabsRenderer {...mockProps} />);
+    render(<TabsRenderer {...mockProps} />, { useRedux: true });
 
     const tabsContainer = screen.getByTestId('dashboard-component-tabs');
 
@@ -111,14 +111,14 @@ describe('TabsRenderer', () => {
   });
 
   test('renders LineEditableTabs with correct props', () => {
-    render(<TabsRenderer {...mockProps} />);
+    render(<TabsRenderer {...mockProps} />, { useRedux: true });
 
     const editableTabs = screen.getByTestId('nav-list');
     expect(editableTabs).toBeInTheDocument();
   });
 
   test('applies correct tab bar padding', () => {
-    const { rerender } = render(<TabsRenderer {...mockProps} />);
+    const { rerender } = render(<TabsRenderer {...mockProps} />, { useRedux: true });
 
     let editableTabs = screen.getByTestId('nav-list');
     expect(editableTabs).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('TabsRenderer', () => {
       activeKey: 'tab-2',
       handleClickTab: handleClickTabMock,
     };
-    render(<TabsRenderer {...propsWithTab2Active} />);
+    render(<TabsRenderer {...propsWithTab2Active} />, { useRedux: true });
 
     const tabElement = screen.getByText('Tab 1').closest('[role="tab"]');
     expect(tabElement).not.toBeNull();
@@ -156,7 +156,7 @@ describe('TabsRenderer', () => {
       tabsDragSourceRef: mockRef,
     };
 
-    render(<TabsRenderer {...editModeProps} />);
+    render(<TabsRenderer {...editModeProps} />, { useRedux: true });
 
     const hoverMenu = document.querySelector('.hover-menu');
 
@@ -170,7 +170,7 @@ describe('TabsRenderer', () => {
       renderHoverMenu: true,
     };
 
-    render(<TabsRenderer {...viewModeProps} />);
+    render(<TabsRenderer {...viewModeProps} />, { useRedux: true });
 
     const hoverMenu = document.querySelector('.hover-menu');
 
@@ -186,7 +186,7 @@ describe('TabsRenderer', () => {
       tabsDragSourceRef: mockRef,
     };
 
-    render(<TabsRenderer {...noHoverMenuProps} />);
+    render(<TabsRenderer {...noHoverMenuProps} />, { useRedux: true });
 
     const hoverMenu = document.querySelector('.hover-menu');
 
@@ -196,6 +196,7 @@ describe('TabsRenderer', () => {
   test('renders with correct tab type based on edit mode', () => {
     const { rerender } = render(
       <TabsRenderer {...mockProps} editMode={false} />,
+      { useRedux: true },
     );
 
     let editableTabs = screen.getByTestId('nav-list');
@@ -220,7 +221,7 @@ describe('TabsRenderer', () => {
       handleEdit: mockProps.handleEdit,
     };
 
-    render(<TabsRenderer {...minimalProps} />);
+    render(<TabsRenderer {...minimalProps} />, { useRedux: true });
 
     const tabsContainer = screen.getByTestId('dashboard-component-tabs');
 
@@ -235,13 +236,13 @@ describe('TabsRenderer', () => {
       handleEdit: handleEditMock,
     };
 
-    render(<TabsRenderer {...editableProps} />);
+    render(<TabsRenderer {...editableProps} />, { useRedux: true });
 
     expect(screen.getByTestId('nav-list')).toBeInTheDocument();
   });
 
   test('renders tab content correctly', () => {
-    render(<TabsRenderer {...mockProps} />);
+    render(<TabsRenderer {...mockProps} />, { useRedux: true });
 
     expect(screen.getByText('Tab 1 Content')).toBeInTheDocument();
     expect(screen.queryByText('Tab 2 Content')).not.toBeInTheDocument(); // Not active
