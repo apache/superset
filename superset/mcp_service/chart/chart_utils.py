@@ -37,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SortByConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -466,7 +467,14 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     _add_adhoc_filters(form_data, config.filters)
 
     if config.sort_by:
-        form_data["order_by_cols"] = config.sort_by
+        form_data["order_by_cols"] = [
+            json.dumps(
+                [entry.column, entry.ascending]
+                if isinstance(entry, SortByConfig)
+                else [entry, False]
+            )
+            for entry in config.sort_by
+        ]
 
     form_data["row_limit"] = config.row_limit
 

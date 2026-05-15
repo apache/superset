@@ -386,11 +386,7 @@ function Rose(element: HTMLElement, props: RoseProps): void {
     .enter()
     .append('g')
     .attr('class', 'segment')
-    .classed('clickable', true)
-    .on('mouseover', mouseover)
-    .on('mouseout', mouseout)
-    .on('mousemove', mousemove)
-    .on('click', click);
+    .classed('clickable', true);
 
   const labels = labelsWrap
     .selectAll('g')
@@ -613,6 +609,11 @@ function Rose(element: HTMLElement, props: RoseProps): void {
         .attrTween('d', d => arcTween(arcSt.data[d.arcId])(d));
     }
   }
+
+  ae.on('mouseover', mouseover)
+    .on('mouseout', mouseout)
+    .on('mousemove', mousemove)
+    .on('click', click);
 
   function updateActive(): void {
     const delay = d3.event.altKey ? 3000 : 300;

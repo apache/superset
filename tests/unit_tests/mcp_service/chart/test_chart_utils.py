@@ -44,6 +44,7 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     FilterConfig,
     LegendConfig,
+    SortByConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -295,7 +296,7 @@ class TestMapTableConfig:
         assert result["adhoc_filters"][2]["comparator"] == ["Sports", "Racing"]
 
     def test_map_table_config_with_sort(self) -> None:
-        """Test table config mapping with sort"""
+        """Bare strings default to descending."""
         config = TableChartConfig(
             chart_type="table",
             columns=[ColumnRef(name="product")],
@@ -303,7 +304,26 @@ class TestMapTableConfig:
         )
 
         result = map_table_config(config)
-        assert result["order_by_cols"] == ["product", "revenue"]
+        assert result["order_by_cols"] == ['["product", false]', '["revenue", false]']
+
+    def test_map_table_config_with_sort_direction(self) -> None:
+        """SortByConfig entries honor the explicit ascending flag."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            sort_by=[
+                SortByConfig(column="product", ascending=True),
+                SortByConfig(column="revenue", ascending=False),
+                "category",
+            ],
+        )
+
+        result = map_table_config(config)
+        assert result["order_by_cols"] == [
+            '["product", true]',
+            '["revenue", false]',
+            '["category", false]',
+        ]
 
     def test_map_table_config_ag_grid_table(self) -> None:
         """Test table config mapping with AG Grid Interactive Table viz_type"""
