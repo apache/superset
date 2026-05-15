@@ -355,8 +355,7 @@ def _resolve_parent_container(
                 position=None,
                 error=(
                     f"Tab '{target_tab}' not found in dashboard {dashboard_id}. "
-                    f"Available tabs: {tab_list}. "
-                    "Use get_dashboard_info to inspect the tab structure."
+                    f"Available tabs: {tab_list}."
                 ),
             )
         return None, AddChartToDashboardResponse(
