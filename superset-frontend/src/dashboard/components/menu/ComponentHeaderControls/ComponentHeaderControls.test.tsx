@@ -54,9 +54,7 @@ test('disabled items are still rendered but do not fire onClick', async () => {
   const onClick = jest.fn();
   render(
     <ComponentHeaderControls
-      items={[
-        { key: 'gone', label: 'Gone', onClick, disabled: true },
-      ]}
+      items={[{ key: 'gone', label: 'Gone', onClick, disabled: true }]}
     />,
   );
   await userEvent.click(screen.getByTestId('dropdown-trigger'));

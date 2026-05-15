@@ -44,7 +44,7 @@ const buildLayout = (
         children: [],
         parents,
         meta: {
-          ...(extraMeta ?? {}),
+          ...extraMeta,
           ...(themeId !== undefined ? { themeId } : {}),
         },
       },
