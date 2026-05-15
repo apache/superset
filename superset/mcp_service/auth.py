@@ -88,7 +88,9 @@ class MCPPermissionDeniedError(Exception):
         super().__init__(message)
 
 
-def check_tool_permission(func: Callable[..., Any]) -> bool:
+def check_tool_permission(
+    func: Callable[..., Any], *, log_denial: bool = True
+) -> bool:
     """Check if the current user has RBAC permission for an MCP tool.
 
     Reads permission metadata stored on the function by the @tool decorator
@@ -99,6 +101,9 @@ def check_tool_permission(func: Callable[..., Any]) -> bool:
 
     Args:
         func: The tool function with optional permission attributes.
+        log_denial: When False, log denials at DEBUG level instead of WARNING.
+            Pass False for list-time visibility checks to avoid per-tool warning
+            noise for every hidden tool on every ``tools/list`` request.
 
     Returns:
         True if user has permission or no permission is required.
@@ -112,9 +117,14 @@ def check_tool_permission(func: Callable[..., Any]) -> bool:
         from superset import security_manager
 
         if not hasattr(g, "user") or not g.user:
-            logger.warning(
-                "No user context for permission check on tool: %s", func.__name__
-            )
+            if log_denial:
+                logger.warning(
+                    "No user context for permission check on tool: %s", func.__name__
+                )
+            else:
+                logger.debug(
+                    "No user context for permission check on tool: %s", func.__name__
+                )
             return False
 
         class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
@@ -130,13 +140,22 @@ def check_tool_permission(func: Callable[..., Any]) -> bool:
         )
 
         if not has_permission:
-            logger.warning(
-                "Permission denied for user %s: %s on %s (tool: %s)",
-                g.user.username,
-                permission_str,
-                class_permission_name,
-                func.__name__,
-            )
+            if log_denial:
+                logger.warning(
+                    "Permission denied for user %s: %s on %s (tool: %s)",
+                    g.user.username,
+                    permission_str,
+                    class_permission_name,
+                    func.__name__,
+                )
+            else:
+                logger.debug(
+                    "Tool hidden for user %s: %s on %s (tool: %s)",
+                    g.user.username,
+                    permission_str,
+                    class_permission_name,
+                    func.__name__,
+                )
 
         return has_permission
 
@@ -186,7 +205,7 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
         if not class_permission_name:
             return True
 
-        return check_tool_permission(tool_func)
+        return check_tool_permission(tool_func, log_denial=False)
 
     except (AttributeError, RuntimeError, ValueError):
         logger.debug(
@@ -545,7 +564,17 @@ def _setup_user_context() -> User | None:
             # proceed as a different user in multi-tenant deployments.
             # Clear g.user so error/audit logging doesn't attribute
             # the denied request to the middleware-provided identity.
-            logger.error("MCP user resolution failed, denying request: %s", e)
+            #
+            # "No authenticated user found" means no auth source is configured
+            # at all (no JWT, no API key, no MCP_DEV_USERNAME). This is the
+            # expected state in unauthenticated/dev deployments and at
+            # tools/list time — log at DEBUG to avoid ERROR noise in those
+            # environments. All other ValueErrors (e.g. dev username not in DB)
+            # are genuine credential failures and are logged at ERROR.
+            if "No authenticated user found" in str(e):
+                logger.debug("MCP: no auth source configured, unauthenticated request")
+            else:
+                logger.error("MCP user resolution failed, denying request: %s", e)
             if has_request_context():
                 g.pop("user", None)
             raise

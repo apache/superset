@@ -426,19 +426,9 @@ class RBACToolVisibilityMiddleware(Middleware):
     - No auth context at all (no Flask context, no auth header, no dev user
       configured) → fail open (return all tools). Call-time RBAC enforces.
     - Auth was attempted but credentials are invalid (bad API key, dev
-      username not in DB, etc.) → fail closed (return only public tools,
-      i.e. those with no ``class_permission_name``).
+      username not in DB, etc.) → fail closed (return empty list).
     - Unexpected errors → fail open. Call-time RBAC still enforces.
     """
-
-    @staticmethod
-    def _public_tools_only(tools: list[Tool]) -> list[Tool]:
-        """Return only tools that require no class-level permission."""
-        return [
-            t
-            for t in tools
-            if getattr(getattr(t, "fn", None), "_class_permission_name", None) is None
-        ]
 
     async def on_list_tools(
         self,
@@ -466,17 +456,17 @@ class RBACToolVisibilityMiddleware(Middleware):
                     # Auth was attempted (e.g. MCP_DEV_USERNAME set) but the
                     # user was not found in the DB → fail closed
                     logger.warning(
-                        "MCP tool list: credential failure, hiding protected tools: %s",
+                        "MCP tool list: credential failure, hiding all tools: %s",
                         exc,
                     )
-                    return self._public_tools_only(tools)
+                    return []
                 except PermissionError as exc:
                     # API key present but invalid/expired → fail closed
                     logger.warning(
-                        "MCP tool list: credential failure, hiding protected tools: %s",
+                        "MCP tool list: credential failure, hiding all tools: %s",
                         exc,
                     )
-                    return self._public_tools_only(tools)
+                    return []
 
                 if user is None:
                     return tools  # no Flask app context → fail open

@@ -410,7 +410,7 @@ def _tool_allowed_for_current_user(tool: Any) -> bool:
         if not getattr(g, "user", None):
             try:
                 g.user = get_user_from_request()
-            except ValueError:
+            except (ValueError, PermissionError):
                 return False
 
         return is_tool_visible_to_current_user(tool)
