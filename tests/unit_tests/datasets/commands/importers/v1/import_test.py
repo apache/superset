@@ -31,6 +31,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
+    DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
 )
 from superset.commands.dataset.importers.v1.utils import (
@@ -742,6 +743,44 @@ def test_import_dataset_without_owner_permission(
 
     # Assert that the can write to chart was checked
     mock_can_access.assert_called_with("can_write", "Dataset")
+
+
+def test_import_dataset_access_check(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that import_dataset raises DatasetAccessDeniedError when the user does not
+    have datasource-level access to the target dataset.
+    """
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        security_manager,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message="User does not have access to this datasource",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(config)
 
 
 @pytest.mark.parametrize(
