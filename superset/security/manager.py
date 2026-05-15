@@ -3185,7 +3185,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         eager = [
             joinedload(self.user_model.roles),
-            joinedload(self.user_model.groups).joinedload("roles"),
+            joinedload(self.user_model.groups).joinedload(self.group_model.roles),
         ]
         if username:
             try:
