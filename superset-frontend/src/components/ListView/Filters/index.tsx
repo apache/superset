@@ -37,6 +37,7 @@ import SearchFilter from './Search';
 import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
 import NumericalRangeFilter from './NumericalRange';
+import CompactFilterTrigger from './CompactFilterTrigger';
 
 interface UIFiltersProps {
   filters: Filters;
@@ -94,34 +95,41 @@ function UIFilters(
           index,
         ) => {
           const initialValue = internalFilters?.[index]?.value;
+          const filterValue = internalFilters?.[index]?.value;
           if (input === 'select') {
             return (
-              <SelectFilter
-                ref={filterRefs[index]}
-                Header={Header}
-                fetchSelects={fetchSelects}
-                initialValue={initialValue}
+              <CompactFilterTrigger
                 key={key}
-                name={id}
-                onSelect={(
-                  option: SelectOption | undefined,
-                  isClear?: boolean,
-                ) => {
-                  if (onFilterUpdate) {
-                    // Filter change triggers both onChange AND onClear, only want to track onChange
-                    if (!isClear) {
-                      onFilterUpdate(option);
+                label={Header}
+                hasValue={!!filterValue}
+                onClear={() => filterRefs[index]?.current?.clearFilter?.()}
+              >
+                <SelectFilter
+                  ref={filterRefs[index]}
+                  Header={Header}
+                  fetchSelects={fetchSelects}
+                  initialValue={initialValue}
+                  name={id}
+                  onSelect={(
+                    option: SelectOption | undefined,
+                    isClear?: boolean,
+                  ) => {
+                    if (onFilterUpdate) {
+                      // Filter change triggers both onChange AND onClear, only want to track onChange
+                      if (!isClear) {
+                        onFilterUpdate(option);
+                      }
                     }
-                  }
 
-                  updateFilterValue(index, option);
-                }}
-                optionFilterProps={optionFilterProps}
-                paginate={paginate}
-                selects={selects}
-                loading={loading ?? false}
-                dropdownStyle={popupStyle}
-              />
+                    updateFilterValue(index, option);
+                  }}
+                  optionFilterProps={optionFilterProps}
+                  paginate={paginate}
+                  selects={selects}
+                  loading={loading ?? false}
+                  dropdownStyle={popupStyle}
+                />
+              </CompactFilterTrigger>
             );
           }
           if (input === 'search' && typeof Header === 'string') {
@@ -145,30 +153,47 @@ function UIFilters(
             );
           }
           if (input === 'datetime_range') {
+            const hasDateValue =
+              Array.isArray(filterValue) && filterValue.some(Boolean);
             return (
-              <DateRangeFilter
-                ref={filterRefs[index]}
-                Header={Header}
-                initialValue={initialValue}
+              <CompactFilterTrigger
                 key={key}
-                name={id}
-                onSubmit={value => updateFilterValue(index, value)}
-                dateFilterValueType={dateFilterValueType || 'unix'}
-              />
+                label={Header}
+                hasValue={hasDateValue}
+                onClear={() => filterRefs[index]?.current?.clearFilter?.()}
+              >
+                <DateRangeFilter
+                  ref={filterRefs[index]}
+                  Header={Header}
+                  initialValue={initialValue}
+                  name={id}
+                  onSubmit={value => updateFilterValue(index, value)}
+                  dateFilterValueType={dateFilterValueType || 'unix'}
+                />
+              </CompactFilterTrigger>
             );
           }
           if (input === 'numerical_range') {
+            const hasRangeValue =
+              Array.isArray(filterValue) &&
+              filterValue.some(v => v !== null && v !== undefined);
             return (
-              <NumericalRangeFilter
-                ref={filterRefs[index]}
-                Header={Header}
-                initialValue={initialValue}
-                min={min}
-                max={max}
+              <CompactFilterTrigger
                 key={key}
-                name={id}
-                onSubmit={value => updateFilterValue(index, value)}
-              />
+                label={Header}
+                hasValue={hasRangeValue}
+                onClear={() => filterRefs[index]?.current?.clearFilter?.()}
+              >
+                <NumericalRangeFilter
+                  ref={filterRefs[index]}
+                  Header={Header}
+                  initialValue={initialValue}
+                  min={min}
+                  max={max}
+                  name={id}
+                  onSubmit={value => updateFilterValue(index, value)}
+                />
+              </CompactFilterTrigger>
             );
           }
           return null;
