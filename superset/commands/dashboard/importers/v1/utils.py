@@ -62,6 +62,21 @@ def build_uuid_to_id_map(position: dict[str, Any]) -> dict[str, int]:
     }
 
 
+def _remap_charts_in_scope(container: dict[str, Any], id_map: dict[int, int]) -> None:
+    """Remap source-env chart IDs in ``container["chartsInScope"]`` in place.
+
+    ``chartsInScope`` is a denormalized cache of the charts a filter (native
+    or cross-filter) currently applies to. Both surfaces share this contract,
+    so they share this remap. Unresolvable IDs are dropped rather than
+    passed through, matching the convention used for ``scope.excluded``.
+    """
+    charts_in_scope = container.get("chartsInScope")
+    if isinstance(charts_in_scope, list):
+        container["chartsInScope"] = [
+            id_map[old_id] for old_id in charts_in_scope if old_id in id_map
+        ]
+
+
 def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     config: dict[str, Any],
     chart_ids: dict[str, int],
@@ -145,17 +160,7 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
                 id_map[old_id] for old_id in scope_excluded if old_id in id_map
             ]
 
-        # chartsInScope is a denormalized cache of the charts the filter
-        # currently applies to. It holds source-env chart IDs and must be
-        # remapped to destination IDs; otherwise the imported dashboard's
-        # filtersInScope / filtersOutScope computation operates on stale
-        # IDs and filters end up applied to the wrong charts (or none at
-        # all). Drop unresolvable IDs rather than passing them through.
-        charts_in_scope = native_filter.get("chartsInScope")
-        if isinstance(charts_in_scope, list):
-            native_filter["chartsInScope"] = [
-                id_map[old_id] for old_id in charts_in_scope if old_id in id_map
-            ]
+        _remap_charts_in_scope(native_filter, id_map)
 
     # fix display control dataset references
     for customization in (
@@ -224,17 +229,10 @@ def update_cross_filter_scoping(  # noqa: C901
                             if old_id in id_map
                         ]
 
-                # Cross-filter chartsInScope mirrors the native-filter case
-                # above: source-env IDs that must be remapped on import.
+                # Cross-filter chartsInScope mirrors the native-filter case.
                 cross_filters = chart_config.get("crossFilters")
                 if isinstance(cross_filters, dict):
-                    charts_in_scope = cross_filters.get("chartsInScope")
-                    if isinstance(charts_in_scope, list):
-                        cross_filters["chartsInScope"] = [
-                            id_map[old_id]
-                            for old_id in charts_in_scope
-                            if old_id in id_map
-                        ]
+                    _remap_charts_in_scope(cross_filters, id_map)
 
             new_chart_configuration[str(new_id)] = chart_config
 
