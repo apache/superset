@@ -74,8 +74,13 @@ const ListViewStyles = styled.div`
           column-gap: ${theme.sizeUnit * 2}px;
           row-gap: ${theme.sizeUnit * 2}px;
 
-          [data-test='search-filter-container'] label {
-            display: none;
+          [data-test='search-filter-container'] {
+            height: ${theme.controlHeight}px;
+            justify-content: center;
+
+            label {
+              display: none;
+            }
           }
         }
       }
