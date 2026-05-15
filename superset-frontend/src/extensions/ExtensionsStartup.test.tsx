@@ -276,7 +276,9 @@ test('continues rendering children even when ExtensionsLoader initialization fai
     expect(mockIsFeatureEnabled).toHaveBeenCalledWith(
       FeatureFlag.EnableExtensions,
     );
-    expect(container.querySelector('[data-testid="child"]')).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="child"]'),
+    ).toBeInTheDocument();
   });
 
   // Restore original method
