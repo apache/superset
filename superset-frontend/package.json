@@ -183,7 +183,7 @@
     "geostyler-style": "11.0.2",
     "geostyler-wfs-parser": "^3.0.1",
     "google-auth-library": "^10.6.2",
-    "immer": "^11.1.7",
+    "immer": "^11.1.8",
     "interweave": "^13.1.1",
     "jquery": "^4.0.0",
     "js-levenshtein": "^1.1.6",
