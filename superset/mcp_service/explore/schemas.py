@@ -25,6 +25,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from superset.mcp_service.common.error_schemas import ChartGenerationError
+
 
 class GenerateExploreLinkResponse(BaseModel):
     """
@@ -33,11 +35,10 @@ class GenerateExploreLinkResponse(BaseModel):
     On success, ``url`` is a fully-qualified Superset Explore URL that the
     user can open immediately, and ``form_data_key`` can be used to
     reconstruct or share the same configuration. On failure, ``url`` is
-    empty and ``error`` is a ``ChartGenerationError`` serialized as a dict;
-    its ``error_type`` distinguishes ``dataset_not_found``,
-    ``permission_denied``, ``validation_error``, and ``generation_failed``
-    so callers can branch on failure mode without parsing free-text
-    messages.
+    empty and ``error`` is a ``ChartGenerationError``; its ``error_type``
+    distinguishes ``dataset_not_found``, ``permission_denied``,
+    ``validation_error``, and ``generation_failed`` so callers can branch
+    on failure mode without parsing free-text messages.
     """
 
     url: str = Field(
@@ -76,11 +77,11 @@ class GenerateExploreLinkResponse(BaseModel):
             "Null on failure or when the viz_type has no specific label."
         ),
     )
-    error: dict[str, Any] | None = Field(
+    error: ChartGenerationError | None = Field(
         None,
         description=(
             "Structured ChartGenerationError when generation fails, else "
-            "null. Branch on error['error_type'] to handle specific failure "
+            "null. Branch on error.error_type to handle specific failure "
             "modes (dataset_not_found, permission_denied, validation_error, "
             "generation_failed)."
         ),
