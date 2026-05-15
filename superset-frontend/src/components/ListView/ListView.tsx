@@ -65,6 +65,7 @@ const ListViewStyles = styled.div`
 
       .header {
         display: flex;
+        align-items: center;
         padding-bottom: ${theme.sizeUnit * 4}px;
 
         & .controls {
