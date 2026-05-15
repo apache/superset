@@ -18,7 +18,11 @@
  */
 import { useSyncExternalStore } from 'react';
 import { useSelector } from 'react-redux';
-import type { DashboardLayout, RootState } from 'src/dashboard/types';
+import type {
+  DashboardLayout,
+  LayoutItem,
+  RootState,
+} from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { previewThemeStore } from './previewThemeStore';
 
@@ -46,10 +50,9 @@ export function pickEffectiveThemeId(
   // protects against malformed `parents` arrays causing infinite loops.
   let hops = 0;
   while (cursorId && cursorId !== DASHBOARD_ROOT_ID && hops < 32) {
-    const node = layout[cursorId];
+    const node: LayoutItem | undefined = layout[cursorId];
     if (!node) return null;
-    const themeId = (node.meta as { themeId?: number | null } | undefined)
-      ?.themeId;
+    const themeId = node.meta?.themeId;
     if (typeof themeId === 'number') return themeId;
     cursorId = node.parents?.[node.parents.length - 1];
     hops += 1;
