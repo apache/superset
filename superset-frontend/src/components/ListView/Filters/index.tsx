@@ -109,7 +109,10 @@ function UIFilters(
                 label={Header}
                 hasValue={!!selectValue}
                 tooltipTitle={tooltipTitle}
-                onClear={() => filterRefs[index]?.current?.clearFilter?.()}
+                onClear={() => {
+                  filterRefs[index]?.current?.clearFilter?.();
+                  updateFilterValue(index, undefined);
+                }}
               >
                 <CompactSelectPanel
                   ref={filterRefs[index]}
@@ -162,7 +165,10 @@ function UIFilters(
                 label={Header}
                 hasValue={hasDateValue}
                 tooltipTitle={dateTooltip}
-                onClear={() => filterRefs[index]?.current?.clearFilter?.()}
+                onClear={() => {
+                  filterRefs[index]?.current?.clearFilter?.();
+                  updateFilterValue(index, undefined);
+                }}
               >
                 <DateRangeFilter
                   ref={filterRefs[index]}
@@ -190,7 +196,10 @@ function UIFilters(
                 label={Header}
                 hasValue={hasRangeValue}
                 tooltipTitle={rangeTooltip}
-                onClear={() => filterRefs[index]?.current?.clearFilter?.()}
+                onClear={() => {
+                  filterRefs[index]?.current?.clearFilter?.();
+                  updateFilterValue(index, undefined);
+                }}
               >
                 <NumericalRangeFilter
                   ref={filterRefs[index]}

@@ -122,7 +122,6 @@ export default function CompactFilterTrigger({
           : (children as React.ReactElement)
       }
       placement="bottomLeft"
-      destroyPopupOnHide
     >
       {pill}
     </Dropdown>
