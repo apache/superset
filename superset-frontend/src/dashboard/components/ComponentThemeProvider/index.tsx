@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useContext, useEffect, useState } from 'react';
 import type { Theme } from '@apache-superset/core/theme';
-import { useThemeContext } from 'src/theme/ThemeProvider';
+import { ThemeContext } from 'src/theme/ThemeProvider';
 import { useEffectiveThemeId } from './useEffectiveThemeId';
 
 interface ComponentThemeProviderProps {
@@ -48,24 +48,30 @@ export default function ComponentThemeProvider({
   children,
 }: ComponentThemeProviderProps) {
   const effectiveThemeId = useEffectiveThemeId(layoutId);
-  const { createDashboardThemeProvider } = useThemeContext();
+  // Read ThemeContext directly (not via `useThemeContext`, which throws
+  // when no ThemeProvider is mounted). When rendered outside a dashboard
+  // — e.g. isolated component tests, storybook, embedded contexts that
+  // skip the dashboard ThemeProvider — we behave as a pass-through.
+  const themeContext = useContext(ThemeContext);
   const [componentTheme, setComponentTheme] = useState<Theme | null>(null);
 
   useEffect(() => {
-    if (effectiveThemeId == null) {
+    if (effectiveThemeId == null || !themeContext) {
       setComponentTheme(null);
       return undefined;
     }
     let cancelled = false;
     // `createDashboardThemeProvider` caches by id internally, so per-component
     // calls for the same theme are deduplicated to a single fetch.
-    createDashboardThemeProvider(String(effectiveThemeId)).then(theme => {
-      if (!cancelled) setComponentTheme(theme);
-    });
+    themeContext
+      .createDashboardThemeProvider(String(effectiveThemeId))
+      .then(theme => {
+        if (!cancelled) setComponentTheme(theme);
+      });
     return () => {
       cancelled = true;
     };
-  }, [effectiveThemeId, createDashboardThemeProvider]);
+  }, [effectiveThemeId, themeContext]);
 
   if (!componentTheme) {
     return <>{children}</>;
