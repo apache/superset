@@ -178,7 +178,6 @@ const bulkSelectColumnConfig = {
 const ViewModeContainer = styled.div`
   ${({ theme }) => `
     padding-right: ${theme.sizeUnit * 4}px;
-    margin-top: ${theme.sizeUnit * 5 + 1}px;
     white-space: nowrap;
     display: inline-block;
 
