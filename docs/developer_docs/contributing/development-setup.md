@@ -668,7 +668,7 @@ A series of checks will now run when you make a git commit.
 
 ## Linting
 
-See [how tos](./howtos#linting)
+See [how tos](./howtos.md#linting)
 
 ## GitHub Actions and `act`
 
