@@ -326,16 +326,19 @@ class GetDatasetInfoRequest(MetadataCacheControl):
 class CreateDatasetRequest(BaseModel):
     """Request schema for create_dataset to register a physical table as a dataset."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     database_id: Annotated[
         int,
         Field(
             description="ID of the database connection to register the table against"
         ),
     ]
-    schema: Annotated[
+    schema_name: Annotated[
         str | None,
         Field(
             default=None,
+            alias="schema",
             description="Schema where the table lives (optional).",
         ),
     ]

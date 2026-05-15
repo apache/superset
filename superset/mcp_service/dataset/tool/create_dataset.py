@@ -62,7 +62,7 @@ async def create_dataset(
     """
     await ctx.info(
         "Registering physical table as dataset: database_id=%s, schema=%r, table=%r"
-        % (request.database_id, request.schema, request.table_name)
+        % (request.database_id, request.schema_name, request.table_name)
     )
 
     # Verify the database exists and the caller has table-level access before
@@ -75,7 +75,7 @@ async def create_dataset(
             error_type="DatabaseNotFoundError",
         )
 
-    table = Table(request.table_name, request.schema, request.catalog)
+    table = Table(request.table_name, request.schema_name, request.catalog)
     try:
         security_manager.raise_for_access(database=database, table=table)
     except SupersetSecurityException as exc:
@@ -96,7 +96,7 @@ async def create_dataset(
             for k, v in {
                 "database": request.database_id,
                 "table_name": request.table_name,
-                "schema": request.schema,
+                "schema": request.schema_name,
                 "catalog": request.catalog,
                 "owners": request.owners,
             }.items()

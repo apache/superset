@@ -131,7 +131,7 @@ class TestCreateDataset:
         data = json.loads(result.content[0].text)
         assert data["id"] == 42
         assert data["table_name"] == "orders"
-        assert data["schema_name"] == "public"
+        assert data["schema"] == "public"
 
         call_kwargs = mock_command_class.call_args[0][0]
         assert call_kwargs["database"] == 1
@@ -328,7 +328,7 @@ class TestCreateDataset:
         data = json.loads(result.content[0].text)
         assert data["id"] == 99
         assert data["table_name"] == "sales"
-        assert data["schema_name"] == "dw"
+        assert data["schema"] == "dw"
         assert data["is_virtual"] is False
         assert len(data["columns"]) == 1
         assert data["columns"][0]["column_name"] == "amount"
