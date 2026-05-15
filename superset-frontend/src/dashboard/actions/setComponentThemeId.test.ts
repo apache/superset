@@ -65,9 +65,8 @@ const dispatchedActions = (
 };
 
 test('dispatches an UPDATE_COMPONENTS that preserves existing meta and sets themeId', () => {
-  const actions = dispatchedActions(
-    setComponentThemeId('CHART-abc', 7),
-    () => buildState(),
+  const actions = dispatchedActions(setComponentThemeId('CHART-abc', 7), () =>
+    buildState(),
   );
   const action = actions.find(a => a.type === UPDATE_COMPONENTS);
   expect(action).toBeDefined();
