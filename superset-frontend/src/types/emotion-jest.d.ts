@@ -17,33 +17,4 @@
  * under the License.
  */
 
-.versionBanner {
-  background-color: var(--ifm-color-emphasis-100);
-  padding: 0.5rem 1rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--ifm-color-emphasis-200);
-}
-
-.versionContainer {
-  display: flex;
-  align-items: center;
-  max-width: var(--ifm-container-width);
-  margin: 0 auto;
-  padding: 0 var(--ifm-spacing-horizontal);
-}
-
-.versionLabel {
-  font-weight: bold;
-  margin-right: 0.5rem;
-}
-
-.versionSelector {
-  cursor: pointer;
-  color: var(--ifm-color-primary);
-  font-weight: 500;
-}
-
-.versionSelector:hover {
-  text-decoration: none;
-  color: var(--ifm-color-primary-darker);
-}
+/// <reference types="@emotion/jest" />

@@ -6,6 +6,9 @@ on:
       - "superset-embedded-sdk/**"
     types: [synchronize, opened, reopened, ready_for_review]
 
+permissions:
+  contents: read
+
 # cancel previous workflow jobs for PRs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}

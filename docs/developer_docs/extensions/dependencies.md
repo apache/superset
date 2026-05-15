@@ -161,6 +161,6 @@ Until then, monitor the Superset release notes and test your extensions with eac
 
 ## Next Steps
 
-- **[Architecture](./architecture)** - Understand the extension system design
-- **[Development](./development)** - Learn about APIs and development workflow
-- **[Quick Start](./quick-start)** - Build your first extension
+- **[Architecture](./architecture.md)** - Understand the extension system design
+- **[Development](./development.md)** - Learn about APIs and development workflow
+- **[Quick Start](./quick-start.md)** - Build your first extension

@@ -252,7 +252,7 @@ class DatasetReferencesAPI(RestApi):
 
 ### Automatic Context Detection
 
-The [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects whether it's being used in host or extension code:
+The [`@api`](https://github.com/apache/superset/blob/master/superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects whether it's being used in host or extension code:
 
 - **Extension APIs**: Registered under `/extensions/{publisher}/{name}/` with IDs prefixed as `extensions.{publisher}.{name}.{id}`
 - **Host APIs**: Registered under `/api/v1/` with original IDs
