@@ -1843,6 +1843,54 @@ describe('plugin-chart-table', () => {
         expect(secondCallArg.extraFormData.filters).toEqual([]);
       });
 
+      test('clicking a temporal numeric-string cell emits numeric cross-filter values', () => {
+        const setDataMask = jest.fn();
+        const timestamp = 1777248000000;
+        const props = transformProps({
+          ...testData.basic,
+          hooks: { setDataMask },
+          emitCrossFilters: true,
+        });
+
+        render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              data={[{ install_date: String(timestamp) }]}
+              columns={[
+                {
+                  key: 'install_date',
+                  label: 'install_date',
+                  dataType: GenericDataType.Temporal,
+                  isNumeric: false,
+                  isMetric: false,
+                  isPercentMetric: false,
+                  formatter: String,
+                  config: {},
+                },
+              ]}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+
+        fireEvent.click(screen.getByText(String(timestamp)));
+
+        const crossFilterCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState?.filters,
+        );
+        expect(crossFilterCall).toBeDefined();
+        expect(crossFilterCall![0].extraFormData.filters).toEqual([
+          {
+            col: 'install_date',
+            op: 'IN',
+            val: [timestamp],
+          },
+        ]);
+      });
+
       test('cross-filter toggle works with DateWithFormatter values', () => {
         const setDataMask = jest.fn();
         const props = transformProps({
