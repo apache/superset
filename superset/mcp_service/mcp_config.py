@@ -18,8 +18,9 @@
 
 import logging
 import secrets
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
+from authlib.jose.errors import JoseError
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from flask import Flask
 
@@ -339,18 +340,20 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                     public_key=public_key,
                     secret=secret,
                 )
-            except Exception:  # noqa: BLE001 — JWT lib raises many types; broad catch intentional
+            except (ValueError, JoseError):
                 # Do not log the exception — it may contain secrets (e.g., key material)
                 logger.error("Failed to create MCP JWT verifier")
                 if not api_key_enabled:
                     return None
 
     if api_key_enabled:
-        raw_prefixes = app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
+        raw_prefixes: str | Sequence[str] = app.config.get(
+            "FAB_API_KEY_PREFIXES", ["sst_"]
+        )
         # Normalize: a plain string (e.g. "sst_") would iterate as characters;
         # wrap it in a list so CompositeTokenVerifier receives a proper sequence.
         if isinstance(raw_prefixes, str):
-            api_key_prefixes = [raw_prefixes]
+            api_key_prefixes: list[str] = [raw_prefixes]
         else:
             api_key_prefixes = list(raw_prefixes)
         logger.info("API key auth enabled for MCP")
@@ -367,7 +370,7 @@ def _build_jwt_verifier(
     jwks_uri: Optional[str],
     public_key: Optional[str],
     secret: Optional[str],
-) -> Any:
+) -> JWTVerifier:
     """Construct the JWT verifier from configured keys/secret."""
     debug_errors = app.config.get("MCP_JWT_DEBUG_ERRORS", False)
 
