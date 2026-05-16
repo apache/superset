@@ -43,6 +43,7 @@ import {
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { aggregatorTemplates, PivotTable, sortAs } from './react-pivottable';
 import {
+  DateFormatter,
   FilterType,
   MetricsLayoutEnum,
   PivotTableProps,
@@ -217,6 +218,43 @@ const aggregatorsFactory = (formatter: NumberFormatter) => ({
     formatter,
   ),
 });
+
+const getDrillFilterValue = (
+  value: string,
+  formatter: DateFormatter | undefined,
+): string | number => {
+  if (formatter && value.trim() !== '' && Number.isFinite(Number(value))) {
+    return Number(value);
+  }
+  return value;
+};
+
+const getCrossFilterValue = (
+  value: DataRecordValue,
+  formatter: DateFormatter | undefined,
+): DataRecordValue => {
+  if (
+    formatter &&
+    typeof value === 'string' &&
+    value.trim() !== '' &&
+    Number.isFinite(Number(value))
+  ) {
+    return Number(value);
+  }
+  return value;
+};
+
+const getDrillFilterFormattedValue = (
+  value: string,
+  formatter: DateFormatter | undefined,
+) => {
+  const filterValue = getDrillFilterValue(value, formatter);
+  return (
+    formatter?.(
+      typeof filterValue === 'number' ? filterValue : Number(value),
+    ) || String(value)
+  );
+};
 
 /* If you change this logic, please update the corresponding Python
  * function (https://github.com/apache/superset/blob/master/superset/charts/post_processing.py),
@@ -419,10 +457,13 @@ export default function PivotTableChart(props: PivotTableProps) {
                       col,
                       op: 'IS NULL',
                     };
+                  const formatter = dateFormatters[col];
                   return {
                     col,
                     op: 'IN',
-                    val: val as (string | number | boolean)[],
+                    val: (val as DataRecordValue[]).map(value =>
+                      getCrossFilterValue(value, formatter),
+                    ) as (string | number | boolean)[],
                   };
                 }),
         },
@@ -436,7 +477,7 @@ export default function PivotTableChart(props: PivotTableProps) {
         },
       });
     },
-    [groupbyColumnsRaw, groupbyRowsRaw, setDataMask],
+    [dateFormatters, groupbyColumnsRaw, groupbyRowsRaw, setDataMask],
   );
 
   const isActiveFilterValue = useCallback(
@@ -492,10 +533,13 @@ export default function PivotTableChart(props: PivotTableProps) {
                         col,
                         op: 'IS NULL' as const,
                       };
+                    const formatter = dateFormatters[col];
                     return {
                       col,
                       op: 'IN' as const,
-                      val: val as (string | number | boolean)[],
+                      val: (val as DataRecordValue[]).map(value =>
+                        getCrossFilterValue(value, formatter),
+                      ) as (string | number | boolean)[],
                     };
                   }),
           },
@@ -511,7 +555,13 @@ export default function PivotTableChart(props: PivotTableProps) {
         isCurrentValueSelected: isActiveFilterValue(key, val),
       };
     },
-    [groupbyColumnsRaw, groupbyRowsRaw, isActiveFilterValue, selectedFilters],
+    [
+      dateFormatters,
+      groupbyColumnsRaw,
+      groupbyRowsRaw,
+      isActiveFilterValue,
+      selectedFilters,
+    ],
   );
 
   const toggleFilter = useCallback(
@@ -637,12 +687,12 @@ export default function PivotTableChart(props: PivotTableProps) {
           colKey.forEach((val, i) => {
             const col = cols[i];
             const formatter = dateFormatters[col];
-            const formattedVal = formatter?.(Number(val)) || String(val);
+            const formattedVal = getDrillFilterFormattedValue(val, formatter);
             if (i > 0) {
               drillToDetailFilters.push({
                 col,
                 op: '==',
-                val,
+                val: getDrillFilterValue(val, formatter),
                 formattedVal,
                 grain: formatter ? timeGrainSqla : undefined,
               });
@@ -653,11 +703,11 @@ export default function PivotTableChart(props: PivotTableProps) {
           rowKey.forEach((val, i) => {
             const col = rows[i];
             const formatter = dateFormatters[col];
-            const formattedVal = formatter?.(Number(val)) || String(val);
+            const formattedVal = getDrillFilterFormattedValue(val, formatter);
             drillToDetailFilters.push({
               col,
               op: '==',
-              val,
+              val: getDrillFilterValue(val, formatter),
               formattedVal,
               grain: formatter ? timeGrainSqla : undefined,
             });
