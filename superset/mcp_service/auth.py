@@ -51,7 +51,9 @@ from typing import Any, Callable, TYPE_CHECKING, TypeVar
 from flask import current_app, g, has_app_context, has_request_context
 from flask_appbuilder.security.sqla.models import User
 
+from superset import security_manager
 from superset.mcp_service.composite_token_verifier import API_KEY_PASSTHROUGH_CLAIM
+from superset.mcp_service.mcp_config import default_user_resolver
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -124,12 +126,8 @@ def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) 
         True if user has permission or no permission is required.
     """
     try:
-        from flask import current_app
-
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
             return True
-
-        from superset import security_manager
 
         if not hasattr(g, "user") or not g.user:
             if log_denial:
@@ -168,14 +166,16 @@ def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) 
         if not has_permission:
             if log_denial:
                 logger.warning(
-                    "Permission denied: %s on %s (tool: %s)",
+                    "Permission denied for user id=%s: %s on %s (tool: %s)",
+                    getattr(g.user, "id", "?"),
                     permission_str,
                     class_permission_name,
                     func.__name__,
                 )
             else:
                 logger.debug(
-                    "Tool hidden: %s on %s (tool: %s)",
+                    "Tool hidden for user id=%s: %s on %s (tool: %s)",
+                    getattr(g.user, "id", "?"),
                     permission_str,
                     class_permission_name,
                     func.__name__,
@@ -256,8 +256,6 @@ def load_user_with_relationships(
     if not username and not email:
         raise ValueError("Either username or email must be provided")
 
-    from superset import security_manager
-
     return security_manager.find_user_with_relationships(username=username, email=email)
 
 
@@ -309,8 +307,6 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
         )
 
     # Use configurable resolver or default
-    from superset.mcp_service.mcp_config import default_user_resolver
-
     resolver = app.config.get("MCP_USER_RESOLVER", default_user_resolver)
     username = resolver(app, access_token)
 
@@ -443,8 +439,6 @@ def get_user_from_request() -> User:
     Raises:
         ValueError: If user cannot be authenticated or found
     """
-    from flask import current_app
-
     # Priority 1: JWT context (per-request safe via ContextVar)
     if (jwt_user := _resolve_user_from_jwt_context(current_app)) is not None:
         return jwt_user
@@ -511,8 +505,6 @@ def has_dataset_access(dataset: "SqlaTable") -> bool:
         Returns False on any error to fail securely.
     """
     try:
-        from superset import security_manager
-
         # Check if user has read access to the dataset
         if hasattr(g, "user") and g.user:
             # Use Superset's security manager to check dataset access
