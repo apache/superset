@@ -18,6 +18,7 @@
  */
 import { ChartProps } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
+import { OpacityEnum } from '../../src/constants';
 import { EchartsTreemapChartProps } from '../../src/Treemap/types';
 import transformProps from '../../src/Treemap/transformProps';
 
@@ -75,24 +76,35 @@ describe('Treemap transformProps', () => {
     );
   });
 
-  test('should not render gaps between treemap nodes', () => {
-    expect(transformProps(chartProps as EchartsTreemapChartProps)).toEqual(
+  test('should not render gaps between treemap nodes when filtered', () => {
+    const filteredChartProps = new ChartProps({
+      ...chartProps,
+      filterState: { selectedValues: ['Sylvester,bar1'] },
+    });
+
+    expect(
+      transformProps(filteredChartProps as EchartsTreemapChartProps),
+    ).toEqual(
       expect.objectContaining({
         echartOptions: expect.objectContaining({
           series: [
             expect.objectContaining({
               data: expect.arrayContaining([
                 expect.objectContaining({
-                  itemStyle: expect.objectContaining({
-                    borderWidth: 0,
-                    gapWidth: 0,
-                  }),
                   children: expect.arrayContaining([
                     expect.objectContaining({
-                      itemStyle: expect.objectContaining({
-                        borderWidth: 0,
-                        gapWidth: 0,
-                      }),
+                      name: 'Arnold',
+                      children: expect.arrayContaining([
+                        expect.objectContaining({
+                          name: 'bar2',
+                          itemStyle: expect.objectContaining({
+                            borderWidth: 0,
+                            gapWidth: 0,
+                            colorAlpha: OpacityEnum.SemiTransparent,
+                          }),
+                          label: expect.objectContaining({}),
+                        }),
+                      ]),
                     }),
                   ]),
                 }),
