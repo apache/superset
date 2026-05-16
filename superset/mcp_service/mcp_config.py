@@ -352,10 +352,18 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
         )
         # Normalize: a plain string (e.g. "sst_") would iterate as characters;
         # wrap it in a list so CompositeTokenVerifier receives a proper sequence.
+        # Guard against non-iterable config values (e.g. None, integers) that
+        # would raise TypeError and cause _create_auth_provider to fail open.
         if isinstance(raw_prefixes, str):
             api_key_prefixes: list[str] = [raw_prefixes]
         else:
-            api_key_prefixes = list(raw_prefixes)
+            try:
+                api_key_prefixes = list(raw_prefixes)
+            except TypeError:
+                logger.warning(
+                    "FAB_API_KEY_PREFIXES must be a string or list; using default"
+                )
+                api_key_prefixes = ["sst_"]
         logger.info("API key auth enabled for MCP")
         return CompositeTokenVerifier(
             jwt_verifier=jwt_verifier,
