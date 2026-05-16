@@ -383,10 +383,10 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
     user_with_rels = load_user_with_relationships(username=user.username)
     if user_with_rels is None:
         logger.warning(
-            "Failed to reload API key user %s with relationships; "
+            "Failed to reload API key user id=%s with relationships; "
             "using original user object which may have lazy-loaded "
             "relationships",
-            user.username,
+            getattr(user, "id", "?"),
         )
         return user
     return user_with_rels
