@@ -86,7 +86,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
 
     try:
         # Import inside function to avoid initialization issues
-        from superset import db, security_manager
+        from superset import db, is_feature_enabled, security_manager
         from superset.models.core import Database
 
         # 1. Get database and check access
@@ -95,17 +95,20 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                 db.session.query(Database).filter_by(id=request.database_id).first()
             )
             if not database:
-                await ctx.error(
+                await ctx.warning(
                     "Database not found: database_id=%s" % request.database_id
                 )
                 return ExecuteSqlResponse(
                     success=False,
-                    error=f"Database with ID {request.database_id} not found",
+                    error=(
+                        f"Database with ID {request.database_id} not found."
+                        " Use list_databases to get valid database IDs."
+                    ),
                     error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR.value,
                 )
 
             if not security_manager.can_access_database(database):
-                await ctx.error(
+                await ctx.warning(
                     "Access denied to database: %s" % database.database_name
                 )
                 return ExecuteSqlResponse(
@@ -134,6 +137,22 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         with event_logger.log_context(action="mcp.execute_sql.response_conversion"):
             response = _convert_to_response(result)
 
+        # Surface a warning when template_params is supplied but Jinja
+        # rendering is disabled — otherwise the params are silently dropped.
+        if request.template_params and not is_feature_enabled(
+            "ENABLE_TEMPLATE_PROCESSING"
+        ):
+            response.template_warning = (
+                "template_params was supplied but Jinja2 rendering is "
+                "disabled on this Superset instance "
+                "(ENABLE_TEMPLATE_PROCESSING feature flag is off). "
+                "Template variables in the SQL were NOT substituted; "
+                "the query was executed with literal '{{ var }}' placeholders."
+            )
+            await ctx.warning(
+                "template_params supplied but ENABLE_TEMPLATE_PROCESSING is off"
+            )
+
         # Log successful execution
         if response.success:
             await ctx.info(
@@ -153,7 +172,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         return response
 
     except OAuth2RedirectError as ex:
-        await ctx.error(
+        await ctx.warning(
             "Database requires OAuth authentication: database_id=%s"
             % request.database_id
         )

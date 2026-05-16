@@ -34,6 +34,7 @@ from fastmcp.exceptions import ToolError
 from superset_core.queries.types import QueryResult, QueryStatus, StatementResult
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.sql_lab.schemas import ColumnInfo
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -227,6 +228,105 @@ class TestExecuteSql:
             assert len(data["statements"]) == 1
             assert "{{ table }}" in data["statements"][0]["original_sql"]
             assert "orders" in data["statements"][0]["executed_sql"]
+
+    @patch("superset.is_feature_enabled")
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_template_warning_when_flag_disabled(
+        self, mock_db, mock_security_manager, mock_is_feature_enabled, mcp_server
+    ):
+        """Warn when template_params is set but ENABLE_TEMPLATE_PROCESSING is off."""
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[],
+            columns=["id"],
+            original_sql="SELECT * FROM users WHERE id = '{{ user_id }}'",
+            executed_sql="SELECT * FROM users WHERE id = '{{ user_id }}'",
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+        mock_is_feature_enabled.return_value = False
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT * FROM users WHERE id = '{{ user_id }}'",
+            "template_params": {"user_id": "42"},
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+
+            assert data["success"] is True
+            assert data["template_warning"] is not None
+            assert "ENABLE_TEMPLATE_PROCESSING" in data["template_warning"]
+            mock_is_feature_enabled.assert_called_with("ENABLE_TEMPLATE_PROCESSING")
+
+    @patch("superset.is_feature_enabled")
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_no_template_warning_when_flag_enabled(
+        self, mock_db, mock_security_manager, mock_is_feature_enabled, mcp_server
+    ):
+        """No warning when ENABLE_TEMPLATE_PROCESSING is on."""
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[{"id": 42}],
+            columns=["id"],
+            original_sql="SELECT * FROM users WHERE id = '42'",
+            executed_sql="SELECT * FROM users WHERE id = '42'",
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+        mock_is_feature_enabled.return_value = True
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT * FROM users WHERE id = '{{ user_id }}'",
+            "template_params": {"user_id": "42"},
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+
+            assert data["success"] is True
+            assert data["template_warning"] is None
+
+    @patch("superset.is_feature_enabled")
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_no_template_warning_without_template_params(
+        self, mock_db, mock_security_manager, mock_is_feature_enabled, mcp_server
+    ):
+        """No warning when template_params is not supplied, even with flag off."""
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[{"id": 1}],
+            columns=["id"],
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+        mock_is_feature_enabled.return_value = False
+
+        request = {"database_id": 1, "sql": "SELECT id FROM users"}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+
+            assert data["success"] is True
+            assert data["template_warning"] is None
+            mock_is_feature_enabled.assert_not_called()
 
     @patch("superset.security_manager")
     @patch("superset.db")
@@ -1164,3 +1264,56 @@ class TestExecuteSqlOAuth2:
             assert data["success"] is False
             assert "configuration" in data["error"]
             assert data["error_type"] == "OAUTH2_REDIRECT_ERROR"
+
+
+class TestColumnInfoIsNullable:
+    """Tests for ColumnInfo.is_nullable coercion (Athena returns 'UNKNOWN')."""
+
+    def test_unknown_string_becomes_none(self):
+        assert (
+            ColumnInfo(name="c", type="int", is_nullable="UNKNOWN").is_nullable is None
+        )
+
+    def test_arbitrary_string_becomes_none(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="maybe").is_nullable is None
+
+    def test_true_bool(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=True).is_nullable is True
+
+    def test_false_bool(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=False).is_nullable is False
+
+    def test_none(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=None).is_nullable is None
+
+    def test_default_is_none(self):
+        assert ColumnInfo(name="c", type="int").is_nullable is None
+
+    def test_true_string(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="true").is_nullable is True
+
+    def test_false_string(self):
+        assert (
+            ColumnInfo(name="c", type="int", is_nullable="false").is_nullable is False
+        )
+
+    def test_one_string(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="1").is_nullable is True
+
+    def test_zero_string(self):
+        assert ColumnInfo(name="c", type="int", is_nullable="0").is_nullable is False
+
+    def test_integer_one(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=1).is_nullable is True
+
+    def test_integer_zero(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=0).is_nullable is False
+
+    def test_integer_two_becomes_none(self):
+        assert ColumnInfo(name="c", type="int", is_nullable=2).is_nullable is None
+
+    def test_model_validate_unknown(self):
+        col = ColumnInfo.model_validate(
+            {"name": "c", "type": "int", "is_nullable": "UNKNOWN"}
+        )
+        assert col.is_nullable is None
