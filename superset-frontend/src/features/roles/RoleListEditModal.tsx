@@ -279,13 +279,19 @@ function RoleListEditModal({
 
   const handleFormSubmit = async (values: RoleForm) => {
     try {
-      const userIds = values.roleUsers?.map(user => user.value) || [];
+      const userIds = [...new Set(values.roleUsers?.map(user => user.value) || [])];
+      const initialUserIdSet = new Set(roleUsers.map(u => u.id));
+      const newUserIdSet = new Set(userIds);
+      const usersChanged =
+        initialUserIdSet.size !== newUserIdSet.size ||
+        Array.from(initialUserIdSet).some(uid => !newUserIdSet.has(uid));
+
       const permissionIds = mapSelectedIds(values.rolePermissions);
       const groupIds = mapSelectedIds(values.roleGroups);
       await Promise.all([
         updateRoleName(id, values.roleName),
         updateRolePermissions(id, permissionIds),
-        updateRoleUsers(id, userIds),
+        usersChanged ? updateRoleUsers(id, userIds) : Promise.resolve(),
         updateRoleGroups(id, groupIds),
       ]);
       addSuccessToast(t('The role has been updated successfully.'));
