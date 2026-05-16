@@ -74,4 +74,33 @@ describe('Treemap transformProps', () => {
       }),
     );
   });
+
+  test('should not render gaps between treemap nodes', () => {
+    expect(transformProps(chartProps as EchartsTreemapChartProps)).toEqual(
+      expect.objectContaining({
+        echartOptions: expect.objectContaining({
+          series: [
+            expect.objectContaining({
+              data: expect.arrayContaining([
+                expect.objectContaining({
+                  itemStyle: expect.objectContaining({
+                    borderWidth: 0,
+                    gapWidth: 0,
+                  }),
+                  children: expect.arrayContaining([
+                    expect.objectContaining({
+                      itemStyle: expect.objectContaining({
+                        borderWidth: 0,
+                        gapWidth: 0,
+                      }),
+                    }),
+                  ]),
+                }),
+              ]),
+            }),
+          ],
+        }),
+      }),
+    );
+  });
 });
