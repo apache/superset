@@ -52,11 +52,11 @@ yarn serve                # Serve built site locally
 # For maximum-detail databases.json, drop the `database-diagnostics`
 # artifact from Python-Integration CI at src/data/databases.json before
 # cutting. See README.md "Before You Cut".
-yarn version:add:docs <version>              # Add new docs version
+yarn version:add:user_docs <version>              # Add new docs version
 yarn version:add:admin_docs <version>        # Add admin docs version
 yarn version:add:developer_docs <version>    # Add developer docs version
 yarn version:add:components <version>        # Add components version
-yarn version:remove:docs <version>           # Remove docs version
+yarn version:remove:user_docs <version>           # Remove docs version
 yarn version:remove:admin_docs <version>     # Remove admin docs version
 yarn version:remove:developer_docs <version> # Remove developer docs version
 yarn version:remove:components <version>     # Remove components version
@@ -228,17 +228,20 @@ Versions are managed through `versions-config.json`:
 
 ```bash
 # ✅ CORRECT - Updates both Docusaurus and versions-config.json
-yarn version:add:docs 6.1.0
+yarn version:add:user_docs 6.1.0
 
 # ❌ WRONG - Only updates Docusaurus, breaks version dropdown
 yarn docusaurus docs:version 6.1.0
 ```
 
 ### Version Files Created
-When versioning, these files are created:
-- `versioned_docs/version-X.X.X/` - Snapshot of current docs
-- `versioned_sidebars/version-X.X.X-sidebars.json` - Sidebar config
-- `versions.json` - List of all versions
+When versioning, these files are created (per section, with the
+section's plugin id as prefix):
+- `<section>_versioned_docs/version-X.X.X/` - Snapshot of current docs
+- `<section>_versioned_sidebars/version-X.X.X-sidebars.json` - Sidebar config
+- `<section>_versions.json` - List of all versions
+
+Section plugin ids: `user_docs`, `admin_docs`, `developer_docs`, `components`.
 
 ## 🎨 Styling and Theming
 
@@ -386,7 +389,7 @@ Docusaurus includes Algolia DocSearch integration configured in `docusaurus.conf
 
 ## 🚫 Common Pitfalls to Avoid
 
-1. **Never use `yarn docusaurus docs:version`** - Use `yarn version:add:docs` instead
+1. **Never use `yarn docusaurus docs:version`** - Use `yarn version:add:user_docs` instead
 2. **Don't edit versioned docs directly** - Edit current docs and create new version
 3. **Avoid absolute paths in links** - Use relative paths for maintainability
 4. **Don't forget frontmatter** - Every doc needs title and description
@@ -416,7 +419,7 @@ yarn eslint
 ### Version Issues
 If versions don't appear in dropdown:
 1. Check `versions-config.json` includes the version
-2. Verify version files exist in `versioned_docs/`
+2. Verify version files exist in `<section>_versioned_docs/`
 3. Restart dev server
 
 ## 📚 Resources
