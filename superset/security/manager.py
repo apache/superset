@@ -3306,6 +3306,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ``User.roles`` and ``User.groups.roles`` to prevent detached-instance
         errors when the SQLAlchemy session is closed or rolled back after the
         lookup — as happens in MCP tool-execution contexts.
+
+        FAB does not expose an eager-loading option on ``find_user``, so the
+        query logic is mirrored here with joinedload options added. Review this
+        method when upgrading FAB to ensure it stays in sync with upstream.
         """
         eager = [
             joinedload(self.user_model.roles),

@@ -100,6 +100,10 @@ class CompositeTokenVerifier(TokenVerifier):
             # satisfied for API-key requests. Without this, MCP_REQUIRED_SCOPES
             # being non-empty would 403 every API-key call before
             # ``_resolve_user_from_api_key`` even runs.
+            #
+            # NOTE: ``MCP_REQUIRED_SCOPES`` is intentionally not enforced for
+            # API-key auth — FAB API keys do not carry scopes. Authorization is
+            # enforced downstream via ``check_tool_permission`` (RBAC).
             return AccessToken(
                 token=token,
                 client_id="api_key",
