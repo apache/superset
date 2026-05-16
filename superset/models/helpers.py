@@ -2657,27 +2657,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             ):
                 return value
 
-            dttm: datetime | None = None
             if isinstance(value, (float, int)) and not isinstance(value, bool):
-                try:
-                    dttm = datetime.utcfromtimestamp(value / 1000)
-                except (OverflowError, OSError, ValueError):
-                    return value
-            elif isinstance(value, str):
-                if re.fullmatch(r"[+-]?\d+(?:\.\d+)?", value):
-                    try:
-                        dttm = datetime.utcfromtimestamp(float(value) / 1000)
-                    except (OverflowError, OSError, ValueError):
-                        return value
-                else:
-                    try:
-                        dttm = dateutil.parser.parse(value)
-                    except (dateutil.parser.ParserError, OverflowError, ValueError):
-                        return value
-                    if dttm.tzinfo is not None:
-                        dttm = dttm.astimezone(pytz.utc).replace(tzinfo=None)
+                epoch_ms: float = value
+            elif isinstance(value, str) and re.fullmatch(r"\d+", value):
+                epoch_ms = int(value)
+            else:
+                return value
 
-            if dttm is None:
+            try:
+                dttm = datetime.fromtimestamp(epoch_ms / 1000, tz=timezone.utc).replace(
+                    tzinfo=None
+                )
+            except (OverflowError, OSError, ValueError):
                 return value
 
             temporal_sql = db_engine_spec.convert_dttm(

@@ -28,6 +28,7 @@ import {
   BinaryQueryObjectFilterClause,
   Currency,
   CurrencyFormatter,
+  DataRecord,
   DataRecordValue,
   FeatureFlag,
   getColumnLabel,
@@ -247,14 +248,7 @@ const getCrossFilterValue = (
 const getDrillFilterFormattedValue = (
   value: string,
   formatter: DateFormatter | undefined,
-) => {
-  const filterValue = getDrillFilterValue(value, formatter);
-  return (
-    formatter?.(
-      typeof filterValue === 'number' ? filterValue : Number(value),
-    ) || String(value)
-  );
-};
+) => formatter?.(Number(value)) || String(value);
 
 /* If you change this logic, please update the corresponding Python
  * function (https://github.com/apache/superset/blob/master/superset/charts/post_processing.py),
@@ -380,7 +374,7 @@ export default function PivotTableChart(props: PivotTableProps) {
   const unpivotedData = useMemo(
     () =>
       data.reduce(
-        (acc: Record<string, any>[], record: Record<string, any>) => [
+        (acc: DataRecord[], record: DataRecord) => [
           ...acc,
           ...metricNames
             .map((name: string) => ({
@@ -457,7 +451,8 @@ export default function PivotTableChart(props: PivotTableProps) {
                       col,
                       op: 'IS NULL',
                     };
-                  const formatter = dateFormatters[col];
+                  const formatter =
+                    typeof col === 'string' ? dateFormatters[col] : undefined;
                   return {
                     col,
                     op: 'IN',
@@ -533,7 +528,10 @@ export default function PivotTableChart(props: PivotTableProps) {
                         col,
                         op: 'IS NULL' as const,
                       };
-                    const formatter = dateFormatters[col];
+                    const formatter =
+                      typeof col === 'string'
+                        ? dateFormatters[col]
+                        : undefined;
                     return {
                       col,
                       op: 'IN' as const,
@@ -585,7 +583,10 @@ export default function PivotTableChart(props: PivotTableProps) {
       const filtersCopy = { ...filters };
       delete filtersCopy[METRIC_KEY];
 
-      const filtersEntries = Object.entries(filtersCopy);
+      const filtersEntries = Object.entries(filtersCopy) as [
+        string,
+        DataRecordValue,
+      ][];
       if (filtersEntries.length === 0) {
         return;
       }

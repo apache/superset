@@ -3461,22 +3461,6 @@ def test_temporal_epoch_string_filter_list_is_coerced_for_bigquery(
     assert str(values[0]) == "CAST('2026-04-27' AS DATE)"
 
 
-def test_temporal_iso_string_filter_is_coerced_for_clickhouse() -> None:
-    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
-    from superset.models.helpers import ExploreMixin
-
-    value = ExploreMixin.filter_values_handler(
-        values="2025-12-20T00:00:00.000Z",
-        operator=FilterOperator.EQUALS,
-        target_generic_type=GenericDataType.TEMPORAL,
-        target_native_type="DateTime",
-        db_engine_spec=ClickHouseEngineSpec,
-    )
-
-    assert isinstance(value, ColumnElement)
-    assert str(value) == "toDateTime('2025-12-20 00:00:00')"
-
-
 def test_temporal_epoch_string_filter_list_is_coerced_for_clickhouse() -> None:
     from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
     from superset.models.helpers import ExploreMixin
@@ -3572,3 +3556,52 @@ def test_temporal_range_filter_value_is_not_coerced() -> None:
     )
 
     assert value == "No filter"
+
+
+@pytest.mark.parametrize(
+    "target_type,expected",
+    [
+        (
+            "DATETIME",
+            "CAST('2026-05-13T14:30:00.123000' AS DATETIME)",
+        ),
+        (
+            "TIMESTAMP",
+            "CAST('2026-05-13T14:30:00.123000' AS TIMESTAMP)",
+        ),
+    ],
+)
+def test_temporal_epoch_string_filter_is_coerced_for_datetime_bigquery(
+    target_type: str,
+    expected: str,
+) -> None:
+    """Sub-second epoch precision survives DATETIME / TIMESTAMP coercion."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="1778682600123",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type=target_type,
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == expected
+
+
+def test_temporal_non_numeric_string_filter_is_not_coerced() -> None:
+    """Only digit strings (JS epoch ms) are coerced — anything else passes through."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="2025-12-20",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert value == "2025-12-20"
