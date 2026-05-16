@@ -41,8 +41,8 @@ from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
-from superset_core.api.daos import BaseDAO as CoreBaseDAO
-from superset_core.api.models import CoreModel
+from superset_core.common.daos import BaseDAO as CoreBaseDAO
+from superset_core.common.models import CoreModel
 
 from superset.daos.exceptions import (
     DAOFindFailedError,
@@ -248,6 +248,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         column_name: str,
         value: str | int,
         skip_base_filter: bool = False,
+        query_options: list[Any] | None = None,
     ) -> T | None:
         """
         Private method to find a model by any column value.
@@ -256,12 +257,17 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             column_name: Name of the column to search by
             value: Value to search for
             skip_base_filter: Whether to skip base filtering
+            query_options: SQLAlchemy query options (e.g., joinedload,
+                subqueryload) to apply to the query for eager loading
 
         Returns:
             Model instance or None if not found
         """
         query = db.session.query(cls.model_cls)
         query = cls._apply_base_filter(query, skip_base_filter)
+
+        if query_options:
+            query = query.options(*query_options)
 
         if not hasattr(cls.model_cls, column_name):
             return None
@@ -283,6 +289,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         model_id: str | int,
         skip_base_filter: bool = False,
         id_column: str | None = None,
+        query_options: list[Any] | None = None,
     ) -> T | None:
         """
         Find a model by ID using specified or default ID column.
@@ -291,12 +298,14 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             model_id: ID value to search for
             skip_base_filter: Whether to skip base filtering
             id_column: Column name to use (defaults to cls.id_column_name)
+            query_options: SQLAlchemy query options (e.g., joinedload,
+                subqueryload) to apply to the query for eager loading
 
         Returns:
             Model instance or None if not found
         """
         column = id_column or cls.id_column_name
-        return cls._find_by_column(column, model_id, skip_base_filter)
+        return cls._find_by_column(column, model_id, skip_base_filter, query_options)
 
     @classmethod
     def find_by_ids(
@@ -614,6 +623,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         column_attrs = []
         relationship_loads = []
+        needs_full_model = False
         if columns is None:
             columns = []
         for name in columns:
@@ -625,11 +635,16 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                 column_attrs.append(attr)
             elif isinstance(prop, RelationshipProperty):
                 relationship_loads.append(joinedload(attr))
-            # Ignore properties and other non-queryable attributes
+            else:
+                # Python @property or other descriptor — requires a full
+                # model instance (Row objects don't support descriptors)
+                needs_full_model = True
 
-        if relationship_loads:
-            # If any relationships are requested, query the full model
-            # but don't add the joins yet - we'll add them after counting
+        if relationship_loads or needs_full_model:
+            # Need full model for relationships or Python @property access.
+            # Do NOT apply load_only() here — @property descriptors and
+            # serializers may access columns beyond the explicitly requested
+            # set (e.g., Slice.datasource_type accessed during serialization).
             query = data_model.session.query(cls.model_cls)
         elif column_attrs:
             # Only columns requested

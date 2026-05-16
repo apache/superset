@@ -67,7 +67,7 @@ export interface EchartsPieChartProps extends BaseChartProps<EchartsPieFormData>
   formData: EchartsPieFormData;
 }
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   donut: false,

@@ -19,7 +19,7 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
 import { useSqlLabInitialState } from 'src/hooks/apiResources/sqlLab';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
 import { resetState } from 'src/SqlLab/actions/sqlLab';

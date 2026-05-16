@@ -295,6 +295,7 @@ class DashboardDatasetSchema(Schema):
     sql = fields.Str()
     select_star = fields.Str()
     main_dttm_col = fields.Str()
+    currency_code_column = fields.Str()
     health_check_message = fields.Str()
     fetch_values_predicate = fields.Str()
     template_params = fields.Str()
@@ -447,6 +448,12 @@ class DashboardPutSchema(BaseDashboardSchema):
 
 
 class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
+    deleted = fields.List(fields.String(), allow_none=False)
+    modified = fields.List(fields.Raw(), allow_none=False)
+    reordered = fields.List(fields.String(), allow_none=False)
+
+
+class DashboardChartCustomizationsConfigUpdateSchema(BaseDashboardSchema):
     deleted = fields.List(fields.String(), allow_none=False)
     modified = fields.List(fields.Raw(), allow_none=False)
     reordered = fields.List(fields.String(), allow_none=False)

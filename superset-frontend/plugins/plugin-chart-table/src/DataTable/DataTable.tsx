@@ -29,6 +29,7 @@ import {
   useMemo,
 } from 'react';
 import { typedMemo, usePrevious } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   useTable,
   usePagination,
@@ -146,7 +147,25 @@ export default typedMemo(function DataTable<D extends object>({
     hooks || [],
   ].flat();
 
-  const columnNames = Object.keys(data?.[0] || {});
+  const columnNames = columns.map((column, index) => {
+    const normalizedColumn = column as typeof column & {
+      accessor?: string | ((row: D) => unknown);
+      columnKey?: string;
+      id?: string;
+    };
+
+    const accessorName =
+      typeof normalizedColumn.accessor === 'string'
+        ? normalizedColumn.accessor
+        : undefined;
+
+    return (
+      normalizedColumn.columnKey ??
+      normalizedColumn.id ??
+      accessorName ??
+      String(index)
+    );
+  });
   const previousColumnNames = usePrevious(columnNames);
   const resultsSize = serverPagination ? rowCount : data.length;
   const sortByRef = useRef([]); // cache initial `sortby` so sorting doesn't trigger page reset
@@ -236,6 +255,7 @@ export default typedMemo(function DataTable<D extends object>({
       getTableSize: defaultGetTableSize,
       globalFilter: defaultGlobalFilter,
       sortTypes,
+      autoResetGlobalFilter: !isEqual(columnNames, previousColumnNames),
       autoResetSortBy: !isEqual(columnNames, previousColumnNames),
       manualSortBy: !!serverPagination,
       ...moreUseTableOptions,
@@ -489,6 +509,7 @@ export default typedMemo(function DataTable<D extends object>({
   function hashString(s: string): string {
     let h = 0;
     for (let i = 0; i < s.length; i += 1) {
+      // oxlint-disable-next-line unicorn/prefer-math-trunc -- | 0 is intentional for 32-bit integer wrapping in hash
       h = (h * 31 + s.charCodeAt(i)) | 0;
     }
     return String(h);
@@ -559,9 +580,9 @@ export default typedMemo(function DataTable<D extends object>({
               />
             ) : null}
             <Flex wrap align="center" gap="middle">
-              {serverPagination && (
+              {serverPagination && searchInput && (
                 <Space size="small" className="search-select-container">
-                  <span className="search-by-label">Search by:</span>
+                  <span className="search-by-label">{t('Search by')}:</span>
                   <SearchSelectDropdown
                     searchOptions={searchOptions}
                     value={serverPaginationData?.searchColumn || ''}

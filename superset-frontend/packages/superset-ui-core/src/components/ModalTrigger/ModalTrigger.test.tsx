@@ -61,7 +61,7 @@ test('should render a tooltip on hover', async () => {
   render(<ModalTrigger {...tooltipProps} />);
 
   await userEvent.hover(screen.getByRole('button'));
-  await screen.findByRole('tooltip');
+  expect(await screen.findByRole('tooltip')).toBeInTheDocument();
 });
 
 test('should not render a modal before click', () => {

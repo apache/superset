@@ -23,7 +23,7 @@ import UserRegistrations from '.';
 
 const userRegistrationsEndpoint = 'glob:*/security/user_registrations/?*';
 
-const mockUserRegistrations = new Array(5).fill(undefined).map((_, i) => ({
+const mockUserRegistrations = Array.from({ length: 5 }, (_, i) => ({
   id: i,
   username: `user${i}`,
   first_name: `User${i}`,
@@ -50,7 +50,7 @@ describe('UserRegistrations', () => {
   });
   test('fetches and renders user registrations', async () => {
     expect(await screen.findByText('User registrations')).toBeVisible();
-    const calls = fetchMock.calls(userRegistrationsEndpoint);
+    const calls = fetchMock.callHistory.calls(userRegistrationsEndpoint);
     expect(calls.length).toBeGreaterThan(0);
   });
 });

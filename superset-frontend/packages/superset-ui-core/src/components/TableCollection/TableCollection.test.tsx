@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, fireEvent } from '@superset-ui/core/spec';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { TableInstance, useTable } from 'react-table';
 import TableCollection from '.';
 
@@ -60,7 +60,7 @@ beforeEach(() => {
       parent: { child: 'Nested Value 3' },
     },
   ];
-  // @ts-ignore
+  // @ts-expect-error
   const tableHookResult = renderHook(() => useTable({ columns, data }));
   tableHook = tableHookResult.result.current;
   defaultProps = {

@@ -22,17 +22,19 @@ import {
   DataRecordFilters,
   DataRecordValue,
   ensureIsArray,
+  getColumnLabel,
   JsonObject,
   PartialFilters,
-  QueryFormExtraFilter,
+  ChartCustomization,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import {
   ChartConfiguration,
   ChartQueryPayload,
   ActiveFilters,
 } from 'src/dashboard/types';
-import { ChartCustomizationItem } from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
+import { isChartCustomization } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { isEqual } from 'lodash';
 import { areObjectsEqual } from 'src/reduxUtils';
 import {
@@ -76,13 +78,14 @@ const cachedFormdataByChart: Record<
   CachedFormData & {
     dataMask: DataMask;
     extraControls: Record<string, string | boolean | null>;
+    nativeFilters: PartialFilters;
   }
 > = {};
 
 export interface GetFormDataWithExtraFiltersArguments {
   chartConfiguration: ChartConfiguration;
-  chartCustomizationItems?: ChartCustomizationItem[];
-  chart: Pick<ChartQueryPayload, 'id' | 'form_data'>;
+  chartCustomizationItems?: ChartCustomization[];
+  chart: ChartQueryPayload;
   filters: DataRecordFilters;
   colorScheme?: string;
   ownColorScheme?: string;
@@ -121,8 +124,13 @@ function extractColumnNames(columns: unknown[]): string[] {
     columns.forEach((col: unknown) => {
       if (typeof col === 'string') {
         columnNames.push(col);
-      } else if (col && typeof col === 'object' && 'column_name' in col) {
-        columnNames.push((col as { column_name: string }).column_name);
+      } else if (col && typeof col === 'object') {
+        if ('column_name' in col) {
+          columnNames.push((col as { column_name: string }).column_name);
+        } else if ('sqlExpression' in col) {
+          const label = getColumnLabel(col as QueryFormColumn);
+          if (label) columnNames.push(label);
+        }
       }
     });
   }
@@ -134,7 +142,7 @@ function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
   const chartType = chart.form_data?.viz_type;
 
   const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
-  existingGroupBy.forEach((col: string) => existingColumns.add(col));
+  extractColumnNames(existingGroupBy).forEach(col => existingColumns.add(col));
 
   const xAxisColumn = chart.form_data?.x_axis;
   if (xAxisColumn && chartType !== 'heatmap' && chartType !== 'heatmap_v2') {
@@ -181,32 +189,6 @@ function buildExistingColumnsSet(chart: ChartQueryPayload): Set<string> {
   }
 
   return existingColumns;
-}
-
-function extractCustomizationColumnNames(customization: any): string[] {
-  if (typeof customization.column === 'string') {
-    return [customization.column];
-  }
-
-  if (Array.isArray(customization.column)) {
-    return customization.column.filter(
-      (col: string) => typeof col === 'string' && col.trim() !== '',
-    );
-  }
-
-  if (
-    typeof customization.column === 'object' &&
-    customization.column !== null
-  ) {
-    const columnObj = customization.column as any;
-    const columnName =
-      columnObj.column_name || columnObj.name || String(columnObj);
-    if (columnName && columnName.trim() !== '') {
-      return [columnName];
-    }
-  }
-
-  return [];
 }
 
 function applyChartSpecificGroupBy(
@@ -275,7 +257,8 @@ function applyChartSpecificGroupBy(
       groupByFormData.target = limitedColumns[1];
     }
   } else if (['chord'].includes(chartType)) {
-    groupByFormData.groupby = [...existingGroupBy, ...groupByColumns];
+    groupByFormData.groupby =
+      groupByColumns.length > 0 ? [groupByColumns[0]] : existingGroupBy;
   } else if (chartType === 'bubble_v2') {
     const { limitedColumns } = limitColumnsForChartType(
       chartType,
@@ -298,13 +281,15 @@ function applyChartSpecificGroupBy(
 }
 
 function processGroupByCustomizations(
-  chartCustomizationItems: ChartCustomizationItem[],
+  chartCustomizationItems: ChartCustomization[],
   chart: ChartQueryPayload,
-  groupByState: Record<string, { selectedValues: string[] }>,
+  groupByState: Record<
+    string,
+    { selectedValues: string[]; hasInteracted: boolean }
+  >,
 ): {
   groupby?: string[];
   order_by_cols?: string[];
-  filters?: QueryFormExtraFilter[];
   x_axis?: string;
   series?: string;
   columns?: string[];
@@ -328,18 +313,19 @@ function processGroupByCustomizations(
   const matchingCustomizations = chartCustomizationItems.filter(item => {
     if (item.removed) return false;
 
-    const targetDataset = item.customization?.dataset;
+    const targetDataset = item.targets?.[0]?.datasetId;
     if (!targetDataset) return false;
 
     const targetDatasetId = String(targetDataset);
     const datasetMatches = chartDatasetId === targetDatasetId;
-    const chartMatches = !item.chartId || item.chartId === chart.id;
+    const chartMatches =
+      item.chartsInScope == null || item.chartsInScope.includes(chart.id);
 
     return datasetMatches && chartMatches;
   });
 
   const chartType = chart.form_data?.viz_type;
-  if (isChartWithoutGroupBy(chartType)) {
+  if (isChartWithoutGroupBy(chartType) || chartType === 'chord') {
     return {};
   }
 
@@ -348,18 +334,24 @@ function processGroupByCustomizations(
   const xAxisColumn = chart.form_data?.x_axis;
 
   const groupByColumns: string[] = [];
-  const allFilters: QueryFormExtraFilter[] = [];
   let orderByConfig: string[] | undefined;
   let heatmapColumnAdded = false;
 
   matchingCustomizations.forEach(item => {
-    const { customization } = item;
-    if (!customization) return;
+    if (!item.targets?.[0]) return;
 
-    const groupById = `chart_customization_${item.id}`;
-    const selectedValues = groupByState[groupById]?.selectedValues || [];
+    const groupById = item.id;
+    const groupByInfo = groupByState[groupById];
 
-    const columnNames = extractCustomizationColumnNames(customization);
+    if (!groupByInfo) {
+      return;
+    }
+
+    const selectedValues = (groupByInfo.selectedValues || []).filter(
+      (value): value is string => typeof value === 'string' && value.length > 0,
+    );
+    const columnNames = selectedValues;
+
     if (columnNames.length === 0) {
       return;
     }
@@ -391,23 +383,10 @@ function processGroupByCustomizations(
       });
     }
 
-    columnNames.forEach(columnName => {
-      if (selectedValues.length > 0) {
-        allFilters.push({
-          col: columnName,
-          op: 'IN',
-          val: selectedValues,
-        });
-      }
-    });
-
-    if (customization.sortFilter && customization.sortMetric) {
-      orderByConfig = [
-        JSON.stringify([
-          customization.sortMetric,
-          !customization.sortAscending,
-        ]),
-      ];
+    const sortMetric = item.controlValues?.sortMetric;
+    const sortAscending = item.controlValues?.sortAscending;
+    if (sortMetric) {
+      orderByConfig = [JSON.stringify([sortMetric, !sortAscending])];
     }
   });
 
@@ -417,10 +396,6 @@ function processGroupByCustomizations(
     existingGroupBy,
     xAxisColumn,
   );
-
-  if (allFilters.length > 0) {
-    groupByFormData.filters = allFilters;
-  }
 
   if (orderByConfig) {
     groupByFormData.order_by_cols = orderByConfig;
@@ -455,6 +430,11 @@ export default function getFormDataWithExtraFilters({
   const dataMaskEqual = areObjectsEqual(cachedFormData?.dataMask, dataMask, {
     ignoreUndefined: true,
   });
+  const nativeFiltersEqual = areObjectsEqual(
+    cachedFormData?.nativeFilters,
+    nativeFilters,
+    { ignoreUndefined: true },
+  );
   if (
     cachedFiltersByChart[sliceId] === filters &&
     areObjectsEqual(cachedFormData?.own_color_scheme, ownColorScheme) &&
@@ -471,6 +451,7 @@ export default function getFormDataWithExtraFilters({
     isEqual(cachedFormData?.shared_label_colors, sharedLabelsColors) &&
     !!cachedFormData &&
     dataMaskEqual &&
+    nativeFiltersEqual &&
     areObjectsEqual(cachedFormData?.extraControls, extraControls, {
       ignoreUndefined: true,
     }) &&
@@ -539,21 +520,52 @@ export default function getFormDataWithExtraFilters({
     }
   }
 
-  const groupByState: Record<string, { selectedValues: string[] }> = {};
+  const groupByState: Record<
+    string,
+    { selectedValues: string[]; hasInteracted: boolean }
+  > = {};
+  const customizationIds: string[] = [];
   Object.entries(dataMask).forEach(([key, mask]) => {
-    if (key.startsWith('chart_customization_')) {
-      const selectedValues = mask.filterState?.value;
-      if (Array.isArray(selectedValues)) {
-        groupByState[key] = { selectedValues };
+    if (isChartCustomization(key)) {
+      const customization = chartCustomizationItems?.find(
+        item => item.id === key,
+      );
+      const isInScope =
+        customization &&
+        (customization.chartsInScope == null ||
+          customization.chartsInScope.includes(chart.id));
+
+      if (isInScope) {
+        customizationIds.push(key);
       }
+
+      const selectedValues = mask.filterState?.value;
+      groupByState[key] = {
+        selectedValues: Array.isArray(selectedValues)
+          ? selectedValues
+          : typeof selectedValues === 'string'
+            ? [selectedValues]
+            : [],
+        hasInteracted: mask.filterState?.value !== undefined,
+      };
     }
   });
 
+  const groupByCustomizations =
+    chartCustomizationItems?.filter(
+      item => item.filterType === 'chart_customization_dynamic_groupby',
+    ) || [];
+
   const groupByFormData = processGroupByCustomizations(
-    chartCustomizationItems || [],
+    groupByCustomizations,
     chart,
     groupByState,
   );
+
+  const customizationExtraFormData =
+    customizationIds.length > 0
+      ? getExtraFormData(dataMask, customizationIds)
+      : {};
 
   const formData: CachedFormDataWithExtraControls = {
     ...chart.form_data,
@@ -569,6 +581,7 @@ export default function getFormDataWithExtraFilters({
     ...extraData,
     ...extraControls,
     ...groupByFormData,
+    ...customizationExtraFormData,
     ...(chartCustomization && { chart_customization: chartCustomization }),
     ...(layerFilterScope && { layer_filter_scope: layerFilterScope }),
   };
@@ -578,6 +591,7 @@ export default function getFormDataWithExtraFilters({
     ...formData,
     dataMask,
     extraControls,
+    nativeFilters,
     ...(chartCustomization && { chart_customization: chartCustomization }),
   };
 

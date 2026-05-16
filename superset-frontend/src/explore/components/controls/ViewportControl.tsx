@@ -17,9 +17,9 @@
  * under the License.
  */
 import { Component, type ReactNode } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Popover, FormLabel, Label } from '@superset-ui/core/components';
-import { decimal2sexagesimal } from 'geolib';
+import { decimalToSexagesimal } from 'geolib';
 
 import TextControl from './TextControl';
 import ControlHeader from '../ControlHeader';
@@ -92,9 +92,9 @@ export default class ViewportControl extends Component<ViewportControlProps> {
 
   renderLabel(): string {
     if (this.props.value?.longitude && this.props.value?.latitude) {
-      return `${decimal2sexagesimal(
+      return `${decimalToSexagesimal(
         this.props.value.longitude,
-      )} | ${decimal2sexagesimal(this.props.value.latitude)}`;
+      )} | ${decimalToSexagesimal(this.props.value.latitude)}`;
     }
     return 'N/A';
   }

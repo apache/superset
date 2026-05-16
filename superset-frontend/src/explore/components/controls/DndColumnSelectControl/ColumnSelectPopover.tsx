@@ -27,15 +27,16 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
+import { editors } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   isAdhocColumn,
-  t,
   DatasourceType,
   Metric,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -141,6 +142,10 @@ const ColumnSelectPopover = ({
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
+  const compatibleDimensions = useSelector<
+    ExplorePageState,
+    string[] | null | undefined
+  >(state => state.explore.compatibleDimensions);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -164,23 +169,24 @@ const ColumnSelectPopover = ({
     POPOVER_INITIAL_HEIGHT,
   );
 
-  const sqlEditorRef = useRef(null);
+  const sqlEditorRef = useRef<editors.EditorHandle>(null);
 
-  const [calculatedColumns, simpleColumns] = useMemo(
-    () =>
-      columns?.reduce(
-        (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
-          if (column.expression) {
-            acc[0].push(column);
-          } else {
-            acc[1].push(column);
-          }
-          return acc;
-        },
-        [[], []],
-      ),
-    [columns],
-  );
+  const [calculatedColumns, simpleColumns] = useMemo(() => {
+    const [calc, simple] = (columns ?? []).reduce(
+      (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
+        if (column.expression) {
+          acc[0].push(column);
+        } else {
+          acc[1].push(column);
+        }
+        return acc;
+      },
+      [[], []],
+    );
+    const alpha = (a: ColumnMeta, b: ColumnMeta) =>
+      (a.column_name ?? '').localeCompare(b.column_name ?? '');
+    return [calc.sort(alpha), simple.sort(alpha)];
+  }, [columns]);
 
   // Filter metrics that are already selected in the chart
   const availableMetrics = useMemo(() => {
@@ -202,7 +208,7 @@ const ColumnSelectPopover = ({
   );
 
   const onSqlExpressionChange = useCallback(
-    sqlExpression => {
+    (sqlExpression: string) => {
       setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
       setSelectedSimpleColumn(undefined);
       setSelectedCalculatedColumn(undefined);
@@ -212,7 +218,7 @@ const ColumnSelectPopover = ({
   );
 
   const onCalculatedColumnChange = useCallback(
-    selectedColumnName => {
+    (selectedColumnName: string) => {
       const selectedColumn = calculatedColumns.find(
         col => col.column_name === selectedColumnName,
       );
@@ -228,7 +234,7 @@ const ColumnSelectPopover = ({
   );
 
   const onSimpleColumnChange = useCallback(
-    selectedColumnName => {
+    (selectedColumnName: string) => {
       const selectedColumn = simpleColumns.find(
         col => col.column_name === selectedColumnName,
       );
@@ -244,7 +250,7 @@ const ColumnSelectPopover = ({
   );
 
   const onSimpleMetricChange = useCallback(
-    selectedMetricName => {
+    (selectedMetricName: string) => {
       const selectedMetric = availableMetrics.find(
         metric => metric.metric_name === selectedMetricName,
       );
@@ -260,7 +266,7 @@ const ColumnSelectPopover = ({
   );
 
   const onSimpleItemChange = useCallback(
-    selectedValue => {
+    (selectedValue: string) => {
       const selectedColumn = columnMap[selectedValue];
       if (selectedColumn) {
         onSimpleColumnChange(selectedValue);
@@ -348,11 +354,10 @@ const ColumnSelectPopover = ({
   ]);
 
   const onTabChange = useCallback(
-    tab => {
+    (tab: string) => {
       getCurrentTab(tab);
       setSelectedTab(tab);
-      // @ts-ignore
-      sqlEditorRef.current?.editor.focus();
+      sqlEditorRef.current?.focus();
     },
     [getCurrentTab],
   );
@@ -428,8 +433,12 @@ const ColumnSelectPopover = ({
                                   />
                                 ),
                                 key: calculatedColumn.column_name,
+                                column_name: calculatedColumn.column_name,
+                                verbose_name:
+                                  calculatedColumn.verbose_name ?? '',
                               }),
                             )}
+                            optionFilterProps={['column_name', 'verbose_name']}
                           />
                         </FormItem>
                       ) : datasourceType === DatasourceType.Table ? (
@@ -545,6 +554,13 @@ const ColumnSelectPopover = ({
                             />
                           ),
                           key: `column-${simpleColumn.column_name}`,
+                          column_name: simpleColumn.column_name,
+                          verbose_name: simpleColumn.verbose_name ?? '',
+                          disabled:
+                            compatibleDimensions != null &&
+                            !compatibleDimensions.includes(
+                              simpleColumn.column_name,
+                            ),
                         })),
                         ...availableMetrics.map(metric => ({
                           value: metric.metric_name,
@@ -557,7 +573,17 @@ const ColumnSelectPopover = ({
                             </MetricOptionContainer>
                           ),
                           key: `metric-${metric.metric_name}`,
+                          metric_name: metric.metric_name,
+                          verbose_name: metric.verbose_name ?? '',
+                          disabled:
+                            compatibleDimensions != null &&
+                            !compatibleDimensions.includes(metric.metric_name),
                         })),
+                      ]}
+                      optionFilterProps={[
+                        'column_name',
+                        'verbose_name',
+                        'metric_name',
                       ]}
                     />
                   </FormItem>
@@ -579,18 +605,12 @@ const ColumnSelectPopover = ({
                     ''
                   }
                   ref={sqlEditorRef}
-                  showLoadingForImport
                   onChange={onSqlExpressionChange}
                   width="100%"
                   height={`${height - 120}px`}
-                  showGutter={false}
-                  editorProps={{ $blockScrolling: true }}
-                  enableLiveAutocompletion
-                  className="filter-sql-editor"
-                  wrapEnabled
-                  keywords={keywords.map((k: any) =>
-                    typeof k === 'string' ? k : k.value || k.name || k,
-                  )}
+                  lineNumbers={false}
+                  wordWrap
+                  keywords={keywords}
                   showValidation
                   expressionType="column"
                   datasourceId={datasource?.id}

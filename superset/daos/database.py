@@ -70,11 +70,15 @@ class DatabaseDAO(BaseDAO[Database]):
         model_id: str | int,
         skip_base_filter: bool = False,
         id_column: str | None = None,
+        query_options: list[Any] | None = None,
     ) -> Database | None:
         """
         Find a database by id, eagerly loading the SSH tunnel relationship.
         """
-        query = db.session.query(cls.model_cls).options(joinedload(Database.ssh_tunnel))
+        all_options = [joinedload(Database.ssh_tunnel)]
+        if query_options:
+            all_options.extend(query_options)
+        query = db.session.query(cls.model_cls).options(*all_options)
         query = cls._apply_base_filter(query, skip_base_filter)
 
         column_name = id_column or cls.id_column_name

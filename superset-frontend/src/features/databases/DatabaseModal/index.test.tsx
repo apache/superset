@@ -100,7 +100,7 @@ describe('DatabaseModal', () => {
         configuration_method: 'sqlalchemy_form',
       },
     });
-    fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
+    fetchMock.route(AVAILABLE_DB_ENDPOINT, {
       databases: [
         {
           available_drivers: ['psycopg2'],
@@ -319,9 +319,7 @@ describe('DatabaseModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-  afterEach(() => {
-    fetchMock.restore();
-  });
+  afterEach(() => fetchMock.clearHistory().removeRoutes());
 
   const setup = (propsOverwrite: Partial<DatabaseModalProps> = {}) =>
     render(<DatabaseModal {...dbProps} {...propsOverwrite} />, {
@@ -645,15 +643,15 @@ describe('DatabaseModal', () => {
           name: /sqlite/i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       // Click the "Advanced" tab
-      userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "SQL Lab" tab
       userEvent.click(screen.getByTestId('sql-lab-label-test'));
-      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SQL LAB)
       // <TabHeader> - AntD header
-      const closeButton = await screen.findByRole('button', { name: /close/i });
+      const closeButton = screen.getByRole('button', { name: /close/i });
       const advancedHeader = screen.getByRole('heading', {
         name: /connect a database/i,
       });
@@ -668,10 +666,8 @@ describe('DatabaseModal', () => {
       });
       // <Tabs> - Basic/Advanced tabs
       const basicTab = screen.getByRole('tab', { name: /basic/i });
-      const advancedTab = await screen.findByRole('tab', { name: /advanced/i });
-      const advancedTabPanel = await screen.findByRole('tabpanel', {
-        name: /advanced/i,
-      });
+      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      const advancedTabPanel = screen.getAllByRole('tabpanel')[0];
       // <ExtraOptions> - Advanced tabs
       const sqlLabTab = screen.getByTestId('sql-lab-label-test');
       // These are the checkbox SVGs that cover the actual checkboxes
@@ -1402,7 +1398,9 @@ describe('DatabaseModal', () => {
         expect(connectButton).toBeEnabled();
         userEvent.click(connectButton);
         await waitFor(() => {
-          expect(fetchMock.calls(VALIDATE_PARAMS_ENDPOINT).length).toEqual(5);
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toEqual(5);
         });
       });
     });

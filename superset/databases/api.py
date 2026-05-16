@@ -33,7 +33,7 @@ from flask import (
     Response,
     send_file,
 )
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
@@ -218,6 +218,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "changed_by.last_name",
         "created_by.first_name",
         "created_by.last_name",
+        "configuration_method",
         "database_name",
         "explore_database_id",
         "expose_in_sqllab",
@@ -674,7 +675,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/catalogs/")
     @protect()
-    @rison(database_catalogs_query_schema)
+    @parse_rison(database_catalogs_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.catalogs",
@@ -739,7 +740,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/schemas/")
     @protect()
-    @rison(database_schemas_query_schema)
+    @parse_rison(database_schemas_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.schemas",
@@ -823,7 +824,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/tables/")
     @protect()
-    @rison(database_tables_query_schema)
+    @parse_rison(database_tables_query_schema)
     @statsd_metrics
     @handle_api_exception
     @event_logger.log_this_with_context(
@@ -1472,7 +1473,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -1590,6 +1591,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of sensitive values for masked_encrypted_extra fields.
+                        Keys are file paths (e.g., "databases/db.yaml") and values
+                        are JSON objects mapping JSONPath expressions to secrets.
+                        (e.g., `{"databases/MyDatabase.yaml":
+                        {"$.credentials_info.private_key": "actual_key"}}`).
+                      type: string
           responses:
             200:
               description: Database import result
@@ -1641,6 +1650,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if "ssh_tunnel_private_key_passwords" in request.form
             else None
         )
+        encrypted_extra_secrets = (
+            json.loads(request.form["encrypted_extra_secrets"])
+            if "encrypted_extra_secrets" in request.form
+            else None
+        )
 
         command = ImportDatabasesCommand(
             contents,
@@ -1649,6 +1663,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")

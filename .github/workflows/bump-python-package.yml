@@ -32,7 +32,7 @@ jobs:
     steps:
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: true
           ref: master
@@ -41,7 +41,7 @@ jobs:
         uses: ./.github/actions/setup-supersetbot/
 
       - name: Set up Python ${{ inputs.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.10"
 
@@ -51,27 +51,31 @@ jobs:
       - name: supersetbot bump-python -p "${{ github.event.inputs.package }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_PACKAGE: ${{ github.event.inputs.package }}
+          INPUT_GROUP: ${{ github.event.inputs.group }}
+          INPUT_EXTRA_FLAGS: ${{ github.event.inputs.extra-flags }}
+          INPUT_LIMIT: ${{ github.event.inputs.limit }}
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
 
           PACKAGE_OPT=""
-          if [ -n "${{ github.event.inputs.package }}" ]; then
-            PACKAGE_OPT="-p ${{ github.event.inputs.package }}"
+          if [ -n "${INPUT_PACKAGE}" ]; then
+            PACKAGE_OPT="-p ${INPUT_PACKAGE}"
           fi
 
           GROUP_OPT=""
-          if [ -n "${{ github.event.inputs.group }}" ]; then
-            GROUP_OPT="-g ${{ github.event.inputs.group }}"
+          if [ -n "${INPUT_GROUP}" ]; then
+            GROUP_OPT="-g ${INPUT_GROUP}"
           fi
 
-          EXTRA_FLAGS="${{ github.event.inputs.extra-flags }}"
+          EXTRA_FLAGS="${INPUT_EXTRA_FLAGS}"
 
           supersetbot bump-python \
             --verbose \
             --use-current-repo \
             --include-subpackages \
-            --limit ${{ github.event.inputs.limit }} \
+            --limit ${INPUT_LIMIT} \
             $PACKAGE_OPT \
             $GROUP_OPT \
             $EXTRA_FLAGS

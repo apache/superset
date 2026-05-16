@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { TimeseriesDataRecord } from '../../chart';
 import { AnnotationData } from './AnnotationLayer';
 
@@ -77,6 +77,12 @@ export interface ChartDataResponseResult {
   // TODO(hainenber): define proper type for below attributes
   rejected_filters?: any[];
   applied_filters?: any[];
+  /**
+   * Detected ISO 4217 currency code when AUTO mode is used.
+   * Returns the currency code if all filtered data contains a single currency,
+   * or null if multiple currencies are present.
+   */
+  detected_currency?: string | null;
 }
 
 export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {

@@ -18,7 +18,8 @@
  */
 
 import { Page, Locator } from '@playwright/test';
-import { Table } from '../components/core';
+import { Button, Table } from '../components/core';
+import { BulkSelect } from '../components/ListView';
 import { URL } from '../utils/urls';
 
 /**
@@ -27,17 +28,26 @@ import { URL } from '../utils/urls';
 export class DatasetListPage {
   private readonly page: Page;
   private readonly table: Table;
+  readonly bulkSelect: BulkSelect;
 
   private static readonly SELECTORS = {
     DATASET_LINK: '[data-test="internal-link"]',
-    DELETE_ACTION: '.action-button svg[data-icon="delete"]',
-    EXPORT_ACTION: '.action-button svg[data-icon="upload"]',
-    DUPLICATE_ACTION: '.action-button svg[data-icon="copy"]',
+  } as const;
+
+  /**
+   * Action button names for getByRole('button', { name })
+   */
+  private static readonly ACTION_BUTTONS = {
+    DELETE: 'delete',
+    EDIT: 'edit',
+    EXPORT: 'upload', // Export button uses upload icon
+    DUPLICATE: 'copy',
   } as const;
 
   constructor(page: Page) {
     this.page = page;
     this.table = new Table(page);
+    this.bulkSelect = new BulkSelect(page, this.table);
   }
 
   /**
@@ -85,10 +95,21 @@ export class DatasetListPage {
    * @param datasetName - The name of the dataset to delete
    */
   async clickDeleteAction(datasetName: string): Promise<void> {
-    await this.table.clickRowAction(
-      datasetName,
-      DatasetListPage.SELECTORS.DELETE_ACTION,
-    );
+    const row = this.table.getRow(datasetName);
+    await row
+      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.DELETE })
+      .click();
+  }
+
+  /**
+   * Clicks the edit action button for a dataset
+   * @param datasetName - The name of the dataset to edit
+   */
+  async clickEditAction(datasetName: string): Promise<void> {
+    const row = this.table.getRow(datasetName);
+    await row
+      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.EDIT })
+      .click();
   }
 
   /**
@@ -96,10 +117,10 @@ export class DatasetListPage {
    * @param datasetName - The name of the dataset to export
    */
   async clickExportAction(datasetName: string): Promise<void> {
-    await this.table.clickRowAction(
-      datasetName,
-      DatasetListPage.SELECTORS.EXPORT_ACTION,
-    );
+    const row = this.table.getRow(datasetName);
+    await row
+      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.EXPORT })
+      .click();
   }
 
   /**
@@ -107,9 +128,57 @@ export class DatasetListPage {
    * @param datasetName - The name of the dataset to duplicate
    */
   async clickDuplicateAction(datasetName: string): Promise<void> {
-    await this.table.clickRowAction(
-      datasetName,
-      DatasetListPage.SELECTORS.DUPLICATE_ACTION,
+    const row = this.table.getRow(datasetName);
+    await row
+      .getByRole('button', { name: DatasetListPage.ACTION_BUTTONS.DUPLICATE })
+      .click();
+  }
+
+  /**
+   * Clicks the "Bulk select" button to enable bulk selection mode
+   */
+  async clickBulkSelectButton(): Promise<void> {
+    await this.bulkSelect.enable();
+  }
+
+  /**
+   * Selects a dataset's checkbox in bulk select mode
+   * @param datasetName - The name of the dataset to select
+   */
+  async selectDatasetCheckbox(datasetName: string): Promise<void> {
+    await this.bulkSelect.selectRow(datasetName);
+  }
+
+  /**
+   * Clicks a bulk action button by name (e.g., "Export", "Delete")
+   * @param actionName - The name of the bulk action to click
+   */
+  async clickBulkAction(actionName: string): Promise<void> {
+    await this.bulkSelect.clickAction(actionName);
+  }
+
+  /**
+   * Gets the "+ Dataset" button for creating new datasets.
+   * Uses specific selector to avoid matching the "Datasets" nav link.
+   */
+  getAddDatasetButton(): Button {
+    return new Button(
+      this.page,
+      this.page.getByRole('button', { name: /^\+ Dataset$|^plus Dataset$/ }),
     );
+  }
+
+  /**
+   * Clicks the "+ Dataset" button to navigate to create dataset page
+   */
+  async clickAddDataset(): Promise<void> {
+    await this.getAddDatasetButton().click();
+  }
+
+  /**
+   * Clicks the import button to open the import modal
+   */
+  async clickImportButton(): Promise<void> {
+    await this.page.getByTestId('import-button').click();
   }
 }

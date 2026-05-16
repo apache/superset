@@ -17,8 +17,8 @@
  * under the License.
  */
 import { FC, ReactNode } from 'react';
-import { t } from '@superset-ui/core';
-import { css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -37,6 +37,8 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
+  // Allow extra props from control spread patterns (e.g. {...this.props})
+  [key: string]: unknown;
 };
 
 const iconStyles = css`

@@ -19,6 +19,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { ExportStatus, StreamingProgress } from './StreamingExportModal';
+import { makeUrl } from 'src/utils/pathUtils';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 
 interface UseStreamingExportOptions {
   onComplete?: (downloadUrl: string, filename: string) => void;
@@ -30,6 +32,16 @@ interface StreamingExportPayload {
 }
 
 interface StreamingExportParams {
+  /**
+   * The API endpoint URL for the export request.
+   *
+   * URLs should be prefixed with the application root at the call site using
+   * `makeUrl()` from 'src/utils/pathUtils'. This ensures proper handling for
+   * subdirectory deployments (e.g., /superset/api/v1/...).
+   *
+   * A defensive guard (`ensureUrlPrefix`) will apply the prefix if missing,
+   * but callers should not rely on this fallback behavior.
+   */
   url: string;
   payload: StreamingExportPayload;
   filename?: string;
@@ -38,6 +50,45 @@ interface StreamingExportParams {
 }
 
 const NEWLINE_BYTE = 10; // '\n' character code
+
+/**
+ * Ensures URL has the application root prefix for subdirectory deployments.
+ * Applies makeUrl to relative paths that don't already include the app root.
+ * This guards against callers forgetting to prefix URLs when using native fetch.
+ */
+const ensureUrlPrefix = (url: string): string => {
+  const appRoot = applicationRoot();
+  // Protocol-relative URLs (//example.com/...) should pass through unchanged
+  if (url.startsWith('//')) {
+    return url;
+  }
+  // Absolute URLs (http:// or https://) should pass through unchanged
+  if (url.match(/^https?:\/\//)) {
+    return url;
+  }
+  // Relative URLs without leading slash (e.g., "api/v1/...") need normalization
+  // Add leading slash and apply prefix
+  if (!url.startsWith('/')) {
+    return makeUrl(`/${url}`);
+  }
+  // If no app root configured, return as-is
+  if (!appRoot) {
+    return url;
+  }
+  // If URL already has the app root prefix, return as-is
+  // Use strict check to avoid false positives with sibling paths (e.g., /app2 when appRoot is /app)
+  // Also handle query strings and hashes (e.g., /superset?foo=1 or /superset#hash)
+  if (
+    url === appRoot ||
+    url.startsWith(`${appRoot}/`) ||
+    url.startsWith(`${appRoot}?`) ||
+    url.startsWith(`${appRoot}#`)
+  ) {
+    return url;
+  }
+  // Apply prefix via makeUrl
+  return makeUrl(url);
+};
 
 const createFetchRequest = async (
   _url: string,
@@ -63,7 +114,7 @@ const createFetchRequest = async (
     formParams.filename = filename;
   }
 
-  if (expectedRows) {
+  if (expectedRows !== undefined) {
     formParams.expected_rows = expectedRows.toString();
   }
 
@@ -157,7 +208,9 @@ export const useStreamingExport = (options: UseStreamingExportOptions = {}) => {
           expectedRows,
           abortControllerRef.current.signal,
         );
-        const response = await fetch(url, fetchOptions);
+        // Guard: ensure URL has app root prefix for subdirectory deployments
+        const prefixedUrl = ensureUrlPrefix(url);
+        const response = await fetch(prefixedUrl, fetchOptions);
 
         if (!response.ok) {
           throw new Error(

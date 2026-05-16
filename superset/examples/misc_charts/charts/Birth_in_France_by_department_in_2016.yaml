@@ -1,0 +1,42 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 6ee06b3e-eccf-4c3d-9cc6-2955e4cb9a62
+description: null
+params:
+  entity: DEPT_ID
+  granularity_sqla: ''
+  metric:
+    aggregate: AVG
+    column:
+      column_name: '2004'
+      type: INT
+    expressionType: SIMPLE
+    label: Boys
+    optionName: metric_112342
+  row_limit: 500000
+  select_country: france
+  since: ''
+  until: ''
+  viz_type: country_map
+query_context: null
+slice_name: Birth in France by department in 2016
+uuid: fe23db78-c168-4ce2-86b0-38d82bb37d88
+version: 1.0.0
+viz_type: country_map

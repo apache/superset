@@ -20,7 +20,7 @@ import { Form as AntdForm } from 'antd';
 import { FormProps } from './types';
 
 function CustomForm(props: FormProps) {
-  return <AntdForm {...props} />;
+  return <AntdForm {...(props as any)} />;
 }
 
 export const Form = Object.assign(CustomForm, {
