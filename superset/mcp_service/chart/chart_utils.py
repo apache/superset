@@ -37,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SortByConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -466,7 +467,14 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     _add_adhoc_filters(form_data, config.filters)
 
     if config.sort_by:
-        form_data["order_by_cols"] = config.sort_by
+        form_data["order_by_cols"] = [
+            json.dumps(
+                [entry.column, entry.ascending]
+                if isinstance(entry, SortByConfig)
+                else [entry, False]
+            )
+            for entry in config.sort_by
+        ]
 
     form_data["row_limit"] = config.row_limit
 
@@ -1210,6 +1218,17 @@ def _resolve_viz_type(config: Any) -> str:
             "big_number" if show_trendline and temporal_column else "big_number_total"
         )
     return "unknown"
+
+
+TABLE_VIZ_TYPE_LABELS = {
+    "table": "table chart",
+    "ag-grid-table": "interactive table chart",
+}
+
+
+def get_table_chart_type_label(viz_type: str | None) -> str | None:
+    """Return a user-facing label for table-family Superset viz types."""
+    return TABLE_VIZ_TYPE_LABELS.get(viz_type) if viz_type is not None else None
 
 
 def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:
