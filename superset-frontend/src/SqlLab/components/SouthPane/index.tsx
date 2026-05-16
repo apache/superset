@@ -25,7 +25,11 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
-import { Flex, Label } from '@superset-ui/core/components';
+import {
+  Flex,
+  Label,
+  ScrollToBottomContainer,
+} from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { ViewLocations } from 'src/SqlLab/contributions';
@@ -167,11 +171,13 @@ const SouthPane = ({
       key: TABS_KEYS.RESULTS,
       label: t('Results'),
       children: (
-        <Results
-          latestQueryId={latestQueryId}
-          displayLimit={displayLimit}
-          defaultQueryLimit={defaultQueryLimit}
-        />
+        <ScrollToBottomContainer className="scrollable">
+          <Results
+            latestQueryId={latestQueryId}
+            displayLimit={displayLimit}
+            defaultQueryLimit={defaultQueryLimit}
+          />
+        </ScrollToBottomContainer>
       ),
       closable: false,
     },
@@ -179,11 +185,13 @@ const SouthPane = ({
       key: TABS_KEYS.HISTORY,
       label: t('Query history'),
       children: (
-        <QueryHistory
-          queryEditorId={queryEditorId}
-          displayLimit={displayLimit}
-          latestQueryId={latestQueryId}
-        />
+        <ScrollToBottomContainer className="scrollable">
+          <QueryHistory
+            queryEditorId={queryEditorId}
+            displayLimit={displayLimit}
+            latestQueryId={latestQueryId}
+          />
+        </ScrollToBottomContainer>
       ),
       closable: false,
     },
@@ -202,19 +210,22 @@ const SouthPane = ({
         </>
       ),
       children: (
-        <TablePreview
-          dbId={dbId}
-          catalog={catalog}
-          schema={schema}
-          tableName={name}
-        />
+        <ScrollToBottomContainer className="scrollable">
+          <TablePreview
+            dbId={dbId}
+            catalog={catalog}
+            schema={schema}
+            tableName={name}
+          />
+        </ScrollToBottomContainer>
       ),
     })),
     ...viewItems.map(view => ({
       key: view.id,
       label: view.name,
       children: (
-        <div
+        <ScrollToBottomContainer
+          className="scrollable"
           css={css`
             & > div:first-of-type {
               padding-bottom: ${theme.sizeUnit * 2}px;
@@ -223,7 +234,7 @@ const SouthPane = ({
         >
           <PanelToolbar viewId={view.id} />
           {resolveView(view.id)}
-        </div>
+        </ScrollToBottomContainer>
       ),
       forceRender: true,
       closable: false,
@@ -247,6 +258,7 @@ const SouthPane = ({
         type="editable-card"
         activeKey={pinnedTableKeys[activeSouthPaneTab] || activeSouthPaneTab}
         className="SouthPaneTabs"
+        fullHeight
         onChange={switchTab}
         id={nanoid(11)}
         animated={false}

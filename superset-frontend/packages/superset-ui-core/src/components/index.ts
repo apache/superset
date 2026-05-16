@@ -159,6 +159,13 @@ export {
   type SliderSingleProps,
   type SliderRangeProps,
 } from './Slider';
+export {
+  ScrollToBottomButton,
+  ScrollToBottomContainer,
+  type ScrollToBottomButtonProps,
+  type ScrollToBottomContainerProps,
+  type ScrollToBottomPosition,
+} from './ScrollToBottomButton';
 
 export { Switch, type SwitchProps } from './Switch';
 

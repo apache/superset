@@ -21,7 +21,7 @@ import { useRef, FC } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { NativeFilterType } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
-import { Button } from '@superset-ui/core/components';
+import { Button, ScrollToBottomButton } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
 import FilterTitleContainer from './FilterTitleContainer';
@@ -78,7 +78,7 @@ const FilterTitlePane: FC<Props> = ({
       <div
         css={{
           height: '100%',
-          overflowY: 'auto',
+          position: 'relative',
         }}
       >
         <FilterTitleContainer
@@ -93,6 +93,7 @@ const FilterTitlePane: FC<Props> = ({
           onRearrange={onRearrange}
           restoreFilter={restoreFilter}
         />
+        <ScrollToBottomButton targetRef={filtersContainerRef} />
       </div>
       <div
         css={{
