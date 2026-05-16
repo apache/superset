@@ -233,7 +233,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     serverPagination,
     serverPaginationData,
     serverPageLength,
-    showNumberedColumn,
+    showNumberedColumn: showNumberedColumn && !emitCrossFilters,
     isRawRecords,
     defaultAlignPN: alignPositiveNegative,
     showCellBars,
