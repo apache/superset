@@ -844,7 +844,9 @@ test('is not added when showNumberedColumn is false', () => {
     () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: false }),
     { wrapper: defaultThemeWrapper },
   );
-  expect(result.current.some(col => col.field === ROW_NUMBER_COL_ID)).toBe(false);
+  expect(result.current.some(col => col.field === ROW_NUMBER_COL_ID)).toBe(
+    false,
+  );
   expect(result.current.length).toBe(1);
 });
 
