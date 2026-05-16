@@ -28,7 +28,7 @@ import tinycolor from 'tinycolor2';
 import { createElement, type ComponentProps, ReactNode } from 'react';
 import { useColDefs } from '../../src/utils/useColDefs';
 import { InputColumn } from '../../src/types';
-import { PIVOT_COL_ID } from '../../src/consts';
+import { ROW_NUMBER_COL_ID } from '../../src/consts';
 
 type TestCellStyleFunc = (params: unknown) => unknown;
 
@@ -844,7 +844,7 @@ test('is not added when showNumberedColumn is false', () => {
     () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: false }),
     { wrapper: defaultThemeWrapper },
   );
-  expect(result.current.some(col => col.field === PIVOT_COL_ID)).toBe(false);
+  expect(result.current.some(col => col.field === ROW_NUMBER_COL_ID)).toBe(false);
   expect(result.current.length).toBe(1);
 });
 
@@ -853,7 +853,7 @@ test('is added as first column when showNumberedColumn is true', () => {
     () => useColDefs({ ...basePropsNumericColumns, showNumberedColumn: true }),
     { wrapper: defaultThemeWrapper },
   );
-  expect(result.current[0].field).toBe(PIVOT_COL_ID);
+  expect(result.current[0].field).toBe(ROW_NUMBER_COL_ID);
   expect(result.current[0].headerName).toBe('№');
   expect(result.current.length).toBe(2);
 });

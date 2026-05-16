@@ -17,6 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
 import { DataRecord, DataRecordValue, JsonObject } from '@superset-ui/core';
@@ -38,7 +39,7 @@ import { getAggFunc } from './getAggFunc';
 import { TextCellRenderer } from '../renderers/TextCellRenderer';
 import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
 import CustomHeader from '../AgGridTable/components/CustomHeader';
-import { NOOP_FILTER_COMPARATOR, PIVOT_COL_ID } from '../consts';
+import { NOOP_FILTER_COMPARATOR, ROW_NUMBER_COL_ID } from '../consts';
 import { valueFormatter, valueGetter } from './formatValue';
 import getCellStyle from './getCellStyle';
 
@@ -451,15 +452,13 @@ export const useColDefs = ({
     ? currentPage * pageSize + data.length
     : data.length;
   const rowIndexLength = `${Math.max(maxVisibleRowNumber, 1)}`.length;
-  const currentmaxPageNumber = serverPagination
-    ? Math.ceil(data.length / pageSize)
-    : rowIndexLength;
   const rowNumberCol = useMemo<ColDef>(
     () => ({
-      headerName: '№',
+      headerName: t('№'),
       headerClass: 'ag-header-center',
-      field: PIVOT_COL_ID,
+      field: ROW_NUMBER_COL_ID,
       valueGetter: params => {
+        if (params.node?.rowPinned != null) return '';
         if (serverPagination && serverPaginationData) {
           return currentPage * pageSize + (params.node?.rowIndex ?? 0) + 1;
         }
@@ -471,7 +470,7 @@ export const useColDefs = ({
         color: theme.colorTextTertiary,
       },
       width: 30 + rowIndexLength * 6,
-      minWidth: currentmaxPageNumber,
+      minWidth: 30 + rowIndexLength * 6,
       sortable: false,
       filter: false,
       pinned: 'left' as const,
@@ -480,9 +479,6 @@ export const useColDefs = ({
       resizable: false,
       suppressMovable: true,
       suppressSizeToFit: true,
-      context: {
-        isMetric: true,
-      },
       cellStyle: {
         backgroundColor: theme.colorFillTertiary,
         padding: '0',

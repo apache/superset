@@ -43,4 +43,4 @@ export const FILTER_CONDITION_BODY_INDEX = {
   SECOND: 1,
 } as const;
 
-export const PIVOT_COL_ID = '-1';
+export const ROW_NUMBER_COL_ID = '__row_number__';
