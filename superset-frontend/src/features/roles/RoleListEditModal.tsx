@@ -279,7 +279,9 @@ function RoleListEditModal({
 
   const handleFormSubmit = async (values: RoleForm) => {
     try {
-      const userIds = [...new Set(values.roleUsers?.map(user => user.value) || [])];
+      const userIds = [
+        ...new Set(values.roleUsers?.map(user => user.value) || []),
+      ];
       const initialUserIdSet = new Set(roleUsers.map(u => u.id));
       const newUserIdSet = new Set(userIds);
       const usersChanged =

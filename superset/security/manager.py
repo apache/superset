@@ -182,7 +182,43 @@ class SupersetRoleApi(RoleApi):
     @protect()
     @safe
     def update_role_users(self, role_id: int) -> Any:
-        """Override to deduplicate user IDs and handle missing users gracefully."""
+        """Update role users.
+        ---
+        put:
+          summary: Update role users
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: role_id
+          requestBody:
+            description: Update role users schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/RoleUserPutSchema'
+          responses:
+            200:
+              description: Role users updated
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/RoleUserPutSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
         try:
             item = self.update_role_user_schema.load(request.json)
             role = self.datamodel.get(role_id)
