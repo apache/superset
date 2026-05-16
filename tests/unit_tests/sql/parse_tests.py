@@ -2693,9 +2693,19 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
         ),  # Compact format
         (
             "col = 'abc' -- comment",
-            "col = 'abc'",
+            "col = 'abc' /* comment */",
             "base",
-        ),  # Comments removed for compact format
+        ),  # Line comments converted to block comments
+        (
+            "TRUE /* precise_count_distinct=true */",
+            "TRUE /* precise_count_distinct=true */",
+            "base",
+        ),  # Block comments preserved
+        (
+            "col > 1 /* hint=value */",
+            "col > 1 /* hint=value */",
+            "base",
+        ),  # Block comments preserved
         ("col = 'col1 = 1) AND (col2 = 2'", "col = 'col1 = 1) AND (col2 = 2'", "base"),
         ("col = 'select 1; select 2'", "col = 'select 1; select 2'", "base"),
         ("col = 'abc -- comment'", "col = 'abc -- comment'", "base"),

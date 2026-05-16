@@ -19,14 +19,30 @@
 Unit tests for get_chart_preview MCP tool
 """
 
+import importlib
+from types import SimpleNamespace
+from typing import Any
+
 import pytest
 
 from superset.mcp_service.chart.schemas import (
+    AccessibilityMetadata,
     ASCIIPreview,
+    ChartPreview,
     GetChartPreviewRequest,
+    InteractivePreview,
+    PerformanceMetadata,
     TablePreview,
     URLPreview,
+    VegaLitePreview,
 )
+from superset.mcp_service.chart.tool.get_chart_preview import (
+    _sanitize_chart_preview_for_llm_context,
+    ASCIIPreviewStrategy,
+    TablePreviewStrategy,
+)
+from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.utils import json as utils_json
 
 
 class TestPreviewXAxisInQueryContext:
@@ -170,7 +186,7 @@ class TestGetChartPreview:
 
         # Default format
         request4 = GetChartPreviewRequest(identifier=789)
-        assert request4.format == "url"  # default
+        assert request4.format == "ascii"  # default
 
     @pytest.mark.asyncio
     async def test_preview_format_types(self):
@@ -184,16 +200,15 @@ class TestGetChartPreview:
     async def test_url_preview_structure(self):
         """Test URLPreview response structure."""
         preview = URLPreview(
-            preview_url="http://localhost:5008/screenshot/chart/123.png",
+            preview_url="http://example.com/explore/?slice_id=123",
             width=800,
             height=600,
-            supports_interaction=False,
         )
         assert preview.type == "url"
-        assert preview.preview_url == "http://localhost:5008/screenshot/chart/123.png"
+        assert preview.preview_url == "http://example.com/explore/?slice_id=123"
         assert preview.width == 800
         assert preview.height == 600
-        assert preview.supports_interaction is False
+        assert preview.supports_interaction is True
 
     @pytest.mark.asyncio
     async def test_ascii_preview_structure(self):
@@ -269,6 +284,385 @@ class TestGetChartPreview:
         # This is a structural test - actual integration tests would verify
         # the tool returns data matching this structure
 
+    def test_table_preview_converts_saved_adhoc_filters_to_query_filters(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Saved chart adhoc filters should constrain table previews."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"gender": "boy", "count": 1}],
+                            "colnames": ["gender", "count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        adhoc_filter = {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "gender",
+            "operator": "==",
+            "comparator": "boy",
+        }
+        chart = SimpleNamespace(
+            id=0,
+            slice_name="Unsaved Chart Preview",
+            viz_type="table",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "table",
+                    "groupby": ["gender"],
+                    "metrics": ["count"],
+                    "adhoc_filters": [adhoc_filter],
+                }
+            ),
+        )
+
+        preview = TablePreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=1, format="table"),
+        ).generate()
+
+        assert isinstance(preview, TablePreview)
+        query = captured_query_contexts[0]["queries"][0]
+        assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
+        assert "adhoc_filters" not in query
+
+    def test_table_preview_uses_singular_metric(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Preview query construction should handle charts without metrics[]."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"count": 10}],
+                            "colnames": ["count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        metric = {"label": "count", "expressionType": "SIMPLE"}
+        chart = SimpleNamespace(
+            id=0,
+            slice_name="Big Number Preview",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "big_number",
+                    "metric": metric,
+                }
+            ),
+        )
+
+        preview = TablePreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=1, format="table"),
+        ).generate()
+
+        assert isinstance(preview, TablePreview)
+        query = captured_query_contexts[0]["queries"][0]
+        assert query["columns"] == []
+        assert query["metrics"] == [metric]
+
+    def test_ascii_preview_uses_shared_query_builder(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """ASCII preview should use chart-type-aware query construction."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"count": 10}],
+                            "colnames": ["count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        metric = {"label": "count", "expressionType": "SIMPLE"}
+        chart = SimpleNamespace(
+            id=0,
+            slice_name="Big Number Preview",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "big_number",
+                    "metric": metric,
+                }
+            ),
+        )
+
+        preview = ASCIIPreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=1, format="ascii"),
+        ).generate()
+
+        assert isinstance(preview, ASCIIPreview)
+        query = captured_query_contexts[0]["queries"][0]
+        assert query["columns"] == []
+        assert query["metrics"] == [metric]
+        assert query["row_limit"] == 50
+
+    @pytest.mark.asyncio
+    async def test_form_data_key_overrides_saved_params_for_table_preview(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """form_data_key should drive table preview query construction."""
+        from contextlib import nullcontext
+
+        get_chart_preview_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_preview"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        get_form_data_module = importlib.import_module(
+            "superset.commands.explore.form_data.get"
+        )
+
+        class AsyncContext:
+            async def debug(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def error(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def info(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def report_progress(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def warning(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"gender": "boy", "count": 1}],
+                            "colnames": ["gender", "count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        saved_filter = {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "gender",
+            "operator": "==",
+            "comparator": "girl",
+        }
+        cached_filter = {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "subject": "gender",
+            "operator": "==",
+            "comparator": "boy",
+        }
+        chart = SimpleNamespace(
+            id=42,
+            slice_name="Saved Chart Preview",
+            viz_type="table",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "table",
+                    "groupby": ["gender"],
+                    "metrics": ["count"],
+                    "adhoc_filters": [saved_filter],
+                }
+            ),
+        )
+
+        monkeypatch.setattr(
+            get_chart_preview_module,
+            "find_chart_by_identifier",
+            lambda identifier: chart,
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module,
+            "validate_chart_dataset",
+            lambda *args, **kwargs: SimpleNamespace(
+                is_valid=True,
+                warnings=[],
+                error=None,
+            ),
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module.db.session,
+            "refresh",
+            lambda chart: None,
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module.event_logger,
+            "log_context",
+            lambda **kwargs: nullcontext(),
+        )
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module,
+            "ChartDataCommand",
+            ChartDataCommand,
+        )
+        monkeypatch.setattr(
+            get_form_data_module.GetFormDataCommand,
+            "__init__",
+            lambda self, cmd_params: None,
+        )
+        monkeypatch.setattr(
+            get_form_data_module.GetFormDataCommand,
+            "run",
+            lambda self: utils_json.dumps(
+                {
+                    "viz_type": "table",
+                    "groupby": ["gender"],
+                    "metrics": ["count"],
+                    "adhoc_filters": [cached_filter],
+                }
+            ),
+        )
+
+        result = await get_chart_preview_module._get_chart_preview_internal(
+            GetChartPreviewRequest(
+                identifier=42,
+                form_data_key="cached-key",
+                format="table",
+            ),
+            AsyncContext(),
+        )
+
+        assert isinstance(result, ChartPreview)
+        query = captured_query_contexts[0]["queries"][0]
+        assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
+
     @pytest.mark.asyncio
     async def test_preview_dimensions(self):
         """Test preview dimensions in response."""
@@ -283,10 +677,9 @@ class TestGetChartPreview:
         for width, height in standard_sizes:
             # URL preview with dimensions
             url_preview = URLPreview(
-                preview_url="http://example.com/chart.png",
+                preview_url="http://example.com/explore/?slice_id=123",
                 width=width,
                 height=height,
-                supports_interaction=False,
             )
             assert url_preview.width == width
             assert url_preview.height == height
@@ -339,6 +732,194 @@ class TestGetChartPreview:
         assert metadata.query_duration_ms == 150
         assert metadata.cache_status == "hit"
         assert len(metadata.optimization_suggestions) == 1
+
+
+class TestChartPreviewSanitization:
+    """Tests for chart preview read-path sanitization."""
+
+    def test_sanitize_chart_preview_wraps_ascii_and_alt_text(self) -> None:
+        """ASCII previews should be wrapped while operational URLs stay raw."""
+        preview = ChartPreview(
+            chart_id=3,
+            chart_name="Regional Trend",
+            chart_type="line",
+            explore_url="http://localhost:8088/explore/?slice_id=3",
+            content=ASCIIPreview(ascii_content="North > South", width=20, height=5),
+            chart_description="Preview of line: Regional Trend",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Preview of Regional Trend",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=8, cache_status="miss"),
+            format="ascii",
+            ascii_chart="North > South",
+            width=20,
+            height=5,
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+
+        assert result.chart_name == sanitize_for_llm_context("Regional Trend")
+        assert result.explore_url == "http://localhost:8088/explore/?slice_id=3"
+        assert result.chart_description == sanitize_for_llm_context(
+            "Preview of line: Regional Trend"
+        )
+        assert result.content.ascii_content == sanitize_for_llm_context("North > South")
+        assert result.ascii_chart == sanitize_for_llm_context("North > South")
+        assert result.accessibility.alt_text == sanitize_for_llm_context(
+            "Preview of Regional Trend"
+        )
+
+    def test_sanitize_chart_preview_wraps_vega_lite_data_values(self):
+        """Vega-Lite previews should wrap description and row string values."""
+        preview = ChartPreview(
+            chart_id=4,
+            chart_name="Category Share",
+            chart_type="pie",
+            explore_url="http://localhost:8088/explore/?slice_id=4",
+            content=VegaLitePreview(
+                specification={
+                    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+                    "description": "Pie chart for category share",
+                    "data": {
+                        "values": [
+                            {
+                                "category": "Retail",
+                                "url": "https://example.com/retail",
+                                "value": 10,
+                            },
+                            {"category": "Enterprise", "value": 20},
+                        ]
+                    },
+                }
+            ),
+            chart_description="Preview of pie: Category Share",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Preview of Category Share",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=11, cache_status="miss"),
+            format="vega_lite",
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+        specification = result.content.specification
+
+        assert specification["$schema"] == (
+            "https://vega.github.io/schema/vega-lite/v5.json"
+        )
+        assert specification["description"] == sanitize_for_llm_context(
+            "Pie chart for category share"
+        )
+        assert specification["data"]["values"][0][
+            "category"
+        ] == sanitize_for_llm_context("Retail")
+        assert specification["data"]["values"][0]["url"] == sanitize_for_llm_context(
+            "https://example.com/retail"
+        )
+        assert specification["data"]["values"][0]["value"] == 10
+
+    def test_sanitize_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
+        self,
+    ) -> None:
+        """Non-mapping Vega-Lite data should not be treated as inline values."""
+        preview = ChartPreview(
+            chart_id=4,
+            chart_name="Category Share",
+            chart_type="pie",
+            explore_url="http://localhost:8088/explore/?slice_id=4",
+            content=VegaLitePreview(
+                specification={
+                    "description": "Pie chart for category share",
+                    "data": "named_dataset",
+                }
+            ),
+            chart_description="Preview of pie: Category Share",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Preview of Category Share",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=11, cache_status="miss"),
+            format="vega_lite",
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+        specification = result.content.specification
+
+        assert specification["description"] == sanitize_for_llm_context(
+            "Pie chart for category share"
+        )
+        assert specification["data"] == "named_dataset"
+
+    def test_sanitize_chart_preview_wraps_table_content(self):
+        preview = ChartPreview(
+            chart_id=5,
+            chart_name="Top Customers",
+            chart_type="table",
+            explore_url="/explore/?slice_id=5",
+            content=TablePreview(
+                table_data="Customer | Revenue\nAcme | 100",
+                row_count=1,
+                supports_sorting=True,
+            ),
+            chart_description="Preview of table: Top Customers",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Top customer revenue table",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=9, cache_status="miss"),
+            format="table",
+            table_data="Customer | Revenue\nAcme | 100",
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+
+        assert result.content.table_data == sanitize_for_llm_context(
+            "Customer | Revenue\nAcme | 100"
+        )
+        assert result.table_data == sanitize_for_llm_context(
+            "Customer | Revenue\nAcme | 100"
+        )
+        assert result.content.row_count == 1
+        assert result.content.supports_sorting is True
+
+    def test_sanitize_chart_preview_wraps_interactive_html_but_keeps_urls(self):
+        preview = ChartPreview(
+            chart_id=6,
+            chart_name="Interactive Trend",
+            chart_type="line",
+            explore_url="/explore/?slice_id=6",
+            content=InteractivePreview(
+                html_content="<div>Revenue by region</div>",
+                preview_url="/superset/explore/?slice_id=6&standalone=1",
+                width=800,
+                height=600,
+            ),
+            chart_description="Interactive preview",
+            accessibility=AccessibilityMetadata(
+                color_blind_safe=True,
+                alt_text="Interactive revenue trend",
+                high_contrast_available=False,
+            ),
+            performance=PerformanceMetadata(query_duration_ms=13, cache_status="hit"),
+            format="interactive",
+            width=800,
+            height=600,
+        )
+
+        result = _sanitize_chart_preview_for_llm_context(preview)
+
+        assert result.content.html_content == sanitize_for_llm_context(
+            "<div>Revenue by region</div>"
+        )
+        assert (
+            result.content.preview_url == "/superset/explore/?slice_id=6&standalone=1"
+        )
+        assert result.explore_url == "/explore/?slice_id=6"
 
     @pytest.mark.asyncio
     async def test_chart_types_support(self):
@@ -400,3 +981,191 @@ Market Share
 """
 
         # These demonstrate the expected ASCII formats for different chart types
+
+
+class TestDetachedInstanceError:
+    """Tests that DetachedInstanceError is handled gracefully.
+
+    When the SQLAlchemy session commits mid-request, ORM objects expire and
+    become detached.  Accessing lazy attributes on a detached Slice raises
+    DetachedInstanceError.  The tool must:
+    1. Call db.session.refresh() immediately after loading the chart so all
+       column values are loaded upfront before any downstream operation.
+    2. Catch SQLAlchemyError (the base class) and return a ChartError
+       instead of propagating the exception.
+    """
+
+    @pytest.mark.asyncio
+    async def test_session_refresh_called_after_chart_load(self):
+        """db.session.refresh() is invoked right after find_chart_by_identifier."""
+        import importlib
+        from contextlib import nullcontext
+        from unittest.mock import MagicMock, patch
+
+        from superset.mcp_service.chart.schemas import URLPreview
+        from superset.utils import json
+
+        get_chart_preview_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_preview"
+        )
+
+        mock_chart = MagicMock()
+        mock_chart.id = 42
+        mock_chart.slice_name = "Sales Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.datasource_id = 1
+        mock_chart.datasource_type = "table"
+        mock_chart.params = "{}"
+
+        refresh_calls: list[object] = []
+
+        def _fake_refresh(obj: object) -> None:
+            refresh_calls.append(obj)
+
+        url_preview = URLPreview(
+            preview_url="http://localhost/explore/?slice_id=42",
+            width=800,
+            height=600,
+        )
+
+        with (
+            patch.object(
+                get_chart_preview_module,
+                "find_chart_by_identifier",
+                return_value=mock_chart,
+            ),
+            patch.object(
+                get_chart_preview_module.db,
+                "session",
+                **{"refresh.side_effect": _fake_refresh},
+            ),
+            patch.object(
+                get_chart_preview_module,
+                "validate_chart_dataset",
+                return_value=MagicMock(is_valid=True, warnings=[]),
+            ),
+            patch.object(
+                get_chart_preview_module.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+            # Return a real URLPreview so Pydantic model validation succeeds
+            patch.object(
+                get_chart_preview_module.PreviewFormatGenerator,
+                "generate",
+                return_value=url_preview,
+            ),
+            patch(
+                "superset.mcp_service.utils.url_utils.get_superset_base_url",
+                return_value="http://localhost",
+            ),
+        ):
+            from fastmcp import Client
+
+            from superset.mcp_service.app import mcp
+            from superset.mcp_service.chart.schemas import GetChartPreviewRequest
+
+            with patch("superset.mcp_service.auth.get_user_from_request") as mu:
+                mu.return_value = MagicMock(id=1, username="admin")
+                with patch(
+                    "superset.mcp_service.auth.check_tool_permission", return_value=True
+                ):
+                    async with Client(mcp) as client:
+                        response = await client.call_tool(
+                            "get_chart_preview",
+                            {
+                                "request": GetChartPreviewRequest(
+                                    identifier=42, format="url"
+                                ).model_dump()
+                            },
+                        )
+
+        data = json.loads(response.content[0].text)
+        # The tool should succeed — not return a ChartError
+        assert "error_type" not in data, (
+            f"Expected ChartPreview but got ChartError: {data.get('error')}"
+        )
+        assert data.get("chart_id") == 42
+
+        assert len(refresh_calls) == 1, (
+            "db.session.refresh() should be called once after loading the chart"
+        )
+        assert refresh_calls[0] is mock_chart
+
+    @pytest.mark.asyncio
+    async def test_detached_instance_error_returns_chart_error(self):
+        """DetachedInstanceError during preview generation returns ChartError."""
+        import importlib
+        from contextlib import nullcontext
+        from unittest.mock import MagicMock, patch
+
+        from sqlalchemy.orm.exc import DetachedInstanceError
+
+        get_chart_preview_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_preview"
+        )
+
+        mock_chart = MagicMock()
+        mock_chart.id = 7
+        mock_chart.slice_name = "Broken Chart"
+        mock_chart.viz_type = "bar"
+        mock_chart.datasource_id = 3
+        mock_chart.datasource_type = "table"
+        mock_chart.params = "{}"
+
+        with (
+            patch.object(
+                get_chart_preview_module,
+                "find_chart_by_identifier",
+                return_value=mock_chart,
+            ),
+            patch.object(
+                get_chart_preview_module.db,
+                "session",
+                **{"refresh.return_value": None},
+            ),
+            patch.object(
+                get_chart_preview_module,
+                "validate_chart_dataset",
+                return_value=MagicMock(is_valid=True, warnings=[]),
+            ),
+            patch.object(
+                get_chart_preview_module.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+            # Simulate the session expiring inside the strategy
+            patch.object(
+                get_chart_preview_module.PreviewFormatGenerator,
+                "generate",
+                side_effect=DetachedInstanceError(),
+            ),
+            patch(
+                "superset.mcp_service.utils.url_utils.get_superset_base_url",
+                return_value="http://localhost",
+            ),
+        ):
+            from fastmcp import Client
+
+            from superset.mcp_service.app import mcp
+            from superset.mcp_service.chart.schemas import GetChartPreviewRequest
+            from superset.utils import json
+
+            with patch("superset.mcp_service.auth.get_user_from_request") as mu:
+                mu.return_value = MagicMock(id=1, username="admin")
+                with patch(
+                    "superset.mcp_service.auth.check_tool_permission", return_value=True
+                ):
+                    async with Client(mcp) as client:
+                        response = await client.call_tool(
+                            "get_chart_preview",
+                            {
+                                "request": GetChartPreviewRequest(
+                                    identifier=7, format="ascii"
+                                ).model_dump()
+                            },
+                        )
+
+        data = json.loads(response.content[0].text)
+        assert data["error_type"] == "InternalError"
+        assert "session" in data["error"].lower() or "retry" in data["error"].lower()

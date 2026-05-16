@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useEffect, useRef, useMemo, useCallback } from 'react';
+import { memo, useEffect, useRef, useMemo, useCallback, useState } from 'react';
 import { isEqual } from 'lodash';
 import { styled } from '@apache-superset/core/theme';
-import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
+import { useFilters, useSortBy, useTable } from 'react-table';
 import { Empty } from '@superset-ui/core/components';
 import TableCollection from '@superset-ui/core/components/TableCollection';
 import { TableSize } from '@superset-ui/core/components/Table';
@@ -117,42 +117,44 @@ const RawTableView = ({
   ...props
 }: TableViewProps) => {
   const tableRef = useRef<HTMLTableElement>(null);
+  const effectivePageSize = initialPageSize ?? DEFAULT_PAGE_SIZE;
+  const [pageIndex, setPageIndex] = useState(initialPageIndex ?? 0);
 
   const initialState = useMemo(
     () => ({
-      pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
-      pageIndex: initialPageIndex ?? 0,
+      pageSize: effectivePageSize,
+      pageIndex: 0,
       sortBy: initialSortBy,
     }),
-    [initialPageSize, initialPageIndex, initialSortBy],
+    [effectivePageSize, initialSortBy],
   );
 
   const {
     getTableProps,
     getTableBodyProps,
     headerGroups,
-    page,
     rows,
     prepareRow,
-    gotoPage,
     setSortBy,
-    state: { pageIndex, sortBy },
+    state: { sortBy },
   } = useTable(
     {
       columns,
       data,
       initialState,
-      manualPagination: serverPagination,
+      manualPagination: true,
       manualSortBy: serverPagination,
-      pageCount: serverPagination
-        ? Math.ceil(totalCount / initialState.pageSize)
-        : undefined,
       autoResetSortBy: false,
     },
     useFilters,
     useSortBy,
-    ...(withPagination ? [usePagination] : []),
   );
+
+  const content = useMemo(() => {
+    if (!withPagination || serverPagination) return rows;
+    const start = pageIndex * effectivePageSize;
+    return rows.slice(start, start + effectivePageSize);
+  }, [withPagination, serverPagination, rows, pageIndex, effectivePageSize]);
 
   const EmptyWrapperComponent = useMemo(() => {
     switch (emptyWrapperType) {
@@ -163,11 +165,6 @@ const RawTableView = ({
         return ({ children }: any) => <EmptyWrapper>{children}</EmptyWrapper>;
     }
   }, [emptyWrapperType]);
-
-  const content = useMemo(
-    () => (withPagination ? page : rows),
-    [withPagination, page, rows],
-  );
 
   const isEmpty = useMemo(
     () => !loading && content.length === 0,
@@ -192,10 +189,9 @@ const RawTableView = ({
   const handlePageChange = useCallback(
     (p: number) => {
       if (scrollTopOnPagination) handleScrollToTop();
-
-      gotoPage(p);
+      setPageIndex(p);
     },
-    [scrollTopOnPagination, handleScrollToTop, gotoPage],
+    [scrollTopOnPagination, handleScrollToTop],
   );
 
   const paginationProps = useMemo(() => {
@@ -211,7 +207,7 @@ const RawTableView = ({
     if (serverPagination) {
       return {
         pageIndex,
-        pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
+        pageSize: effectivePageSize,
         totalCount,
         onPageChange: handlePageChange,
       };
@@ -219,7 +215,7 @@ const RawTableView = ({
 
     return {
       pageIndex,
-      pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
+      pageSize: effectivePageSize,
       totalCount: data.length,
       onPageChange: handlePageChange,
     };
@@ -227,28 +223,28 @@ const RawTableView = ({
     withPagination,
     serverPagination,
     pageIndex,
-    initialPageSize,
+    effectivePageSize,
     totalCount,
     data.length,
     handlePageChange,
   ]);
 
   useEffect(() => {
-    if (serverPagination && pageIndex !== initialState.pageIndex) {
+    if (serverPagination && pageIndex !== (initialPageIndex ?? 0)) {
       onServerPagination({
         pageIndex,
       });
     }
-  }, [initialState.pageIndex, onServerPagination, pageIndex, serverPagination]);
+  }, [initialPageIndex, onServerPagination, pageIndex, serverPagination]);
 
   useEffect(() => {
-    if (serverPagination && !isEqual(sortBy, initialState.sortBy)) {
+    if (serverPagination && !isEqual(sortBy, initialSortBy)) {
       onServerPagination({
         pageIndex: 0,
         sortBy,
       });
     }
-  }, [initialState.sortBy, onServerPagination, serverPagination, sortBy]);
+  }, [initialSortBy, onServerPagination, serverPagination, sortBy]);
 
   return (
     <TableViewStyles {...props} ref={tableRef}>

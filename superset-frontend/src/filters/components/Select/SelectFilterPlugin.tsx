@@ -590,6 +590,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             <Select
               name={formData.nativeFilterId}
               allowClear
+              autoClearSearchValue
               allowNewOptions={!searchAllOptions && creatable !== false}
               allowSelectAll={!searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}

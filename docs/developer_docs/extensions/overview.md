@@ -43,17 +43,17 @@ Extensions can provide:
 
 ## UI Components for Extensions
 
-Extension developers have access to pre-built UI components via `@apache-superset/core/components`. Browse all available components on the [UI Components](/docs/components/) page and filter by **Extension Compatible** to see components available to extensions.
+Extension developers have access to pre-built UI components via `@apache-superset/core/components`. Browse all available components on the [UI Components](/developer-docs/components/) page and filter by **Extension Compatible** to see components available to extensions.
 
 ## Next Steps
 
-- **[Quick Start](./quick-start)** - Build your first extension with a complete walkthrough
-- **[Architecture](./architecture)** - Design principles and system overview
-- **[Dependencies](./dependencies)** - Managing dependencies and understanding API stability
-- **[Contribution Types](./contribution-types)** - Available extension points
-- **[Development](./development)** - Project structure, APIs, and development workflow
-- **[Deployment](./deployment)** - Packaging and deploying extensions
-- **[MCP Integration](./mcp)** - Adding AI agent capabilities using extensions
-- **[Security](./security)** - Security considerations and best practices
-- **[Tasks](./tasks)** - Framework for creating and managing long running tasks
-- **[Community Extensions](./registry)** - Browse extensions shared by the community
+- **[Quick Start](./quick-start.md)** - Build your first extension with a complete walkthrough
+- **[Architecture](./architecture.md)** - Design principles and system overview
+- **[Dependencies](./dependencies.md)** - Managing dependencies and understanding API stability
+- **[Contribution Types](./contribution-types.md)** - Available extension points
+- **[Development](./development.md)** - Project structure, APIs, and development workflow
+- **[Deployment](./deployment.md)** - Packaging and deploying extensions
+- **[MCP Integration](./mcp.md)** - Adding AI agent capabilities using extensions
+- **[Security](./security.md)** - Security considerations and best practices
+- **[Tasks](./tasks.md)** - Framework for creating and managing long running tasks
+- **[Community Extensions](./registry.md)** - Browse extensions shared by the community

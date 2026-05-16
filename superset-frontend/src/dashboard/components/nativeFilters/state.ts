@@ -101,13 +101,15 @@ const selectChartCustomizationConfiguration = createSelector(
     selectDashboardChartIds,
   ],
   (allCustomizations, dashboardChartIds): ChartCustomizationConfiguration => {
-    const hasLegacyFormat = allCustomizations.some(item =>
+    const truthyCustomizations = allCustomizations.filter(Boolean);
+
+    const hasLegacyFormat = truthyCustomizations.some(item =>
       isLegacyChartCustomizationFormat(item),
     );
 
     const migratedCustomizations = hasLegacyFormat
-      ? migrateChartCustomizationArray(allCustomizations)
-      : (allCustomizations as ChartCustomizationConfiguration);
+      ? migrateChartCustomizationArray(truthyCustomizations)
+      : (truthyCustomizations as ChartCustomizationConfiguration);
 
     return migratedCustomizations.filter(customization => {
       if (

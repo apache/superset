@@ -84,12 +84,12 @@ const FilterBarSettings = () => {
 
   const { openFilterConfigModal, FilterConfigModalComponent } =
     useFilterConfigModal({
-      createNewOnOpen: filterValues.length === 0,
+      createNewOnOpen: false,
       dashboardId,
     });
 
   const updateCrossFiltersSetting = useCallback(
-    async isEnabled => {
+    async (isEnabled: boolean) => {
       if (!isEnabled) {
         dispatch(clearDataMaskState());
       }

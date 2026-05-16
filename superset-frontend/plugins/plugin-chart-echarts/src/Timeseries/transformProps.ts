@@ -63,7 +63,13 @@ import {
   TimeseriesChartTransformedProps,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
-import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
+import {
+  ForecastSeriesEnum,
+  ForecastValue,
+  LegendOrientation,
+  LegendType,
+  Refs,
+} from '../types';
 import { parseAxisBound } from '../utils/controls';
 import {
   calculateLowerLogTick,
@@ -74,9 +80,11 @@ import {
   extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
+  getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
 } from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import {
   extractAnnotationLabels,
   getAnnotationData,
@@ -115,6 +123,60 @@ import {
 } from '../utils/formatters';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
+
+const visibleDashPatterns: ([number, number] | 'dashed' | 'dotted')[] = [
+  'dashed',
+  'dotted',
+  [6, 15], // narrow dashed
+  [2, 10], // wide dotted
+  [20, 3], // wide dashed
+];
+const visibleSymbols = [
+  'rect',
+  'triangle',
+  'diamond',
+  'roundRect',
+  'pin',
+] as const;
+
+function getSymbolMarker(symbol: string, color: string) {
+  const size = 10;
+  switch (symbol) {
+    case 'circle':
+      return `<span style="
+        display:inline-block;width:${size}px;height:${size}px;
+        border-radius:50%;background:${color};margin-right:5px"></span>`;
+    case 'rect':
+      return `<span style="
+        display:inline-block;width:${size}px;height:${size}px;
+        background:${color};margin-right:5px"></span>`;
+    case 'roundRect':
+      return `<span style="
+        display:inline-block;width:${size}px;height:${size}px;border-radius:2px;
+        background:${color};margin-right:5px"></span>`;
+    case 'triangle':
+      return `<span style="
+        display:inline-block;width:0;height:0;
+        border-left:${size / 2}px solid transparent;
+        border-right:${size / 2}px solid transparent;
+        border-bottom:${size}px solid ${color};
+        margin-right:5px"></span>`;
+    case 'diamond':
+      return `<span style="
+        display:inline-block;width:${size - 2}px;height:${size - 2}px;
+        background:${color};transform: rotate(45deg) translateX(1px) translateY(-1px);
+        margin-right:5px"></span>`;
+    case 'pin':
+      return `<span style="
+        display:inline-block;width:${size - 2}px;height:${size - 2}px;
+        background:${color};transform: rotate(45deg) translateX(1px) translateY(-1px);
+        border-radius:50%;border-bottom-right-radius:0;margin-right:5px"></span>`;
+    default:
+      return `<span style="
+        display:inline-block;width:${size}px;height:${size}px;
+        border-radius:50%;background:${color};margin-right:5px"></span>`;
+  }
+}
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -252,7 +314,12 @@ export default function transformProps(
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
+  const xAxisType = getAxisType(
+    stack,
+    xAxisForceCategorical,
+    xAxisDataType,
+    seriesType,
+  );
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -338,7 +405,8 @@ export default function transformProps(
     );
 
     const lineStyle: LineStyleOption = {};
-    if (derivedSeries) {
+    let lineSymbol;
+    if (derivedSeries && timeShiftColor) {
       // Get the time offset for this series to assign different dash patterns
       const offset = getTimeOffset(entry, array) || seriesName;
       if (!offsetLineWidths[offset]) {
@@ -347,11 +415,11 @@ export default function transformProps(
       // Use visible dash patterns that vary by offset index
       // Pattern: [dash length, gap length] - scaled to be clearly visible
       const patternIndex = offsetLineWidths[offset];
-      lineStyle.type = [
-        (patternIndex % 5) + 4, // dash: 4-8px (visible)
-        (patternIndex % 3) + 3, // gap: 3-5px (visible)
-      ];
+      lineStyle.type =
+        visibleDashPatterns[patternIndex % visibleDashPatterns.length];
+
       lineStyle.opacity = OpacityEnum.DerivedSeries;
+      lineSymbol = visibleSymbols[patternIndex % visibleSymbols.length];
     }
 
     // Calculate min/max from data for horizontal bar charts
@@ -435,6 +503,7 @@ export default function transformProps(
         sliceId,
         isHorizontal,
         lineStyle,
+        lineSymbol,
         timeCompare: array,
         timeShiftColor,
         theme,
@@ -595,7 +664,10 @@ export default function transformProps(
     for (const s of series) {
       if (s.id) {
         const columnsArr = labelMap[s.id];
-        (s as any).stack = columnsArr[idxSelectedDimension];
+        const dimensionValue = columnsArr?.[idxSelectedDimension];
+        if (dimensionValue !== undefined) {
+          (s as any).stack = dimensionValue;
+        }
       }
     }
   }
@@ -618,9 +690,24 @@ export default function transformProps(
 
   // For horizontal bar charts, set max/min from calculated data bounds
   if (shouldCalculateDataBounds) {
-    // Set max to actual data max to avoid gaps and ensure labels are visible
-    if (dataMax !== undefined && yAxisMax === undefined) {
-      yAxisMax = dataMax;
+    // For stacked charts, clamp against the per-row stacked total to avoid
+    // clipping bars. Also keep dataMax so that mixed-sign stacks (where
+    // positive and negative values cancel in the algebraic row sum) cannot
+    // produce an axis max smaller than the largest individual positive segment.
+    const stackedTotalMax = Math.max(
+      ...sortedTotalValues.filter(
+        (v): v is number => typeof v === 'number' && !Number.isNaN(v),
+      ),
+    );
+    const effectiveDataMax = stack
+      ? Math.max(dataMax ?? Number.NEGATIVE_INFINITY, stackedTotalMax)
+      : dataMax;
+    if (
+      effectiveDataMax !== undefined &&
+      Number.isFinite(effectiveDataMax) &&
+      yAxisMax === undefined
+    ) {
+      yAxisMax = effectiveDataMax;
     }
     // Set min to actual data min for diverging bars
     if (dataMin !== undefined && yAxisMin === undefined && dataMin < 0) {
@@ -651,25 +738,10 @@ export default function transformProps(
     !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
   const addXAxisLabelOffset =
     !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
-  const padding = getPadding(
-    showLegend,
-    legendOrientation,
-    addYAxisLabelOffset,
-    zoomable,
-    legendMargin,
-    addXAxisLabelOffset,
-    yAxisTitlePosition,
-    convertInteger(yAxisTitleMargin),
-    convertInteger(xAxisTitleMargin),
-    isHorizontal,
-  );
-
   const legendData =
     colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
-      ? // When colorByPrimaryAxis is enabled, show only primary axis values (deduped + filtered)
-        (() => {
+      ? (() => {
           const firstSeries = series[0];
-          // For horizontal charts the category is at index 1, for vertical at index 0
           const primaryAxisIndex = isHorizontal ? 1 : 0;
           if (firstSeries && Array.isArray(firstSeries.data)) {
             const names = (firstSeries.data as any[])
@@ -692,8 +764,7 @@ export default function transformProps(
           }
           return [];
         })()
-      : // Otherwise show original series names
-        rawSeries
+      : rawSeries
           .filter(
             entry =>
               extractForecastSeriesContext(entry.name || '').type ===
@@ -701,6 +772,116 @@ export default function transformProps(
           )
           .map(entry => entry.name || '')
           .concat(extractAnnotationLabels(annotationLayers));
+
+  const sortedLegendData = [...legendData].sort((a: string, b: string) => {
+    if (!legendSort) return 0;
+    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+  });
+  const colorByPrimaryAxisLegendData = legendData.map(name => ({
+    name,
+    icon: 'roundRect',
+  }));
+  const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
+    const padding = getPadding(
+      showLegend,
+      legendOrientation,
+      addYAxisLabelOffset,
+      zoomable,
+      candidateLegendMargin,
+      addXAxisLabelOffset,
+      yAxisTitlePosition,
+      convertInteger(yAxisTitleMargin),
+      convertInteger(xAxisTitleMargin),
+      isHorizontal,
+    );
+
+    return resolveLegendLayout({
+      availableWidth:
+        legendOrientation === LegendOrientation.Top ||
+        legendOrientation === LegendOrientation.Bottom
+          ? getHorizontalLegendAvailableWidth({
+              chartWidth: width,
+              orientation: legendOrientation,
+              padding,
+              zoomable,
+            })
+          : undefined,
+      chartHeight: height,
+      chartWidth: width,
+      legendItems:
+        colorByPrimaryAxis && groupBy.length === 0
+          ? colorByPrimaryAxisLegendData
+          : sortedLegendData,
+      legendMargin: candidateLegendMargin,
+      orientation: legendOrientation,
+      show: showLegend,
+      showSelectors: !(colorByPrimaryAxis && groupBy.length === 0),
+      theme,
+      type: legendType,
+    });
+  };
+  const initialLegendLayout = getLegendLayout(legendMargin);
+  const legendLayout =
+    isHorizontal &&
+    legendOrientation === LegendOrientation.Bottom &&
+    initialLegendLayout.effectiveLegendType === LegendType.Plain
+      ? getLegendLayout(initialLegendLayout.effectiveLegendMargin)
+      : initialLegendLayout;
+  const { effectiveLegendType } = legendLayout;
+  const effectiveLegendMargin =
+    isHorizontal &&
+    legendOrientation === LegendOrientation.Bottom &&
+    legendLayout.effectiveLegendType === LegendType.Scroll
+      ? legendMargin
+      : legendLayout.effectiveLegendMargin;
+  const padding = getPadding(
+    showLegend,
+    legendOrientation,
+    addYAxisLabelOffset,
+    zoomable,
+    effectiveLegendMargin,
+    addXAxisLabelOffset,
+    yAxisTitlePosition,
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
+    isHorizontal,
+  );
+
+  // Reduce grid padding for small charts to maximize the drawing area.
+  // Keep enough top padding so the max label doesn't clip against the cell border.
+  // Preserve bottom padding when zoomable, since getPadding() reserves space for the dataZoom slider.
+  if (height < TIMESERIES_CONSTANTS.compactChartHeight) {
+    padding.top = Math.min(padding.top, 12);
+    if (!zoomable) {
+      padding.bottom = Math.min(padding.bottom, 5);
+    }
+  }
+
+  // When showMaxLabel is true, ECharts may render a label at the axis
+  // boundary that formats identically to the last data-point tick (e.g.
+  // "2005" appears twice with Year grain). Wrap the formatter to suppress
+  // consecutive duplicate labels.
+  const showMaxLabel = xAxisType === AxisType.Time && xAxisLabelRotation === 0;
+  const deduplicatedFormatter = showMaxLabel
+    ? (() => {
+        let lastLabel: string | undefined;
+        const wrapper = (value: number | string) => {
+          const label =
+            typeof xAxisFormatter === 'function'
+              ? (xAxisFormatter as Function)(value)
+              : String(value);
+          if (label === lastLabel) {
+            return '';
+          }
+          lastLabel = label;
+          return label;
+        };
+        if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
+          (wrapper as any).id = (xAxisFormatter as any).id;
+        }
+        return wrapper;
+      })()
+    : xAxisFormatter;
 
   let xAxis: any = {
     type: xAxisType,
@@ -715,17 +896,16 @@ export default function transformProps(
       // from overlapping each other, with showMaxLabel to ensure
       // the last data point label stays visible (#37181).
       hideOverlap: !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
-      formatter: xAxisFormatter,
+      formatter: deduplicatedFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
       // Force last label on non-rotated time axes to prevent
       // hideOverlap from hiding it. Skipped when rotated to
       // avoid phantom labels at the axis boundary.
-      ...(xAxisType === AxisType.Time &&
-        xAxisLabelRotation === 0 && {
-          showMaxLabel: true,
-          alignMaxLabel: 'right',
-        }),
+      ...(showMaxLabel && {
+        showMaxLabel: true,
+        alignMaxLabel: 'right',
+      }),
     },
     minorTick: { show: minorTicks },
     minInterval:
@@ -749,14 +929,35 @@ export default function transformProps(
     ),
   };
 
+  // Adapt y-axis to chart height: three tiers based on available space.
+  // >= 100px: full axis with proportional tick count
+  // 60-99px: show only min/max boundary labels (splitNumber=1), hide lines/ticks
+  // < 60px: hide all axis decorations, show line only
+  const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
+  const isMicroChart = height < TIMESERIES_CONSTANTS.microChartHeight;
+  const yAxisSplitNumber = isMicroChart
+    ? undefined
+    : isSmallChart
+      ? 1
+      : Math.max(
+          3,
+          Math.floor(height / TIMESERIES_CONSTANTS.yAxisPixelsPerTick),
+        );
+
   let yAxis: any = {
     ...defaultYAxis,
     type: logAxis ? AxisType.Log : AxisType.Value,
+    ...(yAxisSplitNumber !== undefined && { splitNumber: yAxisSplitNumber }),
     min: yAxisMin,
     max: yAxisMax,
-    minorTick: { show: minorTicks },
-    minorSplitLine: { show: minorSplitLine },
+    minorTick: { show: isSmallChart ? false : minorTicks },
+    minorSplitLine: { show: isSmallChart ? false : minorSplitLine },
+    splitLine: { show: !isSmallChart },
     axisLabel: {
+      show: !isMicroChart,
+      showMinLabel: !isMicroChart,
+      showMaxLabel: !isMicroChart,
+      hideOverlap: true,
       formatter: getYAxisFormatter(
         metrics,
         forcePercentFormatter,
@@ -765,8 +966,9 @@ export default function transformProps(
         yAxisFormat,
       ),
     },
+    axisTick: { show: !isSmallChart },
     scale: truncateYAxis,
-    name: yAxisTitle,
+    name: isSmallChart ? undefined : yAxisTitle,
     nameGap: convertInteger(yAxisTitleMargin),
     nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
   };
@@ -868,10 +1070,16 @@ export default function transformProps(
             if (value.observation === 0 && stack) {
               return;
             }
+            const seriesForKey = series.find(s => s.name === key);
+            const symbolForSeries = (seriesForKey as any)?.symbol || 'circle';
+            const marker = value.color
+              ? getSymbolMarker(symbolForSeries, value.color)
+              : value.marker;
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
               formatter,
+              marker,
             });
 
             const annotationRow = annotationLayers.some(
@@ -910,9 +1118,10 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(
-        legendType,
+        effectiveLegendType,
         legendOrientation,
-        showLegend,
+        // Hide legend on compact charts — not enough vertical space
+        isSmallChart ? false : showLegend,
         theme,
         zoomable,
         legendState,
@@ -921,18 +1130,8 @@ export default function transformProps(
       scrollDataIndex: legendIndex || 0,
       data:
         colorByPrimaryAxis && groupBy.length === 0
-          ? // When colorByPrimaryAxis, configure legend items with roundRect icons
-            legendData.map(name => ({
-              name,
-              icon: 'roundRect',
-            }))
-          : // Otherwise use normal legend data
-            legendData.sort((a: string, b: string) => {
-              if (!legendSort) return 0;
-              return legendSort === 'asc'
-                ? a.localeCompare(b)
-                : b.localeCompare(a);
-            }),
+          ? colorByPrimaryAxisLegendData
+          : sortedLegendData,
       // Disable legend selection and buttons when colorByPrimaryAxis is enabled
       ...(colorByPrimaryAxis && groupBy.length === 0
         ? {

@@ -170,7 +170,7 @@ const renderOperatorFields = (
           <FormItem
             name="targetValue"
             label={t('Target value')}
-            initialValue={''}
+            initialValue=""
             hidden
           />
         </Col>

@@ -16,16 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  useEffect,
-  useState,
-  RefObject,
-  forwardRef,
-  ComponentType,
-  ForwardRefExoticComponent,
-  PropsWithoutRef,
-  RefAttributes,
-} from 'react';
+import React, { useEffect, useState, forwardRef, ComponentType } from 'react';
 
 import { Loading } from '../Loading';
 import type { PlaceholderProps } from './types';
@@ -33,20 +24,22 @@ import type { PlaceholderProps } from './types';
 function DefaultPlaceholder({
   width,
   height,
-  showLoadingForImport = false,
+  showLoadingForImport = true,
   placeholderStyle: style,
 }: PlaceholderProps) {
-  return (
-    // since `width` defaults to 100%, we can display the placeholder once
-    // height is specified.
-    (height && (
+  if (showLoadingForImport) {
+    return (
       <div key="async-asm-placeholder" style={{ width, height, ...style }}>
-        {showLoadingForImport && <Loading position="floating" />}
+        <Loading position="floating" size="s" />
       </div>
-    )) ||
-    // `|| null` is for in case of height=0.
-    null
-  );
+    );
+  }
+  if (height) {
+    return (
+      <div key="async-asm-placeholder" style={{ width, height, ...style }} />
+    );
+  }
+  return null;
 }
 
 /**
@@ -91,15 +84,16 @@ export function AsyncEsmComponent<
     return promise;
   }
 
-  type AsyncComponent = ForwardRefExoticComponent<
-    PropsWithoutRef<FullProps> & RefAttributes<ComponentType<FullProps>>
+  type AsyncComponent = React.ForwardRefExoticComponent<
+    React.PropsWithoutRef<FullProps> & React.RefAttributes<unknown>
   > & {
     preload?: typeof waitForPromise;
   };
 
+  // @ts-expect-error -- generic forwardRef has PropsWithoutRef incompatibility with FullProps
   const AsyncComponent: AsyncComponent = forwardRef(function AsyncComponent(
     props: FullProps,
-    ref: RefObject<ComponentType<FullProps>>,
+    ref,
   ) {
     const [loaded, setLoaded] = useState(component !== undefined);
     useEffect(() => {
