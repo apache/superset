@@ -50,7 +50,7 @@ from flask_appbuilder.security.views import (
 from flask_babel import lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, inspect, or_
+from sqlalchemy import and_, func as sa_func, inspect, or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import eagerload, joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -3190,8 +3190,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if username:
             try:
                 if self.auth_username_ci:
-                    from sqlalchemy import func as sa_func
-
                     return (
                         self.session.query(self.user_model)
                         .options(*eager)
