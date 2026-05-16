@@ -30,6 +30,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import GroupsList from './index';
 
 const mockStore = configureStore([thunk]);
@@ -44,6 +45,7 @@ const mockUser = {
 
 const rolesEndpoint = 'glob:*/security/roles/?*';
 const usersEndpoint = 'glob:*/security/users/?*';
+const groupsEndpoint = 'glob:*/security/groups/*';
 
 const mockRoles = Array.from({ length: 3 }, (_, i) => ({
   id: i,
@@ -65,17 +67,20 @@ fetchMock.get(rolesEndpoint, {
   count: 3,
 });
 
+fetchMock.get(groupsEndpoint, { result: [] }, { name: groupsEndpoint });
+
 jest.mock('src/dashboard/util/permissionUtils', () => ({
   ...jest.requireActual('src/dashboard/util/permissionUtils'),
-  isUserAdmin: jest.fn(() => true),
+  isUserAdmin: () => true,
 }));
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('GroupsList', () => {
   const renderComponent = async () => {
     await act(async () => {
       render(
         <MemoryRouter>
-          <QueryParamProvider>
+          <QueryParamProvider adapter={ReactRouter5Adapter}>
             <GroupsList user={mockUser} />
           </QueryParamProvider>
         </MemoryRouter>,
@@ -85,34 +90,36 @@ describe('GroupsList', () => {
   };
 
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
-  it('renders the page', async () => {
+  test('renders the page', async () => {
     await renderComponent();
     expect(await screen.findByText('List Groups')).toBeInTheDocument();
   });
 
-  it('fetches roles on load', async () => {
+  test('fetches roles on load', async () => {
     await renderComponent();
     await waitFor(() => {
-      expect(fetchMock.calls(rolesEndpoint).length).toBeGreaterThan(0);
+      expect(fetchMock.callHistory.calls(rolesEndpoint).length).toBeGreaterThan(
+        0,
+      );
     });
   });
 
-  it('renders add group button and triggers modal', async () => {
+  test('renders add group button and triggers modal', async () => {
     await renderComponent();
     const addButton = screen.getByTestId('add-group-button');
     fireEvent.click(addButton);
     expect(await screen.findByTestId('Add Group-modal')).toBeInTheDocument();
   });
 
-  it('renders actions column for admin', async () => {
+  test('renders actions column for admin', async () => {
     await renderComponent();
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getAllByText('Actions')[0]).toBeInTheDocument();
   });
 
-  it('renders the filters correctly', async () => {
+  test('renders the filters correctly', async () => {
     await renderComponent();
     const filtersSelect = screen.getAllByTestId('filters-select')[0];
 
@@ -123,16 +130,16 @@ describe('GroupsList', () => {
     expect(within(filtersSelect).getByText(/users/i)).toBeInTheDocument();
   });
 
-  it('renders correct columns in the table', async () => {
+  test('renders correct columns in the table', async () => {
     await renderComponent();
     const table = screen.getByRole('table');
 
-    expect(await within(table).findByText('Name')).toBeInTheDocument();
-    expect(await within(table).findByText('Label')).toBeInTheDocument();
-    expect(await within(table).findByText('Roles')).toBeInTheDocument();
+    expect(await within(table).findByTitle('Name')).toBeInTheDocument();
+    expect(await within(table).findByTitle('Label')).toBeInTheDocument();
+    expect(await within(table).findByTitle('Roles')).toBeInTheDocument();
   });
 
-  it('opens add group modal on button click', async () => {
+  test('opens add group modal on button click', async () => {
     await renderComponent();
     const addButton = screen.getByTestId('add-group-button');
     fireEvent.click(addButton);
@@ -140,7 +147,8 @@ describe('GroupsList', () => {
     expect(await screen.findByTestId('Add Group-modal')).toBeInTheDocument();
   });
 
-  it('opens edit modal on edit button click', async () => {
+  test('opens edit modal on edit button click', async () => {
+    fetchMock.removeRoute(groupsEndpoint);
     fetchMock.get('glob:*/security/groups/?*', {
       result: [
         {

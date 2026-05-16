@@ -29,7 +29,12 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
     MultiCatalogDisabledValidationError,
 )
-from superset.commands.dataset.update import UpdateDatasetCommand, validate_folders
+from superset.commands.dataset.update import (
+    DEFAULT_COLUMNS_FOLDER_UUID,
+    DEFAULT_METRICS_FOLDER_UUID,
+    UpdateDatasetCommand,
+    validate_folders,
+)
 from superset.commands.exceptions import OwnersNotFoundValidationError
 from superset.datasets.schemas import FolderSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -68,6 +73,105 @@ def test_update_dataset_forbidden(mocker: MockerFixture) -> None:
 
     with pytest.raises(DatasetForbiddenError):
         UpdateDatasetCommand(1, {"name": "test"}).run()
+
+
+def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
+    """
+    Test that updating a dataset with SQL works when user has schema access.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "test_table"
+    mock_dataset.owners = []  # No owners to avoid ownership computation issues
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.update.return_value = mock_dataset
+
+    # Mock successful ownership check
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+    )
+
+    # Mock security manager methods for owner computation
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+
+    # Mock security manager to allow access to the schema
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+    )
+
+    # Update dataset with SQL - should work when user has access
+    result = UpdateDatasetCommand(
+        1, {"sql": "SELECT * FROM public.allowed_table"}
+    ).run()
+
+    # Verify the update was called
+    assert result == mock_dataset
+    mock_dataset_dao.update.assert_called_once()
+
+
+def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
+    """
+    Test that updating a dataset with SQL to an unauthorized schema raises an error.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "test_table"
+    mock_dataset.owners = []  # No owners to avoid ownership computation issues
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+
+    # Mock successful ownership check
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+    )
+
+    # Mock security manager methods for owner computation
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+
+    # Mock security manager to raise error for SQL schema access
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                message="You don't have access to the 'restricted_schema' schema",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    # Try to update dataset with SQL querying an unauthorized schema
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        UpdateDatasetCommand(
+            1, {"sql": "SELECT * FROM restricted_schema.sensitive_table"}
+        ).run()
+
+    # Check that the appropriate error message is in the exceptions
+    assert any(
+        "You don't have access to the 'restricted_schema' schema" in str(exc)
+        for exc in excinfo.value._exceptions
+    )
 
 
 @pytest.mark.parametrize(
@@ -463,6 +567,34 @@ def test_validate_folders_invalid_names(mocker: MockerFixture) -> None:
     with pytest.raises(ValidationError) as excinfo:
         validate_folders(folders=folders_with_columns, valid_uuids=set())
     assert str(excinfo.value) == "Folder cannot have name 'Columns'"
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_allows_default_folders(mocker: MockerFixture) -> None:
+    """
+    Test that default system folders (Metrics/Columns) are allowed when using
+    the well-known default folder UUIDs, so their position can be persisted.
+    """
+    folders = cast(
+        list[FolderSchema],
+        [
+            {
+                "uuid": DEFAULT_METRICS_FOLDER_UUID,
+                "type": "folder",
+                "name": "Metrics",
+                "children": [],
+            },
+            {
+                "uuid": DEFAULT_COLUMNS_FOLDER_UUID,
+                "type": "folder",
+                "name": "Columns",
+                "children": [],
+            },
+        ],
+    )
+
+    # Should not raise - default folders are allowed to use reserved names
+    validate_folders(folders=folders, valid_uuids=set())
 
 
 @with_feature_flags(DATASET_FOLDERS=True)

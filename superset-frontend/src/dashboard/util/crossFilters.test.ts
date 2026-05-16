@@ -135,7 +135,6 @@ const mockedGetChartMetadataRegistry = getChartMetadataRegistry as jest.Mock;
 
 beforeEach(() => {
   mockedGetChartMetadataRegistry.mockImplementation(() => ({
-    // @ts-ignore
     get: () => ({
       behaviors: [Behavior.InteractiveChart],
     }),
@@ -147,7 +146,7 @@ afterEach(() => {
 });
 
 test('Generate correct cross filters configuration without initial configuration', () => {
-  // @ts-ignore
+  // @ts-expect-error
   expect(getCrossFiltersConfiguration(DASHBOARD_LAYOUT, {}, CHARTS)).toEqual({
     chartConfiguration: {
       '1': {

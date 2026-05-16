@@ -33,7 +33,7 @@ from flask import (
     Response,
     send_file,
 )
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
@@ -54,10 +54,8 @@ from superset.commands.database.exceptions import (
 from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.database.importers.dispatcher import ImportDatabasesCommand
 from superset.commands.database.oauth2 import OAuth2StoreTokenCommand
-from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
-    SSHTunnelDeleteFailedError,
     SSHTunnelingNotEnabledError,
 )
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
@@ -220,6 +218,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "changed_by.last_name",
         "created_by.first_name",
         "created_by.last_name",
+        "configuration_method",
         "database_name",
         "explore_database_id",
         "expose_in_sqllab",
@@ -356,8 +355,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             "result": database_connection_schema.dump(database, many=False),
         }
         try:
-            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(pk):
-                response["result"]["ssh_tunnel"] = ssh_tunnel.data
+            if database and database.ssh_tunnel:
+                response["result"]["ssh_tunnel"] = database.ssh_tunnel.data
             return self.response(200, **response)
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
@@ -394,9 +393,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """
         data = self.get_headless(pk, **kwargs)
         try:
-            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(pk):
+            database = DatabaseDAO.find_by_id(pk)
+            if database and database.ssh_tunnel:
                 payload = data.json
-                payload["result"]["ssh_tunnel"] = ssh_tunnel.data
+                payload["result"]["ssh_tunnel"] = database.ssh_tunnel.data
                 return payload
             return data
         except SupersetException as ex:
@@ -447,7 +447,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
         except ValidationError as error:
-            return self.response_400(message=error.messages)
+            return self.response_422(message=error.messages)
         try:
             new_model = CreateDatabaseCommand(item).run()
             item["uuid"] = new_model.uuid
@@ -464,7 +464,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
             # Return SSH Tunnel and hide passwords if any
             if item.get("ssh_tunnel"):
-                item["ssh_tunnel"] = mask_password_info(new_model.ssh_tunnel)
+                item["ssh_tunnel"] = mask_password_info(item["ssh_tunnel"])
 
             return self.response(201, id=new_model.id, result=item)
         except OAuth2RedirectError:
@@ -552,7 +552,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 item["parameters"] = changed_model.parameters
             # Return SSH Tunnel and hide passwords if any
             if item.get("ssh_tunnel"):
-                item["ssh_tunnel"] = mask_password_info(changed_model.ssh_tunnel)
+                item["ssh_tunnel"] = mask_password_info(item["ssh_tunnel"])
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()
@@ -675,7 +675,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/catalogs/")
     @protect()
-    @rison(database_catalogs_query_schema)
+    @parse_rison(database_catalogs_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.catalogs",
@@ -740,7 +740,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/schemas/")
     @protect()
-    @rison(database_schemas_query_schema)
+    @parse_rison(database_schemas_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.schemas",
@@ -824,7 +824,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/tables/")
     @protect()
-    @rison(database_tables_query_schema)
+    @parse_rison(database_tables_query_schema)
     @statsd_metrics
     @handle_api_exception
     @event_logger.log_this_with_context(
@@ -1473,7 +1473,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -1591,6 +1591,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of sensitive values for masked_encrypted_extra fields.
+                        Keys are file paths (e.g., "databases/db.yaml") and values
+                        are JSON objects mapping JSONPath expressions to secrets.
+                        (e.g., `{"databases/MyDatabase.yaml":
+                        {"$.credentials_info.private_key": "actual_key"}}`).
+                      type: string
           responses:
             200:
               description: Database import result
@@ -1642,6 +1650,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if "ssh_tunnel_private_key_passwords" in request.form
             else None
         )
+        encrypted_extra_secrets = (
+            json.loads(request.form["encrypted_extra_secrets"])
+            if "encrypted_extra_secrets" in request.form
+            else None
+        )
 
         command = ImportDatabasesCommand(
             contents,
@@ -1650,6 +1663,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")
@@ -1990,73 +2004,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command = ValidateDatabaseParametersCommand(payload)
         command.run()
         return self.response(200, message="OK")
-
-    @expose("/<int:pk>/ssh_tunnel/", methods=("DELETE",))
-    @protect()
-    @statsd_metrics
-    @deprecated(deprecated_in="4.0")
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".delete_ssh_tunnel",
-        log_to_statsd=False,
-    )
-    def delete_ssh_tunnel(self, pk: int) -> Response:
-        """Delete a SSH tunnel.
-        ---
-        delete:
-          summary: Delete a SSH tunnel
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          responses:
-            200:
-              description: SSH Tunnel deleted
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-
-        database = DatabaseDAO.find_by_id(pk)
-        if not database:
-            return self.response_404()
-        try:
-            existing_ssh_tunnel_model = database.ssh_tunnels
-            if existing_ssh_tunnel_model:
-                DeleteSSHTunnelCommand(existing_ssh_tunnel_model.id).run()
-                return self.response(200, message="OK")
-            return self.response_404()
-        except SSHTunnelDeleteFailedError as ex:
-            logger.error(
-                "Error deleting SSH Tunnel %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
-        except SSHTunnelingNotEnabledError as ex:
-            logger.error(
-                "Error deleting SSH Tunnel %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_400(message=str(ex))
 
     @expose("/<int:pk>/schemas_access_for_file_upload/")
     @protect()

@@ -24,7 +24,7 @@ import pandas as pd
 import io
 
 import pytest
-import prison
+import rison
 from sqlalchemy.sql import func  # noqa: F401
 from unittest import mock
 
@@ -39,6 +39,7 @@ from superset.utils.database import (
 from superset.utils import core as utils, json
 from superset.models.sql_lab import Query
 
+from superset.sql.parse import SQLScript
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
@@ -288,6 +289,53 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertDictEqual(resp_data, success_resp)  # noqa: PT009
         assert rv.status_code == 200
 
+    def test_format_sql_request_with_db_id(self):
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+
+        # IIF is normalized differently per dialect:
+        # SQLite preserves IIF(), Postgres/base converts to CASE WHEN.
+        # Compute the expected result from the actual engine so the test is
+        # environment-independent.
+        sql = "select IIF(score > 0, 'positive', 'negative') from my_table"
+        engine = example_db.db_engine_spec.engine
+        expected = SQLScript(sql, engine).format()
+
+        data = {"sql": sql, "database_id": example_db.id}
+        rv = self.client.post(
+            "/api/v1/sqllab/format_sql/",
+            json=data,
+        )
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert resp_data["result"] == expected
+
+    def test_format_sql_request_with_jinja(self):
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+
+        # Quoted identifier formatting varies by dialect (e.g., MySQL uses backticks).
+        # Compute the expected result from the actual engine so the test is
+        # environment-independent.
+        rendered_sql = 'select * from "Vehicle Sales"'
+        engine = example_db.db_engine_spec.engine
+        expected = SQLScript(rendered_sql, engine).format()
+
+        data = {
+            "sql": "select * from {{tbl}}",
+            "database_id": example_db.id,
+            "template_params": json.dumps({"tbl": '"Vehicle Sales"'}),
+        }
+        rv = self.client.post(
+            "/api/v1/sqllab/format_sql/",
+            json=data,
+        )
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        # Verify that Jinja template was processed before formatting
+        assert "{{tbl}}" not in resp_data["result"]
+        assert resp_data["result"] == expected
+
     @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
         self.login(ADMIN_USERNAME)
@@ -414,11 +462,11 @@ class TestSqlLabApi(SupersetTestCase):
             # get all results
             arguments = {"key": "key"}
             result_key = json.loads(
-                self.get_resp(f"/api/v1/sqllab/results/?q={prison.dumps(arguments)}")
+                self.get_resp(f"/api/v1/sqllab/results/?q={rison.dumps(arguments)}")
             )
             arguments = {"key": "key", "rows": 1}
             result_limited = json.loads(
-                self.get_resp(f"/api/v1/sqllab/results/?q={prison.dumps(arguments)}")
+                self.get_resp(f"/api/v1/sqllab/results/?q={rison.dumps(arguments)}")
             )
 
         assert result_key == expected_key

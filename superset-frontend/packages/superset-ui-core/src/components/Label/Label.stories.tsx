@@ -95,3 +95,36 @@ LabelGallery.argTypes = {
     control: { type: 'boolean' },
   },
 };
+
+// Interactive single Label story
+interface InteractiveLabelProps {
+  type: LabelType;
+  children: string;
+  monospace?: boolean;
+}
+
+export const InteractiveLabel: StoryFn<InteractiveLabelProps> = args => (
+  <Label {...args}>{args.children}</Label>
+);
+
+InteractiveLabel.args = {
+  type: 'default',
+  children: 'Label text',
+  monospace: false,
+};
+
+InteractiveLabel.argTypes = {
+  type: {
+    description: 'The visual style of the label.',
+    options,
+    control: { type: 'select' },
+  },
+  children: {
+    description: 'The label text content.',
+    control: { type: 'text' },
+  },
+  monospace: {
+    description: 'Use monospace font.',
+    control: { type: 'boolean' },
+  },
+};

@@ -18,9 +18,8 @@
 import logging
 from typing import Optional
 
-from flask import flash, g, redirect
+from flask import g, redirect
 from flask_appbuilder import expose
-from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.const import LOGMSG_ERR_SEC_NO_REGISTER_HASH
 from flask_appbuilder.security.decorators import no_cache
 from flask_appbuilder.security.views import AuthView, WerkzeugResponse
@@ -66,7 +65,7 @@ class SupersetRegisterUserView(BaseSupersetView):
         reg = self.appbuilder.sm.find_register_user(activation_hash)
         if not reg:
             logger.error(LOGMSG_ERR_SEC_NO_REGISTER_HASH, activation_hash)
-            flash(as_unicode(self.false_error_message), "danger")
+            logger.error("Registration activation failed: %s", self.false_error_message)
             return redirect(self.appbuilder.get_url_for_index)
         if not self.appbuilder.sm.add_user(
             username=reg.username,
@@ -78,7 +77,7 @@ class SupersetRegisterUserView(BaseSupersetView):
             ),
             hashed_password=reg.password,
         ):
-            flash(as_unicode(self.error_message), "danger")
+            logger.error("User registration failed: %s", self.error_message)
             return redirect(self.appbuilder.get_url_for_index)
         else:
             self.appbuilder.sm.del_register_user(reg)

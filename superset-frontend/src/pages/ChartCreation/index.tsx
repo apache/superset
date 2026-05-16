@@ -18,18 +18,19 @@
  */
 import { PureComponent, ReactNode } from 'react';
 import rison from 'rison';
-import {
-  isDefined,
-  JsonResponse,
-  styled,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { isDefined, JsonResponse, SupersetClient } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
-import { AsyncSelect, Button, Steps } from '@superset-ui/core/components';
+import {
+  AsyncSelect,
+  Button,
+  Loading,
+  Steps,
+} from '@superset-ui/core/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
@@ -43,6 +44,10 @@ import {
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
 import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  datasetLabel,
+  datasetLabelLower,
+} from 'src/features/semanticLayers/label';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
@@ -55,6 +60,7 @@ export type ChartCreationState = {
   datasetName?: string | string[] | null;
   vizType: string | null;
   canCreateDataset: boolean;
+  loading: boolean;
 };
 
 const ESTIMATED_NAV_HEIGHT = 56;
@@ -177,6 +183,9 @@ export class ChartCreation extends PureComponent<
 > {
   constructor(props: ChartCreationProps) {
     super(props);
+    const hasDatasetParam = new URLSearchParams(window.location.search).has(
+      'dataset',
+    );
     this.state = {
       vizType: null,
       canCreateDataset: findPermission(
@@ -184,6 +193,7 @@ export class ChartCreation extends PureComponent<
         'Dataset',
         props.user.roles,
       ),
+      loading: hasDatasetParam,
     };
 
     this.changeDatasource = this.changeDatasource.bind(this);
@@ -196,10 +206,14 @@ export class ChartCreation extends PureComponent<
   componentDidMount() {
     const params = new URLSearchParams(window.location.search).get('dataset');
     if (params) {
-      this.loadDatasources(params, 0, 1).then(r => {
-        const datasource = r.data[0];
-        this.setState({ datasource });
-      });
+      this.loadDatasources(params, 0, 1, true)
+        .then(r => {
+          const datasource = r.data[0];
+          this.setState({ datasource, loading: false });
+        })
+        .catch(() => {
+          this.setState({ loading: false });
+        });
       this.props.addSuccessToast(t('The dataset has been saved'));
     }
   }
@@ -235,7 +249,12 @@ export class ChartCreation extends PureComponent<
     }
   }
 
-  loadDatasources(search: string, page: number, pageSize: number) {
+  loadDatasources(
+    search: string,
+    page: number,
+    pageSize: number,
+    exactMatch = false,
+  ) {
     const query = rison.encode({
       columns: [
         'id',
@@ -244,7 +263,9 @@ export class ChartCreation extends PureComponent<
         'database.database_name',
         'schema',
       ],
-      filters: [{ col: 'table_name', opr: 'ct', value: search }],
+      filters: [
+        { col: 'table_name', opr: exactMatch ? 'eq' : 'ct', value: search },
+      ],
       page,
       page_size: pageSize,
       order_column: 'table_name',
@@ -257,11 +278,12 @@ export class ChartCreation extends PureComponent<
         id: number;
         label: string | ReactNode;
         value: string;
+        table_name: string;
       }[] = response.json.result.map((item: Dataset) => ({
         id: item.id,
         value: `${item.id}__${item.datasource_type}`,
         label: DatasetSelectLabel(item),
-        customLabel: item.table_name,
+        table_name: item.table_name,
       }));
       return {
         data: list,
@@ -305,23 +327,31 @@ export class ChartCreation extends PureComponent<
       </span>
     );
 
+    if (this.state.loading) {
+      return <Loading />;
+    }
+
     return (
       <StyledContainer>
         <h3>{t('Create a new chart')}</h3>
         <Steps direction="vertical" size="small">
           <Steps.Step
-            title={<StyledStepTitle>{t('Choose a dataset')}</StyledStepTitle>}
+            title={
+              <StyledStepTitle>
+                {t('Choose a %s', datasetLabelLower())}
+              </StyledStepTitle>
+            }
             status={this.state.datasource?.value ? 'finish' : 'process'}
             description={
               <StyledStepDescription className="dataset">
                 <AsyncSelect
                   autoFocus
-                  ariaLabel={t('Dataset')}
+                  ariaLabel={datasetLabel()}
                   name="select-datasource"
                   onChange={this.changeDatasource}
                   options={this.loadDatasources}
-                  optionFilterProps={['id', 'customLabel']}
-                  placeholder={t('Choose a dataset')}
+                  optionFilterProps={['id', 'table_name']}
+                  placeholder={t('Choose a %s', datasetLabelLower())}
                   showSearch
                   value={this.state.datasource}
                 />
@@ -348,7 +378,10 @@ export class ChartCreation extends PureComponent<
         <div className="footer">
           {isButtonDisabled && (
             <span>
-              {t('Please select both a Dataset and a Chart type to proceed')}
+              {t(
+                'Please select both a %s and a Chart type to proceed',
+                datasetLabel(),
+              )}
             </span>
           )}
           <Button

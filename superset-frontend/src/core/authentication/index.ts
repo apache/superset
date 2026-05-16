@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { authentication as authenticationType } from '@apache-superset/core';
+import { authentication as authenticationApi } from '@apache-superset/core';
 import { SupersetClient } from '@superset-ui/core';
 
-const getCSRFToken: typeof authenticationType.getCSRFToken = () =>
+const getCSRFToken: typeof authenticationApi.getCSRFToken = () =>
   SupersetClient.getCSRFToken();
 
-export const authentication: typeof authenticationType = {
+export const authentication: typeof authenticationApi = {
   getCSRFToken,
 };

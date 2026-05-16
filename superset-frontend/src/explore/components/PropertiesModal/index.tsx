@@ -21,14 +21,13 @@ import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
 import {
   Input,
   AsyncSelect,
-  Modal,
   Collapse,
   CollapseLabelInModal,
   type SelectValue,
 } from '@superset-ui/core/components';
 import rison from 'rison';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
@@ -38,6 +37,12 @@ import {
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
+import {
+  OwnerSelectLabel,
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+  OWNER_OPTION_FILTER_PROPS,
+} from 'src/features/owners/OwnerSelectLabel';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import {
@@ -54,6 +59,7 @@ export type PropertiesModalProps = {
   permissionsError?: string;
   existingOwners?: SelectValue;
   addSuccessToast: (msg: string) => void;
+  addDangerToast: (msg: string) => void;
 };
 
 function PropertiesModal({
@@ -62,6 +68,7 @@ function PropertiesModal({
   onSave,
   show,
   addSuccessToast,
+  addDangerToast,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
   // values of form inputs
@@ -133,17 +140,17 @@ function PropertiesModal({
     return selectTags;
   }, [tags.length]);
 
-  function showError({ error, statusText, message }: any) {
-    let errorText = error || statusText || t('An error has occurred');
-    if (message === 'Forbidden') {
-      errorText = t('You do not have permission to edit this chart');
-    }
-    Modal.error({
-      title: t('Error'),
-      content: errorText,
-      okButtonProps: { danger: true, className: 'btn-danger' },
-    });
-  }
+  const showError = useCallback(
+    ({ error, statusText, message }: any) => {
+      let errorText = error || statusText || t('An error has occurred');
+      if (message === 'Forbidden') {
+        errorText = t('You do not have permission to edit this chart');
+      }
+
+      addDangerToast(errorText);
+    },
+    [addDangerToast],
+  );
 
   const fetchChartProperties = useCallback(
     async function fetchChartProperties() {
@@ -152,6 +159,7 @@ function PropertiesModal({
           'owners.id',
           'owners.first_name',
           'owners.last_name',
+          'owners.email',
           'tags.id',
           'tags.name',
           'tags.type',
@@ -163,10 +171,25 @@ function PropertiesModal({
         });
         const chart = response.json.result;
         setSelectedOwners(
-          chart?.owners?.map((owner: any) => ({
-            value: owner.id,
-            label: `${owner.first_name} ${owner.last_name}`,
-          })),
+          chart?.owners?.map(
+            (owner: {
+              id: number;
+              first_name: string;
+              last_name: string;
+              email?: string;
+            }) => {
+              const ownerName = `${owner.first_name} ${owner.last_name}`;
+              return {
+                value: owner.id,
+                label: OwnerSelectLabel({
+                  name: ownerName,
+                  email: owner.email,
+                }),
+                [OWNER_TEXT_LABEL_PROP]: ownerName,
+                [OWNER_EMAIL_PROP]: owner.email ?? '',
+              };
+            },
+          ),
         );
         if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
           const customTags = chart.tags?.filter(
@@ -179,7 +202,7 @@ function PropertiesModal({
         showError(clientError);
       }
     },
-    [slice.slice_id],
+    [showError, slice.slice_id],
   );
 
   const loadOptions = useMemo(
@@ -195,10 +218,21 @@ function PropertiesModal({
         }).then(response => ({
           data: response.json.result
             .filter((item: { extra: { active: boolean } }) => item.extra.active)
-            .map((item: { value: number; text: string }) => ({
-              value: item.value,
-              label: item.text,
-            })),
+            .map(
+              (item: {
+                value: number;
+                text: string;
+                extra: { email?: string };
+              }) => ({
+                value: item.value,
+                label: OwnerSelectLabel({
+                  name: item.text,
+                  email: item.extra?.email,
+                }),
+                [OWNER_TEXT_LABEL_PROP]: item.text,
+                [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
+              }),
+            ),
           totalCount: response.json.count,
         }));
       },
@@ -233,20 +267,16 @@ function PropertiesModal({
     }
 
     try {
-      const res = await SupersetClient.put({
-        endpoint: `/api/v1/chart/${slice.slice_id}`,
+      const chartEndpoint = `/api/v1/chart/${slice.slice_id}`;
+      let res = await SupersetClient.put({
+        endpoint: chartEndpoint,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      // update the redux state
-      const updatedChart = {
-        ...payload,
-        ...res.json.result,
-        tags,
-        id: slice.slice_id,
-        owners: selectedOwners,
-      };
-      onSave(updatedChart);
+      res = await SupersetClient.get({
+        endpoint: chartEndpoint,
+      });
+      onSave(res.json.result);
       addSuccessToast(t('Chart properties updated'));
       onHide();
     } catch (res) {
@@ -375,6 +405,7 @@ function PropertiesModal({
                     options={loadOptions}
                     disabled={!selectedOwners}
                     allowClear
+                    optionFilterProps={OWNER_OPTION_FILTER_PROPS}
                   />
                 </ModalFormField>
                 {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
@@ -425,7 +456,7 @@ function PropertiesModal({
                 bottomSpacing={false}
               >
                 <Input
-                  aria-label="Cache timeout"
+                  aria-label={t('Cache timeout')}
                   value={cacheTimeout}
                   onChange={(event: ChangeEvent<HTMLInputElement>) =>
                     setCacheTimeout(event.target.value ?? '')

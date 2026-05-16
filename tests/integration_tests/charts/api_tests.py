@@ -21,8 +21,8 @@ from unittest import mock
 from unittest.mock import patch
 from zipfile import is_zipfile
 
-import prison
 import pytest
+import rison
 from flask_babel import lazy_gettext as _
 from parameterized import parameterized
 from sqlalchemy import and_
@@ -297,7 +297,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/chart/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/chart/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -334,7 +334,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             )
         self.login(ADMIN_USERNAME)
         argument = chart_ids
-        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/?q={rison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -351,7 +351,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart_ids = [1, "a"]
         self.login(ADMIN_USERNAME)
         argument = chart_ids
-        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/?q={rison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 400
 
@@ -392,7 +392,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         max_id = db.session.query(func.max(Slice.id)).scalar()
         chart_ids = [max_id + 1, max_id + 2]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/?q={prison.dumps(chart_ids)}"
+        uri = f"api/v1/chart/?q={rison.dumps(chart_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404
 
@@ -412,7 +412,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart_ids = [chart.id for chart in charts]
         chart_ids.append(chart_with_report.id)
 
-        uri = f"api/v1/chart/?q={prison.dumps(chart_ids)}"
+        uri = f"api/v1/chart/?q={rison.dumps(chart_ids)}"
         rv = self.client.delete(uri)
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
@@ -449,7 +449,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         argument = chart_ids
-        uri = f"api/v1/chart/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/?q={rison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -504,7 +504,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         # verify we can't delete not owned charts
         arguments = [chart.id for chart in charts]
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 403
         response = json.loads(rv.data.decode("utf-8"))
@@ -513,7 +513,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         # # nothing is deleted in bulk with a list of owned and not owned charts
         arguments = [chart.id for chart in charts] + [owned_chart.id]
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 403
         response = json.loads(rv.data.decode("utf-8"))
@@ -626,7 +626,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == {
             "message": {
                 "datasource_type": [
-                    "Must be one of: table, dataset, query, saved_query, view."
+                    "Must be one of: table, dataset, query, saved_query, view, "
+                    "semantic_view."
                 ]
             }
         }
@@ -981,7 +982,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == {
             "message": {
                 "datasource_type": [
-                    "Must be one of: table, dataset, query, saved_query, view."
+                    "Must be one of: table, dataset, query, saved_query, view, "
+                    "semantic_view."
                 ]
             }
         }
@@ -1035,6 +1037,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                     "id": 1,
                     "first_name": "admin",
                     "last_name": "user",
+                    "email": "admin@fab.org",
                 }
             ],
             "params": None,
@@ -1157,7 +1160,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 {"col": "slice_name", "opr": "eq", "value": self.chart.slice_name}
             ]
         }
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1183,7 +1186,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 }
             ]
         }
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1247,7 +1250,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "order_column": "changed_on_delta_humanized",
             "order_direction": "desc",
         }
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
 
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
@@ -1271,7 +1274,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         arguments = {"filters": [{"col": "slice_name", "opr": "sw", "value": "G"}]}
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1328,7 +1331,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "columns": ["slice_name", "description", "viz_type"],
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1361,7 +1364,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         data = rv.json
         assert rv.status_code == 200
@@ -1393,7 +1396,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1414,7 +1417,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1436,7 +1439,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
 
         self.login(GAMMA_USERNAME)
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1493,7 +1496,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "columns": ["slice_name"],
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1510,7 +1513,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             .all()
         )
         arguments["filters"][0]["value"] = False
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1535,7 +1538,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "columns": ["slice_name"],
         }
         self.login(gamma_user.username)
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1564,7 +1567,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert users_favorite_ids
         arguments = [s.id for s in db.session.query(Slice.id).all()]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/favorite_status/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/favorite_status/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1587,7 +1590,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.commit()
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        uri = f"api/v1/chart/favorite_status/?q={rison.dumps([chart.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -1596,7 +1599,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart.id}/favorites/"
         self.client.post(uri)
 
-        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        uri = f"api/v1/chart/favorite_status/?q={rison.dumps([chart.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -1623,7 +1626,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart.id}/favorites/"
         self.client.post(uri)
 
-        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        uri = f"api/v1/chart/favorite_status/?q={rison.dumps([chart.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -1632,7 +1635,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         uri = f"api/v1/chart/{chart.id}/favorites/"
         self.client.delete(uri)
 
-        uri = f"api/v1/chart/favorite_status/?q={prison.dumps([chart.id])}"
+        uri = f"api/v1/chart/favorite_status/?q={rison.dumps([chart.id])}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         for res in data["result"]:
@@ -1647,7 +1650,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         humanize_time_range = "100 years ago : now"
-        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
+        uri = f"api/v1/time_range/?q={rison.dumps(humanize_time_range)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1659,7 +1662,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             {"timeRange": "2021-01-01 : 2022-02-01"},
             {"timeRange": "2022-01-01 : 2023-02-01"},
         ]
-        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
+        uri = f"api/v1/time_range/?q={rison.dumps(humanize_time_range)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1672,7 +1675,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             {"timeRange": "2021-01-01 : 2022-02-01", "shift": "1 year ago"},
             {"timeRange": "2022-01-01 : 2023-02-01", "shift": "2 year ago"},
         ]
-        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
+        uri = f"api/v1/time_range/?q={rison.dumps(humanize_time_range)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1709,14 +1712,14 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         # Assuming we have 33 sample charts
         self.login(ADMIN_USERNAME)
         arguments = {"page_size": 10, "page": 0}
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert len(data["result"]) == 10
 
         arguments = {"page_size": 10, "page": 3}
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1739,7 +1742,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         example_chart = db.session.query(Slice).all()[0]
         argument = [example_chart.id]
-        uri = f"api/v1/chart/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/export/?q={rison.dumps(argument)}"
 
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
@@ -1755,7 +1758,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         # Just one does not exist and we get 404
         argument = [-1, 1]
-        uri = f"api/v1/chart/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/export/?q={rison.dumps(argument)}"
         self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "export")
 
@@ -1767,7 +1770,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         example_chart = db.session.query(Slice).all()[0]
         argument = [example_chart.id]
-        uri = f"api/v1/chart/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/chart/export/?q={rison.dumps(argument)}"
 
         self.login(GAMMA_USERNAME)
         rv = self.client.get(uri)
@@ -1909,7 +1912,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1923,7 +1926,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         }
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -1948,7 +1951,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "page": 0,
             "page_size": 25,
         }
-        rv = self.client.get(f"api/v1/chart/?q={prison.dumps(arguments)}")
+        rv = self.client.get(f"api/v1/chart/?q={rison.dumps(arguments)}")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
 

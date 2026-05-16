@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css, SupersetTheme, useTheme } from '@superset-ui/core';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import cx from 'classnames';
 import { Interweave } from 'interweave';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -26,14 +32,24 @@ import { ToastType, ToastMeta } from './types';
 const ToastContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
-    justify-content: space-between; // Changed from center to space-between
-    align-items: center;
+    align-items: flex-start;
+    gap: ${theme.sizeUnit * 2}px;
 
     // Content container for icon and text
     .toast__content {
       display: flex;
-      align-items: center;
-      flex: 1; // Take available space
+      align-items: flex-start;
+      gap: ${theme.sizeUnit * 2}px;
+
+      flex: 1;
+
+      max-height: 60vh;
+      overflow-y: auto;
+
+      padding-right: ${theme.sizeUnit * 2}px;
+
+      scrollbar-width: thin;
+      scrollbar-color: ${theme.colorTextLightSolid} ${theme.colorBgSpotlight};
     }
 
     .anticon {
@@ -142,7 +158,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
         role="button"
         tabIndex={0}
         onClick={handleClosePress}
-        aria-label="Close"
+        aria-label={t('Close')}
         data-test="close-button"
       />
     </ToastContainer>

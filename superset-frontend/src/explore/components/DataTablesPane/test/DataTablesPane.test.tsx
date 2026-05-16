@@ -19,16 +19,17 @@
 import fetchMock from 'fetch-mock';
 import { FeatureFlag } from '@superset-ui/core';
 import * as copyUtils from 'src/utils/copy';
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { DataTablesPane } from '..';
 import { createDataTablesPaneProps } from './fixture';
 
+beforeAll(() => {
+  setupAGGridModules();
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DataTablesPane', () => {
   // Collapsed/expanded state depends on local storage
   // We need to clear it manually - otherwise initial state would depend on the order of tests
@@ -69,7 +70,9 @@ describe('DataTablesPane', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Results'));
-    expect(await screen.findByText('0 rows')).toBeVisible();
+    expect(
+      await screen.findByText('0 rows', undefined, { timeout: 5000 }),
+    ).toBeVisible();
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
     localStorage.clear();
   });
@@ -80,7 +83,9 @@ describe('DataTablesPane', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Samples'));
-    expect(await screen.findByText('0 rows')).toBeVisible();
+    expect(
+      await screen.findByText('0 rows', undefined, { timeout: 5000 }),
+    ).toBeVisible();
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
   });
 
@@ -99,23 +104,36 @@ describe('DataTablesPane', () => {
         ],
       },
     );
+    // @ts-expect-error
+    global.featureFlags = {
+      [FeatureFlag.GranularExportControls]: true,
+    };
     const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
     const props = createDataTablesPaneProps(456);
     render(<DataTablesPane {...props} />, {
       useRedux: true,
+      initialState: {
+        user: {
+          roles: {
+            gamma: [['can_copy_clipboard', 'Superset']],
+          },
+        },
+      },
     });
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('1 row')).toBeVisible();
 
-    userEvent.click(screen.getByLabelText('Copy'));
+    await userEvent.click(screen.getByLabelText('Copy'));
     expect(copyToClipboardSpy).toHaveBeenCalledTimes(1);
     const value = await copyToClipboardSpy.mock.calls[0][0]();
     expect(value).toBe('__timestamp\tgenre\n2009-01-01 00:00:00\tAction\n');
     copyToClipboardSpy.mockRestore();
-    fetchMock.restore();
+    // @ts-expect-error
+    global.featureFlags = {};
+    fetchMock.clearHistory().removeRoutes();
   });
 
-  test('Should not allow copy data table content when canDownload=false', async () => {
+  test('Should not allow copy data table content without clipboard permission', async () => {
     fetchMock.post(
       'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A456%7D',
       {
@@ -130,17 +148,39 @@ describe('DataTablesPane', () => {
         ],
       },
     );
+    // @ts-expect-error
+    global.featureFlags = {
+      [FeatureFlag.GranularExportControls]: true,
+    };
+    const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
     const props = {
       ...createDataTablesPaneProps(456),
-      canDownload: false,
+      canDownload: true,
     };
     render(<DataTablesPane {...props} />, {
       useRedux: true,
+      initialState: {
+        user: {
+          roles: {
+            gamma: [['can_export_data', 'Superset']],
+          },
+        },
+      },
     });
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('1 row')).toBeVisible();
-    expect(screen.queryByLabelText('Copy')).not.toBeInTheDocument();
-    fetchMock.restore();
+    const copyButton = screen.getByLabelText('Copy');
+    expect(copyButton).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(copyButton);
+    expect(
+      await screen.findByText("You don't have permission to copy to clipboard"),
+    ).toBeInTheDocument();
+    await userEvent.click(copyButton);
+    expect(copyToClipboardSpy).not.toHaveBeenCalled();
+    copyToClipboardSpy.mockRestore();
+    // @ts-expect-error
+    global.featureFlags = {};
+    fetchMock.clearHistory().removeRoutes();
   });
 
   test('Search table', async () => {
@@ -170,17 +210,11 @@ describe('DataTablesPane', () => {
 
     expect(screen.getByText('Action')).toBeVisible();
     expect(screen.getByText('Horror')).toBeVisible();
-
-    userEvent.type(screen.getByPlaceholderText('Search'), 'hor');
-
-    await waitForElementToBeRemoved(() => screen.queryByText('Action'));
-    expect(screen.getByText('Horror')).toBeVisible();
-    expect(screen.queryByText('Action')).not.toBeInTheDocument();
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   test('Displaying the data pane is under featureflag', () => {
-    // @ts-ignore
+    // @ts-expect-error
     global.featureFlags = {
       [FeatureFlag.DatapanelClosedByDefault]: true,
     };

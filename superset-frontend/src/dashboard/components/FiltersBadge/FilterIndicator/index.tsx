@@ -18,7 +18,7 @@
  */
 
 import { forwardRef } from 'react';
-import { css } from '@superset-ui/core';
+import { css } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/utils';
 import {

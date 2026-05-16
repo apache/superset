@@ -854,6 +854,33 @@ def test_csv_reader_successful_numeric_conversion():
     assert df.iloc[0]["ID"] == 1001
 
 
+def test_csv_reader_successful_string_conversion_with_floats():
+    csv_data = [
+        ["id"],
+        [1439403621518935563],
+        [42286989],
+        [1413660691875593351],
+        [8.26839e17],
+    ]
+
+    csv_reader = CSVReader(
+        options=CSVReaderOptions(
+            column_data_types={
+                "id": "str",
+            }
+        )
+    )
+
+    df = csv_reader.file_to_dataframe(create_csv_file(csv_data))
+
+    assert df.shape == (4, 1)
+    assert df["id"].dtype == "object"
+    assert df.iloc[0]["id"] == "1439403621518935563"
+    assert df.iloc[1]["id"] == "42286989"
+    assert df.iloc[2]["id"] == "1413660691875593351"
+    assert df.iloc[3]["id"] == "8.26839e+17"
+
+
 def test_csv_reader_error_detection_improvements_summary():
     csv_data_with_custom_header = [
         ["metadata_row", "skip", "this"],
@@ -1325,3 +1352,68 @@ def test_csv_reader_progressive_encoding_detection():
 
     # Test that the method handles the sample sizes properly
     assert all(size > 0 for size in read_sizes), "All sample sizes should be positive"
+
+
+def test_csv_reader_chunk_concatenation_error_logging():
+    """Test that pd.concat errors during chunking are logged and re-raised."""
+    from unittest.mock import patch
+
+    # Create a large CSV that will trigger chunking (>100k rows)
+    large_data = [["col1", "col2"]]
+    for i in range(100001):
+        large_data.append([f"val{i}", str(i)])
+
+    csv_reader = CSVReader(options=CSVReaderOptions())
+
+    # Mock pd.concat to raise an exception
+    with patch(
+        "superset.commands.database.uploaders.csv_reader.pd.concat"
+    ) as mock_concat:
+        mock_concat.side_effect = ValueError(
+            "Cannot concatenate chunks with different dtypes"
+        )
+
+        with pytest.raises(DatabaseUploadFailed) as exc_info:
+            csv_reader.file_to_dataframe(create_csv_file(large_data))
+
+        # Verify the exception is still raised (wrapped as DatabaseUploadFailed)
+        assert "Cannot concatenate chunks with different dtypes" in str(exc_info.value)
+
+        # Verify concat was called (meaning chunking happened)
+        assert mock_concat.called
+
+
+def test_csv_reader_chunk_concatenation_error_warning(caplog):
+    """Test that pd.concat errors during chunking log a warning message."""
+    from unittest.mock import patch
+
+    # Create a large CSV that will trigger chunking (>100k rows)
+    large_data = [["col1", "col2"]]
+    for i in range(100001):
+        large_data.append([f"val{i}", str(i)])
+
+    csv_reader = CSVReader(options=CSVReaderOptions())
+
+    # Mock pd.concat to raise an exception
+    with patch(
+        "superset.commands.database.uploaders.csv_reader.pd.concat"
+    ) as mock_concat:
+        mock_concat.side_effect = ValueError(
+            "Cannot concatenate chunks with different dtypes"
+        )
+
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            with pytest.raises(DatabaseUploadFailed):
+                csv_reader.file_to_dataframe(create_csv_file(large_data))
+
+        # Verify warning was logged
+        assert any(
+            "Error concatenating CSV chunks" in record.message
+            for record in caplog.records
+        )
+        assert any(
+            "inconsistent date parsing across chunks" in record.message
+            for record in caplog.records
+        )

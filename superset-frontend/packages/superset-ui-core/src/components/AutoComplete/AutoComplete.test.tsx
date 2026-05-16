@@ -44,14 +44,14 @@ const AutoCompleteTest = () => {
 };
 
 describe('AutoComplete Component', () => {
-  it('renders input field', () => {
+  test('renders input field', () => {
     render(<AutoCompleteTest />);
     expect(
       screen.getByPlaceholderText('Type to search...'),
     ).toBeInTheDocument();
   });
 
-  it('shows options when user types', async () => {
+  test('shows options when user types', async () => {
     render(<AutoCompleteTest />);
     const input = screen.getByPlaceholderText('Type to search...');
     await userEvent.type(input, 'test');
@@ -63,7 +63,7 @@ describe('AutoComplete Component', () => {
     });
   });
 
-  it('selecting an option updates input value', async () => {
+  test('selecting an option updates input value', async () => {
     render(<AutoCompleteTest />);
     const input = screen.getByPlaceholderText('Type to search...');
     await userEvent.type(input, 'test');

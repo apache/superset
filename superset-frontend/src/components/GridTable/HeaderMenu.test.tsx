@@ -152,6 +152,7 @@ test('renders unhide when invisible column exists', async () => {
   expect(mockGridApi.setColumnsVisible).toHaveBeenCalledWith(['column2'], true);
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('for main menu', () => {
   test('renders Copy to Clipboard', async () => {
     const { getByText } = setup({ ...mockedProps, isMain: true });

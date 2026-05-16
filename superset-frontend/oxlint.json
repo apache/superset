@@ -1,0 +1,286 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "import",
+    "react",
+    "jest",
+    "jsx-a11y",
+    "typescript",
+    "unicorn",
+    "oxc"
+  ],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2020": true,
+    "jest": true
+  },
+  "globals": {
+    "__webpack_public_path__": "writable",
+    "__webpack_init_sharing__": "readonly",
+    "__webpack_share_scopes__": "readonly",
+    "jest": "readonly"
+  },
+  "settings": {
+    "react": {
+      "version": "17.0.2"
+    }
+  },
+  "rules": {
+    // === Custom Superset rules are handled by scripts/check-custom-rules.js ===
+    // These rules check for:
+    // - No literal colors (use theme colors)
+    // - No FontAwesome icons (use Icons component)
+    // - No template variables in i18n (use parameterized messages)
+
+    // === Rules carried over from ESLint that oxlint does NOT implement ===
+    // oxlint 1.58+ errors on unknown builtin rules, so these can no longer
+    // be listed in this config. They were silently dropped in earlier
+    // oxlint versions (not actually enforced). Documented here for future
+    // maintainers — if/when oxlint adds them, re-enable in the relevant
+    // plugin section above.
+    //   import: newline-after-import, no-extraneous-dependencies,
+    //           no-import-module-exports, no-relative-packages,
+    //           no-unresolved, no-useless-path-segments
+    //   react:  default-props-match-prop-types, destructuring-assignment,
+    //           forbid-component-props, forbid-foreign-prop-types,
+    //           forbid-prop-types, function-component-definition,
+    //           jsx-no-bind, jsx-uses-vars, no-access-state-in-setstate,
+    //           no-deprecated, no-did-update-set-state, no-typos,
+    //           no-unstable-nested-components,
+    //           no-unused-class-component-methods, no-unused-prop-types,
+    //           no-unused-state, prefer-stateless-function, prop-types,
+    //           require-default-props, sort-comp, static-property-placement
+    //           (prefer-stateless-function / function-component-definition
+    //            are represented by react/prefer-function-component below)
+    //   jsx-a11y: interactive-supports-focus,
+    //             no-interactive-element-to-noninteractive-role,
+    //             no-noninteractive-element-interactions,
+    //             no-noninteractive-element-to-interactive-role
+    //   typescript: naming-convention
+    //   unicorn: prevent-abbreviations
+
+    // === Core ESLint rules ===
+    // Error prevention
+    "no-console": "warn",
+    "no-alert": "error",
+    "constructor-super": "error",
+    "no-debugger": "error",
+    "no-unused-vars": "off",
+    "no-undef": "error",
+    "no-prototype-builtins": "off",
+    "no-unsafe-optional-chaining": "error",
+    "no-constant-binary-expression": "error",
+    "no-import-assign": "off",
+    "no-promise-executor-return": "off",
+
+    // Best practices
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "curly": "off",
+    // TODO: Gradually enforce destructuring patterns
+    "prefer-destructuring": "warn",
+    "prefer-const": [
+      "error",
+      { "destructuring": "any", "ignoreReadBeforeAssign": true }
+    ],
+    "prefer-template": "error",
+    "prefer-spread": "error",
+    "prefer-rest-params": "error",
+    "no-var": "error",
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "no-iterator": "error",
+    "no-proto": "error",
+    "no-script-url": "error",
+    "no-void": "error",
+    "radix": "error",
+    "no-plusplus": "error",
+    "no-nested-ternary": "off",
+    "no-unneeded-ternary": ["error", { "defaultAssignment": false }],
+    "object-shorthand": [
+      "error",
+      "always",
+      { "ignoreConstructors": false, "avoidQuotes": true }
+    ],
+    "arrow-body-style": [
+      "error",
+      "as-needed",
+      { "requireReturnForObjectLiteral": false }
+    ],
+    "no-useless-constructor": "error",
+    "no-else-return": "error",
+    "no-array-constructor": "error",
+    "no-new-wrappers": "error",
+    "no-regex-spaces": "error",
+    "no-object-constructor": "error",
+
+    // === Import plugin rules ===
+    // TODO: Fix incorrect named imports in Storybook and other files
+    "import/named": "warn",
+    // TODO: Fix duplicate exports in shared-controls and other modules
+    // Temporarily disabled during OXC migration
+    "import/export": "warn",
+    // TODO: Re-enable after fixing default export patterns across codebase
+    // This is temporarily disabled during OXC migration to unblock CI
+    // Tracking issue: [Create issue after PR merge]
+    "import/no-named-as-default": "off",
+    "import/no-named-as-default-member": "off",
+    "import/no-mutable-exports": "error",
+    "import/no-amd": "error",
+    "import/first": "error",
+    // TODO: Consolidate duplicate imports in DatasetList and other files
+    "import/no-duplicates": "warn",
+    "import/no-absolute-path": "error",
+    "import/no-dynamic-require": "error",
+    "import/no-webpack-loader-syntax": "error",
+    "import/no-self-import": "error",
+    "import/no-cycle": "off",
+    "import/prefer-default-export": "off",
+
+    // === React plugin rules ===
+    "react/jsx-filename-extension": [
+      "warn",
+      { "extensions": [".jsx", ".tsx"] }
+    ],
+    "react/jsx-fragments": "error",
+    "react/jsx-props-no-spreading": "off",
+    "react/jsx-boolean-value": ["error", "never", { "always": [] }],
+    "react/jsx-no-duplicate-props": "error",
+    "react/jsx-no-undef": "error",
+    "react/jsx-pascal-case": ["error", { "allowAllCaps": true, "ignore": [] }],
+    "react/jsx-no-target-blank": ["error", { "enforceDynamicLinks": "always" }],
+    "react/jsx-no-comment-textnodes": "error",
+    "react/jsx-no-useless-fragment": "off",
+    "react/jsx-curly-brace-presence": [
+      "error",
+      { "props": "never", "children": "never" }
+    ],
+    "react/no-array-index-key": "off",
+    "react/no-children-prop": "error",
+    "react/no-danger": "error",
+    "react/no-danger-with-children": "error",
+    "react/no-find-dom-node": "error",
+    "react/no-is-mounted": "error",
+    "react/no-render-return-value": "error",
+    "react/no-string-refs": "off",
+    "react/no-unescaped-entities": "off",
+    "react/no-unknown-property": "off",
+    "react/no-will-update-set-state": "error",
+    "react/prefer-es6-class": ["error", "always"],
+    "react/require-render-return": "error",
+    "react/self-closing-comp": "error",
+    "react/void-dom-elements-no-children": "error",
+    "react/no-redundant-should-component-update": "error",
+    "react/no-this-in-sfc": "error",
+    "react/state-in-constructor": "off",
+    "react/react-in-jsx-scope": "off",
+    // Successor to the ESLint-era `react/prefer-stateless-function` and
+    // `react/function-component-definition` rules. Disabled because the
+    // codebase still contains legacy class components; flip to "error"
+    // once the class-to-function migration completes.
+    "react/prefer-function-component": "off",
+    "react/button-has-type": [
+      "error",
+      { "button": true, "submit": true, "reset": false }
+    ],
+
+    // === React Hooks rules ===
+    // TODO: Fix conditional hook usage and anonymous component issues
+    "react-hooks/rules-of-hooks": "warn",
+    "react-hooks/exhaustive-deps": "warn",
+
+    // === JSX-a11y rules ===
+    "jsx-a11y/alt-text": "error",
+    "jsx-a11y/anchor-has-content": "error",
+    "jsx-a11y/anchor-is-valid": "error",
+    "jsx-a11y/aria-activedescendant-has-tabindex": "error",
+    "jsx-a11y/aria-props": "error",
+    "jsx-a11y/aria-proptypes": "error",
+    "jsx-a11y/aria-role": ["error", { "ignoreNonDOM": false }],
+    "jsx-a11y/aria-unsupported-elements": "error",
+    "jsx-a11y/click-events-have-key-events": "off",
+    "jsx-a11y/heading-has-content": "error",
+    "jsx-a11y/html-has-lang": "error",
+    "jsx-a11y/iframe-has-title": "error",
+    "jsx-a11y/img-redundant-alt": "error",
+    "jsx-a11y/label-has-associated-control": "error",
+    "jsx-a11y/lang": "error",
+    "jsx-a11y/media-has-caption": "error",
+    "jsx-a11y/mouse-events-have-key-events": "off",
+    "jsx-a11y/no-access-key": "error",
+    "jsx-a11y/no-autofocus": ["error", { "ignoreNonDOM": true }],
+    "jsx-a11y/no-distracting-elements": "error",
+    "jsx-a11y/no-noninteractive-tabindex": "error",
+    "jsx-a11y/no-redundant-roles": "error",
+    "jsx-a11y/no-static-element-interactions": "off",
+    "jsx-a11y/role-has-required-aria-props": "error",
+    "jsx-a11y/role-supports-aria-props": "error",
+    "jsx-a11y/scope": "error",
+    "jsx-a11y/tabindex-no-positive": "error",
+
+    // === TypeScript rules ===
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/ban-types": "off",
+    "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-use-before-define": "error",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/prefer-optional-chain": "error",
+
+    // === Unicorn rules (bonus coverage) ===
+    "unicorn/no-new-array": "error",
+    "unicorn/no-invalid-remove-event-listener": "error",
+    "unicorn/no-useless-length-check": "error",
+    "unicorn/no-length-as-slice-end": "error",
+    "unicorn/no-useless-spread": "error",
+    "unicorn/no-thenable": "error",
+    "unicorn/escape-case": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/prefer-array-some": "error",
+    "unicorn/throw-new-error": "error",
+    "unicorn/prefer-negative-index": "error",
+    "unicorn/prefer-math-trunc": "error",
+    "unicorn/filename-case": "off",
+    "unicorn/no-null": "off",
+    "unicorn/no-array-reduce": "off",
+    "unicorn/no-array-for-each": "off",
+    "unicorn/prefer-module": "off",
+    "unicorn/prefer-node-protocol": "off",
+    "unicorn/no-useless-undefined": "off",
+
+    // === Jest rules ===
+    "jest/consistent-test-it": ["error", { "fn": "test" }],
+    "jest/no-focused-tests": "error",
+    "jest/no-disabled-tests": "error",
+    "jest/expect-expect": [
+      "error",
+      {
+        "assertFunctionNames": [
+          "expect",
+          "expect*",
+          "runTimezoneTest",
+          "compareURI",
+          "test*WithInitialValues"
+        ]
+      }
+    ]
+  },
+  "ignorePatterns": [
+    "packages/generator-superset/**/*",
+    "cypress-base/**",
+    "node_modules/**",
+    "build/**",
+    "dist/**",
+    "lib/**",
+    "esm/**",
+    "*.min.js",
+    "coverage/**",
+    ".git/**",
+    "**/*.config.js",
+    "**/*.config.ts"
+  ]
+}

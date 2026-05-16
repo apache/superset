@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@superset-ui/core/spec';
+import { render, screen, within } from '@superset-ui/core/spec';
 import TimeTable from './TimeTable';
 
 const mockData = {
@@ -80,10 +80,25 @@ test('should render TimeTable component', () => {
 
 test('should render table headers', () => {
   render(<TimeTable {...defaultProps} />);
-  expect(screen.getByText('Metric')).toBeInTheDocument();
-  expect(screen.getByText('Time series columns')).toBeInTheDocument();
-});
 
+  const table = screen.getByRole('table');
+
+  const metricHeader = within(table).getByTitle('Metric');
+  expect(metricHeader).toBeInTheDocument();
+
+  const allTimeSeriesHeaders = within(table).getAllByText(
+    'Time series columns',
+  );
+
+  const visibleTimeSeriesHeaders = allTimeSeriesHeaders.filter(
+    el => !el.closest('.ant-table-measure-cell-content'),
+  );
+
+  expect(visibleTimeSeriesHeaders.length).toBe(1);
+  visibleTimeSeriesHeaders.forEach(header => {
+    expect(header).toBeInTheDocument();
+  });
+});
 test('should render table with data rows', () => {
   render(<TimeTable {...defaultProps} />);
 
@@ -151,11 +166,23 @@ test('should render with multiple metrics', () => {
 test('should handle column type sparkline correctly', () => {
   render(<TimeTable {...defaultProps} />);
 
-  const columnHeaders = screen.getAllByRole('columnheader');
+  const table = screen.getByRole('table');
+  expect(table).toBeInTheDocument();
 
-  expect(screen.getByRole('table')).toBeInTheDocument();
+  const columnHeaders = screen.getAllByRole('columnheader');
   expect(columnHeaders).toHaveLength(2);
-  expect(screen.getByText('Time series columns')).toBeInTheDocument();
+
+  const allTimeSeriesElements = within(table).getAllByText(
+    'Time series columns',
+  );
+  const visibleTimeSeriesColumns = allTimeSeriesElements.filter(
+    el => !el.closest('.ant-table-measure-cell-content'),
+  );
+
+  expect(visibleTimeSeriesColumns.length).toBeGreaterThan(0);
+  visibleTimeSeriesColumns.forEach(el => {
+    expect(el).toBeInTheDocument();
+  });
 });
 
 test('should not render empty table due to missing column id property', () => {

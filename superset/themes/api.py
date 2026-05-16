@@ -21,7 +21,7 @@ from typing import Any
 from zipfile import ZipFile
 
 from flask import current_app as app, request, Response, send_file
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
@@ -218,7 +218,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
     )
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete themes.
         ---
@@ -431,7 +431,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -550,15 +550,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
 
         overwrite = request.form.get("overwrite") == "true"
 
-        try:
-            ImportThemesCommand(contents, overwrite=overwrite).run()
-            return self.response(200, message="Theme imported successfully")
-        except ValidationError as err:
-            logger.exception("Import themes validation error")
-            return self.response_400(message=str(err))
-        except Exception as ex:
-            logger.exception("Unexpected error importing themes")
-            return self.response_422(message=str(ex))
+        command = ImportThemesCommand(contents, overwrite=overwrite)
+        command.run()
+        return self.response(200, message="Theme imported successfully")
 
     @expose("/<int:pk>/set_system_default", methods=("PUT",))
     @protect()

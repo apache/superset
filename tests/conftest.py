@@ -105,6 +105,8 @@ def data_loader(
     pandas_loader_configuration: PandasLoaderConfigurations,
     table_to_df_convertor: TableToDfConvertor,
 ) -> DataLoader:
+    if example_db_engine.dialect.name == PRESTO:
+        example_db_engine.dialect.get_view_names = Mock(return_value=[])
     return PandasDataLoader(
         example_db_engine, pandas_loader_configuration, table_to_df_convertor
     )

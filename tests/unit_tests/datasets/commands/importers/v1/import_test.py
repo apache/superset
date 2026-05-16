@@ -17,6 +17,7 @@
 # pylint: disable=import-outside-toplevel, unused-argument, unused-import, invalid-name
 
 import copy
+import io
 import re
 import uuid
 from typing import Any
@@ -28,25 +29,30 @@ from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
-from superset import db
+from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
+    DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
 )
-from superset.commands.dataset.importers.v1.utils import validate_data_uri
+from superset.commands.dataset.importers.v1.utils import (
+    import_dataset,
+    validate_data_uri,
+)
 from superset.commands.exceptions import ImportFailedError
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import override_user
+from tests.integration_tests.fixtures.importexport import (
+    dataset_config as dataset_fixture,
+)
 
 
 def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     """
     Test importing a dataset.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -247,11 +253,6 @@ def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> No
     """
     Test importing a dataset that was exported without folders.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -327,11 +328,6 @@ def test_import_dataset_duplicate_column(
     """
     Test importing a dataset with a column that already exists.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -452,12 +448,6 @@ def test_import_column_extra_is_string(mocker: MockerFixture, session: Session) 
     """
     Test importing a dataset when the column extra is a string.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.schemas import ImportV1DatasetSchema
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -537,12 +527,6 @@ def test_import_dataset_extra_empty_string(
     """
     Test importing a dataset when the extra field is an empty string.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.schemas import ImportV1DatasetSchema
-    from superset.models.core import Database
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -603,14 +587,6 @@ def test_import_column_allowed_data_url(
     """
     Test importing a dataset when using data key to fetch data from a URL.
     """
-    import io
-
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.schemas import ImportV1DatasetSchema
-    from superset.models.core import Database
-
     mock_urlopen.return_value = io.StringIO("col1\nvalue1\nvalue2\n")
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
@@ -677,12 +653,6 @@ def test_import_dataset_managed_externally(
     """
     Test importing a dataset that is managed externally.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import dataset_config
-
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
     engine = db.session.get_bind()
@@ -692,7 +662,7 @@ def test_import_dataset_managed_externally(
     db.session.add(database)
     db.session.flush()
 
-    config = copy.deepcopy(dataset_config)
+    config = copy.deepcopy(dataset_fixture)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_table"
     config["database_id"] = database.id
@@ -702,6 +672,36 @@ def test_import_dataset_managed_externally(
     assert sqla_table.external_url == "https://example.org/my_table"
 
 
+def test_import_dataset_column_datetime_format(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test importing a dataset with a column including a datetime format.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    for column in config["columns"]:
+        column["datetime_format"] = "%Y-%m-%d"
+
+    schema = ImportV1DatasetSchema()
+    dataset_config = schema.load(config)
+
+    dataset_config["database_id"] = database.id
+
+    sqla_table = import_dataset(dataset_config)
+    for column in sqla_table.columns:
+        assert column.datetime_format == "%Y-%m-%d"
+
+
 def test_import_dataset_without_owner_permission(
     mocker: MockerFixture,
     session: Session,
@@ -709,12 +709,6 @@ def test_import_dataset_without_owner_permission(
     """
     Test importing a dataset that is managed externally.
     """
-    from superset import security_manager
-    from superset.commands.dataset.importers.v1.utils import import_dataset
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import dataset_config
-
     mock_can_access = mocker.patch.object(
         security_manager, "can_access", return_value=True
     )
@@ -726,7 +720,7 @@ def test_import_dataset_without_owner_permission(
     db.session.add(database)
     db.session.flush()
 
-    config = copy.deepcopy(dataset_config)
+    config = copy.deepcopy(dataset_fixture)
     config["database_id"] = database.id
 
     import_dataset(config)
@@ -749,6 +743,44 @@ def test_import_dataset_without_owner_permission(
 
     # Assert that the can write to chart was checked
     mock_can_access.assert_called_with("can_write", "Dataset")
+
+
+def test_import_dataset_access_check(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that import_dataset raises DatasetAccessDeniedError when the user does not
+    have datasource-level access to the target dataset.
+    """
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        security_manager,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message="User does not have access to this datasource",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(config)
 
 
 @pytest.mark.parametrize(

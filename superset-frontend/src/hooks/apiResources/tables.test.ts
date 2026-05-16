@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,
@@ -70,9 +70,10 @@ const expectedHasMoreData = {
   hasMore: true,
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('useTables hook', () => {
   beforeEach(() => {
-    fetchMock.reset();
+    fetchMock.removeRoutes().clearHistory();
     store.dispatch(api.util.resetApiState());
   });
 
@@ -87,7 +88,7 @@ describe('useTables hook', () => {
     fetchMock.get(schemaApiRoute, {
       result: fakeSchemaApiResult,
     });
-    const { result, waitFor } = renderHook(
+    const { result } = renderHook(
       () =>
         useTables({
           dbId: expectDbId,
@@ -101,9 +102,9 @@ describe('useTables hook', () => {
       },
     );
     await waitFor(() => expect(result.current.data).toEqual(expectedData));
-    expect(fetchMock.calls(schemaApiRoute).length).toBe(1);
+    expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1);
     expect(
-      fetchMock.calls(
+      fetchMock.callHistory.calls(
         `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
           force: false,
           schema_name: expectedSchema,
@@ -115,7 +116,7 @@ describe('useTables hook', () => {
     });
     await waitFor(() =>
       expect(
-        fetchMock.calls(
+        fetchMock.callHistory.calls(
           `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
             force: true,
             schema_name: expectedSchema,
@@ -123,7 +124,7 @@ describe('useTables hook', () => {
         ).length,
       ).toBe(1),
     );
-    expect(fetchMock.calls(schemaApiRoute).length).toBe(1);
+    expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1);
     expect(result.current.data).toEqual(expectedData);
   });
 
@@ -138,7 +139,7 @@ describe('useTables hook', () => {
     fetchMock.get(schemaApiRoute, {
       result: fakeSchemaApiResult,
     });
-    const { result, waitFor } = renderHook(
+    const { result } = renderHook(
       () =>
         useTables({
           dbId: expectDbId,
@@ -151,10 +152,12 @@ describe('useTables hook', () => {
         }),
       },
     );
-    await waitFor(() => expect(fetchMock.calls(schemaApiRoute).length).toBe(1));
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1),
+    );
     expect(result.current.data).toEqual(undefined);
     expect(
-      fetchMock.calls(
+      fetchMock.callHistory.calls(
         `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
           force: false,
           schema_name: unexpectedSchema,
@@ -167,7 +170,7 @@ describe('useTables hook', () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schema2';
     const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
-    fetchMock.get(tableApiRoute, fakeHasMoreApiResult);
+    fetchMock.get(tableApiRoute, fakeHasMoreApiResult, { name: tableApiRoute });
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
       count: 0,
       result: [],
@@ -175,7 +178,7 @@ describe('useTables hook', () => {
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
       result: fakeSchemaApiResult,
     });
-    const { result, waitFor } = renderHook(
+    const { result } = renderHook(
       () =>
         useTables({
           dbId: expectDbId,
@@ -188,7 +191,9 @@ describe('useTables hook', () => {
         }),
       },
     );
-    await waitFor(() => expect(fetchMock.calls(tableApiRoute).length).toBe(1));
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1),
+    );
     expect(result.current.data).toEqual(expectedHasMoreData);
   });
 
@@ -204,7 +209,7 @@ describe('useTables hook', () => {
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
       result: fakeSchemaApiResult,
     });
-    const { result, rerender, waitFor } = renderHook(
+    const { result, rerender } = renderHook(
       () =>
         useTables({
           dbId: expectDbId,
@@ -219,26 +224,60 @@ describe('useTables hook', () => {
     );
     console.log(
       'Called URLs:',
-      fetchMock.calls().map(call => call[0]),
+      fetchMock.callHistory.calls().map(call => call.url),
     );
 
     // Add a catch-all mock to see if any unmocked requests are being made
-    fetchMock.mock('*', url => {
+    fetchMock.route('*', url => {
       console.log('Unmocked request to:', url);
       return 404;
     });
-    await waitFor(() => expect(fetchMock.calls(tableApiRoute).length).toBe(1));
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1),
+    );
     rerender();
     await waitFor(() => expect(result.current.data).toEqual(expectedData));
-    expect(fetchMock.calls(tableApiRoute).length).toBe(1);
+    expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1);
+  });
+
+  test('fetches tables without schema when supportsSchemas is false', async () => {
+    const expectDbId = 'db1';
+    const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
+    fetchMock.get(tableApiRoute, fakeApiResult);
+    fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
+      count: 0,
+      result: [],
+    });
+    fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
+      result: fakeSchemaApiResult,
+    });
+    const { result } = renderHook(
+      () =>
+        useTables({
+          dbId: expectDbId,
+          supportsSchemas: false,
+        }),
+      {
+        wrapper: createWrapper({
+          useRedux: true,
+          store,
+        }),
+      },
+    );
+    // Tables are fetched even though no schema is provided or validated against schemaOptions
+    await waitFor(() => expect(result.current.data).toEqual(expectedData));
+    expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1);
   });
 
   test('returns refreshed data after expires', async () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schema1';
     const tableApiRoute = `glob:*/api/v1/database/${expectDbId}/tables/?q=*`;
-    fetchMock.get(tableApiRoute, url =>
-      url.includes(expectedSchema) ? fakeApiResult : fakeHasMoreApiResult,
+    fetchMock.get(
+      tableApiRoute,
+      ({ url }) =>
+        url.includes(expectedSchema) ? fakeApiResult : fakeHasMoreApiResult,
+      { name: tableApiRoute },
     );
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/catalogs/*`, {
       count: 0,
@@ -247,7 +286,7 @@ describe('useTables hook', () => {
     fetchMock.get(`glob:*/api/v1/database/${expectDbId}/schemas/*`, {
       result: fakeSchemaApiResult,
     });
-    const { result, rerender, waitFor } = renderHook(
+    const { result, rerender } = renderHook(
       ({ schema }) =>
         useTables({
           dbId: expectDbId,
@@ -263,34 +302,36 @@ describe('useTables hook', () => {
     );
 
     await waitFor(() => expect(result.current.data).toEqual(expectedData));
-    expect(fetchMock.calls(tableApiRoute).length).toBe(1);
+    expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(1);
 
     rerender({ schema: 'schema2' });
     await waitFor(() =>
       expect(result.current.data).toEqual(expectedHasMoreData),
     );
-    expect(fetchMock.calls(tableApiRoute).length).toBe(2);
+    expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(2);
 
     rerender({ schema: expectedSchema });
     await waitFor(() => expect(result.current.data).toEqual(expectedData));
-    expect(fetchMock.calls(tableApiRoute).length).toBe(2);
+    expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(2);
 
     // clean up cache
     act(() => {
       store.dispatch(api.util.invalidateTags(['Tables']));
     });
 
-    await waitFor(() => expect(fetchMock.calls(tableApiRoute).length).toBe(3));
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(3),
+    );
     await waitFor(() => expect(result.current.data).toEqual(expectedData));
 
     rerender({ schema: 'schema2' });
     await waitFor(() =>
       expect(result.current.data).toEqual(expectedHasMoreData),
     );
-    expect(fetchMock.calls(tableApiRoute).length).toBe(4);
+    expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(4);
 
     rerender({ schema: expectedSchema });
     await waitFor(() => expect(result.current.data).toEqual(expectedData));
-    expect(fetchMock.calls(tableApiRoute).length).toBe(4);
+    expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(4);
   });
 });

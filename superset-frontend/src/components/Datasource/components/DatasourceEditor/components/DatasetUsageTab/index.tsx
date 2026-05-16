@@ -17,8 +17,13 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { styled, t, css } from '@superset-ui/core';
-import { CertifiedBadge, InfoTooltip } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
+import { styled, css } from '@apache-superset/core/theme';
+import {
+  CertifiedBadge,
+  InfoTooltip,
+  Input,
+} from '@superset-ui/core/components';
 import Table, {
   TableSize,
   SortOrder,
@@ -99,6 +104,15 @@ const DatasetUsageTab = ({
 }: DatasetUsageTabProps) => {
   const addDangerToastRef = useRef(addDangerToast);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const prevLoadingRef = useRef(false);
+  const isMountedRef = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -106,6 +120,7 @@ const DatasetUsageTab = ({
     'changed_on_delta_humanized',
   );
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleFetchCharts = useCallback(
     async (page = 1, column = sortColumn, direction = sortDirection) => {
@@ -115,14 +130,22 @@ const DatasetUsageTab = ({
 
       try {
         await onFetchCharts(page, PAGE_SIZE, column, direction);
-        setCurrentPage(page);
-        setSortColumn(column);
-        setSortDirection(direction);
+
+        if (isMountedRef.current) {
+          setCurrentPage(page);
+          setSortColumn(column);
+          setSortDirection(direction);
+        }
       } catch (error) {
-        if (addDangerToastRef.current)
+        if ((error as Error).name === 'AbortError') return;
+
+        if (addDangerToastRef.current) {
           addDangerToastRef.current(t('Error fetching charts'));
+        }
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     },
     [datasourceId, onFetchCharts, sortColumn, sortDirection],
@@ -132,11 +155,13 @@ const DatasetUsageTab = ({
     addDangerToastRef.current = addDangerToast;
   }, [addDangerToast]);
 
-  const handlePageChange = useCallback(
-    (page: number) => {
-      handleFetchCharts(page);
+  // Scroll to top after data loads (when loading changes from true to false)
+  useEffect(() => {
+    let frameId: number | undefined;
 
-      setTimeout(() => {
+    if (prevLoadingRef.current && !loading) {
+      // Loading just finished, scroll to top
+      frameId = requestAnimationFrame(() => {
         const tableBody =
           tableContainerRef.current?.querySelector('.ant-table-body');
         if (tableBody) {
@@ -145,7 +170,21 @@ const DatasetUsageTab = ({
             behavior: 'smooth',
           });
         }
-      }, 100);
+      });
+    }
+    prevLoadingRef.current = loading;
+
+    // Cleanup: cancel animation frame if component unmounts
+    return () => {
+      if (frameId !== undefined) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [loading]);
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      handleFetchCharts(page);
     },
     [handleFetchCharts],
   );
@@ -255,20 +294,66 @@ const DatasetUsageTab = ({
     [handleSortChange, sortColumn, sortDirection],
   );
 
+  const filteredCharts = useMemo(() => {
+    if (!searchTerm) return charts;
+
+    const lowerSearch = searchTerm.toLowerCase();
+    return charts.filter(chart => {
+      // Search in chart name
+      if (chart.slice_name?.toLowerCase().includes(lowerSearch)) return true;
+
+      // Search in owner names
+      if (
+        chart.owners?.some(
+          owner =>
+            owner.first_name?.toLowerCase().includes(lowerSearch) ||
+            owner.last_name?.toLowerCase().includes(lowerSearch),
+        )
+      )
+        return true;
+
+      // Search in dashboard titles
+      if (
+        chart.dashboards?.some(dashboard =>
+          dashboard.dashboard_title?.toLowerCase().includes(lowerSearch),
+        )
+      )
+        return true;
+
+      return false;
+    });
+  }, [charts, searchTerm]);
+
   return (
     <div ref={tableContainerRef}>
+      <Input.Search
+        placeholder={t('Search charts by name, owner, or dashboard')}
+        value={searchTerm}
+        onChange={e => {
+          setSearchTerm(e.target.value);
+          if (!e.target.value) {
+            setCurrentPage(1);
+          }
+        }}
+        style={{ marginBottom: 16, width: 400 }}
+        allowClear
+      />
       <Table
         sticky
         columns={columns}
-        data={charts}
-        pagination={{
-          current: currentPage,
-          total: totalCount,
-          pageSize: PAGE_SIZE,
-          onChange: handlePageChange,
-          showSizeChanger: false,
-          size: 'default',
-        }}
+        data={filteredCharts}
+        pagination={
+          searchTerm
+            ? false
+            : {
+                current: currentPage,
+                total: totalCount,
+                pageSize: PAGE_SIZE,
+                onChange: handlePageChange,
+                showSizeChanger: false,
+                size: 'default',
+              }
+        }
         loading={loading}
         size={TableSize.Middle}
         rowKey={(record: Chart) =>

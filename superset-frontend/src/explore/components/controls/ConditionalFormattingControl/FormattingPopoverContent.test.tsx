@@ -22,9 +22,8 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { Comparator } from '@superset-ui/chart-controls';
-import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
-import { GenericDataType } from '@superset-ui/core';
+import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
+import { GenericDataType } from '@apache-superset/core/common';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 
 const mockOnChange = jest.fn();
@@ -37,6 +36,17 @@ const columns = [
 const columnsStringType = [
   { label: 'Column 1', value: 'column1', dataType: GenericDataType.String },
   { label: 'Column 2', value: 'column2', dataType: GenericDataType.String },
+];
+
+const columnsBooleanType = [
+  { label: 'Column 1', value: 'column1', dataType: GenericDataType.Boolean },
+  { label: 'Column 2', value: 'column2', dataType: GenericDataType.Boolean },
+];
+
+const mixColumns = [
+  { label: 'Name', value: 'name', dataType: GenericDataType.String },
+  { label: 'Sales', value: 'sales', dataType: GenericDataType.Numeric },
+  { label: 'Active', value: 'active', dataType: GenericDataType.Boolean },
 ];
 
 const extraColorChoices = [
@@ -140,4 +150,160 @@ test('displays the correct input fields based on the selected string type operat
   });
   fireEvent.click(await screen.findByTitle('begins with'));
   expect(await screen.findByLabelText('Target value')).toBeInTheDocument();
+});
+
+test('does not display the input fields when selected a boolean type operator', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columnsBooleanType}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  fireEvent.change(screen.getAllByLabelText('Operator')[0], {
+    target: { value: Comparator.IsTrue },
+  });
+  fireEvent.click(await screen.findByTitle('is true'));
+  expect(await screen.queryByLabelText('Target value')).toBeNull();
+});
+
+test('displays Use gradient checkbox', () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
+  );
+
+  expect(screen.getByText('Use gradient')).toBeInTheDocument();
+});
+
+// Helper function to find the "Use gradient" checkbox
+// The checkbox and text are in sibling columns within the same row
+const findUseGradientCheckbox = (): HTMLInputElement => {
+  const useGradientText = screen.getByText('Use gradient');
+  // Find the common parent row that contains both the text and checkbox
+  let rowElement: HTMLElement | null = useGradientText.parentElement;
+  while (rowElement) {
+    const checkbox = rowElement.querySelector('input[type="checkbox"]');
+    if (checkbox && rowElement.textContent?.includes('Use gradient')) {
+      return checkbox as HTMLInputElement;
+    }
+    rowElement = rowElement.parentElement;
+  }
+  throw new Error('Could not find Use gradient checkbox');
+};
+
+test('Use gradient checkbox defaults to checked', () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
+  );
+
+  const checkbox = findUseGradientCheckbox();
+  expect(checkbox).toBeChecked();
+});
+
+test('Use gradient checkbox can be toggled', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
+  );
+
+  const checkbox = findUseGradientCheckbox();
+  expect(checkbox).toBeChecked();
+
+  // Uncheck the checkbox
+  fireEvent.click(checkbox);
+  expect(checkbox).not.toBeChecked();
+
+  // Check the checkbox again
+  fireEvent.click(checkbox);
+  expect(checkbox).toBeChecked();
+});
+
+test('The Use Gradient check box is not displayed for string and boolean and is displayed for numeric data types.', () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columnsStringType}
+      allColumns={columnsStringType}
+    />,
+  );
+
+  expect(screen.queryByText('Use gradient')).not.toBeInTheDocument();
+
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columnsBooleanType}
+      allColumns={columnsBooleanType}
+    />,
+  );
+
+  expect(screen.queryByText('Use gradient')).not.toBeInTheDocument();
+
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
+  );
+
+  expect(screen.queryByText('Use gradient')).toBeInTheDocument();
+});
+
+test('should display formatting column and object fields when allColumns is provided and non-empty', async () => {
+  render(
+    <FormattingPopoverContent
+      columns={mixColumns}
+      allColumns={mixColumns}
+      onChange={mockOnChange}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText('Formatting column')).toBeInTheDocument();
+    expect(screen.getByText('Formatting object')).toBeInTheDocument();
+  });
+});
+
+test('should hide formatting fields when allColumns is empty', async () => {
+  render(
+    <FormattingPopoverContent
+      columns={mixColumns}
+      allColumns={[]}
+      onChange={mockOnChange}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('Formatting column')).not.toBeInTheDocument();
+    expect(screen.queryByText('Formatting object')).not.toBeInTheDocument();
+  });
+});
+
+test('should hide formatting fields when color scheme is Green', async () => {
+  render(
+    <FormattingPopoverContent
+      config={{ colorScheme: extraColorChoices[0].value }}
+      columns={mixColumns}
+      allColumns={mixColumns}
+      onChange={mockOnChange}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('Formatting column')).not.toBeInTheDocument();
+    expect(screen.queryByText('Formatting object')).not.toBeInTheDocument();
+  });
 });

@@ -110,13 +110,12 @@ from superset.superset_typing import (
 from superset.utils.backports import StrEnum
 from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
-from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
+from superset.utils.hashing import hash_from_dict, hash_from_str
 from superset.utils.pandas import detect_datetime_format
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import BaseDatasource, TableColumn
+    from superset.explorables.base import ColumnMetadata, Explorable
     from superset.models.core import Database
-    from superset.models.sql_lab import Query
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -200,6 +199,7 @@ class DatasourceType(StrEnum):
     QUERY = "query"
     SAVEDQUERY = "saved_query"
     VIEW = "view"
+    SEMANTIC_VIEW = "semantic_view"
 
 
 class LoggerLevel(StrEnum):
@@ -216,6 +216,7 @@ class HeaderDataType(TypedDict):
     chart_id: int | None
     dashboard_id: int | None
     slack_channels: list[str] | None
+    execution_id: str | None
 
 
 class DatasourceDict(TypedDict):
@@ -268,6 +269,7 @@ class FilterOperator(StrEnum):
     LIKE = "LIKE"
     NOT_LIKE = "NOT LIKE"
     ILIKE = "ILIKE"
+    NOT_ILIKE = "NOT ILIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
     IN = "IN"
@@ -486,6 +488,7 @@ def error_msg_from_exception(ex: Exception) -> str:
 
 
 def markdown(raw: str, markup_wrap: bool | None = False) -> str:
+    """Render Markdown to sanitized HTML."""
     safe_markdown_tags = {
         "h1",
         "h2",
@@ -515,7 +518,7 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
     }
     safe_markdown_attrs = {
         "img": {"src", "alt", "title"},
-        "a": {"href", "alt", "title"},
+        "a": {"href", "alt", "title", "target"},
     }
     safe = md.markdown(
         raw or "",
@@ -526,6 +529,7 @@ def markdown(raw: str, markup_wrap: bool | None = False) -> str:
         ],
     )
     # pylint: disable=no-member
+    # nh3 preserves supported link attributes and enforces a safe rel value.
     safe = nh3.clean(safe, tags=safe_markdown_tags, attributes=safe_markdown_attrs)
     if markup_wrap:
         safe = Markup(safe)
@@ -991,7 +995,7 @@ def simple_filter_to_adhoc(
     }
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
-    result["filterOptionName"] = md5_sha_from_dict(cast(dict[Any, Any], result))
+    result["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], result))
 
     return result
 
@@ -1004,9 +1008,42 @@ def form_data_to_adhoc(form_data: dict[str, Any], clause: str) -> AdhocFilterCla
         "expressionType": "SQL",
         "sqlExpression": form_data.get(clause),
     }
-    result["filterOptionName"] = md5_sha_from_dict(cast(dict[Any, Any], result))
+    result["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], result))
 
     return result
+
+
+def _update_existing_temporal_filter(
+    temporal_filter: AdhocFilterClause,
+    granularity_sqla_override: str | None,
+    time_range: str | None,
+    chart_has_granularity_sqla: bool,
+) -> None:
+    """Update an existing temporal filter with new subject/comparator."""
+    if (
+        granularity_sqla_override is not None
+        and temporal_filter.get("expressionType") == "SIMPLE"
+    ):
+        temporal_filter["subject"] = granularity_sqla_override
+    if time_range and not chart_has_granularity_sqla:
+        temporal_filter["comparator"] = time_range
+
+
+def _create_temporal_filter(
+    granularity_sqla: str,
+    time_range: str,
+) -> AdhocFilterClause:
+    """Create a new TEMPORAL_RANGE adhoc filter."""
+    new_filter: AdhocFilterClause = {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "operator": FilterOperator.TEMPORAL_RANGE,
+        "subject": granularity_sqla,
+        "comparator": time_range,
+        "isExtra": True,
+    }
+    new_filter["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], new_filter))
+    return new_filter
 
 
 def merge_extra_form_data(form_data: dict[str, Any]) -> None:  # noqa: C901
@@ -1057,10 +1094,35 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:  # noqa: C901
                     for fltr in append_filters
                     if fltr
                 )
-    if form_data.get("time_range") and not form_data.get("granularity_sqla"):
-        for adhoc_filter in form_data.get("adhoc_filters", []):
-            if adhoc_filter.get("operator") == "TEMPORAL_RANGE":
-                adhoc_filter["comparator"] = form_data["time_range"]
+
+    granularity_sqla_override = extra_form_data.get("granularity_sqla")
+    time_range = form_data.get("time_range")
+    chart_has_granularity_sqla = bool(form_data.get("granularity_sqla"))
+
+    temporal_filters = [
+        adhoc_filter
+        for adhoc_filter in adhoc_filters
+        if adhoc_filter.get("operator") == FilterOperator.TEMPORAL_RANGE
+    ]
+
+    for temporal_filter in temporal_filters:
+        _update_existing_temporal_filter(
+            temporal_filter,
+            granularity_sqla_override,
+            time_range,
+            chart_has_granularity_sqla,
+        )
+
+    if (
+        not temporal_filters
+        and granularity_sqla_override is not None
+        and time_range is not None
+    ):
+        new_temporal_filter = _create_temporal_filter(
+            granularity_sqla_override,
+            cast(str, time_range),
+        )
+        adhoc_filters.append(new_temporal_filter)
 
 
 def merge_extra_filters(form_data: dict[str, Any]) -> None:  # noqa: C901
@@ -1470,7 +1532,7 @@ def create_ssl_cert_file(certificate: str) -> str:
     :return: The path to the certificate file
     :raises CertificateException: If certificate is not valid/unparseable
     """
-    filename = f"{md5_sha_from_str(certificate)}.crt"
+    filename = f"{hash_from_str(certificate)}.crt"
     # pylint: disable=import-outside-toplevel
 
     cert_dir = app.config["SSL_CERT_PATH"]
@@ -1617,7 +1679,9 @@ def get_column_name_from_metric(metric: Metric) -> str | None:
     if is_adhoc_metric(metric):
         metric = cast(AdhocMetric, metric)
         if metric["expressionType"] == AdhocMetricExpressionType.SIMPLE:
-            return cast(dict[str, Any], metric["column"])["column_name"]
+            column = metric["column"]
+            if column:
+                return column["column_name"]
     return None
 
 
@@ -1653,7 +1717,7 @@ def map_sql_type_to_inferred_type(sql_type: Optional[str]) -> str:
     return "string"  # If no match is found, return "string" as default
 
 
-def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Query) -> str:
+def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
     """
     Determine the metric type from a given column in a datasource.
 
@@ -1668,15 +1732,12 @@ def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Query)
     :return: The inferred metric type as a string, or an empty string if the
              column is not a metric or no valid operation is found.
     """
-
-    from superset.connectors.sqla.models import SqlMetric
-
-    metric: SqlMetric = next(
-        (metric for metric in datasource.metrics if metric.metric_name == column),
-        SqlMetric(metric_name=""),
+    metric = next(
+        (m for m in datasource.metrics if m.metric_name == column),
+        None,
     )
 
-    if metric.metric_name == "":
+    if metric is None:
         return ""
 
     expression: str = metric.expression
@@ -1695,7 +1756,7 @@ def get_metric_type_from_column(column: Any, datasource: BaseDatasource | Query)
 
 def extract_dataframe_dtypes(
     df: pd.DataFrame,
-    datasource: BaseDatasource | Query | None = None,
+    datasource: Explorable | None = None,
 ) -> list[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
@@ -1715,13 +1776,14 @@ def extract_dataframe_dtypes(
     if datasource:
         for column in datasource.columns:
             if isinstance(column, dict):
-                columns_by_name[column.get("column_name")] = column
+                if column_name := column.get("column_name"):
+                    columns_by_name[column_name] = column
             else:
                 columns_by_name[column.column_name] = column
 
     generic_types: list[GenericDataType] = []
     for column in df.columns:
-        column_object = columns_by_name.get(column)
+        column_object = columns_by_name.get(str(column))
         series = df[column]
         inferred_type: str = ""
         if series.isna().all():
@@ -1751,11 +1813,17 @@ def extract_dataframe_dtypes(
     return generic_types
 
 
-def extract_column_dtype(col: TableColumn) -> GenericDataType:
-    if col.is_temporal:
+def extract_column_dtype(col: ColumnMetadata) -> GenericDataType:
+    # Check for temporal type
+    if hasattr(col, "is_temporal") and col.is_temporal:
         return GenericDataType.TEMPORAL
-    if col.is_numeric:
+    if col.is_dttm:
+        return GenericDataType.TEMPORAL
+
+    # Check for numeric type
+    if hasattr(col, "is_numeric") and col.is_numeric:
         return GenericDataType.NUMERIC
+
     # TODO: add check for boolean data type when proper support is added
     return GenericDataType.STRING
 
@@ -1765,7 +1833,7 @@ def is_test() -> bool:
 
 
 def get_time_filter_status(
-    datasource: BaseDatasource,
+    datasource: Explorable,
     applied_time_extras: dict[str, str],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     temporal_columns: set[Any] = {
@@ -1924,10 +1992,24 @@ def _process_datetime_column(
 def normalize_dttm_col(
     df: pd.DataFrame,
     dttm_cols: tuple[DateColumn, ...] = tuple(),  # noqa: C408
+    format_map: dict[str, str] | None = None,
 ) -> None:
+    """
+    Normalize datetime columns in a DataFrame.
+
+    :param df: DataFrame to process
+    :param dttm_cols: Tuple of DateColumn objects to process
+    :param format_map: Optional mapping of column names to datetime formats.
+                       When provided, these pre-detected formats are used instead
+                       of runtime detection, improving performance and consistency.
+    """
     for _col in dttm_cols:
         if _col.col_label not in df.columns:
             continue
+
+        # Use format from format_map if available and not already set
+        if format_map and _col.col_label in format_map and not _col.timestamp_format:
+            _col.timestamp_format = format_map[_col.col_label]
 
         _process_datetime_column(df, _col)
 

@@ -19,12 +19,12 @@
 import {
   CurrencyFormatter,
   DataRecordValue,
-  GenericDataType,
   getNumberFormatter,
   isDefined,
   isProbablyHTML,
   sanitizeHtml,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   ValueFormatterParams,
   ValueGetterParams,
@@ -103,7 +103,7 @@ export const valueFormatter = (
 };
 
 export const valueGetter = (params: ValueGetterParams, col: InputColumn) => {
-  // @ts-ignore
+  // @ts-expect-error
   if (params?.colDef?.isMain) {
     const modifiedColId = `Main ${params.column.getColId()}`;
     return params.data[modifiedColId];

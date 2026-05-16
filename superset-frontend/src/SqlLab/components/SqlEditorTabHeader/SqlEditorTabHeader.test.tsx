@@ -37,7 +37,6 @@ import {
   REMOVE_QUERY_EDITOR,
   QUERY_EDITOR_SET_TITLE,
   ADD_QUERY_EDITOR,
-  QUERY_EDITOR_TOGGLE_LEFT_BAR,
 } from 'src/SqlLab/actions/sqlLab';
 import SqlEditorTabHeader from 'src/SqlLab/components/SqlEditorTabHeader';
 
@@ -56,15 +55,16 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
     ...(store && { store }),
   });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SqlEditorTabHeader', () => {
-  it('renders name', () => {
+  test('renders name', () => {
     const { queryByText } = setup(defaultQueryEditor, mockStore(initialState));
     expect(queryByText(defaultQueryEditor.name)).toBeInTheDocument();
     expect(queryByText(extraQueryEditor1.name)).not.toBeInTheDocument();
     expect(queryByText(extraQueryEditor2.name)).not.toBeInTheDocument();
   });
 
-  it('renders name from unsaved changes', () => {
+  test('renders name from unsaved changes', () => {
     const expectedTitle = 'updated title';
     const { queryByText } = setup(
       defaultQueryEditor,
@@ -85,7 +85,7 @@ describe('SqlEditorTabHeader', () => {
     expect(queryByText(extraQueryEditor2.name)).not.toBeInTheDocument();
   });
 
-  it('renders current name for unrelated unsaved changes', () => {
+  test('renders current name for unrelated unsaved changes', () => {
     const unrelatedTitle = 'updated title';
     const { queryByText } = setup(
       defaultQueryEditor,
@@ -106,6 +106,7 @@ describe('SqlEditorTabHeader', () => {
     expect(queryByText(extraQueryEditor2.name)).not.toBeInTheDocument();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('with dropdown menus', () => {
     let store = mockStore();
     beforeEach(async () => {
@@ -116,7 +117,7 @@ describe('SqlEditorTabHeader', () => {
       userEvent.click(dropdown);
     });
 
-    it('should dispatch removeQueryEditor action', async () => {
+    test('should dispatch removeQueryEditor action', async () => {
       await waitFor(() =>
         expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
       );
@@ -132,7 +133,7 @@ describe('SqlEditorTabHeader', () => {
       );
     });
 
-    it('should dispatch queryEditorSetTitle action', async () => {
+    test('should dispatch queryEditorSetTitle action', async () => {
       await waitFor(() =>
         expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
       );
@@ -155,25 +156,7 @@ describe('SqlEditorTabHeader', () => {
       mockPrompt.mockClear();
     });
 
-    it('should dispatch toggleLeftBar action', async () => {
-      await waitFor(() =>
-        expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
-      );
-      fireEvent.click(screen.getByTestId('toggle-menu-option'));
-
-      const actions = store.getActions();
-      await waitFor(() =>
-        expect(actions[0]).toEqual({
-          type: QUERY_EDITOR_TOGGLE_LEFT_BAR,
-          hideLeftBar: !defaultQueryEditor.hideLeftBar,
-          queryEditor: expect.objectContaining({
-            id: defaultQueryEditor.id,
-          }),
-        }),
-      );
-    });
-
-    it('should dispatch removeAllOtherQueryEditors action', async () => {
+    test('should dispatch removeAllOtherQueryEditors action', async () => {
       await waitFor(() =>
         expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
       );
@@ -194,7 +177,7 @@ describe('SqlEditorTabHeader', () => {
       );
     });
 
-    it('should dispatch cloneQueryToNewTab action', async () => {
+    test('should dispatch cloneQueryToNewTab action', async () => {
       await waitFor(() =>
         expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
       );
