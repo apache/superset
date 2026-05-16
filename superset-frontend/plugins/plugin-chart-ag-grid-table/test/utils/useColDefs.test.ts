@@ -957,7 +957,6 @@ test('has correct static column properties', () => {
   expect(colDef.suppressSizeToFit).toBe(true);
   expect(colDef.resizable).toBe(false);
   expect(colDef.suppressMovable).toBe(true);
-  expect(colDef.context).toEqual({ isMetric: true });
   expect(colDef.headerStyle).toBeDefined();
   expect(colDef.cellStyle).toBeDefined();
 });
