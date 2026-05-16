@@ -58,6 +58,10 @@ categories:
       url: https://www.ontruck.com/
 
   Financial Services:
+    - name: Aadhar Housing Finance Limited
+      url: https://www.aadharhousing.com
+      contributors: ["@thakerhardiks"]
+
     - name: Aktia Bank plc
       url: https://www.aktia.com
 

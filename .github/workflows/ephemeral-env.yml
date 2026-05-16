@@ -199,7 +199,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@376925c9d111252e87ae59691e5a442dd100ef6a # v2
+        uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419 # v2
 
       - name: Load, tag and push image to ECR
         id: push-image
@@ -235,7 +235,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@376925c9d111252e87ae59691e5a442dd100ef6a # v2
+        uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419 # v2
 
       - name: Check target image exists in ECR
         id: check-image
@@ -265,7 +265,7 @@ jobs:
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@77954e213ba1f9f9cb016b86a1d4f6fcdea0d57e # v1
+        uses: aws-actions/amazon-ecs-render-task-definition@6853cfae8c3a7d978fbf68b5a55453395541dfbb # v1
         with:
           task-definition: .github/workflows/ecs-task-definition.json
           container-name: superset-ci
@@ -300,7 +300,7 @@ jobs:
           --tags key=pr,value=$PR_NUMBER key=github_user,value=${{ github.actor }}
       - name: Deploy Amazon ECS task definition
         id: deploy-task
-        uses: aws-actions/amazon-ecs-deploy-task-definition@fc8fc60f3a60ffd500fcb13b209c59d221ac8c8c # v2
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a310a830f5c14e583e35d84e4e1ec7dd177c3c9c # v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
           service: pr-${{ github.event.inputs.issue_number || github.event.pull_request.number }}-service

@@ -18,7 +18,7 @@
 
 [project]
 name = "apache-superset-core"
-version = "0.1.0rc2"
+version = "0.1.0"
 description = "Core Python package for building Apache Superset backend extensions and integrations"
 readme = "README.md"
 authors = [
@@ -43,6 +43,8 @@ classifiers = [
 ]
 dependencies = [
     "flask-appbuilder>=5.0.2,<6",
+    "isodate>=0.7.0",
+    "pyarrow>=16.0.0",
     "pydantic>=2.8.0",
     "sqlalchemy>=1.4.0,<2.0",
     "sqlalchemy-utils>=0.38.0, <0.43", # expanding lowerbound to work with pydoris

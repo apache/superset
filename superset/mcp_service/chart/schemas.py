@@ -22,7 +22,7 @@ Pydantic schemas for chart-related responses
 from __future__ import annotations
 
 import difflib
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 import humanize
@@ -36,7 +36,6 @@ from pydantic import (
     model_serializer,
     model_validator,
     PositiveInt,
-    TypeAdapter,
     ValidationError,
 )
 from typing_extensions import Self
@@ -45,21 +44,27 @@ from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
+    CreatedByMeMixin,
     FormDataCacheControl,
     MetadataCacheControl,
+    OwnedByMeMixin,
     QueryCacheControl,
 )
-from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.common.error_schemas import ChartGenerationError, MCPBaseError
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
-    serialize_user_object,
     TagInfo,
-    UserInfo,
+)
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
 )
 from superset.mcp_service.utils.sanitization import (
     sanitize_filter_value,
     sanitize_user_input,
+    sanitize_user_input_with_changes,
 )
 
 
@@ -102,17 +107,12 @@ class ChartInfo(BaseModel):
     url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
     cache_timeout: int | None = Field(None, description="Cache timeout")
-    changed_by: str | None = Field(None, description="Last modifier (username)")
-    changed_by_name: str | None = Field(
-        None, description="Last modifier (display name)"
-    )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
     changed_on_humanized: str | None = Field(
         None, description="Humanized modification time"
     )
-    created_by: str | None = Field(None, description="Chart creator (username)")
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
@@ -125,7 +125,6 @@ class ChartInfo(BaseModel):
     )
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
-    owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
 
     # Filters extracted from form_data for easy inspection
     filters: ChartFiltersInfo | None = Field(
@@ -164,7 +163,7 @@ class ChartInfo(BaseModel):
 
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
-    @model_serializer(mode="wrap", when_used="json")
+    @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
         """Filter fields based on serialization context.
 
@@ -172,7 +171,7 @@ class ChartInfo(BaseModel):
         Otherwise, include all fields (default behavior).
         """
         # Get full serialization
-        data = serializer(self)
+        data = filter_user_directory_fields(serializer(self))
 
         # Check if we have a context with select_columns
         if info.context and isinstance(info.context, dict):
@@ -181,18 +180,15 @@ class ChartInfo(BaseModel):
                 # Filter to only requested fields
                 return {k: v for k, v in data.items() if k in select_columns}
 
-        # No filtering - return all fields
         return data
 
 
-class ChartError(BaseModel):
-    error: str = Field(..., description="Error message")
-    error_type: str = Field(..., description="Type of error")
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        description="Error timestamp",
-    )
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
+class ChartError(MCPBaseError):
+    @field_validator("message")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str) -> str:
+        """Wrap error text before it is exposed to LLM context."""
+        return sanitize_for_llm_context(value, field_path=("error",))
 
 
 class ChartCapabilities(BaseModel):
@@ -381,6 +377,83 @@ def extract_filters_from_form_data(
     )
 
 
+CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = frozenset(
+    {
+        "all_columns",
+        "columns",
+        "datasource",
+        "datasource_id",
+        "datasource_name",
+        "datasource_type",
+        "entity",
+        "form_data_key",
+        "groupby",
+        "metric",
+        "metrics",
+        "series",
+        "slice_id",
+        "viz_type",
+        "x",
+        "y",
+        "size",
+    }
+)
+
+
+def sanitize_chart_info_for_llm_context(chart_info: ChartInfo) -> ChartInfo:
+    """Wrap chart read-path descriptive fields before LLM exposure."""
+    payload = chart_info.model_dump(mode="python")
+
+    for field_name in (
+        "slice_name",
+        "description",
+        "certified_by",
+        "certification_details",
+    ):
+        payload[field_name] = sanitize_for_llm_context(
+            payload.get(field_name),
+            field_path=(field_name,),
+        )
+
+    payload["datasource_name"] = escape_llm_context_delimiters(
+        payload.get("datasource_name")
+    )
+
+    if payload.get("filters") is not None:
+        payload["filters"] = sanitize_for_llm_context(
+            payload["filters"],
+            field_path=("filters",),
+            excluded_field_names=frozenset(),
+        )
+
+    if payload.get("form_data") is not None:
+        payload["form_data"] = sanitize_for_llm_context(
+            payload["form_data"],
+            field_path=("form_data",),
+            excluded_field_names=(
+                CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
+                | frozenset({"cache_key", "database", "database_name", "schema"})
+            ),
+        )
+
+    payload["tags"] = [
+        {
+            **tag,
+            "name": sanitize_for_llm_context(
+                tag.get("name"),
+                field_path=("tags", str(index), "name"),
+            ),
+            "description": sanitize_for_llm_context(
+                tag.get("description"),
+                field_path=("tags", str(index), "description"),
+            ),
+        }
+        for index, tag in enumerate(payload.get("tags", []))
+    ]
+
+    return ChartInfo.model_validate(payload)
+
+
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
@@ -407,42 +480,38 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     # Extract structured filter information
     filters_info = extract_filters_from_form_data(chart_form_data)
 
-    return ChartInfo(
-        id=chart_id,
-        slice_name=getattr(chart, "slice_name", None),
-        viz_type=getattr(chart, "viz_type", None),
-        datasource_name=getattr(chart, "datasource_name", None),
-        datasource_type=getattr(chart, "datasource_type", None),
-        url=chart_url,
-        description=getattr(chart, "description", None),
-        certified_by=getattr(chart, "certified_by", None),
-        certification_details=getattr(chart, "certification_details", None),
-        cache_timeout=getattr(chart, "cache_timeout", None),
-        form_data=chart_form_data,
-        filters=filters_info,
-        changed_by=getattr(chart, "changed_by_name", None)
-        or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
-        changed_by_name=getattr(chart, "changed_by_name", None),
-        changed_on=getattr(chart, "changed_on", None),
-        changed_on_humanized=_humanize_timestamp(getattr(chart, "changed_on", None)),
-        created_by=getattr(chart, "created_by_name", None)
-        or (str(chart.created_by) if getattr(chart, "created_by", None) else None),
-        created_on=getattr(chart, "created_on", None),
-        created_on_humanized=_humanize_timestamp(getattr(chart, "created_on", None)),
-        uuid=str(getattr(chart, "uuid", "")) if getattr(chart, "uuid", None) else None,
-        tags=[
-            TagInfo.model_validate(tag, from_attributes=True)
-            for tag in getattr(chart, "tags", [])
-        ]
-        if getattr(chart, "tags", None)
-        else [],
-        owners=[
-            info
-            for owner in getattr(chart, "owners", [])
-            if (info := serialize_user_object(owner)) is not None
-        ]
-        if getattr(chart, "owners", None)
-        else [],
+    return sanitize_chart_info_for_llm_context(
+        ChartInfo(
+            id=chart_id,
+            slice_name=getattr(chart, "slice_name", None),
+            viz_type=getattr(chart, "viz_type", None),
+            datasource_name=getattr(chart, "datasource_name", None),
+            datasource_type=getattr(chart, "datasource_type", None),
+            url=chart_url,
+            description=getattr(chart, "description", None),
+            certified_by=getattr(chart, "certified_by", None),
+            certification_details=getattr(chart, "certification_details", None),
+            cache_timeout=getattr(chart, "cache_timeout", None),
+            form_data=chart_form_data,
+            filters=filters_info,
+            changed_on=getattr(chart, "changed_on", None),
+            changed_on_humanized=_humanize_timestamp(
+                getattr(chart, "changed_on", None)
+            ),
+            created_on=getattr(chart, "created_on", None),
+            created_on_humanized=_humanize_timestamp(
+                getattr(chart, "created_on", None)
+            ),
+            uuid=str(getattr(chart, "uuid", ""))
+            if getattr(chart, "uuid", None)
+            else None,
+            tags=[
+                TagInfo.model_validate(tag, from_attributes=True)
+                for tag in getattr(chart, "tags", [])
+            ]
+            if getattr(chart, "tags", None)
+            else [],
+        )
     )
 
 
@@ -458,12 +527,13 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
-        "created_by_fk",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='chart') for "
-        "available filter columns. Use created_by_fk with the user ID from "
-        "get_instance_info's current_user to find charts created by a specific user.",
+        description=(
+            "Column to filter on. Valid values: 'slice_name', 'viz_type', "
+            "'datasource_name'. Other column names are not valid filter columns "
+            "and will cause a validation error."
+        ),
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -726,6 +796,30 @@ class FilterConfig(BaseModel):
                 f"Operator '{self.op}' requires a single value, not a list"
             )
         return self
+
+
+class SortByConfig(BaseModel):
+    """Sort specification with explicit direction.
+
+    Accepts either this object or a bare column-name string in `sort_by`
+    lists. Bare strings default to descending, which matches the
+    sort-by-metric "top N" pattern most commonly used for tables.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    column: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        validation_alias=AliasChoices("column", "col"),
+        description="Column to sort by",
+    )
+    ascending: bool = Field(
+        False,
+        description="Sort ascending. Defaults to False (descending) to match "
+        "the typical sort-by-metric top-N use case.",
+    )
 
 
 # Actual chart types
@@ -1114,8 +1208,12 @@ class TableChartConfig(UnknownFieldCheckMixin):
         description="Structured filters (column/op/value). "
         "Do NOT use adhoc_filters or raw SQL expressions.",
     )
-    sort_by: List[str] | None = Field(
+    sort_by: List[str | SortByConfig] | None = Field(
         None,
+        description="Columns to sort by. Each entry is either a column-name "
+        "string (defaults to descending) or a SortByConfig object with "
+        "explicit `ascending`. Descending matches the sort-by-metric "
+        "top-N pattern most common for tables.",
         validation_alias=AliasChoices("sort_by", "order_by_cols", "order_by"),
     )
     row_limit: int = Field(1000, description="Max rows returned", ge=1, le=50000)
@@ -1279,68 +1377,12 @@ ChartConfig = Annotated[
     ),
 ]
 
-# Module-level TypeAdapter avoids repeated schema compilation in
-# parse_chart_config() — safe because ChartConfig is fully defined above.
-_CHART_CONFIG_ADAPTER: TypeAdapter[ChartConfig] = TypeAdapter(ChartConfig)
 
 # Compact description for JSON Schema — keeps tool inputSchema small while
 # giving LLMs enough context to construct valid configs.
-_CHART_CONFIG_DESCRIPTION = (
-    "Chart configuration object. MUST include 'chart_type' to select the "
-    "schema. Types: 'xy' (x, y, kind: line/bar/area/scatter), "
-    "'table' (columns), 'pie' (dimension, metric), "
-    "'pivot_table' (rows, metrics), 'mixed_timeseries' (x, y, y_secondary), "
-    "'handlebars' (columns, handlebars_template), "
-    "'big_number' (metric). "
-    "See chart://configs resource for full field reference and examples."
-)
 
 
-def parse_chart_config(
-    config: Dict[str, Any],
-) -> (
-    XYChartConfig
-    | TableChartConfig
-    | PieChartConfig
-    | PivotTableChartConfig
-    | MixedTimeseriesChartConfig
-    | HandlebarsChartConfig
-    | BigNumberChartConfig
-):
-    """Parse a raw dict into the appropriate typed ChartConfig subclass.
-
-    Validates the dict against the discriminated union using chart_type.
-    Call this in tool function bodies to get a typed config object.
-    """
-    try:
-        return _CHART_CONFIG_ADAPTER.validate_python(config)
-    except Exception as e:
-        raise ValueError(
-            f"{e}\n\n"
-            f"Hint: read the chart://configs resource for valid configuration "
-            f"examples and field reference."
-        ) from e
-
-
-def _coerce_config_to_dict(v: Any) -> Dict[str, Any]:
-    """Accept ChartConfig objects, dicts, or JSON strings for the config field."""
-    if isinstance(v, str):
-        from superset.utils import json as json_utils
-
-        try:
-            v = json_utils.loads(v)
-        except (ValueError, TypeError) as exc:
-            raise ValueError(
-                f"config must be a JSON object string, got: {v!r}"
-            ) from exc
-    if hasattr(v, "model_dump"):
-        return v.model_dump()
-    if isinstance(v, dict):
-        return v
-    raise TypeError(f"config must be a dict or JSON string, got {type(v).__name__}")
-
-
-class ListChartsRequest(MetadataCacheControl):
+class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_charts with clear, unambiguous types."""
 
     filters: Annotated[
@@ -1420,8 +1462,7 @@ class ListChartsRequest(MetadataCacheControl):
 
     @model_validator(mode="after")
     def validate_search_and_filters(self) -> "ListChartsRequest":
-        """Prevent using both search and filters simultaneously to avoid query
-        conflicts."""
+        """Prevent using both search and filters simultaneously."""
         if self.search and self.filters:
             raise ValueError(
                 "Cannot use both 'search' and 'filters' parameters simultaneously. "
@@ -1433,21 +1474,74 @@ class ListChartsRequest(MetadataCacheControl):
 
 # The tool input models
 class GenerateChartRequest(QueryCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
+    config: ChartConfig = Field(..., description="Chart configuration")
     chart_name: str | None = Field(
-        None, description="Auto-generates if omitted", max_length=255
+        None,
+        description="Auto-generates if omitted",
+        max_length=255,
+        validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     save_chart: bool = Field(default=False, description="Save permanently in Superset")
     generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
+    sanitization_warnings: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Internal: warnings emitted when user input was altered by "
+            "sanitization. Populated by the ``mode='before'`` validator "
+            "before chart_name is rewritten, so the tool can surface a "
+            "notice to the caller instead of silently dropping content."
+        ),
+    )
 
-    @field_validator("config", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def coerce_config(cls, v: Any) -> Dict[str, Any]:
-        return _coerce_config_to_dict(v)
+    def _detect_chart_name_sanitization(cls, data: Any) -> Any:
+        """Record a warning when chart_name sanitization alters user input.
+
+        Runs before the ``chart_name`` field validator strips HTML, so we
+        can compare the caller's raw input against the sanitizer output
+        and tell the tool whether to notify the caller. Empty-after-
+        sanitization is rejected with a ValueError so the caller gets a
+        clear error instead of a silently auto-generated name.
+
+        ``sanitization_warnings`` is a server-only field — any value the
+        caller supplied is discarded here so the tool cannot be tricked
+        into echoing attacker-controlled text back through the response.
+        """
+        if not isinstance(data, dict):
+            return data
+        data["sanitization_warnings"] = []
+        for key in ("chart_name", "name", "title", "slice_name"):
+            if key in data:
+                raw = data[key]
+                break
+        else:
+            raw = None
+        if not isinstance(raw, str) or not raw.strip():
+            return data
+        sanitized, was_modified = sanitize_user_input_with_changes(
+            raw, "Chart name", max_length=255, allow_empty=True
+        )
+        if was_modified and not sanitized:
+            raise ValueError(
+                "chart_name contained only disallowed content "
+                "(HTML/script/URL schemes) and was removed entirely by "
+                "sanitization. Provide a chart_name with plain text, or "
+                "omit it to auto-generate one."
+            )
+        if was_modified:
+            data["sanitization_warnings"].append(
+                "chart_name was modified during sanitization to remove "
+                "potentially unsafe content; the stored name differs "
+                "from the input."
+            )
+        return data
 
     @field_validator("chart_name")
     @classmethod
@@ -1481,24 +1575,22 @@ class GenerateChartRequest(QueryCacheControl):
 
 class GenerateExploreLinkRequest(FormDataCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
-
-    @field_validator("config", mode="before")
-    @classmethod
-    def coerce_config(cls, v: Any) -> Dict[str, Any]:
-        return _coerce_config_to_dict(v)
+    config: ChartConfig = Field(..., description="Chart configuration")
 
 
 class UpdateChartRequest(QueryCacheControl):
+    model_config = ConfigDict(populate_by_name=True)
+
     identifier: int | str = Field(..., description="Chart ID or UUID")
-    config: Dict[str, Any] | None = Field(
+    config: ChartConfig | None = Field(
         None,
-        description=(
-            f"{_CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name."
-        ),
+        description="Chart configuration. Optional; omit to only update chart_name.",
     )
     chart_name: str | None = Field(
-        None, description="Auto-generates if omitted", max_length=255
+        None,
+        description="Auto-generates if omitted",
+        max_length=255,
+        validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     generate_preview: bool = Field(
         default=True,
@@ -1517,13 +1609,6 @@ class UpdateChartRequest(QueryCacheControl):
         ),
     )
 
-    @field_validator("config", mode="before")
-    @classmethod
-    def coerce_config(cls, v: Any) -> Dict[str, Any] | None:
-        if v is None:
-            return None
-        return _coerce_config_to_dict(v)
-
     @field_validator("chart_name")
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
@@ -1534,16 +1619,11 @@ class UpdateChartRequest(QueryCacheControl):
 class UpdateChartPreviewRequest(FormDataCacheControl):
     form_data_key: str = Field(..., description="Existing form_data_key to update")
     dataset_id: int | str = Field(..., description="Dataset ID or UUID")
-    config: Dict[str, Any] = Field(..., description=_CHART_CONFIG_DESCRIPTION)
+    config: ChartConfig = Field(..., description="Chart configuration")
     generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
-
-    @field_validator("config", mode="before")
-    @classmethod
-    def coerce_config(cls, v: Any) -> Dict[str, Any]:
-        return _coerce_config_to_dict(v)
 
 
 class GetChartDataRequest(QueryCacheControl):
@@ -1705,21 +1785,21 @@ class GetChartPreviewRequest(QueryCacheControl):
         return self
 
     format: Literal["url", "ascii", "table", "vega_lite"] = Field(
-        default="url",
+        default="ascii",
         description=(
-            "Preview format: 'url' for explore link (default), "
-            "'ascii' for text art, "
+            "Preview format: 'ascii' for text art (default), "
+            "'url' for explore link, "
             "'table' for data table, "
             "'vega_lite' for interactive JSON specification"
         ),
     )
     width: int | None = Field(
         default=800,
-        description="Preview image width in pixels (for url/base64 formats)",
+        description="Preview width in pixels (for url and vega_lite formats)",
     )
     height: int | None = Field(
         default=600,
-        description="Preview image height in pixels (for url/base64 formats)",
+        description="Preview height in pixels (for url and vega_lite formats)",
     )
     ascii_width: int | None = Field(
         default=80, description="ASCII chart width in characters (for ascii format)"
@@ -1731,14 +1811,14 @@ class GetChartPreviewRequest(QueryCacheControl):
 
 # Discriminated union preview formats for type safety
 class URLPreview(BaseModel):
-    """URL-based image preview format."""
+    """URL-based preview format."""
 
     type: Literal["url"] = "url"
-    preview_url: str = Field(..., description="Direct image URL")
-    width: int = Field(..., description="Image width in pixels")
-    height: int = Field(..., description="Image height in pixels")
+    preview_url: str = Field(..., description="Explore URL for opening the chart")
+    width: int = Field(..., description="Requested Explore viewport width in pixels")
+    height: int = Field(..., description="Requested Explore viewport height in pixels")
     supports_interaction: bool = Field(
-        False, description="Static image, no interaction"
+        True, description="Explore URL supports chart interaction"
     )
 
 
@@ -1812,6 +1892,12 @@ class GenerateChartResponse(BaseModel):
 
     # Navigation and context
     explore_url: str | None = Field(None, description="Edit chart in Superset")
+    chart_type_label: str | None = Field(
+        None,
+        description=(
+            "User-facing chart type label derived from the rendered visualization type"
+        ),
+    )
     embed_code: str | None = Field(None, description="HTML embed snippet")
     api_endpoints: Dict[str, str] = Field(
         default_factory=dict, description="Related API endpoints for data/updates"

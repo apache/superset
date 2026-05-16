@@ -10,6 +10,10 @@ version: 1
 The superset cli allows you to import and export datasources from and to YAML. Datasources include
 databases. The data is expected to be organized in the following hierarchy:
 
+:::info
+Superset's ZIP-based import/export also covers **dashboards**, **charts**, and **saved queries**, exercised through the UI and REST API. The [Dashboard Import Overwrite Behavior](#dashboard-import-overwrite-behavior) and [UUIDs in API Responses](#uuids-in-api-responses) sections below document the behavior shared across all asset types.
+:::
+
 ```text
 ├──databases
 |  ├──database_1
@@ -25,6 +29,10 @@ databases. The data is expected to be organized in the following hierarchy:
 |  |  └── ... (more tables)
 |  └── ... (more databases)
 ```
+
+:::note
+When you export a database connection, the `masked_encrypted_extra` field (used for sensitive connection parameters such as service account JSON, OAuth tokens, and other encrypted credentials) is included in the export. When importing on another instance, these values are decrypted and re-encrypted using the destination instance's `SECRET_KEY`. Ensure the receiving instance has a valid `SECRET_KEY` configured before importing.
+:::
 
 ## Exporting Datasources to YAML
 
@@ -74,6 +82,29 @@ The optional username flag **-u** sets the user used for the datasource import. 
 ```bash
 superset import_datasources -p <path / filename> -u 'admin'
 ```
+
+## Dashboard Import Overwrite Behavior
+
+When importing a dashboard ZIP with the **overwrite** option enabled, any existing charts that are part of the dashboard are **replaced** rather than duplicated. This applies to:
+
+- Charts whose UUID matches a chart already present in the target instance
+- The full chart configuration (query, visualization type, columns, metrics) is replaced by the imported version
+
+If you import without the overwrite flag, existing charts with conflicting UUIDs are left unchanged and the import skips those objects. Use overwrite when you want to push a fully updated dashboard (including chart definitions) from a development or staging environment to production.
+
+## UUIDs in API Responses
+
+The REST API POST endpoints for **datasets**, **charts**, and **dashboards** include the auto-generated `uuid` field in the response body:
+
+```json
+{
+  "id": 42,
+  "uuid": "b8a8d5c3-1234-4abc-8def-0123456789ab",
+  ...
+}
+```
+
+UUIDs remain stable across import/export cycles and can be used for cross-environment workflows — for example, recording a UUID when creating a chart in development and using it to identify the matching chart after importing into production.
 
 ## Legacy Importing Datasources
 

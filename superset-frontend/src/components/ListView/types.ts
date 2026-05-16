@@ -66,7 +66,7 @@ export interface ListViewFilter {
   dateFilterValueType?: 'unix' | 'iso';
   min?: number;
   max?: number;
-  dropdownStyle?: React.CSSProperties;
+  popupStyle?: React.CSSProperties;
   autoComplete?: string;
   inputName?: string;
 }
