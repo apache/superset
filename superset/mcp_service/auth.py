@@ -70,8 +70,13 @@ CLASS_PERMISSION_ATTR = "_class_permission_name"
 METHOD_PERMISSION_ATTR = "_method_permission_name"
 
 
-class MCPPermissionDeniedError(Exception):
-    """Raised when user lacks required RBAC permission for an MCP tool."""
+class MCPPermissionDeniedError(PermissionError):
+    """Raised when user lacks required RBAC permission for an MCP tool.
+
+    Inherits from ``PermissionError`` so the middleware classifies denials as
+    user errors (HTTP 403 / WARNING log / "Access denied" sanitized message)
+    rather than unexpected server errors.
+    """
 
     def __init__(
         self,
@@ -451,7 +456,12 @@ def get_user_from_request() -> User:
         "g.user was not set by external middleware",
     ]
     configured_prefixes = current_app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
-    prefix_example = configured_prefixes[0] if configured_prefixes else "sst_"
+    if isinstance(configured_prefixes, str):
+        prefix_example = configured_prefixes
+    elif configured_prefixes:
+        prefix_example = configured_prefixes[0]
+    else:
+        prefix_example = "sst_"
     raise ValueError(
         "No authenticated user found. Tried:\n"
         + "\n".join(f"  - {d}" for d in details)
