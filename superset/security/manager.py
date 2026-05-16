@@ -3206,7 +3206,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     .one_or_none()
                 )
             except MultipleResultsFound:
-                logger.error("Multiple results found for user %s", username)
+                logger.error("Multiple results found for username lookup")
                 return None
         if email:
             try:
@@ -3217,7 +3217,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     .one_or_none()
                 )
             except MultipleResultsFound:
-                logger.error("Multiple results found for user with email %s", email)
+                logger.error("Multiple results found for email lookup")
                 return None
         return None
 
