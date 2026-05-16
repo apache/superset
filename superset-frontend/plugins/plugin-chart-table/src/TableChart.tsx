@@ -1325,7 +1325,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 col.toggleSortBy();
               }
             }}
-            role="columnheader button"
             onClick={onClick}
             data-column-name={col.id}
             {...(allowRearrangeColumns && {

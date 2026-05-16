@@ -20,7 +20,7 @@ import type { ReactElement } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
-import { TimeGranularity } from '@superset-ui/core';
+import { TimeGranularity, type DataRecordValue } from '@superset-ui/core';
 import PivotTableChart from '../src/PivotTableChart';
 import { MetricsLayoutEnum, type PivotTableProps } from '../src/types';
 
@@ -35,6 +35,7 @@ test('emits numeric temporal values for drill-to-detail filters on formatted row
     data: [{ install_date: String(timestamp), value: 1 }],
     height: 400,
     width: 600,
+    margin: 0,
     groupbyRows: ['install_date'],
     groupbyColumns: [],
     metrics: ['value'],
@@ -61,7 +62,8 @@ test('emits numeric temporal values for drill-to-detail filters on formatted row
     metricsLayout: MetricsLayoutEnum.COLUMNS,
     metricColorFormatters: [],
     dateFormatters: {
-      install_date: value => new Date(Number(value)).toISOString().slice(0, 10),
+      install_date: (value: DataRecordValue) =>
+        new Date(Number(value)).toISOString().slice(0, 10),
     },
     legacy_order_by: null,
     order_desc: false,
@@ -96,6 +98,7 @@ test('emits numeric temporal values for cross-filters on formatted row headers',
     data: [{ install_date: String(timestamp), value: 1 }],
     height: 400,
     width: 600,
+    margin: 0,
     groupbyRows: ['install_date'],
     groupbyColumns: [],
     metrics: ['value'],
@@ -122,7 +125,8 @@ test('emits numeric temporal values for cross-filters on formatted row headers',
     metricsLayout: MetricsLayoutEnum.COLUMNS,
     metricColorFormatters: [],
     dateFormatters: {
-      install_date: value => new Date(Number(value)).toISOString().slice(0, 10),
+      install_date: (value: DataRecordValue) =>
+        new Date(Number(value)).toISOString().slice(0, 10),
     },
     legacy_order_by: null,
     order_desc: false,
