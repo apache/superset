@@ -201,7 +201,7 @@ class SupersetRoleApi(RoleApi):
                 200,
                 **{
                     API_RESULT_RES_KEY: self.update_role_user_schema.dump(
-                        item, many=False
+                        {"user_ids": [u.id for u in users]}, many=False
                     )
                 },
             )
