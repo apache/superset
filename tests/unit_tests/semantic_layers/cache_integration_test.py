@@ -374,3 +374,98 @@ def test_projection_skips_when_cached_limit_reached(
 
     get_results(second_q)
     assert impl.get_table.call_count == 2  # projection skipped; re-executed
+
+
+# ---------------------------------------------------------------------------
+# Metric-subset reuse
+# ---------------------------------------------------------------------------
+
+
+def _make_view_two_metrics() -> tuple[Any, MagicMock]:
+    dim_a = Dimension(id="t.a", name="a", type=pa.utf8())
+    metric_x = Metric(
+        id="t.x",
+        name="x",
+        type=pa.float64(),
+        definition="sum(x)",
+        aggregation=AggregationType.SUM,
+    )
+    metric_y = Metric(
+        id="t.y",
+        name="y",
+        type=pa.float64(),
+        definition="sum(y)",
+        aggregation=AggregationType.SUM,
+    )
+    impl = MagicMock()
+    impl.metrics = {metric_x, metric_y}
+    impl.dimensions = {dim_a}
+    impl.features = frozenset()
+    impl.get_metrics = MagicMock(return_value={metric_x, metric_y})
+    impl.get_dimensions = MagicMock(return_value={dim_a})
+
+    ds = MagicMock()
+    ds.implementation = impl
+    ds.uuid = "two-metric-view"
+    ds.changed_on = datetime(2026, 4, 1, 0, 0, 0)
+    ds.cache_timeout = 60
+    ds.fetch_values_predicate = None
+    return impl, ds
+
+
+def _qo_metrics(ds: MagicMock, metrics: list[str]) -> ValidatedQueryObject:
+    return ValidatedQueryObject(
+        datasource=ds,
+        metrics=metrics,  # type: ignore[arg-type]
+        columns=["a"],
+        filters=[],
+    )
+
+
+def _result_a_xy(rows: list[tuple[str, float, float]]) -> SemanticResult:
+    df = pd.DataFrame(rows, columns=["a", "x", "y"])
+    return SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="select a, x, y")],
+        results=pa.Table.from_pandas(df, preserve_index=False),
+    )
+
+
+def test_metric_subset_reuses_cached(
+    fake_cache: _InMemoryCache,
+) -> None:
+    # First query asks for both metrics; second asks for one — served via
+    # PROJECT (drop the extra metric column).
+    impl, ds = _make_view_two_metrics()
+    impl.get_table = MagicMock(
+        return_value=_result_a_xy([("p", 1.0, 10.0), ("q", 2.0, 20.0)])
+    )
+
+    first = get_results(_qo_metrics(ds, ["x", "y"]))
+    assert impl.get_table.call_count == 1
+    assert sorted(first.df.columns.tolist()) == ["a", "x", "y"]
+
+    second = get_results(_qo_metrics(ds, ["x"]))
+    assert impl.get_table.call_count == 1  # cache hit via PROJECT
+    df = second.df.sort_values("a").reset_index(drop=True)
+    assert df["a"].tolist() == ["p", "q"]
+    assert df["x"].tolist() == [1.0, 2.0]
+    assert "y" not in df.columns
+
+
+def test_metric_superset_misses_cache(
+    fake_cache: _InMemoryCache,
+) -> None:
+    # First query is narrower; second needs a metric we never fetched — miss.
+    impl, ds = _make_view_two_metrics()
+    impl.get_table = MagicMock(
+        side_effect=[
+            _result_a_xy([("p", 1.0, 0.0), ("q", 2.0, 0.0)]),
+            _result_a_xy([("p", 1.0, 10.0), ("q", 2.0, 20.0)]),
+        ]
+    )
+
+    get_results(_qo_metrics(ds, ["x"]))
+    assert impl.get_table.call_count == 1
+
+    get_results(_qo_metrics(ds, ["x", "y"]))
+    assert impl.get_table.call_count == 2  # cached entry lacked "y"

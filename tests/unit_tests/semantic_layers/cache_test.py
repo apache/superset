@@ -43,6 +43,7 @@ from superset.semantic_layers.cache import (
     _projection_input_complete,
     CachedEntry,
     can_satisfy,
+    ReuseMode,
     shape_key,
     value_key,
     ViewMeta,
@@ -117,6 +118,7 @@ def entry_from(q: SemanticQuery, value_key_: str = "vk") -> CachedEntry:
     return CachedEntry(
         filters=frozenset(q.filters or set()),
         dimension_keys=frozenset(_dimension_key(d) for d in q.dimensions),
+        metric_ids=frozenset(m.id for m in q.metrics),
         limit=q.limit,
         offset=q.offset or 0,
         order_key=_order_key(q.order),
@@ -211,9 +213,9 @@ def test_implies_like_exact_match_only() -> None:
 def test_can_satisfy_empty_cached_returns_all_as_leftovers() -> None:
     cached_q = query(filters=None)
     new_q = query(filters={where(COL_A, Operator.GREATER_THAN, 5)})
-    ok, leftovers, projection = can_satisfy(entry_from(cached_q), new_q)
+    ok, leftovers, mode = can_satisfy(entry_from(cached_q), new_q)
     assert ok is True
-    assert projection is False
+    assert mode == ReuseMode.EXACT
     assert leftovers == {where(COL_A, Operator.GREATER_THAN, 5)}
 
 
@@ -352,7 +354,7 @@ def test_apply_post_processing_filters_and_limits() -> None:
         limit=2,
     )
     result = _apply_post_processing(
-        cached, new_q, {where(COL_A, Operator.GREATER_THAN, 2)}, False
+        cached, new_q, {where(COL_A, Operator.GREATER_THAN, 2)}, ReuseMode.EXACT
     )
     result_df = result.results.to_pandas()
     assert list(result_df["a"]) == [3, 5]
@@ -366,7 +368,7 @@ def test_apply_post_processing_no_leftovers_no_limit_returns_original() -> None:
         requests=[], results=pa.Table.from_pandas(df, preserve_index=False)
     )
     new_q = query(filters=None, limit=None)
-    out = _apply_post_processing(cached, new_q, set(), False)
+    out = _apply_post_processing(cached, new_q, set(), ReuseMode.EXACT)
     # same object reference is OK; we explicitly return the input
     assert out is cached
 
@@ -415,14 +417,17 @@ def test_value_key_with_datetime_filter() -> None:
     assert value_key(VIEW, q).startswith("sv:val:")
 
 
-def test_shape_key_independent_of_dimensions() -> None:
-    # The v2 shape key buckets entries by metric set only; different dimension
-    # sets share the same shape so the projection path can find broader entries.
+def test_shape_key_independent_of_query_shape() -> None:
+    # All queries for a view+changed_on share one bucket; dim and metric sets
+    # live on each ``CachedEntry`` so the projection/rollup paths can find
+    # broader entries.
     q1 = SemanticQuery(metrics=[M_X], dimensions=[COL_A, COL_B])
     q2 = SemanticQuery(metrics=[M_X], dimensions=[COL_A])
-    assert shape_key(VIEW, q1) == shape_key(VIEW, q2)
+    q3 = SemanticQuery(metrics=[M_X, M_Y], dimensions=[COL_A])
+    assert shape_key(VIEW, q1) == shape_key(VIEW, q2) == shape_key(VIEW, q3)
     # Value keys still differ.
     assert value_key(VIEW, q1) != value_key(VIEW, q2)
+    assert value_key(VIEW, q2) != value_key(VIEW, q3)
 
 
 # ---------------------------------------------------------------------------
@@ -481,9 +486,9 @@ def test_can_satisfy_projection_each_additive_op(metric: Metric, operator: str) 
         new_dimensions=[COL_A],
         cached_dimensions=[COL_A, COL_B],
     )
-    ok, leftovers, projection = can_satisfy(entry, new_q)
+    ok, leftovers, mode = can_satisfy(entry, new_q)
     assert ok is True
-    assert projection is True
+    assert mode == ReuseMode.ROLLUP
     assert leftovers == set()
 
 
@@ -500,7 +505,7 @@ def test_projection_rolls_up_sum() -> None:
         requests=[SemanticRequest(type="SQL", definition="select ...")],
         results=pa.Table.from_pandas(cached_df, preserve_index=False),
     )
-    out = _apply_post_processing(cached, new_q, set(), True)
+    out = _apply_post_processing(cached, new_q, set(), ReuseMode.ROLLUP)
     out_df = out.results.to_pandas().sort_values("a").reset_index(drop=True)
     assert list(out_df["a"]) == ["x", "y"]
     assert list(out_df["sum_x"]) == [30, 70]
@@ -525,7 +530,7 @@ def test_projection_rolls_up_min_max_count() -> None:
         requests=[],
         results=pa.Table.from_pandas(cached_df, preserve_index=False),
     )
-    out = _apply_post_processing(cached, new_q, set(), True)
+    out = _apply_post_processing(cached, new_q, set(), ReuseMode.ROLLUP)
     df = out.results.to_pandas().sort_values("a").reset_index(drop=True)
     assert list(df["min_x"]) == [2, 8]
     assert list(df["max_x"]) == [60, 80]
@@ -550,7 +555,7 @@ def test_projection_drops_multiple_dims() -> None:
     cached = SemanticResult(
         requests=[], results=pa.Table.from_pandas(cached_df, preserve_index=False)
     )
-    out = _apply_post_processing(cached, new_q, set(), True)
+    out = _apply_post_processing(cached, new_q, set(), ReuseMode.ROLLUP)
     df = out.results.to_pandas().sort_values("a").reset_index(drop=True)
     assert list(df["sum_x"]) == [6, 4]
 
@@ -568,10 +573,10 @@ def test_projection_with_leftover_filter_then_rollup() -> None:
     cached = SemanticResult(
         requests=[], results=pa.Table.from_pandas(cached_df, preserve_index=False)
     )
-    ok, leftovers, projection = can_satisfy(entry, new_q)
+    ok, leftovers, mode = can_satisfy(entry, new_q)
     assert ok is True
-    assert projection is True
-    out = _apply_post_processing(cached, new_q, leftovers, projection)
+    assert mode == ReuseMode.ROLLUP
+    out = _apply_post_processing(cached, new_q, leftovers, mode)
     df = out.results.to_pandas().sort_values("a").reset_index(drop=True)
     # b > 1 removes the (x,1) row; x sums to 20, y to 30
     assert list(df["sum_x"]) == [20, 30]
@@ -591,7 +596,7 @@ def test_projection_with_order_and_limit() -> None:
     cached = SemanticResult(
         requests=[], results=pa.Table.from_pandas(cached_df, preserve_index=False)
     )
-    out = _apply_post_processing(cached, new_q, set(), True)
+    out = _apply_post_processing(cached, new_q, set(), ReuseMode.ROLLUP)
     df = out.results.to_pandas()
     assert len(df) == 1
     assert df["a"].tolist() == ["y"]
@@ -611,7 +616,7 @@ def test_apply_post_processing_sorts_before_limit_for_non_projection() -> None:
         limit=2,
     )
 
-    out = _apply_post_processing(cached, new_q, set(), False)
+    out = _apply_post_processing(cached, new_q, set(), ReuseMode.EXACT)
     df = out.results.to_pandas()
     assert df["x"].tolist() == [100.0, 50.0]
 
@@ -643,10 +648,10 @@ def test_projection_with_cached_limit_defers_to_runtime_rowcount_check() -> None
         cached_dimensions=[COL_A, COL_B],
         cached_limit=10,
     )
-    ok, leftovers, projection = can_satisfy(entry, new_q)
+    ok, leftovers, mode = can_satisfy(entry, new_q)
     assert ok is True
     assert leftovers == set()
-    assert projection is True
+    assert mode == ReuseMode.ROLLUP
 
 
 def test_projection_input_complete_unlimited_cached() -> None:
@@ -754,4 +759,83 @@ def test_projection_rejected_when_cached_dims_subset_not_superset() -> None:
         cached_dimensions=[COL_A],
     )
     ok, _, _ = can_satisfy(entry, new_q)
+    assert ok is False
+
+
+# ---------------------------------------------------------------------------
+# Metric-subset reuse
+# ---------------------------------------------------------------------------
+
+
+def test_can_satisfy_metric_subset_same_dims_is_project_mode() -> None:
+    cached_q = SemanticQuery(metrics=[M_X, M_Y], dimensions=[COL_A])
+    new_q = SemanticQuery(metrics=[M_X], dimensions=[COL_A])
+    ok, leftovers, mode = can_satisfy(entry_from(cached_q), new_q)
+    assert ok is True
+    assert mode == ReuseMode.PROJECT
+    assert leftovers == set()
+
+
+def test_can_satisfy_metric_superset_fails() -> None:
+    # cached has only M_X; new wants both — missing data
+    cached_q = SemanticQuery(metrics=[M_X], dimensions=[COL_A])
+    new_q = SemanticQuery(metrics=[M_X, M_Y], dimensions=[COL_A])
+    ok, _, _ = can_satisfy(entry_from(cached_q), new_q)
+    assert ok is False
+
+
+def test_project_drops_extra_metric_column() -> None:
+    new_q = SemanticQuery(metrics=[M_X], dimensions=[COL_A])
+    cached_df = pd.DataFrame({"a": ["p", "q"], "x": [1.0, 2.0], "y": [9.0, 8.0]})
+    cached = SemanticResult(
+        requests=[],
+        results=pa.Table.from_pandas(cached_df, preserve_index=False),
+    )
+    out = _apply_post_processing(cached, new_q, set(), ReuseMode.PROJECT)
+    df = out.results.to_pandas()
+    assert list(df.columns) == ["a", "x"]
+    assert df["x"].tolist() == [1.0, 2.0]
+    assert any(req.type == "cache" for req in out.requests)
+
+
+def test_project_does_not_require_additive_aggregation() -> None:
+    # PROJECT preserves row granularity, so AVG (non-additive) is fine to keep
+    # or drop — no re-aggregation happens.
+    cached_q = SemanticQuery(metrics=[M_AVG, M_SUM], dimensions=[COL_A])
+    new_q = SemanticQuery(metrics=[M_AVG], dimensions=[COL_A])
+    ok, _, mode = can_satisfy(entry_from(cached_q), new_q)
+    assert ok is True
+    assert mode == ReuseMode.PROJECT
+
+
+def test_can_satisfy_metric_subset_with_rollup() -> None:
+    # cached dims ⊃ new dims AND cached metrics ⊃ new metrics — still ROLLUP.
+    cached_q = SemanticQuery(metrics=[M_SUM, M_MAX], dimensions=[COL_A, COL_B])
+    new_q = SemanticQuery(metrics=[M_SUM], dimensions=[COL_A])
+    ok, _, mode = can_satisfy(entry_from(cached_q), new_q)
+    assert ok is True
+    assert mode == ReuseMode.ROLLUP
+
+
+def test_project_with_smaller_limit_and_matching_order() -> None:
+    order = [(M_X, OrderDirection.DESC)]
+    cached_q = SemanticQuery(
+        metrics=[M_X, M_Y], dimensions=[COL_A], limit=100, order=order
+    )
+    new_q = SemanticQuery(metrics=[M_X], dimensions=[COL_A], limit=10, order=order)
+    ok, _, mode = can_satisfy(entry_from(cached_q), new_q)
+    assert ok is True
+    assert mode == ReuseMode.PROJECT
+
+
+def test_project_rejected_when_order_references_dropped_metric() -> None:
+    # cached order is by M_Y; new query has no M_Y. order_key mismatch fails it.
+    cached_q = SemanticQuery(
+        metrics=[M_X, M_Y],
+        dimensions=[COL_A],
+        limit=100,
+        order=[(M_Y, OrderDirection.DESC)],
+    )
+    new_q = SemanticQuery(metrics=[M_X], dimensions=[COL_A], limit=10)
+    ok, _, _ = can_satisfy(entry_from(cached_q), new_q)
     assert ok is False

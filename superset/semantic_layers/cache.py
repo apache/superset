@@ -43,6 +43,7 @@ import re
 import time as _time
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
+from enum import Enum
 from typing import Any, Iterable
 
 import pandas as pd
@@ -92,10 +93,19 @@ class ViewMeta:
     cache_timeout: int | None
 
 
+class ReuseMode(Enum):
+    """How a cached entry maps onto the new query."""
+
+    EXACT = "exact"  # same dims and metrics; only leftovers/limit/order to apply
+    PROJECT = "project"  # same dims, cached metrics ⊃ new metrics; drop columns
+    ROLLUP = "rollup"  # cached dims ⊃ new dims; re-aggregate
+
+
 @dataclass(frozen=True)
 class CachedEntry:
     filters: frozenset[Filter]
     dimension_keys: frozenset[str]
+    metric_ids: frozenset[str]
     limit: int | None
     offset: int
     order_key: str
@@ -125,23 +135,21 @@ def try_serve_from_cache(
         served: SemanticResult | None = None
         for entry in entries:
             if served is None:
-                ok, leftovers, projection_needed = can_satisfy(entry, query)
+                ok, leftovers, mode = can_satisfy(entry, query)
                 if ok:
                     payload = cache.get(entry.value_key)
                     if payload is None:
                         # value evicted but index entry survived; drop it
                         continue
-                    if projection_needed and not _projection_input_complete(
+                    if mode == ReuseMode.ROLLUP and not _projection_input_complete(
                         entry, payload
                     ):
                         # Cached result may be truncated (top-N). Keep the index
-                        # entry alive but skip reuse for projection.
+                        # entry alive but skip reuse for rollup.
                         pruned.append(entry)
                         continue
                     pruned.append(entry)
-                    served = _apply_post_processing(
-                        payload, query, leftovers, projection_needed
-                    )
+                    served = _apply_post_processing(payload, query, leftovers, mode)
                     continue
             # keep entry; verify its value is still alive
             if cache.get(entry.value_key) is not None:
@@ -172,6 +180,7 @@ def store_result(
         entry = CachedEntry(
             filters=frozenset(query.filters or set()),
             dimension_keys=frozenset(_dimension_key(d) for d in query.dimensions),
+            metric_ids=frozenset(m.id for m in query.metrics),
             limit=query.limit,
             offset=query.offset or 0,
             order_key=_order_key(query.order),
@@ -195,12 +204,11 @@ def store_result(
 
 
 def shape_key(view_meta: ViewMeta, query: SemanticQuery) -> str:
-    # The shape key buckets entries by metric set only; dimensions live on each
-    # ``CachedEntry`` so we can find broader (dimension-superset) entries via the
-    # projection path.
-    shape = {"m": sorted(m.id for m in query.metrics)}
-    digest = hash_from_str(json.dumps(shape, sort_keys=True))[:16]
-    return f"{INDEX_KEY_PREFIX}{view_meta.uuid}:{view_meta.changed_on_iso}:{digest}"
+    # All entries for a view+changed_on share one bucket; dimension and metric
+    # sets live on each ``CachedEntry`` so we can find broader (dim- or metric-
+    # superset) entries via the projection/rollup paths.
+    del query  # unused; kept for call-site symmetry with value_key
+    return f"{INDEX_KEY_PREFIX}{view_meta.uuid}:{view_meta.changed_on_iso}"
 
 
 def value_key(view_meta: ViewMeta, query: SemanticQuery) -> str:
@@ -292,23 +300,36 @@ def _timeout(view_meta: ViewMeta) -> int | None:
 def can_satisfy(  # noqa: C901
     entry: CachedEntry,
     query: SemanticQuery,
-) -> tuple[bool, set[Filter], bool]:
+) -> tuple[bool, set[Filter], ReuseMode]:
     """
-    Return ``(reusable, leftover_filters, projection_needed)`` for ``entry`` vs
-    ``query``. ``projection_needed`` is True when the cached entry has a strict
-    superset of the new dimensions and a pandas rollup is required.
+    Return ``(reusable, leftover_filters, mode)`` for ``entry`` vs ``query``.
+
+    ``mode`` distinguishes exact reuse from two transformation paths:
+
+    * ``PROJECT``: same dimensions, cached metrics ⊃ new metrics. Cached rows
+      already match the new shape — we just drop the extra metric columns.
+    * ``ROLLUP``: cached dimensions ⊃ new dimensions. The cached DataFrame must
+      be re-aggregated; new metrics must use additive aggregations.
+
+    In both transformation modes, cached metrics must be a (non-strict) superset
+    of new metrics.
     """
+    new_metric_ids = frozenset(m.id for m in query.metrics)
+    if not entry.metric_ids >= new_metric_ids:
+        return False, set(), ReuseMode.EXACT
+    metrics_equal = entry.metric_ids == new_metric_ids
+
     new_dim_keys = frozenset(_dimension_key(d) for d in query.dimensions)
     cached_dim_keys = entry.dimension_keys
 
     if cached_dim_keys == new_dim_keys:
-        projection_needed = False
+        mode = ReuseMode.EXACT if metrics_equal else ReuseMode.PROJECT
     elif cached_dim_keys > new_dim_keys:
-        projection_needed = True
+        mode = ReuseMode.ROLLUP
         if not _projection_allowed(entry, query):
-            return False, set(), False
+            return False, set(), ReuseMode.EXACT
     else:
-        return False, set(), False
+        return False, set(), ReuseMode.EXACT
 
     new_filters = frozenset(query.filters or set())
 
@@ -316,9 +337,9 @@ def can_satisfy(  # noqa: C901
     n_adhoc, n_having, n_where = _split(new_filters)
 
     if c_adhoc != n_adhoc:
-        return False, set(), False
+        return False, set(), ReuseMode.EXACT
     if c_having != n_having:
-        return False, set(), False
+        return False, set(), ReuseMode.EXACT
 
     c_by_col = _group_by_column(c_where)
     n_by_col = _group_by_column(n_where)
@@ -327,7 +348,7 @@ def can_satisfy(  # noqa: C901
         for c in c_list:
             n_list = n_by_col.get(_filter_col_id(c), [])
             if not any(_implies(n, c) for n in n_list):
-                return False, set(), False
+                return False, set(), ReuseMode.EXACT
 
     leftovers: set[Filter] = set()
     for col_id, n_list in n_by_col.items():
@@ -335,36 +356,38 @@ def can_satisfy(  # noqa: C901
         for n in n_list:
             if not any(_implies(c, n) for c in c_list):
                 if n.column is None or n.operator == Operator.ADHOC:
-                    return False, set(), False
+                    return False, set(), ReuseMode.EXACT
                 leftovers.add(n)
 
-    # Leftover filters are applied to the cached DataFrame BEFORE the optional
-    # rollup, so their columns must be present in the cached projection.
+    # Leftover filters are applied to the cached DataFrame before the optional
+    # rollup/projection, so their columns must be present in the cached projection.
     allowed_ids = _cached_column_ids(entry, query)
     for leftover in leftovers:
         if leftover.column is None or leftover.column.id not in allowed_ids:
-            return False, set(), False
+            return False, set(), ReuseMode.EXACT
 
     if entry.offset != 0 or (query.offset or 0) != 0:
-        return False, set(), False
+        return False, set(), ReuseMode.EXACT
 
-    if projection_needed:
+    if mode == ReuseMode.ROLLUP:
         # Re-aggregation will re-order by ``query.order`` after rollup, so the
         # cached order is irrelevant. We do require the new order (if any) to
         # reference only surviving columns; otherwise sort would fail post-rollup.
         if not _order_uses_only(query.order, _projection_ids(query)):
-            return False, set(), False
+            return False, set(), ReuseMode.EXACT
     else:
+        # EXACT and PROJECT keep row granularity, so the cached top-N is valid
+        # only when the new query asks for the same order and a tighter limit.
         if entry.limit is not None:
             if query.limit is None or query.limit > entry.limit:
-                return False, set(), False
+                return False, set(), ReuseMode.EXACT
             if entry.order_key != _order_key(query.order):
-                return False, set(), False
+                return False, set(), ReuseMode.EXACT
 
         if entry.group_limit_key != _group_limit_key(query.group_limit):
-            return False, set(), False
+            return False, set(), ReuseMode.EXACT
 
-    return True, leftovers, projection_needed
+    return True, leftovers, mode
 
 
 def _projection_allowed(
@@ -621,10 +644,10 @@ def _apply_post_processing(
     cached: SemanticResult,
     query: SemanticQuery,
     leftovers: set[Filter],
-    projection_needed: bool,
+    mode: ReuseMode,
 ) -> SemanticResult:
-    """Apply leftover filters, projection (re-aggregation), order, and limit."""
-    if not leftovers and not projection_needed and query.limit is None:
+    """Apply leftover filters, projection/rollup, order, and limit."""
+    if mode == ReuseMode.EXACT and not leftovers and query.limit is None:
         return cached
 
     df = cached.results.to_pandas()
@@ -635,7 +658,7 @@ def _apply_post_processing(
         df = df[mask]
 
     note_def = "Served from semantic view smart cache (post-processed locally)"
-    if projection_needed:
+    if mode == ReuseMode.ROLLUP:
         groupby = [d.name for d in query.dimensions]
         aggregates: dict[str, dict[str, str]] = {}
         for m in query.metrics:
@@ -647,6 +670,10 @@ def _apply_post_processing(
             }
         df = aggregate(df, groupby=groupby, aggregates=aggregates)
         note_def = "Served from semantic view smart cache (re-aggregated locally)"
+    elif mode == ReuseMode.PROJECT:
+        keep = [d.name for d in query.dimensions] + [m.name for m in query.metrics]
+        df = df[keep]
+        note_def = "Served from semantic view smart cache (projected locally)"
 
     df = _apply_order(df, query.order)
 
