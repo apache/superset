@@ -29,6 +29,15 @@ logger = logging.getLogger(__name__)
 PROBLEMATIC_CSV_PREFIXES = "-@+|=%"
 
 
+def _starts_with_formula_prefix(value: str) -> bool:
+    first = value[0]
+    if first in PROBLEMATIC_CSV_PREFIXES:
+        return True
+    if first == '"' and len(value) > 2:
+        return value[1] == '"' and value[2] in PROBLEMATIC_CSV_PREFIXES
+    return False
+
+
 def _starts_like_spreadsheet_formula(value: str) -> bool:
     # A leading tab or carriage return is treated as dangerous on its own
     # because some spreadsheet software trims that leading whitespace and
@@ -36,14 +45,10 @@ def _starts_like_spreadsheet_formula(value: str) -> bool:
     first = value[0]
     if first in ("\t", "\r"):
         return True
-    if first in PROBLEMATIC_CSV_PREFIXES:
-        return True
-    if first == '"' and len(value) > 2:
-        return value[1] == '"' and value[2] in PROBLEMATIC_CSV_PREFIXES
     if first.isspace():
         stripped = value.lstrip()
-        return bool(stripped) and stripped[0] in PROBLEMATIC_CSV_PREFIXES
-    return False
+        return bool(stripped) and _starts_with_formula_prefix(stripped)
+    return _starts_with_formula_prefix(value)
 
 
 def _is_negative_number(value: str) -> bool:
