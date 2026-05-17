@@ -8,6 +8,10 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 # cancel previous workflow jobs for PRs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -31,7 +35,7 @@ jobs:
 
       - name: Setup Node.js
         if: steps.check.outputs.frontend
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file:  './superset-frontend/.nvmrc'
       - name: Install dependencies

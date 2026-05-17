@@ -20,6 +20,7 @@ import {
   AnnotationSourceType,
   AnnotationStyle,
   AnnotationType,
+  AxisType,
   ComparisonType,
   DataRecord,
   EventAnnotationLayer,
@@ -1338,6 +1339,101 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   expect(xAxisRaw.max).toBeUndefined();
 });
 
+test('legend is visible on tall charts when enabled by the user', () => {
+  const chartProps = createTestChartProps({
+    height: 400,
+    formData: { showLegend: true },
+  });
+  const { legend } = transformProps(chartProps).echartOptions as any;
+
+  expect(legend.show).toBe(true);
+});
+
+test('legend is hidden on small charts even when enabled by the user', () => {
+  const chartProps = createTestChartProps({
+    height: 80,
+    formData: { showLegend: true },
+  });
+  const { legend } = transformProps(chartProps).echartOptions as any;
+
+  expect(legend.show).toBe(false);
+});
+
+test('y-axis labels remain visible on small charts for scale reference', () => {
+  const chartProps = createTestChartProps({ height: 80 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(true);
+});
+
+test('y-axis labels are hidden on micro charts for a sparkline view', () => {
+  const chartProps = createTestChartProps({ height: 40 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(false);
+});
+
+test('y-axis tick count scales with chart height', () => {
+  const short = transformProps(createTestChartProps({ height: 200 }));
+  const tall = transformProps(createTestChartProps({ height: 500 }));
+  const shortYAxis = short.echartOptions.yAxis as any;
+  const tallYAxis = tall.echartOptions.yAxis as any;
+
+  expect(tallYAxis.splitNumber).toBeGreaterThan(shortYAxis.splitNumber);
+});
+
+test('small chart y-axis uses splitNumber=1 to show only boundary labels', () => {
+  const chartProps = createTestChartProps({ height: 80 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.splitNumber).toBe(1);
+});
+
+test('zoomable small chart preserves bottom padding for the dataZoom slider', () => {
+  const chartProps = createTestChartProps({
+    height: 80,
+    formData: { zoomable: true },
+  });
+  const result = transformProps(chartProps);
+  const grid = result.echartOptions.grid as any;
+
+  expect(grid.bottom).toBeGreaterThan(5);
+});
+
+test('boundary: height at exactly 100px uses full axis behavior', () => {
+  const chartProps = createTestChartProps({ height: 100 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(true);
+  expect(yAxis.splitNumber).toBeGreaterThanOrEqual(3);
+});
+
+test('boundary: height at 99px triggers small chart behavior', () => {
+  const chartProps = createTestChartProps({
+    height: 99,
+    formData: { showLegend: true },
+  });
+  const { yAxis, legend } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.splitNumber).toBe(1);
+  expect(legend.show).toBe(false);
+});
+
+test('boundary: height at exactly 60px shows labels but uses compact axis', () => {
+  const chartProps = createTestChartProps({ height: 60 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(true);
+  expect(yAxis.splitNumber).toBe(1);
+});
+
+test('boundary: height at 59px triggers micro chart behavior', () => {
+  const chartProps = createTestChartProps({ height: 59 });
+  const { yAxis } = transformProps(chartProps).echartOptions as any;
+
+  expect(yAxis.axisLabel.show).toBe(false);
+});
+
 test('x-axis formatter deduplicates consecutive identical labels for coarse time grains', () => {
   const yearData = [
     { __timestamp: Date.UTC(2003, 0, 1), sales: 100 },
@@ -1375,6 +1471,118 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   expect(label2).toBe('2004');
   expect(label3).toBe('2005');
   expect(label4).toBe('');
+});
+
+test('numeric x coltype routes through the number formatter (not the time formatter)', () => {
+  // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation.
+  // When the query reports a Numeric x-axis coltype (including epoch-ms-like
+  // values), Timeseries transformProps must pick the Value axis and run the
+  // label through getNumberFormatter, not the time formatter. If this ever
+  // changes, epoch-ms values that arrive as Numeric would suddenly be treated
+  // as Date instances and could render "NaN" — the symptom that prompted this
+  // investigation.
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: number) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Value);
+  const label = xAxis.axisLabel.formatter(ts1);
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
+});
+
+test('xAxisForceCategorical forces Category axis regardless of Numeric coltype', () => {
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+      xAxisForceCategorical: true,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as { type: string };
+
+  expect(xAxis.type).toBe(AxisType.Category);
+});
+
+test('temporal x coltype wires the time formatter and Time axis', () => {
+  // Regression guard: the happy path for time-series charts. Ensures that
+  // Temporal coltype keeps routing through the TimeFormatter so a refactor
+  // does not accidentally drop Date handling (the feared regression that
+  // sparked this investigation).
+  const ts1 = 1745784000000;
+  const ts2 = 1745870400000;
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { __timestamp: ts1, metric: 10 },
+          { __timestamp: ts2, metric: 20 },
+        ],
+        {
+          colnames: ['__timestamp', 'metric'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    type: string;
+    axisLabel: { formatter: (v: Date) => string };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Time);
+  const label = xAxis.axisLabel.formatter(new Date(ts1));
+  expect(typeof label).toBe('string');
+  expect(label).not.toMatch(/NaN/);
+  expect(label).not.toBe(String(ts1));
 });
 
 test('should assign distinct dash patterns for multiple time offsets consistently', () => {

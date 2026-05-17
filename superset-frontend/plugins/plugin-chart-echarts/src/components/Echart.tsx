@@ -179,7 +179,13 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        chartRef.current = init(divRef.current, null, { locale });
+        // Pass width and height to init to avoid "Can't get DOM width or height" warning
+        // since the DOM element may not have its dimensions yet when init is called
+        chartRef.current = init(divRef.current, null, {
+          locale,
+          width,
+          height,
+        });
       }
       // did mount
       handleSizeChange({ width, height });
@@ -273,17 +279,27 @@ function Echart(
       );
 
       const notMerge = !isDashboardRefreshing;
-      if (!notMerge) {
-        chartRef.current?.dispatchAction({ type: 'hideTip' });
-      }
+      chartRef.current?.dispatchAction({ type: 'hideTip' });
       chartRef.current?.setOption(themedEchartOptions, {
         notMerge,
         replaceMerge: notMerge ? undefined : ['series'],
-        lazyUpdate: isDashboardRefreshing,
+        // lazyUpdate defers render, causing tooltip crashes on stale shapes (#39247)
+        lazyUpdate: false,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isDashboardRefreshing intentionally excluded to prevent extra setOption calls
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
+
+  // Clear tooltip on refresh start to avoid stale content (#39247)
+  useEffect(() => {
+    if (didMount && isDashboardRefreshing && chartRef.current) {
+      chartRef.current.dispatchAction({ type: 'hideTip' });
+      chartRef.current.dispatchAction({
+        type: 'updateAxisPointer',
+        currTrigger: 'leave',
+      });
+    }
+  }, [didMount, isDashboardRefreshing]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);
 

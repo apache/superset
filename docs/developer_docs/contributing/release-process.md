@@ -466,4 +466,4 @@ Credit:
 - [Release Scripts](https://github.com/apache/superset/tree/master/scripts/release)
 - [Superset Repository Scripts](https://github.com/apache/superset/tree/master/scripts)
 
-Next: Return to [Contributing Overview](./overview)
+Next: Return to [Contributing Overview](./overview.md)
