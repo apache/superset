@@ -542,13 +542,14 @@ def test_null_values_handling(mocker, mock_query):
     assert ",," in csv_data
 
 
-def test_get_sqla_engine_called_with_catalog_and_schema(
+def test_prequeries_executed_before_streaming_query(
     mocker, mock_query, mock_result_proxy
 ):
-    """Test that get_sqla_engine is called with the query's catalog and schema.
+    """Test that prequeries (e.g. SET search_path) are executed before streaming.
 
-    This is critical for PostgreSQL: without passing schema, the search_path is not
-    set on the connection, so tables in non-public schemas cannot be resolved.
+    PostgreSQL sets search_path via get_prequeries(), not adjust_engine_params().
+    Without running prequeries on the connection, tables in non-public schemas
+    cannot be resolved and the export fails with a stream error.
     """
     mock_query.select_sql = "SELECT * FROM test"
     mock_query.catalog = "my_catalog"
@@ -569,21 +570,29 @@ def test_get_sqla_engine_called_with_catalog_and_schema(
         mock_engine
     )
 
+    prequery = "SET search_path TO my_schema"
+    mock_query.database.db_engine_spec.get_prequeries.return_value = [prequery]
+
     command = StreamingSqlResultExportCommand("test_client_123")
     command.validate()
 
-    csv_generator_callable = command.run()
-    list(csv_generator_callable())
+    list(command.run()())
 
-    mock_query.database.get_sqla_engine.assert_called_once_with(
-        catalog="my_catalog", schema="my_schema"
+    mock_query.database.db_engine_spec.get_prequeries.assert_called_once_with(
+        database=mock_query.database,
+        catalog="my_catalog",
+        schema="my_schema",
     )
+    # Verify prequery was executed on the connection before the streaming query
+    execute_calls = mock_connection.execute.call_args_list
+    assert len(execute_calls) >= 1
+    assert str(execute_calls[0].args[0]) == prequery
 
 
-def test_get_sqla_engine_called_with_none_catalog_and_schema(
+def test_no_prequeries_does_not_execute_extra_statements(
     mocker, mock_query, mock_result_proxy
 ):
-    """Test that get_sqla_engine is called with None catalog/schema when not set."""
+    """Test that no extra statements are executed when get_prequeries returns empty."""
     mock_query.select_sql = "SELECT * FROM test"
     mock_query.catalog = None
     mock_query.schema = None
@@ -603,12 +612,11 @@ def test_get_sqla_engine_called_with_none_catalog_and_schema(
         mock_engine
     )
 
+    mock_query.database.db_engine_spec.get_prequeries.return_value = []
+
     command = StreamingSqlResultExportCommand("test_client_123")
     command.validate()
 
-    csv_generator_callable = command.run()
-    list(csv_generator_callable())
+    list(command.run()())
 
-    mock_query.database.get_sqla_engine.assert_called_once_with(
-        catalog=None, schema=None
-    )
+    mock_connection.execute.assert_not_called()

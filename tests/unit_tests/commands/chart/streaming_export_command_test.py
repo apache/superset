@@ -263,13 +263,14 @@ def test_empty_result_set(mocker: MockerFixture) -> None:
     assert lines[0] == "col1,col2"
 
 
-def test_get_sqla_engine_called_with_datasource_catalog_and_schema(
+def test_prequeries_executed_before_streaming_query(
     mocker: MockerFixture,
 ) -> None:
-    """Test that get_sqla_engine receives catalog and schema from the datasource.
+    """Test that prequeries (e.g. SET search_path) are executed before streaming.
 
-    This ensures the correct search_path is set for databases like PostgreSQL
-    where tables in non-default schemas require an explicit schema context.
+    PostgreSQL sets search_path via get_prequeries(), not adjust_engine_params().
+    Without running prequeries on the connection, tables in non-public schemas
+    cannot be resolved and the export fails with a stream error.
     """
     mock_db, query_context, datasource = _setup_chart_mocks(
         mocker, catalog="my_catalog", schema="my_schema"
@@ -290,9 +291,17 @@ def test_get_sqla_engine_called_with_datasource_catalog_and_schema(
         mock_engine
     )
 
+    prequery = "SET search_path TO my_schema"
+    datasource.database.db_engine_spec.get_prequeries.return_value = [prequery]
+
     command = StreamingCSVExportCommand(query_context)
     list(command.run()())
 
-    datasource.database.get_sqla_engine.assert_called_once_with(
-        catalog="my_catalog", schema="my_schema"
+    datasource.database.db_engine_spec.get_prequeries.assert_called_once_with(
+        database=datasource.database,
+        catalog="my_catalog",
+        schema="my_schema",
     )
+    execute_calls = mock_connection.execute.call_args_list
+    assert len(execute_calls) >= 1
+    assert str(execute_calls[0].args[0]) == prequery
