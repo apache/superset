@@ -55,6 +55,8 @@ def mock_query():
     query.select_sql = None
     query.executed_sql = "SELECT * FROM test_table"
     query.limiting_factor = LimitingFactor.NOT_LIMITED
+    query.catalog = None
+    query.schema = "public"
     query.database = MagicMock()
     query.database.db_engine_spec = MagicMock()
     query.database.db_engine_spec.engine = "postgresql"
@@ -538,3 +540,75 @@ def test_null_values_handling(mocker, mock_query):
     assert "1,,100" in csv_data
     assert "2,test," in csv_data
     assert ",," in csv_data
+
+
+def test_get_sqla_engine_called_with_catalog_and_schema(
+    mocker, mock_query, mock_result_proxy
+):
+    """Test that get_sqla_engine is called with the query's catalog and schema.
+
+    This is critical for PostgreSQL: without passing schema, the search_path is not
+    set on the connection, so tables in non-public schemas cannot be resolved.
+    """
+    mock_query.select_sql = "SELECT * FROM test"
+    mock_query.catalog = "my_catalog"
+    mock_query.schema = "my_schema"
+
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
+
+    mock_connection = MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = (
+        mock_result_proxy
+    )
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    command = StreamingSqlResultExportCommand("test_client_123")
+    command.validate()
+
+    csv_generator_callable = command.run()
+    list(csv_generator_callable())
+
+    mock_query.database.get_sqla_engine.assert_called_once_with(
+        catalog="my_catalog", schema="my_schema"
+    )
+
+
+def test_get_sqla_engine_called_with_none_catalog_and_schema(
+    mocker, mock_query, mock_result_proxy
+):
+    """Test that get_sqla_engine is called with None catalog/schema when not set."""
+    mock_query.select_sql = "SELECT * FROM test"
+    mock_query.catalog = None
+    mock_query.schema = None
+
+    mock_db, mock_session = _setup_sqllab_mocks(mocker, mock_query)
+
+    mock_connection = MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = (
+        mock_result_proxy
+    )
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    mock_query.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    command = StreamingSqlResultExportCommand("test_client_123")
+    command.validate()
+
+    csv_generator_callable = command.run()
+    list(csv_generator_callable())
+
+    mock_query.database.get_sqla_engine.assert_called_once_with(
+        catalog=None, schema=None
+    )

@@ -79,12 +79,12 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         self._current_app = app._get_current_object()
 
     @abstractmethod
-    def _get_sql_and_database(self) -> tuple[str, Any]:
+    def _get_sql_and_database(self) -> tuple[str, Any, str | None, str | None]:
         """
-        Get the SQL query and database for execution.
+        Get the SQL query, database, catalog, and schema for execution.
 
         Returns:
-            Tuple of (sql_query, database_object)
+            Tuple of (sql_query, database_object, catalog, schema)
         """
 
     @abstractmethod
@@ -150,7 +150,12 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             yield remaining_data, row_count, data_bytes
 
     def _execute_query_and_stream(
-        self, sql: str, database: Any, limit: int | None
+        self,
+        sql: str,
+        database: Any,
+        limit: int | None,
+        catalog: str | None = None,
+        schema: str | None = None,
     ) -> Generator[str, None, None]:
         """Execute query with streaming and yield CSV chunks."""
         start_time = time.time()
@@ -160,8 +165,11 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
 
-            # Execute query with streaming
-            with merged_database.get_sqla_engine() as engine:
+            # Execute query with streaming, passing catalog/schema so the engine
+            # sets the correct search_path (required for PostgreSQL non-public schemas)
+            with merged_database.get_sqla_engine(
+                catalog=catalog, schema=schema
+            ) as engine:
                 with engine.connect() as connection:
                     result_proxy = connection.execution_options(
                         stream_results=True
@@ -209,7 +217,7 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         """
         # Load all needed data while session is still active
         # to avoid DetachedInstanceError
-        sql, database = self._get_sql_and_database()
+        sql, database, catalog, schema = self._get_sql_and_database()
         limit = self._get_row_limit()
         # Capture flask.g attributes to preserve request-scoped data
         # when the streaming generator runs in a new app context.
@@ -222,7 +230,9 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             with self._current_app.app_context():
                 with preserve_g_context(captured_g):
                     try:
-                        yield from self._execute_query_and_stream(sql, database, limit)
+                        yield from self._execute_query_and_stream(
+                            sql, database, limit, catalog, schema
+                        )
                     except Exception as e:
                         logger.error("Error in streaming CSV generator: %s", e)
                         import traceback
