@@ -261,21 +261,6 @@ def test_table_column_database() -> None:
     assert TableColumn(database=database).database is database
 
 
-def test_get_prequeries(mocker: MockerFixture) -> None:
-    """
-    Tests for ``get_prequeries``.
-    """
-    mocker.patch.object(Database, "get_sqla_engine")
-    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
-    db_engine_spec.get_prequeries.return_value = ["set a=1", "set b=2"]
-
-    database = Database(database_name="db")
-    with database.get_raw_connection() as conn:
-        conn.cursor().execute.assert_has_calls(
-            [mocker.call("set a=1"), mocker.call("set b=2")]
-        )
-
-
 def test_catalog_cache() -> None:
     """
     Test the catalog cache.

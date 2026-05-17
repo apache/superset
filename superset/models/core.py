@@ -604,15 +604,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         ) as engine:
             with check_for_oauth2(self):
                 with closing(engine.raw_connection()) as conn:
-                    # pre-session queries are used to set the selected catalog/schema
-                    for prequery in self.db_engine_spec.get_prequeries(
-                        database=self,
-                        catalog=catalog,
-                        schema=schema,
-                    ):
-                        cursor = conn.cursor()
-                        cursor.execute(prequery)
-
                     yield conn
 
     def get_default_catalog(self) -> str | None:
