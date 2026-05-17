@@ -493,7 +493,7 @@ describe('getCrossFilterDataMask', () => {
     });
   });
 
-  test('deck_polygon falls back to legacy when cross_filter_column value missing on feature', () => {
+  test('deck_polygon throws when cross_filter_column value missing on feature', () => {
     const polygonFormData = {
       ...formData,
       line_column: 'geojson',
@@ -510,36 +510,46 @@ describe('getCrossFilterDataMask', () => {
       },
     };
 
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const dataMask = getCrossFilterDataMask({
-      formData: polygonFormData,
-      data: polygonPickingData,
-      filterState: {},
-    });
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    warnSpy.mockRestore();
+    expect(() =>
+      getCrossFilterDataMask({
+        formData: polygonFormData,
+        data: polygonPickingData,
+        filterState: {},
+      }),
+    ).toThrow(/Cross-filter column "sa3_name" not present/);
+  });
 
-    expect(dataMask).toStrictEqual({
-      dataMask: {
-        extraFormData: {
-          filters: [
-            {
-              col: {
-                expressionType: 'SQL',
-                sqlExpression: "REPLACE(geojson, ' ', '')",
-                label: 'geojson',
-              },
-              op: '==',
-              val: '"POLYGON_PATH_STRING"',
-            },
+  test('deck_geojson throws when cross_filter_column value missing on feature properties', () => {
+    const geojsonFormData = {
+      ...formData,
+      geojson: 'shape',
+      cross_filter_column: 'sa3_name',
+    };
+
+    const geojsonPickingData = {
+      ...pickingData,
+      object: {
+        type: 'Feature',
+        properties: { other: 'value' },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [-122.42, 37.8],
+              [-122.42, 37.81],
+            ],
           ],
         },
-        filterState: {
-          value: ['"POLYGON_PATH_STRING"'],
-        },
       },
-      isCurrentValueSelected: false,
-    });
+    };
+
+    expect(() =>
+      getCrossFilterDataMask({
+        formData: geojsonFormData,
+        data: geojsonPickingData,
+        filterState: {},
+      }),
+    ).toThrow(/Cross-filter column "sa3_name" not present/);
   });
 
   test('deck_polygon without cross_filter_column falls back to legacy geometry filter', () => {

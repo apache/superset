@@ -428,30 +428,28 @@ const getLineColumnFilters = ({
       | null
       | undefined;
 
-    if (dimensionVal != null) {
-      return {
-        values: [dimensionVal as string | number],
-        filters: [
-          {
-            col,
-            op: '==',
-            val: dimensionVal as string | number | boolean,
-          },
-        ],
-      };
+    if (dimensionVal == null) {
+      throw new Error(
+        `Cross-filter column "${col}" not present on picked feature. ` +
+          `Re-save the chart to refresh its query.`,
+      );
     }
-    // Value missing on the picked feature (e.g. column not in query yet
-    // because chart was saved pre-feature). Fall through to legacy path so
-    // the click still produces *some* filter rather than a silent error.
-    // eslint-disable-next-line no-console
-    console.warn(
-      `deck.gl cross-filter: column "${col}" not present on picked feature; ` +
-        `falling back to geometry filter. Re-save the chart to refresh its query.`,
-    );
+
+    return {
+      values: [dimensionVal],
+      filters: [
+        {
+          col,
+          op: '==',
+          val: dimensionVal,
+        },
+      ],
+    };
   }
 
-  // Legacy fallback: filter on the geometry column itself. This rarely matches
-  // anything stored as a full GeoJSON Feature; users should set
+  // No cross_filter_column configured: emit a filter on the geometry column.
+  // This is preserved for backwards compatibility, but typically does not
+  // match anything stored as a full GeoJSON Feature; users should set
   // cross_filter_column instead.
   const val = JSON.stringify(path);
 
@@ -492,26 +490,26 @@ const getGeojsonFilters = ({
       | null
       | undefined;
 
-    if (dimensionVal != null) {
-      return {
-        values: [dimensionVal as string | number],
-        filters: [
-          {
-            col,
-            op: '==',
-            val: dimensionVal as string | number | boolean,
-          },
-        ],
-      };
+    if (dimensionVal == null) {
+      throw new Error(
+        `Cross-filter column "${col}" not present on picked feature properties`,
+      );
     }
-    // eslint-disable-next-line no-console
-    console.warn(
-      `deck.gl cross-filter: column "${col}" not present on picked feature ` +
-        `properties; falling back to geometry filter.`,
-    );
+
+    return {
+      values: [dimensionVal],
+      filters: [
+        {
+          col,
+          op: '==',
+          val: dimensionVal,
+        },
+      ],
+    };
   }
 
-  // Legacy fallback: substring match against the stored geojson string.
+  // No cross_filter_column configured: substring match against the stored
+  // geojson string. Preserved for backwards compatibility.
   const geometry = data.object?.geometry?.coordinates;
 
   if (!geometry) throw new Error('Position of picked data is required');
