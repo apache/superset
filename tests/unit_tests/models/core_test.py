@@ -663,6 +663,44 @@ def test_get_sqla_engine_registers_prequery_event_listener(
     )
     event_listen.assert_called_once_with(mock_engine, "connect", mocker.ANY)
 
+    # Call the captured closure directly to verify cursor create → execute → close.
+    captured_fn = event_listen.call_args[0][2]
+    mock_dbapi_conn = mocker.MagicMock()
+    mock_cursor = mocker.MagicMock()
+    mock_dbapi_conn.cursor.return_value = mock_cursor
+    captured_fn(mock_dbapi_conn, None)
+    mock_cursor.execute.assert_called_once_with('SET search_path = "my_schema"')
+    mock_cursor.close.assert_called_once()
+
+
+def test_get_sqla_engine_prequery_cursor_closed_on_exception(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the cursor is always closed even when a prequery raises.
+    """
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = ['SET search_path = "bad_schema"']
+    event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_sqla_engine(catalog=None, schema="bad_schema"):
+        pass
+
+    captured_fn = event_listen.call_args[0][2]
+    mock_dbapi_conn = mocker.MagicMock()
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.execute.side_effect = Exception("invalid schema")
+    mock_dbapi_conn.cursor.return_value = mock_cursor
+
+    with pytest.raises(Exception, match="invalid schema"):
+        captured_fn(mock_dbapi_conn, None)
+
+    mock_cursor.close.assert_called_once()
+
 
 def test_get_sqla_engine_no_prequeries_no_event_listener(
     app_context: None,

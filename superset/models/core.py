@@ -481,15 +481,18 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         schema=schema,
                     )
                     if prequeries:
-
+                        # SQLAlchemy connect event: runs prequeries on every new
+                        # DBAPI connection (e.g. SET search_path for PostgreSQL).
                         def run_prequeries(
                             dbapi_connection: Any,
                             connection_record: Any,  # pylint: disable=unused-argument
                         ) -> None:
                             cursor = dbapi_connection.cursor()
-                            for prequery in prequeries:
-                                cursor.execute(prequery)
-                            cursor.close()
+                            try:
+                                for prequery in prequeries:
+                                    cursor.execute(prequery)
+                            finally:
+                                cursor.close()
 
                         sqla.event.listen(engine, "connect", run_prequeries)
                     yield engine
