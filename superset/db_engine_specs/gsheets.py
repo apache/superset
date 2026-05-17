@@ -32,6 +32,7 @@ from marshmallow.exceptions import ValidationError
 from requests import Session
 from shillelagh.adapters.api.gsheets.lib import SCOPES
 from shillelagh.exceptions import UnauthenticatedError
+from sqlalchemy import text
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -407,7 +408,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
             try:
                 url = url.replace('"', '""')
-                results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')  # noqa: S608
+                results = conn.execute(text(f'SELECT * FROM "{url}" LIMIT 1'))  # noqa: S608
                 results.fetchall()
             except Exception:  # pylint: disable=broad-except
                 errors.append(

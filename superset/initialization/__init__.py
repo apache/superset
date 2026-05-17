@@ -35,6 +35,7 @@ from flask_appbuilder.utils.base import get_safe_redirect
 from flask_babel import lazy_gettext as _, refresh
 from flask_compress import Compress
 from flask_session import Session
+from sqlalchemy import text
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import (
@@ -808,7 +809,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         try:
             with self.superset_app.app_context():
                 # Simple connection test
-                db.engine.execute("SELECT 1")
+                db.engine.execute(text("SELECT 1"))
         except Exception:
             db_uri = self.database_uri
             safe_uri = make_url_safe(db_uri) if db_uri else "Not configured"
