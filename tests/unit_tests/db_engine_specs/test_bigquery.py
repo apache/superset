@@ -80,7 +80,7 @@ def test_get_fields() -> None:
     ]
     fields = BigQueryEngineSpec._get_fields(columns)
 
-    query = select(fields)
+    query = select(*fields)
     assert str(query.compile(dialect=BigQueryDialect())) == (
         "SELECT `limit` AS `limit`, `name` AS `name`, "
         "`project`.`name` AS `project__name`"
