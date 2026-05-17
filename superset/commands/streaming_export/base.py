@@ -169,16 +169,6 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                 catalog=catalog, schema=schema
             ) as engine:
                 with engine.connect() as connection:
-                    # Run prequeries (e.g. SET search_path for PostgreSQL) before
-                    # streaming. get_prequeries() is the only mechanism that sets
-                    # search_path for PostgreSQL — adjust_engine_params() ignores
-                    # schema for that engine.
-                    for prequery in merged_database.db_engine_spec.get_prequeries(
-                        database=merged_database,
-                        catalog=catalog,
-                        schema=schema,
-                    ):
-                        connection.execute(text(prequery))
                     result_proxy = connection.execution_options(
                         stream_results=True
                     ).execute(text(sql))

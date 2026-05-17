@@ -634,6 +634,57 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     )
 
 
+def test_get_sqla_engine_registers_prequery_event_listener(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_sqla_engine registers a connect event listener for prequeries.
+
+    Engines returned by get_sqla_engine must automatically execute prequeries
+    (e.g. SET search_path) on every new connection, so that callers don't need
+    to remember to call get_prequeries() themselves.
+    """
+
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = ['SET search_path = "my_schema"']
+    event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_sqla_engine(catalog="my_catalog", schema="my_schema"):
+        pass
+
+    db_engine_spec.get_prequeries.assert_called_once_with(
+        database=database,
+        catalog="my_catalog",
+        schema="my_schema",
+    )
+    event_listen.assert_called_once_with(mock_engine, "connect", mocker.ANY)
+
+
+def test_get_sqla_engine_no_prequeries_no_event_listener(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_sqla_engine does not register an event listener when there
+    are no prequeries.
+    """
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = []
+    event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_sqla_engine(catalog=None, schema=None):
+        pass
+
+    event_listen.assert_not_called()
+
+
 def test_is_oauth2_enabled() -> None:
     """
     Test the `is_oauth2_enabled` method.

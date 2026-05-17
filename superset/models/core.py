@@ -468,13 +468,31 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             engine_context_manager = app.config["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
                 with check_for_oauth2(self):
-                    yield self._get_sqla_engine(
+                    engine = self._get_sqla_engine(
                         catalog=catalog,
                         schema=schema,
                         nullpool=nullpool,
                         source=source,
                         sqlalchemy_uri=sqlalchemy_uri,
                     )
+                    prequeries = self.db_engine_spec.get_prequeries(
+                        database=self,
+                        catalog=catalog,
+                        schema=schema,
+                    )
+                    if prequeries:
+
+                        def run_prequeries(
+                            dbapi_connection: Any,
+                            connection_record: Any,  # pylint: disable=unused-argument
+                        ) -> None:
+                            cursor = dbapi_connection.cursor()
+                            for prequery in prequeries:
+                                cursor.execute(prequery)
+                            cursor.close()
+
+                        sqla.event.listen(engine, "connect", run_prequeries)
+                    yield engine
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
