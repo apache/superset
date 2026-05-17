@@ -958,12 +958,12 @@ const config: Config = {
       'data-project-color-dark': '#0b8dab',
 
       // ── Kapa widget Launcher button ──
-      // Light mode: darker teal so logo is visible against it
-      'data-launcher-button-background-color': '#1a9ab5',
-      'data-launcher-button-color': '#ffffff',
+      // Light mode: 
+      'data-launcher-button-background-color': '#ffffff',
+      'data-launcher-button-color': '#1b1b1d',
       'data-launcher-button-hover-background-color': '#158a9f',
       // Dark mode:
-      'data-launcher-button-background-color-dark': '#0b8dab',
+      'data-launcher-button-background-color-dark': '#1b1b1d',
       'data-launcher-button-color-dark': '#ffffff',
       'data-launcher-button-hover-background-color-dark': '#097a95',
 
