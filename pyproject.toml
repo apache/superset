@@ -156,7 +156,7 @@ firebird = ["sqlalchemy-firebird>=0.7.0, <2.2"]
 firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
 gevent = ["gevent>=23.9.1"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
-hana = ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"]
+hana = ["hdbcli==2.28.20", "sqlalchemy_hana==0.4.0"]
 hive = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7.0",
