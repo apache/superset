@@ -271,7 +271,18 @@ def test_get_catalog_names(
     catalogs = DorisEngineSpec.get_catalog_names(database, inspector)
 
     # Verify the SQL query
-    inspector.bind.execute.assert_called_once_with("SHOW CATALOGS")
+    assert_called_once_with_text(
+        inspector.bind.execute,
+        "SHOW CATALOGS",
+    )
 
     # Verify the returned catalog names
     assert catalogs == expected_result
+
+
+def assert_called_once_with_text(
+    m: Mock,
+    q: str,
+):
+    m.assert_called_once()
+    assert m.call_args[0][0].text == q

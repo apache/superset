@@ -571,7 +571,17 @@ def test_get_columns_error(mocker: MockerFixture):
 
     _assert_columns_equal(actual, expected)
 
-    mock_inspector.bind.execute.assert_called_with('SHOW COLUMNS FROM schema."table"')
+    assert_called_with_text(
+        mock_inspector.bind.execute,
+        'SHOW COLUMNS FROM schema."table"',
+    )
+
+
+def assert_called_with_text(
+    m: Mock,
+    q: str,
+):
+    assert m.call_args[0][0].text == q
 
 
 def test_get_columns_expand_rows(mocker: MockerFixture):
