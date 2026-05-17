@@ -17,12 +17,8 @@
  * under the License.
  */
 
-import { PropsWithChildren, ReactNode, SyntheticEvent } from 'react';
-import {
-  ResizableBox,
-  ResizableBoxProps,
-  ResizeCallbackData,
-} from 'react-resizable';
+import { ComponentProps, PropsWithChildren, ReactNode, SyntheticEvent } from 'react';
+import { ResizableBox, ResizeCallbackData } from 'react-resizable';
 import { styled } from '@apache-superset/core/theme';
 
 import 'react-resizable/css/styles.css';
@@ -51,7 +47,7 @@ export default function ResizablePanel({
   minConstraints = [100, 100] as [number, number],
   onResize,
   ...props
-}: PropsWithChildren<Omit<ResizableBoxProps, 'width' | 'height'>> & {
+}: PropsWithChildren<Omit<ComponentProps<typeof ResizableBox>, 'width' | 'height'>> & {
   heading?: ReactNode;
   initialSize?: Size;
 }) {
