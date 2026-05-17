@@ -35,7 +35,11 @@ jest.mock('@apache-superset/core/utils', () => ({
   },
 }));
 
-jest.mock('content-disposition');
+jest.mock('content-disposition', () => {
+  const mockParse = jest.fn();
+  const mockFn = Object.assign(jest.fn(), { parse: mockParse });
+  return { default: mockFn, __esModule: true };
+});
 
 // Default no-op mock for pathUtils; specific tests customize ensureAppRoot to simulate app root prefixing
 jest.mock('./pathUtils', () => ({
