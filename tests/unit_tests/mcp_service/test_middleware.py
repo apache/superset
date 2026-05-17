@@ -146,7 +146,13 @@ class TestResponseSizeGuardMiddleware:
 
     @pytest.mark.asyncio
     async def test_logs_warning_at_threshold(self) -> None:
-        """Should log warning when approaching limit."""
+        """Should log warning when approaching limit.
+
+        Mocks the token estimator to return a specific value above the
+        warn threshold but below the hard limit, decoupling the test
+        from whichever tokenizer (tiktoken or char heuristic) happens
+        to be loaded.
+        """
         middleware = ResponseSizeGuardMiddleware(
             token_limit=1000, warn_threshold_pct=80
         )
@@ -155,18 +161,21 @@ class TestResponseSizeGuardMiddleware:
         context.message.name = "list_charts"
         context.message.params = {}
 
-        # Response at ~85% of limit (should trigger warning but not block)
-        response = {"data": "x" * 2900}  # ~828 tokens at 3.5 chars/token
+        response = {"data": "approaching the limit"}
         call_next = AsyncMock(return_value=response)
 
         with (
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                return_value=850,
+            ),
             patch("superset.mcp_service.middleware.logger") as mock_logger,
         ):
             result = await middleware.on_call_tool(context, call_next)
 
-        # Should return response (not blocked)
+        # Should return response (not blocked at 85% of limit)
         assert result == response
         # Should log warning
         mock_logger.warning.assert_called()
