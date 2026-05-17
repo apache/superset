@@ -49,7 +49,7 @@ def upgrade():
     clusters = sa.Table("clusters", metadata, autoload=True)
 
     statement = datasources.update().values(
-        cluster_id=sa.select([clusters.c.id])
+        cluster_id=sa.select(clusters.c.id)
         .where(datasources.c.cluster_name == clusters.c.cluster_name)
         .as_scalar()
     )
@@ -91,7 +91,7 @@ def downgrade():
     clusters = sa.Table("clusters", metadata, autoload=True)
 
     statement = datasources.update().values(
-        cluster_name=sa.select([clusters.c.cluster_name])
+        cluster_name=sa.select(clusters.c.cluster_name)
         .where(datasources.c.cluster_id == clusters.c.id)
         .as_scalar()
     )
