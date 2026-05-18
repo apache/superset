@@ -25,6 +25,7 @@ import sqlalchemy as sa
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
+from superset.versioning.utils import single_flush_scope
 
 logger = logging.getLogger(__name__)
 
@@ -586,34 +587,16 @@ class VersionDAO:
         if target_version is None:
             return None
 
-        # Split a multi-relationship revert into one
-        # ``target_version.revert(relations=[<one>])`` call per relationship,
-        # with a flush + targeted expire between them, to avoid an autoflush
-        # race in SQLAlchemy-Continuum's ``Reverter``. When called with two or
-        # more uselist relations and the target tx requires removing a live
-        # child of either, ``Reverter.revert_relationships`` iterates each
-        # relation through two passes: pass A reverts shadowed children
-        # (setattr-only) and pass B calls ``session.delete(live_child)`` for
-        # any live child not in the reverted set. Moving to the next relation
-        # triggers ``getattr(self.obj, next_prop.key)`` which is a Continuum
-        # query → autoflush → the pending DELETE from the previous pass B
-        # transitions those instances to ``state.deleted=True``. The final
-        # ``session.add(self.version_parent)`` then walks the parent's
-        # ``save-update`` cascade through its in-memory collection (still
-        # holding the deleted-state instances) and SQLAlchemy raises
-        # ``InvalidRequestError: Instance has been deleted``. Calling revert
-        # once per relation closes the inter-relationship autoflush window,
-        # and the explicit flush + expire after each call clears in-memory
-        # references before the next revert's cascade runs.
+        # Run the whole multi-relationship revert inside a single flush
+        # scope so SQLAlchemy-Continuum's ``Reverter`` can iterate
+        # relations without tripping its autoflush race, and so the
+        # change-records listener sees the complete shadow state in one
+        # ``after_flush`` pass. See ``single_flush_scope`` for the full
+        # rationale.
         relations = VersionDAO._RESTORE_RELATIONS.get(model_cls.__name__, [])
         try:
-            if not relations:
-                target_version.revert(relations=[])
-            else:
-                for relation_name in relations:
-                    target_version.revert(relations=[relation_name])
-                    db.session.flush()
-                    db.session.expire(entity, relations)
+            with single_flush_scope(db.session):
+                target_version.revert(relations=relations)
         except Exception:
             logger.exception(
                 "Continuum revert() failed for %s id=%s tx=%s relations=%s",

@@ -25,6 +25,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+import sqlalchemy as sa
 from sqlalchemy_continuum import version_class
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -373,6 +374,92 @@ class TestDatasetRestoreApi(SupersetTestCase):
         table = db.session.query(SqlaTable).filter(SqlaTable.id == table_id).one()
         restored_names = sorted(c.column_name for c in table.columns)
         assert restored_names == original_col_names
+
+    def test_restore_emits_full_child_diff_in_one_transaction(self) -> None:
+        """A restore that re-adds one column and drops another MUST write
+        *both* change records under the same transaction. Under the prior
+        per-relation flush loop the first flush emitted only the
+        easier-to-detect change (the modification of a surviving
+        column), the listener's tx-dedup guard then suppressed the
+        second pass, and the addition record was silently lost from
+        ``version_changes`` — the dropdown rendered the restore as an
+        empty "Baseline" entry. Locks in the single-flush restore
+        behavior in ``VersionDAO.restore_version``.
+        """
+        from superset.daos.version import derive_version_uuid
+        from superset.versioning.changes import version_changes_table
+
+        _persist_fixture_state()
+        table: SqlaTable = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name == "birth_names")
+            .first()
+        )
+        assert table is not None
+        table_id = table.id
+        table_uuid = str(table.uuid)
+        entity_uuid = table.uuid
+        removed_name = table.columns[0].column_name
+        added_name = "__restore_full_diff_test__"
+
+        # Snapshot point captures the baseline.
+        table.description = "snapshot before full-diff column swap"
+        db.session.commit()
+
+        ver_cls = version_class(SqlaTable)
+        target_tx = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == table_id)
+            .order_by(ver_cls.transaction_id.desc())
+            .limit(1)
+            .scalar()
+        )
+        assert target_tx is not None
+        target_uuid = str(derive_version_uuid(entity_uuid, target_tx))
+
+        db.session.delete(table.columns[0])
+        db.session.add(
+            TableColumn(table_id=table_id, column_name=added_name, expression="1")
+        )
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        rv = self._restore(table_uuid, target_uuid)
+        assert rv.status_code == 200, rv.data
+        db.session.expire_all()
+
+        restore_tx = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == table_id)
+            .order_by(ver_cls.transaction_id.desc())
+            .limit(1)
+            .scalar()
+        )
+        rows = (
+            db.session.connection()
+            .execute(
+                sa.select(
+                    version_changes_table.c.kind,
+                    version_changes_table.c.path,
+                ).where(
+                    version_changes_table.c.transaction_id == restore_tx,
+                    version_changes_table.c.entity_kind == "dataset",
+                    version_changes_table.c.entity_id == table_id,
+                )
+            )
+            .all()
+        )
+        paths = {tuple(row.path) for row in rows}
+        assert ("columns", added_name) in paths, (
+            f"restore tx {restore_tx} did not emit removal record for "
+            f"the added-then-restored-away column {added_name!r}; "
+            f"observed paths={paths}"
+        )
+        assert ("columns", removed_name) in paths, (
+            f"restore tx {restore_tx} did not emit addition record for "
+            f"the deleted-then-restored column {removed_name!r}; "
+            f"observed paths={paths}"
+        )
 
     def test_restore_returns_404_for_unknown_uuid(self) -> None:
         self.login(ADMIN_USERNAME)
