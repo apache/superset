@@ -640,7 +640,9 @@ def _coerce_filter_value(
     return _coerce_scalar_filter_value(value, dimension)
 
 
-def _coerce_scalar_filter_value(value: FilterValues, dimension: Dimension) -> FilterValues:
+def _coerce_scalar_filter_value(  # noqa: C901
+    value: FilterValues, dimension: Dimension
+) -> FilterValues:
     if value is None:
         return None
 
