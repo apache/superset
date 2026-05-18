@@ -420,16 +420,22 @@ class TestLogoutSessionInvalidation(SupersetTestCase):
             f"(got {resp_authed.status_code})"
         )
 
-        captured = {
-            c.name: c.value for c in self.client.cookie_jar if c.name == "session"
-        }
+        # Werkzeug 2.3+ exposes the test client's cookies on `_cookies` as a
+        # mapping keyed by (domain, path, key). Snapshot the session cookie
+        # value — this is what a malicious actor would copy out of a browser.
+        captured = None
+        for cookie in self.client._cookies.values():
+            if cookie.key == "session":
+                captured = cookie.value
+                break
         assert captured, "expected a session cookie after login"
 
         self.client.get("/logout/", follow_redirects=True)
 
+        # Replay the captured cookie in a fresh client (simulates importing
+        # the cookie into a second browser).
         replay_client = app.test_client()
-        for name, value in captured.items():
-            replay_client.set_cookie("localhost", name, value)
+        replay_client.set_cookie("session", captured, domain="localhost")
 
         resp_replay = replay_client.get("api/v1/dashboard/", follow_redirects=False)
         assert resp_replay.status_code != 200, (
