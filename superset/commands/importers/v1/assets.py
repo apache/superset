@@ -19,7 +19,6 @@ from typing import Any, Optional
 
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
-from sqlalchemy.sql import delete, insert
 
 from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
@@ -49,7 +48,7 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.core import Database
-from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
@@ -165,23 +164,33 @@ class ImportAssetsCommand(BaseCommand):
                 dashboard = import_dashboard(config, overwrite=overwrite)
 
                 # set ref in the dashboard_slices table
-                dashboard_chart_ids: list[dict[str, int]] = []
+                # Use ORM-level reassignment instead of Core
+                # delete()/insert() so SQLAlchemy-Continuum's M2M tracker
+                # sees per-row changes through the ORM. Bulk DML via Core
+                # would emit a malformed INSERT into
+                # ``dashboard_slices_version`` (missing the composite-PK
+                # columns) — see the parallel rewrite in
+                # ``DatasetDAO.update_columns`` and the test-factory's
+                # ``delete_dashboard_slices_associations`` for the same
+                # reason.
+                slice_ids: list[int] = []
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:
                         break
-                    chart_id = chart_ids[uuid]
-                    dashboard_chart_id = {
-                        "dashboard_id": dashboard.id,
-                        "slice_id": chart_id,
-                    }
-                    dashboard_chart_ids.append(dashboard_chart_id)
+                    slice_ids.append(chart_ids[uuid])
 
-                db.session.execute(
-                    delete(dashboard_slices).where(
-                        dashboard_slices.c.dashboard_id == dashboard.id
-                    )
+                dashboard.slices = (
+                    db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+                    if slice_ids
+                    else []
                 )
-                db.session.execute(insert(dashboard_slices).values(dashboard_chart_ids))
+                # Flush eagerly so the M2M rows land in
+                # ``dashboard_slices`` before any subsequent autoflush
+                # fires an inner-flush event handler that would reset
+                # the relationship change (cf. the SAWarning at
+                # ``superset/models/helpers.py`` re. "attribute history
+                # events accumulated ... have been reset").
+                db.session.flush()
 
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
