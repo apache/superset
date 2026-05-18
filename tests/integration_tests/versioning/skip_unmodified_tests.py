@@ -215,3 +215,51 @@ class TestSkipUnmodifiedPlugin(SupersetTestCase):
                 dash_id,
                 {"dashboard_title": title, "json_metadata": original_metadata},
             )
+
+    def test_map_label_colors_only_change_does_not_create_version(self) -> None:
+        """Re-stamped ``map_label_colors`` (and other frontend-derived
+        audit sub-keys) inside ``json_metadata`` MUST NOT mint a version
+        row. The frontend regenerates this map from the
+        ``LabelsColorMap`` singleton on every save, so two saves with no
+        user-authored change emit different bytes for the column. The
+        diff engine drops these sub-keys via
+        ``DASHBOARD_JSON_METADATA_AUDIT_KEYS``; the skip-plugin's
+        comparator must apply the same filter or every save mints an
+        empty-changes "Baseline" row in the UI.
+        """
+        dash = self._get_dashboard()
+        dash_id = dash.id
+        title = dash.dashboard_title
+        original_metadata = dash.json_metadata or "{}"
+
+        self.login(ADMIN_USERNAME)
+        # Prime with the existing metadata so the next save's only
+        # delta is the re-stamped ``map_label_colors``.
+        self._put(
+            dash_id,
+            {"dashboard_title": title, "json_metadata": original_metadata},
+        )
+        db.session.expire_all()
+        before = _dashboard_version_count(dash_id)
+        try:
+            md = _json.loads(original_metadata)
+            md["map_label_colors"] = {
+                "test-label-fr026": "#abcdef",
+                "another-label": "#123456",
+            }
+            self._put(
+                dash_id,
+                {"dashboard_title": title, "json_metadata": _json.dumps(md)},
+            )
+            db.session.expire_all()
+            after = _dashboard_version_count(dash_id)
+            assert after == before, (
+                f"map_label_colors-only edit minted a version row "
+                f"(before={before}, after={after})"
+            )
+        finally:
+            self._put(
+                dash_id,
+                {"dashboard_title": title, "json_metadata": original_metadata},
+            )
+

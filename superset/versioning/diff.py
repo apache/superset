@@ -512,7 +512,7 @@ def diff_json_field(
 #                               save when missing.
 #   color_namespace:            scoped colour-scheme namespace, frontend-
 #                               derived from the chart set.
-_DASHBOARD_JSON_METADATA_AUDIT_KEYS: frozenset[str] = frozenset(
+DASHBOARD_JSON_METADATA_AUDIT_KEYS: frozenset[str] = frozenset(
     {
         "chart_configuration",
         "global_chart_configuration",
@@ -728,7 +728,7 @@ def diff_dashboard(
             "json_metadata",
             pre.get("json_metadata"),
             post.get("json_metadata"),
-            exclude_keys=_DASHBOARD_JSON_METADATA_AUDIT_KEYS,
+            exclude_keys=DASHBOARD_JSON_METADATA_AUDIT_KEYS,
         )
     )
     records.extend(
