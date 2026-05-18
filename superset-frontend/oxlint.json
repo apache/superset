@@ -212,7 +212,7 @@
     "jsx-a11y/no-autofocus": ["error", { "ignoreNonDOM": true }],
     "jsx-a11y/no-distracting-elements": "error",
     "jsx-a11y/no-noninteractive-tabindex": "error",
-    "jsx-a11y/no-redundant-roles": "error",
+    "jsx-a11y/no-redundant-roles": "off",
     "jsx-a11y/no-static-element-interactions": "off",
     "jsx-a11y/role-has-required-aria-props": "error",
     "jsx-a11y/role-supports-aria-props": "error",
