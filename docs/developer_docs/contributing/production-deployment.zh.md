@@ -1120,9 +1120,16 @@ File ".../numpy/__init__.py", line 414, in __getattr__
 AttributeError: module 'numpy' has no attribute 'product'
 ```
 
-**根本原因**：`np.product` 在 numpy 1.x 就已 deprecated（一直是 `np.prod` 的别名），numpy 2.0 起被**彻底移除**。Superset 6.1 仓库部分版本里的 [superset/utils/pandas_postprocessing/utils.py](../../../superset/utils/pandas_postprocessing/utils.py) 第 49 行仍在引用 `np.product`，遇到 numpy 2.x 就崩。
+**根本原因（含上游真相）**：
 
-**触发场景**：第七节 `pip install xxx.whl` 时**漏带了 `-c constraints.txt`**，pip 按 wheel 内松散区间 `numpy>1.23.5, <2.3` 拉到了 numpy 2.2.x。
+- `np.product` 在 numpy 1.x 就已 deprecated（一直是 `np.prod` 的别名），numpy 2.0 起被**彻底移除**
+- **apache/superset 上游 master 和 6.1.0 tag 至今都仍在使用 `np.product`**（见 [superset/utils/pandas_postprocessing/utils.py](../../../superset/utils/pandas_postprocessing/utils.py) 第 49 行）。这不是你 fork 的问题，是上游的隐藏 bug
+- 上游之所以 CI 不爆，是因为 [requirements/base.txt](../../../requirements/base.txt) 第 248 行把 `numpy==1.26.4` 精确锁定，把雷藏住了
+- [pyproject.toml](../../../pyproject.toml) 第 75 行的 `numpy>1.23.5, <2.3` 松散区间允许 numpy 2.x，wheel 里只声明松散区间没有把 base.txt 内嵌进去
+
+**触发场景**：第七节 `pip install xxx.whl` 时**漏带了 `-c base-constraints.txt`**，pip 按松散区间拉到了 numpy 2.2.x，上游埋的雷被踩响。
+
+> **本仓库（fork）已修复**：commit `e165b01` 把 `np.product` 改成 `np.prod`，下次重新出 wheel 即彻底消除问题。同样这个 1 行修复**可以 PR 回 apache 上游**，详见文末附录 G。
 
 **修复路径，按优先级**：
 
@@ -1399,4 +1406,76 @@ export FLASK_APP=superset.app:create_app
 ### F.5 "构建机和云服务器一定要同发行版吗？"
 
 不强制，但**强烈建议**——`mysqlclient`、`psycopg2` 这些扩展是在云上装的，受云上 OS 的 glibc 影响；wheel 本体是纯 Python，与发行版无关。两边都 Ubuntu 22.04 是最稳的选择。
+
+---
+
+## 附录 G：把本地修复 PR 回 apache 上游
+
+本仓库（fork）相比 apache 上游领先一个 commit `e165b01`：把 `np.product` 替换为 `np.prod`，让代码兼容 numpy 2.x。这一行修复**对 apache/superset 项目本身**也有价值——上游 master 和 6.1.0 tag 都仍带有 `np.product`，只是被 `requirements/base.txt` 的 `numpy==1.26.4` 锁定兜底而未爆出。把它合回上游，可以让其他像我们一样自建 wheel + 不带 constraints 部署的下游都受益。
+
+### G.1 操作步骤
+
+```bash
+# 1. 先确保 fork 配了 apache 上游 remote
+git remote -v
+# 若没看到 upstream 行，加上：
+git remote add upstream https://github.com/apache/superset.git
+git fetch upstream master
+
+# 2. 基于 apache master 开一个干净的分支，只 cherry-pick 那一行修复
+git checkout -b fix-numpy-product upstream/master
+git cherry-pick e165b01
+
+# 3. push 到你 fork
+git push origin fix-numpy-product
+```
+
+### G.2 PR 描述模板
+
+去 [github.com/apache/superset](https://github.com/apache/superset/compare) 开 PR：
+
+```
+title: fix(utils): replace np.product (removed in numpy 2.0) with np.prod
+
+body:
+### SUMMARY
+
+`np.product` has been a deprecated alias for `np.prod` since numpy 1.x
+and was removed entirely in numpy 2.0. The current
+`numpy>1.23.5, <2.3` constraint in pyproject.toml allows numpy 2.x,
+but superset/utils/pandas_postprocessing/utils.py:49 still references
+`np.product`, breaking any environment installed via wheel without
+also pinning `requirements/base.txt`.
+
+`base.txt` does pin `numpy==1.26.4`, which masks this bug for users
+following the official PyPI install workflow, but downstream wheel
+consumers (anyone running `pip install <fork-wheel>` without `-c`)
+hit it immediately:
+
+    AttributeError: module 'numpy' has no attribute 'product'
+
+Switch to `np.prod` (functionally identical, it has always been the
+underlying implementation) so the code is forward compatible with
+numpy 2.x.
+
+### TESTING
+
+`python -c "from superset.utils.pandas_postprocessing.utils import NUMPY_FUNCTIONS"`
+should succeed under both numpy 1.26.x and numpy 2.x.
+```
+
+按 [.github/PULL_REQUEST_TEMPLATE.md](../../../.github/PULL_REQUEST_TEMPLATE.md) 的最新格式填表，按 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) 命名 PR 标题。
+
+### G.3 同步上游
+
+PR 合并后（或在等待期间），把上游 master 同步回你 fork：
+
+```bash
+git fetch upstream
+git checkout master
+git merge upstream/master         # 或 rebase
+git push origin master
+```
+
+PR 合并后，你 fork 的修复 commit `e165b01` 会以 apache 上游的形式重新出现在 history 里。
 
