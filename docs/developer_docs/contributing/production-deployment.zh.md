@@ -280,7 +280,7 @@ cat dist/BUILD_COMMIT.txt        # 部署后用于核对哪个版本上线了
 
 ## 五、传输到云服务器
 
-把 4.4 出的 wheel 加上配套配置传过去。
+把 4.4 出的 wheel **加上版本约束文件**一并传过去。
 
 ```bash
 # 1. wheel 本体
@@ -289,19 +289,43 @@ scp /opt/superset-build/dist/apache_superset-*.whl <user>@<cloud-host>:/tmp/
 # 2. build commit 记录
 scp /opt/superset-build/dist/BUILD_COMMIT.txt <user>@<cloud-host>:/tmp/
 
-# 3.（可选，首次部署时）准备好的 superset_config.py 模板
+# 3. ⚠️ 版本约束文件（关键！否则云端 pip 会拉到 Superset 没测过的依赖版本）
+scp /opt/superset-build/requirements/base.txt \
+    <user>@<cloud-host>:/tmp/superset-base-constraints.txt
+
+# 4.（可选，首次部署时）准备好的 superset_config.py 模板
 scp /path/to/your/superset_config.py <user>@<cloud-host>:/tmp/
 ```
+
+> **为什么必须传 `requirements/base.txt`？**
+>
+> wheel 内部的依赖声明（来自 `pyproject.toml` 的 `dependencies`）是**松散的版本区间**，例如：
+>
+> ```
+> numpy>1.23.5, <2.3
+> ```
+>
+> 这只表示"理论上兼容"。Superset 官方真正**测试通过**的精确版本记录在 `requirements/base.txt`：
+>
+> ```
+> numpy==1.26.4
+> gunicorn==23.0.0
+> pandas==2.1.4
+> ...
+> ```
+>
+> 不带约束直接 `pip install xxx.whl`，pip 会按松散区间拉到当下允许范围内的最新版（例如 numpy 2.2.x），但 Superset 6.1 的源码仍在用 `np.product`（已在 numpy 2.0 被移除），导致 `superset version` 启动即崩。第七节会用 `-c` 把所有依赖锁回 `base.txt` 的版本。
 
 > **多台云机器**：把 scp 改成循环：
 >
 > ```bash
 > for host in prod1 prod2 prod3; do
->     scp /opt/superset-build/dist/*.whl ${host}:/tmp/
+>     scp /opt/superset-build/dist/*.whl                   ${host}:/tmp/
+>     scp /opt/superset-build/requirements/base.txt        ${host}:/tmp/superset-base-constraints.txt
 > done
 > ```
 
-> **跨网络分发**：若构建机和云机不在同一内网，可改成上传到 OSS / S3 / 私有 PyPI 后再 wget 拉。
+> **跨网络分发**：若构建机和云机不在同一内网，可改成上传到 OSS / S3 / 私有 PyPI 后再 wget 拉。约束文件 (`base.txt`) 也要一起放上去。
 
 ---
 
@@ -346,38 +370,66 @@ source venv/bin/activate
 pip install --upgrade 'pip==25.2' wheel setuptools
 ```
 
-### 7.1 装 wheel 本体
+### 7.1 装 wheel 本体（**务必用 `-c` 约束文件**）
 
 ```bash
-# 这一条命令做的事相当于 `pip install apache-superset`
-# 区别只是源不是 PyPI 而是你自己打的 wheel
-pip install /tmp/apache_superset-*.whl
+# 这一条命令做的事相当于 `pip install apache-superset`，
+# 但通过 -c 把所有依赖锁定到 Superset 官方测试过的版本（base.txt），
+# 避免 numpy/gunicorn 等被解析到不兼容的最新版。
+pip install /tmp/apache_superset-*.whl \
+    -c /tmp/superset-base-constraints.txt
 ```
 
 预计 5-10 分钟（pip 会从 PyPI 拉所有运行时依赖，含 Flask、Pandas、SQLAlchemy 等约 200+ 包）。
 
-### 7.2 装数据库驱动 + 生产 WSGI
+> **不要省略 `-c`**：wheel 内嵌的依赖区间是松散的（例如 `numpy>1.23.5, <2.3`），不加约束时 pip 会拉到 numpy 2.x，触发已知崩溃：
+>
+> ```
+> AttributeError: module 'numpy' has no attribute 'product'
+> ```
+>
+> 已经踩过坑的同学：先 `pip install 'numpy==1.26.4' 'gunicorn==23.0.0' 'gevent==24.2.1' --force-reinstall` 强制对齐，再继续后面的步骤；最稳妥的是按下面 7.5 节整体重装一遍。
+
+### 7.2 装数据库驱动 + 生产 WSGI（同样带上 `-c`）
 
 ```bash
 # MySQL（推荐）
-pip install 'mysqlclient>=2.2.0'
+pip install 'mysqlclient>=2.2.0' -c /tmp/superset-base-constraints.txt
 
 # 或 PostgreSQL
-# pip install 'psycopg2-binary>=2.9.9'
+# pip install 'psycopg2-binary>=2.9.9' -c /tmp/superset-base-constraints.txt
 
-# 生产 WSGI
-pip install 'gunicorn>=22.0.0' 'gevent>=24.2.1'
+# 生产 WSGI（gunicorn / gevent 已在 base.txt 中精确锁定，-c 会把它们装到 23.0.0 / 24.x）
+pip install 'gunicorn>=22.0.0' 'gevent>=24.2.1' -c /tmp/superset-base-constraints.txt
 ```
 
 ### 7.3 自检
 
 ```bash
 which superset                  # /opt/superset/venv/bin/superset
-superset version                # 显示版本号
 
-python -c "import superset; print(superset.__file__)"
-# 输出: /opt/superset/venv/lib/python3.X/site-packages/superset/__init__.py
+# 7.3.1 仅 import 自检（不进 Flask 应用初始化，最干净）
+python -c "import superset; print('PKG:', superset.__file__)"
+# 期望: /opt/superset/venv/lib/python3.X/site-packages/superset/__init__.py
 
+# 7.3.2 关键依赖版本是否对齐到 base.txt
+pip show numpy gunicorn gevent pandas | grep -E '^(Name|Version)'
+# 期望：numpy 1.26.4 / gunicorn 23.0.0 / gevent 24.x / pandas 2.1.4
+
+# 7.3.3 superset CLI 自检
+superset version
+```
+
+> **`superset version` 的两类输出，都不是失败**：
+>
+> | 输出 | 含义 |
+> |---|---|
+> | 正常版本号（如 `4.x.x`） | 完美，import + Flask 启动均 OK |
+> | `Refusing to start due to insecure SECRET_KEY` | import 链路完全通，只是 `superset_config.py` 还没写、Flask 拒绝用默认弱 SECRET_KEY 启动。**这是预期行为**，继续走第九节即可 |
+>
+> 只有出现 `AttributeError: module 'numpy' has no attribute 'product'` 才是真失败——看 [Q11](#q11-superset-version-报-module-numpy-has-no-attribute-product)。
+
+```bash
 cp /tmp/BUILD_COMMIT.txt /opt/superset/.deployed_commit
 cat /opt/superset/.deployed_commit
 ```
@@ -385,7 +437,29 @@ cat /opt/superset/.deployed_commit
 ### 7.4 删 wheel 文件（已安装完，磁盘释放）
 
 ```bash
+# 注意：约束文件 base.txt 留着，升级时还要用
 rm -f /tmp/apache_superset-*.whl /tmp/BUILD_COMMIT.txt
+# 把约束文件搬到 /opt/superset/ 永久保留
+mv /tmp/superset-base-constraints.txt /opt/superset/base-constraints.txt
+```
+
+### 7.5 已经误装了新版依赖的修复方法
+
+如果你跳过了 `-c` 步骤，已经装上了 numpy 2.x / gunicorn 26.x 等，按下面一键修复：
+
+```bash
+source /opt/superset/venv/bin/activate
+
+# 用约束文件强制把所有依赖对齐回 Superset 官方版本
+pip install --force-reinstall -r <(pip freeze | awk -F'==' '{print $1}') \
+    -c /opt/superset/base-constraints.txt
+
+# 或者更简单：仅重装关键几个
+pip install --force-reinstall \
+    'numpy==1.26.4' 'pandas==2.1.4' 'gunicorn==23.0.0' 'gevent>=24.2.1,<25' \
+    'packaging<25'
+
+superset version    # 应能正常输出版本号
 ```
 
 ---
@@ -1033,6 +1107,85 @@ cd /opt/superset-build
 rm -rf dist build *.egg-info
 python -m build --wheel
 ```
+
+### Q11. `superset version` 报 `module 'numpy' has no attribute 'product'`
+
+完整报错：
+
+```
+File ".../superset/utils/pandas_postprocessing/utils.py", line 49, in <module>
+    "product": np.product,
+File ".../numpy/__init__.py", line 414, in __getattr__
+    raise AttributeError("module {!r} has no attribute "
+AttributeError: module 'numpy' has no attribute 'product'
+```
+
+**根本原因**：`np.product` 在 numpy 1.x 就已 deprecated（一直是 `np.prod` 的别名），numpy 2.0 起被**彻底移除**。Superset 6.1 仓库部分版本里的 [superset/utils/pandas_postprocessing/utils.py](../../../superset/utils/pandas_postprocessing/utils.py) 第 49 行仍在引用 `np.product`，遇到 numpy 2.x 就崩。
+
+**触发场景**：第七节 `pip install xxx.whl` 时**漏带了 `-c constraints.txt`**，pip 按 wheel 内松散区间 `numpy>1.23.5, <2.3` 拉到了 numpy 2.2.x。
+
+**修复路径，按优先级**：
+
+#### A. 推荐：按约束文件重装到 Superset 测试过的版本
+
+```bash
+source /opt/superset/venv/bin/activate
+
+pip install --force-reinstall \
+    'numpy==1.26.4' 'pandas==2.1.4' \
+    'gunicorn==23.0.0' 'gevent>=24.2.1,<25' \
+    'packaging<25'
+
+superset version    # 此时应能正常输出版本号或 SECRET_KEY 告警
+```
+
+或者如果你已经把 `base-constraints.txt` 拷到了云机器，直接（参考 7.5 节）：
+
+```bash
+pip install --force-reinstall -r <(pip freeze | awk -F'==' '{print $1}') \
+    -c /opt/superset/base-constraints.txt
+```
+
+#### B. 紧急热修：直接改 site-packages
+
+如果你已经上线、不想立刻重装一堆依赖，可以**临时**只改这一行：
+
+```bash
+FILE=/opt/superset/venv/lib/python3.10/site-packages/superset/utils/pandas_postprocessing/utils.py
+cp "$FILE" "$FILE.bak"
+sed -i 's/np\.product/np.prod/g' "$FILE"
+grep -n 'np.prod' "$FILE"   # 确认 line 48 与 49 都是 np.prod
+```
+
+> 这种方式有效，但下一次 `pip install xxx.whl --force-reinstall` 时改动会被覆盖；治本仍要回到 A 路径或者 C 路径。
+
+#### C. 永久修复：修 fork 源码并重出 wheel
+
+构建机上：
+
+```bash
+cd /opt/superset-build
+# 编辑 superset/utils/pandas_postprocessing/utils.py，把
+#   "product": np.product,
+# 改成
+#   "product": np.prod,
+git add superset/utils/pandas_postprocessing/utils.py
+git commit -m "fix(utils): replace np.product (removed in numpy 2.0) with np.prod"
+git push origin master
+
+rm -rf dist build *.egg-info
+python -m build --wheel
+```
+
+下次 push 出的 wheel 就再也不会有这个坑。
+
+**附加注意**：`superset version` 即使 import 成功，如果尚未写好 `superset_config.py`、`SECRET_KEY` 还是默认弱值，会直接报：
+
+```
+Refusing to start due to insecure SECRET_KEY
+```
+
+**这其实是好消息**——说明 import 链路已经完全通了，只是被生产安全检查挡住。继续走第九节写 `superset_config.py` 设强 `SECRET_KEY` 后，`superset version` 就会正常输出版本号。
 
 ---
 

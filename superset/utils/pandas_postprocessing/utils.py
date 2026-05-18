@@ -46,7 +46,7 @@ NUMPY_FUNCTIONS: dict[str, Callable[..., Any]] = {
     "min": np.min,
     "percentile": np.percentile,
     "prod": np.prod,
-    "product": np.product,
+    "product": np.prod,
     "std": np.std,
     "sum": np.sum,
     "var": np.var,
