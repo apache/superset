@@ -30,6 +30,7 @@ from typing import Any
 import pytest
 from sqlalchemy_continuum import version_class
 
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -50,6 +51,11 @@ def _dashboard_version_count(dashboard_id: int) -> int:
 def _slice_version_count(slice_id: int) -> int:
     ver_cls = version_class(Slice)
     return db.session.query(ver_cls).filter(ver_cls.id == slice_id).count()
+
+
+def _dataset_version_count(dataset_id: int) -> int:
+    ver_cls = version_class(SqlaTable)
+    return db.session.query(ver_cls).filter(ver_cls.id == dataset_id).count()
 
 
 class TestSkipUnmodifiedPlugin(SupersetTestCase):
@@ -263,3 +269,62 @@ class TestSkipUnmodifiedPlugin(SupersetTestCase):
                 {"dashboard_title": title, "json_metadata": original_metadata},
             )
 
+    def test_dataset_column_edit_creates_parent_version(self) -> None:
+        """Editing a ``TableColumn`` description MUST mint a parent
+        ``tables_version`` row even though the parent's own scalars are
+        unchanged. Without the force-touch in
+        ``baseline._force_parent_dirty_on_child_change``, child-only
+        edits leave the dataset's version-history dropdown empty.
+        """
+        db.session.commit()
+        dataset = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name == "birth_names")
+            .first()
+        )
+        assert dataset is not None
+        dataset_id = dataset.id
+        column = (
+            db.session.query(TableColumn)
+            .filter(TableColumn.table_id == dataset_id)
+            .order_by(TableColumn.id)
+            .first()
+        )
+        assert column is not None
+        original_description = column.description
+
+        self.login(ADMIN_USERNAME)
+        before = _dataset_version_count(dataset_id)
+        try:
+            rv = self.client.put(
+                f"/api/v1/dataset/{dataset_id}",
+                json={
+                    "columns": [
+                        {
+                            "id": column.id,
+                            "column_name": column.column_name,
+                            "description": "fr-026 child-edit forces parent shadow",
+                        },
+                    ],
+                },
+            )
+            assert rv.status_code == 200, rv.data
+            db.session.expire_all()
+            after = _dataset_version_count(dataset_id)
+            assert after == before + 1, (
+                f"column edit did not force a parent dataset shadow row "
+                f"(before={before}, after={after})"
+            )
+        finally:
+            self.client.put(
+                f"/api/v1/dataset/{dataset_id}",
+                json={
+                    "columns": [
+                        {
+                            "id": column.id,
+                            "column_name": column.column_name,
+                            "description": original_description,
+                        },
+                    ],
+                },
+            )
