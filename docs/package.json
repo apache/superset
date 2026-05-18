@@ -87,7 +87,7 @@
     "react-svg-pan-zoom": "^3.13.1",
     "react-table": "^7.8.0",
     "remark-import-partial": "^0.0.2",
-    "reselect": "^5.1.1",
+    "reselect": "^5.2.0",
     "storybook": "^8.6.18",
     "swagger-ui-react": "^5.32.5",
     "swc-loader": "^0.2.7",
