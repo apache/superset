@@ -36,6 +36,7 @@ from superset_core.semantic_layers.types import (
 )
 
 from superset.semantic_layers import cache as cache_module
+from superset.semantic_layers.cache import ReuseMode
 from superset.semantic_layers.mapper import get_results, ValidatedQueryObject
 
 
@@ -277,6 +278,14 @@ def _result_bc(rows: list[tuple[str, str, float]]) -> SemanticResult:
     )
 
 
+def _result_b(rows: list[tuple[str, float]]) -> SemanticResult:
+    df = pd.DataFrame(rows, columns=["b", "x"])
+    return SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="select b,sum(x)")],
+        results=pa.Table.from_pandas(df, preserve_index=False),
+    )
+
+
 def test_projection_reuses_cached_for_dropped_dim(
     fake_cache: _InMemoryCache,
 ) -> None:
@@ -469,3 +478,60 @@ def test_metric_superset_misses_cache(
 
     get_results(_qo_metrics(ds, ["x", "y"]))
     assert impl.get_table.call_count == 2  # cached entry lacked "y"
+
+
+# ---------------------------------------------------------------------------
+# Candidate preference: EXACT > PROJECT > ROLLUP
+# ---------------------------------------------------------------------------
+
+
+def test_serve_prefers_exact_over_rollup(
+    fake_cache: _InMemoryCache,
+    mocker: MockerFixture,
+) -> None:
+    # Seed the bucket with two cache misses: querying [b] first, then [b, c]
+    # — neither satisfies the other, so both are stored. A subsequent [b] call
+    # can be served by both, but must pick the EXACT entry.
+    impl, ds = _make_view(AggregationType.SUM)
+    impl.get_table = MagicMock(
+        side_effect=[
+            _result_b([("b1", 8.0), ("b2", 4.0)]),
+            _result_bc([("b1", "c1", 5.0), ("b1", "c2", 3.0), ("b2", "c1", 4.0)]),
+        ]
+    )
+
+    get_results(_qo_dims(ds, ["b"]))
+    get_results(_qo_dims(ds, ["b", "c"]))
+    assert impl.get_table.call_count == 2
+
+    spy = mocker.spy(cache_module, "_apply_post_processing")
+    get_results(_qo_dims(ds, ["b"]))
+    assert impl.get_table.call_count == 2  # cache hit
+    assert spy.call_count == 1
+    assert spy.call_args.args[3] == ReuseMode.EXACT
+
+
+def test_serve_falls_back_to_rollup_when_exact_value_evicted(
+    fake_cache: _InMemoryCache,
+    mocker: MockerFixture,
+) -> None:
+    impl, ds = _make_view(AggregationType.SUM)
+    impl.get_table = MagicMock(
+        side_effect=[
+            _result_b([("b1", 8.0), ("b2", 4.0)]),
+            _result_bc([("b1", "c1", 5.0), ("b1", "c2", 3.0), ("b2", "c1", 4.0)]),
+        ]
+    )
+
+    get_results(_qo_dims(ds, ["b"]))
+    get_results(_qo_dims(ds, ["b", "c"]))
+
+    # Evict the [b] value (stored first); the [b, c] rollup candidate remains.
+    val_keys = [k for k in fake_cache._store if k.startswith("sv:val:")]
+    del fake_cache._store[val_keys[0]]
+
+    spy = mocker.spy(cache_module, "_apply_post_processing")
+    get_results(_qo_dims(ds, ["b"]))
+    assert impl.get_table.call_count == 2  # cache hit via fallback
+    assert spy.call_count == 1
+    assert spy.call_args.args[3] == ReuseMode.ROLLUP

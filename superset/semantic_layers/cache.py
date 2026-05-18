@@ -73,7 +73,7 @@ logger = logging.getLogger(__name__)
 
 INDEX_KEY_PREFIX = "sv:idx:"
 VALUE_KEY_PREFIX = "sv:val:"
-MAX_ENTRIES_PER_SHAPE = 32
+MAX_ENTRIES_PER_VIEW = 128
 
 _AGGREGATION_TO_PANDAS: dict[AggregationType, str] = {
     AggregationType.SUM: "sum",
@@ -99,6 +99,15 @@ class ReuseMode(Enum):
     EXACT = "exact"  # same dims and metrics; only leftovers/limit/order to apply
     PROJECT = "project"  # same dims, cached metrics ⊃ new metrics; drop columns
     ROLLUP = "rollup"  # cached dims ⊃ new dims; re-aggregate
+
+
+# Preference order when multiple cached entries satisfy a query: pick the one
+# requiring the least post-processing.
+_MODE_RANK: dict[ReuseMode, int] = {
+    ReuseMode.EXACT: 0,
+    ReuseMode.PROJECT: 1,
+    ReuseMode.ROLLUP: 2,
+}
 
 
 @dataclass(frozen=True)
@@ -131,30 +140,30 @@ def try_serve_from_cache(
         if not entries:
             return None
 
-        pruned: list[CachedEntry] = []
-        served: SemanticResult | None = None
+        # Rank candidates so EXACT is preferred over PROJECT over ROLLUP. With
+        # one bucket per view, multiple entries may satisfy a query; pick the
+        # one needing the least post-processing.
+        candidates: list[tuple[int, CachedEntry, set[Filter], ReuseMode]] = []
         for entry in entries:
-            if served is None:
-                ok, leftovers, mode = can_satisfy(entry, query)
-                if ok:
-                    payload = cache.get(entry.value_key)
-                    if payload is None:
-                        # value evicted but index entry survived; drop it
-                        continue
-                    if mode == ReuseMode.ROLLUP and not _projection_input_complete(
-                        entry, payload
-                    ):
-                        # Cached result may be truncated (top-N). Keep the index
-                        # entry alive but skip reuse for rollup.
-                        pruned.append(entry)
-                        continue
-                    pruned.append(entry)
-                    served = _apply_post_processing(payload, query, leftovers, mode)
-                    continue
-            # keep entry; verify its value is still alive
-            if cache.get(entry.value_key) is not None:
-                pruned.append(entry)
+            ok, leftovers, mode = can_satisfy(entry, query)
+            if ok:
+                candidates.append((_MODE_RANK[mode], entry, leftovers, mode))
+        candidates.sort(key=lambda c: c[0])
 
+        served: SemanticResult | None = None
+        for _, entry, leftovers, mode in candidates:
+            payload = cache.get(entry.value_key)
+            if payload is None:
+                continue
+            if mode == ReuseMode.ROLLUP and not _projection_input_complete(
+                entry, payload
+            ):
+                continue
+            served = _apply_post_processing(payload, query, leftovers, mode)
+            break
+
+        # Drop index entries whose values have been evicted.
+        pruned = [e for e in entries if cache.get(e.value_key) is not None]
         if len(pruned) != len(entries):
             cache.set(idx_key, pruned, timeout=_timeout(view_meta))
         return served
@@ -189,10 +198,8 @@ def store_result(
         )
         entries = [e for e in entries if e.value_key != vkey]
         entries.append(entry)
-        if len(entries) > MAX_ENTRIES_PER_SHAPE:
-            entries = sorted(entries, key=lambda e: e.timestamp)[
-                -MAX_ENTRIES_PER_SHAPE:
-            ]
+        if len(entries) > MAX_ENTRIES_PER_VIEW:
+            entries = sorted(entries, key=lambda e: e.timestamp)[-MAX_ENTRIES_PER_VIEW:]
         cache.set(idx_key, entries, timeout=timeout)
     except Exception:  # pragma: no cover - defensive
         logger.warning("Semantic view cache store failed", exc_info=True)

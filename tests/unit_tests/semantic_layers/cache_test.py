@@ -31,6 +31,7 @@ from superset_core.semantic_layers.types import (
     Metric,
     Operator,
     OrderDirection,
+    OrderTuple,
     PredicateType,
     SemanticQuery,
     SemanticRequest,
@@ -818,7 +819,7 @@ def test_can_satisfy_metric_subset_with_rollup() -> None:
 
 
 def test_project_with_smaller_limit_and_matching_order() -> None:
-    order = [(M_X, OrderDirection.DESC)]
+    order: list[OrderTuple] = [(M_X, OrderDirection.DESC)]
     cached_q = SemanticQuery(
         metrics=[M_X, M_Y], dimensions=[COL_A], limit=100, order=order
     )
