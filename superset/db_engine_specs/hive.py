@@ -206,13 +206,24 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         if to_sql_kwargs["if_exists"] == "fail":
             # Ensure table doesn't already exist.
+            escaped_table = (
+                table.table.replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+            )
+            # Hive LIKE uses backslash as the escape character. Python needs \\\\
+            # to produce the two-character SQL literal \\ (a single backslash).
+            escape_clause = " ESCAPE '\\\\'"
             if table.schema:
+                escaped_schema = table.schema.replace("`", "``")
                 table_exists = not database.get_df(
-                    f"SHOW TABLES IN {table.schema} LIKE '{table.table}'"
+                    f"SHOW TABLES IN `{escaped_schema}`"
+                    f" LIKE '{escaped_table}'{escape_clause}"
                 ).empty
             else:
                 table_exists = not database.get_df(
-                    f"SHOW TABLES LIKE '{table.table}'"
+                    f"SHOW TABLES LIKE '{escaped_table}'{escape_clause}"
                 ).empty
 
             if table_exists:
@@ -498,9 +509,12 @@ class HiveEngineSpec(PrestoEngineSpec):
         order_by: list[tuple[str, bool]] | None = None,
         filters: dict[Any, Any] | None = None,
     ) -> str:
-        full_table_name = (
-            f"{table.schema}.{table.table}" if table.schema else table.table
-        )
+        escaped_table = table.table.replace("`", "``")
+        if table.schema:
+            escaped_schema = table.schema.replace("`", "``")
+            full_table_name = f"`{escaped_schema}`.`{escaped_table}`"
+        else:
+            full_table_name = f"`{escaped_table}`"
         return f"SHOW PARTITIONS {full_table_name}"
 
     @classmethod
@@ -628,7 +642,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         sql = "SHOW VIEWS"
 
         if schema:
-            sql += f" IN `{schema}`"
+            escaped_schema = schema.replace("`", "``")
+            sql += f" IN `{escaped_schema}`"
 
         with database.get_raw_connection(schema=schema) as conn:
             cursor = conn.cursor()
