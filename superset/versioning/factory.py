@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
-from typing import Any
+from typing import Any, Callable
 
 import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
@@ -26,7 +27,82 @@ from sqlalchemy_continuum.plugins.flask import FlaskPlugin
 from sqlalchemy_continuum.transaction import TransactionFactory
 from sqlalchemy_continuum.utils import versioned_column_properties
 
+from superset.versioning.diff import DASHBOARD_JSON_METADATA_AUDIT_KEYS
+
 logger = logging.getLogger(__name__)
+
+
+def _normalize_dashboard_json_metadata(value: Any) -> Any:
+    """Parse ``dashboards.json_metadata`` and drop frontend-stamped audit
+    sub-keys so a save that only re-stamps ``map_label_colors`` (etc.)
+    compares equal to its predecessor.
+
+    ``map_label_colors`` is regenerated client-side from the
+    ``LabelsColorMap`` singleton on every save (see
+    ``saveDashboardRequest`` in
+    ``superset-frontend/src/dashboard/actions/dashboardState.ts``).
+    The singleton's contents depend on which charts have rendered in
+    the page session, so two saves with no user-authored change produce
+    different bytes. The diff engine ignores the same audit sub-keys
+    (``DASHBOARD_JSON_METADATA_AUDIT_KEYS`` in
+    ``superset/versioning/diff.py``); aligning the skip-plugin's
+    comparison with that filter keeps the two paths consistent.
+    """
+    if value is None or value == "":
+        return value
+    try:
+        parsed = json.loads(value)
+    except (TypeError, ValueError):
+        return value
+    if not isinstance(parsed, dict):
+        return parsed
+    return {
+        k: v for k, v in parsed.items() if k not in DASHBOARD_JSON_METADATA_AUDIT_KEYS
+    }
+
+
+# Per-class column normalizers, keyed on (class_name, column_name). Class
+# name is used (rather than class itself) so importing the model classes
+# at module load is unnecessary — keeps the plugin importable before
+# ``make_versioned()`` has registered the version classes.
+_COLUMN_NORMALIZERS: dict[tuple[str, str], Callable[[Any], Any]] = {
+    ("Dashboard", "json_metadata"): _normalize_dashboard_json_metadata,
+}
+
+
+def _normalize_for_compare(target: Any, col_name: str, value: Any) -> Any:
+    """Return *value* run through any per-class column normalizer registered
+    in ``_COLUMN_NORMALIZERS``, else *value* unchanged.
+    """
+    normalizer = _COLUMN_NORMALIZERS.get((type(target).__name__, col_name))
+    return normalizer(value) if normalizer is not None else value
+
+
+def _has_dirty_versioned_children(target: Any, uow: Any) -> bool:
+    """Return ``True`` when *uow* contains an operation for a versioned
+    child of *target* (e.g. a ``TableColumn`` whose ``table`` is *target*).
+
+    Used by :meth:`SkipUnmodifiedPlugin._is_no_op_update` so a parent
+    UPDATE that was force-flagged by
+    :func:`baseline._force_parent_dirty_on_child_change` is preserved
+    even though the parent's own scalars match the previous version.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.versioning.baseline import _child_to_parent_registry
+
+    child_map = _child_to_parent_registry()
+    target_cls = type(target)
+    for _key, op in uow.operations.items():
+        entry = child_map.get(type(op.target))
+        if entry is None:
+            continue
+        parent_attr, parent_cls = entry
+        if parent_cls is not target_cls:
+            continue
+        parent = getattr(op.target, parent_attr, None)
+        if parent is target:
+            return True
+    return False
 
 
 class VersionTransactionFactory(TransactionFactory):
@@ -118,7 +194,7 @@ class SkipUnmodifiedPlugin(Plugin):
             if operation.processed or operation.type != Operation.UPDATE:
                 continue
             try:
-                if self._is_no_op_update(operation.target, session):
+                if self._is_no_op_update(operation.target, session, uow):
                     operation.processed = True
             except Exception:  # pylint: disable=broad-except
                 # Defensive — if introspection fails for any reason, fall
@@ -129,23 +205,31 @@ class SkipUnmodifiedPlugin(Plugin):
                 )
 
     @classmethod
-    def _is_no_op_update(cls, target: Any, session: Any) -> bool:
+    def _is_no_op_update(cls, target: Any, session: Any, uow: Any) -> bool:
         """Return ``True`` when this UPDATE produces no observable change to
-        any non-excluded versioned column.
+        any non-excluded versioned column **and** no versioned children of
+        *target* are being modified in this flush.
 
-        Two-stage check:
+        Stages:
 
-        1. ``is_modified(target)`` — cheap SQLAlchemy attribute-history check.
-           Returns ``False`` when only excluded columns/relationships
+        1. If any versioned child (e.g. a ``TableColumn`` whose ``table``
+           is *target*) has an operation in ``uow.operations``, the parent
+           is being force-touched by
+           ``baseline._force_parent_dirty_on_child_change`` to anchor the
+           child changes against a parent shadow row. Keep the row.
+        2. ``is_modified(target)`` — cheap SQLAlchemy attribute-history
+           check. Returns ``False`` when only excluded columns/relationships
            (``owners``, ``changed_on``, …) are dirty. This is the common
            case (every save auto-bumps ``changed_on``); short-circuiting
-           here saves the DB round-trip in stage 2.
-        2. Compare post-flush column values against the previous live
+           here saves the DB round-trip in stage 3.
+        3. Compare post-flush column values against the previous live
            version row's stored values. Catches the case where SQLAlchemy
            sees a column as dirty (e.g. ``set_dash_metadata`` re-serialised
            ``json_metadata`` to a different byte sequence) but the
            resulting parsed content matches the prior version.
         """
+        if _has_dirty_versioned_children(target, uow):
+            return False
         if not is_modified(target):
             return True
         return cls._matches_previous_version(target, session)
@@ -186,6 +270,8 @@ class SkipUnmodifiedPlugin(Plugin):
             return False  # no previous version → let Continuum create one
 
         for col_name, prev_value in zip(col_keys, row, strict=False):
-            if getattr(target, col_name, None) != prev_value:
+            post = _normalize_for_compare(target, col_name, getattr(target, col_name, None))
+            pre = _normalize_for_compare(target, col_name, prev_value)
+            if post != pre:
                 return False
         return True
