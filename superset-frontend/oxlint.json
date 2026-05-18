@@ -269,6 +269,14 @@
       }
     ]
   },
+  "overrides": [
+    {
+      "files": ["plugins/plugin-chart-table/src/TableChart.tsx", "plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.tsx"],
+      "rules": {
+        "jsx-a11y/no-redundant-roles": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "packages/generator-superset/**/*",
     "cypress-base/**",
