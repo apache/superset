@@ -632,7 +632,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render cell without color', () => {
@@ -672,9 +674,11 @@ describe('plugin-chart-table', () => {
           'rgba(172, 225, 196, 0.81)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('preserves muted null styling when no formatter resolves text color', () => {
@@ -1062,7 +1066,7 @@ describe('plugin-chart-table', () => {
           'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -1092,7 +1096,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with string column color formatter (operator containing)', () => {
@@ -1121,7 +1127,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with string column color formatter (operator not containing)', () => {
@@ -1151,7 +1159,7 @@ describe('plugin-chart-table', () => {
           'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -1182,7 +1190,7 @@ describe('plugin-chart-table', () => {
           'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -1245,7 +1253,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByText('true')).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('false')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('false')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with boolean column color formatter (operator is false)', () => {
@@ -1274,7 +1284,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByText('false')).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('true')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('true')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with boolean column color formatter (operator is null)', () => {
@@ -1303,8 +1315,12 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('true')).background).toBe('');
-        expect(getComputedStyle(screen.getByText('false')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('true')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
+        expect(getComputedStyle(screen.getByText('false')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with boolean column color formatter (operator is not null)', () => {
@@ -1338,7 +1354,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(falseElements[0]).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with column color formatter to entire row', () => {
@@ -1644,7 +1662,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with useGradient true returns gradient color', () => {
@@ -1676,7 +1696,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with useGradient undefined defaults to gradient (backward compatibility)', () => {
@@ -1707,7 +1729,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with useGradient false and None operator returns solid color', () => {

@@ -99,12 +99,10 @@ describe('logger middleware', () => {
 
   test('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
     // Set window.location to include /dashboard/ so the middleware adds dashboard context
-    const locationSpy = jest
-      .spyOn(window, 'location', 'get')
-      .mockReturnValue({
-        ...window.location,
-        href: `http://localhost/dashboard/${dashboardId}/`,
-      } as Location);
+    const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+      ...window.location,
+      href: `http://localhost/dashboard/${dashboardId}/`,
+    } as Location);
 
     try {
       const fetchLog = (logger as Function)(mockStore)(next);

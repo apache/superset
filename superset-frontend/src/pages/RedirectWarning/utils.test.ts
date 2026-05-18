@@ -57,9 +57,9 @@ test('isAllowedScheme allows relative URLs (unparseable as absolute)', () => {
 });
 
 test('getTargetUrl reads the url query parameter', () => {
-  const locationSpy = jest
-    .spyOn(window, 'location', 'get')
-    .mockReturnValue({ search: '?url=https%3A%2F%2Fexample.com%2Fpage' } as Location);
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    search: '?url=https%3A%2F%2Fexample.com%2Fpage',
+  } as Location);
   expect(getTargetUrl()).toBe('https://example.com/page');
   locationSpy.mockRestore();
 });
