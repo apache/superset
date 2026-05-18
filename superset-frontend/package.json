@@ -340,8 +340,8 @@
     "html-webpack-plugin": "^5.6.7",
     "http-server": "^14.1.1",
     "imports-loader": "^5.0.0",
-    "jest": "^30.3.0",
-    "jest-environment-jsdom": "^29.7.0",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
     "jest-html-reporter": "^4.4.0",
     "jest-websocket-mock": "^2.5.0",
     "js-yaml-loader": "^1.2.2",
@@ -412,7 +412,14 @@
     "@luma.gl/gltf": "~9.2.5",
     "@luma.gl/shadertools": "~9.2.5",
     "@luma.gl/webgl": "~9.2.5",
-    "fast-xml-parser": "^5.8.0"
+    "fast-xml-parser": "^5.8.0",
+    "jest-mock": "^30.4.0",
+    "jest-runtime": "^30.4.0",
+    "@jest/globals": "^30.4.0",
+    "@jest/types": "^30.4.0",
+    "jest-util": "^30.4.0",
+    "jest-circus": "^30.4.0",
+    "jest-environment-node": "^30.4.0"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
