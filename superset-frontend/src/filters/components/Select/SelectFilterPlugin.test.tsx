@@ -27,7 +27,10 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
-import SelectFilterPlugin from './SelectFilterPlugin';
+import { FilterBarOrientation } from 'src/dashboard/types';
+import SelectFilterPlugin, {
+  getSelectDropdownAlign,
+} from './SelectFilterPlugin';
 import transformProps from './transformProps';
 import { FilterState } from '@superset-ui/core';
 import {
@@ -38,6 +41,14 @@ import {
 } from './types';
 
 jest.useFakeTimers({ advanceTimers: true });
+
+test('disables vertical dropdown auto-adjustment for horizontal filter bars', () => {
+  expect(getSelectDropdownAlign(FilterBarOrientation.Horizontal)).toEqual({
+    overflow: { adjustY: false },
+  });
+  expect(getSelectDropdownAlign(FilterBarOrientation.Vertical)).toBeUndefined();
+  expect(getSelectDropdownAlign()).toBeUndefined();
+});
 
 const selectMultipleProps = {
   formData: {

@@ -116,6 +116,13 @@ const StyledSpace = styled(Space)<{
 // Keep track of orientation changes outside component with filter ID
 const orientationMap = new Map<string, FilterBarOrientation>();
 
+export const getSelectDropdownAlign = (
+  filterBarOrientation?: FilterBarOrientation,
+) =>
+  filterBarOrientation === FilterBarOrientation.Horizontal
+    ? { overflow: { adjustY: false } }
+    : undefined;
+
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
     coltypeMap,
@@ -601,11 +608,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
                   : (trigger: HTMLElement) =>
                       (trigger?.parentNode as HTMLElement) || document.body
               }
-              dropdownAlign={
-                filterBarOrientation === FilterBarOrientation.Horizontal
-                  ? { overflow: { adjustY: false } }
-                  : undefined
-              }
+              dropdownAlign={getSelectDropdownAlign(filterBarOrientation)}
               showSearch={showSearch}
               mode={multiSelect ? 'multiple' : 'single'}
               placeholder={placeholderText}
