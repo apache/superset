@@ -120,3 +120,29 @@ test('parseMilliseconds should handle zero', () => {
     nanoseconds: 0,
   });
 });
+
+test('parseMilliseconds should handle negative duration', () => {
+  expect(parseMilliseconds(-1000)).toEqual({
+    years: -0,
+    days: -0,
+    hours: -0,
+    minutes: -0,
+    seconds: -1,
+    milliseconds: -0,
+    microseconds: -0,
+    nanoseconds: -0,
+  });
+});
+
+test('parseMilliseconds should handle negative days without overflowing into years', () => {
+  expect(parseMilliseconds(-31449600000)).toEqual({
+    years: -0,
+    days: -364,
+    hours: -0,
+    minutes: -0,
+    seconds: -0,
+    milliseconds: -0,
+    microseconds: -0,
+    nanoseconds: -0,
+  });
+});

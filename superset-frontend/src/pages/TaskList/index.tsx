@@ -53,7 +53,7 @@ import {
 } from 'src/features/tasks/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { ExplorePageState } from 'src/explore/types';
+import type { RootState } from 'src/views/store';
 
 const PAGE_SIZE = 25;
 
@@ -79,9 +79,7 @@ interface TaskListProps {
 
 function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   const theme = useTheme();
-  const locale = useSelector(
-    (state: ExplorePageState) => state?.common?.locale,
-  );
+  const locale = useSelector((state: RootState) => state.common?.locale);
 
   // Check if GTF feature flag is enabled
   if (!isFeatureEnabled(FeatureFlag.GlobalTaskFramework)) {

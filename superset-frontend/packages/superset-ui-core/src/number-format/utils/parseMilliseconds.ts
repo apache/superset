@@ -46,7 +46,7 @@ const DAYS_IN_YEAR = 365;
 export function parseMilliseconds(ms: number): Duration {
   const parsed = parseMs(ms);
   const totalDays = parsed.days;
-  const years = Math.floor(totalDays / DAYS_IN_YEAR);
+  const years = Math.trunc(totalDays / DAYS_IN_YEAR);
   const remainingDays = totalDays % DAYS_IN_YEAR;
 
   return {

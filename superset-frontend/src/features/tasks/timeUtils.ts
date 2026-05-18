@@ -25,6 +25,20 @@ import { parseMilliseconds } from '@superset-ui/core/number-format/utils/parseMi
  * ETAs beyond this are not shown as they're unreliable.
  */
 const MAX_ETA_SECONDS = 86400;
+const durationFormatters = new Map<string, Intl.DurationFormat>();
+
+function getCachedDurationFormatter(locale?: string): Intl.DurationFormat {
+  const key = locale ?? '';
+  const formatter = durationFormatters.get(key);
+
+  if (formatter) {
+    return formatter;
+  }
+
+  const newFormatter = getIntlDurationFormatter(locale, { style: 'narrow' });
+  durationFormatters.set(key, newFormatter);
+  return newFormatter;
+}
 
 /**
  * Format a duration in seconds to a human-readable string.
@@ -62,9 +76,7 @@ export function formatDuration(
       },
       {} as Record<string, number>,
     );
-  return getIntlDurationFormatter(locale, { style: 'narrow' }).format(
-    nonZeroUnits,
-  );
+  return getCachedDurationFormatter(locale).format(nonZeroUnits);
 }
 
 /**

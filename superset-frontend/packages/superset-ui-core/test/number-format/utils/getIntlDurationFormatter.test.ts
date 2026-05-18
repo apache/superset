@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { getIntlDurationFormatter } from '@superset-ui/core/number-format/utils//getIntlDurationFormatter';
+import { getIntlDurationFormatter } from '@superset-ui/core/number-format/utils/getIntlDurationFormatter';
 
 test('getIntlDurationFormatter creates formatter with fallback locale when passed locale is invalid', () => {
   const formatter = getIntlDurationFormatter('invalid-locale-xyz');
@@ -29,4 +29,10 @@ test('getIntlDurationFormatter creates formatter with custom options', () => {
   const formatter = getIntlDurationFormatter('en', { style: 'digital' });
   expect(formatter).toBeInstanceOf(Intl.DurationFormat);
   expect(formatter.format({ minutes: 5, seconds: 30 })).toContain(':');
+});
+
+test('getIntlDurationFormatter normalizes locale underscores', () => {
+  const formatter = getIntlDurationFormatter('zh_Hans_CN');
+  expect(formatter).toBeInstanceOf(Intl.DurationFormat);
+  expect(formatter.resolvedOptions().locale).toMatch(/^zh/);
 });

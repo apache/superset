@@ -21,7 +21,7 @@ export function getIntlDurationFormatter(
   locale?: string,
   options?: Intl.DurationFormatOptions,
 ): Intl.DurationFormat {
-  const normalizedLocale = locale?.replace('_', '-');
+  const normalizedLocale = locale?.replace(/_/g, '-');
   try {
     return new Intl.DurationFormat(normalizedLocale, options);
   } catch {
