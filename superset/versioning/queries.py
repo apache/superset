@@ -44,6 +44,12 @@ from superset.extensions import db
 # version_uuid that clients may have cached, bookmarked, or stored.
 VERSION_UUID_NAMESPACE = UUID("7a6f5d9b-4c3b-5d8e-9a1c-0e2b4c6d8f10")
 
+# Continuum's integer ``operation_type`` mapped to the string the API
+# returns. Kept short and stable for downstream tooling consuming the
+# raw response. Continuum guarantees 0/1/2; anything else is a Continuum
+# version mismatch and surfaces as ``str(int)`` rather than crashing.
+_OP_TYPE_LABELS: dict[int, str] = {0: "baseline", 1: "update", 2: "delete"}
+
 
 def derive_version_uuid(entity_uuid: UUID, transaction_id: int) -> UUID:
     """Derive a deterministic UUIDv5 identifying one version row.
@@ -261,8 +267,6 @@ def list_versions(
 
     rows = db.session.execute(stmt).mappings().all()
 
-    op_type_label = {0: "baseline", 1: "update", 2: "delete"}
-
     # Batch-load change records for every listed transaction in one
     # query, then distribute per-tx (T050). ``entity_kind`` is
     # derived from the model class via the mapping in
@@ -300,7 +304,7 @@ def list_versions(
                 ),
                 "version_number": version_number,
                 "transaction_id": row["transaction_id"],
-                "operation_type": op_type_label.get(
+                "operation_type": _OP_TYPE_LABELS.get(
                     row["operation_type"], str(row["operation_type"])
                 ),
                 "issued_at": row["issued_at"],
@@ -322,6 +326,16 @@ def resolve_version_uuid(
     Ordering matches :func:`list_versions` — op=0 rows first, then by
     transaction_id — so the version_number returned here is the same index
     a client would see in the list response.
+
+    Implementation note: the loop re-derives ``version_uuid`` per
+    transaction in Python because there's no portable SQL form for a
+    UUIDv5 derivation across PostgreSQL / MySQL / SQLite (Postgres has
+    ``uuid_generate_v5``; the other two do not). The iteration count is
+    bounded by ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` worth of
+    edits — the retention task ages older shadow rows out — so the
+    practical N is at most a few hundred. If retention is ever
+    disabled (``= 0``) on a heavily-edited entity, this loop is the
+    place to revisit.
     """
     entity = find_active_by_uuid(model_cls, entity_uuid)
     if entity is None:
@@ -419,7 +433,6 @@ def get_version(
             value = str(value)
         result[col.name] = value
 
-    op_type_label = {0: "baseline", 1: "update", 2: "delete"}
     changed_by: Optional[dict[str, Any]]
     if row["_user_id"] is None:
         changed_by = None
@@ -445,7 +458,7 @@ def get_version(
         "version_uuid": str(version_uuid),
         "version_number": version_num,
         "transaction_id": row["transaction_id"],
-        "operation_type": op_type_label.get(
+        "operation_type": _OP_TYPE_LABELS.get(
             row["operation_type"], str(row["operation_type"])
         ),
         "issued_at": row["issued_at"],
