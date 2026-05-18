@@ -244,6 +244,143 @@ def test_update_id_refs_preserves_time_grains_in_native_filters():
     assert filter_config.get("filterType") == "filter_timegrain"
 
 
+def test_find_native_filter_datasets_includes_display_controls():
+    """
+    Test that find_native_filter_datasets also returns dataset UUIDs
+    from chart_customization_config (display controls).
+    """
+    from superset.commands.dashboard.importers.v1.utils import (
+        find_native_filter_datasets,
+    )
+
+    metadata = {
+        "native_filter_configuration": [
+            {"targets": [{"datasetUuid": "uuid-native-1"}]},
+        ],
+        "chart_customization_config": [
+            {"targets": [{"datasetUuid": "uuid-display-1"}]},
+            {"targets": [{"datasetUuid": "uuid-display-2"}]},
+            {"targets": []},
+        ],
+    }
+
+    uuids = find_native_filter_datasets(metadata)
+    assert uuids == {"uuid-native-1", "uuid-display-1", "uuid-display-2"}
+
+
+def test_update_id_refs_fixes_display_control_dataset_references():
+    """
+    Test that update_id_refs converts datasetUuid back to datasetId in
+    chart_customization_config (display controls) during import.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "native_filter_configuration": [],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-abc",
+                    "type": "CHART_CUSTOMIZATION",
+                    # dual-write format: both fields present in exported bundle
+                    "targets": [
+                        {
+                            "datasetId": 99,
+                            "datasetUuid": "ds-uuid-1",
+                            "column": {"name": "col"},
+                        }
+                    ],
+                },
+                {
+                    "id": "CUSTOMIZATION-divider",
+                    "type": "CHART_CUSTOMIZATION_DIVIDER",
+                    "targets": [],
+                },
+            ],
+        },
+    }
+
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {
+        "ds-uuid-1": {"datasource_id": 42},
+    }
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    customizations = fixed["metadata"]["chart_customization_config"]
+    target = customizations[0]["targets"][0]
+    assert target["datasetId"] == 42  # updated to destination-env ID
+    assert "datasetUuid" not in target  # consumed by import
+    assert customizations[1]["targets"] == []
+
+
+def test_update_id_refs_removes_stale_dataset_id_when_uuid_unresolvable():
+    """
+    When a target has both datasetId and datasetUuid but the UUID is absent
+    from dataset_info, the stale datasetId must also be removed. A visibly
+    broken control is safer than one silently bound to whatever dataset
+    happens to own that integer ID in the destination environment.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {},
+        "metadata": {
+            "native_filter_configuration": [],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-abc",
+                    "type": "CHART_CUSTOMIZATION",
+                    "targets": [{"datasetId": 99, "datasetUuid": "uuid-missing"}],
+                },
+            ],
+        },
+    }
+
+    fixed = update_id_refs(config, {}, {})
+
+    target = fixed["metadata"]["chart_customization_config"][0]["targets"][0]
+    assert "datasetUuid" not in target
+    assert "datasetId" not in target
+
+
+def test_update_id_refs_skips_display_control_target_on_missing_uuid():
+    """
+    When a display control target's datasetUuid is absent from dataset_info
+    (e.g. a partially corrupt export bundle), update_id_refs skips the target
+    silently rather than raising KeyError — the datasetUuid is popped and no
+    datasetId is written, leaving the target without a dataset reference.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {},
+        "metadata": {
+            "native_filter_configuration": [],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-abc",
+                    "type": "CHART_CUSTOMIZATION",
+                    "targets": [{"datasetUuid": "uuid-missing-from-bundle"}],
+                },
+            ],
+        },
+    }
+
+    fixed = update_id_refs(config, {}, {})
+
+    target = fixed["metadata"]["chart_customization_config"][0]["targets"][0]
+    assert "datasetUuid" not in target
+    assert "datasetId" not in target
+
+
 def test_update_id_refs_handles_missing_time_grains():
     """
     Test backward compatibility when time_grains is not present.

@@ -20,7 +20,6 @@ import 'src/public-path';
 
 // Menu App. Used in views that do not already include the Menu component in the layout.
 // eg, backend rendered views
-import { StrictMode } from 'react';
 import { Provider } from 'react-redux';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -46,26 +45,24 @@ const emotionCache = createCache({
 });
 
 const app = (
-  <StrictMode>
-    <CacheProvider value={emotionCache}>
-      <ThemeProvider theme={theme}>
-        <Provider store={store}>
-          <BrowserRouter>
-            <QueryParamProvider
-              adapter={ReactRouter5Adapter}
-              options={{
-                searchStringToObject: querystring.parse,
-                objectToSearchString: (object: Record<string, any>) =>
-                  querystring.stringify(object, { encode: false }),
-              }}
-            >
-              <Menu data={menu} />
-            </QueryParamProvider>
-          </BrowserRouter>
-        </Provider>
-      </ThemeProvider>
-    </CacheProvider>
-  </StrictMode>
+  <CacheProvider value={emotionCache}>
+    <ThemeProvider theme={theme}>
+      <Provider store={store}>
+        <BrowserRouter>
+          <QueryParamProvider
+            adapter={ReactRouter5Adapter}
+            options={{
+              searchStringToObject: querystring.parse,
+              objectToSearchString: (object: Record<string, any>) =>
+                querystring.stringify(object, { encode: false }),
+            }}
+          >
+            <Menu data={menu} />
+          </QueryParamProvider>
+        </BrowserRouter>
+      </Provider>
+    </ThemeProvider>
+  </CacheProvider>
 );
 
 const menuMountPoint = document.getElementById('app-menu');

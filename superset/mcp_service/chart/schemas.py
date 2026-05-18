@@ -22,7 +22,7 @@ Pydantic schemas for chart-related responses
 from __future__ import annotations
 
 import difflib
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 import humanize
@@ -50,7 +50,7 @@ from superset.mcp_service.common.cache_schemas import (
     OwnedByMeMixin,
     QueryCacheControl,
 )
-from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.common.error_schemas import ChartGenerationError, MCPBaseError
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
@@ -183,16 +183,8 @@ class ChartInfo(BaseModel):
         return data
 
 
-class ChartError(BaseModel):
-    error: str = Field(..., description="Error message")
-    error_type: str = Field(..., description="Type of error")
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        description="Error timestamp",
-    )
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-    @field_validator("error")
+class ChartError(MCPBaseError):
+    @field_validator("message")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str) -> str:
         """Wrap error text before it is exposed to LLM context."""
@@ -806,6 +798,30 @@ class FilterConfig(BaseModel):
         return self
 
 
+class SortByConfig(BaseModel):
+    """Sort specification with explicit direction.
+
+    Accepts either this object or a bare column-name string in `sort_by`
+    lists. Bare strings default to descending, which matches the
+    sort-by-metric "top N" pattern most commonly used for tables.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    column: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        validation_alias=AliasChoices("column", "col"),
+        description="Column to sort by",
+    )
+    ascending: bool = Field(
+        False,
+        description="Sort ascending. Defaults to False (descending) to match "
+        "the typical sort-by-metric top-N use case.",
+    )
+
+
 # Actual chart types
 class PieChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -1192,8 +1208,12 @@ class TableChartConfig(UnknownFieldCheckMixin):
         description="Structured filters (column/op/value). "
         "Do NOT use adhoc_filters or raw SQL expressions.",
     )
-    sort_by: List[str] | None = Field(
+    sort_by: List[str | SortByConfig] | None = Field(
         None,
+        description="Columns to sort by. Each entry is either a column-name "
+        "string (defaults to descending) or a SortByConfig object with "
+        "explicit `ascending`. Descending matches the sort-by-metric "
+        "top-N pattern most common for tables.",
         validation_alias=AliasChoices("sort_by", "order_by_cols", "order_by"),
     )
     row_limit: int = Field(1000, description="Max rows returned", ge=1, le=50000)
@@ -1872,6 +1892,12 @@ class GenerateChartResponse(BaseModel):
 
     # Navigation and context
     explore_url: str | None = Field(None, description="Edit chart in Superset")
+    chart_type_label: str | None = Field(
+        None,
+        description=(
+            "User-facing chart type label derived from the rendered visualization type"
+        ),
+    )
     embed_code: str | None = Field(None, description="HTML embed snippet")
     api_endpoints: Dict[str, str] = Field(
         default_factory=dict, description="Related API endpoints for data/updates"

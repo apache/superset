@@ -56,6 +56,7 @@ from superset.mcp_service.mcp_core import ModelGetSchemaCore
 from superset.mcp_service.privacy import (
     PrivacyError,
     remove_chart_data_model_columns,
+    SELF_REFERENCING_FILTER_COLUMNS,
     user_can_view_data_model_metadata,
 )
 
@@ -77,6 +78,7 @@ def _get_chart_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
         search_columns=CHART_SEARCH_COLUMNS,
         default_sort="changed_on",
         default_sort_direction="desc",
+        exclude_filter_columns=set(SELF_REFERENCING_FILTER_COLUMNS),
         logger=logger,
     )
 
@@ -96,6 +98,7 @@ def _get_dataset_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
         search_columns=DATASET_SEARCH_COLUMNS,
         default_sort="changed_on",
         default_sort_direction="desc",
+        exclude_filter_columns=set(SELF_REFERENCING_FILTER_COLUMNS),
         logger=logger,
     )
 
@@ -115,6 +118,7 @@ def _get_dashboard_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
         search_columns=DASHBOARD_SEARCH_COLUMNS,
         default_sort="changed_on",
         default_sort_direction="desc",
+        exclude_filter_columns=set(SELF_REFERENCING_FILTER_COLUMNS),
         logger=logger,
     )
 

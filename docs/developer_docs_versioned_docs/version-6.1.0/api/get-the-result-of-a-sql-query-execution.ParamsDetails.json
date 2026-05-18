@@ -1,0 +1,1 @@
+{"parameters":[{"content":{"application/json":{"schema":{"properties":{"key":{"type":"string"}},"required":["key"],"type":"object","title":"sql_lab_get_results_schema"}}},"in":"query","name":"q"}]}
