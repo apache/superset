@@ -253,9 +253,15 @@ export default function VersionHistoryDropdown({
         await SupersetClient.post({
           endpoint: `/api/v1/dashboard/${dashboardUuid}/versions/${version.version_uuid}/restore`,
         });
-        // eslint-disable-next-line no-alert
-        window.alert(t('Restored. Reload the page to see the change.'));
-        if (onRestored) onRestored();
+        onRestored?.();
+        // Navigate to the dashboard with no URL params. A previous
+        // ``?native_filters_key=…`` (or ``permalink_key`` / ``form_data_key``)
+        // points at a server-cached snapshot from before the restore;
+        // the next page hydration would merge it on top of the freshly
+        // restored ``json_metadata`` and effectively mask the rollback
+        // (e.g. dashboard-level colour scheme changes don't appear).
+        // A clean URL forces hydration from the restored DB state.
+        window.location.href = `/superset/dashboard/${dashboardUuid}/`;
       } catch (e) {
         console.error('Restore failed', e);
         // eslint-disable-next-line no-alert
