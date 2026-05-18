@@ -45,7 +45,7 @@ import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 // Mock scrollIntoView to avoid errors in test environment
 jest.mock('scroll-into-view-if-needed', () => jest.fn());
 
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
 
 class MainPreset extends Preset {
   constructor() {
