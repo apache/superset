@@ -630,7 +630,7 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
       });
@@ -669,7 +669,7 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
-          'rgba(172, 225, 196, 0.812)',
+          'rgba(172, 225, 196, 0.81)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           '',
@@ -1059,7 +1059,7 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
           '',
@@ -1090,7 +1090,7 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
       });
@@ -1119,7 +1119,7 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
       });
@@ -1148,7 +1148,7 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
           '',
@@ -1179,7 +1179,7 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
           '',
@@ -1209,13 +1209,13 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
       });
 
@@ -1243,7 +1243,7 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('true')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('false')).background).toBe('');
       });
@@ -1272,7 +1272,7 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('false')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('true')).background).toBe('');
       });
@@ -1301,7 +1301,7 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('true')).background).toBe('');
         expect(getComputedStyle(screen.getByText('false')).background).toBe('');
@@ -1333,10 +1333,10 @@ describe('plugin-chart-table', () => {
         const trueElements = screen.getAllByText('true');
         const falseElements = screen.getAllByText('false');
         expect(getComputedStyle(trueElements[0]).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(falseElements[0]).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
@@ -1367,13 +1367,13 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('0.123456')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
       });
 
@@ -1674,7 +1674,7 @@ describe('plugin-chart-table', () => {
 
         // When useGradient is true, should return gradient color with opacity
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
       });
@@ -1705,7 +1705,7 @@ describe('plugin-chart-table', () => {
 
         // When useGradient is undefined, should default to gradient for backward compatibility
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
       });
