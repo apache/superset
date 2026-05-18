@@ -36,7 +36,10 @@
     "usa",
     "vnm"
   ],
-  "admin_levels": [0, 1],
+  "admin_levels": [
+    0,
+    1
+  ],
   "countries_by_worldview": {
     "arg": [],
     "bdg": [],
@@ -317,7 +320,7 @@
     {
       "id": "france_overseas",
       "worldview": "ukr",
-      "size_bytes": 322058,
+      "size_bytes": 322133,
       "country": "FRA"
     }
   ]

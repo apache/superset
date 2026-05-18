@@ -793,6 +793,10 @@ def apply_flying_islands(
                 f["geometry"] = _translate_and_scale(
                     f["geometry"], offset=offset, scale=scale
                 )
+                # Tag the feature so the frontend can drop it at runtime
+                # via the "Show flying islands" toggle. Without this tag
+                # the toggle would have nothing to filter on.
+                props["_flying"] = True
                 n_repos += 1
 
         # Drop outside bbox — only meaningful at Admin 1 (where each

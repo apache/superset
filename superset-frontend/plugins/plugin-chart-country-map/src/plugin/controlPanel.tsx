@@ -484,13 +484,24 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        // `show_flying_islands` is intentionally absent from this control
-        // set: the build pipeline already repositions known flying-islands
-        // groups (Hawaii, Alaska, French overseas territories, ...) at
-        // build time per `flying_islands.yaml`, and the runtime drop
-        // toggle requires per-feature `_flying: true` tags which the
-        // build doesn't currently emit. Bringing the control back is a
-        // single-line follow-up once that tagging lands — see the SIP.
+        [
+          {
+            name: 'show_flying_islands',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show flying islands'),
+              description: t(
+                'When on (default), territories that the build pipeline ' +
+                  'repositioned into insets near the mainland (e.g. ' +
+                  'Hawaii/Alaska for US, French DROMs for France) are ' +
+                  'visible. Turn off to drop those features entirely; the ' +
+                  'projection auto-refits to the remaining mainland.',
+              ),
+              default: true,
+              renderTrigger: true,
+            },
+          },
+        ],
         [
           {
             name: 'name_language',

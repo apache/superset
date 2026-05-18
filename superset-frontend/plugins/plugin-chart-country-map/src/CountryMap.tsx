@@ -40,6 +40,9 @@ interface FeatureProps {
   iso_3166_2?: string;
   adm0_a3?: string;
   name?: string;
+  /** Set by the build pipeline on features moved by flying_islands.yaml's
+   * repositions — drives the "Show flying islands" runtime toggle. */
+  _flying?: boolean;
   [k: string]: unknown;
 }
 
@@ -75,19 +78,22 @@ function featureName(feature: Feature, language: string): string {
 }
 
 /**
+/**
  * Filter a feature collection by include/exclude lists + the
  * flying-islands toggle.
  *
  * - includes: if non-empty, keep ONLY features whose key is in this list
  * - excludes: drop features whose key is in this list
- * - showFlyingIslands: when false, drop features tagged as "flying" (the
- *   build pipeline doesn't currently tag these in feature properties; for
- *   the POC we treat the flag as a no-op until tagging is added)
+ * - showFlyingIslands: when false, drop features the build pipeline
+ *   tagged as repositioned (`_flying: true`) — e.g. France's DROMs
+ *   moved into insets near the mainland. Projection auto-refits to
+ *   the remaining features.
  */
 function filterFeatures(
   features: Feature[],
   includes: string[],
   excludes: string[],
+  showFlyingIslands: boolean,
 ): Feature[] {
   const incSet = new Set(includes);
   const excSet = new Set(excludes);
@@ -95,6 +101,7 @@ function filterFeatures(
     const k = featureKey(f);
     if (incSet.size > 0 && !incSet.has(k)) return false;
     if (excSet.has(k)) return false;
+    if (!showFlyingIslands && f.properties?._flying === true) return false;
     return true;
   });
 }
@@ -180,8 +187,14 @@ const CountryMap: FC<CountryMapTransformedProps> = props => {
       geo.features as Feature[],
       formData.region_includes ?? [],
       formData.region_excludes ?? [],
+      formData.show_flying_islands !== false,
     );
-  }, [geo, formData.region_includes, formData.region_excludes]);
+  }, [
+    geo,
+    formData.region_includes,
+    formData.region_excludes,
+    formData.show_flying_islands,
+  ]);
 
   // ---- Color scale -----------------------------------------------------
   const colorByKey = useMemo<Record<string, string>>(() => {

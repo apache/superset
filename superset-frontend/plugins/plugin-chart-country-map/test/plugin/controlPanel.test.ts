@@ -56,9 +56,6 @@ const findControl = (name: string) => {
 
 test('all required new controls are present', () => {
   const names = allControlNames();
-  // The full set of controls the redesign introduced. `show_flying_islands`
-  // is intentionally absent — it's a no-op until the build pipeline tags
-  // features as flying, and showing a dead toggle was misleading.
   for (const required of [
     'worldview',
     'admin_level',
@@ -67,15 +64,17 @@ test('all required new controls are present', () => {
     'composite',
     'region_includes',
     'region_excludes',
+    'show_flying_islands',
     'name_language',
   ]) {
     expect(names).toContain(required);
   }
 });
 
-test('show_flying_islands is intentionally absent (no-op until features are tagged)', () => {
-  const names = allControlNames();
-  expect(names).not.toContain('show_flying_islands');
+test('show_flying_islands defaults to true', () => {
+  const c = findControl('show_flying_islands');
+  expect(c).not.toBeNull();
+  expect(c.default).toBe(true);
 });
 
 test('worldview defaults to ukr (Superset editorial choice)', () => {
