@@ -122,7 +122,7 @@ Available tools vary based on your access level:
 If a tool does not appear in the tool list, the current user lacks the
 necessary access — do NOT attempt to call it.
 
-Tool capabilities (subject to your access level):
+Available tools:
 
 Dashboard Management:
 - list_dashboards: List dashboards with advanced filters (1-based pagination)
