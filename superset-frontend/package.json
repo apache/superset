@@ -383,7 +383,8 @@
     "@luma.gl/core": "~9.2.2",
     "@luma.gl/engine": "~9.2.2",
     "@luma.gl/shadertools": "~9.2.2",
-    "@luma.gl/webgl": "~9.2.2"
+    "@luma.gl/webgl": "~9.2.2",
+    "fast-xml-parser": "^5.8.0"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
