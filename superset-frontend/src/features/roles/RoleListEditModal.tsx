@@ -30,6 +30,7 @@ import {
 import {
   BaseModalProps,
   RoleForm,
+  RolePermissions,
   SelectOption,
 } from 'src/features/roles/types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -147,6 +148,7 @@ function RoleListEditModal({
   }, [addDangerToast, id]);
 
   useEffect(() => {
+    let cancelled = false;
     setLoadingRolePermissions(true);
     permissionFetchSucceeded.current = false;
 
@@ -154,12 +156,9 @@ function RoleListEditModal({
       endpoint: `/api/v1/security/roles/${id}/permissions/`,
     })
       .then(response => {
+        if (cancelled) return;
         permissionFetchSucceeded.current = true;
-        const result: Array<{
-          id: number;
-          permission_name: string;
-          view_menu_name: string;
-        }> = response.json?.result ?? [];
+        const result: RolePermissions[] = response.json.result ?? [];
         setRolePermissions(
           result.map(p => ({
             value: p.id,
@@ -168,11 +167,19 @@ function RoleListEditModal({
         );
       })
       .catch(() => {
-        addDangerToast(t('There was an error loading permissions.'));
+        if (!cancelled) {
+          addDangerToast(t('There was an error loading permissions.'));
+        }
       })
       .finally(() => {
-        setLoadingRolePermissions(false);
+        if (!cancelled) {
+          setLoadingRolePermissions(false);
+        }
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [addDangerToast, id]);
 
   useEffect(() => {
