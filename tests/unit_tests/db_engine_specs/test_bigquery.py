@@ -430,6 +430,30 @@ def test_get_default_catalog(mocker: MockerFixture) -> None:
     assert BigQueryEngineSpec.get_default_catalog(database) == "project"
 
 
+def test_get_time_partition_column_uses_catalog_in_table_reference(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that partition metadata lookup preserves the BigQuery project.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    database = mock.Mock()
+    engine = mock.MagicMock()
+    get_engine = mocker.patch.object(BigQueryEngineSpec, "get_engine")
+    get_engine.return_value.__enter__.return_value = engine
+    client = mocker.patch.object(BigQueryEngineSpec, "_get_client").return_value
+    client.get_table.return_value.time_partitioning.field = "ds"
+
+    result = BigQueryEngineSpec.get_time_partition_column(
+        database,
+        Table("my_table", "my_dataset", "other_project"),
+    )
+
+    assert result == "ds"
+    client.get_table.assert_called_once_with("other_project.my_dataset.my_table")
+
+
 def test_adjust_engine_params_catalog_as_host() -> None:
     """
     Test passing a custom catalog.
