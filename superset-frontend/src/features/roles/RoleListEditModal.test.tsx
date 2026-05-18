@@ -63,6 +63,16 @@ jest.mock('@superset-ui/core', () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('RoleListEditModal', () => {
+  beforeEach(() => {
+    (SupersetClient.get as jest.Mock).mockResolvedValue({
+      json: { count: 0, result: [] },
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   const mockRole = {
     id: 1,
     name: 'Admin',
