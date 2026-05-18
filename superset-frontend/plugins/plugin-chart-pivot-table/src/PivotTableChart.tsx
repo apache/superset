@@ -253,9 +253,11 @@ const getDrillFilterFormattedValue = (
     value.trim() !== '' && Number.isFinite(Number(value))
       ? Number(value)
       : value;
-  return (formatter as ((value: DataRecordValue) => string) | undefined)?.(
-    valueToFormat,
-  ) || String(value);
+  return (
+    (formatter as ((value: DataRecordValue) => string) | undefined)?.(
+      valueToFormat,
+    ) || String(value)
+  );
 };
 
 /* If you change this logic, please update the corresponding Python
@@ -537,9 +539,7 @@ export default function PivotTableChart(props: PivotTableProps) {
                         op: 'IS NULL' as const,
                       };
                     const formatter =
-                      typeof col === 'string'
-                        ? dateFormatters[col]
-                        : undefined;
+                      typeof col === 'string' ? dateFormatters[col] : undefined;
                     return {
                       col,
                       op: 'IN' as const,
