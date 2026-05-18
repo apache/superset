@@ -76,7 +76,7 @@ def test_derive_version_uuid_uses_fixed_namespace():
 # ---------------------------------------------------------------------------
 
 
-@patch.object(VersionDAO, "_find_active_entity_by_uuid", return_value=None)
+@patch.object(VersionDAO, "find_active_by_uuid", return_value=None)
 def test_restore_version_returns_none_for_unknown_entity(mock_find):
     """Unknown entity UUID → caller raises 404."""
     result = VersionDAO.restore_version(
