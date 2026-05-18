@@ -17,6 +17,7 @@
 
 # pylint: disable=import-outside-toplevel
 from datetime import datetime
+from typing import Any, Callable
 
 import pytest
 from flask import current_app
@@ -706,6 +707,53 @@ def test_get_sqla_engine_no_prequeries_no_event_listener(
         pass
 
     event_listen.assert_not_called()
+
+
+def test_get_raw_connection_executes_prequeries_exactly_once(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_raw_connection() runs prequeries exactly once through the
+    connect event listener registered by get_sqla_engine().
+
+    Previously get_raw_connection() had its own manual prequery loop AND
+    called get_sqla_engine() (which registers the listener), so prequeries
+    ran twice.  After removing the manual loop the listener is the sole
+    execution point — this test proves exactly-once semantics.
+    """
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    prequery = 'SET search_path = "my_schema"'
+    db_engine_spec.get_prequeries.return_value = [prequery]
+
+    # Capture the closure registered via sqla.event.listen.
+    captured_listeners: list[Callable[..., None]] = []
+    original_listen = mocker.patch("superset.models.core.sqla.event.listen")
+    original_listen.side_effect = lambda engine, event, fn: captured_listeners.append(
+        fn
+    )
+
+    # Simulate SQLAlchemy firing the "connect" event when raw_connection() is called.
+    mock_dbapi_conn = mocker.MagicMock()
+    mock_cursor = mocker.MagicMock()
+    mock_dbapi_conn.cursor.return_value = mock_cursor
+
+    def raw_connection_side_effect() -> Any:
+        for listener in captured_listeners:
+            listener(mock_dbapi_conn, None)
+        return mock_dbapi_conn
+
+    mock_engine.raw_connection.side_effect = raw_connection_side_effect
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_raw_connection(schema="my_schema"):
+        pass
+
+    # Exactly one prequery, exactly once — not twice, not zero.
+    mock_cursor.execute.assert_called_once_with(prequery)
+    mock_cursor.close.assert_called_once()
 
 
 def test_is_oauth2_enabled() -> None:
