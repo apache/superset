@@ -248,7 +248,15 @@ const getCrossFilterValue = (
 const getDrillFilterFormattedValue = (
   value: string,
   formatter: DateFormatter | undefined,
-) => formatter?.(Number(value)) || String(value);
+) => {
+  const valueToFormat: DataRecordValue =
+    value.trim() !== '' && Number.isFinite(Number(value))
+      ? Number(value)
+      : value;
+  return (formatter as ((value: DataRecordValue) => string) | undefined)?.(
+    valueToFormat,
+  ) || String(value);
+};
 
 /* If you change this logic, please update the corresponding Python
  * function (https://github.com/apache/superset/blob/master/superset/charts/post_processing.py),
