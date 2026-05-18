@@ -26,9 +26,10 @@ Hand-rolled because:
   is co-located with diff walking, avoiding a second classification
   pass over the generic diff output.
 - Child-collection identity uses natural keys (``column_name``,
-  ``metric_name``, slice ``uuid``) — the same identity model ADR-004
-  settled on for ``dataset_snapshots``. External libraries default
-  to list-index matching, which is wrong for our data.
+  ``metric_name``, slice ``uuid``) — the same identity model
+  ``DatasetDAO.update_columns`` settled on (ADR-004). External
+  libraries default to list-index matching, which is wrong for our
+  data.
 
 See ADR (plan.md §"Key Design Decision: Hand-rolled diff engine") for
 the full rationale.
@@ -813,9 +814,10 @@ def diff_dataset(
     """SqlaTable scalar-field diff. All paths emit ``kind="field"``.
 
     Children (columns, metrics) are diffed separately via
-    :func:`diff_dataset_columns` / :func:`diff_dataset_metrics` because
-    the listener reads them via raw SQL (same pattern as
-    ``dataset_snapshots``) rather than walking the ORM collection.
+    :func:`diff_dataset_columns` / :func:`diff_dataset_metrics`. The
+    listener reads them from Continuum shadow tables
+    (``table_columns_version`` / ``sql_metrics_version``) rather than
+    walking the ORM collection.
     """
     return diff_scalar_fields(pre, post, fields=fields)
 
