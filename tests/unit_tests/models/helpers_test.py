@@ -3448,6 +3448,57 @@ def test_temporal_negative_epoch_string_filter_is_coerced_for_bigquery() -> None
     assert str(value) == "CAST('1913-08-22' AS DATE)"
 
 
+@pytest.mark.parametrize("value", [1778630400000, 1778630400000.0])
+def test_temporal_numeric_filter_is_coerced_for_bigquery(
+    value: int | float,
+) -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    result = ExploreMixin.filter_values_handler(
+        values=value,
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(result, ColumnElement)
+    assert str(result) == "CAST('2026-05-13' AS DATE)"
+
+
+def test_temporal_overflow_epoch_filter_is_not_coerced() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = "999999999999999999999999999999999999999"
+
+    result = ExploreMixin.filter_values_handler(
+        values=value,
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert result == value
+
+
+def test_temporal_epoch_filter_is_not_coerced_without_engine_literal() -> None:
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    result = ExploreMixin.filter_values_handler(
+        values="1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="UNKNOWN_TYPE",
+        db_engine_spec=BaseEngineSpec,
+    )
+
+    assert result == "1778630400000"
+
+
 @pytest.mark.parametrize(
     "operator",
     [FilterOperator.IN, FilterOperator.NOT_IN],
