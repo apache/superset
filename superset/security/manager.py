@@ -23,10 +23,8 @@ import time
 from collections import defaultdict
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
-from flask import current_app, Flask, g, Request, request
+from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
-from flask_appbuilder.api import expose, protect, safe
-from flask_appbuilder.const import API_RESULT_RES_KEY
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
@@ -52,10 +50,8 @@ from flask_appbuilder.security.views import (
 from flask_babel import lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from marshmallow import ValidationError
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
@@ -177,82 +173,6 @@ class SupersetRoleApi(RoleApi):
 
     def post_delete(self, item: Model) -> None:
         _log_audit_event("RoleDeleted", {"role_name": item.name, "role_id": item.id})
-
-    @expose("/<int:role_id>/users", methods=["PUT"])
-    @protect()
-    @safe
-    def update_role_users(self, role_id: int) -> Any:
-        """Update role users.
-        ---
-        put:
-          summary: Update role users
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: role_id
-          requestBody:
-            description: Update role users schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/RoleUserPutSchema'
-          responses:
-            200:
-              description: Role users updated
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/RoleUserPutSchema'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            item = self.update_role_user_schema.load(request.json)
-            role = self.datamodel.get(role_id)
-            if not role:
-                return self.response_404()
-
-            user_ids = list(set(item["user_ids"]))
-            users = (
-                current_app.appbuilder.session.query(User)
-                .filter(User.id.in_(user_ids))
-                .all()
-            )
-            role.user = users
-            self.datamodel.edit(role)
-            _log_audit_event(
-                "RoleUsersUpdated",
-                {
-                    "role_id": role_id,
-                    "role_name": role.name,
-                    "user_ids": [u.id for u in users],
-                },
-            )
-            return self.response(
-                200,
-                **{
-                    API_RESULT_RES_KEY: self.update_role_user_schema.dump(
-                        {"user_ids": [u.id for u in users]}, many=False
-                    )
-                },
-            )
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        except IntegrityError as ex:
-            return self.response_422(message=str(ex.orig))
 
 
 class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
