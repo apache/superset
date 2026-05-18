@@ -3432,6 +3432,22 @@ def test_temporal_epoch_string_filter_is_coerced_for_bigquery() -> None:
     assert str(value) == "CAST('2026-05-13' AS DATE)"
 
 
+def test_temporal_negative_epoch_string_filter_is_coerced_for_bigquery() -> None:
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    value = ExploreMixin.filter_values_handler(
+        values="-1778630400000",
+        operator=FilterOperator.EQUALS,
+        target_generic_type=GenericDataType.TEMPORAL,
+        target_native_type="DATE",
+        db_engine_spec=BigQueryEngineSpec,
+    )
+
+    assert isinstance(value, ColumnElement)
+    assert str(value) == "CAST('1913-08-22' AS DATE)"
+
+
 @pytest.mark.parametrize(
     "operator",
     [FilterOperator.IN, FilterOperator.NOT_IN],

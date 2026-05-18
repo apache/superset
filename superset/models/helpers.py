@@ -2659,7 +2659,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             if isinstance(value, (float, int)) and not isinstance(value, bool):
                 epoch_ms: float = value
-            elif isinstance(value, str) and re.fullmatch(r"\d+", value):
+            elif isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value):
                 epoch_ms = int(value)
             else:
                 return value

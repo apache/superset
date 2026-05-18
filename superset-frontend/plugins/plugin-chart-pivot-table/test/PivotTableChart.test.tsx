@@ -91,6 +91,68 @@ test('emits numeric temporal values for drill-to-detail filters on formatted row
   ]);
 });
 
+test('keeps non-numeric temporal values for drill-to-detail formatted labels', () => {
+  const onContextMenu = jest.fn();
+  const dateValue = '2024-01-01';
+  const props: PivotTableProps = {
+    data: [{ install_date: dateValue, value: 1 }],
+    height: 400,
+    width: 600,
+    margin: 0,
+    groupbyRows: ['install_date'],
+    groupbyColumns: [],
+    metrics: ['value'],
+    tableRenderer: 'Table',
+    colOrder: 'key_a_to_z',
+    rowOrder: 'key_a_to_z',
+    aggregateFunction: 'Count',
+    transposePivot: false,
+    combineMetric: false,
+    rowSubtotalPosition: false,
+    colSubtotalPosition: false,
+    colTotals: false,
+    colSubTotals: false,
+    rowTotals: false,
+    rowSubTotals: false,
+    valueFormat: 'SMART_NUMBER',
+    currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
+    setDataMask: jest.fn(),
+    emitCrossFilters: true,
+    selectedFilters: {},
+    verboseMap: {},
+    columnFormats: {},
+    currencyFormats: {},
+    metricsLayout: MetricsLayoutEnum.COLUMNS,
+    metricColorFormatters: [],
+    dateFormatters: {
+      install_date: (value: DataRecordValue) => String(value),
+    },
+    legacy_order_by: null,
+    order_desc: false,
+    onContextMenu,
+    timeGrainSqla: TimeGranularity.DAY,
+    allowRenderHtml: false,
+  };
+
+  renderWithTheme(<PivotTableChart {...props} />);
+
+  const rowHeader = screen.getByText(dateValue).closest('th');
+  expect(rowHeader).not.toBeNull();
+  fireEvent.contextMenu(rowHeader!);
+
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const contextMenuFilters = onContextMenu.mock.calls[0][2];
+  expect(contextMenuFilters?.drillToDetail).toEqual([
+    {
+      col: 'install_date',
+      op: '==',
+      val: dateValue,
+      formattedVal: dateValue,
+      grain: TimeGranularity.DAY,
+    },
+  ]);
+});
+
 test('emits numeric temporal values for cross-filters on formatted row headers', () => {
   const setDataMask = jest.fn();
   const timestamp = 1777248000000;
