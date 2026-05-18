@@ -1255,9 +1255,16 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         chart_newer = self.insert_chart(
             "regression_27500_newer", [admin.id], 1, description="z"
         )
+        # Use timestamps whose humanized strings sort DIFFERENTLY from their
+        # real timestamps under a naive lexical sort. "3 hours ago" vs
+        # "5 hours ago": lexical-desc puts "5..." first (older), but
+        # timestamp-desc must put "3..." first (newer). If the API ever
+        # accidentally sorts by the humanized text instead of the column,
+        # this test fails. (Pairs like "now"/"2 days ago" don't discriminate
+        # because 'n' > '2' lexically agrees with newest-first.)
         now = datetime.utcnow()
-        chart_older.changed_on = now - timedelta(days=2)
-        chart_newer.changed_on = now
+        chart_older.changed_on = now - timedelta(hours=5)
+        chart_newer.changed_on = now - timedelta(hours=3)
         db.session.commit()
 
         try:
