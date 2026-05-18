@@ -112,15 +112,20 @@ const CountryMap: FC<CountryMapTransformedProps> = props => {
   } = props;
 
   const theme = useTheme();
+  // Each token has an explicit literal fallback. Without these, themes
+  // that don't expose a given antd token leave the corresponding
+  // `setAttribute('fill', undefined)` and the SVG defaults the path's
+  // fill to black — which is why the chart was rendering as a solid
+  // black box on the ephemeral build.
   const colors = {
-    fillFallback: theme.colorFillTertiary,
-    schemeFallback: theme.colorFill,
-    hoverFallback: theme.colorFillSecondary,
-    stroke: theme.colorBgContainer,
-    tooltipBg: theme.colorBgSpotlight,
-    tooltipFg: theme.colorTextLightSolid,
-    errorFg: theme.colorErrorText,
-    loadingFg: theme.colorTextSecondary,
+    fillFallback: theme.colorFillTertiary || '#f0f0f0',
+    schemeFallback: theme.colorFill || '#d9d9d9',
+    hoverFallback: theme.colorFillSecondary || '#bfbfbf',
+    stroke: theme.colorBorder || '#ffffff',
+    tooltipBg: theme.colorBgSpotlight || 'rgba(0, 0, 0, 0.85)',
+    tooltipFg: theme.colorTextLightSolid || '#ffffff',
+    errorFg: theme.colorErrorText || '#cf1322',
+    loadingFg: theme.colorTextSecondary || '#8c8c8c',
   };
   const tooltipStyle: CSSProperties = {
     position: 'absolute',
