@@ -235,7 +235,11 @@ class SupersetRoleApi(RoleApi):
             self.datamodel.edit(role)
             _log_audit_event(
                 "RoleUsersUpdated",
-                {"role_id": role_id, "user_ids": [u.id for u in users]},
+                {
+                    "role_id": role_id,
+                    "role_name": role.name,
+                    "user_ids": [u.id for u in users],
+                },
             )
             return self.response(
                 200,
