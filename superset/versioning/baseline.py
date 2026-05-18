@@ -27,7 +27,7 @@ from typing import Any, Optional
 import sqlalchemy as sa
 from sqlalchemy import event
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, attributes
 
 logger = logging.getLogger(__name__)
 
@@ -336,6 +336,45 @@ def _child_to_parent_registry() -> dict[type, tuple[str, type]]:
     }
 
 
+def _force_parent_dirty_on_child_change(session: Session) -> None:
+    """Mark a versioned parent as dirty whenever one of its versioned
+    children appears in ``session.dirty``/``new``/``deleted`` but the
+    parent's own scalars haven't been edited.
+
+    Without this hook, edits that only touch ``TableColumn`` or
+    ``SqlMetric`` rows leave the parent ``SqlaTable`` out of
+    ``session.dirty`` — so Continuum's UnitOfWork never creates a
+    parent UPDATE operation and ``list_versions`` (which queries the
+    parent shadow ``tables_version``) returns just the baseline. The
+    user-visible symptom is "I edited a column description but the
+    dataset's version history dropdown is empty".
+
+    We use ``attributes.flag_modified`` against the parent's first
+    non-excluded versioned column so SQLAlchemy adds the parent to
+    ``session.dirty`` without altering any column values. Continuum
+    then writes a parent shadow row at this transaction; its scalar
+    columns mirror the previous version (only the children changed).
+    ``SkipUnmodifiedPlugin._is_no_op_update`` is taught to recognize
+    the "scalars match but children dirty" case and keep the row.
+    """
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy_continuum.utils import versioned_column_properties
+
+    child_map = _child_to_parent_registry()
+    for obj in list(session.dirty) + list(session.new) + list(session.deleted):
+        entry = child_map.get(type(obj))
+        if entry is None:
+            continue
+        parent_attr, parent_cls = entry
+        parent = getattr(obj, parent_attr, None)
+        if parent is None or type(parent) is not parent_cls:  # noqa: E721
+            continue
+        col_keys = [prop.key for prop in versioned_column_properties(parent)]
+        if not col_keys:
+            continue
+        attributes.flag_modified(parent, col_keys[0])
+
+
 def _collect_parents_to_baseline(session: Session) -> dict[int, Any]:
     """Return parents-to-baseline as ``{id(obj): obj}`` keyed by Python
     object identity to dedupe across ``session.dirty + new + deleted``.
@@ -449,6 +488,9 @@ def register_baseline_listener() -> None:
     def capture_baseline(session: Session, flush_context: Any, instances: Any) -> None:
         if not VERSIONED_MODELS:
             return
+        # Make sure a child-only edit promotes the parent to ``session.dirty``
+        # before Continuum's before_flush reads the dirty set.
+        _force_parent_dirty_on_child_change(session)
         for obj in _collect_parents_to_baseline(session).values():
             if type(obj) not in VERSIONED_MODELS:
                 continue
