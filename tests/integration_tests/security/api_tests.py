@@ -30,6 +30,7 @@ from superset.utils import json
 from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.test_app import app
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -402,3 +403,36 @@ class TestSecurityRolesApi(SupersetTestCase):
         assert sorted(role2_api["user_ids"]) == role2_expected["user_ids"]
         assert sorted(role2_api["permission_ids"]) == role2_expected["permission_ids"]
         assert role2_api["group_ids"] == role2_expected["group_ids"]
+
+
+class TestLogoutSessionInvalidation(SupersetTestCase):
+    """Regression for #24713: a session cookie captured pre-logout must not grant
+    access after the user logs out. The original report describes copying the
+    session cookie out, calling /logout/, and successfully reusing the cookie in
+    a second browser to bypass authentication."""
+
+    def test_session_cookie_invalidated_after_logout(self):
+        self.login(ADMIN_USERNAME)
+
+        resp_authed = self.client.get("api/v1/dashboard/", follow_redirects=False)
+        assert resp_authed.status_code == 200, (
+            f"Login did not yield an authenticated session "
+            f"(got {resp_authed.status_code})"
+        )
+
+        captured = {
+            c.name: c.value for c in self.client.cookie_jar if c.name == "session"
+        }
+        assert captured, "expected a session cookie after login"
+
+        self.client.get("/logout/", follow_redirects=True)
+
+        replay_client = app.test_client()
+        for name, value in captured.items():
+            replay_client.set_cookie("localhost", name, value)
+
+        resp_replay = replay_client.get("api/v1/dashboard/", follow_redirects=False)
+        assert resp_replay.status_code != 200, (
+            f"Captured session cookie was still accepted after logout "
+            f"(status={resp_replay.status_code}); see issue #24713"
+        )
