@@ -137,3 +137,38 @@ def test_get_virtual_table_metadata_multiple(mocker: MockerFixture) -> None:
     with pytest.raises(SupersetSecurityException) as excinfo:
         get_virtual_table_metadata(dataset)
     assert str(excinfo.value) == "Only single queries supported"
+
+
+def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None:
+    """Regression for #25839: Jinja templates in a virtual dataset's SQL must
+    be rendered via the template processor before SQL parsing. Otherwise the
+    raw Jinja tokens reach sqlglot and the parser rejects them as a syntax
+    error (the user-visible symptom is "Invalid SQL" when clicking
+    "SYNC COLUMNS FROM SOURCE" on a dataset that uses {{ from_dttm }} etc.).
+    """
+    mocker.patch(
+        "superset.connectors.sqla.utils.get_columns_description",
+        return_value=[{"name": "rendered_col", "type": "INTEGER"}],
+    )
+
+    raw_sql = "SELECT * FROM tbl WHERE ts > '{{ from_dttm }}'"
+    rendered_sql = "SELECT * FROM tbl WHERE ts > '2024-01-01 00:00:00'"
+
+    dataset = mocker.MagicMock(sql=raw_sql)
+    dataset.database.db_engine_spec.engine = "postgresql"
+    dataset.template_params_dict = {}
+    dataset.get_template_processor().process_template.return_value = rendered_sql
+
+    # If Jinja rendering is skipped, sqlglot tries to parse the raw {{ ... }}
+    # and raises SupersetGenericDBErrorException / SupersetParseError.
+    assert get_virtual_table_metadata(dataset) == [
+        {"name": "rendered_col", "type": "INTEGER"}
+    ]
+
+    # The template processor MUST have been called with the raw SQL (the
+    # whole point of the bug fix). A future regression that re-introduces
+    # the "Jinja not rendered" path would either skip this call or call it
+    # with the wrong input.
+    dataset.get_template_processor().process_template.assert_any_call(
+        raw_sql, **dataset.template_params_dict
+    )
