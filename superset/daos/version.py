@@ -49,7 +49,7 @@ def derive_version_uuid(entity_uuid: UUID, transaction_id: int) -> UUID:
 
 class VersionDAO:
     @staticmethod
-    def _find_active_entity_by_uuid(
+    def find_active_by_uuid(
         model_cls: type, entity_uuid: UUID
     ) -> Optional[Any]:
         """Return the live entity matching *entity_uuid*, or None if not found.
@@ -211,7 +211,7 @@ class VersionDAO:
 
         from superset import security_manager
 
-        entity = VersionDAO._find_active_entity_by_uuid(model_cls, entity_uuid)
+        entity = VersionDAO.find_active_by_uuid(model_cls, entity_uuid)
         if entity is None:
             return None
 
@@ -316,7 +316,7 @@ class VersionDAO:
         transaction_id — so the version_number returned here is the same
         index a client would see in the list response.
         """
-        entity = VersionDAO._find_active_entity_by_uuid(model_cls, entity_uuid)
+        entity = VersionDAO.find_active_by_uuid(model_cls, entity_uuid)
         if entity is None:
             return None
 
@@ -371,7 +371,7 @@ class VersionDAO:
         from superset import security_manager
         from superset.connectors.sqla.models import SqlaTable
 
-        entity = VersionDAO._find_active_entity_by_uuid(model_cls, entity_uuid)
+        entity = VersionDAO.find_active_by_uuid(model_cls, entity_uuid)
         if entity is None:
             return None
 
@@ -506,7 +506,7 @@ class VersionDAO:
         not the original author. ``created_on`` / ``created_by_fk`` are
         left alone.
         """
-        entity = VersionDAO._find_active_entity_by_uuid(model_cls, entity_uuid)
+        entity = VersionDAO.find_active_by_uuid(model_cls, entity_uuid)
         if entity is None:
             return None
 
