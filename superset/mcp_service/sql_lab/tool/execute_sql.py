@@ -100,7 +100,10 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                 )
                 return ExecuteSqlResponse(
                     success=False,
-                    error=f"Database with ID {request.database_id} not found",
+                    error=(
+                        f"Database with ID {request.database_id} not found."
+                        " Use list_databases to get valid database IDs."
+                    ),
                     error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR.value,
                 )
 

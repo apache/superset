@@ -32,6 +32,7 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     LegendConfig,
     TableChartConfig,
+    TablePreview,
     UpdateChartPreviewRequest,
     XYChartConfig,
 )
@@ -697,6 +698,79 @@ class TestUpdateChartPreview:
         assert result["error"] is None
         assert result["warnings"] == []
         mock_get_previous_form_data.assert_called_once_with("valid_key_12345")
+
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch.object(update_chart_preview_module, "generate_preview_from_form_data")
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    @pytest.mark.asyncio
+    async def test_returns_requested_table_preview(
+        self,
+        mock_get_user_from_request,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        mock_generate_preview_from_form_data,
+        mock_find_by_id,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        """Preview updates honor supported preview_formats."""
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_get_user_from_request.return_value = mock_user
+        mock_find_by_id.return_value = _mock_dataset(id=3)
+        mock_validate_and_compile.return_value = Mock(success=True)
+        mock_get_previous_form_data.return_value = {}
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_preview_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+        table_preview = TablePreview(
+            table_data="Table Preview",
+            row_count=1,
+            supports_sorting=True,
+        )
+        expected_table_preview = {
+            "type": "table",
+            "table_data": "Table Preview",
+            "row_count": 1,
+            "supports_sorting": True,
+        }
+        mock_generate_preview_from_form_data.return_value = table_preview
+
+        request = UpdateChartPreviewRequest(
+            form_data_key="valid_key_12345",
+            dataset_id=3,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[
+                    ColumnRef(name="country", label="Country"),
+                    ColumnRef(name="sales", label="Sales", aggregate="SUM"),
+                ],
+            ),
+            generate_preview=True,
+            preview_formats=["url", "table"],
+        )
+
+        result = update_chart_preview_module.update_chart_preview(
+            request=request, ctx=Mock()
+        )
+
+        assert result["success"] is True
+        assert result["previews"] == {"table": expected_table_preview}
+        mock_generate_preview_from_form_data.assert_called_once()
+        preview_kwargs = mock_generate_preview_from_form_data.call_args.kwargs
+        assert preview_kwargs["dataset_id"] == 3
+        assert preview_kwargs["preview_format"] == "table"
+        assert preview_kwargs["form_data"]["viz_type"] == "table"
 
 
 class TestUpdateChartPreviewValidation:
