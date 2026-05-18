@@ -3078,7 +3078,7 @@
   dependencies:
     "@rc-component/util" "^1.2.0"
 
-"@rc-component/notification@~2.0.6":
+"@rc-component/notification@~2.0.7":
   version "2.0.7"
   resolved "https://registry.yarnpkg.com/@rc-component/notification/-/notification-2.0.7.tgz#f2450a482f87e4698285833c4a8efcac169acabb"
   integrity sha512-nqZzpf6BPdaj+3ILx7si79LLmqPKyUmQoXa+/9gg0SkH0v1DbD66oJgRMSBEVnd/zUT3D4gwxWIHUKebYf2ZXQ==
@@ -5498,10 +5498,10 @@ ansis@^3.2.0:
   resolved "https://registry.yarnpkg.com/ansis/-/ansis-3.17.0.tgz#fa8d9c2a93fe7d1177e0c17f9eeb562a58a832d7"
   integrity sha512-0qWUglt9JEqLFr3w1I1pbrChn1grhaiAR2ocX1PP/flRmxgtwTzPFFFnfIlD6aMOLQZgSuCRlidD70lvx8yhzg==
 
-antd@^6.4.2:
-  version "6.4.2"
-  resolved "https://registry.yarnpkg.com/antd/-/antd-6.4.2.tgz#9fc0fee455a5c56e7ec27855495eefadc8df636a"
-  integrity sha512-PNJz8Vxc/mC3EsOg/h3e2YuaZduJ1RDp4RmySDuDmKPCxVgyp4Da4kB36o87p9hbLbOWdAWCKQlnyopsN8utKQ==
+antd@^6.4.3:
+  version "6.4.3"
+  resolved "https://registry.yarnpkg.com/antd/-/antd-6.4.3.tgz#80a7aab9c13c35daa0e0e7eea80585ba57cb7203"
+  integrity sha512-6H2avkxCGfxcF67r3J2mwm9Ck50el1pks/73vfM1wDsPL/tPtj5vHuauMgJFnrqmq7CH3g8aoZ0VBQbt+jpAsw==
   dependencies:
     "@ant-design/colors" "^8.0.1"
     "@ant-design/cssinjs" "^2.1.2"
@@ -5525,7 +5525,7 @@ antd@^6.4.2:
     "@rc-component/menu" "~1.3.0"
     "@rc-component/motion" "^1.3.2"
     "@rc-component/mutate-observer" "^2.0.1"
-    "@rc-component/notification" "~2.0.6"
+    "@rc-component/notification" "~2.0.7"
     "@rc-component/pagination" "~1.2.0"
     "@rc-component/picker" "~1.10.0"
     "@rc-component/progress" "~1.0.2"
@@ -5545,7 +5545,7 @@ antd@^6.4.2:
     "@rc-component/tree-select" "~1.9.0"
     "@rc-component/trigger" "^3.9.0"
     "@rc-component/upload" "~1.1.0"
-    "@rc-component/util" "^1.10.1"
+    "@rc-component/util" "^1.11.0"
     clsx "^2.1.1"
     dayjs "^1.11.11"
     scroll-into-view-if-needed "^3.1.0"
