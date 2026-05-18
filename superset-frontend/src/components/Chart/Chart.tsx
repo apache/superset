@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { ErrorInfo, PureComponent } from 'react';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -189,10 +189,11 @@ const MessageSpan = styled.span`
 class Chart extends PureComponent<ChartProps, {}> {
   static defaultProps = defaultProps;
 
-  renderStartTime: any;
+  renderStartTime: number;
 
   constructor(props: ChartProps) {
     super(props);
+    this.renderStartTime = Logger.getTimestamp();
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
   }
@@ -235,16 +236,13 @@ class Chart extends PureComponent<ChartProps, {}> {
     );
   }
 
-  handleRenderContainerFailure(
-    error: Error,
-    info: { componentStack: string } | null,
-  ) {
+  handleRenderContainerFailure(error: Error, info: ErrorInfo) {
     const { actions, chartId } = this.props;
     logging.warn(error);
     actions.chartRenderingFailed(
       error.toString(),
       chartId,
-      info ? info.componentStack : null,
+      info?.componentStack ?? null,
     );
 
     actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
@@ -361,7 +359,9 @@ class Chart extends PureComponent<ChartProps, {}> {
       width,
     } = this.props;
 
-    const databaseName = datasource?.database?.name as string | undefined;
+    const databaseName =
+      datasource?.parent?.name ??
+      (datasource?.database?.name as string | undefined);
 
     const isLoading = chartStatus === 'loading';
     // Suppress spinner during auto-refresh to avoid visual flicker

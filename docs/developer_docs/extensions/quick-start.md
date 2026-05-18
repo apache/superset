@@ -168,7 +168,7 @@ class HelloWorldAPI(RestApi):
 
 **Key points:**
 
-- Uses [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator with automatic context detection
+- Uses [`@api`](https://github.com/apache/superset/blob/master/superset-core/src/superset_core/rest_api/decorators.py) decorator with automatic context detection
 - Extends `RestApi` from `superset_core.rest_api.api`
 - Uses Flask-AppBuilder decorators (`@expose`, `@protect`, `@safe`)
 - Returns responses using `self.response(status_code, result=data)`
@@ -184,7 +184,7 @@ Replace the generated print statement with API import to trigger registration:
 from .api import HelloWorldAPI  # noqa: F401
 ```
 
-The [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects extension context and registers your API with proper namespacing.
+The [`@api`](https://github.com/apache/superset/blob/master/superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects extension context and registers your API with proper namespacing.
 
 ## Step 5: Create Frontend Component
 
@@ -225,7 +225,7 @@ The `@apache-superset/core` package must be listed in both `peerDependencies` (t
 
 The webpack configuration requires specific settings for Module Federation. Key settings include `externalsType: "window"` and `externals` to map `@apache-superset/core` to `window.superset` at runtime, `import: false` for shared modules to use the host's React instead of bundling a separate copy, and `remoteEntry.[contenthash].js` for cache busting.
 
-**Convention**: Superset always loads extensions by requesting the `./index` module from the Module Federation container. The `exposes` entry must be exactly `'./index': './src/index.tsx'` — do not rename or add additional entries. All API registrations must be reachable from that file. See [Architecture](./architecture#module-federation) for a full explanation.
+**Convention**: Superset always loads extensions by requesting the `./index` module from the Module Federation container. The `exposes` entry must be exactly `'./index': './src/index.tsx'` — do not rename or add additional entries. All API registrations must be reachable from that file. See [Architecture](./architecture.md#module-federation) for a full explanation.
 
 ```javascript
 const path = require('path');
@@ -496,7 +496,7 @@ Superset will extract and validate the extension metadata, load the assets, regi
 Here's what happens when your extension loads:
 
 1. **Superset starts**: Reads `manifest.json` from the `.supx` bundle and loads the backend entrypoint
-2. **Backend registration**: `entrypoint.py` imports your API class, triggering the [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator to register it automatically
+2. **Backend registration**: `entrypoint.py` imports your API class, triggering the [`@api`](https://github.com/apache/superset/blob/master/superset-core/src/superset_core/rest_api/decorators.py) decorator to register it automatically
 3. **Frontend loads**: When SQL Lab opens, Superset fetches the remote entry file
 4. **Module Federation**: Webpack loads your extension module and resolves `@apache-superset/core` to `window.superset`
 5. **Registration**: The module executes at load time, calling `views.registerView` to register your panel
@@ -509,9 +509,9 @@ Here's what happens when your extension loads:
 
 Now that you have a working extension, explore:
 
-- **[Development](./development)** - Project structure, APIs, and development workflow
-- **[Contribution Types](./contribution-types)** - Other contribution points beyond panels
-- **[Deployment](./deployment)** - Packaging and deploying your extension
-- **[Security](./security)** - Security best practices for extensions
+- **[Development](./development.md)** - Project structure, APIs, and development workflow
+- **[Contribution Types](./contribution-types.md)** - Other contribution points beyond panels
+- **[Deployment](./deployment.md)** - Packaging and deploying your extension
+- **[Security](./security.md)** - Security best practices for extensions
 
 For a complete real-world example, examine the query insights extension in the Superset codebase.

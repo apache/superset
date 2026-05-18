@@ -28,7 +28,7 @@ By default, extensions are disabled and must be explicitly enabled by setting th
 
 For external extensions, administrators are responsible for evaluating and verifying the security of any extensions they choose to install, just as they would when installing third-party NPM or PyPI packages. At this stage, all extensions run in the same context as the host application, without additional sandboxing. This means that external extensions can impact the security and performance of a Superset environment in the same way as any other installed dependency.
 
-We plan to introduce an optional sandboxed execution model for extensions in the future (as part of an additional SIP). Until then, administrators should exercise caution and follow best practices when selecting and deploying third-party extensions. A directory of community extensions is available in the [Community Extensions](./registry) page. Note that these extensions are not vetted by the Apache Superset project—administrators must evaluate each extension before installation.
+We plan to introduce an optional sandboxed execution model for extensions in the future (as part of an additional SIP). Until then, administrators should exercise caution and follow best practices when selecting and deploying third-party extensions. A directory of community extensions is available in the [Community Extensions](./registry.md) page. Note that these extensions are not vetted by the Apache Superset project—administrators must evaluate each extension before installation.
 
 **Any performance or security vulnerabilities introduced by external extensions should be reported directly to the extension author, not as Superset vulnerabilities.**
 
