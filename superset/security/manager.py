@@ -958,14 +958,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return True
 
     def user_view_menu_names(self, permission_name: str) -> set[str]:
-        base_query = (
-            self.session.query(self.viewmenu_model.name)
-            .join(self.permissionview_model)
-            .join(self.permission_model)
-            .join(assoc_permissionview_role)
-            .join(self.role_model)
-        )
-
         # Guest users (embedded dashboards) have is_anonymous=False but no
         # database identity, so querying by user_id returns nothing. Instead,
         # resolve permissions directly from the roles attached to the guest
@@ -976,12 +968,27 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ]
             if not role_ids:
                 return set()
+            base_query = (
+                self.session.query(self.viewmenu_model.name)
+                .join(self.permissionview_model)
+                .join(self.permission_model)
+                .join(assoc_permissionview_role)
+                .join(self.role_model)
+            )
             view_menu_names = (
                 base_query.filter(self.role_model.id.in_(role_ids)).filter(
                     self.permission_model.name == permission_name
                 )
             ).all()
             return {s.name for s in view_menu_names}
+
+        base_query = (
+            self.session.query(self.viewmenu_model.name)
+            .join(self.permissionview_model)
+            .join(self.permission_model)
+            .join(assoc_permissionview_role)
+            .join(self.role_model)
+        )
 
         if not g.user.is_anonymous:
             user_id = get_user_id()

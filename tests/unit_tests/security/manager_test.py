@@ -1569,6 +1569,12 @@ def test_user_view_menu_names_for_guest_user(
     mock_g = SimpleNamespace(user=mock_guest)
     mocker.patch("superset.security.manager.g", new=mock_g)
     mocker.patch.object(sm, "is_guest_user", return_value=True)
+    # The regression: guest path must NEVER fall through to get_user_id().
+    # Patching it as an error means an accidental fall-through fails loudly.
+    mock_get_user_id = mocker.patch(
+        "superset.security.manager.get_user_id",
+        side_effect=AssertionError("get_user_id must not be called for guest users"),
+    )
 
     mock_result = [SimpleNamespace(name="[PostgreSQL].[my_table](id:1)")]
     mock_query = mocker.MagicMock()
@@ -1580,6 +1586,8 @@ def test_user_view_menu_names_for_guest_user(
     result = sm.user_view_menu_names("datasource_access")
 
     assert result == {"[PostgreSQL].[my_table](id:1)"}
+    mock_get_user_id.assert_not_called()
+    mock_query.filter.assert_called()
 
 
 def test_user_view_menu_names_for_guest_user_no_roles(
@@ -1602,7 +1610,12 @@ def test_user_view_menu_names_for_guest_user_no_roles(
     mock_g = SimpleNamespace(user=mock_guest)
     mocker.patch("superset.security.manager.g", new=mock_g)
     mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mock_get_user_id = mocker.patch(
+        "superset.security.manager.get_user_id",
+        side_effect=AssertionError("get_user_id must not be called for guest users"),
+    )
 
     result = sm.user_view_menu_names("datasource_access")
 
     assert result == set()
+    mock_get_user_id.assert_not_called()
