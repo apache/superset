@@ -21,8 +21,8 @@ from typing import Any
 from urllib import request
 
 import pandas as pd
-from pandas.errors import OutOfBoundsDatetime
 from flask import current_app as app
+from pandas.errors import OutOfBoundsDatetime
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
@@ -193,9 +193,7 @@ def import_dataset(  # noqa: C901
     return dataset
 
 
-def _convert_temporal_columns(
-    df: pd.DataFrame, dtype: dict[str, Any]
-) -> None:
+def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
     """Convert Date/DateTime columns in-place, coercing only out-of-bounds values."""
     for column_name, sqla_type in dtype.items():
         if isinstance(sqla_type, (Date, DateTime)):
@@ -207,7 +205,8 @@ def _convert_temporal_columns(
                 n_coerced = int(converted.isna().sum() - df[column_name].isna().sum())
                 if n_coerced > 0:
                     logger.warning(
-                        "Coerced %d out-of-bounds datetime value(s) in column '%s' to NaT",
+                        "Coerced %d out-of-bounds datetime value(s) "
+                        "in column '%s' to NaT",
                         n_coerced,
                         column_name,
                     )

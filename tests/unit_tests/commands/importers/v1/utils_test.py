@@ -93,7 +93,7 @@ class TestConvertTemporalColumns:
         )
 
         df = pd.DataFrame({"ts": ["not-a-date"]})
-        with pytest.raises(Exception):  # noqa: B017
+        with pytest.raises(pd.errors.ParserError):
             _convert_temporal_columns(df, {"ts": DateTime()})
 
     def test_warning_count_excludes_preexisting_nulls(self) -> None:
