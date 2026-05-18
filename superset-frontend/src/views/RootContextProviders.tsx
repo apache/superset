@@ -18,6 +18,7 @@
  */
 
 import { getExtensionsRegistry } from '@superset-ui/core';
+import type { ComponentType, ReactNode } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
@@ -39,7 +40,7 @@ export const RootContextProviders: React.FC<{ children?: React.ReactNode }> = ({
 }) => {
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
-  );
+  ) as ComponentType<{ children?: ReactNode }> | undefined;
 
   return (
     <SupersetThemeProvider themeController={themeController}>

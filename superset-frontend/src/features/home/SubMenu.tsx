@@ -34,6 +34,7 @@ import {
   Tooltip,
   Row,
   type OnClickHandler,
+  type ButtonProps as CoreButtonProps,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
@@ -148,7 +149,7 @@ export interface ButtonProps {
   'data-test'?: string;
   buttonStyle: 'primary' | 'secondary' | 'dashed' | 'link' | 'tertiary';
   loading?: boolean;
-  icon?: ReactNode;
+  icon?: CoreButtonProps['icon'];
   component?: ReactNode;
 }
 

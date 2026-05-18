@@ -897,7 +897,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @patch("superset.models.core.Database._get_sqla_engine")
+    @patch("superset.models.core.Database.get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_exception(
@@ -906,19 +906,23 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         """Test to make sure event_logger is called when an exception is raised"""
         database = get_example_database()
         mock_g.user = security_manager.find_user("admin")
-        mock_get_sqla_engine.side_effect = Exception("An error has occurred!")
+        mock_get_sqla_engine.return_value.__enter__.side_effect = Exception(
+            "An error has occurred!"
+        )
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseTestConnectionUnexpectedError) as excinfo:  # noqa: PT012
+        with pytest.raises(DatabaseTestConnectionUnexpectedError) as excinfo:
             command_without_db_name.run()
-            assert str(excinfo.value) == (
-                "Unexpected error occurred, please check your logs for details"
-            )
+        # Exception wraps errors from db_engine_spec.extract_errors()
+        assert (
+            excinfo.value.errors[0].error_type
+            == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+        )
         mock_event_logger.assert_called()
 
-    @patch("superset.models.core.Database._get_sqla_engine")
+    @patch("superset.models.core.Database.get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_do_ping_exception(
@@ -927,9 +931,8 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         """Test to make sure do_ping exceptions gets captured"""
         database = get_example_database()
         mock_g.user = security_manager.find_user("admin")
-        mock_get_sqla_engine.return_value.dialect.do_ping.side_effect = Exception(
-            "An error has occurred!"
-        )
+        mock_engine = mock_get_sqla_engine.return_value.__enter__.return_value
+        mock_engine.dialect.do_ping.side_effect = Exception("An error has occurred!")
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
@@ -967,7 +970,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.CONNECTION_DATABASE_TIMEOUT
         )
 
-    @patch("superset.models.core.Database._get_sqla_engine")
+    @patch("superset.models.core.Database.get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_superset_security_connection(
@@ -977,20 +980,20 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         connection exc is raised"""
         database = get_example_database()
         mock_g.user = security_manager.find_user("admin")
-        mock_get_sqla_engine.side_effect = SupersetSecurityException(
-            SupersetError(error_type=500, message="test", level="info")
+        mock_get_sqla_engine.return_value.__enter__.side_effect = (
+            SupersetSecurityException(
+                SupersetError(error_type=500, message="test", level="info")
+            )
         )
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseSecurityUnsafeError) as excinfo:  # noqa: PT012
+        with pytest.raises(DatabaseSecurityUnsafeError):
             command_without_db_name.run()
-            assert str(excinfo.value) == ("Stopped an unsafe database connection")
-
         mock_event_logger.assert_called()
 
-    @patch("superset.models.core.Database._get_sqla_engine")
+    @patch("superset.models.core.Database.get_sqla_engine")
     @patch("superset.commands.database.test_connection.event_logger.log_with_context")
     @patch("superset.utils.core.g")
     def test_connection_db_api_exc(
@@ -999,19 +1002,20 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         """Test to make sure event_logger is called when DBAPIError is raised"""
         database = get_example_database()
         mock_g.user = security_manager.find_user("admin")
-        mock_get_sqla_engine.side_effect = DBAPIError(
+        mock_get_sqla_engine.return_value.__enter__.side_effect = DBAPIError(
             statement="error", params={}, orig={}
         )
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(SupersetErrorsException) as excinfo:  # noqa: PT012
+        with pytest.raises(SupersetErrorsException) as excinfo:
             command_without_db_name.run()
-            assert str(excinfo.value) == (
-                "Connection failed, please check your connection settings"
-            )
-
+        # Exception wraps errors from db_engine_spec.extract_errors()
+        assert (
+            excinfo.value.errors[0].error_type
+            == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+        )
         mock_event_logger.assert_called()
 
 
@@ -1147,7 +1151,7 @@ class TestTablesDatabaseCommand(SupersetTestCase):
 
         with pytest.raises(DatabaseNotFoundError) as excinfo:  # noqa: PT012
             command.run()
-            assert str(excinfo.value) == ("Database not found.")
+        assert str(excinfo.value) == ("Database not found.")
 
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
@@ -1166,26 +1170,35 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         command = TablesDatabaseCommand(database.id, None, "main", False)
         with pytest.raises(SupersetException) as excinfo:  # noqa: PT012
             command.run()
-            assert str(excinfo.value) == "Test Error"
+        assert str(excinfo.value) == "Test Error"
 
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
+    @patch("superset.models.core.Database.get_all_materialized_view_names_in_schema")
+    @patch("superset.models.core.Database.get_all_view_names_in_schema")
+    @patch("superset.models.core.Database.get_all_table_names_in_schema")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")
     @patch("superset.utils.core.g")
     def test_database_tables_exception(
-        self, mock_g, mock_can_access_database, mock_find_by_id
+        self,
+        mock_g,
+        mock_can_access_database,
+        mock_get_tables,
+        mock_get_views,
+        mock_get_mvs,
+        mock_find_by_id,
     ):
         database = get_example_database()
         mock_find_by_id.return_value = database
+        mock_get_tables.return_value = {("table1", "main", None)}
+        mock_get_views.return_value = set()
+        mock_get_mvs.return_value = []
         mock_can_access_database.side_effect = Exception("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
         command = TablesDatabaseCommand(database.id, None, "main", False)
         with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:  # noqa: PT012
             command.run()
-            assert (
-                str(excinfo.value)
-                == "Unexpected error occurred, please check your logs for details"
-            )
+        assert str(excinfo.value) == "Test Error"
 
     @patch("superset.daos.database.DatabaseDAO.find_by_id")
     @patch("superset.security.manager.SupersetSecurityManager.can_access_database")

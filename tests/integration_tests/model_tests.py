@@ -145,7 +145,7 @@ class TestDatabaseModel(SupersetTestCase):
                 username = make_url(engine.url).username
                 assert example_user.username != username
 
-    @mock.patch("superset.models.core.create_engine")
+    @mock.patch("superset.engines.manager.create_engine")
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
     )
@@ -172,7 +172,8 @@ class TestDatabaseModel(SupersetTestCase):
                 database_name="test_database", sqlalchemy_uri=uri, extra=extra
             )
             model.impersonate_user = True
-            model._get_sqla_engine()
+            with model.get_sqla_engine():
+                pass
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "presto://gamma@localhost/"
@@ -185,7 +186,8 @@ class TestDatabaseModel(SupersetTestCase):
             }
 
             model.impersonate_user = False
-            model._get_sqla_engine()
+            with model.get_sqla_engine():
+                pass
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "presto://localhost/"
@@ -199,13 +201,14 @@ class TestDatabaseModel(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("mysqlclient"), "mysqlclient not installed"
     )
-    @mock.patch("superset.models.core.create_engine")
+    @mock.patch("superset.engines.manager.create_engine")
     def test_adjust_engine_params_mysql(self, mocked_create_engine):
         model = Database(
             database_name="test_database1",
             sqlalchemy_uri="mysql://user:password@localhost",
         )
-        model._get_sqla_engine()
+        with model.get_sqla_engine():
+            pass
         call_args = mocked_create_engine.call_args
 
         assert str(call_args[0][0]) == "mysql://user:password@localhost"
@@ -215,13 +218,14 @@ class TestDatabaseModel(SupersetTestCase):
             database_name="test_database2",
             sqlalchemy_uri="mysql+mysqlconnector://user:password@localhost",
         )
-        model._get_sqla_engine()
+        with model.get_sqla_engine():
+            pass
         call_args = mocked_create_engine.call_args
 
         assert str(call_args[0][0]) == "mysql+mysqlconnector://user:password@localhost"
         assert call_args[1]["connect_args"]["allow_local_infile"] == 0
 
-    @mock.patch("superset.models.core.create_engine")
+    @mock.patch("superset.engines.manager.create_engine")
     def test_impersonate_user_trino(self, mocked_create_engine):
         principal_user = security_manager.find_user(username="gamma")
 
@@ -230,7 +234,8 @@ class TestDatabaseModel(SupersetTestCase):
                 database_name="test_database", sqlalchemy_uri="trino://localhost"
             )
             model.impersonate_user = True
-            model._get_sqla_engine()
+            with model.get_sqla_engine():
+                pass
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "trino://localhost/"
@@ -242,7 +247,8 @@ class TestDatabaseModel(SupersetTestCase):
             )
 
             model.impersonate_user = True
-            model._get_sqla_engine()
+            with model.get_sqla_engine():
+                pass
             call_args = mocked_create_engine.call_args
 
             assert (
@@ -251,7 +257,7 @@ class TestDatabaseModel(SupersetTestCase):
             )
             assert call_args[1]["connect_args"]["user"] == "gamma"
 
-    @mock.patch("superset.models.core.create_engine")
+    @mock.patch("superset.engines.manager.create_engine")
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
     )
@@ -281,7 +287,8 @@ class TestDatabaseModel(SupersetTestCase):
                 database_name="test_database", sqlalchemy_uri=uri, extra=extra
             )
             model.impersonate_user = True
-            model._get_sqla_engine()
+            with model.get_sqla_engine():
+                pass
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "hive://localhost"
@@ -294,7 +301,8 @@ class TestDatabaseModel(SupersetTestCase):
             }
 
             model.impersonate_user = False
-            model._get_sqla_engine()
+            with model.get_sqla_engine():
+                pass
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "hive://localhost"
@@ -376,7 +384,7 @@ class TestDatabaseModel(SupersetTestCase):
             df = main_db.get_df("USE superset; SELECT ';';", None, None)
             assert df.iat[0, 0] == ";"
 
-    @mock.patch("superset.models.core.create_engine")
+    @mock.patch("superset.engines.manager.create_engine")
     def test_get_sqla_engine(self, mocked_create_engine):
         model = Database(
             database_name="test_database",
@@ -387,7 +395,8 @@ class TestDatabaseModel(SupersetTestCase):
         )
         mocked_create_engine.side_effect = Exception()
         with self.assertRaises(SupersetException):  # noqa: PT027
-            model._get_sqla_engine()
+            with model.get_sqla_engine():
+                pass
 
 
 class TestSqlaTableModel(SupersetTestCase):
