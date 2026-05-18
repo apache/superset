@@ -31,17 +31,15 @@ import { DownOutlined } from '@ant-design/icons';
 import styles from './styles.module.css';
 
 // Map each versioned plugin id to the URL prefix it actually serves
-// content from. Three of the four routeBasePath values differ from
-// their pluginId — the default preset-classic docs plugin lives at
-// `/user-docs`, and admin_docs / developer_docs use hyphens in their
-// URLs even though the plugin ids use underscores. Without this map
-// the basePath derivation below would mis-split the pathname for
-// those sections and the version dropdown would jump to the section
-// root instead of preserving the current page.
+// content from. The plugin ids use underscores while several
+// routeBasePath values use hyphens (and `user_docs` → `/user-docs`),
+// so without this map the basePath derivation below would mis-split
+// the pathname for those sections and the version dropdown would
+// jump to the section root instead of preserving the current page.
 //
 // Keep in sync with the `routeBasePath` values in docusaurus.config.ts.
 const PLUGIN_ID_TO_BASE_PATH = {
-  default: '/user-docs',
+  user_docs: '/user-docs',
   components: '/components',
   admin_docs: '/admin-docs',
   developer_docs: '/developer-docs',
