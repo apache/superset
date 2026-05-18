@@ -36,18 +36,6 @@ logger = logging.getLogger(__name__)
 VERSIONED_MODELS: list[type] = []
 
 
-def _get_user_id() -> Optional[int]:
-    """Return the current Flask user's PK, or None outside a request context."""
-    try:
-        from flask_login import current_user  # pylint: disable=import-outside-toplevel
-
-        if current_user.is_authenticated:
-            return int(current_user.id)
-    except Exception:  # pylint: disable=broad-except  # noqa: S110
-        pass
-    return None
-
-
 def _insert_baseline_row(
     session: Session, obj: Any, version_table: sa.Table
 ) -> Optional[int]:
@@ -226,6 +214,12 @@ def _baseline_attached_slices(
 ) -> None:
     """Insert ``operation_type=0`` rows in ``slices_version`` for each
     slice attached to *dashboard* that has no shadow row yet.
+
+    Batched: one membership SELECT, one existing-shadow SELECT, one live
+    SELECT for the missing slices. Per-slice work happens only on
+    ``_insert_synthetic_slice_baseline``. The previous per-slice
+    ``COUNT(*)`` + ``SELECT`` pattern was O(N) round-trips and surfaced
+    as a measurable first-save hotspot on dashboards with many charts.
     """
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import version_class
@@ -235,6 +229,7 @@ def _baseline_attached_slices(
     slice_ver_table = version_class(Slice).__table__
     slice_table = Slice.__table__
     conn = session.connection()
+
     attached_slice_ids = [
         r.slice_id
         for r in conn.execute(
@@ -243,29 +238,32 @@ def _baseline_attached_slices(
             )
         ).all()
     ]
-    for slice_id in attached_slice_ids:
-        if _slice_has_shadow(conn, slice_ver_table, slice_id):
-            continue
-        slice_row = (
-            conn.execute(sa.select(slice_table).where(slice_table.c.id == slice_id))
-            .mappings()
-            .first()
-        )
-        if slice_row is None:
-            continue
-        _insert_synthetic_slice_baseline(conn, slice_ver_table, slice_row, tx_id)
+    if not attached_slice_ids:
+        return
 
+    existing_shadow_ids = {
+        row[0]
+        for row in conn.execute(
+            sa.select(slice_ver_table.c.id.distinct()).where(
+                slice_ver_table.c.id.in_(attached_slice_ids)
+            )
+        ).all()
+    }
+    missing_ids = [
+        sid for sid in attached_slice_ids if sid not in existing_shadow_ids
+    ]
+    if not missing_ids:
+        return
 
-def _slice_has_shadow(conn: Any, slice_ver_table: sa.Table, slice_id: int) -> bool:
-    count = (
+    slice_rows = (
         conn.execute(
-            sa.select(sa.func.count())
-            .select_from(slice_ver_table)
-            .where(slice_ver_table.c.id == slice_id)
-        ).scalar()
-        or 0
+            sa.select(slice_table).where(slice_table.c.id.in_(missing_ids))
+        )
+        .mappings()
+        .all()
     )
-    return count > 0
+    for slice_row in slice_rows:
+        _insert_synthetic_slice_baseline(conn, slice_ver_table, slice_row, tx_id)
 
 
 def _insert_synthetic_slice_baseline(
@@ -372,7 +370,14 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
         col_keys = [prop.key for prop in versioned_column_properties(parent)]
         if not col_keys:
             continue
-        attributes.flag_modified(parent, col_keys[0])
+        # ``uuid`` is on all three versioned parent classes (Dashboard,
+        # Slice, SqlaTable) and is in none of their ``__versioned__``
+        # excludes — pick it deterministically so the flagged attribute
+        # is stable across SQLAlchemy versions / mapper-configuration
+        # orders. Falls back to the first available column for forks or
+        # subclasses that excluded ``uuid``.
+        flag_col = "uuid" if "uuid" in col_keys else col_keys[0]
+        attributes.flag_modified(parent, flag_col)
 
 
 def _collect_parents_to_baseline(session: Session) -> dict[int, Any]:

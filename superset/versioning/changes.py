@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any, Optional
 from uuid import UUID
 
@@ -189,8 +190,9 @@ def _jsonable(value: Any) -> Any:
     columns, and any of these fields can land in ``from_value`` /
     ``to_value`` of a ``version_changes`` row, which is a JSON column.
     Python's default JSON encoder rejects ``datetime`` / ``UUID`` /
-    ``bytes``, so the whole bulk insert fails if a single record
-    carries one. Convert to ISO / hex / str at record-construction time.
+    ``bytes`` / ``Decimal``, so the whole bulk insert fails if a single
+    record carries one. Convert to ISO / hex / str at record-construction
+    time.
     """
     if isinstance(value, (datetime, date)):
         return value.isoformat()
@@ -198,6 +200,12 @@ def _jsonable(value: Any) -> Any:
         return str(value)
     if isinstance(value, bytes):
         return value.hex()
+    if isinstance(value, Decimal):
+        # Stringify rather than ``float()`` to preserve precision; the
+        # diff engine compares string equality on ``from_value`` /
+        # ``to_value``, so coercing both sides to the same form is what
+        # matters.
+        return str(value)
     return value
 
 
