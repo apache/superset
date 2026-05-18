@@ -1,0 +1,31 @@
+---
+title: Trino
+sidebar_label: Trino
+description: "Trino is a distributed SQL query engine for big data analytics."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"trino","engine_name":"Trino","module":"trino","documentation":{"description":"Trino is a distributed SQL query engine for big data analytics.","logo":"trino.png","homepage_url":"https://trino.io/","categories":["QUERY_ENGINES","OPEN_SOURCE"],"pypi_packages":["trino"],"install_instructions":"pip install \"apache-superset[trino]\"","connection_string":"trino://{username}:{password}@{hostname}:{port}/{catalog}","default_port":8080,"parameters":{"username":"Trino username","password":"Trino password (if authentication is enabled)","hostname":"Trino coordinator hostname","port":"Trino coordinator port (default 8080)","catalog":"Catalog name"},"drivers":[{"name":"trino","pypi_package":"trino","connection_string":"trino://{username}:{password}@{hostname}:{port}/{catalog}","is_recommended":true}],"compatible_databases":[{"name":"Starburst Galaxy","description":"Starburst Galaxy is a fully-managed cloud analytics platform built on Trino. It provides data lake analytics with enterprise security and governance.","logo":"starburst.png","homepage_url":"https://www.starburst.io/platform/starburst-galaxy/","categories":["QUERY_ENGINES","CLOUD_DATA_WAREHOUSES","HOSTED_OPEN_SOURCE"],"pypi_packages":["trino"],"connection_string":"trino://{username}:{password}@{host}:{port}/{catalog}","parameters":{"username":"Starburst Galaxy username (email/role)","password":"Starburst Galaxy password or token","host":"Your Galaxy cluster hostname","port":"Port (default 443)","catalog":"Catalog name"},"docs_url":"https://docs.starburst.io/starburst-galaxy/"},{"name":"Starburst Enterprise","description":"Starburst Enterprise is a self-managed Trino distribution with enterprise features, security, and support.","logo":"starburst.png","homepage_url":"https://www.starburst.io/platform/starburst-enterprise/","categories":["QUERY_ENGINES","HOSTED_OPEN_SOURCE"],"pypi_packages":["trino"],"connection_string":"trino://{username}:{password}@{hostname}:{port}/{catalog}","docs_url":"https://docs.starburst.io/"}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":true,"THIRTY_SECONDS":true,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":false,"HALF_HOUR":true,"HOUR":true,"SIX_HOURS":true,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":true,"WEEK_STARTING_MONDAY":true,"WEEK_ENDING_SATURDAY":true,"WEEK_ENDING_SUNDAY":true,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":149,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":true,"supports_catalog":true,"supports_dynamic_catalog":true,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":true,"query_cost_estimation":true,"sql_validation":false,"user_impersonation":true};
+
+<DatabasePage name="Trino" database={databaseInfo} />

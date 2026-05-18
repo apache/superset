@@ -1,0 +1,1 @@
+{"parameters":[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"in":"query","name":"mark_updated","schema":{"description":"Whether to update the dashboard changed_on field","type":"boolean"}}]}

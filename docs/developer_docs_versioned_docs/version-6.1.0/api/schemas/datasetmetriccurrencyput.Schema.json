@@ -1,0 +1,1 @@
+{"schema":{"properties":{"symbol":{"maxLength":128,"minLength":1,"type":"string"},"symbolPosition":{"maxLength":128,"minLength":1,"type":"string"}},"type":"object","title":"DatasetMetricCurrencyPut"},"schemaType":"response"}
