@@ -21,6 +21,7 @@ import {
   ChartProps,
   GenericDataType,
   supersetTheme,
+  TimeGranularity,
 } from '@superset-ui/core';
 import type { SeriesOption } from 'echarts';
 import { EchartsTimeseriesSeriesType } from '../../src';
@@ -212,6 +213,7 @@ function buildTimeseriesChartProps(
       colorScheme: 'bnbColors',
       datasource: '3__table',
       granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
       metric: 'sum__num',
       viz_type: 'my_viz',
       ...overrides,
@@ -240,6 +242,7 @@ test('should configure time axis labels to show max label for last month visibil
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
+    timeGrainSqla: TimeGranularity.MONTH,
     metric: 'sum__num',
     viz_type: 'my_viz',
   };
