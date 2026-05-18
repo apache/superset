@@ -29,68 +29,10 @@ from superset.versioning.utils import single_flush_scope
 
 logger = logging.getLogger(__name__)
 
-# Fields not restored during a version rollback — they represent authorship
-# metadata of the current save, not user-authored content.
-RESTORE_EXCLUDE_FIELDS = {"created_on", "created_by_fk", "changed_on", "changed_by_fk"}
-
 # Fixed UUIDv5 namespace under which per-(entity, transaction) version UUIDs
 # are derived. Never change this constant — changing it invalidates every
 # version_uuid that clients may have cached, bookmarked, or stored.
 VERSION_UUID_NAMESPACE = UUID("7a6f5d9b-4c3b-5d8e-9a1c-0e2b4c6d8f10")
-
-
-def _deserialize_snapshot_value(column: Any, value: Any) -> Any:
-    """Reverse the JSON-friendly serialization done during snapshot
-    capture. ``datetime``/``date``/``UUID`` values were flattened to
-    strings; SQLite's DateTime/Date binders reject strings on insert, so
-    parse them back using the live table's column type.
-
-    Returns *value* unchanged when it's already the correct Python type
-    or when the column type isn't one we serialize.
-    """
-    if value is None or not isinstance(value, str):
-        return value
-
-    try:
-        python_type = column.type.python_type
-    except (AttributeError, NotImplementedError):
-        return value
-
-    # pylint: disable=import-outside-toplevel
-    from datetime import date, datetime
-    from uuid import UUID
-
-    try:
-        if python_type is datetime:
-            return datetime.fromisoformat(value)
-        if python_type is date:
-            return date.fromisoformat(value)
-        if python_type is UUID:
-            return UUID(value)
-    except (TypeError, ValueError):
-        return value
-    return value
-
-
-def _coerce_snapshot_list(raw: Any) -> list[dict[str, Any]]:
-    """Snapshots are stored as ``JSON`` / ``JSONB`` so the driver may
-    return either a pre-parsed list or a string (on SQLite). Normalise
-    both to ``list[dict]``.
-    """
-    if raw is None:
-        return []
-    if isinstance(raw, list):
-        return raw
-    if isinstance(raw, str):
-        # pylint: disable=import-outside-toplevel
-        from superset.utils import json as superset_json
-
-        try:
-            parsed = superset_json.loads(raw)
-        except Exception:  # pylint: disable=broad-except
-            return []
-        return parsed if isinstance(parsed, list) else []
-    return []
 
 
 def derive_version_uuid(entity_uuid: UUID, transaction_id: int) -> UUID:
@@ -518,26 +460,24 @@ class VersionDAO:
             "changes": changes,
         }
 
-        # For datasets, attach the JSON snapshot's columns/metrics so the
-        # caller gets a full point-in-time view without mutating live
-        # state. Empty lists when no snapshot exists for this tx (e.g. a
-        # version predating the snapshot feature).
+        # For datasets, attach the columns/metrics as they were at this
+        # transaction by reading from Continuum's child shadow tables
+        # (``table_columns_version`` / ``sql_metrics_version``). Empty
+        # lists when the dataset had no children at this tx.
         if model_cls is SqlaTable:
+            # pylint: disable=import-outside-toplevel
+            from superset.connectors.sqla.models import SqlMetric, TableColumn
+            from superset.versioning.changes import _shadow_rows_valid_at
+
             target_tx = row["transaction_id"]
-            snapshot = db.session.execute(
-                sa.text(
-                    "SELECT columns_json, metrics_json "
-                    "FROM dataset_snapshots "
-                    "WHERE dataset_id = :dataset_id AND transaction_id = :tx"
-                ),
-                {"dataset_id": entity.id, "tx": target_tx},
-            ).first()
-            if snapshot is None:
-                result["columns"] = []
-                result["metrics"] = []
-            else:
-                result["columns"] = _coerce_snapshot_list(snapshot[0])
-                result["metrics"] = _coerce_snapshot_list(snapshot[1])
+            cols_tbl = version_class(TableColumn).__table__
+            metrics_tbl = version_class(SqlMetric).__table__
+            result["columns"] = _shadow_rows_valid_at(
+                db.session, cols_tbl, "table_id", entity.id, target_tx
+            )
+            result["metrics"] = _shadow_rows_valid_at(
+                db.session, metrics_tbl, "table_id", entity.id, target_tx
+            )
 
         return result
 
@@ -559,10 +499,12 @@ class VersionDAO:
         with ``@transaction()``). The ``relations`` list depends on the model
         type and is looked up in :attr:`_RESTORE_RELATIONS`.
 
-        Audit fields on the live entity (``created_on/by_fk``,
-        ``changed_on/by_fk``) are left untouched so the new version row
-        produced by the restoring commit reflects the restoring user rather
-        than the original author. See :data:`RESTORE_EXCLUDE_FIELDS`.
+        After the revert, ``changed_on`` / ``changed_by_fk`` are re-stamped
+        with the current time and the restoring user's id (see
+        :meth:`_stamp_audit_fields_for_restore`) so the new version row
+        produced by the restoring commit reflects who clicked Restore,
+        not the original author. ``created_on`` / ``created_by_fk`` are
+        left alone.
         """
         entity = VersionDAO._find_active_entity_by_uuid(model_cls, entity_uuid)
         if entity is None:
@@ -607,14 +549,6 @@ class VersionDAO:
             )
             raise
 
-        # Continuum's revert() copies *every* versioned column from the
-        # snapshot onto the live entity, including changed_on and
-        # changed_by_fk. That leaves the audit trail showing the *original*
-        # author, not the user who just performed the restore. Overwrite
-        # those two fields with current values so the resulting version row
-        # attributes the restore to the right user. created_on /
-        # created_by_fk are intentionally left alone — they continue to
-        # reflect when/who first created the entity.
         VersionDAO._stamp_audit_fields_for_restore(entity)
         return entity
 
@@ -634,227 +568,3 @@ class VersionDAO:
         if hasattr(entity, "changed_by_fk"):
             entity.changed_by_fk = get_user_id()
 
-    @staticmethod
-    def _restore_dataset_children(dataset: Any, target_tx: int) -> None:
-        """Rebuild a dataset's ``TableColumn`` and ``SqlMetric`` rows from
-        the JSON snapshot captured at *target_tx*.
-
-        Reads the single ``dataset_snapshots`` row keyed on
-        ``(dataset_id, transaction_id)``, defensive-filters each column and
-        metric dict against the currently-live table schema (so additions
-        in the current schema get DB defaults; removals are silently
-        dropped), then inside ``no_autoflush`` wipes the dataset's children
-        and re-inserts them with auto-assigned PKs. Column identity across
-        the restore is carried by the natural keys (``column_name`` /
-        ``metric_name``).
-
-        Silently no-ops if no snapshot exists for the target tx (e.g.
-        restoring a version predating this feature).
-        """
-        # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlMetric, TableColumn
-
-        snapshot = db.session.execute(
-            sa.text(
-                "SELECT columns_json, metrics_json, snapshot_version "
-                "FROM dataset_snapshots "
-                "WHERE dataset_id = :dataset_id AND transaction_id = :tx"
-            ),
-            {"dataset_id": dataset.id, "tx": target_tx},
-        ).first()
-
-        if snapshot is None:
-            logger.info(
-                "No dataset_snapshots row for dataset_id=%s tx=%s; "
-                "children left as-is during restore.",
-                dataset.id,
-                target_tx,
-            )
-            return
-
-        columns_payload = _coerce_snapshot_list(snapshot[0])
-        metrics_payload = _coerce_snapshot_list(snapshot[1])
-
-        with db.session.no_autoflush:
-            VersionDAO._apply_snapshot_children(
-                dataset=dataset,
-                child_cls=TableColumn,
-                rows=columns_payload,
-            )
-            VersionDAO._apply_snapshot_children(
-                dataset=dataset,
-                child_cls=SqlMetric,
-                rows=metrics_payload,
-            )
-
-    @staticmethod
-    def _parse_slice_ids_json(raw: Any) -> list[int]:
-        """Normalise ``dashboard_snapshots.slice_ids_json`` into a ``list[int]``.
-
-        The driver may return the JSON as a pre-parsed list (PostgreSQL
-        ``JSONB``) or as a string (SQLite ``JSON``). Strings that aren't
-        integer-like are dropped silently.
-        """
-        parsed: list[Any]
-        if isinstance(raw, str):
-            # pylint: disable=import-outside-toplevel
-            from superset.utils import json as superset_json
-
-            try:
-                decoded = superset_json.loads(raw)
-            except Exception:  # pylint: disable=broad-except
-                decoded = []
-            parsed = decoded if isinstance(decoded, list) else []
-        elif isinstance(raw, list):
-            parsed = raw
-        else:
-            parsed = []
-
-        result: list[int] = []
-        for item in parsed:
-            if isinstance(item, int):
-                result.append(item)
-            elif isinstance(item, str) and item.lstrip("-").isdigit():
-                result.append(int(item))
-        return result
-
-    @staticmethod
-    def _apply_dashboard_slices(dashboard: Any, slice_ids: list[int]) -> None:
-        """Wipe ``dashboard_slices`` for *dashboard* and re-insert one row
-        per chart id in *slice_ids*, all via raw SQL inside
-        ``no_autoflush``."""
-        with db.session.no_autoflush:
-            # Expunge ORM children that reference this dashboard so a
-            # subsequent ORM access doesn't surface stale collection state.
-            for slc in list(getattr(dashboard, "slices", []) or []):
-                if slc in db.session:
-                    db.session.expunge(slc)
-
-            conn = db.session.connection()
-            conn.execute(
-                sa.text(
-                    "DELETE FROM dashboard_slices WHERE dashboard_id = :dashboard_id"
-                ),
-                {"dashboard_id": dashboard.id},
-            )
-            for slice_id in slice_ids:
-                conn.execute(
-                    sa.text(
-                        "INSERT INTO dashboard_slices "
-                        "(dashboard_id, slice_id) "
-                        "VALUES (:dashboard_id, :slice_id)"
-                    ),
-                    {"dashboard_id": dashboard.id, "slice_id": slice_id},
-                )
-
-    @staticmethod
-    def _restore_dashboard_children(dashboard: Any, target_tx: int) -> None:
-        """Re-attach the chart set captured at *target_tx* to *dashboard*.
-
-        Reads ``dashboard_snapshots.slice_ids_json`` for the target
-        transaction, wipes the dashboard's current ``dashboard_slices``
-        rows, and re-inserts one row per surviving chart ID. Chart IDs
-        that no longer resolve to an active ``Slice`` (hard-deleted, or
-        soft-deleted once sc-103157 lands) are silently skipped.
-
-        Silently no-ops if no snapshot exists for the target tx (e.g.
-        restoring a version predating this feature).
-        """
-        # pylint: disable=import-outside-toplevel
-        from superset.models.slice import Slice
-
-        snapshot = db.session.execute(
-            sa.text(
-                "SELECT slice_ids_json "
-                "FROM dashboard_snapshots "
-                "WHERE dashboard_id = :dashboard_id AND transaction_id = :tx"
-            ),
-            {"dashboard_id": dashboard.id, "tx": target_tx},
-        ).first()
-
-        if snapshot is None:
-            logger.info(
-                "No dashboard_snapshots row for dashboard_id=%s tx=%s; "
-                "chart associations left as-is during restore.",
-                dashboard.id,
-                target_tx,
-            )
-            return
-
-        slice_ids = VersionDAO._parse_slice_ids_json(snapshot[0])
-
-        # Filter to charts that still exist. Soft-delete filtering will
-        # come in via the standard visibility path once sc-103157 lands.
-        if slice_ids:
-            live_ids = {
-                row[0]
-                for row in db.session.execute(
-                    sa.select(Slice.id).where(Slice.id.in_(slice_ids))
-                ).all()
-            }
-        else:
-            live_ids = set()
-        valid_ids = [sid for sid in slice_ids if sid in live_ids]
-
-        VersionDAO._apply_dashboard_slices(dashboard, valid_ids)
-
-    @staticmethod
-    def _apply_snapshot_children(
-        dataset: Any,
-        child_cls: Any,
-        rows: list[dict[str, Any]],
-    ) -> None:
-        """Wipe *dataset*'s children of *child_cls* and re-INSERT from
-        snapshot *rows*. Skips the primary key (DB auto-assigns) and any
-        snapshot field that no longer exists in the live schema. Stamps
-        the restoring user into ``changed_on`` / ``changed_by_fk``.
-        """
-        # pylint: disable=import-outside-toplevel
-        from datetime import datetime
-
-        from superset.utils.core import get_user_id
-
-        child_live_tbl: sa.Table = child_cls.__table__
-        live_cols = {c.name: c for c in child_live_tbl.columns}
-        # Defensive schema filter: drop snapshot keys that aren't in the
-        # live table (renames/removals). New columns on the live table
-        # that aren't in the snapshot get DB defaults.
-        skip_cols = {"id", "table_id"}
-
-        # Expunge current ORM children so the subsequent direct-SQL DELETE
-        # doesn't leave them as stale session state.
-        tablename: str = child_cls.__tablename__
-        current_children = (
-            list(dataset.columns)
-            if tablename == "table_columns"
-            else list(dataset.metrics)
-        )
-        for child in current_children:
-            if child in db.session:
-                db.session.expunge(child)
-
-        conn = db.session.connection()
-        conn.execute(
-            child_live_tbl.delete().where(child_live_tbl.c.table_id == dataset.id)
-        )
-
-        now = datetime.now()
-        restoring_user_id = get_user_id()
-
-        for row in rows:
-            values: dict[str, Any] = {}
-            for key, value in row.items():
-                if key in skip_cols:
-                    continue
-                if key not in live_cols:
-                    continue
-                values[key] = _deserialize_snapshot_value(live_cols[key], value)
-
-            # Always link to the live parent and stamp the restoring user.
-            values["table_id"] = dataset.id
-            if "changed_on" in live_cols:
-                values["changed_on"] = now
-            if "changed_by_fk" in live_cols:
-                values["changed_by_fk"] = restoring_user_id
-
-            conn.execute(child_live_tbl.insert().values(**values))

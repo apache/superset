@@ -42,13 +42,10 @@ Scope in this iteration:
   - ``Slice.params`` kind-classification (filter / metric / time_range /
     color_palette / dimension, plus generic ``field`` fallback).
 
-Deferred to T048b:
-  - Dataset children (TableColumn / SqlMetric) — requires reading the
-    prior ``dataset_snapshots`` row for pre-state and the just-written
-    snapshot for post-state, which depends on listener ordering with
-    :func:`superset.versioning.dataset_snapshots.register_dataset_snapshot_listener`.
-  - Dashboard chart membership (``dashboard_slices``) — same pattern
-    against ``dashboard_snapshots``.
+Child-collection diffs (dataset ``TableColumn`` / ``SqlMetric``,
+dashboard ``dashboard_slices``) read the pre- and post-state from
+Continuum shadow tables via :func:`_shadow_rows_valid_at`, executed in
+``after_flush`` once Continuum has written its tx-N rows.
 
 ``session.new`` entities are not processed in this listener:
 operation_type=0 transactions (baseline capture and first-save INSERTs)
@@ -188,7 +185,6 @@ def _cached_scalar_fields(model_cls: type) -> frozenset[str]:
 def _jsonable(value: Any) -> Any:
     """Convert a column value into a JSON-serialisable form.
 
-    Mirrors the helper in :mod:`superset.versioning.dataset_snapshots`:
     Slice has ``last_saved_at`` (datetime), datasets have datetime
     columns, and any of these fields can land in ``from_value`` /
     ``to_value`` of a ``version_changes`` row, which is a JSON column.
@@ -403,8 +399,7 @@ def _dataset_child_records_for_tx_from_shadows(
     session: Session, transaction_id: int
 ) -> dict[int, list[ChangeRecord]]:
     """Compute column + metric diff records for each dataset touched at
-    *transaction_id*, reading from Continuum shadow tables instead of
-    ``dataset_snapshots``.
+    *transaction_id*, reading from Continuum shadow tables.
 
     For each dataset:
     * Post-state = rows valid at ``transaction_id`` in
@@ -565,8 +560,7 @@ def _dashboard_child_records_for_tx_from_shadows(
     session: Session, transaction_id: int
 ) -> dict[int, list[ChangeRecord]]:
     """Compute slice-membership diff records for each dashboard touched
-    at *transaction_id*, reading from Continuum shadow tables instead
-    of ``dashboard_snapshots``.
+    at *transaction_id*, reading from Continuum shadow tables.
 
     Same pre/post logic as
     :func:`_dataset_child_records_for_tx_from_shadows`.
@@ -652,9 +646,7 @@ def _append_child_records_to_buffer(
     Runs in ``after_flush`` so the shadow tables already have the
     current-tx rows. Reads from Continuum shadow tables
     (``table_columns_version`` / ``sql_metrics_version`` /
-    ``dashboard_slices_version`` / ``slices_version``) — the
-    ``dataset_snapshots`` and ``dashboard_snapshots`` JSON-blob path is
-    still populated by its listeners but no longer driving the diff.
+    ``dashboard_slices_version`` / ``slices_version``).
     """
     try:
         for dataset_id, records in _dataset_child_records_for_tx_from_shadows(
