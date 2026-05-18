@@ -146,7 +146,7 @@ def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None
     error (the user-visible symptom is "Invalid SQL" when clicking
     "SYNC COLUMNS FROM SOURCE" on a dataset that uses {{ from_dttm }} etc.).
     """
-    mocker.patch(
+    mock_get_columns_description = mocker.patch(
         "superset.connectors.sqla.utils.get_columns_description",
         return_value=[{"name": "rendered_col", "type": "INTEGER"}],
     )
@@ -171,4 +171,17 @@ def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None
     # with the wrong input.
     dataset.get_template_processor().process_template.assert_any_call(
         raw_sql, **dataset.template_params_dict
+    )
+
+    # End-to-end guard: the rendered SQL must reach get_columns_description,
+    # not the raw Jinja string. A regression where rendering is used for
+    # parsing only and the raw SQL leaks downstream would pass the
+    # process_template assertion above but fail this one.
+    call_args = mock_get_columns_description.call_args
+    assert call_args is not None, "get_columns_description was never called"
+    passed_query = call_args.kwargs.get("query")
+    if passed_query is None and call_args.args:
+        passed_query = call_args.args[-1]
+    assert passed_query == rendered_sql, (
+        f"get_columns_description received unrendered SQL: {passed_query!r}"
     )
