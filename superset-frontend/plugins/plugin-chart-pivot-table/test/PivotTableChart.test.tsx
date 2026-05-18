@@ -32,7 +32,9 @@ function renderWithTheme(ui: ReactElement) {
   return render(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);
 }
 
-function createProps(overrides: Partial<PivotTableProps> = {}): PivotTableProps {
+function createProps(
+  overrides: Partial<PivotTableProps> = {},
+): PivotTableProps {
   return {
     data: [],
     height: 400,
