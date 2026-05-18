@@ -47,6 +47,17 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function getOwnRecordValue(
+  record: DataRecord,
+  key: string | undefined,
+): string | number | null | undefined {
+  if (!key || !Object.prototype.hasOwnProperty.call(record, key)) {
+    return undefined;
+  }
+
+  return record[key];
+}
+
 function getGeoJsonGeometry(value: unknown): Record<string, unknown> | null {
   if (!isPlainRecord(value)) {
     return null;
@@ -140,7 +151,7 @@ function processPolygonData(
     );
     feature = updatedFeature as unknown as PolygonFeature;
 
-    const rawPolygonData = record[line_column];
+    const rawPolygonData = getOwnRecordValue(record, line_column);
     if (!rawPolygonData) {
       return [];
     }
@@ -195,15 +206,16 @@ function processPolygonData(
 
       if (fixedElevationValue !== undefined) {
         feature.elevation = fixedElevationValue;
-      } else if (elevationLabel && record[elevationLabel] != null) {
-        const elevationValue = parseMetricValue(record[elevationLabel]);
+      } else {
+        const rawElevationValue = getOwnRecordValue(record, elevationLabel);
+        const elevationValue = parseMetricValue(rawElevationValue);
         if (elevationValue !== undefined) {
           feature.elevation = elevationValue;
         }
       }
 
-      if (metricLabel && record[metricLabel] != null) {
-        const metricValue = record[metricLabel];
+      if (metricLabel) {
+        const metricValue = getOwnRecordValue(record, metricLabel);
         if (
           typeof metricValue === 'string' ||
           typeof metricValue === 'number'
@@ -218,8 +230,12 @@ function processPolygonData(
         metrics: { ...feature.metrics },
         polygon: polygonCoords,
       }));
-    } catch {
-      return [];
+    } catch (error) {
+      if (error instanceof SyntaxError || error instanceof TypeError) {
+        return [];
+      }
+
+      throw error;
     }
   });
 }
