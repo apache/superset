@@ -317,7 +317,11 @@ scp /opt/superset-build/dist/apache_superset-*.whl \
 scp /opt/superset-build/dist/BUILD_COMMIT.txt <user>@<cloud-host>:/tmp/
 
 # 3. ⚠️ 版本约束文件（关键！否则云端 pip 会拉到 Superset 没测过的依赖版本）
-scp /opt/superset-build/requirements/base.txt \
+#    必须先剥掉第 3 行的 `-e ./superset-core`（云端没有这个本地路径，否则 pip 报
+#    "is not a valid editable requirement"，详见 Q18）
+grep -v '^-e ' /opt/superset-build/requirements/base.txt \
+    > /opt/superset-build/dist/base-constraints.txt
+scp /opt/superset-build/dist/base-constraints.txt \
     <user>@<cloud-host>:/tmp/superset-base-constraints.txt
 
 # 4.（可选，首次部署时）准备好的 superset_config.py 模板
@@ -343,12 +347,16 @@ scp /path/to/your/superset_config.py <user>@<cloud-host>:/tmp/
 >
 > 不带约束直接 `pip install xxx.whl`，pip 会按松散区间拉到当下允许范围内的最新版（例如 numpy 2.2.x），但 Superset 6.1 的源码仍在用 `np.product`（已在 numpy 2.0 被移除），导致 `superset version` 启动即崩。第七节会用 `-c` 把所有依赖锁回 `base.txt` 的版本。
 
-> **多台云机器**：把 scp 改成循环（注意 `dist/*.whl` 会自动包含两个 wheel）：
+> **多台云机器**：先在构建机生成一份纯净的约束文件，再循环 scp（`dist/*.whl` 会自动包含两个 wheel）：
 >
 > ```bash
+> # 一次性生成纯净约束文件（剥掉 -e ./superset-core 行）
+> grep -v '^-e ' /opt/superset-build/requirements/base.txt \
+>     > /opt/superset-build/dist/base-constraints.txt
+>
 > for host in prod1 prod2 prod3; do
 >     scp /opt/superset-build/dist/*.whl                   ${host}:/tmp/
->     scp /opt/superset-build/requirements/base.txt        ${host}:/tmp/superset-base-constraints.txt
+>     scp /opt/superset-build/dist/base-constraints.txt    ${host}:/tmp/superset-base-constraints.txt
 > done
 > ```
 
@@ -1677,6 +1685,47 @@ you need (at least one of) the OPERATE privilege(s) on SYSTEM ...
 ```
 
 这是 starrocks 1.3.3 方言初始化时执行的探测 SQL，如果你的 superset 连接用户只有 `read_only` 角色（推荐！），就会拿不到 OPERATE 权限。这只是**警告日志**，方言会优雅降级，不影响 SELECT/SHOW 等正常查询。
+
+### Q18. `pip install ... -c` 报 `./superset-core is not a valid editable requirement`
+
+完整错误：
+
+```
+ERROR: ./superset-core is not a valid editable requirement. It should either
+       be a path to a local project or a VCS URL (beginning with bzr+http,
+       bzr+https, bzr+ssh, ...).
+```
+
+**根因**：你直接 scp 了构建机的 `requirements/base.txt` 当约束文件用，但它**第 3 行是 `-e ./superset-core`**——这是构建机 `uv pip compile pyproject.toml + base.in` 自动生成的本地 monorepo editable 引用。云端：
+
+- 既没有 `./superset-core` 这个目录（云端按本指南只装 wheel）
+- 也不需要 editable（云端走 `--force-reinstall --no-deps` 装 wheel 的路线）
+
+pip 一看 `-c` 文件里的这行就报错。
+
+**验证**：
+
+```bash
+head -5 /opt/superset/superset-base-constraints.txt
+# 期望看到第 3 行就是这一行：
+#   -e ./superset-core
+```
+
+**修复（云端临时清理）**：
+
+```bash
+sed -i '/^-e .*superset-core/d' /opt/superset/superset-base-constraints.txt
+
+# 确认已剥掉
+grep -n '^-e' /opt/superset/superset-base-constraints.txt
+# 期望无输出
+
+# 再跑 pip install
+pip install /opt/superset/apache_superset-*.whl \
+    -c /opt/superset/superset-base-constraints.txt
+```
+
+**根治（构建机源头过滤）**：在 scp 之前就在构建机上生成纯净副本，避免每次部署都要去云端 sed。具体见 [第 5 节传输到云服务器](#五传输到云服务器)的 `grep -v '^-e '` 命令。
 
 ---
 
