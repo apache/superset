@@ -129,8 +129,18 @@ function RoleListEditModal({
     fetchPaginatedData({
       endpoint: `/api/v1/security/users/`,
       pageSize: 100,
-      setData: setRoleUsers,
+      setData: (users: UserObject[]) => {
+        const seen = new Set<number>();
+        setRoleUsers(
+          users.filter(u => {
+            if (seen.has(u.id)) return false;
+            seen.add(u.id);
+            return true;
+          }),
+        );
+      },
       filters,
+      orderBy: { column: 'id', direction: 'asc' },
       setLoadingState: (loading: boolean) => setLoadingRoleUsers(loading),
       loadingKey: 'roleUsers',
       addDangerToast,
@@ -218,7 +228,6 @@ function RoleListEditModal({
         value: user.id,
         label: user.username,
       }));
-
       formRef.current.setFieldsValue({
         roleUsers: userOptions,
       });
@@ -279,21 +288,13 @@ function RoleListEditModal({
 
   const handleFormSubmit = async (values: RoleForm) => {
     try {
-      const userIds = [
-        ...new Set(values.roleUsers?.map(user => user.value) || []),
-      ];
-      const initialUserIdSet = new Set(roleUsers.map(u => u.id));
-      const newUserIdSet = new Set(userIds);
-      const usersChanged =
-        initialUserIdSet.size !== newUserIdSet.size ||
-        Array.from(initialUserIdSet).some(uid => !newUserIdSet.has(uid));
-
       const permissionIds = mapSelectedIds(values.rolePermissions);
+      const userIds = mapSelectedIds(values.roleUsers);
       const groupIds = mapSelectedIds(values.roleGroups);
       await Promise.all([
         updateRoleName(id, values.roleName),
         updateRolePermissions(id, permissionIds),
-        usersChanged ? updateRoleUsers(id, userIds) : Promise.resolve(),
+        updateRoleUsers(id, userIds),
         updateRoleGroups(id, groupIds),
       ]);
       addSuccessToast(t('The role has been updated successfully.'));

@@ -108,13 +108,11 @@ describe('RoleListEditModal', () => {
     expect(screen.getByTestId('form-modal-save-button')).toBeEnabled();
   });
 
-  test('submit maps {value,label} form values to numeric ID arrays and skips user update when unchanged', async () => {
+  test('submit maps {value,label} form values to numeric ID arrays', async () => {
     // initialValues sets permissions/groups as {value, label} objects
     // (e.g. [{value: 10, label: "10"}, {value: 20, label: "20"}]).
     // The submit handler must convert these to plain number arrays
     // before calling the update APIs.
-    // updateRoleUsers is skipped entirely when the loaded user list matches
-    // the form — sending an unchanged full list can cause 413 errors on large roles.
     (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) => {
       if (endpoint?.includes('/api/v1/security/users/')) {
         return Promise.resolve({
@@ -171,9 +169,10 @@ describe('RoleListEditModal', () => {
         true,
       );
 
-      // updateRoleUsers is NOT called when the loaded user list matches the
-      // submitted form — no need to send an unchanged payload.
-      expect(mockUpdateRoleUsers).not.toHaveBeenCalled();
+      // updateRoleUsers is called with the hydrated user IDs
+      const userArg = mockUpdateRoleUsers.mock.calls[0][1];
+      expect(userArg).toEqual([5, 7]);
+      expect(userArg.every((id: unknown) => typeof id === 'number')).toBe(true);
 
       const groupArg = mockUpdateRoleGroups.mock.calls[0][1];
       expect(groupArg).toEqual([1, 2]);
@@ -227,6 +226,8 @@ describe('RoleListEditModal', () => {
     expect(decodedQuery).toEqual({
       page_size: 100,
       page: 0,
+      order_column: 'id',
+      order_direction: 'asc',
       filters: [
         {
           col: 'roles',
