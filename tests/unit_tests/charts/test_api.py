@@ -36,26 +36,25 @@ def _make_api() -> ChartRestApi:
 def test_ensure_owners_write_access_blocks_read_only_users(
     column_name: str,
 ) -> None:
-    """Users without write access receive 403 when requesting the owners field."""
+    """Users without all-datasource access receive 403 on owners lookup."""
     api = _make_api()
     api.response_403 = MagicMock(return_value="forbidden")
 
     with patch(
-        "superset.charts.api.security_manager.can_access",
+        "superset.charts.api.security_manager.can_access_all_datasources",
         return_value=False,
-    ) as mock_can_access:
+    ):
         result = api.ensure_owners_write_access(column_name)
 
-    mock_can_access.assert_called_once_with("can_write", "Chart")
     assert result == "forbidden"
 
 
-def test_ensure_owners_write_access_allows_write_users() -> None:
-    """Users with write access receive None (request proceeds normally)."""
+def test_ensure_owners_write_access_allows_privileged_users() -> None:
+    """Users with all-datasource access (Alpha/Admin) receive None."""
     api = _make_api()
 
     with patch(
-        "superset.charts.api.security_manager.can_access",
+        "superset.charts.api.security_manager.can_access_all_datasources",
         return_value=True,
     ):
         result = api.ensure_owners_write_access("owners")
@@ -71,9 +70,9 @@ def test_ensure_owners_write_access_skips_non_owners_fields(
     api = _make_api()
 
     with patch(
-        "superset.charts.api.security_manager.can_access",
-    ) as mock_can_access:
+        "superset.charts.api.security_manager.can_access_all_datasources",
+    ) as mock_check:
         result = api.ensure_owners_write_access(column_name)
 
-    mock_can_access.assert_not_called()
+    mock_check.assert_not_called()
     assert result is None

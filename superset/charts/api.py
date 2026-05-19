@@ -1072,8 +1072,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     def ensure_owners_write_access(self, column_name: str) -> Optional[Response]:
         """Restrict the owners related field to users with write access."""
-        if column_name == "owners" and not (
-            security_manager.can_access("can_write", self.class_permission_name)
+        if (
+            column_name == "owners"
+            and not security_manager.can_access_all_datasources()
         ):
             return self.response_403()
         return None
