@@ -16,6 +16,7 @@
 # under the License.
 
 import copy
+import logging
 from inspect import isclass
 from typing import Any
 
@@ -27,6 +28,8 @@ from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import AnnotationType, get_user
+
+logger = logging.getLogger(__name__)
 
 
 def topological_sort_charts(
@@ -60,6 +63,11 @@ def topological_sort_charts(
             else:
                 next_remaining.append(c)
         if len(next_remaining) == len(remaining):
+            logger.warning(
+                "Circular annotation dependency detected for charts: %s — "
+                "these charts may have unresolved annotation references after import.",
+                [c["uuid"] for c in next_remaining],
+            )
             sorted_refs.extend(next_remaining)
             break
         remaining = next_remaining
@@ -164,6 +172,8 @@ def import_chart(
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
+    annotation_layer_ids: dict[str, int] | None = None,
+    chart_ids: dict[str, int] | None = None,
 ) -> Slice:
     can_write = ignore_permissions or security_manager.can_access("can_write", "Chart")
     existing = db.session.query(Slice).filter_by(uuid=config["uuid"]).first()
@@ -184,9 +194,6 @@ def import_chart(
         raise ImportFailedError(
             "Chart doesn't exist and user doesn't have permission to create charts"
         )
-
-    annotation_layer_ids = config.pop("_annotation_layer_ids", None)
-    chart_ids = config.pop("_chart_ids", None)
 
     filter_chart_annotations(
         config,

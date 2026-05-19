@@ -17,8 +17,6 @@
 from marshmallow import fields, Schema
 from marshmallow.validate import Length
 
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
-
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get an annotation layer"}},
     "get_list": {

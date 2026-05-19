@@ -140,66 +140,68 @@ class ExportChartsCommand(ExportModelsCommand):
     def enable_tag_export(cls) -> None:
         cls._include_tags = True
 
-    # Track chart IDs being exported to prevent circular annotation recursion
-    _exporting_ids: set[int] = set()
-
     @staticmethod
     def _export(
-        model: Slice, export_related: bool = True
+        model: Slice,
+        export_related: bool = True,
+        _seen: set[int] | None = None,
     ) -> Iterator[tuple[str, Callable[[], str]]]:
-        # Guard against circular annotation references (A→B→A)
-        if model.id in ExportChartsCommand._exporting_ids:
+        # Guard against circular annotation references (A→B→A).
+        # _seen is passed down the call stack so no class-level state is needed.
+        if _seen is None:
+            _seen = set()
+        if model.id in _seen:
             return
-        ExportChartsCommand._exporting_ids.add(model.id)
+        _seen.add(model.id)
+        yield (
+            ExportChartsCommand._file_name(model),
+            lambda: ExportChartsCommand._file_content(model),
+        )
+
+        # Parse params once for deck_multi and annotation layer handling
         try:
-            yield (
-                ExportChartsCommand._file_name(model),
-                lambda: ExportChartsCommand._file_content(model),
-            )
+            model_params = json.loads(model.params or "{}")
+        except json.JSONDecodeError:
+            model_params = {}
 
-            # Parse params once for deck_multi and annotation layer handling
-            try:
-                model_params = json.loads(model.params or "{}")
-            except json.JSONDecodeError:
-                model_params = {}
+        if (
+            model.viz_type == "deck_multi"
+            and export_related
+            and model_params.get("deck_slices")
+        ):
+            slice_ids = model_params.get("deck_slices")
+            yield from ExportChartsCommand(slice_ids).run()
 
-            if model.viz_type == "deck_multi" and export_related:
-                if model_params.get("deck_slices"):
-                    slice_ids = model_params.get("deck_slices")
-                    yield from ExportChartsCommand(slice_ids).run()
+        if model.table and export_related:
+            yield from ExportDatasetsCommand([model.table.id]).run()
 
-            if model.table and export_related:
-                yield from ExportDatasetsCommand([model.table.id]).run()
+        # Export charts referenced as annotation sources (table/line sourceType)
+        if export_related:
+            annotation_layers = model_params.get("annotation_layers", [])
+            chart_annotation_ids = [
+                layer["value"]
+                for layer in annotation_layers
+                if layer.get("sourceType") in ("table", "line")
+                and isinstance(layer.get("value"), int)
+            ]
+            if chart_annotation_ids:
+                yield from ExportChartsCommand(chart_annotation_ids).run()
 
-            # Export charts referenced as annotation sources (table/line sourceType)
-            if export_related:
-                annotation_layers = model_params.get("annotation_layers", [])
-                chart_annotation_ids = [
-                    layer["value"]
-                    for layer in annotation_layers
-                    if layer.get("sourceType") in ("table", "line")
-                    and isinstance(layer.get("value"), int)
-                ]
-                if chart_annotation_ids:
-                    yield from ExportChartsCommand(chart_annotation_ids).run()
+            # Native annotation layers (sourceType == "NATIVE", value = layer ID)
+            native_layer_ids = [
+                layer["value"]
+                for layer in annotation_layers
+                if layer.get("sourceType") == "NATIVE"
+                and isinstance(layer.get("value"), int)
+            ]
+            if native_layer_ids:
+                yield from ExportAnnotationLayersCommand(native_layer_ids).run()
 
-                # Native annotation layers (sourceType == "NATIVE", value = layer ID)
-                native_layer_ids = [
-                    layer["value"]
-                    for layer in annotation_layers
-                    if layer.get("sourceType") == "NATIVE"
-                    and isinstance(layer.get("value"), int)
-                ]
-                if native_layer_ids:
-                    yield from ExportAnnotationLayersCommand(native_layer_ids).run()
-
-            # Check if the calling class is ExportDashboardCommands
-            if (
-                export_related
-                and ExportChartsCommand._include_tags
-                and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
-            ):
-                chart_id = model.id
-                yield from ExportTagsCommand().export(chart_ids=[chart_id])
-        finally:
-            ExportChartsCommand._exporting_ids.discard(model.id)
+        # Check if the calling class is ExportDashboardCommands
+        if (
+            export_related
+            and ExportChartsCommand._include_tags
+            and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
+        ):
+            chart_id = model.id
+            yield from ExportTagsCommand().export(chart_ids=[chart_id])

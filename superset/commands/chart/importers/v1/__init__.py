@@ -64,8 +64,14 @@ class ImportChartsCommand(ImportModelsCommand):
         overwrite: bool,
         contents: dict[str, Any],
         imported_chart_ids: dict[str, int],
+        annotation_layer_ids: dict[str, int] | None = None,
     ) -> None:
-        chart = import_chart(config, overwrite=overwrite)
+        chart = import_chart(
+            config,
+            overwrite=overwrite,
+            annotation_layer_ids=annotation_layer_ids,
+            chart_ids=imported_chart_ids,
+        )
         imported_chart_ids[str(chart.uuid)] = chart.id
 
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
@@ -143,9 +149,6 @@ class ImportChartsCommand(ImportModelsCommand):
                 }
                 config = update_chart_config_dataset(config, dataset_dict)
 
-                # pass annotation resolution maps via config
-                config["_annotation_layer_ids"] = annotation_layer_ids
-
                 if config.get("uuid") in referenced_chart_uuids:
                     referenced_chart_configs.append(config)
                 else:
@@ -157,7 +160,6 @@ class ImportChartsCommand(ImportModelsCommand):
         # import referenced charts first, then charts that depend on them
         imported_chart_ids: dict[str, int] = {}
         for config in referenced_chart_configs + dependent_chart_configs:
-            config["_chart_ids"] = imported_chart_ids
             ImportChartsCommand._import_chart_with_tags(
-                config, overwrite, contents, imported_chart_ids
+                config, overwrite, contents, imported_chart_ids, annotation_layer_ids
             )
