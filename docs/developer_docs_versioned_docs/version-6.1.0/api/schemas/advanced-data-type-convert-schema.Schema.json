@@ -1,0 +1,1 @@
+{"schema":{"properties":{"type":{"default":"port","type":"string"},"values":{"items":{"default":"http"},"minItems":1,"type":"array"}},"required":["type","values"],"type":"object","title":"advanced_data_type_convert_schema"},"schemaType":"response"}
