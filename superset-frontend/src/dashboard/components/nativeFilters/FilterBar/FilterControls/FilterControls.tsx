@@ -78,6 +78,7 @@ import { useChartsVerboseMaps } from '../utils';
 import FilterControl from './FilterControl';
 import FilterDivider from './FilterDivider';
 
+
 function addDataMaskToCustomization(
   customization: ChartCustomization,
   dataMaskSelected: DataMaskStateWithId,
@@ -86,6 +87,7 @@ function addDataMaskToCustomization(
     dataMaskSelected[customization.id] ?? getInitialDataMask(customization.id);
   return { ...customization, dataMask };
 }
+
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
@@ -100,9 +102,11 @@ type FilterControlsProps = {
   hideHeader?: boolean;
 };
 
+
 const SectionContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
+
 
 const SectionHeader = styled.div`
   display: flex;
@@ -112,6 +116,7 @@ const SectionHeader = styled.div`
   cursor: pointer;
   user-select: none;
 
+
   &:hover {
     background: ${({ theme }) => theme.colorBgTextHover};
     margin: 0 -${({ theme }) => theme.sizeUnit * 2}px;
@@ -120,11 +125,14 @@ const SectionHeader = styled.div`
   }
 `;
 
+
 const { Title } = Typography;
+
 
 const SectionContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 2}px 0;
 `;
+
 
 const StyledDivider = styled.div`
   height: 1px;
@@ -132,17 +140,20 @@ const StyledDivider = styled.div`
   margin: ${({ theme }) => theme.sizeUnit * 2}px 0;
 `;
 
-const StyledIcon = styled(Icons.UpOutlined)<{ isOpen: boolean }>`
+
+const StyledIcon = styled(Icons.UpOutlined) <{ isOpen: boolean }>`
   transform: ${({ isOpen }) => (isOpen ? 'rotate(0deg)' : 'rotate(180deg)')};
   transition: transform 0.2s ease;
   color: ${({ theme }) => theme.colorTextSecondary};
 `;
+
 
 const ChartCustomizationContent = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
+
 
 const FilterControls: FC<FilterControlsProps> = ({
   dataMaskSelected,
@@ -159,10 +170,13 @@ const FilterControls: FC<FilterControlsProps> = ({
     ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
 
+
   const { outlinedFilterId, lastUpdated } = useFilterOutlined();
+
 
   const [overflowedIds, setOverflowedIds] = useState<string[]>([]);
   const popoverRef = useRef<DropdownContainerRef>(null);
+
 
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
@@ -170,6 +184,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const chartIds = useChartIds();
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
+
 
   const selectedCrossFilters = useMemo(
     () =>
@@ -195,38 +210,47 @@ const FilterControls: FC<FilterControlsProps> = ({
     [filtersWithValues.length],
   );
 
+
   const filterIds = new Set(filtersWithValues.map(item => item.id));
+
 
   const [filtersInScope, filtersOutOfScope] =
     useSelectFiltersInScope(filtersWithValues);
+
 
   const filteredChartCustomizationValues = useMemo(
     () => chartCustomizationValues.filter(item => !item.removed),
     [chartCustomizationValues],
   );
 
+
   const [customizationsInScope, customizationsOutOfScope] =
     useSelectCustomizationsInScope(filteredChartCustomizationValues);
+
 
   const hasRequiredFirst = useMemo(
     () => filtersWithValues.some(filter => filter.requiredFirst),
     [filtersWithValues],
   );
 
+
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
   const showCustomizationCollapsePanel =
     dashboardHasTabs && filteredChartCustomizationValues.length > 0;
+
 
   const [sectionsOpen, setSectionsOpen] = useState({
     filters: true,
     chartCustomization: true,
   });
 
+
   const showFiltersOutOfScope =
     showCollapsePanel &&
     (hideHeader || sectionsOpen.filters) &&
     filtersOutOfScope.length > 0;
+
 
   const toggleSection = useCallback((section: keyof typeof sectionsOpen) => {
     setSectionsOpen(prev => ({
@@ -235,10 +259,12 @@ const FilterControls: FC<FilterControlsProps> = ({
     }));
   }, []);
 
+
   const handleChartCustomizationChange = useCallback(
     (customizationItem: ChartCustomization, dataMask: DataMask) => {
       const columnValue = dataMask.ownState?.column;
       const existingTarget = customizationItem.targets?.[0] || {};
+
 
       dispatch(
         setPendingChartCustomization({
@@ -257,10 +283,12 @@ const FilterControls: FC<FilterControlsProps> = ({
         }),
       );
 
+
       onPendingCustomizationDataMaskChange(customizationItem.id, dataMask);
     },
     [dispatch, onPendingCustomizationDataMaskChange],
   );
+
 
   const renderer = useCallback(
     ({ id }: Filter | Divider, index: number | undefined) => {
@@ -277,6 +305,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     },
     [filtersWithValues, portalNodes],
   );
+
 
   const customizationRenderer = useCallback(
     (item: ChartCustomization | ChartCustomizationDivider, index: number) => {
@@ -309,6 +338,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     },
     [dataMaskSelected, handleChartCustomizationChange],
   );
+
 
   const renderVerticalContent = useCallback(
     () => (
@@ -349,6 +379,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           </SectionContainer>
         )}
 
+
         {showFiltersOutOfScope && (
           <FiltersOutOfScopeCollapsible
             filtersOutOfScope={filtersOutOfScope}
@@ -356,6 +387,7 @@ const FilterControls: FC<FilterControlsProps> = ({
             forceRender={hasRequiredFirst}
           />
         )}
+
 
         {customizationsInScope.length > 0 && (
           <SectionContainer>
@@ -404,6 +436,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           </SectionContainer>
         )}
 
+
         {showCustomizationCollapsePanel &&
           (hideHeader || sectionsOpen.chartCustomization) && (
             <CustomizationsOutOfScopeCollapsible
@@ -433,10 +466,12 @@ const FilterControls: FC<FilterControlsProps> = ({
     ],
   );
 
+
   const overflowedFiltersInScope = useMemo(
     () => filtersInScope.filter(({ id }) => overflowedIds?.includes(id)),
     [filtersInScope, overflowedIds],
   );
+
 
   const overflowedCrossFilters = useMemo(
     () =>
@@ -446,12 +481,14 @@ const FilterControls: FC<FilterControlsProps> = ({
     [overflowedIds, selectedCrossFilters],
   );
 
+
   const activeOverflowedFiltersInScope = useMemo(() => {
     const activeOverflowedFilters = overflowedFiltersInScope.filter(filter =>
       isNativeFilterWithDataMask(filter),
     );
     return [...activeOverflowedFilters, ...overflowedCrossFilters];
   }, [overflowedCrossFilters, overflowedFiltersInScope]);
+
 
   const rendererCrossFilter = useCallback(
     (
@@ -466,12 +503,13 @@ const FilterControls: FC<FilterControlsProps> = ({
           filtersInScope.length > 0 &&
           !!last &&
           `${last.name}${last.emitterId}` ===
-            `${crossFilter.name}${crossFilter.emitterId}`
+          `${crossFilter.name}${crossFilter.emitterId}`
         }
       />
     ),
     [filtersInScope.length],
   );
+
 
   const items = useMemo(() => {
     const crossFilters = selectedCrossFilters.map(c => ({
@@ -519,6 +557,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       });
     }
 
+
     const chartCustomizations = customizationsInScope.map(item => {
       if (isChartCustomizationDivider(item)) {
         return {
@@ -562,12 +601,8 @@ const FilterControls: FC<FilterControlsProps> = ({
       };
     });
 
-    return [
-      ...chartCustomizations,
-      ...dividerItems,
-      ...crossFilters,
-      ...nativeFiltersInScope,
-    ];
+
+    return [...nativeFiltersInScope, ...dividerItems, ...chartCustomizations];
   }, [
     filtersInScope,
     renderer,
@@ -580,48 +615,49 @@ const FilterControls: FC<FilterControlsProps> = ({
     chartCustomizationValues.length,
   ]);
 
+
   const renderHorizontalContent = useCallback(
     () => (
-      <div
-        css={(theme: SupersetTheme) => css`
+      <>
+        <div
+          css={(theme: SupersetTheme) => css`
           padding: 0 ${theme.sizeUnit * 4}px;
           min-width: 0;
           flex: 1;
         `}
-      >
-        <DropdownContainer
-          items={items}
-          dropdownTriggerIcon={
-            <Icons.FilterOutlined
-              css={css`
+        >
+          <DropdownContainer
+            items={items}
+            dropdownTriggerIcon={
+              <Icons.FilterOutlined
+                css={css`
                 && {
                   margin-right: -4px;
                   display: flex;
                 }
               `}
-            />
-          }
-          dropdownTriggerText={t('More filters')}
-          dropdownTriggerCount={activeOverflowedFiltersInScope.length}
-          dropdownTriggerTooltip={
-            activeOverflowedFiltersInScope.length === 0
-              ? t('No applied filters')
-              : t(
+              />
+            }
+            dropdownTriggerText={t('More filters')}
+            dropdownTriggerCount={activeOverflowedFiltersInScope.length}
+            dropdownTriggerTooltip={
+              activeOverflowedFiltersInScope.length === 0
+                ? t('No applied filters')
+                : t(
                   'Applied filters: %s',
                   activeOverflowedFiltersInScope
                     .map(filter => filter.name)
                     .join(', '),
                 )
-          }
-          dropdownContent={
-            overflowedFiltersInScope.length ||
-            overflowedCrossFilters.length ||
-            (filtersOutOfScope.length && showCollapsePanel) ||
-            (customizationsOutOfScope.length && showCustomizationCollapsePanel)
-              ? () => (
+            }
+            dropdownContent={
+              overflowedFiltersInScope.length ||
+                (filtersOutOfScope.length && showCollapsePanel) ||
+                (customizationsOutOfScope.length && showCustomizationCollapsePanel)
+                ? () => (
                   <>
                     <FiltersDropdownContent
-                      overflowedCrossFilters={overflowedCrossFilters}
+                      overflowedCrossFilters={[]}
                       filtersInScope={overflowedFiltersInScope}
                       filtersOutOfScope={filtersOutOfScope}
                       renderer={renderer}
@@ -638,23 +674,59 @@ const FilterControls: FC<FilterControlsProps> = ({
                     )}
                   </>
                 )
-              : undefined
-          }
-          forceRender={hasRequiredFirst}
-          ref={popoverRef}
-          onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
-            if (
-              nextOverflowedIds.length !== overflowedIds.length ||
-              overflowedIds.reduce(
-                (a, b, i) => a || b !== nextOverflowedIds[i],
-                false,
-              )
-            ) {
-              setOverflowedIds(nextOverflowedIds);
+                : undefined
             }
-          }}
-        />
-      </div>
+            forceRender={hasRequiredFirst}
+            ref={popoverRef}
+            onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
+              if (
+                nextOverflowedIds.length !== overflowedIds.length ||
+                overflowedIds.reduce(
+                  (a, b, i) => a || b !== nextOverflowedIds[i],
+                  false,
+                )
+              ) {
+                setOverflowedIds(nextOverflowedIds);
+              }
+            }}
+          />
+        </div>
+        {selectedCrossFilters.length > 0 && (
+          <div
+            css={(theme: SupersetTheme) => css`
+            padding: 0 ${theme.sizeUnit}px;
+            flex-shrink: 0;
+          `}
+          >
+            <DropdownContainer
+              items={[]}
+              dropdownTriggerIcon={
+                <Icons.FilterOutlined
+                  css={css`
+                  && {
+                    margin-right: -4px;
+                    display: flex;
+                  }
+                `}
+                />
+              }
+              dropdownTriggerText={t('Cross filters')}
+              dropdownTriggerCount={selectedCrossFilters.length}
+              dropdownContent={() => (
+                <FiltersDropdownContent
+                  overflowedCrossFilters={selectedCrossFilters}
+                  filtersInScope={[]}
+                  filtersOutOfScope={[]}
+                  renderer={() => null}
+                  rendererCrossFilter={rendererCrossFilter}
+                  showCollapsePanel={false}
+                  forceRenderOutOfScope={false}
+                />
+              )}
+            />
+          </div>
+        )}
+      </>
     ),
     [
       items,
@@ -673,11 +745,13 @@ const FilterControls: FC<FilterControlsProps> = ({
     ],
   );
 
+
   const overflowedByIndex = useMemo(() => {
     const filtersOutOfScopeIds = new Set(filtersOutOfScope.map(({ id }) => id));
     const overflowedFiltersInScopeIds = new Set(
       overflowedFiltersInScope.map(({ id }) => id),
     );
+
 
     return filtersWithValues.map(filter => {
       // Out-of-scope filters in vertical mode are in a Collapse panel, not overflowed
@@ -693,11 +767,13 @@ const FilterControls: FC<FilterControlsProps> = ({
     filterBarOrientation,
   ]);
 
+
   useEffect(() => {
     if (outlinedFilterId && overflowedIds.includes(outlinedFilterId)) {
       popoverRef?.current?.open();
     }
   }, [outlinedFilterId, lastUpdated, popoverRef, overflowedIds]);
+
 
   return (
     <>
@@ -719,5 +795,6 @@ const FilterControls: FC<FilterControlsProps> = ({
     </>
   );
 };
+
 
 export default memo(FilterControls);
