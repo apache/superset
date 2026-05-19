@@ -16,33 +16,10 @@
 # under the License.
 """Tests for superset/commands/dataset/importers/v1/utils.py temporal helpers."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
-
-
-def _make_dataset_col(col_type: str) -> MagicMock:
-    from sqlalchemy import Date, DateTime
-
-    col = MagicMock()
-    col.column_name = "ts"
-    col.type = DateTime() if col_type == "datetime" else Date()
-    return col
-
-
-def _apply_temporal_conversion(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
-    """
-    Exercise the temporal-column conversion block from load_data() in isolation,
-    by importing and calling the relevant logic directly.
-    """
-    from sqlalchemy import DateTime
-
-    from superset.commands.dataset.importers.v1.utils import _convert_temporal_columns
-
-    dtype = {col_name: DateTime()}
-    _convert_temporal_columns(df, dtype)
-    return df
 
 
 class TestConvertTemporalColumns:
@@ -93,7 +70,32 @@ class TestConvertTemporalColumns:
         )
 
         df = pd.DataFrame({"ts": ["not-a-date"]})
-        with pytest.raises(pd.errors.ParserError):
+        with pytest.raises((ValueError, pd.errors.ParserError)):
+            _convert_temporal_columns(df, {"ts": DateTime()})
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            ["3118-01-01", "not-a-date"],
+            ["not-a-date", "3118-01-01"],
+        ],
+    )
+    def test_mixed_out_of_bounds_and_malformed_still_raises(
+        self, values: list[str]
+    ) -> None:
+        """
+        A column mixing out-of-bounds and malformed dates must raise, not silently
+        coerce the malformed value to NaT. Both orderings are tested to ensure the
+        invariant holds regardless of which error pandas encounters first.
+        """
+        from sqlalchemy import DateTime
+
+        from superset.commands.dataset.importers.v1.utils import (
+            _convert_temporal_columns,
+        )
+
+        df = pd.DataFrame({"ts": values})
+        with pytest.raises((ValueError, pd.errors.ParserError)):
             _convert_temporal_columns(df, {"ts": DateTime()})
 
     def test_warning_count_excludes_preexisting_nulls(self) -> None:

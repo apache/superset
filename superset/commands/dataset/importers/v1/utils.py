@@ -200,9 +200,22 @@ def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
             try:
                 df[column_name] = pd.to_datetime(df[column_name])
             except OutOfBoundsDatetime:
-                converted = pd.to_datetime(df[column_name], errors="coerce")
-                # net-new NaTs from coercion, excluding pre-existing nulls
-                n_coerced = int(converted.isna().sum() - df[column_name].isna().sum())
+                # Row-level fallback: coerce only OOB values; re-raise for malformed
+                # strings. Whole-column errors="coerce" would silently swallow
+                # malformed values that happen to share a column with an OOB date.
+                original = df[column_name].copy()
+                result = []
+                for val in original:
+                    if pd.isna(val):
+                        result.append(pd.NaT)
+                        continue
+                    try:
+                        result.append(pd.to_datetime(val))
+                    except OutOfBoundsDatetime:
+                        result.append(pd.NaT)
+                    # Other exceptions (e.g. malformed strings) propagate
+                converted = pd.Series(result, index=original.index)
+                n_coerced = int(converted.isna().sum() - original.isna().sum())
                 if n_coerced > 0:
                     logger.warning(
                         "Coerced %d out-of-bounds datetime value(s) "
