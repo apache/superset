@@ -234,10 +234,11 @@ def test_run_sync_query_cta_config(
     test_client,
     ctas_method: CTASMethod,
 ) -> None:
-    if backend() == "sqlite":
+    db_backend = backend()
+    if db_backend == "sqlite":
         # sqlite doesn't support schemas
         return
-    q = "`" if backend() == "mysql" else '"'
+    q = "`" if db_backend == "mysql" else '"'
     tmp_table_name = f"{TEST_SYNC_CTA}_{ctas_method.name.lower()}"
     tbl = f"{q}{CTAS_SCHEMA_NAME}{q}.{q}{tmp_table_name}{q}"
     expected = (
@@ -270,10 +271,11 @@ def test_run_async_query_cta_config(
     test_client,
     ctas_method: CTASMethod,
 ) -> None:
-    if backend() == "sqlite":
+    db_backend = backend()
+    if db_backend == "sqlite":
         # sqlite doesn't support schemas
         return
-    q = "`" if backend() == "mysql" else '"'
+    q = "`" if db_backend == "mysql" else '"'
     tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.name.lower()}"
     tbl = f"{q}{CTAS_SCHEMA_NAME}{q}.{q}{tmp_table_name}{q}"
     expected = (
@@ -306,7 +308,8 @@ def test_run_async_cta_query(
     test_client,
     ctas_method: CTASMethod,
 ) -> None:
-    q = "`" if backend() == "mysql" else '"'
+    db_backend = backend()
+    q = "`" if db_backend == "mysql" else '"'
     table_name = f"{TEST_ASYNC_CTA}_{ctas_method.name.lower()}"
     expected = (
         f"CREATE {ctas_method.name} {q}{table_name}{q} AS\n"
@@ -328,7 +331,7 @@ def test_run_async_cta_query(
 
     assert query.executed_sql == expected
     assert QUERY == query.sql
-    assert query.rows == (1 if backend() == "presto" else 0)
+    assert query.rows == (1 if db_backend == "presto" else 0)
     assert query.select_as_cta
     assert query.select_as_cta_used
 
@@ -341,7 +344,8 @@ def test_run_async_cta_query_with_lower_limit(
     test_client,
     ctas_method: CTASMethod,
 ) -> None:
-    q = "`" if backend() == "mysql" else '"'
+    db_backend = backend()
+    q = "`" if db_backend == "mysql" else '"'
     tmp_table = f"{TEST_ASYNC_LOWER_LIMIT}_{ctas_method.name.lower()}"
     expected = (
         f"CREATE {ctas_method.name} {q}{tmp_table}{q} AS\n"
@@ -361,14 +365,14 @@ def test_run_async_cta_query_with_lower_limit(
     sqlite_select_sql = f"SELECT\n  *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
     assert query.select_sql == (
         sqlite_select_sql
-        if backend() == "sqlite"
+        if db_backend == "sqlite"
         else get_select_star(tmp_table, query.limit)
     )
 
     assert query.executed_sql == expected
     assert QUERY == query.sql
 
-    assert query.rows == (1 if backend() == "presto" else 0)
+    assert query.rows == (1 if db_backend == "presto" else 0)
     assert query.limit == 50000
     assert query.select_as_cta
     assert query.select_as_cta_used
