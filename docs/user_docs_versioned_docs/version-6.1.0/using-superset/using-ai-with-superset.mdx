@@ -1,0 +1,312 @@
+---
+title: Using AI with Superset
+hide_title: true
+sidebar_position: 5
+version: 1
+---
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+# Using AI with Superset
+
+Superset supports AI assistants through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). Connect Claude, ChatGPT, or other MCP-compatible clients to explore your data, build charts, create dashboards, and run SQL -- all through natural language.
+
+:::info
+Requires Superset 5.0+. Your admin must enable and deploy the MCP server before you can connect.
+See the **[MCP Server admin guide](/admin-docs/configuration/mcp-server)** for setup instructions.
+:::
+
+---
+
+## What Can AI Do with Superset?
+
+### Explore Your Data
+
+Ask your AI assistant to browse what's available in your Superset instance:
+
+- **List datasets** -- see all datasets you have access to, with filtering and search
+- **Get dataset details** -- column names, types, available metrics, and filters
+- **List charts and dashboards** -- find existing visualizations by name or keyword
+- **Get chart and dashboard details** -- understand what a chart shows, its query, and configuration
+
+**Example prompts:**
+> "What datasets are available?"
+> "Show me the columns in the sales_orders dataset"
+> "Find dashboards related to revenue"
+
+### Build Charts
+
+Describe the visualization you want and AI creates it for you:
+
+- **Preview-first workflow** -- by default AI generates an Explore link so you can review the chart before it is saved. Say "save it" to commit permanently
+- **Create charts from natural language** -- describe what you want to see and AI picks the right chart type, metrics, and dimensions
+- **Preview before saving** -- `generate_chart` defaults to `save_chart=False`, showing the chart in Explore before it's committed. Ask AI to save once you're satisfied.
+- **Modify existing charts** -- `update_chart` also supports preview mode so you can review changes before saving (update filters, change chart types, add metrics)
+- **Get Explore links** -- open any chart in Superset's Explore view for further refinement
+
+**Example prompts:**
+> "Create a bar chart showing monthly revenue by region from the sales dataset"
+> "Update chart 42 to use a line chart instead"
+> "Give me a link to explore this chart further"
+
+:::tip Preview-first workflow
+Charts are **not saved by default**. The workflow is intentionally iterative:
+
+1. **Explore** — AI generates an Explore link so you can see the chart before it exists in Superset
+2. **Iterate** — ask the AI to adjust the chart; changes are previewed without touching the database
+3. **Save** — when you're happy, say "save it" and the chart is permanently stored
+
+To skip the preview and save immediately, include "and save it" in your prompt.
+:::
+
+### Create Dashboards
+
+Build dashboards from a collection of charts:
+
+- **Generate dashboards** -- create a new dashboard with a set of charts, automatically laid out
+- **Add charts to existing dashboards** -- place a chart on an existing dashboard with automatic positioning
+
+**Example prompts:**
+> "Create a dashboard called 'Q4 Sales Overview' with charts 10, 15, and 22"
+> "Add the revenue trend chart to the executive dashboard"
+
+### Browse Databases
+
+Discover what database connections are configured in your Superset instance:
+
+- **List databases** -- see all database connections you have access to
+- **Get database details** -- name, backend type (PostgreSQL, Snowflake, etc.), and connection status
+
+**Example prompts:**
+> "What databases are connected to Superset?"
+> "Show me details about the data warehouse connection"
+
+### Create Virtual Datasets
+
+Build ad-hoc SQL datasets that can be used as the basis for charts:
+
+- **Create virtual datasets** -- write a SQL query and save it as a reusable dataset
+- **Use immediately in charts** -- the returned dataset ID can be passed directly to chart creation
+
+**Example prompts:**
+> "Create a dataset from: SELECT region, SUM(revenue) as total_revenue FROM orders GROUP BY region"
+> "Make a virtual dataset called 'monthly_signups' from the users table filtered to last 12 months"
+
+### Run SQL Queries
+
+Execute SQL directly through your AI assistant:
+
+- **Run queries** -- execute SQL with full Superset RBAC enforcement (you can only query data your roles allow)
+- **Open SQL Lab** -- get a link to SQL Lab pre-populated with a query, ready to run and explore
+- **Save queries** -- save a SQL query to SQL Lab's Saved Queries for later reuse
+
+**Example prompts:**
+> "Run this query: SELECT region, SUM(revenue) FROM sales GROUP BY region"
+> "Open SQL Lab with a query to show the top 10 customers by order count"
+> "Save this query as 'Weekly Revenue Report'"
+
+### Analyze Chart Data
+
+Pull the raw data behind any chart:
+
+- **Get chart data** -- retrieve the data a chart displays, with support for JSON, CSV, and Excel export formats
+- **Inspect results** -- useful for verifying what a visualization shows or feeding data into other tools
+
+**Example prompts:**
+> "Get the data behind chart 42"
+> "Export chart 15 data as CSV"
+
+### Check Instance Status
+
+- **Health check** -- verify your Superset instance is up and the MCP connection is working
+- **Instance info** -- get high-level statistics about your Superset instance (number of datasets, charts, dashboards)
+
+**Example prompts:**
+> "Is Superset healthy?"
+> "How many dashboards are in this instance?"
+
+---
+
+## Connecting Your AI Client
+
+Once your admin has deployed the MCP server, connect your AI client using the instructions below.
+
+### Claude Desktop
+
+Edit your Claude Desktop config file:
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "url": "http://localhost:5008/mcp"
+    }
+  }
+}
+```
+
+Restart Claude Desktop. The hammer icon in the chat bar confirms the connection.
+
+If your admin has enabled JWT authentication, you may need to include a token:
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote@latest",
+        "http://your-superset-host:5008/mcp",
+        "--header",
+        "Authorization: Bearer YOUR_TOKEN"
+      ]
+    }
+  }
+}
+```
+
+### Claude Code (CLI)
+
+Add to your project's `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "type": "url",
+      "url": "http://localhost:5008/mcp"
+    }
+  }
+}
+```
+
+### ChatGPT
+
+1. Click your profile icon > **Settings** > **Apps and Connectors**
+2. Enable **Developer Mode** in Advanced Settings
+3. In the chat composer, press **+** > **Add sources** > **App** > **Connect more** > **Create app**
+4. Enter a name and your MCP server URL
+5. Click **I understand and continue**
+
+:::info
+ChatGPT MCP connectors require a Pro, Team, Enterprise, or Edu plan.
+:::
+
+Ask your admin for the MCP server URL and any authentication tokens you need.
+
+---
+
+## Tips for Best Results
+
+- **Be specific** -- "Create a bar chart of monthly revenue by region from the sales dataset" works better than "Make me a chart"
+- **Start with exploration** -- ask what datasets and charts exist before creating new ones
+- **Review AI-generated content** -- always check chart configurations and SQL before saving or sharing
+- **Use Explore for refinement** -- ask AI for an Explore link, then fine-tune interactively in the Superset UI
+- **Check permissions if you get errors** -- AI respects Superset's RBAC, so you can only access data your roles allow
+
+---
+
+## Available Tools Reference
+
+### Exploration & Discovery
+
+| Tool | Description |
+|------|-------------|
+| `health_check` | Verify the MCP server is running and connected |
+| `get_instance_info` | Get instance statistics (dataset, chart, dashboard counts) |
+| `get_schema` | Discover available charts, datasets, and dashboards with schema info |
+
+### Datasets
+
+| Tool | Description |
+|------|-------------|
+| `list_datasets` | List datasets with filtering and search |
+| `get_dataset_info` | Get dataset metadata (columns, metrics, filters) |
+| `create_virtual_dataset` | Create a virtual dataset from a SQL query |
+
+### Charts
+
+| Tool | Description |
+|------|-------------|
+| `list_charts` | List charts with filtering and search |
+| `get_chart_info` | Get chart metadata and configuration |
+| `get_chart_data` | Retrieve chart data (JSON, CSV, or Excel) |
+| `get_chart_preview` | Generate a chart preview (URL, ASCII, table, or Vega-Lite) |
+| `get_chart_type_schema` | Get the configuration schema for a chart type |
+| `generate_chart` | Create a new chart from a specification (defaults to preview mode — review before saving) |
+| `update_chart` | Modify an existing chart's configuration (pass `generate_preview=False` to persist immediately instead of returning a preview URL) |
+| `update_chart_preview` | Update a cached chart preview without saving |
+| `generate_explore_link` | Generate an Explore URL for interactive visualization |
+
+### Dashboards
+
+| Tool | Description |
+|------|-------------|
+| `list_dashboards` | List dashboards with filtering and search |
+| `get_dashboard_info` | Get dashboard metadata and layout |
+| `generate_dashboard` | Create a new dashboard with specified charts |
+| `add_chart_to_existing_dashboard` | Add a chart to an existing dashboard |
+
+### SQL
+
+| Tool | Description |
+|------|-------------|
+| `execute_sql` | Run a SQL query with RBAC enforcement |
+| `save_sql_query` | Persist a SQL query to SQL Lab's saved queries |
+| `open_sql_lab_with_context` | Open SQL Lab with a pre-populated query |
+
+### Databases
+
+| Tool | Description |
+|------|-------------|
+| `list_databases` | List configured database connections |
+| `get_database_info` | Get details about a specific database connection |
+
+---
+
+## Troubleshooting
+
+### "Connection refused" or "Cannot connect"
+
+- Confirm the MCP server URL with your admin
+- For Claude Desktop: fully quit the app (not just close the window) and restart after config changes
+- Check that the URL path ends with `/mcp` (e.g., `http://localhost:5008/mcp`)
+
+### "Permission denied" or missing data
+
+- Superset's RBAC controls what you can access through AI, just like in the Superset UI
+- Ask your admin to verify your roles and permissions
+- Try accessing the same data through the Superset web UI to confirm your access
+
+### "Response too large"
+
+- Ask for smaller result sets: use filters, reduce `page_size`, or request specific columns
+- Example: "Show me the top 10 rows from the sales dataset" instead of "Show me all sales data"
+
+### AI doesn't see Superset tools
+
+- Verify the connection in your AI client (e.g., the hammer icon in Claude Desktop)
+- Ask the AI "What Superset tools are available?" to confirm the connection
+- Restart your AI client if you recently changed the configuration
