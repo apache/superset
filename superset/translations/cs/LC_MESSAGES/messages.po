@@ -10403,7 +10403,7 @@ msgstr "Běží"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Spouští se příkaz %(statement_num)s z %(statement_count)s"
+msgstr "Spouští se příkaz %(block_num)s z %(block_count)s"
 
 msgid "SAT"
 msgstr "SO"

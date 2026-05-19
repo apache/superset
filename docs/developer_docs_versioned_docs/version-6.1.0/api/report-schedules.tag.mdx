@@ -1,0 +1,22 @@
+---
+id: report-schedules
+title: "Report Schedules"
+description: "Report Schedules"
+custom_edit_url: null
+---
+
+Configure scheduled reports and alerts.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `DELETE` | [Bulk delete report schedules](./bulk-delete-report-schedules) | `/api/v1/report/` |
+| `GET` | [Get a list of report schedules](./get-a-list-of-report-schedules) | `/api/v1/report/` |
+| `POST` | [Create a report schedule](./create-a-report-schedule) | `/api/v1/report/` |
+| `GET` | [Get metadata information about this API resource (report--info)](./get-metadata-information-about-this-api-resource-report-info) | `/api/v1/report/_info` |
+| `DELETE` | [Delete a report schedule](./delete-a-report-schedule) | `/api/v1/report/{pk}` |
+| `GET` | [Get a report schedule](./get-a-report-schedule) | `/api/v1/report/{pk}` |
+| `PUT` | [Update a report schedule](./update-a-report-schedule) | `/api/v1/report/{pk}` |
+| `GET` | [Get a list of report schedule logs](./get-a-list-of-report-schedule-logs) | `/api/v1/report/{pk}/log/` |
+| `GET` | [Get a report schedule log (report-pk-log-log-id)](./get-a-report-schedule-log-report-pk-log-log-id) | `/api/v1/report/{pk}/log/{log_id}` |
+| `GET` | [Get related fields data (report-related-column-name)](./get-related-fields-data-report-related-column-name) | `/api/v1/report/related/{column_name}` |
+| `GET` | [Get slack channels](./get-slack-channels) | `/api/v1/report/slack_channels/` |
