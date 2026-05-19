@@ -63,6 +63,95 @@ def derive_version_uuid(entity_uuid: UUID, transaction_id: int) -> UUID:
     return uuid.uuid5(VERSION_UUID_NAMESPACE, f"{entity_uuid}:{transaction_id}")
 
 
+def _resolve_version_tables(
+    model_cls: type,
+) -> tuple[sa.Table, sa.Table, sa.Table]:
+    """Return the (version, transaction, user) ``Table`` objects used by the
+    listing and snapshot queries.
+
+    All three lookups happen inside this module on every read; centralising
+    the trio (a) keeps the imports in one place and (b) makes the join helper
+    below take a uniform signature.
+    """
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy_continuum import versioning_manager
+
+    from superset import security_manager
+
+    ver_tbl = version_class(model_cls).__table__
+    tx_tbl = versioning_manager.transaction_cls.__table__
+    user_tbl = security_manager.user_model.__table__
+    return ver_tbl, tx_tbl, user_tbl
+
+
+def _version_with_tx_user_join(
+    ver_tbl: sa.Table, tx_tbl: sa.Table, user_tbl: sa.Table
+) -> Any:
+    """Build the version → transaction → user left-join used by both
+    :func:`list_versions` and :func:`get_version`. The user-side join is
+    a left-outer so saves with no Flask user context (CLI, Celery, import)
+    still surface in the result with ``changed_by = None``.
+    """
+    return ver_tbl.join(
+        tx_tbl, ver_tbl.c.transaction_id == tx_tbl.c.id
+    ).outerjoin(user_tbl, tx_tbl.c.user_id == user_tbl.c.id)
+
+
+def _baseline_first_ordering(ver_tbl: sa.Table) -> tuple[Any, ...]:
+    """Order ``(operation_type != 0).asc(), transaction_id.asc()`` so any
+    op=0 row — Continuum's INSERT or our synthetic baseline — sorts to
+    position 0 regardless of its transaction_id. A single entity never has
+    more than one op=0 row (Continuum tracks one creation per live entity;
+    our baseline listener only fires when no prior version rows exist), so
+    this gives a stable chronological order with the "original" version
+    always first.
+    """
+    return (
+        (ver_tbl.c.operation_type != 0).asc(),
+        ver_tbl.c.transaction_id.asc(),
+    )
+
+
+def _user_select_cols(user_tbl: sa.Table) -> list[Any]:
+    """Columns to select from ``user_tbl`` to build a ``changed_by`` dict.
+    Labels ``user_tbl.c.id`` as ``"user_id"`` so callers can read the row
+    by a stable key regardless of whether they also select the version
+    table's ``id`` column.
+    """
+    return [
+        user_tbl.c.id.label("user_id"),
+        user_tbl.c.username,
+        user_tbl.c.first_name,
+        user_tbl.c.last_name,
+    ]
+
+
+def _changed_by_from_row(row: Any) -> Optional[dict[str, Any]]:
+    """Project the user columns from a query row onto the API's
+    ``changed_by`` shape, or ``None`` for saves with no Flask user context
+    (CLI / Celery / import / unauthenticated). Expects the user columns to
+    have been selected via :func:`_user_select_cols` so the row keys are
+    ``user_id`` / ``username`` / ``first_name`` / ``last_name``.
+    """
+    if row["user_id"] is None:
+        return None
+    return {
+        "id": row["user_id"],
+        "username": row["username"],
+        "first_name": row["first_name"],
+        "last_name": row["last_name"],
+    }
+
+
+def _entity_kind_for(model_cls: type) -> Optional[str]:
+    """Return the ``version_changes.entity_kind`` value for *model_cls*, or
+    ``None`` when the class isn't in the change-records taxonomy."""
+    # pylint: disable=import-outside-toplevel
+    from superset.versioning.changes import _ENTITY_KIND_BY_CLASS_NAME
+
+    return _ENTITY_KIND_BY_CLASS_NAME.get(model_cls.__name__)
+
+
 def find_active_by_uuid(model_cls: type, entity_uuid: UUID) -> Optional[Any]:
     """Return the live entity matching *entity_uuid*, or None if not found.
 
@@ -219,101 +308,48 @@ def list_versions(
     off ``version_transaction.user_id``, or ``None`` when the save had no
     Flask user context (CLI, import, etc.).
     """
-    # pylint: disable=import-outside-toplevel
-    from sqlalchemy_continuum import versioning_manager
-
-    from superset import security_manager
-
     entity = find_active_by_uuid(model_cls, entity_uuid)
     if entity is None:
         return None
 
-    ver_cls = version_class(model_cls)
-    ver_tbl = ver_cls.__table__
-    tx_tbl = versioning_manager.transaction_cls.__table__
-    user_tbl = security_manager.user_model.__table__
-
-    # Left-join version → transaction → user so we can pull the acting
-    # user alongside each version row in a single query.
-    #
-    # Order by ``(operation_type != 0, transaction_id)`` so any op=0 row
-    # — either Continuum's INSERT or our synthetic baseline — sorts to
-    # version_number 0 regardless of its transaction_id. A single
-    # entity never has more than one op=0 row (Continuum only tracks
-    # one creation per live entity; our baseline listener only fires
-    # when no prior version rows exist), so this gives a stable
-    # chronological order with the "original" version always first.
+    ver_tbl, tx_tbl, user_tbl = _resolve_version_tables(model_cls)
     stmt = (
         sa.select(
             ver_tbl.c.transaction_id,
             ver_tbl.c.operation_type,
             tx_tbl.c.issued_at,
-            user_tbl.c.id.label("user_id"),
-            user_tbl.c.username,
-            user_tbl.c.first_name,
-            user_tbl.c.last_name,
+            *_user_select_cols(user_tbl),
         )
-        .select_from(
-            ver_tbl.join(tx_tbl, ver_tbl.c.transaction_id == tx_tbl.c.id).outerjoin(
-                user_tbl, tx_tbl.c.user_id == user_tbl.c.id
-            )
-        )
+        .select_from(_version_with_tx_user_join(ver_tbl, tx_tbl, user_tbl))
         .where(ver_tbl.c.id == entity.id)
-        .order_by(
-            (ver_tbl.c.operation_type != 0).asc(),
-            ver_tbl.c.transaction_id.asc(),
-        )
+        .order_by(*_baseline_first_ordering(ver_tbl))
     )
-
     rows = db.session.execute(stmt).mappings().all()
 
-    # Batch-load change records for every listed transaction in one
-    # query, then distribute per-tx (T050). ``entity_kind`` is
-    # derived from the model class via the mapping in
-    # ``superset.versioning.changes`` so the API filter
-    # ``WHERE entity_kind = 'chart' AND entity_id = ?`` can be
+    # Batch-load change records for every listed transaction in one query
+    # (T050). ``entity_kind`` is derived from the model class so the API
+    # filter ``WHERE entity_kind = 'chart' AND entity_id = ?`` can be
     # precise when multiple versioned entities share a flush.
-    # pylint: disable=import-outside-toplevel
-    from superset.versioning.changes import _ENTITY_KIND_BY_CLASS_NAME
+    changes_by_tx: dict[int, list[dict[str, Any]]] = {}
+    entity_kind = _entity_kind_for(model_cls)
+    if entity_kind is not None:
+        tx_ids = [row["transaction_id"] for row in rows]
+        changes_by_tx = list_change_records_batch(entity_kind, entity.id, tx_ids)
 
-    entity_kind = _ENTITY_KIND_BY_CLASS_NAME.get(model_cls.__name__)
-    tx_ids = [row["transaction_id"] for row in rows]
-    changes_by_tx = (
-        list_change_records_batch(entity_kind, entity.id, tx_ids)
-        if entity_kind is not None
-        else {}
-    )
-
-    result: list[dict[str, Any]] = []
-    for version_number, row in enumerate(rows):
-        changed_by: Optional[dict[str, Any]]
-        if row["user_id"] is None:
-            changed_by = None
-        else:
-            changed_by = {
-                "id": row["user_id"],
-                "username": row["username"],
-                "first_name": row["first_name"],
-                "last_name": row["last_name"],
-            }
-
-        result.append(
-            {
-                "version_uuid": derive_version_uuid(
-                    entity_uuid, row["transaction_id"]
-                ),
-                "version_number": version_number,
-                "transaction_id": row["transaction_id"],
-                "operation_type": _OP_TYPE_LABELS.get(
-                    row["operation_type"], str(row["operation_type"])
-                ),
-                "issued_at": row["issued_at"],
-                "changed_by": changed_by,
-                "changes": changes_by_tx.get(row["transaction_id"], []),
-            }
-        )
-
-    return result
+    return [
+        {
+            "version_uuid": derive_version_uuid(entity_uuid, row["transaction_id"]),
+            "version_number": version_number,
+            "transaction_id": row["transaction_id"],
+            "operation_type": _OP_TYPE_LABELS.get(
+                row["operation_type"], str(row["operation_type"])
+            ),
+            "issued_at": row["issued_at"],
+            "changed_by": _changed_by_from_row(row),
+            "changes": changes_by_tx.get(row["transaction_id"], []),
+        }
+        for version_number, row in enumerate(rows)
+    ]
 
 
 def resolve_version_uuid(
@@ -375,9 +411,6 @@ def get_version(
     match — callers should translate to 404.
     """
     # pylint: disable=import-outside-toplevel
-    from sqlalchemy_continuum import versioning_manager
-
-    from superset import security_manager
     from superset.connectors.sqla.models import SqlaTable
 
     entity = find_active_by_uuid(model_cls, entity_uuid)
@@ -388,31 +421,16 @@ def get_version(
     if version_num is None:
         return None
 
-    ver_cls = version_class(model_cls)
-    ver_tbl = ver_cls.__table__
-    tx_tbl = versioning_manager.transaction_cls.__table__
-    user_tbl = security_manager.user_model.__table__
-
-    # Fetch the version row + its transaction metadata + acting user.
+    ver_tbl, tx_tbl, user_tbl = _resolve_version_tables(model_cls)
     stmt = (
         sa.select(
             ver_tbl,
             tx_tbl.c.issued_at,
-            user_tbl.c.id.label("_user_id"),
-            user_tbl.c.username,
-            user_tbl.c.first_name,
-            user_tbl.c.last_name,
+            *_user_select_cols(user_tbl),
         )
-        .select_from(
-            ver_tbl.join(tx_tbl, ver_tbl.c.transaction_id == tx_tbl.c.id).outerjoin(
-                user_tbl, tx_tbl.c.user_id == user_tbl.c.id
-            )
-        )
+        .select_from(_version_with_tx_user_join(ver_tbl, tx_tbl, user_tbl))
         .where(ver_tbl.c.id == entity.id)
-        .order_by(
-            (ver_tbl.c.operation_type != 0).asc(),
-            ver_tbl.c.transaction_id.asc(),
-        )
+        .order_by(*_baseline_first_ordering(ver_tbl))
         .offset(version_num)
         .limit(1)
     )
@@ -422,10 +440,9 @@ def get_version(
 
     # Project the entity's own scalar fields, skipping versioning
     # metadata columns.
-    meta_cols = {"transaction_id", "end_transaction_id", "operation_type"}
     result: dict[str, Any] = {}
     for col in ver_tbl.columns:
-        if col.name in meta_cols:
+        if col.name in {"transaction_id", "end_transaction_id", "operation_type"}:
             continue
         value = row[col.name]
         # uuid columns come back as UUID instances; make them JSON-safe.
@@ -433,27 +450,13 @@ def get_version(
             value = str(value)
         result[col.name] = value
 
-    changed_by: Optional[dict[str, Any]]
-    if row["_user_id"] is None:
-        changed_by = None
-    else:
-        changed_by = {
-            "id": row["_user_id"],
-            "username": row["username"],
-            "first_name": row["first_name"],
-            "last_name": row["last_name"],
-        }
-    # pylint: disable=import-outside-toplevel
-    from superset.versioning.changes import _ENTITY_KIND_BY_CLASS_NAME
-
-    entity_kind = _ENTITY_KIND_BY_CLASS_NAME.get(model_cls.__name__)
-    changes = (
-        list_change_records_batch(
+    changes: list[dict[str, Any]] = []
+    entity_kind = _entity_kind_for(model_cls)
+    if entity_kind is not None:
+        changes = list_change_records_batch(
             entity_kind, entity.id, [row["transaction_id"]]
         ).get(row["transaction_id"], [])
-        if entity_kind is not None
-        else []
-    )
+
     result["_version"] = {
         "version_uuid": str(version_uuid),
         "version_number": version_num,
@@ -462,7 +465,7 @@ def get_version(
             row["operation_type"], str(row["operation_type"])
         ),
         "issued_at": row["issued_at"],
-        "changed_by": changed_by,
+        "changed_by": _changed_by_from_row(row),
         "changes": changes,
     }
 
