@@ -125,7 +125,6 @@
     "@jsonforms/core": "^3.7.0",
     "@jsonforms/react": "^3.7.0",
     "@jsonforms/vanilla-renderers": "^3.7.0",
-    "@react-spring/web": "^10.0.3",
     "@reduxjs/toolkit": "^1.9.3",
     "@rjsf/antd": "^5.24.13",
     "@rjsf/core": "^5.24.13",
