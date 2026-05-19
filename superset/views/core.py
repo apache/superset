@@ -405,7 +405,6 @@ class Superset(BaseSupersetView):
         the form_data param with a form_data_key by saving the original content
         to the cache layer.
         """
-        redirect_url = request.url.replace("/superset/explore", "/explore")
         form_data_key = None
         if request_form_data := request.args.get("form_data"):
             parsed_form_data = loads_request_json(request_form_data)
@@ -421,17 +420,17 @@ class Superset(BaseSupersetView):
                     form_data=request_form_data,
                 )
                 form_data_key = CreateFormDataCommand(parameters).run()
-        if form_data_key:
-            url = parse.urlparse(redirect_url)
-            query = parse.parse_qs(url.query)
-            query.pop("form_data")
-            query["form_data_key"] = [form_data_key]
-            url = url._replace(query=parse.urlencode(query, True))
-            redirect_url = parse.urlunparse(url)
 
-        # Return a relative URL
-        url = parse.urlparse(redirect_url)
-        return f"{url.path}?{url.query}" if url.query else url.path
+        # Use `url_for` so subdirectory deployments inherit SCRIPT_NAME. The
+        # legacy `request.url.replace("/superset/explore", "/explore")` would
+        # strip the application-root segment and redirect outside the subdir.
+        query = parse.parse_qs(request.query_string.decode())
+        if form_data_key:
+            query.pop("form_data", None)
+            query["form_data_key"] = [form_data_key]
+        encoded_query = parse.urlencode(query, doseq=True)
+        path = url_for("ExploreView.root")
+        return f"{path}?{encoded_query}" if encoded_query else path
 
     @has_access
     @event_logger.log_this

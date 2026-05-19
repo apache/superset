@@ -306,6 +306,7 @@ export const SavedQueries = ({
               <ListViewCard
                 imgURL=""
                 url={`/sqllab?savedQueryId=${q.id}`}
+                linkComponent={Link}
                 title={q.label}
                 imgFallbackURL={assetUrl(
                   '/static/assets/images/empty-query.svg',

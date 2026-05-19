@@ -52,6 +52,21 @@ describe('SupersetClient applies the application root exactly once', () => {
     );
   });
 
+  // If an upstream bug emits a doubly-prefixed endpoint, a single-segment
+  // strip would still leak the second prefix to the wire. The greedy loop
+  // mirrors `stripAppRoot` so the runtime safety net fully neutralises
+  // repeated prefixes.
+  test('greedily strips repeated application-root segments', () => {
+    expect(
+      buildClient().getUrl({ endpoint: '/superset/superset/api/v1/chart' }),
+    ).toBe('https://config_host/superset/api/v1/chart');
+    expect(
+      buildClient().getUrl({
+        endpoint: '/superset/superset/superset/api/v1/chart',
+      }),
+    ).toBe('https://config_host/superset/api/v1/chart');
+  });
+
   test('dedupe is segment-boundary aware — `/supersetfoo` is not a prefix match', () => {
     expect(buildClient().getUrl({ endpoint: '/supersetfoo/x' })).toBe(
       'https://config_host/superset/supersetfoo/x',

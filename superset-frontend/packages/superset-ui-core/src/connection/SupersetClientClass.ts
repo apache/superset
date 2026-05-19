@@ -275,18 +275,18 @@ export default class SupersetClientClass {
     const host = inputHost ?? this.host;
     const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
 
-    // Strip a leading appRoot segment so callers that accidentally pre-prefix
+    // Strip leading appRoot segments so callers that accidentally pre-prefix
     // their endpoint (e.g. by wrapping with ensureAppRoot before passing to the
-    // client) do not produce a doubled `/superset/superset/...` URL. The L2
-    // static invariant still flags this pattern as a migration issue; this is
-    // the runtime safety net.
+    // client) do not produce a doubled `/superset/superset/...` URL. The strip
+    // is greedy to neutralize upstream double-prefix bugs, mirroring
+    // `stripAppRoot` in `src/utils/pathUtils`. The L2 static invariant still
+    // flags this pattern as a migration issue; this is the runtime safety net.
     let cleanEndpoint = endpoint;
     const root = this.appRoot;
     if (root) {
-      if (cleanEndpoint === root) {
-        cleanEndpoint = '';
-      } else if (cleanEndpoint.startsWith(`${root}/`)) {
-        cleanEndpoint = cleanEndpoint.slice(root.length);
+      while (cleanEndpoint === root || cleanEndpoint.startsWith(`${root}/`)) {
+        cleanEndpoint =
+          cleanEndpoint === root ? '' : cleanEndpoint.slice(root.length);
       }
     }
 
