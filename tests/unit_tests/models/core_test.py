@@ -536,6 +536,40 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
     )
 
 
+def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
+    """
+    Regression for #27897: a single SQLAlchemy ``Engine`` should be created per
+    process/URL, not on every ``_get_sqla_engine`` call.
+
+    Per the SQLAlchemy docs (https://docs.sqlalchemy.org/en/20/core/connections.html),
+    the engine is meant to be created once and reused so its connection pool
+    can do its job. Calling ``create_engine`` repeatedly defeats pooling, so
+    user-configured pools (e.g. via ``DB_CONNECTION_MUTATOR``) never persist
+    state between requests.
+
+    This test asserts that two successive ``_get_sqla_engine(nullpool=False)``
+    calls against the same database/catalog/schema only invoke
+    ``create_engine`` once. It will fail until ``Database._get_sqla_engine``
+    grows a per-URL engine cache.
+    """
+    from superset.models.core import Database
+
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+    create_engine = mocker.patch("superset.models.core.create_engine")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="trino://")
+    database._get_sqla_engine(nullpool=False)
+    database._get_sqla_engine(nullpool=False)
+
+    assert create_engine.call_count == 1, (
+        "Database._get_sqla_engine should reuse the engine for the same URL "
+        f"(create_engine called {create_engine.call_count} times)"
+    )
+
+
 def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     """
     Test user impersonation in `_get_sqla_engine`.
