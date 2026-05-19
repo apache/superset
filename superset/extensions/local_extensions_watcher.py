@@ -62,11 +62,17 @@ def _get_file_handler_class() -> Any:  # noqa: C901
 
             def __init__(self) -> None:
                 super().__init__()
-                # sha256 of last-seen content, keyed by absolute path
+                # sha256 of last-seen content, keyed by absolute path. Populated
+                # from existing files in watched `dist` dirs at startup (see
+                # `prime_baseline`) so that startup-noise inotify events from
+                # Docker VirtioFS reads don't get treated as the first real edit.
                 self._file_hashes: dict[str, str] = {}
-                # Deduplicate: only trigger once per second across all files
-                self._last_trigger: float = 0.0
                 self._lock = threading.Lock()
+                # Trailing debounce: schedule a single reload after a quiet
+                # window so simultaneous webpack writes coalesce into one
+                # restart that fires *after* the build settles.
+                self._debounce_seconds = 1.0
+                self._pending_timer: threading.Timer | None = None
 
             # ── helpers ──────────────────────────────────────────────────────
 
@@ -78,23 +84,65 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                 except OSError:
                     return None
 
-            def _content_changed(self, path: str) -> bool:
-                """Return True only when the file's content differs from last seen.
+            def prime_baseline(self, watch_dirs: set[str]) -> None:
+                """Pre-populate content hashes for existing files in watched
+                `dist` directories. Called once at watcher startup so a
+                developer's first real edit registers as a content change
+                rather than as the file's 'first observation'."""
+                for root_dir in watch_dirs:
+                    root = Path(root_dir)
+                    for path in root.rglob("*"):
+                        if not path.is_file():
+                            continue
+                        if "dist" not in path.parts:
+                            continue
+                        digest = self._sha256(str(path))
+                        if digest is not None:
+                            self._file_hashes[str(path)] = digest
 
-                The first time a path is observed its hash is stored as the baseline
-                and False is returned — that event is a 'first-seen', not a change.
-                Only a subsequent event where the digest differs from the baseline
-                is treated as a genuine content change.
+            def _content_changed(self, path: str) -> bool:
+                """Return True when the file's content differs from last seen.
+
+                With `prime_baseline` called at startup, the baseline reflects
+                what was on disk when the watcher started. A first observation
+                that differs (or doesn't exist in baseline) is treated as a
+                genuine change.
                 """
                 digest = self._sha256(path)
                 if digest is None:
                     return False
                 old_digest = self._file_hashes.get(path)
                 self._file_hashes[path] = digest
-                if old_digest is None:
-                    # First observation — record baseline, do not trigger restart.
-                    return False
+                # New file (not in baseline) is a real change; otherwise compare.
                 return old_digest != digest
+
+            def _trigger_reload(self, source_path: str) -> None:
+                """Touch the reload-trigger sentinel; Flask's --extra-files
+                watcher reloads on its mtime change."""
+                logger.info("File change settled in LOCAL_EXTENSIONS: %s", source_path)
+                logger.info("Triggering restart by touching %s", RELOAD_TRIGGER)
+                try:
+                    os.utime(RELOAD_TRIGGER, (time.time(), time.time()))
+                except OSError as e:
+                    logger.warning(
+                        "Failed to touch reload trigger %s: %s", RELOAD_TRIGGER, e
+                    )
+
+            def _schedule_reload(self, source_path: str) -> None:
+                """Trailing-debounce: cancel any pending reload and schedule a
+                new one for `_debounce_seconds` from now. Each new event resets
+                the timer, so the reload fires only after a quiet window."""
+                with self._lock:
+                    if self._pending_timer is not None:
+                        self._pending_timer.cancel()
+                    timer = threading.Timer(
+                        self._debounce_seconds,
+                        self._trigger_reload,
+                        args=(source_path,),
+                    )
+                    timer.daemon = True
+                    self._pending_timer = timer
+                    timer.start()
 
             # ── event handler ─────────────────────────────────────────────────
 
@@ -109,33 +157,37 @@ def _get_file_handler_class() -> Any:  # noqa: C901
                 ):
                     return
 
-                # Only care about files inside a `dist` directory
-                src = getattr(event, "src_path", None)
-                if not isinstance(src, str) or "dist" not in Path(src).parts:
+                # For atomic-build move workflows (e.g., webpack writing to
+                # tmp + rename into dist) the meaningful path is dest_path.
+                # For Create/Modify events watchdog only sets src_path.
+                if isinstance(event, FileMovedEvent):
+                    target = getattr(event, "dest_path", None) or getattr(
+                        event, "src_path", None
+                    )
+                else:
+                    target = getattr(event, "src_path", None)
+
+                if not isinstance(target, str):
                     return
 
-                # Verify the file content actually changed to ignore spurious
-                # inotify events generated by Docker bind-mount reads.
-                if not self._content_changed(src):
+                # Only care about paths inside a `dist` directory.
+                if "dist" not in Path(target).parts:
                     return
 
-                # Debounce: one restart per second max, regardless of how many
-                # files webpack writes simultaneously.
-                now = time.monotonic()
-                with self._lock:
-                    if now - self._last_trigger < 1.0:
-                        return
-                    self._last_trigger = now
+                # Moves into/out of `dist` are explicit signals — trigger
+                # regardless of content match (the source may already be gone
+                # or the destination may not have a meaningful hash yet).
+                if isinstance(event, FileMovedEvent):
+                    self._schedule_reload(target)
+                    return
 
-                logger.info(
-                    "File change detected in LOCAL_EXTENSIONS: %s", event.src_path
-                )
+                # For Create/Modify, verify the content actually changed to
+                # ignore spurious inotify events generated by Docker bind-mount
+                # reads.
+                if not self._content_changed(target):
+                    return
 
-                # Touch the dedicated reload-trigger sentinel file.
-                # Flask watches this via --extra-files; it is never read by Python
-                # so Docker VirtioFS will not generate spurious inotify events on it.
-                logger.info("Triggering restart by touching %s", RELOAD_TRIGGER)
-                os.utime(RELOAD_TRIGGER, (time.time(), time.time()))
+                self._schedule_reload(target)
 
         return LocalExtensionFileHandler
     except ImportError:
@@ -219,6 +271,10 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
 
         # Set up and start the file watcher
         event_handler = handler_class()
+        # Pre-populate baseline hashes from existing dist files so the
+        # developer's first real edit isn't silently dropped as a "first
+        # observation".
+        event_handler.prime_baseline(watch_dirs)
         observer = Observer()
 
         for watch_dir in watch_dirs:
