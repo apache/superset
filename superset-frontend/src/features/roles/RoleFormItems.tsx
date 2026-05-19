@@ -60,10 +60,7 @@ export const PermissionsField = ({
   </FormItem>
 );
 
-export const UsersField = ({
-  addDangerToast,
-  loading,
-}: UsersFieldProps) => (
+export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => (
   <FormItem name="roleUsers" label={t('Users')}>
     <AsyncSelect
       name="roleUsers"
