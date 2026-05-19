@@ -182,7 +182,18 @@ class SkipUnmodifiedPlugin(Plugin):
 
     The associated transaction is not removed; if every operation is a
     no-op the transaction becomes an orphan in ``version_transaction``
-    and is swept by the retention task.
+    and is swept by the retention task at cutoff. Deleting the row
+    inline (in this hook) was considered and rejected: it would couple
+    this plugin to the change-records listener's buffer state — both
+    would have to agree that the flush produced nothing before we
+    could safely DROP the tx row, since ``version_changes.transaction_id``
+    has an ON DELETE CASCADE FK that would silently drop any buffered
+    diff records the listener was about to insert. The orphan's storage
+    cost (~40 bytes/row) is small enough that the coordination isn't
+    worth it; retention handles the cleanup correctly by construction
+    (orphans have no parent shadow → they're never "preserved" by the
+    "preserve transactions whose shadow has the live row" rule and
+    age out with the rest of the history).
     """
 
     def before_create_version_objects(self, uow: Any, session: Any) -> None:
