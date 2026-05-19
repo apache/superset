@@ -175,9 +175,12 @@ cypress-run-all() {
   local APP_ROOT=$2
   cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
 
-  # Start Flask and run it in background
-  # --no-debugger means disable the interactive debugger on the 500 page
-  # so errors can print to stderr.
+  # Start the Superset backend via gunicorn (not `flask run`). The Flask
+  # development server is single-threaded and has no crash-recovery, so
+  # heavy tests (dashboard import/export, SQL Lab) can knock it offline
+  # for the rest of the run — surfacing as `ECONNREFUSED` / `socket hang up`
+  # / `Missing CSRF token` cascades. Gunicorn gives us multiple workers,
+  # a request timeout, and worker-recycling under load.
   local flasklog="${HOME}/flask.log"
   local port=8081
   CYPRESS_BASE_URL="http://localhost:${port}"
@@ -187,7 +190,18 @@ cypress-run-all() {
   fi
   export CYPRESS_BASE_URL
 
-  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
+  nohup gunicorn \
+    --bind "127.0.0.1:$port" \
+    --workers 4 \
+    --worker-class gthread \
+    --threads 20 \
+    --timeout 120 \
+    --max-requests 500 \
+    --max-requests-jitter 50 \
+    --access-logfile - \
+    --error-logfile - \
+    "superset.app:create_app()" \
+    >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
   USE_DASHBOARD_FLAG=''
@@ -224,7 +238,9 @@ playwright-run() {
   local APP_ROOT=$1
   local TEST_PATH=$2
 
-  # Start Flask from the project root (same as Cypress)
+  # Start the Superset backend via gunicorn from the project root.
+  # See cypress-run-all() above for the rationale — the Flask dev server
+  # cannot survive the dashboard import/export tests under load.
   cd "$GITHUB_WORKSPACE"
   local flasklog="${HOME}/flask-playwright.log"
   local port=8081
@@ -235,7 +251,18 @@ playwright-run() {
   fi
   export PLAYWRIGHT_BASE_URL
 
-  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
+  nohup gunicorn \
+    --bind "127.0.0.1:$port" \
+    --workers 4 \
+    --worker-class gthread \
+    --threads 20 \
+    --timeout 120 \
+    --max-requests 500 \
+    --max-requests-jitter 50 \
+    --access-logfile - \
+    --error-logfile - \
+    "superset.app:create_app()" \
+    >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
   # Ensure cleanup on exit
@@ -243,10 +270,10 @@ playwright-run() {
 
   # Wait for server to be ready with health check
   local timeout=60
-  say "Waiting for Flask server to start on port $port..."
+  say "Waiting for gunicorn server to start on port $port..."
   while [ $timeout -gt 0 ]; do
     if curl -f ${PLAYWRIGHT_BASE_URL}/health >/dev/null 2>&1; then
-      say "Flask server is ready"
+      say "gunicorn server is ready"
       break
     fi
     sleep 1
@@ -254,8 +281,8 @@ playwright-run() {
   done
 
   if [ $timeout -eq 0 ]; then
-    echo "::error::Flask server failed to start within 60 seconds"
-    echo "::group::Flask startup log"
+    echo "::error::gunicorn server failed to start within 60 seconds"
+    echo "::group::Server startup log"
     cat "$flasklog"
     echo "::endgroup::"
     return 1
