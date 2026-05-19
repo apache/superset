@@ -26,7 +26,6 @@ import logging
 import math
 from typing import Any, Dict, List
 
-from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     ChartError,
@@ -36,9 +35,17 @@ from superset.mcp_service.chart.schemas import (
 
 logger = logging.getLogger(__name__)
 
+SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
+
 
 def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
     """Build query columns list from form_data, including both x_axis and groupby."""
+    # Table charts in raw mode use all_columns or columns
+    all_columns = form_data.get("all_columns", [])
+    raw_columns_field = form_data.get("columns", [])
+    if form_data.get("query_mode") == "raw" and (all_columns or raw_columns_field):
+        return list(all_columns or raw_columns_field)
+
     x_axis_config = form_data.get("x_axis")
     groupby_columns: list[str] = form_data.get("groupby") or []
     raw_columns: list[str] = form_data.get("columns") or []
@@ -70,6 +77,7 @@ def generate_preview_from_form_data(
     """
     try:
         # Execute query to get data
+        from superset.commands.chart.data.get_data_command import ChartDataCommand
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import db
 

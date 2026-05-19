@@ -169,8 +169,9 @@ export const addReport =
         dispatch({ type: ADD_REPORT, json } as AddReportAction);
         dispatch(addSuccessToast(t('The report has been created')));
       })
-      .catch(() => {
+      .catch(err => {
         dispatch(addDangerToast(t('Failed to create report')));
+        throw err;
       });
 
 export const EDIT_REPORT = 'EDIT_REPORT' as const;
@@ -191,8 +192,9 @@ export const editReport =
         dispatch({ type: EDIT_REPORT, json } as EditReportAction);
         dispatch(addSuccessToast(t('Report updated')));
       })
-      .catch(() => {
+      .catch(err => {
         dispatch(addDangerToast(t('Failed to update report')));
+        throw err;
       });
 
 export function toggleActive(report: ReportObject, isActive: boolean) {

@@ -372,6 +372,87 @@ def test_mcp_auth_hook_preserves_g_user_in_request_context(app) -> None:
     assert result == "middleware_user"
 
 
+def test_mcp_auth_hook_removes_stale_db_session_in_sync_wrapper(app) -> None:
+    """sync_wrapper calls db.session.remove() BEFORE get_user_from_request().
+
+    Thread pool workers reuse threads across requests; db.session is
+    thread-local and may be bound to a different tenant's DB engine from a
+    prior request. Removing it before user lookup ensures a fresh session is
+    created for the current request.
+
+    The ordering is critical: if remove() were called after user lookup,
+    the stale session binding would already have caused a mismatch error.
+    """
+    fresh_user = _make_mock_user("fresh")
+
+    def dummy_tool():
+        """Dummy tool."""
+        return g.user.username
+
+    wrapped = mcp_auth_hook(dummy_tool)
+
+    with app.test_request_context():
+        g.user = fresh_user
+        with patch("superset.extensions.db") as mock_db:
+
+            def _assert_remove_already_called() -> MagicMock:
+                """Verify remove() was called before user resolution runs."""
+                mock_db.session.remove.assert_called_once_with()
+                return fresh_user
+
+            with patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                side_effect=_assert_remove_already_called,
+            ):
+                result = wrapped()
+
+    assert result == "fresh"
+
+
+def test_sync_wrapper_handles_ssl_error_on_pre_call_remove(app) -> None:
+    """sync_wrapper tolerates OperationalError from db.session.remove() before the call.
+
+    If the underlying DBAPI connection died between requests (e.g. RDS SSL
+    idle-timeout), the rollback implicit in session.close() raises
+    OperationalError.  _remove_session_safe() should:
+    - Log a warning
+    - Call session.invalidate() to mark the dead connection for pool discard
+    - Retry session.remove() so the registry is clean
+    - Allow the tool to run successfully
+    """
+    from sqlalchemy.exc import OperationalError as SAOperationalError
+
+    fresh_user = _make_mock_user("fresh")
+
+    def dummy_tool() -> str:
+        """Dummy sync tool."""
+        return g.user.username
+
+    wrapped = mcp_auth_hook(dummy_tool)
+
+    with app.test_request_context():
+        g.user = fresh_user
+        with patch("superset.extensions.db") as mock_db:
+            mock_db.session.remove.side_effect = [
+                SAOperationalError(
+                    "SSL connection has been closed unexpectedly", None, None
+                ),
+                None,  # second call succeeds
+            ]
+
+            with patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=fresh_user,
+            ):
+                result = wrapped()
+
+    assert result == "fresh"
+    assert mock_db.session.invalidate.called, "invalidate() must be called on SSL error"
+    assert mock_db.session.remove.call_count == 2, (
+        "remove() must be retried after SSL error"
+    )
+
+
 # -- default_user_resolver --
 
 
@@ -427,3 +508,30 @@ def test_default_resolver_preferred_username_takes_priority() -> None:
         }
     )
     assert default_user_resolver(None, token) == "alice"
+
+
+def test_setup_user_context_propagates_valueerror(app) -> None:
+    """ValueError from get_user_from_request propagates — no g.user fallback.
+
+    This is a security-critical test: when JWT resolution explicitly fails
+    (user not in DB), the request must be denied. The auth layer must NOT
+    silently fall back to g.user from middleware.
+
+    Uses test_request_context() so g.user is preserved (not cleared by
+    the no-request-context guard), validating that the ValueError still
+    propagates even when middleware has set g.user.
+    """
+    from superset.mcp_service.auth import _setup_user_context
+
+    fallback_user = _make_mock_user("middleware_user")
+
+    with app.test_request_context():
+        g.user = fallback_user
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            side_effect=ValueError("User 'ghost' not found"),
+        ):
+            with pytest.raises(ValueError, match="User 'ghost' not found"):
+                _setup_user_context()
+            # g.user should be cleared after ValueError (no misleading audit)
+            assert not hasattr(g, "user") or g.user is None

@@ -35,9 +35,11 @@ import {
   Row,
 } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
-import { FaSort } from 'react-icons/fa';
-import { FaSortDown as FaSortDesc } from 'react-icons/fa';
-import { FaSortUp as FaSortAsc } from 'react-icons/fa';
+import {
+  CaretUpOutlined,
+  CaretDownOutlined,
+  ColumnHeightOutlined,
+} from '@ant-design/icons';
 import cx from 'classnames';
 import {
   DataRecord,
@@ -48,6 +50,7 @@ import {
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
   extractTextFromHTML,
+  TimeGranularity,
 } from '@superset-ui/core';
 import {
   styled,
@@ -221,9 +224,9 @@ function cellBackground({
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
   const { isSorted, isSortedDesc } = column;
-  let sortIcon = <FaSort />;
+  let sortIcon = <ColumnHeightOutlined />;
   if (isSorted) {
-    sortIcon = isSortedDesc ? <FaSortDesc /> : <FaSortAsc />;
+    sortIcon = isSortedDesc ? <CaretDownOutlined /> : <CaretUpOutlined />;
   }
   return sortIcon;
 }
@@ -307,6 +310,67 @@ function SelectPageSize({
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
 
+/**
+ * Calculates the inclusive/exclusive temporal range for a bucket.
+ * standard SQL range pattern: [start, end)
+ */
+function getTimeRangeFromGranularity(
+  startTime: Date,
+  granularity: TimeGranularity,
+): [Date, Date] {
+  const time = startTime.getTime();
+  const date = startTime.getUTCDate();
+  const month = startTime.getUTCMonth();
+  const year = startTime.getUTCFullYear();
+
+  // Constants
+  const MS_IN_SECOND = 1000;
+  const MS_IN_MINUTE = 60 * MS_IN_SECOND;
+  const MS_IN_HOUR = 60 * MS_IN_MINUTE;
+
+  switch (granularity) {
+    case TimeGranularity.SECOND:
+      return [startTime, new Date(time + MS_IN_SECOND)];
+    case TimeGranularity.MINUTE:
+      return [startTime, new Date(time + MS_IN_MINUTE)];
+    case TimeGranularity.FIVE_MINUTES:
+      return [startTime, new Date(time + MS_IN_MINUTE * 5)];
+    case TimeGranularity.TEN_MINUTES:
+      return [startTime, new Date(time + MS_IN_MINUTE * 10)];
+    case TimeGranularity.FIFTEEN_MINUTES:
+      return [startTime, new Date(time + MS_IN_MINUTE * 15)];
+    case TimeGranularity.THIRTY_MINUTES:
+      return [startTime, new Date(time + MS_IN_MINUTE * 30)];
+    case TimeGranularity.HOUR:
+      return [startTime, new Date(time + MS_IN_HOUR)];
+    case TimeGranularity.DAY:
+    case TimeGranularity.DATE:
+      return [startTime, new Date(Date.UTC(year, month, date + 1))];
+    case TimeGranularity.WEEK:
+    case TimeGranularity.WEEK_STARTING_SUNDAY:
+    case TimeGranularity.WEEK_STARTING_MONDAY:
+      return [startTime, new Date(Date.UTC(year, month, date + 7))];
+    case TimeGranularity.WEEK_ENDING_SATURDAY:
+    case TimeGranularity.WEEK_ENDING_SUNDAY:
+      // Week-ending buckets are labeled by the bucket's final day.
+      return [
+        new Date(Date.UTC(year, month, date - 6)),
+        new Date(Date.UTC(year, month, date + 1)),
+      ];
+    case TimeGranularity.MONTH:
+      return [startTime, new Date(Date.UTC(year, month + 1, 1))];
+    case TimeGranularity.QUARTER:
+      return [
+        startTime,
+        new Date(Date.UTC(year, Math.floor(month / 3) * 3 + 3, 1)),
+      ];
+    case TimeGranularity.YEAR:
+      return [startTime, new Date(Date.UTC(year + 1, 0, 1))];
+    default:
+      return [startTime, new Date(Date.UTC(year, month, date + 1))];
+  }
+}
+
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
     sticky?: DataTableProps<D>['sticky'];
@@ -343,6 +407,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     hasServerPageLengthChanged,
     serverPageLength,
     slice_id,
+    columnLabelToNameMap = {},
   } = props;
 
   const comparisonColumns = useMemo(
@@ -412,7 +477,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const isActiveFilterValue = useCallback(
     function isActiveFilterValue(key: string, val: DataRecordValue) {
-      return !!filters && filters[key]?.includes(val);
+      if (!filters || !filters[key]) return false;
+      return filters[key].some(filterVal => {
+        if (filterVal === val) return true;
+        // DateWithFormatter extends Date — compare by time value
+        // since memoization cache misses can create new instances
+        if (filterVal instanceof Date && val instanceof Date) {
+          return filterVal.getTime() === val.getTime();
+        }
+        return false;
+      });
     },
     [filters],
   );
@@ -455,19 +529,27 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               groupBy.length === 0
                 ? []
                 : groupBy.map(col => {
+                    // Resolve adhoc column labels back to original column names
+                    // so that cross-filters work on the receiving chart
+                    const resolvedCol = columnLabelToNameMap[col] ?? col;
                     const val = ensureIsArray(updatedFilters?.[col]);
-                    if (!val.length)
+                    if (
+                      !val.length ||
+                      val[0] === null ||
+                      (val[0] instanceof DateWithFormatter &&
+                        val[0].input === null)
+                    )
                       return {
-                        col,
+                        col: resolvedCol,
                         op: 'IS NULL' as const,
                       };
                     return {
-                      col,
+                      col: resolvedCol,
                       op: 'IN' as const,
                       val: val.map(el =>
                         el instanceof Date ? el.getTime() : el!,
                       ),
-                      grain: col === DTTM_ALIAS ? timeGrain : undefined,
+                      grain: resolvedCol === DTTM_ALIAS ? timeGrain : undefined,
                     };
                   }),
           },
@@ -483,7 +565,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         isCurrentValueSelected: isActiveFilterValue(key, value),
       };
     },
-    [filters, isActiveFilterValue, timestampFormatter, timeGrain],
+    [
+      filters,
+      isActiveFilterValue,
+      timestampFormatter,
+      timeGrain,
+      columnLabelToNameMap,
+    ],
   );
 
   const toggleFilter = useCallback(
@@ -557,15 +645,47 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         filteredColumnsMeta.forEach(col => {
           if (!col.isMetric) {
-            let dataRecordValue = value[col.key];
-            dataRecordValue = extractTextFromHTML(dataRecordValue);
+            const dataRecordValue = value[col.key];
 
-            drillToDetailFilters.push({
-              col: col.key,
-              op: '==',
-              val: dataRecordValue as string | number | boolean,
-              formattedVal: formatColumnValue(col, dataRecordValue)[1],
-            });
+            // FIX: Explicitly handle NULL values for temporal and non-temporal columns
+            // DateWithFormatter objects wrap nulls, so we must check both
+            if (
+              dataRecordValue == null ||
+              (dataRecordValue instanceof DateWithFormatter &&
+                dataRecordValue.input == null)
+            ) {
+              drillToDetailFilters.push({
+                col: col.key,
+                op: 'IS NULL' as any,
+                val: null,
+              });
+            } else if (col.dataType === GenericDataType.Temporal && timeGrain) {
+              const startTime =
+                dataRecordValue instanceof Date
+                  ? dataRecordValue
+                  : new Date(dataRecordValue as string | number);
+
+              const [rangeStartTime, rangeEndTime] =
+                getTimeRangeFromGranularity(startTime, timeGrain);
+              const timeRangeValue = `${rangeStartTime.toISOString()} : ${rangeEndTime.toISOString()}`;
+
+              drillToDetailFilters.push({
+                col: col.key,
+                op: 'TEMPORAL_RANGE',
+                val: timeRangeValue,
+                grain: timeGrain,
+                formattedVal: formatColumnValue(col, dataRecordValue)[1],
+              });
+            } else {
+              // Non-temporal columns use exact match
+              const sanitizedValue = extractTextFromHTML(dataRecordValue);
+              drillToDetailFilters.push({
+                col: col.key,
+                op: '==',
+                val: sanitizedValue as string | number | boolean,
+                formattedVal: formatColumnValue(col, sanitizedValue)[1],
+              });
+            }
           }
         });
         onContextMenu(clientX, clientY, {
@@ -579,7 +699,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 filters: [
                   {
                     col: cellPoint.key,
-                    op: '==',
+                    op: (cellPoint.value == null ||
+                    (cellPoint.value instanceof DateWithFormatter &&
+                      cellPoint.value.input == null)
+                      ? 'IS NULL'
+                      : '==') as any,
                     val: extractTextFromHTML(cellPoint.value),
                   },
                 ],
@@ -594,6 +718,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isRawRecords,
     filteredColumnsMeta,
     getCrossFilterDataMask,
+    timeGrain,
   ]);
 
   const getHeaderColumns = useCallback(
@@ -808,7 +933,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           th {
             border-right: 1px solid ${theme.colorSplit};
           }
-          th:first-child {
+          th:first-of-type {
             border-left: none;
           }
           th:last-child {
