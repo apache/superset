@@ -24,9 +24,11 @@ from typing import Any, TYPE_CHECKING
 
 from superset.db_engine_specs.base import MetricType
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
+from superset.utils import json
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.reflection import Inspector
+    from sqlalchemy.engine.url import URL
 
     from superset.models.core import Database
     from superset.sql.parse import Table
@@ -57,6 +59,30 @@ class SemanticAPIEngineSpec(ShillelaghEngineSpec):
     sqlalchemy_uri_placeholder = (
         "semanticapi://<host>[:port]/<view_name>?secure=<true|false>"
     )
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Fold ``additional_configuration`` from the database's ``extra`` field
+        (placed by the user under ``engine_params.connect_args``) into the URL
+        query string, so the dialect can pick it up.
+        """
+        uri, connect_args = super().adjust_engine_params(
+            uri, connect_args, catalog, schema
+        )
+        if (config := connect_args.pop("additional_configuration", None)) is not None:
+            query = dict(uri.query)
+            query["additional_configuration"] = (
+                config if isinstance(config, str) else json.dumps(config)
+            )
+            uri = uri.set(query=query)
+        return uri, connect_args
 
     @classmethod
     def select_star(cls, *args: Any, **kwargs: Any) -> str:

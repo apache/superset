@@ -20,6 +20,10 @@
 from typing import Any
 from unittest.mock import MagicMock
 
+from sqlalchemy.engine.url import make_url
+
+from superset.utils import json
+
 
 def _columns() -> list[dict[str, Any]]:
     return [
@@ -84,6 +88,48 @@ def test_get_columns_filters_metrics() -> None:
     columns = SemanticAPIEngineSpec.get_columns(inspector, table)
     assert [c["name"] for c in columns] == ["region"]
     assert columns[0]["column_name"] == "region"
+
+
+def test_adjust_engine_params_folds_extra_into_url() -> None:
+    """
+    ``additional_configuration`` from ``connect_args`` ends up on the URL query.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    uri, connect_args = SemanticAPIEngineSpec.adjust_engine_params(
+        make_url("sqlite://"),
+        {"additional_configuration": {"workspace": "acme"}, "other": 1},
+    )
+    assert "additional_configuration" not in connect_args
+    assert connect_args["other"] == 1
+    assert json.loads(uri.query["additional_configuration"]) == {"workspace": "acme"}
+
+
+def test_adjust_engine_params_string_passthrough() -> None:
+    """
+    A pre-serialised string config is forwarded verbatim.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    uri, _ = SemanticAPIEngineSpec.adjust_engine_params(
+        make_url("sqlite://"),
+        {"additional_configuration": '{"workspace":"acme"}'},
+    )
+    assert uri.query["additional_configuration"] == '{"workspace":"acme"}'
+
+
+def test_adjust_engine_params_no_extra() -> None:
+    """
+    Without ``additional_configuration`` the URL is untouched.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    uri, connect_args = SemanticAPIEngineSpec.adjust_engine_params(
+        make_url("sqlite://"),
+        {"other": 1},
+    )
+    assert uri.query == {}
+    assert connect_args == {"other": 1}
 
 
 def test_get_metrics_extracts_computed() -> None:
