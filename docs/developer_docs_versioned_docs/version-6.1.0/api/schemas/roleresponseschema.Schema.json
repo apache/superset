@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"name":{"type":"string"},"permission_ids":{"items":{"type":"integer"},"type":"array"},"user_ids":{"items":{"type":"integer"},"type":"array"}},"type":"object","title":"RoleResponseSchema"},"schemaType":"response"}

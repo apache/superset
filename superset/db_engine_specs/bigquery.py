@@ -883,6 +883,14 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             # We will return the original exception
             return exception
 
+    @staticmethod
+    def _information_schema_ref(schema: str, catalog: str | None) -> str:
+        escaped_schema = schema.replace("`", "``")
+        if catalog:
+            escaped_catalog = catalog.replace("`", "``")
+            return f"`{escaped_catalog}.{escaped_schema}.INFORMATION_SCHEMA.TABLES`"
+        return f"`{escaped_schema}.INFORMATION_SCHEMA.TABLES`"
+
     @classmethod
     def get_materialized_view_names(
         cls,
@@ -899,14 +907,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         if not schema:
             return set()
 
-        # Construct the query to get materialized views from INFORMATION_SCHEMA
-        if catalog := database.get_default_catalog():
-            information_schema = f"`{catalog}.{schema}.INFORMATION_SCHEMA.TABLES`"
-        else:
-            information_schema = f"`{schema}.INFORMATION_SCHEMA.TABLES`"
-
-        # Use string formatting for the table name since it's not user input
-        # The catalog and schema are from trusted sources (database configuration)
+        catalog = database.get_default_catalog()
+        information_schema = cls._information_schema_ref(schema, catalog)
         query = f"""
         SELECT table_name
         FROM {information_schema}
@@ -945,15 +947,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         if not schema:
             return set()
 
-        # Construct the query to get regular views from INFORMATION_SCHEMA
         catalog = database.get_default_catalog()
-        if catalog:
-            information_schema = f"`{catalog}.{schema}.INFORMATION_SCHEMA.TABLES`"
-        else:
-            information_schema = f"`{schema}.INFORMATION_SCHEMA.TABLES`"
-
-        # Use string formatting for the table name since it's not user input
-        # The catalog and schema are from trusted sources (database configuration)
+        information_schema = cls._information_schema_ref(schema, catalog)
         query = f"""
         SELECT table_name
         FROM {information_schema}

@@ -282,7 +282,7 @@ You can now launch your VSCode debugger with the same config as above. VSCode wi
 
 ### Storybook
 
-See the dedicated [Storybook documentation](../testing/storybook) for information on running Storybook locally and adding new stories.
+See the dedicated [Storybook documentation](../testing/storybook.md) for information on running Storybook locally and adding new stories.
 
 ## Contributing Translations
 

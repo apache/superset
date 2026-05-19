@@ -147,6 +147,9 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
 
     assert spec.get_prequeries(database) == []
     assert spec.get_prequeries(database, schema="test") == ['set search_path = "test"']
+    assert spec.get_prequeries(database, schema='evil"; SELECT 1--') == [
+        'set search_path = "evil""; SELECT 1--"'
+    ]
 
 
 def test_get_default_schema_for_query(mocker: MockerFixture) -> None:

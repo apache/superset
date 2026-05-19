@@ -3054,6 +3054,42 @@ def test_has_subquery(sql: str, engine: str, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
+    "sql, engine",
+    [
+        # Double-quoted identifiers (#32684 — postgres dataset)
+        ('"Adresse E-mail"', "postgresql"),
+        ('"Nom de structure"', "postgresql"),
+        # Backtick-quoted identifiers (#32541 — mysql view)
+        ("`Answer Created Time`", "mysql"),
+        ("`Correction Time`", "mysql"),
+        # Diacritics, slash, and dot — listed as "working" in #32684 but
+        # easily broken by overzealous parser changes; pin them too.
+        ('"Appartement / étage"', "postgresql"),
+        ('"Bâtiment / Résidence"', "postgresql"),
+        ('"C.Postal"', "postgresql"),
+    ],
+)
+def test_quoted_column_name_with_spaces_is_not_subquery(sql: str, engine: str) -> None:
+    r"""
+    Regression for #32541 and #32684: a quoted identifier that happens to
+    contain spaces (or a slash, accents, dots) must not be misclassified
+    as a subquery.
+
+    The original symptom was an opaque ``Custom SQL fields cannot contain
+    sub-queries.`` error when the user added a column like ``"Adresse
+    E-mail"`` (Postgres) or a backtick-quoted equivalent (MySQL) to a
+    chart. Snake-case aliases worked; multi-word display names did not.
+    The check that raises that error is
+    ``parsed_statement.has_subquery()`` in
+    ``superset/models/helpers.py:206``.
+    """
+    assert not SQLStatement(sql, engine).has_subquery(), (
+        f"Quoted identifier {sql!r} on {engine!r} was misclassified as a "
+        "subquery — would block the column from being used in any chart."
+    )
+
+
+@pytest.mark.parametrize(
     "sql, engine, expected_tables",
     [
         # Issue #31853: Backtick-quoted table names with "Other" database type

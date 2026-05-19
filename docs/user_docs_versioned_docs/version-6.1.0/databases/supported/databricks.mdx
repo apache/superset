@@ -1,0 +1,31 @@
+---
+title: Databricks
+sidebar_label: Databricks
+description: "Databricks is a unified analytics platform built on Apache Spark, providing data engineering, data science, and machine learning capabilities in the cloud. Use "
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"databricks","engine_name":"Databricks","module":"databricks","documentation":{"description":"Databricks is a unified analytics platform built on Apache Spark, providing data engineering, data science, and machine learning capabilities in the cloud. Use the Python Connector for SQL warehouses and clusters.","logo":"databricks.png","homepage_url":"https://www.databricks.com/","categories":["CLOUD_DATA_WAREHOUSES","ANALYTICAL_DATABASES","HOSTED_OPEN_SOURCE"],"pypi_packages":["apache-superset[databricks]"],"install_instructions":"pip install apache-superset[databricks]","connection_string":"databricks://token:{access_token}@{host}:{port}?http_path={http_path}&catalog={catalog}&schema={schema}","parameters":{"access_token":"Personal access token from Settings > User Settings","host":"Server hostname from cluster JDBC/ODBC settings","port":"Port (default 443)","http_path":"HTTP path from cluster JDBC/ODBC settings"},"drivers":[{"name":"Databricks Python Connector (Recommended)","pypi_package":"databricks-sql-connector","connection_string":"databricks://token:{access_token}@{host}:{port}?http_path={http_path}&catalog={catalog}&schema={schema}","is_recommended":true,"notes":"Official Databricks connector. Best for SQL warehouses and clusters."},{"name":"Hive Connector (Interactive Clusters)","pypi_package":"databricks-dbapi[sqlalchemy]","connection_string":"databricks+pyhive://token:{access_token}@{host}:{port}/{database}","is_recommended":false,"notes":"For Interactive Clusters. Requires http_path in engine parameters."},{"name":"ODBC (SQL Endpoints)","pypi_package":"pyodbc","connection_string":"databricks+pyodbc://token:{access_token}@{host}:{port}/{database}","is_recommended":false,"notes":"Requires ODBC driver. For serverless SQL warehouses."},{"name":"databricks-dbapi (Legacy)","pypi_package":"databricks-dbapi[sqlalchemy]","connection_string":"databricks+connector://token:{access_token}@{host}:{port}/{database}","is_recommended":false,"notes":"Legacy connector. Use Python Connector for new deployments."}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":false,"THIRTY_SECONDS":false,"MINUTE":true,"FIVE_MINUTES":false,"TEN_MINUTES":false,"FIFTEEN_MINUTES":false,"THIRTY_MINUTES":false,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":true,"WEEK_STARTING_MONDAY":false,"WEEK_ENDING_SATURDAY":true,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":70,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":true,"supports_catalog":true,"supports_dynamic_catalog":true,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":false,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="Databricks" database={databaseInfo} />

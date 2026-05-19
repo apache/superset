@@ -268,7 +268,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             schema=table.schema,
         ) as conn:
             cursor = conn.cursor()
-            cursor.execute(f'SELECT GET_METADATA("{table.table}")')
+            escaped_table = table.table.replace('"', '""')
+            cursor.execute(f'SELECT GET_METADATA("{escaped_table}")')
             results = cursor.fetchone()[0]
         try:
             metadata = json.loads(results)
