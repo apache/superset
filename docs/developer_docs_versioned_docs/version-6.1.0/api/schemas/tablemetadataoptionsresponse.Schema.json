@@ -1,0 +1,1 @@
+{"schema":{"properties":{"deferrable":{"type":"boolean"},"initially":{"type":"boolean"},"match":{"type":"boolean"},"ondelete":{"type":"boolean"},"onupdate":{"type":"boolean"}},"type":"object","title":"TableMetadataOptionsResponse"},"schemaType":"response"}

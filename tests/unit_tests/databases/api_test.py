@@ -2250,7 +2250,7 @@ def test_catalogs_with_oauth2(
     security_manager.get_catalogs_accessible_by_user.return_value = {"db2"}
 
     response = client.get("/api/v1/database/1/catalogs/")
-    assert response.status_code == 500
+    assert response.status_code == 403
     assert response.json == {
         "errors": [
             {
@@ -2351,7 +2351,7 @@ def test_schemas_with_oauth2(
     security_manager.get_schemas_accessible_by_user.return_value = {"schema2"}
 
     response = client.get("/api/v1/database/1/schemas/")
-    assert response.status_code == 500
+    assert response.status_code == 403
     assert response.json == {
         "errors": [
             {

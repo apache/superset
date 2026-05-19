@@ -744,8 +744,9 @@ class TestWebDriverPlaywrightErrorHandling:
 
         assert exc_info.value is timeout
         mock_logger.warning.assert_any_call(
-            "Timed out waiting for charts to load at url %s",
+            "Timed out waiting for charts to load at url %s (SCREENSHOT_LOAD_WAIT=%ss)",
             "http://example.com",
+            60,
         )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
