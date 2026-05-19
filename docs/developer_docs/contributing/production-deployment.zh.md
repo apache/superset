@@ -311,7 +311,7 @@ cat dist/BUILD_COMMIT.txt        # 部署后用于核对哪个版本上线了
 # 1. 两个 wheel（主包 + superset-core 子包）
 scp /opt/superset-build/dist/apache_superset-*.whl \
     /opt/superset-build/dist/apache_superset_core-*.whl \
-    <user>@<cloud-host>:/tmp/
+    <user>@<cloud-host>:/opt/superset
 
 # 2. build commit 记录
 scp /opt/superset-build/dist/BUILD_COMMIT.txt <user>@<cloud-host>:/tmp/
@@ -322,7 +322,7 @@ scp /opt/superset-build/dist/BUILD_COMMIT.txt <user>@<cloud-host>:/tmp/
 grep -v '^-e ' /opt/superset-build/requirements/base.txt \
     > /opt/superset-build/dist/base-constraints.txt
 scp /opt/superset-build/dist/base-constraints.txt \
-    <user>@<cloud-host>:/tmp/superset-base-constraints.txt
+    <user>@<cloud-host>:/opt/superset/base-constraints.txt
 
 # 4.（可选，首次部署时）准备好的 superset_config.py 模板
 scp /path/to/your/superset_config.py <user>@<cloud-host>:/tmp/
@@ -356,7 +356,7 @@ scp /path/to/your/superset_config.py <user>@<cloud-host>:/tmp/
 >
 > for host in prod1 prod2 prod3; do
 >     scp /opt/superset-build/dist/*.whl                   ${host}:/tmp/
->     scp /opt/superset-build/dist/base-constraints.txt    ${host}:/tmp/superset-base-constraints.txt
+>     scp /opt/superset-build/dist/base-constraints.txt    ${host}:/tmp/base-constraints.txt
 > done
 > ```
 
@@ -409,14 +409,14 @@ pip install --upgrade 'pip==25.2' wheel setuptools
 
 ```bash
 # 1. 主包 wheel（约 5-10 分钟，pip 会从 PyPI 拉 ~200 个运行时依赖）
-pip install /tmp/apache_superset-*.whl \
-    -c /tmp/superset-base-constraints.txt
+pip install ./apache_superset-*.whl \
+    -c ./superset-base-constraints.txt
 
 # 2. superset-core 子包 wheel（覆盖 PyPI 上的旧版 0.1.0）
 #    --force-reinstall：主包安装时 pip 已经从 PyPI 拉过 apache-superset-core 0.1.0，
 #                       这里必须用本地 wheel 强制顶掉它，否则 semantic_layers 子模块缺失
 #    --no-deps：本地 wheel 跟 PyPI 上是同一个 version=0.1.0，不重复解析依赖
-pip install /tmp/apache_superset_core-*.whl --force-reinstall --no-deps
+pip install ./apache_superset_core-*.whl --force-reinstall --no-deps
 ```
 
 > **为什么 superset-core 要单独装一遍？**
@@ -449,13 +449,13 @@ pip install /tmp/apache_superset_core-*.whl --force-reinstall --no-deps
 # 选其中一行执行：
 
 # MySQL + mysqlclient（推荐，需要 default-libmysqlclient-dev 系统包）
-pip install 'mysqlclient>=2.2.0' -c /tmp/superset-base-constraints.txt
+pip install 'mysqlclient>=2.2.0' -c ./base-constraints.txt
 
 # MySQL + PyMySQL（无需编译，启动稍慢但部署简单）
-# pip install 'PyMySQL>=1.1.0' -c /tmp/superset-base-constraints.txt
+# pip install 'PyMySQL>=1.1.0' -c ./base-constraints.txt
 
 # PostgreSQL
-# pip install 'psycopg2-binary>=2.9.9' -c /tmp/superset-base-constraints.txt
+# pip install 'psycopg2-binary>=2.9.9' -c ./base-constraints.txt
 ```
 
 > **常见误区**：用 `mysql+pymysql://` 但只装了 `mysqlclient`（或反过来），启动时报 `No module named 'pymysql'` 或 `No module named 'MySQLdb'`。两个驱动**不能互换**，必须按 URI 协议来选。
@@ -464,7 +464,7 @@ pip install 'mysqlclient>=2.2.0' -c /tmp/superset-base-constraints.txt
 
 ```bash
 # gunicorn / gevent 已在 base.txt 中精确锁定，-c 会把它们装到 23.0.0 / 24.x
-pip install 'gunicorn>=22.0.0' 'gevent>=24.2.1' -c /tmp/superset-base-constraints.txt
+pip install 'gunicorn>=22.0.0' 'gevent>=24.2.1' -c ./base-constraints.txt
 ```
 
 #### 7.2.3 上游漏声明的运行时依赖
@@ -472,7 +472,7 @@ pip install 'gunicorn>=22.0.0' 'gevent>=24.2.1' -c /tmp/superset-base-constraint
 Superset 6.1 主代码 `import` 了一些库，但 [pyproject.toml](../../../pyproject.toml) 里**没有声明**它们，pip install wheel 时不会自动拉。**必须手动装**，否则访问 `/login/` 这类页面会因 `db_engine_specs/aws_iam.py` import 失败而返回 500：
 
 ```bash
-pip install cachetools -c /tmp/superset-base-constraints.txt
+pip install cachetools -c ./base-constraints.txt
 ```
 
 > 这是 apache 上游 6.1 的隐藏 bug（详见 [Q14](#q14-页面-500-报-no-module-named-cachetools)），将来在 fork 里把 `cachetools` 补进 `pyproject.toml` 后这一步可以省。
@@ -515,7 +515,7 @@ Can't load plugin: sqlalchemy.dialects:<dialect-name>
 ```bash
 source /opt/superset/venv/bin/activate
 
-pip install 'starrocks==1.3.3' -c /opt/superset/base-constraints.txt
+pip install 'starrocks==1.3.3' -c ./base-constraints.txt
 ```
 
 > StarRocks 方言会**间接拉一些依赖**（alembic、asyncmy2、greenlet 等），这些会被 `-c base-constraints.txt` 拉到 Superset 测试过的版本，不会破坏现有依赖。
@@ -575,7 +575,7 @@ cat /opt/superset/.deployed_commit
 # 注意：约束文件 base.txt 留着，升级时还要用
 rm -f /tmp/apache_superset-*.whl /tmp/BUILD_COMMIT.txt
 # 把约束文件搬到 /opt/superset/ 永久保留
-mv /tmp/superset-base-constraints.txt /opt/superset/base-constraints.txt
+mv ./superset-base-constraints.txt /opt/superset/base-constraints.txt
 ```
 
 ### 7.5 已经误装了新版依赖的修复方法
@@ -587,7 +587,7 @@ source /opt/superset/venv/bin/activate
 
 # 用约束文件强制把所有依赖对齐回 Superset 官方版本
 pip install --force-reinstall -r <(pip freeze | awk -F'==' '{print $1}') \
-    -c /opt/superset/base-constraints.txt
+    -c ./base-constraints.txt
 
 # 或者更简单：仅重装关键几个
 pip install --force-reinstall \
@@ -1374,7 +1374,7 @@ superset version    # 此时应能正常输出版本号或 SECRET_KEY 告警
 
 ```bash
 pip install --force-reinstall -r <(pip freeze | awk -F'==' '{print $1}') \
-    -c /opt/superset/base-constraints.txt
+    -c ./base-constraints.txt
 ```
 
 #### B. 紧急热修：直接改 site-packages
@@ -1440,7 +1440,7 @@ ModuleNotFoundError: No module named 'pymysql'
 
 ```bash
 source /opt/superset/venv/bin/activate
-pip install 'PyMySQL>=1.1.0' -c /opt/superset/base-constraints.txt
+pip install 'PyMySQL>=1.1.0' -c ./base-constraints.txt
 sudo systemctl restart superset
 ```
 
@@ -1507,7 +1507,7 @@ ModuleNotFoundError: No module named 'cachetools'
 
 ```bash
 source /opt/superset/venv/bin/activate
-pip install cachetools -c /opt/superset/base-constraints.txt
+pip install cachetools -c ./base-constraints.txt
 sudo systemctl restart superset
 
 curl -sS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8088/login/
@@ -1586,10 +1586,10 @@ This may be triggered by: Issue 1011 - Superset encountered an unexpected error.
 source /opt/superset/venv/bin/activate
 
 # 按你的 URI 协议选包（完整速查表见 7.2.4 节）：
-pip install 'starrocks==1.3.3' -c /opt/superset/base-constraints.txt
-# pip install clickhouse-connect -c /opt/superset/base-constraints.txt
-# pip install pydoris -c /opt/superset/base-constraints.txt
-# pip install trino -c /opt/superset/base-constraints.txt
+pip install 'starrocks==1.3.3' -c ./base-constraints.txt
+# pip install clickhouse-connect -c ./base-constraints.txt
+# pip install pydoris -c ./base-constraints.txt
+# pip install trino -c ./base-constraints.txt
 
 sudo systemctl restart superset
 ```
@@ -1706,7 +1706,7 @@ pip 一看 `-c` 文件里的这行就报错。
 **验证**：
 
 ```bash
-head -5 /opt/superset/superset-base-constraints.txt
+head -5 /opt/superset/base-constraints.txt
 # 期望看到第 3 行就是这一行：
 #   -e ./superset-core
 ```
@@ -1714,7 +1714,7 @@ head -5 /opt/superset/superset-base-constraints.txt
 **修复（云端临时清理）**：
 
 ```bash
-sed -i '/^-e .*superset-core/d' /opt/superset/superset-base-constraints.txt
+sed -i '/^-e .*superset-core/d' /opt/superset/base-constraints.txt
 
 # 确认已剥掉
 grep -n '^-e' /opt/superset/superset-base-constraints.txt
@@ -1722,7 +1722,7 @@ grep -n '^-e' /opt/superset/superset-base-constraints.txt
 
 # 再跑 pip install
 pip install /opt/superset/apache_superset-*.whl \
-    -c /opt/superset/superset-base-constraints.txt
+    -c /opt/superset/base-constraints.txt
 ```
 
 **根治（构建机源头过滤）**：在 scp 之前就在构建机上生成纯净副本，避免每次部署都要去云端 sed。具体见 [第 5 节传输到云服务器](#五传输到云服务器)的 `grep -v '^-e '` 命令。
