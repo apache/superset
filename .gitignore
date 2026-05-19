@@ -33,7 +33,6 @@ cover
 .env
 .envrc
 .idea
-.roo
 .mypy_cache
 .python-version
 .tox
@@ -44,7 +43,7 @@ _modules
 _static
 build
 app.db
-*.egg-info/
+apache_superset.egg-info/
 changelog.sh
 dist
 dump.rdb
@@ -122,8 +121,6 @@ docker/requirements-local.txt
 
 cache/
 docker/*local*
-docker/superset-websocket/config.json
-docker-compose.override.yml
 
 .temp_cache
 
@@ -133,8 +130,28 @@ superset/static/stats/statistics.html
 
 # LLM-related
 CLAUDE.local.md
-PROJECT.md
 .aider*
 .claude_rc*
 .env.local
-oxc-custom-build/
+PROJECT.md
+
+loonar/volumes
+.env
+/loonar/ssl-certs
+
+volumes/
+/loonar/ad-user.txt
+
+*.log
+
+loonar/.env-prod
+loonar/test-ldap2.sh
+loonar/test-remote-1.txt
+loonar/test-remote-2.txt
+backup
+
+*.bkp
+
+**/.venv/
+loonar/.env-hom
+loonar/.env-hom

@@ -1,0 +1,160 @@
+{# Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License. #}
+{% extends "appbuilder/base.html" %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+  .navbar.navbar-inverse {
+    background: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .navbar.navbar-inverse .navbar-brand,
+  .navbar.navbar-inverse .navbar-nav > li > a,
+  .navbar.navbar-inverse .navbar-text,
+  .navbar.navbar-inverse .navbar-link,
+  .navbar.navbar-inverse .navbar-nav > .open > a,
+  .navbar.navbar-inverse .navbar-nav > .open > a:hover,
+  .navbar.navbar-inverse .navbar-nav > .open > a:focus {
+    color: #2c3e50 !important;
+    background: transparent !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div id="loginbox" style="margin-top:50px;" class="mainbox col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+    {% include "appbuilder/flash.html" %}
+    <div class="panel panel-default">
+      <div class="panel-heading" style="background: transparent; border-bottom: 0;">
+        <div class="panel-title text-center">
+          <img
+            src="/static/assets/images/loonar/logo-light.png"
+            alt="Loonar FinOps"
+            style="max-height: 44px; margin-bottom: 8px;"
+          />
+        </div>
+      </div>
+      <div style="padding-top:30px" class="panel-body">
+        <form id="loonar-login-form" class="form" method="post" name="login">
+            {{ form.hidden_tag() }}
+            <div class="control-group{% if form.errors.username is defined %} error{% endif %}">
+              <label class="control-label" for="username">{{ _("Username") }}:</label>
+              <div class="controls">
+                <div class="input-group">
+                  <span class="input-group-addon"><i class="fa fa-user"></i></span>
+                  {{ form.username(class="form-control", autofocus=True) }}
+                </div>
+                {% for error in form.errors.get('username', []) %}
+                <span class="help-inline">[{{ error }}]</span><br>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="control-group{% if form.errors.password is defined %} error{% endif %}">
+              <label class="control-label" for="password">{{ _("Password") }}:</label>
+              <div class="controls">
+                <div class="input-group">
+                  <span class="input-group-addon"><i class="fa fa-key"></i></span>
+                  {{ form.password(class="form-control", type="password") }}
+                </div>
+                {% for error in form.errors.get('password', []) %}
+                <span class="help-inline">[{{ error }}]</span><br>
+                {% endfor %}
+              </div>
+            </div>
+
+            {% if login_form_type == "ldap" and ldap_login_enabled and form.ldap_user_base_alias and form.ldap_user_base_alias.choices %}
+            <div class="control-group">
+              <label class="control-label" for="ldap_user_base_alias">{{ ldap_profile_label }}:</label>
+              <div class="controls">
+                <div class="input-group">
+                  <span class="input-group-addon"><i class="fa fa-sitemap"></i></span>
+                  {{ form.ldap_user_base_alias(class="form-control") }}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if form.remember_me %}
+            <div class="control-group" style="margin-top: 10px;">
+              <div class="controls">
+                <label for="remember_me">
+                  {{ form.remember_me(id="remember_me") }}
+                {{ _("Keep me signed in (database login only)") }}
+                </label>
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="control-group">
+              <div class="controls">
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-block"
+                  data-auth-provider="database"
+                  data-hidden-reason="{% if login_form_type != 'superset' and login_form_type != 'db' %}hidden-when-not-superset{% else %}visible{% endif %}"
+                  {% if login_form_type != 'superset' and login_form_type != 'db' %}style="display: none;"{% else %}style="margin-top: 16px;"{% endif %}
+                >
+                {% if is_pt %}
+                  Entrar com Banco de Dados Superset
+                {% else %}
+                  {{ _("Sign in with") }} {{ _("Superset Database") }}
+                {% endif %}
+                </button>
+                {% if login_form_type != 'db' and login_form_type != 'superset' %}
+                  <button
+                    type="submit"
+                    class="btn btn-primary btn-block"
+                    style="margin-top: 8px;"
+                    data-auth-provider="ldap"
+                  >
+                  {% if is_pt %}
+                    Entrar
+                  {% else %}
+                    {{ _("Sign in") }}
+                  {% endif %}
+                  </button>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="d-none">
+              {{ form.auth_provider(id="auth_provider") }}
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block tail %}
+{{ super() }}
+<script>
+  (function () {
+    const authInput = document.getElementById("auth_provider");
+    document.querySelectorAll("#loonar-login-form [data-auth-provider]").forEach(button => {
+      button.addEventListener("click", () => {
+        authInput.value = button.dataset.authProvider || "database";
+      });
+    });
+  })();
+</script>
+{% endblock %}

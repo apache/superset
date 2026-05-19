@@ -1,0 +1,275 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# -----------------------------------------------------------------------
+# We don't support docker compose for production environments.
+# If you choose to use this type of deployment make sure to
+# create you own docker environment file (docker/.env) with your own
+# unique random secure passwords and SECRET_KEY.
+#
+# For verbose logging during development:
+# - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
+# -----------------------------------------------------------------------
+# =============================
+# PRODUÇÃO: Checklist de Segurança
+# - NUNCA versionar segredos reais
+# - Use superset_config.py seguro
+# - Não rode containers como root
+# - Use proxy reverso (nginx) com TLS/SSL
+# - Proteja volumes e dados
+# - Use imagens oficiais e tags de versão
+# - Configure healthchecks
+# - Atualize dependências regularmente
+# Consulte: https://superset.apache.org/docs/security/securing_superset/#appendix-a-production-deployment-checklist
+# =============================
+# =============================
+# SECURITY WARNING (PRODUCTION):
+# NUNCA versionar segredos reais em docker/.env ou docker/.env-local!
+# Gere um arquivo docker/.env seguro para produção, com:
+# - SECRET_KEY forte e único
+# - Senhas de banco, Redis, etc. fortes
+# - Variáveis de ambiente sensíveis protegidas
+# Recomenda-se usar um gerenciador de segredos (ex: Vault, AWS Secrets Manager)
+# =============================
+# =============================
+# RECOMENDAÇÃO: Utilize um superset_config.py customizado e seguro!
+# - Desabilite DEBUG e CORS aberto
+# - Configure LOGGING apropriado
+# - Proteja endpoints e recursos
+# - Consulte https://superset.apache.org/docs/security/securing_superset/#production-configuration
+# =============================
+x-superset-env: &superset-env
+  - path: ./loonar/.env # default
+    required: true
+  - path: ./loonar/.env-local # optional override
+    required: false
+
+x-superset-volumes:
+  &superset-volumes # Volumes de dados persistentes apenas (customizações já estão embutidas na imagem)
+  - superset_home_data:/app/superset_home
+
+x-extra-hosts: &superset-extra-hosts
+  - "host.docker.internal:host-gateway"
+  - "${SUPERSET_HOST:-superset.local}:host-gateway"
+
+x-default-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "1"
+
+services:
+# Use sempre imagens oficiais e tags de versão específicas para produção
+  redis:
+    build:
+      context: ./docker/redis
+    container_name: superset_cache
+    restart: unless-stopped
+    user: "999:999"
+    env_file: *superset-env
+    command: |
+      sh -c 'redis-server /usr/local/etc/redis/redis.conf --requirepass "$${REDIS_PASSWORD}"'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "sh", "-c", "redis-cli -a $$REDIS_PASSWORD ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+    networks:
+      - superset
+
+  db:
+    env_file: *superset-env
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+    container_name: superset_db
+    restart: unless-stopped
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    networks:
+      - superset
+
+  superset_app:
+    env_file: *superset-env
+    # Build com Dockerfile customizado para Loonar
+    build:
+      context: .
+      dockerfile: Dockerfile-loonar
+      target: loonar
+      network: host
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      args:
+        BUILD_TRANSLATIONS: "true"
+    # Opção alternativa: Usar imagem oficial (descomente as linhas abaixo e comente o 'build' acima)
+    # image: apache/superset:latest
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
+    user: "root"
+    # Removido depends_on superset_init para evitar erro de dependência
+    volumes: *superset-volumes
+    extra_hosts: *superset-extra-hosts
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8088/health || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+    logging: *default-logging
+    networks:
+      - superset
+
+  superset_worker:
+    env_file: *superset-env
+    build:
+      context: .
+      dockerfile: Dockerfile-loonar
+      target: loonar
+      network: host
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      args:
+        BUILD_TRANSLATIONS: "true"
+    container_name: superset_worker
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    user: "root"
+    restart: unless-stopped
+    # Removido depends_on superset_init para evitar erro de dependência
+    environment:
+      CELERYD_CONCURRENCY: 2
+    volumes: *superset-volumes
+    extra_hosts: *superset-extra-hosts
+    healthcheck:
+      test:
+        ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$${HOSTNAME}"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+    networks:
+      - superset
+
+  superset_worker_beat:
+    env_file: *superset-env
+    build:
+      context: .
+      dockerfile: Dockerfile-loonar
+      target: loonar
+      network: host
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      args:
+        BUILD_TRANSLATIONS: "true"
+    container_name: superset_worker_beat
+    command: ["/app/docker/docker-bootstrap.sh", "beat"]
+    user: "root"
+    restart: unless-stopped
+    depends_on:
+      - superset_worker
+    # Removido depends_on superset_init para evitar erro de dependência
+    volumes: *superset-volumes
+    extra_hosts: *superset-extra-hosts
+    networks:
+      - superset
+    healthcheck:
+      disable: true
+    logging: *default-logging
+
+  superset_init:
+    env_file: *superset-env
+    build:
+      context: .
+      dockerfile: Dockerfile-loonar
+      target: loonar
+      network: host
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+      args:
+        BUILD_TRANSLATIONS: "true"
+    container_name: superset_init
+    command: ["/app/docker/docker-init.sh"]
+    user: "root"
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes: *superset-volumes
+    extra_hosts: *superset-extra-hosts
+    networks:
+      - superset
+    healthcheck:
+      disable: true
+    logging: *default-logging
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: superset_nginx
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 8192
+    restart: unless-stopped
+    env_file: *superset-env
+    ports:
+      - 80:80
+      - 443:443
+    command: ["/bin/sh", "-c", "envsubst '$$SUPERSET_HOST $$SSL_CERT $$SSL_KEY $$SSL_TRUSTED' < /etc/nginx/templates/superset.conf.template > /etc/nginx/conf.d/superset.conf && nginx -g 'daemon off;'" ]
+    volumes:
+      - nginx_logs_data:/var/log/nginx
+      - ./loonar/ssl-certs:/etc/nginx/certs:ro
+    # Para produção, configure regras de firewall para expor apenas as portas necessárias
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+    networks:
+      - superset
+
+volumes:
+  superset_home_data:
+  db_data:
+  redis_data:
+  nginx_logs_data:
+# =============================
+# VOLUMES: Garanta persistência e proteção dos dados!
+# - Configure backup periódico dos volumes
+# - Restrinja acesso aos volumes apenas aos serviços necessários
+# - Proteja dados sensíveis (ex: banco, uploads, logs)
+# =============================
+
+networks:
+  superset:
+    name: superset
+    driver: bridge

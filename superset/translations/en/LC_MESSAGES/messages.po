@@ -13505,3 +13505,14 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr ""
+
+msgid "User Profile"
+msgstr ""
+
+msgid "Keep me signed in (database login only)"
+msgstr ""
+
+
+
+msgid "Superset Database"
+msgstr ""

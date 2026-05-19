@@ -42,7 +42,70 @@ under the License.
   />
 </picture>
 
-A modern, enterprise-ready business intelligence web application.
+ A modern, enterprise-ready business intelligence web application.
+
+---
+
+# 🚀 Loonar - Mapeamento e Integração Superset
+
+## 1. Objetivo
+Esta solução provê uma instância customizada do **Apache Superset (Loonar)**, otimizada para integração com sistemas legados e Active Directory (LDAP), empacotada em containers para implantação em nuvens públicas ou privadas.
+
+## 2. Diagrama da Solução
+```mermaid
+graph TD
+    subgraph "External Access"
+        User([Usuário Final]) -- HTTPS (443) --> Nginx[Nginx Reverse Proxy v1.28.2]
+    end
+
+    subgraph "Docker Compose Stack (Bridge Network)"
+        Nginx -- Proxy Pass --> App[Superset App]
+        App -- Meta Store --> DB[(PostgreSQL v16)]
+        App -- Caching --> Redis[(Redis v7)]
+        App -- Task Queue --> Redis
+        Worker[Superset Worker] -- Celery --> Redis
+        Beat[Superset Beat] -- Schedule --> Worker
+    end
+
+    subgraph "External Integrations"
+        App -- Auth --> AD[Active Directory / LDAP]
+    end
+```
+
+## 3. Requisitos e Dependências
+- **Docker** v24.0.0+
+- **Docker Compose** v2.20.0+
+- **Memória Mínima**: 4GB RAM (8GB recomendado para produção)
+- **Certificados SSL**: Arquivos `fullchain.pem` e `privkey.pem` em `./loonar/ssl-certs/`
+
+## 4. Como Utilizar e Resultados Esperados
+Para iniciar a stack em produção:
+```bash
+docker-compose -f docker-compose-loonar.yml up -d
+```
+**Resultado Esperado**: O serviço estará disponível em `https://${SUPERSET_HOST}` após a inicialização do container `superset_init`.
+
+## 5. Guia de Solução de Problemas Comuns
+- **Erro de Conexão DB**: Verifique se o container `superset_db` está saudável (`docker ps`).
+- **Falha no Proxy Nginx**: Verifique a validade dos certificados TLS e a versão da imagem (`1.28.2-alpine`).
+- **Logs**: Consulte `docker-compose -f docker-compose-loonar.yml logs -f nginx`.
+
+## 6. Referências
+- [Documentação Oficial Apache Superset](https://superset.apache.org/docs/)
+- [Nginx Security Advisories](https://nginx.org/en/security_advisories.html)
+- [THIRDPARTY.md](file:///home/devopsvanilla/_prj/loonar/loonar-morpheus-sysint/superset/THIRDPARTY.md)
+
+## 7. Artigos de Acreditação
+- [Superset Production Checklist](https://superset.apache.org/docs/security/securing_superset/)
+- Mitigação de segurança conforme reportado em **CVE-2026-1642**.
+
+## 8. Isenção de Responsabilidade
+Esta configuração é fornecida "como está". O uso em produção requer auditoria de segurança das chaves privadas e configuração adequada de firewall e RBAC.
+
+## 9. Como Contribuir
+Siga o guia [CONTRIBUTING.md](file:///home/devopsvanilla/_prj/loonar/loonar-morpheus-sysint/superset/CONTRIBUTING.md) e utilize **Conventional Commits**.
+
+---
 
 [**Why Superset?**](#why-superset) |
 [**Supported Databases**](#supported-databases) |
