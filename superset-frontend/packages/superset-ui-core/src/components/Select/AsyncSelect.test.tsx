@@ -1019,6 +1019,166 @@ test('restores base options when search is cleared', async () => {
   expect(screen.queryByText('Search Match')).not.toBeInTheDocument();
 });
 
+test('replaces results when switching between two searches', async () => {
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      return { data: page0Data, totalCount: 100 };
+    }
+    return {
+      data: [{ label: `Match-${search}`, value: `v-${search}` }],
+      totalCount: 1,
+    };
+  });
+
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  await type('alpha');
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-alpha');
+  });
+
+  await type('beta');
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-beta');
+  });
+  expect(screen.queryByText('Match-alpha')).not.toBeInTheDocument();
+});
+
+test('refetches a dropped search response when the same search is repeated', async () => {
+  type OptionRow = { label: string; value: string | number };
+  type PageResponse = { data: OptionRow[]; totalCount: number };
+  // Resolves the in-flight loadOptions promise of the calling test.
+  let resolveAlpha: ((value: PageResponse) => void) | null = null;
+  const page0Data: OptionRow[] = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const alphaData: OptionRow[] = [{ label: 'Match-alpha', value: 'va' }];
+  const betaData: OptionRow[] = [{ label: 'Match-beta', value: 'vb' }];
+
+  const loadOptions = jest.fn((search: string) => {
+    if (search === '') {
+      return Promise.resolve<PageResponse>({
+        data: page0Data,
+        totalCount: 100,
+      });
+    }
+    if (search === 'alpha') {
+      // First call: hold the promise so it resolves only after beta returns.
+      // Second call (after beta): resolve immediately so the cache MUST allow
+      // a refetch.
+      if (!resolveAlpha) {
+        return new Promise<PageResponse>(resolve => {
+          resolveAlpha = resolve;
+        });
+      }
+      return Promise.resolve<PageResponse>({ data: alphaData, totalCount: 1 });
+    }
+    return Promise.resolve<PageResponse>({ data: betaData, totalCount: 1 });
+  });
+
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('', 0, 10));
+
+  await type('alpha');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('alpha', 0, 10));
+  // alpha's promise is held; switch to beta which resolves first.
+  await type('beta');
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-beta');
+  });
+
+  // Release the stale alpha response. It must be dropped — its key must not
+  // be cached, or returning to "alpha" later would short-circuit the fetch.
+  resolveAlpha!({ data: alphaData, totalCount: 1 });
+  await waitFor(async () => {
+    // Beta is still showing because alpha's response was dropped.
+    const options = await findAllSelectOptions();
+    expect(options[0]).toHaveTextContent('Match-beta');
+  });
+
+  // Returning to "alpha" must re-trigger the fetch (cache wasn't poisoned).
+  const callsBeforeAlphaReturn = loadOptions.mock.calls.filter(
+    args => args[0] === 'alpha',
+  ).length;
+  await type('alpha');
+  await waitFor(() => {
+    const callsAfter = loadOptions.mock.calls.filter(
+      args => args[0] === 'alpha',
+    ).length;
+    expect(callsAfter).toBeGreaterThan(callsBeforeAlphaReturn);
+  });
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options[0]).toHaveTextContent('Match-alpha');
+  });
+});
+
+test('re-shows search results when the same search term is repeated after a clear', async () => {
+  // Regression: a prior fix cached search responses' totalCount in
+  // fetchedQueries. After restore-on-clear had replaced selectOptions with
+  // the base list, re-typing a previously-resolved term would hit the cache
+  // short-circuit and leave selectOptions stale (empty / base-only).
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const alphaData = [{ label: 'Match-alpha', value: 'va' }];
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      // totalCount > data.length so allValuesLoaded stays false and the
+      // search path is not bypassed by the "all loaded" short-circuit.
+      return { data: page0Data, totalCount: 100 };
+    }
+    return { data: alphaData, totalCount: 1 };
+  });
+
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('', 0, 10));
+
+  await type('alpha');
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-alpha');
+  });
+
+  await type('');
+  await waitFor(() =>
+    expect(screen.queryByText('Match-alpha')).not.toBeInTheDocument(),
+  );
+
+  const callsBefore = loadOptions.mock.calls.filter(
+    args => args[0] === 'alpha',
+  ).length;
+  await type('alpha');
+  await waitFor(() => {
+    const callsAfter = loadOptions.mock.calls.filter(
+      args => args[0] === 'alpha',
+    ).length;
+    expect(callsAfter).toBeGreaterThan(callsBefore);
+  });
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-alpha');
+  });
+});
+
 test('does not duplicate options when using numeric values', async () => {
   render(
     <AsyncSelect
