@@ -59,7 +59,13 @@ export default function ResizablePanel({
       className="panel"
       width={width}
       height={height}
+      axis="both"
       minConstraints={minConstraints}
+      maxConstraints={[Infinity, Infinity]}
+      handleSize={[20, 20]}
+      lockAspectRatio={false}
+      resizeHandles={['se']}
+      transformScale={1}
       onResize={onResize}
     >
       <>
