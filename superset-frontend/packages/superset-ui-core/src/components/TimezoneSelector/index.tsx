@@ -20,13 +20,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Select } from '@superset-ui/core/components';
+import type { LabeledValue } from '@superset-ui/core/components';
 import { extendedDayjs } from '../../utils/dates';
 import {
   timezoneOptionsCache,
   getOffsetKey,
   DEFAULT_TIMEZONE,
 } from './TimezoneOptionsCache';
-import type { LabeledValue } from 'antd/es/select';
 import type { TimezoneOption } from './types';
 
 // Import dayjs plugin types for TypeScript support
