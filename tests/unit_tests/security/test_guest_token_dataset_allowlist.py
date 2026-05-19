@@ -181,6 +181,20 @@ def test_raise_for_access_empty_datasets_list_blocks_all() -> None:
         SupersetSecurityManager.raise_for_access(sm, datasource=datasource)
 
 
+def test_raise_for_access_malformed_datasets_claim_blocks_access() -> None:
+    """A non-integer element in the datasets claim must be treated as a denial."""
+    from superset.security.manager import SupersetSecurityManager
+
+    # Simulate a token whose datasets claim was tampered to contain strings.
+    guest_user = _make_guest_user(datasets=None)
+    guest_user.guest_token["datasets"] = ["7", "8"]  # type: ignore[list-item]
+    sm = _sm_for_access_test(guest_user)
+    datasource = _make_datasource(dataset_id=7)
+
+    with pytest.raises(SupersetSecurityException):
+        SupersetSecurityManager.raise_for_access(sm, datasource=datasource)
+
+
 # ---------------------------------------------------------------------------
 # GuestTokenCreateSchema — datasets field
 # ---------------------------------------------------------------------------

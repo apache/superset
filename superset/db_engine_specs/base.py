@@ -682,7 +682,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
         # We need to commit here because we're going to raise an exception, which will
         # revert any non-commited changes.
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then

@@ -3112,6 +3112,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 if allowed_datasets is not None:
                     if (
                         not isinstance(allowed_datasets, list)
+                        or not all(isinstance(d, int) for d in allowed_datasets)
                         or datasource.id not in allowed_datasets
                     ):
                         raise SupersetSecurityException(
