@@ -44,11 +44,10 @@ class ExploreView(BaseSupersetView):
         # so `get_redirect_url` would return the same URL — falling back to
         # SPA rendering avoids a 302 loop.
         if request_form_data := request.args.get("form_data"):
-            try:
-                parsed_form_data = loads_request_json(request_form_data)
-            except ValueError:
-                parsed_form_data = {}
-            if parsed_form_data.get("datasource"):
+            parsed_form_data = loads_request_json(request_form_data)
+            if isinstance(parsed_form_data, dict) and parsed_form_data.get(
+                "datasource"
+            ):
                 from superset.views.core import Superset  # avoid circular import
 
                 return redirect(Superset.get_redirect_url())

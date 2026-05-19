@@ -882,6 +882,16 @@ class TestCore(SupersetTestCase):
         rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
         assert rv.headers["Location"] == f"/explore/?form_data_key={random_key}"
 
+    def test_explore_no_datasource_renders_spa(self):
+        # `Slice.slice_url` emits form_data carrying only `slice_id`; without a
+        # datasource the cache-and-redirect contract can't produce a different
+        # URL, so ExploreView.root must fall through to the SPA instead of
+        # 302-looping back to itself.
+        self.login(ADMIN_USERNAME)
+        form_data = {"slice_id": 1}
+        rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
+        assert rv.status_code == 200
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_has_table(self):
         if backend() in ("sqlite", "mysql"):
