@@ -34,7 +34,7 @@ const rawArgs = process.argv.slice(2);
 const skipGenerate = rawArgs.includes('--skip-generate');
 const args = rawArgs.filter((a) => a !== '--skip-generate');
 const command = args[0]; // 'add' or 'remove'
-const section = args[1]; // 'docs', 'admin_docs', 'developer_docs', or 'components'
+const section = args[1]; // 'user_docs', 'admin_docs', 'developer_docs', or 'components'
 const version = args[2]; // version string like '1.2.0'
 
 function loadConfig() {
@@ -54,13 +54,13 @@ function freezeDataImports(section, version) {
   // historical version's content silently changes whenever the data file
   // is updated. Copy each escaping data import into a snapshot-local
   // `_versioned_data/` dir and rewrite the import to point there.
-  const sectionRoot = section === 'docs'
-    ? path.join(__dirname, '..', 'docs')
-    : path.join(__dirname, '..', section);
+  // The user_docs section's source content lives in `docs/docs/` (the
+  // historical folder name), while admin_docs / developer_docs /
+  // components match their plugin id 1:1.
+  const sectionDir = section === 'user_docs' ? 'docs' : section;
+  const sectionRoot = path.join(__dirname, '..', sectionDir);
   const docsRoot = path.join(__dirname, '..');
-  const versionedDocsDir = section === 'docs'
-    ? `versioned_docs/version-${version}`
-    : `${section}_versioned_docs/version-${version}`;
+  const versionedDocsDir = `${section}_versioned_docs/version-${version}`;
   const versionedDocsPath = path.join(__dirname, '..', versionedDocsDir);
   const frozenDataDir = path.join(versionedDocsPath, '_versioned_data');
 
@@ -148,9 +148,7 @@ function fixVersionedImports(section, version) {
   // Versioned content lands one directory deeper than the source content,
   // so any `../../src/` or `../../data/` imports in .md/.mdx files need
   // an extra `../` to keep reaching docs/src and docs/data.
-  const versionedDocsDir = section === 'docs'
-    ? `versioned_docs/version-${version}`
-    : `${section}_versioned_docs/version-${version}`;
+  const versionedDocsDir = `${section}_versioned_docs/version-${version}`;
   const versionedDocsPath = path.join(__dirname, '..', versionedDocsDir);
 
   if (!fs.existsSync(versionedDocsPath)) {
@@ -238,9 +236,7 @@ function addVersion(section, version) {
   }
 
   // Run Docusaurus version command
-  const docusaurusCommand = section === 'docs'
-    ? `yarn docusaurus docs:version ${version}`
-    : `yarn docusaurus docs:version:${section} ${version}`;
+  const docusaurusCommand = `yarn docusaurus docs:version:${section} ${version}`;
 
   try {
     execSync(docusaurusCommand, { stdio: 'inherit' });
@@ -262,10 +258,9 @@ function addVersion(section, version) {
   config[section].onlyIncludeVersions.splice(versionIndex, 0, version);
 
   // Add version metadata
-  const versionPath = section === 'docs' ? version : version;
   config[section].versions[version] = {
     label: version,
-    path: versionPath,
+    path: version,
     banner: 'none'
   };
 
@@ -305,13 +300,8 @@ function removeVersion(section, version) {
   console.log(`Removing version ${version} from ${section}...`);
 
   // Determine file paths based on section
-  const versionedDocsDir = section === 'docs'
-    ? `versioned_docs/version-${version}`
-    : `${section}_versioned_docs/version-${version}`;
-
-  const versionedSidebarsFile = section === 'docs'
-    ? `versioned_sidebars/version-${version}-sidebars.json`
-    : `${section}_versioned_sidebars/version-${version}-sidebars.json`;
+  const versionedDocsDir = `${section}_versioned_docs/version-${version}`;
+  const versionedSidebarsFile = `${section}_versioned_sidebars/version-${version}-sidebars.json`;
 
   // Remove versioned files
   const docsPath = path.join(__dirname, '..', versionedDocsDir);
@@ -328,9 +318,7 @@ function removeVersion(section, version) {
   }
 
   // Update versions.json file
-  const versionsJsonFile = section === 'docs'
-    ? 'versions.json'
-    : `${section}_versions.json`;
+  const versionsJsonFile = `${section}_versions.json`;
   const versionsJsonPath = path.join(__dirname, '..', versionsJsonFile);
 
   if (fs.existsSync(versionsJsonPath)) {
@@ -377,14 +365,14 @@ Usage:
   node scripts/manage-versions.mjs remove <section> <version>
 
 Where:
-  - section: 'docs', 'developer_docs', 'admin_docs', or 'components'
+  - section: 'user_docs', 'admin_docs', 'developer_docs', or 'components'
   - version: version string (e.g., '1.2.0', '2.0.0')
   - --skip-generate: skip refreshing auto-generated docs before snapshotting
                      (use when you've already placed a fresh databases.json
                      from CI and want to preserve it)
 
 Examples:
-  node scripts/manage-versions.mjs add docs 2.0.0
+  node scripts/manage-versions.mjs add user_docs 2.0.0
   node scripts/manage-versions.mjs add developer_docs 1.3.0
   node scripts/manage-versions.mjs remove components 1.0.0
 `);
