@@ -72,7 +72,7 @@ class ExecutePayloadSchema(Schema):
     tmp_table_name = fields.String(
         allow_none=True,
         validate=validate.Regexp(
-            r"^[A-Za-z_][A-Za-z0-9_]*$",
+            r"^([A-Za-z_][A-Za-z0-9_]*)?$",
             error="tmp_table_name must contain only letters, digits, and underscores",
         ),
     )
