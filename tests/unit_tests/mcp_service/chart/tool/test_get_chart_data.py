@@ -1007,12 +1007,12 @@ class TestChartDataCommandValidation:
         mock_dataset = MagicMock()
         mock_dataset.id = 10
 
-        # ChartDataCommand is module-level import in preview_utils;
-        # db and QueryContextFactory are local imports inside the function.
+        # ChartDataCommand, db, and QueryContextFactory are local imports inside
+        # the function so preview_utils stays safe to import before app setup.
         with (
             patch("superset.extensions.db") as mock_db,
             patch(
-                "superset.mcp_service.chart.preview_utils.ChartDataCommand",
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
                 return_value=mock_command,
             ),
             patch(
@@ -1061,7 +1061,7 @@ class TestChartDataCommandValidation:
         with (
             patch("superset.extensions.db") as mock_db,
             patch(
-                "superset.mcp_service.chart.preview_utils.ChartDataCommand",
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
                 return_value=mock_command,
             ),
             patch(
