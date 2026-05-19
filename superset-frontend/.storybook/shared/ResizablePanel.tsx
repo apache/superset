@@ -47,7 +47,9 @@ export default function ResizablePanel({
   minConstraints = [100, 100] as [number, number],
   onResize,
   ...props
-}: Omit<ComponentProps<typeof ResizableBox>, 'width' | 'height' | 'children'> & {
+}: Partial<
+  Omit<ComponentProps<typeof ResizableBox>, 'width' | 'height' | 'children'>
+> & {
   children?: ReactNode;
   heading?: ReactNode;
   initialSize?: Size;
