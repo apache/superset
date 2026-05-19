@@ -77,6 +77,7 @@ from superset.versioning.diff import (
     fold_dashboard_layout_with_chart_changes,
     scalar_fields_for,
 )
+from superset.versioning.utils import read_row_outside_flush
 
 logger = logging.getLogger(__name__)
 
@@ -226,31 +227,23 @@ def _orm_to_post_state(obj: Any) -> dict[str, Any]:
 def _read_pre_state(
     session: Session, model_cls: type, entity_id: int
 ) -> dict[str, Any] | None:
-    """Read the entity's pre-flush row directly from the DB.
+    """Read the entity's pre-flush row directly from the DB and convert
+    non-JSON-safe types to strings so both sides of the diff compare on
+    the same form. Delegates the autoflush-suppressed read itself to
+    :func:`superset.versioning.utils.read_row_outside_flush`.
 
-    Uses ``session.no_autoflush`` + a raw connection execute — the same
-    pattern as ``register_baseline_listener`` — to avoid a re-entrant
-    flush that would apply the pending edit before we've captured the
-    pre-state.
-
-    Returns ``None`` if the row is missing (shouldn't happen for a
-    dirty existing object, but defensive against race conditions).
+    Returns ``None`` if the row is missing (shouldn't happen for a dirty
+    existing object, but defensive against race conditions).
     """
     table = model_cls.__table__  # type: ignore[attr-defined]
-    with session.no_autoflush:
-        result = (
-            session.connection()
-            .execute(sa.select(table).where(table.c.id == entity_id))
-            .mappings()
-            .one_or_none()
-        )
+    result = read_row_outside_flush(session, table, entity_id)
     if result is None:
         return None
-    # Convert non-JSON-safe types (datetime, UUID, bytes) to strings so
-    # both sides of the diff compare on the same form and any value
-    # that ends up in ``from_value`` / ``to_value`` is acceptable to
-    # the JSON column on insert.
-    return {key: _jsonable(value) for key, value in dict(result).items()}
+    # Convert non-JSON-safe types (datetime, UUID, bytes, Decimal) to
+    # strings so both sides of the diff compare on the same form and
+    # any value that ends up in ``from_value`` / ``to_value`` is
+    # acceptable to the JSON column on insert.
+    return {key: _jsonable(value) for key, value in result.items()}
 
 
 def _compute_records_for_entity(session: Session, obj: Any) -> list[ChangeRecord]:
