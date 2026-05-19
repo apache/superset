@@ -33,7 +33,7 @@ def _make_api() -> ChartRestApi:
 
 
 @pytest.mark.parametrize("column_name", ["owners"])
-def test_ensure_owners_write_access_blocks_read_only_users(
+def test_pre_related_check_blocks_read_only_users(
     column_name: str,
 ) -> None:
     """Users without all-datasource access receive 403 on owners lookup."""
@@ -44,12 +44,12 @@ def test_ensure_owners_write_access_blocks_read_only_users(
         "superset.charts.api.security_manager.can_access_all_datasources",
         return_value=False,
     ):
-        result = api.ensure_owners_write_access(column_name)
+        result = api._pre_related_check(column_name)
 
     assert result == "forbidden"
 
 
-def test_ensure_owners_write_access_allows_privileged_users() -> None:
+def test_pre_related_check_allows_privileged_users() -> None:
     """Users with all-datasource access (Alpha/Admin) receive None."""
     api = _make_api()
 
@@ -57,13 +57,13 @@ def test_ensure_owners_write_access_allows_privileged_users() -> None:
         "superset.charts.api.security_manager.can_access_all_datasources",
         return_value=True,
     ):
-        result = api.ensure_owners_write_access("owners")
+        result = api._pre_related_check("owners")
 
     assert result is None
 
 
 @pytest.mark.parametrize("column_name", ["created_by", "changed_by"])
-def test_ensure_owners_write_access_skips_non_owners_fields(
+def test_pre_related_check_skips_non_owners_fields(
     column_name: str,
 ) -> None:
     """Non-owners related fields bypass the write-access check entirely."""
@@ -72,7 +72,7 @@ def test_ensure_owners_write_access_skips_non_owners_fields(
     with patch(
         "superset.charts.api.security_manager.can_access_all_datasources",
     ) as mock_check:
-        result = api.ensure_owners_write_access(column_name)
+        result = api._pre_related_check(column_name)
 
     mock_check.assert_not_called()
     assert result is None

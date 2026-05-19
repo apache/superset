@@ -100,7 +100,6 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.error_handling import handle_api_exception
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -1024,53 +1023,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         return self.response(200, result="OK")
 
-    @expose("/related/<column_name>", methods=("GET",))
-    @protect()
-    @safe
-    @statsd_metrics
-    @handle_api_exception
-    def related(self, column_name: str, **kwargs: Any) -> Response:
-        """Get related fields data, restricting owner lookup to users with write access.
-
-        The access check runs before RISON parsing so unauthorized callers receive
-        403 without triggering schema-validation errors on the request body.
-        ---
-        get:
-          summary: Get related fields data
-          parameters:
-          - in: path
-            schema:
-              type: string
-            name: column_name
-          - in: query
-            name: q
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/get_related_schema'
-          responses:
-            200:
-              description: Related column data
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/RelatedResponseSchema"
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        if response := self.ensure_owners_write_access(column_name):
-            return response
-        return super().related(column_name)
-
-    def ensure_owners_write_access(self, column_name: str) -> Optional[Response]:
+    def _pre_related_check(self, column_name: str) -> Optional[Response]:
         """Restrict the owners related field to users with write access."""
         if (
             column_name == "owners"
