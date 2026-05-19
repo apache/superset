@@ -54,6 +54,7 @@ import {
 export type PropertiesModalProps = {
   slice: Slice;
   show: boolean;
+  initialName?: string;
   onHide: () => void;
   onSave: (chart: Chart) => void;
   permissionsError?: string;
@@ -64,6 +65,7 @@ export type PropertiesModalProps = {
 
 function PropertiesModal({
   slice,
+  initialName,
   onHide,
   onSave,
   show,
@@ -72,7 +74,7 @@ function PropertiesModal({
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
   // values of form inputs
-  const [name, setName] = useState(slice.slice_name || '');
+  const [name, setName] = useState((initialName ?? slice.slice_name) || '');
   const [description, setDescription] = useState(slice.description || '');
   const [cacheTimeout, setCacheTimeout] = useState(
     slice.cache_timeout != null ? String(slice.cache_timeout) : '',
@@ -295,8 +297,8 @@ function PropertiesModal({
 
   // update name after it's changed in another modal
   useEffect(() => {
-    setName(slice.slice_name || '');
-  }, [slice.slice_name]);
+    setName((initialName ?? slice.slice_name) || '');
+  }, [initialName, slice.slice_name]);
 
   // Validate general section when name changes
   useEffect(() => {

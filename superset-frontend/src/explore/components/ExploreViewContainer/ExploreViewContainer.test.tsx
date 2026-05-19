@@ -106,7 +106,11 @@ jest.mock(
 
 jest.mock('lodash/debounce', () => ({
   __esModule: true,
-  default: (fuc: Function) => fuc,
+  default: (fuc: Function) => {
+    const debounced = (...args: unknown[]) => fuc(...args);
+    (debounced as { cancel: () => void }).cancel = jest.fn();
+    return debounced;
+  },
 }));
 
 fetchMock.post('glob:*/api/v1/explore/form_data*', { key: KEY });
@@ -184,6 +188,134 @@ test('renders chart in standalone mode', () => {
     },
   });
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('prefills SaveModal with dynamic title when enabled', async () => {
+  const customState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      sliceName: 'Age distribution of respondents',
+      controls: {
+        ...reduxState.explore.controls,
+        show_dynamic_title: { value: true },
+      },
+    },
+    charts: {
+      ...reduxState.charts,
+      1: {
+        ...reduxState.charts[1],
+        queriesResponse: [
+          {
+            applied_filters: [{ column: 'country' }],
+          },
+        ],
+      },
+    },
+    saveModal: {
+      isVisible: true,
+      dashboards: [],
+      saveModalAlert: null,
+    },
+  };
+
+  renderWithRouter({ initialState: customState });
+
+  const chartNameInput = await screen.findByTestId('new-chart-name');
+  expect(chartNameInput).toHaveValue(
+    'Age distribution of respondents by country',
+  );
+});
+
+test('does not duplicate dynamic suffix in SaveModal prefill when already matched', async () => {
+  const customState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      sliceName: 'Age distribution of respondents by country',
+      controls: {
+        ...reduxState.explore.controls,
+        show_dynamic_title: { value: true },
+      },
+    },
+    charts: {
+      ...reduxState.charts,
+      1: {
+        ...reduxState.charts[1],
+        queriesResponse: [
+          {
+            applied_filters: [{ column: 'country' }],
+          },
+        ],
+      },
+    },
+    saveModal: {
+      isVisible: true,
+      dashboards: [],
+      saveModalAlert: null,
+    },
+  };
+
+  renderWithRouter({ initialState: customState });
+
+  const chartNameInput = await screen.findByTestId('new-chart-name');
+  expect(chartNameInput).toHaveValue('Age distribution of respondents by country');
+});
+
+test('prefills SaveModal title from current adhoc filters when dynamic title is enabled', async () => {
+  const customState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      sliceName: 'Age distribution of respondents',
+      controls: {
+        ...reduxState.explore.controls,
+        show_dynamic_title: { value: true },
+        adhoc_filters: { value: [{ subject: 'state' }] },
+      },
+    },
+    charts: {
+      ...reduxState.charts,
+      1: {
+        ...reduxState.charts[1],
+        queriesResponse: null,
+      },
+    },
+    saveModal: {
+      isVisible: true,
+      dashboards: [],
+      saveModalAlert: null,
+    },
+  };
+
+  renderWithRouter({ initialState: customState });
+
+  const chartNameInput = await screen.findByTestId('new-chart-name');
+  expect(chartNameInput).toHaveValue('Age distribution of respondents by state');
+});
+
+test('strips dynamic suffix from SaveModal prefill when dynamic title is disabled', async () => {
+  const customState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      sliceName: 'Age distribution of respondents by country',
+      controls: {
+        ...reduxState.explore.controls,
+        show_dynamic_title: { value: false },
+      },
+    },
+    saveModal: {
+      isVisible: true,
+      dashboards: [],
+      saveModalAlert: null,
+    },
+  };
+
+  renderWithRouter({ initialState: customState });
+
+  const chartNameInput = await screen.findByTestId('new-chart-name');
+  expect(chartNameInput).toHaveValue('Age distribution of respondents');
 });
 
 test('generates a form_data param with datasource_id when mounting with existing key', async () => {

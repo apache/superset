@@ -281,6 +281,91 @@ function isAggregatedChartType(vizType: string | undefined): boolean {
   return vizType ? AGGREGATED_CHART_TYPES.includes(vizType) : false;
 }
 
+function getDisplaySliceTitle(
+  sliceName: string | null,
+  formData: QueryFormData,
+  chart: ChartState,
+): string {
+  const getBaseTitleWithoutDynamicSuffix = (title: string) =>
+    title.replace(/\s+by\s+.+$/i, '').trimEnd();
+
+  const shouldShowDynamicTitle =
+    formData?.show_dynamic_title === true ||
+    formData?.showDynamicTitle === true;
+  if (!shouldShowDynamicTitle) {
+    return getBaseTitleWithoutDynamicSuffix(sliceName ?? '');
+  }
+
+  const appliedFilters = chart.queriesResponse?.[0]?.applied_filters;
+  const adhocFilters = formData?.adhoc_filters;
+  const extraFormData = formData?.extra_form_data as
+    | Record<string, unknown>
+    | undefined;
+  const nativeFilters = extraFormData?.filters;
+
+  const hasFormDataFilterSource =
+    Array.isArray(adhocFilters) || Array.isArray(nativeFilters);
+  const activeFilters = hasFormDataFilterSource
+    ? [
+        ...(Array.isArray(adhocFilters) ? adhocFilters : []),
+        ...(Array.isArray(nativeFilters) ? nativeFilters : []),
+      ]
+    : Array.isArray(appliedFilters)
+      ? appliedFilters
+      : [];
+
+  const getFilterName = (filter: unknown): string | undefined => {
+    if (!filter || typeof filter !== 'object') {
+      return undefined;
+    }
+
+    const filterMeta = filter as Record<string, unknown>;
+    const subject = filterMeta.subject;
+    const subjectName =
+      typeof subject === 'string'
+        ? subject
+        : subject && typeof subject === 'object'
+          ? [
+              (subject as Record<string, unknown>).label,
+              (subject as Record<string, unknown>).column_name,
+              (subject as Record<string, unknown>).name,
+              (subject as Record<string, unknown>).column,
+            ].find(
+              candidate =>
+                typeof candidate === 'string' && candidate.length > 0,
+            )
+          : undefined;
+
+    if (typeof subjectName === 'string' && subjectName.length > 0) {
+      return subjectName;
+    }
+
+    const candidates = [filterMeta.column, filterMeta.label, filterMeta.name];
+    return candidates.find(
+      candidate => typeof candidate === 'string' && candidate.length > 0,
+    ) as string | undefined;
+  };
+
+  const activeFilterNames = Array.isArray(activeFilters)
+    ? [
+        ...new Set(
+          activeFilters
+            .map(filter => getFilterName(filter))
+            .filter((name): name is string => Boolean(name)),
+        ),
+      ]
+    : [];
+
+  const baseTitle = getBaseTitleWithoutDynamicSuffix(sliceName ?? '');
+
+  if (!activeFilterNames.length) {
+    return baseTitle;
+  }
+
+  const dynamicSuffix = `by ${activeFilterNames.join(', ')}`;
+  return baseTitle ? `${baseTitle} ${dynamicSuffix}` : dynamicSuffix;
+}
+
 interface ExploreRootState {
   explore: {
     controls: ControlStateMapping;
@@ -839,6 +924,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     return dataTabErrorMessage;
   }, [props.controls]);
 
+  const saveModalSliceName = useMemo(
+    () => getDisplaySliceTitle(props.sliceName, props.form_data, props.chart),
+    [props.chart, props.form_data, props.sliceName],
+  );
+
   function renderChartContainer() {
     return (
       <ExploreChartPanel
@@ -1035,7 +1125,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           addDangerToast={props.addDangerToast}
           actions={props.actions}
           form_data={props.form_data}
-          sliceName={props.sliceName ?? undefined}
+          sliceName={saveModalSliceName}
           dashboardId={props.dashboardId ?? null}
         />
       )}
