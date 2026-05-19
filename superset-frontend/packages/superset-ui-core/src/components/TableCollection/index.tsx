@@ -307,7 +307,7 @@ function TableCollection<T extends object>({
       components={{
         header: {
           cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
-            <th {...props} data-test="sort-header" role="columnheader" />
+            <th {...props} data-test="sort-header" />
           ),
         },
         body: {

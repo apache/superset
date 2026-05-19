@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"permission_name":{"type":"string"},"view_menu_name":{"type":"string"}},"type":"object","title":"RolePermissionListSchema"},"schemaType":"response"}

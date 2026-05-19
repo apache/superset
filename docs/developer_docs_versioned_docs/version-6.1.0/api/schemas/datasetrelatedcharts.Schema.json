@@ -1,0 +1,1 @@
+{"schema":{"properties":{"count":{"description":"Chart count","type":"integer"},"result":{"description":"A list of dashboards","items":{"properties":{"id":{"type":"integer"},"slice_name":{"type":"string"},"viz_type":{"type":"string"}},"type":"object","title":"DatasetRelatedChart"},"type":"array"}},"type":"object","title":"DatasetRelatedCharts"},"schemaType":"response"}
