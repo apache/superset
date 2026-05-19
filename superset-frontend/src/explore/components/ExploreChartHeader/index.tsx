@@ -241,6 +241,46 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [originalFormData, currentFormData],
   );
 
+  const displayTitle = useMemo(() => {
+    const shouldShowDynamicTitle =
+      formData?.show_dynamic_title === true ||
+      formData?.showDynamicTitle === true;
+    if (!shouldShowDynamicTitle) {
+      return sliceName ?? '';
+    }
+
+    const appliedFilters = chart.queriesResponse?.[0]?.applied_filters;
+    const activeFilterNames = Array.isArray(appliedFilters)
+      ? [
+          ...new Set(
+            appliedFilters
+              .map(filter => {
+                if (!filter || typeof filter !== 'object') {
+                  return undefined;
+                }
+                const filterMeta = filter as Record<string, unknown>;
+                const candidates = [
+                  filterMeta.column,
+                  filterMeta.label,
+                  filterMeta.name,
+                ];
+                return candidates.find(
+                  candidate =>
+                    typeof candidate === 'string' && candidate.length > 0,
+                ) as string | undefined;
+              })
+              .filter((name): name is string => Boolean(name)),
+          ),
+        ]
+      : [];
+
+    if (!activeFilterNames.length) {
+      return sliceName ?? '';
+    }
+
+    return `${sliceName ?? ''} by ${activeFilterNames.join(', ')}`;
+  }, [chart.queriesResponse, formData, sliceName]);
+
   const {
     showModal: showUnsavedChangesModal,
     setShowModal: setShowUnsavedChangesModal,
@@ -274,12 +314,13 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     <>
       <PageHeaderWithActions
         editableTitleProps={{
-          title: sliceName ?? '',
+          title: displayTitle,
           canEdit:
             !slice ||
-            canOverwrite ||
-            (user?.userId !== undefined &&
-              (slice?.owners || []).includes(user.userId)),
+            ((canOverwrite ||
+              (user?.userId !== undefined &&
+                (slice?.owners || []).includes(user.userId))) &&
+             formData?.show_dynamic_title !== true),
           onSave: actions.updateChartTitle,
           placeholder: t('Add the name of the chart'),
           label: t('Chart title'),

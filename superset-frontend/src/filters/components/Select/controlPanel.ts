@@ -225,21 +225,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'dynamicDashboardTitle',
-            config: {
-              type: 'CheckboxControl',
-              renderTrigger: true,
-              affectsDataMask: true,
-              label: t('Dynamically update dashboard title'),
-              default: false,
-              description: t(
-                'When checked, the dashboard title will be updated dynamically based on the filter value. ',
-              ),
-            },
-          },
-        ],
       ],
     },
   ],
