@@ -29,6 +29,8 @@ from sqlalchemy import event
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, attributes
 
+from superset.versioning.utils import read_row_outside_flush
+
 logger = logging.getLogger(__name__)
 
 # Populated at app startup (superset/initialization/__init__.py) before
@@ -54,16 +56,11 @@ def _insert_baseline_row(
     )
 
     main_table = type(obj).__table__
-    conn = session.connection()
-
-    # Read the persisted (pre-edit) state of the entity.
-    row = (
-        conn.execute(sa.select(main_table).where(main_table.c.id == obj.id))
-        .mappings()
-        .first()
-    )
+    row = read_row_outside_flush(session, main_table, obj.id)
     if row is None:
         return None
+
+    conn = session.connection()
 
     # Insert a version_transaction row for the baseline.
     #
