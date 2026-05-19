@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ErrorInfo } from 'react';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 import type { JsonObject } from '@superset-ui/core';
@@ -301,7 +302,7 @@ function Markdown({
   );
 
   const handleRenderError = useCallback(
-    (error: Error, info: { componentStack: string } | null): void => {
+    (_error: Error, _info: ErrorInfo): void => {
       setHasError(true);
       if (editorMode === 'preview') {
         addDangerToast(
