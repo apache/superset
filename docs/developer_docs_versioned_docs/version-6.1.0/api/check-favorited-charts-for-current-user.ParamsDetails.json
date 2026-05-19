@@ -1,0 +1,1 @@
+{"parameters":[{"content":{"application/json":{"schema":{"items":{"type":"integer"},"type":"array","title":"get_fav_star_ids_schema"}}},"in":"query","name":"q"}]}
