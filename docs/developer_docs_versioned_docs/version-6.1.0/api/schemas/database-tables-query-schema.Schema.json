@@ -1,0 +1,1 @@
+{"schema":{"properties":{"catalog_name":{"type":"string"},"force":{"type":"boolean"},"schema_name":{"type":"string"}},"required":["schema_name"],"type":"object","title":"database_tables_query_schema"},"schemaType":"response"}

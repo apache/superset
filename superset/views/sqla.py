@@ -29,7 +29,12 @@ from superset.views.base import BaseSupersetView
 
 class RowLevelSecurityView(BaseSupersetView):
     route_base = "/rowlevelsecurity"
-    class_permission_name = "RowLevelSecurity"
+    # Use the canonical, spaced form used by the REST API and the security
+    # manager allow-list (see SupersetSecurityManager.ADMIN_ONLY_VIEW_MENUS).
+    # Prior to this, the view's class-derived name "RowLevelSecurity"
+    # produced a second, duplicate permission alongside "Row Level Security"
+    # in the admin UI — operators had to grant both for a role to work.
+    class_permission_name = "Row Level Security"
 
     @expose("/list/")
     @has_access
