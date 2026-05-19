@@ -181,7 +181,7 @@ cypress-run-all() {
   # for the rest of the run — surfacing as `ECONNREFUSED` / `socket hang up`
   # / `Missing CSRF token` cascades. Gunicorn gives us multiple workers,
   # a request timeout, and worker-recycling under load.
-  local flasklog="${HOME}/flask.log"
+  local serverlog="${HOME}/superset-cypress.log"
   local port=8081
   CYPRESS_BASE_URL="http://localhost:${port}"
   if [ -n "$APP_ROOT" ]; then
@@ -201,8 +201,37 @@ cypress-run-all() {
     --access-logfile - \
     --error-logfile - \
     "superset.app:create_app()" \
-    >"$flasklog" 2>&1 </dev/null &
-  local flaskProcessId=$!
+    >"$serverlog" 2>&1 </dev/null &
+  local serverPid=$!
+
+  # Ensure the backend is cleaned up and its log is emitted even when the
+  # test runner fails under `set -e`.
+  trap '
+    echo "::group::gunicorn log for Cypress run"
+    cat "'"$serverlog"'" || true
+    echo "::endgroup::"
+    kill '"$serverPid"' 2>/dev/null || true
+  ' EXIT
+
+  # Wait for the backend to be ready before launching Cypress; otherwise
+  # the first spec can race the server bind and see connection errors.
+  local timeout=60
+  say "Waiting for gunicorn server to start on port $port..."
+  while [ $timeout -gt 0 ]; do
+    if curl -f "http://localhost:${port}${APP_ROOT}/health" >/dev/null 2>&1; then
+      say "gunicorn server is ready"
+      break
+    fi
+    sleep 1
+    timeout=$((timeout - 1))
+  done
+  if [ $timeout -eq 0 ]; then
+    echo "::error::gunicorn server failed to start within 60 seconds"
+    echo "::group::Server startup log"
+    cat "$serverlog"
+    echo "::endgroup::"
+    return 1
+  fi
 
   USE_DASHBOARD_FLAG=''
   if [ "$USE_DASHBOARD" = "true" ]; then
@@ -214,13 +243,6 @@ cypress-run-all() {
   # memoryMonitorPid=$!
   python ../../scripts/cypress_run.py --parallelism $PARALLELISM --parallelism-id $PARALLEL_ID --group $PARALLEL_ID --retries 5 $USE_DASHBOARD_FLAG
   # kill $memoryMonitorPid
-
-  # After job is done, print out Flask log for debugging
-  echo "::group::Flask log for default run"
-  cat "$flasklog"
-  echo "::endgroup::"
-  # make sure the program exits
-  kill $flaskProcessId
 }
 
 playwright-install() {
@@ -242,7 +264,7 @@ playwright-run() {
   # See cypress-run-all() above for the rationale — the Flask dev server
   # cannot survive the dashboard import/export tests under load.
   cd "$GITHUB_WORKSPACE"
-  local flasklog="${HOME}/flask-playwright.log"
+  local serverlog="${HOME}/superset-playwright.log"
   local port=8081
   PLAYWRIGHT_BASE_URL="http://localhost:${port}"
   if [ -n "$APP_ROOT" ]; then
@@ -262,11 +284,16 @@ playwright-run() {
     --access-logfile - \
     --error-logfile - \
     "superset.app:create_app()" \
-    >"$flasklog" 2>&1 </dev/null &
-  local flaskProcessId=$!
+    >"$serverlog" 2>&1 </dev/null &
+  local serverPid=$!
 
-  # Ensure cleanup on exit
-  trap "kill $flaskProcessId 2>/dev/null || true" EXIT
+  # Ensure cleanup on exit (and emit the server log on failure)
+  trap '
+    echo "::group::gunicorn log for Playwright run"
+    cat "'"$serverlog"'" || true
+    echo "::endgroup::"
+    kill '"$serverPid"' 2>/dev/null || true
+  ' EXIT
 
   # Wait for server to be ready with health check
   local timeout=60
@@ -283,7 +310,7 @@ playwright-run() {
   if [ $timeout -eq 0 ]; then
     echo "::error::gunicorn server failed to start within 60 seconds"
     echo "::group::Server startup log"
-    cat "$flasklog"
+    cat "$serverlog"
     echo "::endgroup::"
     return 1
   fi
@@ -298,7 +325,6 @@ playwright-run() {
     if ! find "playwright/tests/${TEST_PATH}" -name "*.spec.ts" -type f 2>/dev/null | grep -q .; then
       echo "No test files found in ${TEST_PATH} - skipping test run"
       say "::endgroup::"
-      kill $flaskProcessId
       return 0
     fi
     echo "Running tests: ${TEST_PATH}"
@@ -314,13 +340,6 @@ playwright-run() {
     local status=$?
   fi
   say "::endgroup::"
-
-  # After job is done, print out Flask log for debugging
-  echo "::group::Flask log for Playwright run"
-  cat "$flasklog"
-  echo "::endgroup::"
-  # make sure the program exits
-  kill $flaskProcessId
 
   return $status
 }
