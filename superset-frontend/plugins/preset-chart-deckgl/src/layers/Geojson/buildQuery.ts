@@ -33,6 +33,7 @@ export interface DeckGeoJsonFormData extends SqlaFormData {
   geojson?: string;
   filter_nulls?: boolean;
   js_columns?: string[];
+  cross_filter_column?: string | null;
   tooltip_contents?: unknown[];
 }
 
@@ -41,6 +42,7 @@ export default function buildQuery(formData: DeckGeoJsonFormData) {
     geojson,
     filter_nulls = true,
     js_columns,
+    cross_filter_column,
     tooltip_contents,
   } = formData;
 
@@ -60,6 +62,10 @@ export default function buildQuery(formData: DeckGeoJsonFormData) {
     );
     const withJsColumns = addJsColumnsToColumns(columnStrings, js_columns);
     columns = withJsColumns as QueryFormColumn[];
+
+    if (cross_filter_column && !columns.includes(cross_filter_column)) {
+      columns.push(cross_filter_column);
+    }
 
     // Add tooltip columns
     columns = addTooltipColumnsToQuery(columns, tooltip_contents);

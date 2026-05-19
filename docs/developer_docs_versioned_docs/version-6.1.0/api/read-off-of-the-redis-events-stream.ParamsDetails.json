@@ -1,0 +1,1 @@
+{"parameters":[{"description":"Last ID received by the client","in":"query","name":"last_id","schema":{"type":"string"}}]}

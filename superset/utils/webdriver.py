@@ -295,21 +295,6 @@ class WebDriverPlaywright(WebDriverProxy):
                         url,
                     )
                     raise
-                try:
-                    # charts took too long to load
-                    logger.debug(
-                        "Wait for loading element of charts to be gone at url: %s", url
-                    )
-                    page.wait_for_function(
-                        "() => document.querySelectorAll('.loading').length === 0",
-                        timeout=self._screenshot_load_wait * 1000,
-                    )
-                except PlaywrightTimeout:
-                    logger.warning(
-                        "Timed out waiting for charts to load at url %s", url
-                    )
-                    raise
-
                 selenium_animation_wait = app.config[
                     "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
                 ]
@@ -368,7 +353,12 @@ class WebDriverPlaywright(WebDriverProxy):
                         page.set_viewport_size(
                             {"height": tile_height, "width": viewport_width}
                         )
-                        img = take_tiled_screenshot(page, element_name, tile_height)
+                        img = take_tiled_screenshot(
+                            page,
+                            element_name,
+                            tile_height,
+                            load_wait=self._screenshot_load_wait,
+                        )
                         if img is None:
                             logger.warning(
                                 (
@@ -380,10 +370,50 @@ class WebDriverPlaywright(WebDriverProxy):
                                 page, element, element_name
                             )
                     else:
+                        # Standard screenshot captures the full element including
+                        # below-the-fold content, so wait for all spinners globally.
+                        try:
+                            logger.debug(
+                                "Wait for loading element of charts to be gone"
+                                " at url: %s",
+                                url,
+                            )
+                            page.wait_for_function(
+                                "() => document.querySelectorAll("
+                                "'.loading').length === 0",
+                                timeout=self._screenshot_load_wait * 1000,
+                            )
+                        except PlaywrightTimeout:
+                            logger.warning(
+                                "Timed out waiting for charts to load at url %s "
+                                "(SCREENSHOT_LOAD_WAIT=%ss)",
+                                url,
+                                self._screenshot_load_wait,
+                            )
+                            raise
                         img = WebDriverPlaywright._get_screenshot(
                             page, element, element_name
                         )
                 else:
+                    # Standard screenshot captures the full element including
+                    # below-the-fold content, so wait for all spinners globally.
+                    try:
+                        logger.debug(
+                            "Wait for loading element of charts to be gone at url: %s",
+                            url,
+                        )
+                        page.wait_for_function(
+                            "() => document.querySelectorAll('.loading').length === 0",
+                            timeout=self._screenshot_load_wait * 1000,
+                        )
+                    except PlaywrightTimeout:
+                        logger.warning(
+                            "Timed out waiting for charts to load at url %s "
+                            "(SCREENSHOT_LOAD_WAIT=%ss)",
+                            url,
+                            self._screenshot_load_wait,
+                        )
+                        raise
                     img = WebDriverPlaywright._get_screenshot(
                         page, element, element_name
                     )
