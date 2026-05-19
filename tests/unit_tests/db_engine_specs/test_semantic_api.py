@@ -18,7 +18,7 @@
 # pylint: disable=import-outside-toplevel
 
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from sqlalchemy.engine.url import make_url
 
@@ -130,6 +130,105 @@ def test_adjust_engine_params_no_extra() -> None:
     )
     assert uri.query == {}
     assert connect_args == {"other": 1}
+
+
+def test_supports_oauth2_flag() -> None:
+    """
+    The engine spec advertises OAuth2 support and treats ``UnauthenticatedError``
+    as the trigger to start the dance.
+    """
+    from shillelagh.exceptions import UnauthenticatedError
+
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+    from superset.exceptions import OAuth2TokenRefreshError
+
+    assert SemanticAPIEngineSpec.supports_oauth2 is True
+    assert UnauthenticatedError in SemanticAPIEngineSpec.oauth2_exception
+    assert OAuth2TokenRefreshError in SemanticAPIEngineSpec.oauth2_exception
+    assert SemanticAPIEngineSpec.encrypted_extra_sensitive_fields == {
+        "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+    }
+
+
+def test_needs_oauth2_for_unauthenticated() -> None:
+    """
+    ``UnauthenticatedError`` with a logged-in user starts the dance.
+    """
+    from shillelagh.exceptions import UnauthenticatedError
+
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    fake_g = MagicMock()
+    fake_g.user = MagicMock()
+    with patch("superset.db_engine_specs.semantic_api.g", fake_g):
+        assert (
+            SemanticAPIEngineSpec.needs_oauth2(UnauthenticatedError("expired")) is True
+        )
+
+
+def test_needs_oauth2_ignores_unrelated_exceptions() -> None:
+    """
+    Unrelated exception types don't trigger the dance.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    fake_g = MagicMock()
+    fake_g.user = MagicMock()
+    with patch("superset.db_engine_specs.semantic_api.g", fake_g):
+        assert SemanticAPIEngineSpec.needs_oauth2(RuntimeError("boom")) is False
+
+
+def test_needs_oauth2_requires_user_context() -> None:
+    """
+    Outside a request (no ``g.user``) the dance is not started.
+    """
+    from shillelagh.exceptions import UnauthenticatedError
+
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    class _NoUserG:
+        def __bool__(self) -> bool:
+            return True
+
+    with patch("superset.db_engine_specs.semantic_api.g", _NoUserG()):
+        assert (
+            SemanticAPIEngineSpec.needs_oauth2(UnauthenticatedError("expired")) is False
+        )
+
+
+def test_impersonate_user_injects_access_token() -> None:
+    """
+    With a cached OAuth2 token the URL gains ``?access_token=…``.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    url, engine_kwargs = SemanticAPIEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username=None,
+        user_token="demo-access-token",
+        url=make_url("sqlite://"),
+        engine_kwargs={"connect_args": {}},
+    )
+    assert url.query["access_token"] == "demo-access-token"
+    assert engine_kwargs == {"connect_args": {}}
+
+
+def test_impersonate_user_without_token_is_a_noop() -> None:
+    """
+    Without a token, neither the URL nor engine_kwargs are changed.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    original_url = make_url("sqlite://")
+    url, engine_kwargs = SemanticAPIEngineSpec.impersonate_user(
+        database=MagicMock(),
+        username=None,
+        user_token=None,
+        url=original_url,
+        engine_kwargs={},
+    )
+    assert url is original_url
+    assert engine_kwargs == {}
 
 
 def test_get_metrics_extracts_computed() -> None:
