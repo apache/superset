@@ -178,7 +178,6 @@ const BIG_NO_RESULT_MIN_HEIGHT = 220;
 const behaviors = [Behavior.InteractiveChart];
 
 interface ChartRendererState {
-  showContextMenu: boolean;
   inContextMenu: boolean;
   legendState: LegendState | undefined;
   legendIndex: number;
@@ -221,11 +220,19 @@ function ChartRendererComponent({
     formData.viz_type ?? propVizType,
   )?.suppressContextMenu;
 
-  const [state, setState] = useState<ChartRendererState>({
-    showContextMenu:
+  // Derived from props/feature-flags: must NOT live in state, otherwise a
+  // `source` or viz-type change on the same mounted instance would leave
+  // it stale. (Pre-refactor this was a class-instance field recomputed on
+  // every render — preserve that semantic by using a memo here.)
+  const showContextMenu = useMemo(
+    () =>
       source === ChartSource.Dashboard &&
       !suppressContextMenu &&
       isFeatureEnabled(FeatureFlag.DrillToDetail),
+    [source, suppressContextMenu],
+  );
+
+  const [state, setState] = useState<ChartRendererState>({
     inContextMenu: false,
     legendState: undefined,
     legendIndex: 0,
@@ -259,10 +266,13 @@ function ChartRendererComponent({
   }, [queriesResponse]);
 
   // Clone queriesResponse to protect against plugin mutation of Redux state.
+  // Gate on `resultsReady` so the deep clone doesn't run for every
+  // queriesResponse identity change during loading/idle (only when results
+  // are actually about to render). Matches the pre-refactor gating.
   // TODO: remove once reducers use Redux Toolkit with Immer.
   const mutableQueriesResponse = useMemo(
-    () => cloneDeep(queriesResponse),
-    [queriesResponse],
+    () => (resultsReady ? cloneDeep(queriesResponse) : undefined),
+    [queriesResponse, resultsReady],
   );
 
   // Handler functions
@@ -373,7 +383,7 @@ function ChartRendererComponent({
   const hooks = useMemo<ChartHooks>(
     () => ({
       onAddFilter: handleAddFilter,
-      onContextMenu: state.showContextMenu ? handleOnContextMenu : undefined,
+      onContextMenu: showContextMenu ? handleOnContextMenu : undefined,
       onError: handleRenderFailure,
       setControlValue: handleSetControlValue,
       onFilterMenuOpen,
@@ -394,7 +404,7 @@ function ChartRendererComponent({
       onFilterMenuClose,
       onFilterMenuOpen,
       setDataMaskCallback,
-      state.showContextMenu,
+      showContextMenu,
     ],
   );
 
@@ -490,7 +500,7 @@ function ChartRendererComponent({
 
   return (
     <>
-      {state.showContextMenu && (
+      {showContextMenu && (
         <ChartContextMenu
           ref={contextMenuRef}
           id={chartId}
@@ -501,7 +511,7 @@ function ChartRendererComponent({
       )}
       <div
         onContextMenu={
-          state.showContextMenu ? onContextMenuFallback : undefined
+          showContextMenu ? onContextMenuFallback : undefined
         }
       >
         <SuperChart
