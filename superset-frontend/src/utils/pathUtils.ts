@@ -42,11 +42,11 @@ const SAFE_ABSOLUTE_URL_RE = /^(https?|ftp|mailto|tel):/i;
  * @param path A string path or URL to a resource
  */
 export function ensureAppRoot(path: string | null | undefined): string {
-  if (!path) {
-    return applicationRoot() || '/';
-  }
-  if (SAFE_ABSOLUTE_URL_RE.test(path) || path.startsWith('//')) {
+  if (path && (SAFE_ABSOLUTE_URL_RE.test(path) || path.startsWith('//'))) {
     return path;
+  }
+  if (path == null) {
+    return applicationRoot() || '/';
   }
   const root = applicationRoot();
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
