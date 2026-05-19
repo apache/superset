@@ -237,36 +237,61 @@ pip install --upgrade 'pip==25.2' 'setuptools<75' wheel build
 
 > pip 26.x 当前有 certifi 路径 bug，固定到 25.2。
 
-### 4.4 打 wheel
+### 4.4 打 wheel（**两个**：主包 + superset-core 子包）
+
+> ⚠️ Superset 6.1 是 **monorepo**——除了主包 `apache-superset` 之外，仓库根 `superset-core/` 是**独立的第二个 PyPI 包** `apache-superset-core`，其中包含主代码 `import` 用到的 `superset_core.semantic_layers`、`superset_core.extensions` 等模块。
+>
+> **必须把这两个包都打 wheel**，否则云端 pip 会从 PyPI 拉到旧的 `apache-superset-core 0.1.0`（缺 `semantic_layers` 子模块），启动时报：
+>
+> ```
+> ModuleNotFoundError: No module named 'superset_core.semantic_layers'
+> ```
 
 ```bash
 cd /opt/superset-build
+
+# 4.4.1 主包 wheel
 python -m build --wheel
+
+# 4.4.2 superset-core 子包 wheel（输出到同一个 dist/）
+python -m build --wheel --outdir dist ./superset-core
 
 ls -lh dist/
 # 输出形如:
-# -rw-rw-r-- 1 user user  52M Jan 15 14:30 apache_superset-6.1.0.dev0-py3-none-any.whl
+# -rw-rw-r-- 1 user user  97M  apache_superset-6.1.0.dev0-py3-none-any.whl
+# -rw-rw-r-- 1 user user  60K  apache_superset_core-0.1.0-py3-none-any.whl
 ```
 
-打 wheel 做的事（你不需要关心，记结论即可）：
+主 wheel 打包做的事（不需要细究，记结论即可）：
 
 1. 读 [pyproject.toml](../../../pyproject.toml) 的 `[build-system]`，知道用 setuptools 构建
 2. 读 [setup.py](../../../setup.py) 拿到包名 `apache_superset`、版本、依赖、entry_points
 3. 读 [MANIFEST.in](../../../MANIFEST.in)，把 `superset/static/`、`superset/templates/`、`superset/migrations/` 这些非 `.py` 资源一并塞进去
 4. 把所有内容压缩成 `apache_superset-X.Y.Z-py3-none-any.whl`
 
+`superset-core` 子包做的事：
+
+1. 读 [superset-core/pyproject.toml](../../../superset-core/pyproject.toml) 拿到包名 `apache-superset-core`、依赖
+2. 把 `superset-core/src/superset_core/` 全部打成 `apache_superset_core-0.1.0-py3-none-any.whl`
+
 ### 4.5 验证 wheel 内容
 
 ```bash
-# 用 unzip 看 wheel 里有没有前端 build 产物
+# 主 wheel：前端 build 产物
 unzip -l dist/apache_superset-*.whl | grep "static/assets/manifest.json"
 # 应输出 manifest.json 一行 → 说明前端产物已经打进 wheel
 
-# 看依赖列表
+# 主 wheel 依赖列表
 unzip -p dist/apache_superset-*.whl '*/METADATA' | head -50
+
+# superset-core wheel：semantic_layers 必须包含
+unzip -l dist/apache_superset_core-*.whl | grep semantic_layers
+# 应输出多行 .py 文件 (layer.py / models.py / view.py 等)
 ```
 
-> **如果没看到 `static/assets/manifest.json`**，说明 4.2 步前端 build 没生效，回去重跑。
+> **如果主 wheel 没看到 `static/assets/manifest.json`**，说明 4.2 步前端 build 没生效，回去重跑。
+>
+> **如果 superset-core wheel 没看到 `semantic_layers/`**，回去看 `superset-core/src/superset_core/` 子目录是否完整。
 
 ### 4.6 记录构建 commit
 
@@ -280,11 +305,13 @@ cat dist/BUILD_COMMIT.txt        # 部署后用于核对哪个版本上线了
 
 ## 五、传输到云服务器
 
-把 4.4 出的 wheel **加上版本约束文件**一并传过去。
+把 4.4 出的**两个 wheel** + 版本约束文件 + build commit 一起传过去。
 
 ```bash
-# 1. wheel 本体
-scp /opt/superset-build/dist/apache_superset-*.whl <user>@<cloud-host>:/tmp/
+# 1. 两个 wheel（主包 + superset-core 子包）
+scp /opt/superset-build/dist/apache_superset-*.whl \
+    /opt/superset-build/dist/apache_superset_core-*.whl \
+    <user>@<cloud-host>:/tmp/
 
 # 2. build commit 记录
 scp /opt/superset-build/dist/BUILD_COMMIT.txt <user>@<cloud-host>:/tmp/
@@ -316,7 +343,7 @@ scp /path/to/your/superset_config.py <user>@<cloud-host>:/tmp/
 >
 > 不带约束直接 `pip install xxx.whl`，pip 会按松散区间拉到当下允许范围内的最新版（例如 numpy 2.2.x），但 Superset 6.1 的源码仍在用 `np.product`（已在 numpy 2.0 被移除），导致 `superset version` 启动即崩。第七节会用 `-c` 把所有依赖锁回 `base.txt` 的版本。
 
-> **多台云机器**：把 scp 改成循环：
+> **多台云机器**：把 scp 改成循环（注意 `dist/*.whl` 会自动包含两个 wheel）：
 >
 > ```bash
 > for host in prod1 prod2 prod3; do
@@ -370,17 +397,27 @@ source venv/bin/activate
 pip install --upgrade 'pip==25.2' wheel setuptools
 ```
 
-### 7.1 装 wheel 本体（**务必用 `-c` 约束文件**）
+### 7.1 装 wheel 本体（**主包 + superset-core 都要装，务必用 `-c` 约束文件**）
 
 ```bash
-# 这一条命令做的事相当于 `pip install apache-superset`，
-# 但通过 -c 把所有依赖锁定到 Superset 官方测试过的版本（base.txt），
-# 避免 numpy/gunicorn 等被解析到不兼容的最新版。
+# 1. 主包 wheel（约 5-10 分钟，pip 会从 PyPI 拉 ~200 个运行时依赖）
 pip install /tmp/apache_superset-*.whl \
     -c /tmp/superset-base-constraints.txt
+
+# 2. superset-core 子包 wheel（覆盖 PyPI 上的旧版 0.1.0）
+#    --force-reinstall：主包安装时 pip 已经从 PyPI 拉过 apache-superset-core 0.1.0，
+#                       这里必须用本地 wheel 强制顶掉它，否则 semantic_layers 子模块缺失
+#    --no-deps：本地 wheel 跟 PyPI 上是同一个 version=0.1.0，不重复解析依赖
+pip install /tmp/apache_superset_core-*.whl --force-reinstall --no-deps
 ```
 
-预计 5-10 分钟（pip 会从 PyPI 拉所有运行时依赖，含 Flask、Pandas、SQLAlchemy 等约 200+ 包）。
+> **为什么 superset-core 要单独装一遍？**
+>
+> 因为 [superset-core/pyproject.toml:21](../../../superset-core/pyproject.toml) 中 `version = "0.1.0"` 跟 PyPI 上的发布版一样，但**仓库里的源码比 PyPI 上的内容更全**（含 `semantic_layers/`、`extensions/` 等子模块）。
+>
+> 第 1 步 `pip install` 主 wheel 时，pip 看依赖里有 `apache-superset-core>=0.1.0`，会直接去 **PyPI 拉到老版 0.1.0**（缺 `semantic_layers/`），导致启动报 `ModuleNotFoundError: No module named 'superset_core.semantic_layers'`。
+>
+> 第 2 步 `--force-reinstall` 强制把本地构建好的"全量版" 0.1.0 wheel 顶上去，问题就解决了。
 
 > **不要省略 `-c`**：wheel 内嵌的依赖区间是松散的（例如 `numpy>1.23.5, <2.3`），不加约束时 pip 会拉到 numpy 2.x，触发已知崩溃：
 >
@@ -390,18 +427,108 @@ pip install /tmp/apache_superset-*.whl \
 >
 > 已经踩过坑的同学：先 `pip install 'numpy==1.26.4' 'gunicorn==23.0.0' 'gevent==24.2.1' --force-reinstall` 强制对齐，再继续后面的步骤；最稳妥的是按下面 7.5 节整体重装一遍。
 
-### 7.2 装数据库驱动 + 生产 WSGI（同样带上 `-c`）
+### 7.2 装数据库驱动 + 生产 WSGI + 上游漏声明的依赖
+
+#### 7.2.1 数据库驱动（按你 `superset_config.py` 里 `SQLALCHEMY_DATABASE_URI` 的协议来选）
+
+| URI 协议 | 需要装的 pip 包 | 说明 |
+|---|---|---|
+| `mysql+mysqldb://` | `mysqlclient` | C 扩展，性能更好，依赖 `default-libmysqlclient-dev` 编译 |
+| `mysql+pymysql://` | `PyMySQL` | 纯 Python，安装简单无需编译 |
+| `postgresql+psycopg2://` | `psycopg2-binary` 或 `psycopg2` | PostgreSQL |
 
 ```bash
-# MySQL（推荐）
+# 选其中一行执行：
+
+# MySQL + mysqlclient（推荐，需要 default-libmysqlclient-dev 系统包）
 pip install 'mysqlclient>=2.2.0' -c /tmp/superset-base-constraints.txt
 
-# 或 PostgreSQL
-# pip install 'psycopg2-binary>=2.9.9' -c /tmp/superset-base-constraints.txt
+# MySQL + PyMySQL（无需编译，启动稍慢但部署简单）
+# pip install 'PyMySQL>=1.1.0' -c /tmp/superset-base-constraints.txt
 
-# 生产 WSGI（gunicorn / gevent 已在 base.txt 中精确锁定，-c 会把它们装到 23.0.0 / 24.x）
+# PostgreSQL
+# pip install 'psycopg2-binary>=2.9.9' -c /tmp/superset-base-constraints.txt
+```
+
+> **常见误区**：用 `mysql+pymysql://` 但只装了 `mysqlclient`（或反过来），启动时报 `No module named 'pymysql'` 或 `No module named 'MySQLdb'`。两个驱动**不能互换**，必须按 URI 协议来选。
+
+#### 7.2.2 生产 WSGI
+
+```bash
+# gunicorn / gevent 已在 base.txt 中精确锁定，-c 会把它们装到 23.0.0 / 24.x
 pip install 'gunicorn>=22.0.0' 'gevent>=24.2.1' -c /tmp/superset-base-constraints.txt
 ```
+
+#### 7.2.3 上游漏声明的运行时依赖
+
+Superset 6.1 主代码 `import` 了一些库，但 [pyproject.toml](../../../pyproject.toml) 里**没有声明**它们，pip install wheel 时不会自动拉。**必须手动装**，否则访问 `/login/` 这类页面会因 `db_engine_specs/aws_iam.py` import 失败而返回 500：
+
+```bash
+pip install cachetools -c /tmp/superset-base-constraints.txt
+```
+
+> 这是 apache 上游 6.1 的隐藏 bug（详见 [Q14](#q14-页面-500-报-no-module-named-cachetools)），将来在 fork 里把 `cachetools` 补进 `pyproject.toml` 后这一步可以省。
+
+#### 7.2.4 业务数据库的 SQLAlchemy 方言包（连什么库就装什么方言）
+
+7.2.1 的"元数据库驱动"和这一节的"业务数据库方言"是**两件不同的事**：
+
+- 元数据库（superset 自己的库，存 dashboard / chart 元数据）→ 7.2.1 装的就是
+- 业务数据库（你要在 superset 里建 Database 连接来查询的目标库，例如 StarRocks / Clickhouse / Trino）→ **这一节**
+
+每种业务数据库都要单独 `pip install` 它的 SQLAlchemy 方言包，否则在 superset UI 里建数据库连接、或者已有 dashboard 加载时，会报：
+
+```
+DB engine Error
+Can't load plugin: sqlalchemy.dialects:<dialect-name>
+```
+
+**常见业务数据库速查表**（按需挑装）：
+
+| 业务数据库 | URI 前缀 | pip 包 | 备注 |
+|---|---|---|---|
+| StarRocks | `starrocks://` | `starrocks` | 内部用 pymysql 作 DBAPI，需先装 PyMySQL |
+| Clickhouse | `clickhousedb://` | `clickhouse-connect` | |
+| Apache Doris | `doris://` | `pydoris` | 同样基于 pymysql |
+| Apache Hive | `hive://` | `pyhive[hive]`、`thrift` | |
+| Presto / Trino | `trino://` | `trino` | |
+| Apache Druid | `druid://` | `pydruid` | |
+| Snowflake | `snowflake://` | `snowflake-sqlalchemy` | |
+| BigQuery | `bigquery://` | `sqlalchemy-bigquery` | |
+| Databricks | `databricks://` | `databricks-sqlalchemy` | |
+| Oracle | `oracle://` | `cx_Oracle` 或 `oracledb` | |
+| MS SQL Server | `mssql+pyodbc://` | `pyodbc` + 系统装 ODBC driver | |
+| MongoDB(BI) | `mongodb://` | `pymongo` | |
+
+完整列表见 [Connecting to Databases | Apache Superset](https://superset.apache.org/docs/configuration/databases)。
+
+**示例：StarRocks**
+
+```bash
+source /opt/superset/venv/bin/activate
+
+pip install 'starrocks==1.3.3' -c /opt/superset/base-constraints.txt
+```
+
+> StarRocks 方言会**间接拉一些依赖**（alembic、asyncmy2、greenlet 等），这些会被 `-c base-constraints.txt` 拉到 Superset 测试过的版本，不会破坏现有依赖。
+
+> ⚠️ **Superset 6.1 起 StarRocks 连接 URI 必须用 `catalog.db` 两段式**（6.0.1 时代单段 `/db` 写法不再可用）。内置默认 catalog 叫 `default_catalog`，所以原本写 `starrocks://.../bluetti` 的连接，6.1 上要写成 `starrocks://.../default_catalog.bluetti`。详见 [Q17](#q17-starrocks-报-5078-unknown-catalog-xxx但用-mysql-client-直连能通)。
+
+装完**必须 `sudo systemctl restart superset` 让 worker 重新加载**，否则即使 venv 里有方言包，已经跑起来的 Python 进程也不会感知到新模块。
+
+验证方言注册成功（不连真实库）：
+
+```bash
+source /opt/superset/venv/bin/activate
+python - <<'EOF'
+from sqlalchemy import create_engine
+eng = create_engine("starrocks://x:y@h:9030/d")
+print("dialect:", eng.dialect.name, "/ driver:", eng.dialect.driver)
+EOF
+# 期望: dialect: starrocks / driver: pymysql
+```
+
+> 详见 [Q16](#q16-页面报-db-engine-error--cant-load-plugin-sqlalchemydialectsxxx)。
 
 ### 7.3 自检
 
@@ -711,19 +838,46 @@ superset init
 
 ### 10.2 场景 B：升级（已有元数据库）
 
+> ⚠️ **这一步是 mandatory，不是可选**。如果跳过，代码升级到 6.1 但库 schema 还停在旧版，dashboard / dataset / chart 等页面会 500：
+> ```
+> SupersetApiError: Fatal error
+> sqlalchemy.exc.OperationalError: (1054, "Unknown column 'tables.currency_code_column' in 'field list'")
+> ```
+> 详见 [Q15](#q15-升级后浏览器报-supersetapierror-fatal-error--unknown-column-1054)。
+
 ```bash
 cd /opt/superset
 source venv/bin/activate
 export SUPERSET_CONFIG_PATH=/opt/superset/superset_config.py
 export FLASK_APP=superset.app:create_app
 
-superset db current                                                    # 看当前版本
-superset db history --rev-range=<current>:head | head -50              # 看要跑哪些迁移
-superset db upgrade 2>&1 | tee /opt/backup/db_upgrade_$(date +%F).log  # 执行
+# 第 1 步：先看一眼当前在哪个 revision、距离 head 多远
+superset db current                                                    # 库里当前版本
+superset db heads                                                       # 代码期望版本
+superset db history --rev-range=<current>:head | head -50              # 中间要跑哪些迁移
+
+# 第 2 步：停服务（避免 upgrade 期间应用乱写元数据库）
+sudo systemctl stop superset
+
+# 第 3 步：备份元数据库（即使 8.5 节已备份过，再保险一次）
+mkdir -p /opt/superset/backup
+mysqldump -h <metadb-host> -u <user> -p<password> <db> \
+    > /opt/superset/backup/superset-pre-upgrade-$(date +%F-%H%M).sql
+
+# 第 4 步：执行升级（tee 日志方便事后排查）
+superset db upgrade 2>&1 | tee /opt/superset/backup/db_upgrade_$(date +%F).log
+
+# 第 5 步：同步新版的权限/菜单（6.1 引入 semantic_layer/view 权限等）
 superset init
+
+# 第 6 步：验证已经到 head
+superset db current        # 应输出 head 对应的 revision
+
+# 第 7 步：恢复服务
+sudo systemctl start superset
 ```
 
-> 第 3 步若中断，alembic 可能卡在中间版本——**升级前必须做完 8.5 节的整库备份**。
+> 第 4 步若中断，alembic 可能卡在中间版本——**用第 3 步的 dump 整库 restore 后再重跑**。
 
 ---
 
@@ -933,64 +1087,126 @@ sudo systemctl reload nginx
 
 ### 13.1 滚动升级（每次发新版）
 
-**构建机**上：
+> 日常迭代**不需要**走第二节到第十二节的完整剧本，只走本节即可。**首次部署做过一次的事**（系统包 / 创建 venv / 装 PyMySQL/cachetools/数据库方言 / 写 systemd / nginx / 元数据库初始化）**永远不用重做**。
+
+#### 13.1.1 决策表：根据本次改动选步骤
+
+| 本次改动类型 | 必做步骤 |
+|---|---|
+| **A. 仅 Python 代码、无新依赖、无 migration** | 主 wheel 重打 → 云端 `pip install --force-reinstall --no-deps` → restart |
+| **B. 改了前端（`superset-frontend/**`）** | 同 A，且构建时必须 `npm run build` 重出前端产物 |
+| **C. 改了 `superset-core/**` 子包** | 同 A/B + **重打 superset-core 子 wheel** → 云端单独 `pip install --force-reinstall --no-deps` |
+| **D. 新增 alembic migration（`superset/migrations/versions/*.py`）** | 同 A/B/C + 云端 `superset db upgrade` |
+| **E. 改了权限/菜单（新 view、新 permission）** | 同 D + 云端 `superset init` |
+| **F. 改了 `pyproject.toml` 增删依赖** | 主 wheel 装时不要带 `--no-deps`，改用 `--force-reinstall --upgrade` 让 pip 重新解析依赖图 |
+| **G. 改了 `superset_config.py`** | scp 新 config 到云端 + restart |
+| **H. 改了 systemd unit / nginx** | `sudo systemctl daemon-reload` + restart 对应服务 |
+
+以下三档剧本覆盖 95% 的发布场景，按你的改动从最轻到最重选其中一档。
+
+#### 13.1.2 剧本一：90% 场景（仅 Python + 前端，无 migration，预计 5-10 分钟）
+
+**构建机**：
 
 ```bash
-TS=$(date +%F-%H%M)
-
 cd /opt/superset-build
-git fetch origin master
-git log --oneline HEAD..origin/master                         # 确认 commits
-git reset --hard origin/master
-git rev-parse HEAD > dist/BUILD_COMMIT.txt
 
+# 1. 同步最新代码
+git fetch origin master
+git log --oneline HEAD..origin/master                         # 看本次包了哪些 commits
+git reset --hard origin/master
+mkdir -p dist && git rev-parse HEAD > dist/BUILD_COMMIT.txt
+
+# 2. 重 build 前端（如果只动了 Python，可跳过这步以节省时间）
 cd superset-frontend
 NODE_OPTIONS="--max-old-space-size=4096" npm run build
 cd /opt/superset-build
 
+# 3. 重打主 wheel
 source build-venv/bin/activate
-rm -rf dist build *.egg-info
+rm -rf dist/apache_superset-*.whl build *.egg-info
 python -m build --wheel
 
-# 上传到云机
-scp dist/apache_superset-*.whl <user>@<cloud-host>:/tmp/
-scp dist/BUILD_COMMIT.txt      <user>@<cloud-host>:/tmp/
+# 4. 传到云端
+scp dist/apache_superset-*.whl dist/BUILD_COMMIT.txt <user>@<cloud-host>:/tmp/
 ```
 
-**云服务器**上：
+**云服务器**（停机 < 1 分钟）：
 
 ```bash
 TS=$(date +%F-%H%M)
 
-# 1. 备份运行中的 venv 与元数据库
+# 1. 备份当前 venv（升级失败可秒级回滚，见 13.2）
 sudo systemctl stop superset
-sudo cp -a /opt/superset/venv /opt/backup/venv_${TS}
-mysqldump --single-transaction --routines --triggers \
-    -h <DB_HOST> -u superset -p superset \
-    | gzip > /opt/backup/db_${TS}.sql.gz
+sudo cp -a /opt/superset/venv /opt/superset/backup/venv_${TS}
 
-# 2. 装新 wheel
+# 2. 装新主 wheel（无新依赖时用 --no-deps 跳过 ~200 个包的依赖解析，几秒就装完）
 source /opt/superset/venv/bin/activate
 pip install /tmp/apache_superset-*.whl --force-reinstall --no-deps
-# 如果新版本动了 install_requires，需要重新解析依赖
-# pip install /tmp/apache_superset-*.whl --force-reinstall --upgrade
 
-# 3. 跑 alembic 迁移（仅当版本带 schema 变更）
-export SUPERSET_CONFIG_PATH=/opt/superset/superset_config.py
-export FLASK_APP=superset.app:create_app
-superset db upgrade
-superset init
-
-# 4. 更新 commit 标记 & 启服务
+# 3. 更新 commit 标记
 cp /tmp/BUILD_COMMIT.txt /opt/superset/.deployed_commit
+cat /opt/superset/.deployed_commit                          # 确认是本次的 commit
 rm -f /tmp/apache_superset-*.whl /tmp/BUILD_COMMIT.txt
 
+# 4. 起服务 + 健康检查
 sudo systemctl start superset
-sudo systemctl status superset --no-pager
-curl -fsS http://127.0.0.1:8088/health
+sleep 5
+sudo systemctl is-active superset                           # 期望 active
+curl -fsS http://127.0.0.1:8088/health                      # 期望 OK
 ```
 
-预计**总耗时 5-10 分钟**（构建机上 build 占大头），其中**云端停机时间 < 1 分钟**。
+#### 13.1.3 剧本二：含 alembic migration（D / E 场景）
+
+在剧本一**第 3 步装完 wheel 之后**、第 4 步起服务之前，加：
+
+```bash
+# 备份元数据库（schema 变更前必做）
+mysqldump --single-transaction --routines --triggers \
+    -h <DB_HOST> -u superset -p<DB_PASSWORD> superset \
+    | gzip > /opt/superset/backup/db_${TS}.sql.gz
+
+# 升级 schema
+export SUPERSET_CONFIG_PATH=/opt/superset/superset_config.py
+export FLASK_APP=superset.app:create_app
+
+superset db current      # 看升级前 revision，记下来回滚要用
+superset db upgrade      # 跑新增的 migration
+superset init            # 同步新增的 permission/menu (E 场景才需要，但跑一遍无副作用)
+superset db current      # 期望 head 对应 revision
+```
+
+> 关于 `superset init`：它会**只增不减**地同步代码里声明的 permission，对老 permission 是兼容的。如果不确定本次有没有新 permission，跑一下不会出问题。
+
+#### 13.1.4 剧本三：动到 `superset-core/**` 子包（C 场景）
+
+在剧本一**第 3 步**和**第 4 步之间**，加构建 + 装 superset-core 子 wheel：
+
+**构建机**追加：
+
+```bash
+cd /opt/superset-build
+rm -f dist/apache_superset_core-*.whl
+python -m build --wheel --outdir dist ./superset-core
+scp dist/apache_superset_core-*.whl <user>@<cloud-host>:/tmp/
+```
+
+**云端**（在主 wheel 安装之后）追加：
+
+```bash
+pip install /tmp/apache_superset_core-*.whl --force-reinstall --no-deps
+rm -f /tmp/apache_superset_core-*.whl
+```
+
+> 如何判断本次有没有动 superset-core？构建机上 `git diff --name-only HEAD@{1} HEAD -- superset-core/ | head` 看输出是否为空。空 → 跳过这档；非空 → 必走。
+
+#### 13.1.5 总耗时对照
+
+| 剧本 | 构建机时间 | 云端停机时间 | 总时长 |
+|---|---|---|---|
+| 一（90% 场景） | 3-5 分钟（前端 build 占大头） | < 1 分钟 | **5-10 分钟** |
+| 二（含 migration） | 同上 | 1-3 分钟（看 migration 量） | 10-15 分钟 |
+| 三（含 superset-core） | 同上 + 30 秒 | < 1 分钟 | 5-10 分钟 |
 
 ### 13.2 整体回滚（升级失败时）
 
@@ -1193,6 +1409,274 @@ Refusing to start due to insecure SECRET_KEY
 ```
 
 **这其实是好消息**——说明 import 链路已经完全通了，只是被生产安全检查挡住。继续走第九节写 `superset_config.py` 设强 `SECRET_KEY` 后，`superset version` 就会正常输出版本号。
+
+### Q12. 启动后 systemd 反复重启 + `No module named 'pymysql'`
+
+完整 traceback：
+
+```
+File ".../sqlalchemy/dialects/mysql/pymysql.py", line 80, in dbapi
+    return __import__("pymysql")
+ModuleNotFoundError: No module named 'pymysql'
+[ERROR] Worker failed to boot.
+```
+
+**根因**：`superset_config.py` 里 `SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://...'`，但你只装了 `mysqlclient`（对应协议 `mysql+mysqldb://`）。两个驱动是**不同的 PyPI 包**：
+
+| URI 协议 | 需要的包 |
+|---|---|
+| `mysql+mysqldb://` | `mysqlclient` |
+| `mysql+pymysql://` | `PyMySQL` |
+
+**修复**：装上对应的包即可：
+
+```bash
+source /opt/superset/venv/bin/activate
+pip install 'PyMySQL>=1.1.0' -c /opt/superset/base-constraints.txt
+sudo systemctl restart superset
+```
+
+> 或者反过来，把 `superset_config.py` 里的 URI 改成 `mysql+mysqldb://`，配套装 `mysqlclient`。两种都行，按你的运维习惯选。
+
+### Q13. 启动后 systemd 反复重启 + `No module named 'superset_core.semantic_layers'`
+
+完整 traceback：
+
+```
+File ".../superset/semantic_layers/models.py", line 38, in <module>
+    from superset_core.semantic_layers.layer import (
+ModuleNotFoundError: No module named 'superset_core.semantic_layers'
+```
+
+**根因**：Superset 6.1 是 **monorepo**——`superset_core` 包来自仓库根的 `superset-core/` 子目录，它在 [pyproject.toml:21](../../../superset-core/pyproject.toml) 中 `version = "0.1.0"` 跟 PyPI 上已发布的版本号**完全一样**，但仓库源码比 PyPI 上的发布版**多了 `semantic_layers/` 等子模块**。
+
+如果你在构建机只 `python -m build --wheel`（默认只打主包），云端 pip 安装主 wheel 时会去 PyPI 拉 `apache-superset-core==0.1.0`（缺 `semantic_layers/`），结果主代码 import 时崩。
+
+**修复方案**：
+
+#### A. 推荐：把仓库的 superset-core 子目录在云端 venv 里强制覆盖装一次
+
+```bash
+# 把 superset-core 子目录拷到云机（仅几十 KB）
+scp -r /opt/superset-build/superset-core <user>@<cloud-host>:/tmp/
+
+# 在云机的 venv 里强装
+source /opt/superset/venv/bin/activate
+pip install /tmp/superset-core --force-reinstall --no-deps
+
+# 验证
+ls /opt/superset/venv/lib/python3.10/site-packages/superset_core/
+# 应该看到 semantic_layers/ 子目录
+
+sudo systemctl restart superset
+```
+
+#### B. 治本：构建机预先把 superset-core 也打成 wheel
+
+按 [4.4 节](#44-打-wheel两个主包--superset-core-子包) 重新构建时多跑一行：
+
+```bash
+python -m build --wheel --outdir dist ./superset-core
+```
+
+然后 [第五节](#五传输到云服务器) 把两个 wheel 一并 scp 到云端，[7.1 节](#71-装-wheel-本体主包--superset-core-都要装务必用--c-约束文件)装完主 wheel 后用 `--force-reinstall --no-deps` 装上 superset-core wheel。这才是文档的"正确路径"。
+
+### Q14. 页面 500 报 `No module named 'cachetools'`
+
+服务起来了（`/health` 返回 200），但浏览器访问任何 SPA 页面（`/login/`、`/superset/welcome/`）都报 500。journalctl 看到：
+
+```
+File ".../superset/db_engine_specs/aws_iam.py", line 35, in <module>
+    from cachetools import TTLCache
+ModuleNotFoundError: No module named 'cachetools'
+```
+
+**根因**：`superset/db_engine_specs/aws_iam.py` 用了 `cachetools.TTLCache`，但 [pyproject.toml](../../../pyproject.toml) 里**没声明**这个依赖，pip install wheel 时不会自动拉。这是 apache 上游 6.1 的**隐藏 bug**（声明缺失）。
+
+触发场景：通过 SPA 入口加载时，`get_available_engine_specs()` 会 importlib 把所有 `db_engine_specs/*.py` 模块都 import 一遍，触发 `aws_iam.py` 加载 → import cachetools 失败。
+
+**修复**：
+
+```bash
+source /opt/superset/venv/bin/activate
+pip install cachetools -c /opt/superset/base-constraints.txt
+sudo systemctl restart superset
+
+curl -sS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8088/login/
+# 期望: 200
+```
+
+> **建议**: fork 自己用的时候，把 `cachetools` 补到 [pyproject.toml](../../../pyproject.toml) 的 `[project] dependencies` 里，下次构建的 wheel 就会自动声明这个依赖，云端 pip 也会自动装。这个一行修复也可以 [PR 回上游](#附录-g把本地修复-pr-回-apache-上游)。
+
+### Q15. 升级后浏览器报 `SupersetApiError: Fatal error` + `Unknown column ... (1054)`
+
+登录后访问 dashboard、charts、datasets 等任何业务页面，浏览器弹错：
+
+```
+Unexpected error
+SupersetApiError: Fatal error
+```
+
+journalctl 看到：
+
+```
+sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError)
+  (1054, "Unknown column 'tables.currency_code_column' in 'field list'")
+```
+
+（PostgreSQL 报的是 `psycopg2.errors.UndefinedColumn`，原理一样。）
+
+**根因**：你升级了 **代码** 到 6.1，但**没升级元数据库 schema**——alembic migration 没跑。`tables.currency_code_column` 等新字段在 ORM 模型里有、库里却没有，任何查 `tables` 表的 API 都会 1054。
+
+> 跑 `superset version` 时它会提示 `Pending database migrations: run 'superset db upgrade'`，很容易被忽略。
+
+**修复**：补跑 [10.2 节](#102-场景-b升级已有元数据库)。最小命令：
+
+```bash
+sudo systemctl stop superset
+
+source /opt/superset/venv/bin/activate
+export SUPERSET_CONFIG_PATH=/opt/superset/superset_config.py
+export FLASK_APP=superset.app:create_app
+
+# 备份（保险）
+mysqldump -h <metadb-host> -u <user> -p<password> <db> \
+    > /opt/superset/backup/superset-pre-upgrade-$(date +%F-%H%M).sql
+
+# 升级
+cd /opt/superset
+superset db upgrade
+superset init
+
+# 验证已经到 head
+superset db current
+
+sudo systemctl start superset
+```
+
+之后浏览器**强制刷新**（Ctrl+Shift+R）清掉前端缓存，页面就正常了。
+
+> **常见误区**：以为"我之前 6.0.1 跑得好好的，pip install 新 wheel 后什么都没动元数据库怎么会变"。元数据库 schema 由代码里的 [alembic migration 脚本](../../../superset/migrations/versions/) 单向驱动，**版本升一次必跑一次 upgrade**，否则代码与库永远不在同一个 revision。
+
+### Q16. 页面报 `DB engine Error` + `Can't load plugin: sqlalchemy.dialects:xxx`
+
+完整文案：
+
+```
+DB engine Error
+Can't load plugin: sqlalchemy.dialects:starrocks
+This may be triggered by: Issue 1011 - Superset encountered an unexpected error.
+```
+
+**根因**：你在 Superset 里建了一个连业务数据库（如 StarRocks / Clickhouse / Doris / Trino...）的 Database 连接，但**新部署的 venv 里没装这个数据库的 SQLAlchemy 方言包**。元数据库表里那条连接记录还在，但当 superset 创建 engine 时 SQLAlchemy 找不到对应的 plugin。
+
+> 这非常容易在"从旧 venv 升级到新 venv / 换机器部署"时出现——旧 venv 装过的方言包没自动带过来。
+
+**修复**：在新 venv 装上对应方言包，重启服务。
+
+```bash
+source /opt/superset/venv/bin/activate
+
+# 按你的 URI 协议选包（完整速查表见 7.2.4 节）：
+pip install 'starrocks==1.3.3' -c /opt/superset/base-constraints.txt
+# pip install clickhouse-connect -c /opt/superset/base-constraints.txt
+# pip install pydoris -c /opt/superset/base-constraints.txt
+# pip install trino -c /opt/superset/base-constraints.txt
+
+sudo systemctl restart superset
+```
+
+> **判断到底缺哪个方言**：错误消息最后一段 `sqlalchemy.dialects:xxx` 中的 `xxx` 就是 URI 前缀，对应 [7.2.4 节速查表](#724-业务数据库的-sqlalchemy-方言包连什么库就装什么方言)中的 pip 包名。
+
+> **如何系统性避免**：部署完后立刻在新 venv 里 `pip list` 跟旧 venv `pip list` 做一次 diff，把所有旧 venv 装过的、与业务数据库相关的方言包全部补装：
+> ```bash
+> # 在旧 venv 所在机器上提前导出
+> pip list --format=freeze | grep -iE 'starrocks|clickhouse|doris|hive|trino|druid|snowflake|bigquery|databricks|oracledb|pyodbc|pymongo' \
+>     > /tmp/business-db-drivers.txt
+> # 传到新机器
+> scp /tmp/business-db-drivers.txt <user>@<cloud-host>:/tmp/
+> # 在新 venv 一次性装
+> pip install -r /tmp/business-db-drivers.txt -c /opt/superset/base-constraints.txt
+> ```
+
+### Q17. StarRocks 报 `(5078, "Unknown catalog 'xxx'")`，但用 mysql client 直连能通
+
+完整错误：
+
+```
+ERROR: (builtins.NoneType) None
+[SQL: (pymysql.err.OperationalError) (5078, "Unknown catalog 'bluetti'")
+```
+
+并且用 `mysql -h <host> -P 19030 -u <user> -p` 直连、或者 SQLAlchemy 单独跑 `create_engine("starrocks://.../bluetti").connect()` 都能通。
+
+**根因（6.0.1 → 6.1 的行为变化）**：
+
+Superset 6.1 给 StarRocks engine spec 引入了**多 catalog 支持**（见 [superset/db_engine_specs/starrocks.py:102](../../../superset/db_engine_specs/starrocks.py)）：
+
+```python
+supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+sqlalchemy_uri_placeholder = "starrocks://user:password@host:port[/catalog.db]"
+```
+
+6.1 在 `adjust_engine_params()` 里会把 URI 的 database 段按 **"catalog.schema"** 两段式解析（[第 265-275 行](../../../superset/db_engine_specs/starrocks.py)）：
+
+```python
+if uri.database and "." in uri.database:
+    current_catalog, current_schema = uri.database.split(".", 1)
+elif uri.database:
+    current_catalog, current_schema = uri.database, None   # ← 没点号时把整段当 catalog
+```
+
+也就是说：
+- URI `.../bluetti`（无点号）→ 被解释为 `catalog=bluetti, schema=空` → 向 StarRocks 发 `SET CATALOG bluetti` → StarRocks 找不到名叫 bluetti 的 catalog（因为 bluetti 实际上是 database），返回 5078
+- 6.0.1 时代 superset 没有这层 catalog 解析，原 URI 直接 pass-through 给 starrocks driver，所以能跑
+
+> StarRocks 有 "catalog → database → table" 三级模型。内置默认 catalog 叫 `default_catalog`，所有原生表都在它下面。你之前用 mysql client 直连不指定 catalog 时，StarRocks 默认就在 `default_catalog` 里查，所以看不到这层。
+
+**确认你 StarRocks 集群的 catalog/database 结构**（用任意 mysql client）：
+
+```bash
+mysql -h <starrocks-fe-host> -P 9030 -u <user> -p<password> \
+      -e "SHOW CATALOGS"
+# 期望看到至少一行 default_catalog (Internal)
+
+mysql -h <starrocks-fe-host> -P 9030 -u <user> -p<password> \
+      -e "SHOW DATABASES FROM default_catalog"
+# 这里能看到你的业务 database 名（例如 bluetti）
+```
+
+**修复**：在 Superset UI → Database Connections，把 StarRocks 连接的 URI 从
+
+```
+starrocks://<user>:<password>@<host>:<port>/<db>
+```
+
+改成
+
+```
+starrocks://<user>:<password>@<host>:<port>/<catalog>.<db>
+```
+
+对你的场景就是：
+
+```
+starrocks://agi:Abcd.123@192.168.40.180:19030/default_catalog.bluetti
+```
+
+Test Connection → Save → 浏览器强制刷新即可。
+
+**如果你还有连 StarRocks 外部 catalog（如 Paimon、Iceberg、Hive）的连接**：写法一样，把 catalog 名换掉，例如 `starrocks://.../paimon.<paimon_db>`。
+
+**附带可能看到的警告**（无害，可忽略）：
+
+```
+Failed to get run_mode: (pymysql.err.OperationalError) (5203, 'Access denied;
+you need (at least one of) the OPERATE privilege(s) on SYSTEM ...
+[SQL: ADMIN SHOW FRONTEND CONFIG LIKE 'run_mode']
+```
+
+这是 starrocks 1.3.3 方言初始化时执行的探测 SQL，如果你的 superset 连接用户只有 `read_only` 角色（推荐！），就会拿不到 OPERATE 权限。这只是**警告日志**，方言会优雅降级，不影响 SELECT/SHOW 等正常查询。
 
 ---
 
