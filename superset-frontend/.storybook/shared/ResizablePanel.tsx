@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ComponentProps, ReactNode, SyntheticEvent } from 'react';
+import { ReactNode, SyntheticEvent } from 'react';
 import { ResizableBox, ResizeCallbackData } from 'react-resizable';
 import { styled } from '@apache-superset/core/theme';
 
@@ -42,17 +42,16 @@ export type Size = ResizeCallbackData['size'];
 
 export default function ResizablePanel({
   children,
-  heading = undefined,
+  heading,
   initialSize = { width: 500, height: 300 },
   minConstraints = [100, 100] as [number, number],
   onResize,
-  ...props
-}: Partial<
-  Omit<ComponentProps<typeof ResizableBox>, 'width' | 'height' | 'children'>
-> & {
+}: {
   children?: ReactNode;
   heading?: ReactNode;
   initialSize?: Size;
+  minConstraints?: [number, number];
+  onResize?: (e: SyntheticEvent, data: ResizeCallbackData) => void;
 }) {
   const { width, height } = initialSize;
   return (
@@ -61,15 +60,7 @@ export default function ResizablePanel({
       width={width}
       height={height}
       minConstraints={minConstraints}
-      onResize={
-        onResize
-          ? (e: SyntheticEvent, data: ResizeCallbackData) => {
-              const { size } = data;
-              onResize(e, { ...data, size });
-            }
-          : undefined
-      }
-      {...props}
+      onResize={onResize}
     >
       <>
         {heading ? <div className="panel-heading">{heading}</div> : null}
