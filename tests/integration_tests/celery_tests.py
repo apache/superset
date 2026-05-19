@@ -225,31 +225,7 @@ def test_run_sync_query_cta_no_data(test_client):
 
 
 @pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
-@pytest.mark.parametrize(
-    "ctas_method, expected",
-    [
-        (
-            CTASMethod.TABLE,
-            """
-CREATE TABLE sqllab_test_db.test_sync_cta_table AS
-SELECT
-  name
-FROM birth_names
-LIMIT 1
-            """.strip(),
-        ),
-        (
-            CTASMethod.VIEW,
-            """
-CREATE VIEW sqllab_test_db.test_sync_cta_view AS
-SELECT
-  name
-FROM birth_names
-LIMIT 1
-            """.strip(),
-        ),
-    ],
-)
+@pytest.mark.parametrize("ctas_method", [CTASMethod.TABLE, CTASMethod.VIEW])
 @mock.patch(  # noqa: PT008
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
@@ -257,12 +233,16 @@ LIMIT 1
 def test_run_sync_query_cta_config(
     test_client,
     ctas_method: CTASMethod,
-    expected: str,
 ) -> None:
     if backend() == "sqlite":
         # sqlite doesn't support schemas
         return
+    q = "`" if backend() == "mysql" else '"'
     tmp_table_name = f"{TEST_SYNC_CTA}_{ctas_method.name.lower()}"
+    tbl = f"{q}{CTAS_SCHEMA_NAME}{q}.{q}{tmp_table_name}{q}"
+    expected = (
+        f"CREATE {ctas_method.name} {tbl} AS\nSELECT\n  name\nFROM birth_names\nLIMIT 1"
+    )
     result = run_sql(
         test_client, QUERY, cta=True, ctas_method=ctas_method, tmp_table=tmp_table_name
     )
@@ -281,31 +261,7 @@ def test_run_sync_query_cta_config(
 
 
 @pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
-@pytest.mark.parametrize(
-    "ctas_method, expected",
-    [
-        (
-            CTASMethod.TABLE,
-            """
-CREATE TABLE sqllab_test_db.test_async_cta_config_table AS
-SELECT
-  name
-FROM birth_names
-LIMIT 1
-            """.strip(),
-        ),
-        (
-            CTASMethod.VIEW,
-            """
-CREATE VIEW sqllab_test_db.test_async_cta_config_view AS
-SELECT
-  name
-FROM birth_names
-LIMIT 1
-            """.strip(),
-        ),
-    ],
-)
+@pytest.mark.parametrize("ctas_method", [CTASMethod.TABLE, CTASMethod.VIEW])
 @mock.patch(  # noqa: PT008
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
@@ -313,12 +269,16 @@ LIMIT 1
 def test_run_async_query_cta_config(
     test_client,
     ctas_method: CTASMethod,
-    expected: str,
 ) -> None:
     if backend() == "sqlite":
         # sqlite doesn't support schemas
         return
+    q = "`" if backend() == "mysql" else '"'
     tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.name.lower()}"
+    tbl = f"{q}{CTAS_SCHEMA_NAME}{q}.{q}{tmp_table_name}{q}"
+    expected = (
+        f"CREATE {ctas_method.name} {tbl} AS\nSELECT\n  name\nFROM birth_names\nLIMIT 1"
+    )
     result = run_sql(
         test_client,
         QUERY,
@@ -341,37 +301,17 @@ def test_run_async_query_cta_config(
 
 
 @pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
-@pytest.mark.parametrize(
-    "ctas_method, expected",
-    [
-        (
-            CTASMethod.TABLE,
-            """
-CREATE TABLE test_async_cta_table AS
-SELECT
-  name
-FROM birth_names
-LIMIT 1
-            """.strip(),
-        ),
-        (
-            CTASMethod.VIEW,
-            """
-CREATE VIEW test_async_cta_view AS
-SELECT
-  name
-FROM birth_names
-LIMIT 1
-            """.strip(),
-        ),
-    ],
-)
+@pytest.mark.parametrize("ctas_method", [CTASMethod.TABLE, CTASMethod.VIEW])
 def test_run_async_cta_query(
     test_client,
     ctas_method: CTASMethod,
-    expected: str,
 ) -> None:
+    q = "`" if backend() == "mysql" else '"'
     table_name = f"{TEST_ASYNC_CTA}_{ctas_method.name.lower()}"
+    expected = (
+        f"CREATE {ctas_method.name} {q}{table_name}{q} AS\n"
+        "SELECT\n  name\nFROM birth_names\nLIMIT 1"
+    )
     result = run_sql(
         test_client,
         QUERY,
@@ -396,37 +336,17 @@ def test_run_async_cta_query(
 
 
 @pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
-@pytest.mark.parametrize(
-    "ctas_method, expected",
-    [
-        (
-            CTASMethod.TABLE,
-            """
-CREATE TABLE test_async_lower_limit_table AS
-SELECT
-  name
-FROM birth_names
-LIMIT 1
-            """.strip(),
-        ),
-        (
-            CTASMethod.VIEW,
-            """
-CREATE VIEW test_async_lower_limit_view AS
-SELECT
-  name
-FROM birth_names
-LIMIT 1
-            """.strip(),
-        ),
-    ],
-)
+@pytest.mark.parametrize("ctas_method", [CTASMethod.TABLE, CTASMethod.VIEW])
 def test_run_async_cta_query_with_lower_limit(
     test_client,
     ctas_method: CTASMethod,
-    expected: str,
 ) -> None:
+    q = "`" if backend() == "mysql" else '"'
     tmp_table = f"{TEST_ASYNC_LOWER_LIMIT}_{ctas_method.name.lower()}"
+    expected = (
+        f"CREATE {ctas_method.name} {q}{tmp_table}{q} AS\n"
+        "SELECT\n  name\nFROM birth_names\nLIMIT 1"
+    )
     result = run_sql(
         test_client,
         QUERY,
