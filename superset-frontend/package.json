@@ -123,7 +123,7 @@
     "@luma.gl/gltf": "~9.2.5",
     "@luma.gl/shadertools": "~9.2.5",
     "@luma.gl/webgl": "~9.2.5",
-    "@reduxjs/toolkit": "^1.9.3",
+    "@reduxjs/toolkit": "^2.12.0",
     "@rjsf/antd": "^5.24.13",
     "@rjsf/core": "^5.24.13",
     "@rjsf/utils": "^5.24.3",
