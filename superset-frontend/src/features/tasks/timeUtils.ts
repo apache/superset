@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import { getIntlDurationFormatter } from '@superset-ui/core/number-format/utils/getIntlDurationFormatter';
 import { parseMilliseconds } from '@superset-ui/core/number-format/utils/parseMilliseconds';
 
 /**
@@ -27,6 +26,16 @@ import { parseMilliseconds } from '@superset-ui/core/number-format/utils/parseMi
 const MAX_ETA_SECONDS = 86400;
 const durationFormatters = new Map<string, Intl.DurationFormat>();
 
+function createDurationFormatter(locale: string): Intl.DurationFormat {
+  const normalizedLocale = locale.replace(/_/g, '-');
+
+  try {
+    return new Intl.DurationFormat(normalizedLocale, { style: 'narrow' });
+  } catch {
+    return new Intl.DurationFormat('en', { style: 'narrow' });
+  }
+}
+
 function getCachedDurationFormatter(locale?: string): Intl.DurationFormat {
   const key = locale ?? '';
   const formatter = durationFormatters.get(key);
@@ -35,7 +44,7 @@ function getCachedDurationFormatter(locale?: string): Intl.DurationFormat {
     return formatter;
   }
 
-  const newFormatter = getIntlDurationFormatter(locale, { style: 'narrow' });
+  const newFormatter = createDurationFormatter(locale ?? 'en');
   durationFormatters.set(key, newFormatter);
   return newFormatter;
 }
@@ -49,7 +58,7 @@ function getCachedDurationFormatter(locale?: string): Intl.DurationFormat {
  */
 export function formatDuration(
   seconds: number | null | undefined,
-  locale?: string,
+  locale = 'en',
 ): string | null {
   if (seconds === null || seconds === undefined || seconds <= 0) {
     return null;

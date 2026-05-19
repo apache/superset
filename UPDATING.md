@@ -24,6 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Duration formatter precision
+
+The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.
+
+To preserve sub-second precision in custom duration formatters, enable `formatSubMilliseconds`.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:

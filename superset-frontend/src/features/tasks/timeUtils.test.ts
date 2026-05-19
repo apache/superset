@@ -48,6 +48,10 @@ test('formatDuration formats hours correctly', () => {
   expect(formatDuration(7200)).toBe('2h');
 });
 
+test('formatDuration limits output to two units', () => {
+  expect(formatDuration(93784)).toBe('1d 2h');
+});
+
 test('calculateEta returns null for invalid inputs', () => {
   expect(calculateEta(null, 60)).toBeNull();
   expect(calculateEta(undefined, 60)).toBeNull();
