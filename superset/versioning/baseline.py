@@ -17,6 +17,11 @@
 """before_flush listener that captures a baseline version (version 0) for entities
 being updated for the first time after the versioning migration.
 
+The module reads top-down in stepdown order: the public entry point
+(``register_baseline_listener``) is at the top; helpers descend to leaf
+builders at the bottom. Module-level state (``VERSIONED_MODELS``,
+``_CHILD_BASELINE_HANDLERS``) sits next to the helpers that consume it.
+
 VERSIONED_MODELS is populated at app startup by the initialisation code after
 make_versioned() has run and all versioned model classes have been defined.
 """
@@ -38,297 +43,45 @@ logger = logging.getLogger(__name__)
 VERSIONED_MODELS: list[type] = []
 
 
-def _insert_baseline_row(
-    session: Session, obj: Any, version_table: sa.Table
-) -> Optional[int]:
-    """Insert a synthetic baseline row capturing the pre-edit DB state of *obj*.
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 
-    Creates a version_transaction entry and an operation_type=0 version row.
-    All writes use the session's existing connection so they share the same
-    database transaction as the triggering flush.
 
-    Returns the allocated ``transaction_id`` so the caller can baseline child
-    collections under the same tx (see :func:`_insert_child_baseline_rows`),
-    or ``None`` when the entity has no live row.
+def register_baseline_listener() -> None:
+    """Attach the before_flush listener that captures baseline versions.
+
+    Call this after VERSIONED_MODELS has been populated and make_versioned() has run.
     """
-    from sqlalchemy_continuum import (
-        versioning_manager,  # pylint: disable=import-outside-toplevel
-    )
+    from superset.extensions import db  # pylint: disable=import-outside-toplevel
 
-    main_table = type(obj).__table__
-    row = read_row_outside_flush(session, main_table, obj.id)
-    if row is None:
-        return None
-
-    conn = session.connection()
-
-    # Insert a version_transaction row for the baseline.
-    #
-    # ``issued_at`` and ``user_id`` are sourced from the entity's audit fields
-    # (``changed_on`` / ``changed_by_fk``, falling back to ``created_on`` /
-    # ``created_by_fk`` if the row was never edited), so the baseline reads
-    # in the version-history UI as "this is the state at the time of the
-    # last pre-versioning edit, by that user." Using ``now()`` and the
-    # current user would have made the baseline look chronologically newer
-    # than subsequent edits and attributed historical content to the user
-    # who happened to trigger the first save under versioning.
-    baseline_issued_at = row.get("changed_on") or row.get("created_on") or sa.func.now()
-    baseline_user_id = row.get("changed_by_fk") or row.get("created_by_fk")
-    tx_table = versioning_manager.transaction_cls.__table__
-    result = conn.execute(
-        tx_table.insert().values(
-            issued_at=baseline_issued_at,
-            user_id=baseline_user_id,
-            remote_addr=None,
-        )
-    )
-    tx_id = result.inserted_primary_key[0]
-
-    # Build version row using Column objects as keys to avoid name/key mismatches
-    # (string-based values(**dict) raises "Unconsumed column names" when a Column's
-    # .key differs from its .name, which can happen with Continuum-generated tables).
-    meta_col_names = {"transaction_id", "end_transaction_id", "operation_type"}
-    col_values: dict[Any, Any] = {}
-    for col in version_table.columns:
-        if col.name in meta_col_names:
-            continue
-        if col.name in row:
-            col_values[col] = row[col.name]
-
-    col_values[version_table.c.transaction_id] = tx_id
-    col_values[version_table.c.end_transaction_id] = None
-    col_values[version_table.c.operation_type] = 0
-
-    conn.execute(version_table.insert().values(col_values))
-    return tx_id
-
-
-def _insert_child_baseline_rows(
-    session: Session,
-    parent_obj: Any,
-    child_table: sa.Table,
-    child_version_table: sa.Table,
-    fk_column_name: str,
-    tx_id: int,
-) -> None:
-    """Synthesize ``operation_type=0`` shadow rows for every live child of
-    *parent_obj* under transaction id *tx_id*.
-
-    Parallels :func:`_insert_baseline_row` but iterates over child rows. Used
-    to give Continuum's ``Reverter`` baseline data for children of pre-existing
-    parents (children that predate this commit have no shadow rows otherwise,
-    so Reverter would treat them as "deleted at the target tx" and try to
-    remove them on revert — the ADR-004 Failure 1 reproduction scenario).
-
-    :param child_table: the live child SQLAlchemy ``Table`` (e.g.
-        ``TableColumn.__table__`` or the bare ``dashboard_slices`` association)
-    :param child_version_table: the corresponding Continuum shadow ``Table``
-    :param fk_column_name: column on *child_table* that points to the parent
-        (e.g. ``"table_id"`` for ``TableColumn``, ``"dashboard_id"`` for
-        ``dashboard_slices``)
-    """
-    conn = session.connection()
-    fk_col = getattr(child_table.c, fk_column_name)
-
-    rows = (
-        conn.execute(sa.select(child_table).where(fk_col == parent_obj.id))
-        .mappings()
-        .all()
-    )
-    if not rows:
-        return
-
-    meta_col_names = {"transaction_id", "end_transaction_id", "operation_type"}
-    for row in rows:
-        col_values: dict[Any, Any] = {}
-        for col in child_version_table.columns:
-            if col.name in meta_col_names:
+    # insert=True prepends us in the listener chain so we run BEFORE
+    # Continuum's before_flush. Continuum's pending Transaction object
+    # (added in its own before_flush) would otherwise get a lower
+    # auto-increment tx_id than our direct-SQL baseline insert, placing the
+    # baseline row after the update in version_number order. Prepending
+    # ensures our baseline's tx_id comes first.
+    @event.listens_for(db.session, "before_flush", insert=True)
+    def capture_baseline(session: Session, flush_context: Any, instances: Any) -> None:
+        if not VERSIONED_MODELS:
+            return
+        # Make sure a child-only edit promotes the parent to ``session.dirty``
+        # before Continuum's before_flush reads the dirty set.
+        _force_parent_dirty_on_child_change(session)
+        for obj in _collect_parents_to_baseline(session).values():
+            if type(obj) not in VERSIONED_MODELS:
                 continue
-            if col.name in row:
-                col_values[col] = row[col.name]
-        col_values[child_version_table.c.transaction_id] = tx_id
-        col_values[child_version_table.c.end_transaction_id] = None
-        col_values[child_version_table.c.operation_type] = 0
-        conn.execute(child_version_table.insert().values(col_values))
+            version_table = _version_table_for(obj)
+            if version_table is None:
+                continue
+            count = _shadow_row_count(session, obj, version_table)
+            if count == 0:
+                _insert_baseline_and_children(session, obj, version_table)
 
 
-def _baseline_dataset_children(session: Session, dataset: Any, tx_id: int) -> None:
-    """Baseline a dataset's ``TableColumn`` and ``SqlMetric`` children
-    under the dataset's baseline tx.
-    """
-    # pylint: disable=import-outside-toplevel
-    from sqlalchemy_continuum import version_class
-
-    from superset.connectors.sqla.models import SqlMetric, TableColumn
-
-    for child_cls in (TableColumn, SqlMetric):
-        _insert_child_baseline_rows(
-            session,
-            dataset,
-            child_cls.__table__,
-            version_class(child_cls).__table__,
-            "table_id",
-            tx_id,
-        )
-
-
-def _baseline_dashboard_children(session: Session, dashboard: Any, tx_id: int) -> None:
-    """Baseline a dashboard's ``dashboard_slices`` M2M plus synthesize
-    ``operation_type=0`` rows in ``slices_version`` for attached slices
-    with no prior shadow.
-
-    Continuum's M2M version-side relationship for ``Dashboard.slices``
-    joins through both ``dashboard_slices_version`` AND
-    ``slices_version``: the second exists clause filters slices by
-    "latest slices_version row with tx <= dashboard.tx". If a slice
-    has no slices_version rows at all, that join produces no match
-    and ``version_obj.slices`` returns empty — leaving the dashboard
-    restore with no slices to append. The synthetic slice baseline at
-    this dashboard's tx gives the M2M query a slice version it can match.
-
-    Doesn't try to be clever about slices shared across dashboards: a
-    slice is baselined at this dashboard's tx_id only when it has no
-    shadow rows at all. If a later dashboard baseline references the
-    same slice, this baseline (now at lower tx) is still found by
-    that dashboard's restore. The reverse — a dashboard baselined
-    AFTER the slice was first baselined under another dashboard at
-    a higher tx — is a residual gap deferred to a future fix.
-    """
-    metadata = type(dashboard).__table__.metadata
-    live_tbl = metadata.tables.get("dashboard_slices")
-    shadow_tbl = metadata.tables.get("dashboard_slices_version")
-    if live_tbl is None or shadow_tbl is None:
-        return
-
-    _insert_child_baseline_rows(
-        session, dashboard, live_tbl, shadow_tbl, "dashboard_id", tx_id
-    )
-    _baseline_attached_slices(session, dashboard, live_tbl, tx_id)
-
-
-def _baseline_attached_slices(
-    session: Session, dashboard: Any, live_tbl: sa.Table, tx_id: int
-) -> None:
-    """Insert ``operation_type=0`` rows in ``slices_version`` for each
-    slice attached to *dashboard* that has no shadow row yet.
-
-    Batched: one membership SELECT, one existing-shadow SELECT, one live
-    SELECT for the missing slices. Per-slice work happens only on
-    ``_insert_synthetic_slice_baseline``. The previous per-slice
-    ``COUNT(*)`` + ``SELECT`` pattern was O(N) round-trips and surfaced
-    as a measurable first-save hotspot on dashboards with many charts.
-    """
-    # pylint: disable=import-outside-toplevel
-    from sqlalchemy_continuum import version_class
-
-    from superset.models.slice import Slice
-
-    slice_ver_table = version_class(Slice).__table__
-    slice_table = Slice.__table__
-    conn = session.connection()
-
-    attached_slice_ids = [
-        r.slice_id
-        for r in conn.execute(
-            sa.select(live_tbl.c.slice_id).where(
-                live_tbl.c.dashboard_id == dashboard.id
-            )
-        ).all()
-    ]
-    if not attached_slice_ids:
-        return
-
-    existing_shadow_ids = {
-        row[0]
-        for row in conn.execute(
-            sa.select(slice_ver_table.c.id.distinct()).where(
-                slice_ver_table.c.id.in_(attached_slice_ids)
-            )
-        ).all()
-    }
-    missing_ids = [
-        sid for sid in attached_slice_ids if sid not in existing_shadow_ids
-    ]
-    if not missing_ids:
-        return
-
-    slice_rows = (
-        conn.execute(
-            sa.select(slice_table).where(slice_table.c.id.in_(missing_ids))
-        )
-        .mappings()
-        .all()
-    )
-    for slice_row in slice_rows:
-        _insert_synthetic_slice_baseline(conn, slice_ver_table, slice_row, tx_id)
-
-
-def _insert_synthetic_slice_baseline(
-    conn: Any, slice_ver_table: sa.Table, slice_row: Any, tx_id: int
-) -> None:
-    meta_col_names = {"transaction_id", "end_transaction_id", "operation_type"}
-    col_values: dict[Any, Any] = {}
-    for col in slice_ver_table.columns:
-        if col.name in meta_col_names:
-            continue
-        if col.name in slice_row:
-            col_values[col] = slice_row[col.name]
-    col_values[slice_ver_table.c.transaction_id] = tx_id
-    col_values[slice_ver_table.c.end_transaction_id] = None
-    col_values[slice_ver_table.c.operation_type] = 0
-    conn.execute(slice_ver_table.insert().values(col_values))
-
-
-# Dispatch table keyed by parent CLASS NAME rather than class, to avoid
-# the import-cycle between baseline.py (loaded at app init) and the
-# entity modules. The class-name string is set once at app start by
-# the model definitions — typo-prone if extended.
-_CHILD_BASELINE_HANDLERS: dict[str, Any] = {
-    "SqlaTable": _baseline_dataset_children,
-    "Dashboard": _baseline_dashboard_children,
-}
-
-
-def _baseline_children_for_parent(
-    session: Session, parent_obj: Any, tx_id: int
-) -> None:
-    """Baseline a parent's child collections under the parent's baseline tx.
-
-    Dispatches via :data:`_CHILD_BASELINE_HANDLERS` to per-entity handlers.
-    A handler failure is logged but does not block the parent baseline.
-    """
-    parent_name = type(parent_obj).__name__
-    handler = _CHILD_BASELINE_HANDLERS.get(parent_name)
-    if handler is None:
-        return
-    try:
-        handler(session, parent_obj, tx_id)
-    except Exception:  # pylint: disable=broad-except
-        logger.exception(
-            "baseline_listener: failed to baseline children of %s id=%s",
-            parent_name,
-            getattr(parent_obj, "id", None),
-        )
-
-
-def _child_to_parent_registry() -> dict[type, tuple[str, type]]:
-    """Map child entity class → (parent-relationship-attr, parent class).
-
-    When a dirty child of a known type appears in session.dirty/new/deleted,
-    we walk to its parent and baseline the parent (+ siblings) under the
-    SAME flush so pre-edit child values land in the baseline shadow rows.
-    Without this, edits that only touch child rows produce a "silent" flush
-    A (just ``TableColumn``) followed by flush B (``SqlaTable.changed_on``);
-    flush B reads children from DB AFTER flush A already pushed UPDATEs,
-    capturing post-edit state.
-    """
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-
-    return {
-        TableColumn: ("table", SqlaTable),
-        SqlMetric: ("table", SqlaTable),
-    }
+# ---------------------------------------------------------------------------
+# High-level helpers used by ``capture_baseline``
+# ---------------------------------------------------------------------------
 
 
 def _force_parent_dirty_on_child_change(session: Session) -> None:
@@ -398,6 +151,26 @@ def _collect_parents_to_baseline(session: Session) -> dict[int, Any]:
         if parent is not None and type(parent) is parent_cls:  # noqa: E721
             parents[id(parent)] = parent
     return parents
+
+
+def _child_to_parent_registry() -> dict[type, tuple[str, type]]:
+    """Map child entity class → (parent-relationship-attr, parent class).
+
+    When a dirty child of a known type appears in session.dirty/new/deleted,
+    we walk to its parent and baseline the parent (+ siblings) under the
+    SAME flush so pre-edit child values land in the baseline shadow rows.
+    Without this, edits that only touch child rows produce a "silent" flush
+    A (just ``TableColumn``) followed by flush B (``SqlaTable.changed_on``);
+    flush B reads children from DB AFTER flush A already pushed UPDATEs,
+    capturing post-edit state.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    return {
+        TableColumn: ("table", SqlaTable),
+        SqlMetric: ("table", SqlaTable),
+    }
 
 
 def _version_table_for(obj: Any) -> Any:
@@ -473,32 +246,291 @@ def _insert_baseline_and_children(
         )
 
 
-def register_baseline_listener() -> None:
-    """Attach the before_flush listener that captures baseline versions.
+# ---------------------------------------------------------------------------
+# Mid-level builders: parent shadow + child dispatch
+# ---------------------------------------------------------------------------
 
-    Call this after VERSIONED_MODELS has been populated and make_versioned() has run.
+
+def _insert_baseline_row(
+    session: Session, obj: Any, version_table: sa.Table
+) -> Optional[int]:
+    """Insert a synthetic baseline row capturing the pre-edit DB state of *obj*.
+
+    Creates a version_transaction entry and an operation_type=0 version row.
+    All writes use the session's existing connection so they share the same
+    database transaction as the triggering flush.
+
+    Returns the allocated ``transaction_id`` so the caller can baseline child
+    collections under the same tx (see :func:`_insert_child_baseline_rows`),
+    or ``None`` when the entity has no live row.
     """
-    from superset.extensions import db  # pylint: disable=import-outside-toplevel
+    from sqlalchemy_continuum import (
+        versioning_manager,  # pylint: disable=import-outside-toplevel
+    )
 
-    # insert=True prepends us in the listener chain so we run BEFORE
-    # Continuum's before_flush. Continuum's pending Transaction object
-    # (added in its own before_flush) would otherwise get a lower
-    # auto-increment tx_id than our direct-SQL baseline insert, placing the
-    # baseline row after the update in version_number order. Prepending
-    # ensures our baseline's tx_id comes first.
-    @event.listens_for(db.session, "before_flush", insert=True)
-    def capture_baseline(session: Session, flush_context: Any, instances: Any) -> None:
-        if not VERSIONED_MODELS:
-            return
-        # Make sure a child-only edit promotes the parent to ``session.dirty``
-        # before Continuum's before_flush reads the dirty set.
-        _force_parent_dirty_on_child_change(session)
-        for obj in _collect_parents_to_baseline(session).values():
-            if type(obj) not in VERSIONED_MODELS:
+    main_table = type(obj).__table__
+    row = read_row_outside_flush(session, main_table, obj.id)
+    if row is None:
+        return None
+
+    conn = session.connection()
+
+    # Insert a version_transaction row for the baseline.
+    #
+    # ``issued_at`` and ``user_id`` are sourced from the entity's audit fields
+    # (``changed_on`` / ``changed_by_fk``, falling back to ``created_on`` /
+    # ``created_by_fk`` if the row was never edited), so the baseline reads
+    # in the version-history UI as "this is the state at the time of the
+    # last pre-versioning edit, by that user." Using ``now()`` and the
+    # current user would have made the baseline look chronologically newer
+    # than subsequent edits and attributed historical content to the user
+    # who happened to trigger the first save under versioning.
+    baseline_issued_at = row.get("changed_on") or row.get("created_on") or sa.func.now()
+    baseline_user_id = row.get("changed_by_fk") or row.get("created_by_fk")
+    tx_table = versioning_manager.transaction_cls.__table__
+    result = conn.execute(
+        tx_table.insert().values(
+            issued_at=baseline_issued_at,
+            user_id=baseline_user_id,
+            remote_addr=None,
+        )
+    )
+    tx_id = result.inserted_primary_key[0]
+
+    # Build version row using Column objects as keys to avoid name/key mismatches
+    # (string-based values(**dict) raises "Unconsumed column names" when a Column's
+    # .key differs from its .name, which can happen with Continuum-generated tables).
+    meta_col_names = {"transaction_id", "end_transaction_id", "operation_type"}
+    col_values: dict[Any, Any] = {}
+    for col in version_table.columns:
+        if col.name in meta_col_names:
+            continue
+        if col.name in row:
+            col_values[col] = row[col.name]
+
+    col_values[version_table.c.transaction_id] = tx_id
+    col_values[version_table.c.end_transaction_id] = None
+    col_values[version_table.c.operation_type] = 0
+
+    conn.execute(version_table.insert().values(col_values))
+    return tx_id
+
+
+def _baseline_children_for_parent(
+    session: Session, parent_obj: Any, tx_id: int
+) -> None:
+    """Baseline a parent's child collections under the parent's baseline tx.
+
+    Dispatches via :data:`_CHILD_BASELINE_HANDLERS` to per-entity handlers.
+    A handler failure is logged but does not block the parent baseline.
+    """
+    parent_name = type(parent_obj).__name__
+    handler = _CHILD_BASELINE_HANDLERS.get(parent_name)
+    if handler is None:
+        return
+    try:
+        handler(session, parent_obj, tx_id)
+    except Exception:  # pylint: disable=broad-except
+        logger.exception(
+            "baseline_listener: failed to baseline children of %s id=%s",
+            parent_name,
+            getattr(parent_obj, "id", None),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Per-entity child handlers
+# ---------------------------------------------------------------------------
+
+
+def _baseline_dataset_children(session: Session, dataset: Any, tx_id: int) -> None:
+    """Baseline a dataset's ``TableColumn`` and ``SqlMetric`` children
+    under the dataset's baseline tx.
+    """
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy_continuum import version_class
+
+    from superset.connectors.sqla.models import SqlMetric, TableColumn
+
+    for child_cls in (TableColumn, SqlMetric):
+        _insert_child_baseline_rows(
+            session,
+            dataset,
+            child_cls.__table__,
+            version_class(child_cls).__table__,
+            "table_id",
+            tx_id,
+        )
+
+
+def _baseline_dashboard_children(session: Session, dashboard: Any, tx_id: int) -> None:
+    """Baseline a dashboard's ``dashboard_slices`` M2M plus synthesize
+    ``operation_type=0`` rows in ``slices_version`` for attached slices
+    with no prior shadow.
+
+    Continuum's M2M version-side relationship for ``Dashboard.slices``
+    joins through both ``dashboard_slices_version`` AND
+    ``slices_version``: the second exists clause filters slices by
+    "latest slices_version row with tx <= dashboard.tx". If a slice
+    has no slices_version rows at all, that join produces no match
+    and ``version_obj.slices`` returns empty — leaving the dashboard
+    restore with no slices to append. The synthetic slice baseline at
+    this dashboard's tx gives the M2M query a slice version it can match.
+
+    Doesn't try to be clever about slices shared across dashboards: a
+    slice is baselined at this dashboard's tx_id only when it has no
+    shadow rows at all. If a later dashboard baseline references the
+    same slice, this baseline (now at lower tx) is still found by
+    that dashboard's restore. The reverse — a dashboard baselined
+    AFTER the slice was first baselined under another dashboard at
+    a higher tx — is a residual gap deferred to a future fix.
+    """
+    metadata = type(dashboard).__table__.metadata
+    live_tbl = metadata.tables.get("dashboard_slices")
+    shadow_tbl = metadata.tables.get("dashboard_slices_version")
+    if live_tbl is None or shadow_tbl is None:
+        return
+
+    _insert_child_baseline_rows(
+        session, dashboard, live_tbl, shadow_tbl, "dashboard_id", tx_id
+    )
+    _baseline_attached_slices(session, dashboard, live_tbl, tx_id)
+
+
+# Dispatch table keyed by parent CLASS NAME rather than class, to avoid
+# the import-cycle between baseline.py (loaded at app init) and the
+# entity modules. The class-name string is set once at app start by
+# the model definitions — typo-prone if extended. Declared after the
+# handlers it references because module-level dict literals evaluate
+# at import time and need the names already bound.
+_CHILD_BASELINE_HANDLERS: dict[str, Any] = {
+    "SqlaTable": _baseline_dataset_children,
+    "Dashboard": _baseline_dashboard_children,
+}
+
+
+# ---------------------------------------------------------------------------
+# Leaf builders: child-row insert and synthetic slice baseline
+# ---------------------------------------------------------------------------
+
+
+def _insert_child_baseline_rows(
+    session: Session,
+    parent_obj: Any,
+    child_table: sa.Table,
+    child_version_table: sa.Table,
+    fk_column_name: str,
+    tx_id: int,
+) -> None:
+    """Synthesize ``operation_type=0`` shadow rows for every live child of
+    *parent_obj* under transaction id *tx_id*.
+
+    Parallels :func:`_insert_baseline_row` but iterates over child rows. Used
+    to give Continuum's ``Reverter`` baseline data for children of pre-existing
+    parents (children that predate this commit have no shadow rows otherwise,
+    so Reverter would treat them as "deleted at the target tx" and try to
+    remove them on revert — the ADR-004 Failure 1 reproduction scenario).
+
+    :param child_table: the live child SQLAlchemy ``Table`` (e.g.
+        ``TableColumn.__table__`` or the bare ``dashboard_slices`` association)
+    :param child_version_table: the corresponding Continuum shadow ``Table``
+    :param fk_column_name: column on *child_table* that points to the parent
+        (e.g. ``"table_id"`` for ``TableColumn``, ``"dashboard_id"`` for
+        ``dashboard_slices``)
+    """
+    conn = session.connection()
+    fk_col = getattr(child_table.c, fk_column_name)
+
+    rows = (
+        conn.execute(sa.select(child_table).where(fk_col == parent_obj.id))
+        .mappings()
+        .all()
+    )
+    if not rows:
+        return
+
+    meta_col_names = {"transaction_id", "end_transaction_id", "operation_type"}
+    for row in rows:
+        col_values: dict[Any, Any] = {}
+        for col in child_version_table.columns:
+            if col.name in meta_col_names:
                 continue
-            version_table = _version_table_for(obj)
-            if version_table is None:
-                continue
-            count = _shadow_row_count(session, obj, version_table)
-            if count == 0:
-                _insert_baseline_and_children(session, obj, version_table)
+            if col.name in row:
+                col_values[col] = row[col.name]
+        col_values[child_version_table.c.transaction_id] = tx_id
+        col_values[child_version_table.c.end_transaction_id] = None
+        col_values[child_version_table.c.operation_type] = 0
+        conn.execute(child_version_table.insert().values(col_values))
+
+
+def _baseline_attached_slices(
+    session: Session, dashboard: Any, live_tbl: sa.Table, tx_id: int
+) -> None:
+    """Insert ``operation_type=0`` rows in ``slices_version`` for each
+    slice attached to *dashboard* that has no shadow row yet.
+
+    Batched: one membership SELECT, one existing-shadow SELECT, one live
+    SELECT for the missing slices. Per-slice work happens only on
+    ``_insert_synthetic_slice_baseline``. The previous per-slice
+    ``COUNT(*)`` + ``SELECT`` pattern was O(N) round-trips and surfaced
+    as a measurable first-save hotspot on dashboards with many charts.
+    """
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy_continuum import version_class
+
+    from superset.models.slice import Slice
+
+    slice_ver_table = version_class(Slice).__table__
+    slice_table = Slice.__table__
+    conn = session.connection()
+
+    attached_slice_ids = [
+        r.slice_id
+        for r in conn.execute(
+            sa.select(live_tbl.c.slice_id).where(
+                live_tbl.c.dashboard_id == dashboard.id
+            )
+        ).all()
+    ]
+    if not attached_slice_ids:
+        return
+
+    existing_shadow_ids = {
+        row[0]
+        for row in conn.execute(
+            sa.select(slice_ver_table.c.id.distinct()).where(
+                slice_ver_table.c.id.in_(attached_slice_ids)
+            )
+        ).all()
+    }
+    missing_ids = [
+        sid for sid in attached_slice_ids if sid not in existing_shadow_ids
+    ]
+    if not missing_ids:
+        return
+
+    slice_rows = (
+        conn.execute(
+            sa.select(slice_table).where(slice_table.c.id.in_(missing_ids))
+        )
+        .mappings()
+        .all()
+    )
+    for slice_row in slice_rows:
+        _insert_synthetic_slice_baseline(conn, slice_ver_table, slice_row, tx_id)
+
+
+def _insert_synthetic_slice_baseline(
+    conn: Any, slice_ver_table: sa.Table, slice_row: Any, tx_id: int
+) -> None:
+    meta_col_names = {"transaction_id", "end_transaction_id", "operation_type"}
+    col_values: dict[Any, Any] = {}
+    for col in slice_ver_table.columns:
+        if col.name in meta_col_names:
+            continue
+        if col.name in slice_row:
+            col_values[col] = slice_row[col.name]
+    col_values[slice_ver_table.c.transaction_id] = tx_id
+    col_values[slice_ver_table.c.end_transaction_id] = None
+    col_values[slice_ver_table.c.operation_type] = 0
+    conn.execute(slice_ver_table.insert().values(col_values))
