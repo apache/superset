@@ -602,6 +602,10 @@ warnings.filterwarnings(
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
+from superset.mcp_service.action_log.tool import (  # noqa: F401, E402
+    get_action_log_info,
+    list_action_logs,
+)
 from superset.mcp_service.chart import (  # noqa: F401, E402
     prompts as chart_prompts,
     resources as chart_resources,
@@ -651,6 +655,10 @@ from superset.mcp_service.system.tool import (  # noqa: F401, E402
     get_instance_info,
     get_schema,
     health_check,
+)
+from superset.mcp_service.task.tool import (  # noqa: F401, E402
+    get_task_info,
+    list_tasks,
 )
 
 

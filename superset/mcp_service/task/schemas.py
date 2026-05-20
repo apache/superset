@@ -1,0 +1,195 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""Pydantic schemas for task MCP tools."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Annotated, Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, PositiveInt
+
+from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils.schema_utils import (
+    parse_json_or_list,
+    parse_json_or_model_list,
+)
+
+DEFAULT_TASK_COLUMNS: list[str] = ["id", "uuid", "task_type", "status", "changed_on"]
+ALL_TASK_COLUMNS: list[str] = [
+    "id",
+    "uuid",
+    "task_type",
+    "status",
+    "scope",
+    "changed_on",
+    "created_on",
+]
+TASK_SORTABLE_COLUMNS: list[str] = ["id", "changed_on", "created_on", "status"]
+
+
+class TaskColumnFilter(ColumnOperator):
+    """Filter object for task listing.
+
+    col: Column to filter on.
+    opr: Operator to use.
+    value: Value to filter by.
+    """
+
+    col: Literal["task_type", "status", "scope"] = Field(
+        ...,
+        description="Column to filter on.",
+    )
+    opr: ColumnOperatorEnum = Field(..., description="Operator to use.")
+    value: str | int | float | bool | list[str | int | float | bool] = Field(
+        ..., description="Value to filter by"
+    )
+
+
+class TaskInfo(BaseModel):
+    id: int | None = Field(None, description="Task ID")
+    uuid: str | None = Field(None, description="Task UUID")
+    task_type: str | None = Field(None, description="Task type (e.g., sql_execution)")
+    status: str | None = Field(None, description="Task status")
+    scope: str | None = Field(None, description="Task scope (private/shared/system)")
+    changed_on: str | datetime | None = Field(
+        None, description="Last modification timestamp"
+    )
+    created_on: str | datetime | None = Field(None, description="Creation timestamp")
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        ser_json_timedelta="iso8601",
+        populate_by_name=True,
+    )
+
+
+class TaskList(BaseModel):
+    tasks: list[TaskInfo]
+    count: int
+    total_count: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_previous: bool
+    has_next: bool
+    columns_requested: list[str] = Field(default_factory=list)
+    columns_loaded: list[str] = Field(default_factory=list)
+    columns_available: list[str] = Field(default_factory=list)
+    sortable_columns: list[str] = Field(default_factory=list)
+    filters_applied: list[TaskColumnFilter] = Field(default_factory=list)
+    pagination: PaginationInfo | None = None
+    timestamp: datetime | None = None
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+
+class ListTasksRequest(BaseModel):
+    """Request schema for list_tasks."""
+
+    filters: Annotated[
+        list[TaskColumnFilter],
+        Field(
+            default_factory=list,
+            description=(
+                "List of filter objects (col, opr, value). "
+                "Filter columns: task_type, status, scope. "
+                "Cannot be used with 'search'."
+            ),
+        ),
+    ]
+    select_columns: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Columns to return. Defaults to common columns.",
+        ),
+    ]
+    order_column: Annotated[
+        str | None,
+        Field(default=None, description="Column to sort by (default: changed_on)"),
+    ]
+    order_direction: Annotated[
+        Literal["asc", "desc"],
+        Field(default="desc", description="Sort direction ('asc' or 'desc')"),
+    ]
+    page: Annotated[
+        PositiveInt,
+        Field(default=1, description="Page number (1-based)"),
+    ]
+    page_size: Annotated[
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Items per page (max {MAX_PAGE_SIZE})",
+        ),
+    ]
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v: Any) -> list[TaskColumnFilter]:
+        return parse_json_or_model_list(v, TaskColumnFilter, "filters")
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_columns(cls, v: Any) -> list[str]:
+        return parse_json_or_list(v, "select_columns")
+
+
+class TaskError(BaseModel):
+    error: str = Field(..., description="Error message")
+    error_type: str = Field(..., description="Error type")
+    timestamp: str | datetime | None = Field(None, description="Error timestamp")
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+    @classmethod
+    def create(cls, error: str, error_type: str) -> "TaskError":
+        from datetime import timezone
+
+        return cls(
+            error=error,
+            error_type=error_type,
+            timestamp=datetime.now(timezone.utc),
+        )
+
+
+class GetTaskInfoRequest(BaseModel):
+    """Request schema for get_task_info (ID or UUID lookup)."""
+
+    identifier: Annotated[
+        int | str,
+        Field(description="Task identifier — numeric ID or UUID string"),
+    ]
+
+
+def serialize_task_object(task: Any) -> TaskInfo | None:
+    if not task:
+        return None
+    uuid_val = getattr(task, "uuid", None)
+    return TaskInfo(
+        id=getattr(task, "id", None),
+        uuid=str(uuid_val) if uuid_val is not None else None,
+        task_type=getattr(task, "task_type", None),
+        status=getattr(task, "status", None),
+        scope=getattr(task, "scope", None),
+        changed_on=getattr(task, "changed_on", None),
+        created_on=getattr(task, "created_on", None),
+    )
