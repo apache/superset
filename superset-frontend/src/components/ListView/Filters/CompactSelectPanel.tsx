@@ -66,14 +66,15 @@ const PanelContainer = styled.div`
 
 const SearchRow = styled.div`
   ${({ theme }) => css`
-    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px ${theme.paddingXXS}px;
+    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px
+      ${theme.paddingXXS}px;
   `}
 `;
 
 const OptionList = styled.ul`
   ${({ theme }) => css`
     margin: 0;
-    padding: 0;
+    padding: ${theme.paddingXXS}px 0;
     overflow-y: auto;
     flex: 1;
     list-style: none;
@@ -231,7 +232,9 @@ function CompactSelectPanel(
       : {
           label:
             displayText ||
-            (typeof opt.label === 'string' ? opt.label : String(opt.value ?? '')),
+            (typeof opt.label === 'string'
+              ? opt.label
+              : String(opt.value ?? '')),
           value: opt.value,
         };
     setSelectedOption(next);
@@ -279,7 +282,9 @@ function CompactSelectPanel(
                 role="option"
                 aria-selected={isActive}
                 tabIndex={0}
-                onClick={e => handleSelect(opt, getDisplayText(e.currentTarget))}
+                onClick={e =>
+                  handleSelect(opt, getDisplayText(e.currentTarget))
+                }
                 onKeyDown={e => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
