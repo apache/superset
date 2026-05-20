@@ -767,6 +767,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         with self.superset_app.app_context():
             self.init_app_in_ctx()
 
+        # Registered outside ``init_app_in_ctx`` because the SQLAlchemy
+        # event hook attaches to the ``Session`` *class* (a process-wide
+        # global), not to a Session instance — it has no dependency on
+        # the Flask app context. ``setup_db()`` ran earlier in
+        # ``init_app``, so the ``Session`` import has already been
+        # initialised by the time we get here.
         self.setup_soft_delete_listener()
         self.post_init()
 

@@ -3559,6 +3559,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param resource: The dashboard, dataset, chart, etc. resource
         :raises SupersetSecurityException: If the current user is not an owner
         """
+        # Inline import: ``superset.models.helpers`` transitively imports
+        # ``superset.models.core``, which depends on lazily-initialised
+        # ``superset.feature_flag_manager``. A top-level import here would
+        # create a circular dependency (security ↔ models.core ↔ superset).
         from superset.models.helpers import (  # pylint: disable=import-outside-toplevel  # noqa: E501
             SKIP_VISIBILITY_FILTER_CLASSES,
         )
@@ -3579,6 +3583,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {resource.__class__}})
             .get(resource.id)
         )
+        # Explicit guard: ``orig_resource`` is ``None`` only if a parallel
+        # writer hard-deleted the row between the caller's load and this
+        # re-query. Falling through with ``owners=[]`` would surface as a
+        # misleading "ownership" error; raise the real cause instead.
+        if orig_resource is None:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                    message=_(
+                        "Resource was removed before ownership could be verified",
+                    ),
+                    level=ErrorLevel.ERROR,
+                )
+            )
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:

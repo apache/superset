@@ -32,6 +32,7 @@ from typing import (
     Any,
     Callable,
     cast,
+    ClassVar,
     NamedTuple,
     Optional,
     TYPE_CHECKING,
@@ -686,7 +687,26 @@ class SoftDeleteMixin:
     ``execution_options``) or for a session-scoped block (via
     ``session.info`` / the ``skip_visibility_filter`` context manager).
     See ``_add_soft_delete_filter`` for the precise semantics.
+
+    Subclass registry: every concrete subclass registers itself in
+    ``_registered_subclasses`` via ``__init_subclass__``. The listener
+    iterates this cached list rather than walking ``__subclasses__()``
+    on every primary SELECT — important because the listener fires on
+    every ORM query in the app, and the walk grows with each adopted
+    entity.
     """
+
+    _registered_subclasses: ClassVar[list[type[SoftDeleteMixin]]] = []
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        # Cache the subclass once, sorted by qualname so the listener's
+        # ``with_loader_criteria`` options attach in a deterministic
+        # order across processes (stable compiled-statement cache key).
+        if cls in SoftDeleteMixin._registered_subclasses:
+            return
+        SoftDeleteMixin._registered_subclasses.append(cls)
+        SoftDeleteMixin._registered_subclasses.sort(key=lambda c: c.__qualname__)
 
     deleted_at = sa.Column(sa.DateTime, nullable=True, index=True)
 
@@ -763,29 +783,20 @@ def _is_primary_user_select(execute_state: ORMExecuteState) -> bool:
 
 
 def _all_soft_delete_subclasses() -> list[type[SoftDeleteMixin]]:
-    """All concrete ``SoftDeleteMixin`` subclasses, transitively. Walks
-    the inheritance tree so an intermediate abstract subclass between
-    the mixin and a concrete model does not hide leaf classes.
+    """The cached subclass registry maintained by
+    ``SoftDeleteMixin.__init_subclass__``. Returned in a stable
+    qualname-sorted order so SQLAlchemy's compiled-statement cache key
+    is deterministic across processes.
 
-    Assumes all soft-deletable models have been imported by the time the
-    listener fires. Superset imports models eagerly at app init via
+    Assumes all soft-deletable models have been imported by the time
+    the listener fires. Superset imports models eagerly at app init via
     ``superset.models``; if that ever changes to lazy import, the
-    listener would silently stop filtering un-imported classes.
-
-    Returned in a stable sorted order so SQLAlchemy's compiled-statement
-    cache key (which incorporates the option chain order) is
-    deterministic across processes — set iteration is hash-order, and
-    type hashes derive from ``id()`` which differs per process.
+    listener would silently stop filtering un-imported classes — but
+    since registration happens at class-definition time, the cache is
+    automatically updated as new subclasses are introduced (including
+    test-defined synthetic subclasses).
     """
-    seen: set[type] = set()
-    todo = list(SoftDeleteMixin.__subclasses__())
-    while todo:
-        cls = todo.pop()
-        if cls in seen:
-            continue
-        seen.add(cls)
-        todo.extend(cls.__subclasses__())
-    return sorted(seen, key=lambda c: c.__qualname__)
+    return SoftDeleteMixin._registered_subclasses
 
 
 def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:

@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Any, cast, Optional
+from typing import Any, cast, ClassVar, Optional
 
 from flask import current_app as app, g
 from flask_appbuilder.models.filters import BaseFilter
@@ -26,7 +26,7 @@ from sqlalchemy.orm import Query
 
 from superset import security_manager
 from superset.extensions import db
-from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
+from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES, SoftDeleteMixin
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +157,11 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
     """
 
     name = lazy_gettext("Deleted state")
-    model: Any  # set by subclass — a class with a ``deleted_at`` column
+    # Subclasses bind ``model`` to a concrete ``SoftDeleteMixin``
+    # subclass. Typed as ``type[SoftDeleteMixin]`` so a subclass that
+    # accidentally binds to a non-soft-deletable entity fails mypy
+    # rather than crashing at runtime on ``.deleted_at``.
+    model: ClassVar[type[SoftDeleteMixin]]
 
     def apply(self, query: Query, value: Any) -> Query:
         normalized = str(value).lower().strip() if value is not None else ""
