@@ -68,15 +68,18 @@ export class BulkSelect {
   /**
    * Enables bulk selection mode by clicking the toggle button.
    *
-   * Waits for the bulk-select column header checkbox to render so the next
-   * row interaction does not race the table re-render that adds the
-   * checkbox column.
+   * Waits for the bulk-select column header checkbox to be present in the
+   * DOM (state: 'attached') so the next row interaction does not race the
+   * table re-render that adds the checkbox column. We can't wait for
+   * 'visible' because `data-test="header-toggle-all"` ends up on antd's
+   * inner `<input>`, which renders with opacity:0 and a zero bounding box
+   * — never "visible" by Playwright's definition.
    */
   async enable(): Promise<void> {
     await this.getToggleButton().click();
     await this.page
       .locator(BULK_SELECT_SELECTORS.HEADER_TOGGLE)
-      .waitFor({ state: 'visible' });
+      .waitFor({ state: 'attached' });
   }
 
   /**
