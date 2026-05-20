@@ -119,6 +119,12 @@ Dashboard Management:
 - generate_dashboard: Create a dashboard from chart IDs
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard
 
+Annotation Layers:
+- list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
+- get_annotation_layer_info: Get annotation layer details by ID
+- list_layer_annotations: List annotations within a layer (requires layer_id, 1-based pagination)
+- get_layer_annotation_info: Get annotation details by layer_id and annotation_id
+
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
@@ -602,6 +608,12 @@ warnings.filterwarnings(
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
+from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
+    get_annotation_layer_info,
+    get_layer_annotation_info,
+    list_annotation_layers,
+    list_layer_annotations,
+)
 from superset.mcp_service.chart import (  # noqa: F401, E402
     prompts as chart_prompts,
     resources as chart_resources,
