@@ -27,6 +27,7 @@ from pydantic import (
     ConfigDict,
     Field,
     field_validator,
+    model_serializer,
     model_validator,
     PositiveInt,
 )
@@ -75,6 +76,15 @@ class RoleInfo(BaseModel):
         ser_json_timedelta="iso8601",
         populate_by_name=True,
     )
+
+    @model_serializer(mode="wrap")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> dict[str, Any]:
+        data = serializer(self)
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                return {k: v for k, v in data.items() if k in select_columns}
+        return data
 
 
 class RoleList(BaseModel):

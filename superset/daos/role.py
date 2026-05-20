@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Minimal DAO for FAB Role model."""
+"""DAO for FAB Role model."""
 
 from __future__ import annotations
 

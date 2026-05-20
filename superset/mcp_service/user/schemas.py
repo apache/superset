@@ -27,6 +27,7 @@ from pydantic import (
     ConfigDict,
     Field,
     field_validator,
+    model_serializer,
     model_validator,
     PositiveInt,
 )
@@ -94,8 +95,9 @@ class UserInfo(BaseModel):
     )
     roles: list[str] | None = Field(
         None,
-        description="Assigned role names (only returned with data model "
-        "metadata access)",
+        description="Assigned role names (only returned with data model metadata "
+        "access via get_user_info; not available in list_users because roles "
+        "is a relationship, not a selectable column)",
     )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
@@ -105,6 +107,15 @@ class UserInfo(BaseModel):
         ser_json_timedelta="iso8601",
         populate_by_name=True,
     )
+
+    @model_serializer(mode="wrap")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> dict[str, Any]:
+        data = serializer(self)
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                return {k: v for k, v in data.items() if k in select_columns}
+        return data
 
 
 class UserList(BaseModel):

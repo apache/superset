@@ -193,26 +193,34 @@ async def test_list_users_with_filter(mock_list, mcp_server):
 
 @patch("superset.daos.user.UserDAO.list")
 @pytest.mark.asyncio
-async def test_list_users_includes_sensitive_fields_when_allowed(mock_list, mcp_server):
-    """email and roles are returned when caller has metadata access."""
-    role_mock = MagicMock()
-    role_mock.name = "Admin"
+async def test_list_users_includes_email_when_allowed_and_requested(
+    mock_list, mcp_server
+):
+    """email is returned when caller has metadata access and explicitly requests it.
+
+    email is not in the default column set so it must be explicitly requested via
+    select_columns. roles is never available in list_users because it is a
+    relationship column filtered by USER_DIRECTORY_FIELDS; use get_user_info instead.
+    """
     user = create_mock_user(email="admin@example.com", roles=["Admin"])
     mock_list.return_value = ([user], 1)
 
     async with Client(mcp_server) as client:
-        result = await client.call_tool("list_users", {})
+        result = await client.call_tool(
+            "list_users",
+            {"request": {"select_columns": ["id", "email"]}},
+        )
 
     data = json.loads(result.content[0].text)
     assert data["users"][0]["email"] == "admin@example.com"
-    assert data["users"][0]["roles"] == ["Admin"]
 
 
 @patch("superset.daos.user.UserDAO.list")
 @pytest.mark.asyncio
-async def test_list_users_redacts_sensitive_fields_when_denied(mock_list, mcp_server):
-    """email and roles are redacted when caller lacks metadata access."""
-    user = create_mock_user(email="admin@example.com", roles=["Admin"])
+async def test_list_users_redacts_email_when_denied(mock_list, mcp_server):
+    """email is null when caller lacks metadata access, even when explicitly
+    requested."""
+    user = create_mock_user(email="admin@example.com")
     mock_list.return_value = ([user], 1)
 
     with patch.object(
@@ -221,11 +229,33 @@ async def test_list_users_redacts_sensitive_fields_when_denied(mock_list, mcp_se
         return_value=False,
     ):
         async with Client(mcp_server) as client:
-            result = await client.call_tool("list_users", {})
+            result = await client.call_tool(
+                "list_users",
+                {"request": {"select_columns": ["id", "email"]}},
+            )
 
     data = json.loads(result.content[0].text)
     assert data["users"][0]["email"] is None
-    assert data["users"][0]["roles"] is None
+
+
+@patch("superset.daos.user.UserDAO.list")
+@pytest.mark.asyncio
+async def test_list_users_select_columns_filters_output(mock_list, mcp_server):
+    """select_columns controls which fields appear in each user dict."""
+    user = create_mock_user()
+    mock_list.return_value = ([user], 1)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_users",
+            {"request": {"select_columns": ["id", "username"]}},
+        )
+
+    data = json.loads(result.content[0].text)
+    user_dict = data["users"][0]
+    assert set(user_dict.keys()) == {"id", "username"}
+    assert user_dict["id"] == 1
+    assert user_dict["username"] == "admin"
 
 
 @patch("superset.daos.user.UserDAO.list")

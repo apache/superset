@@ -76,7 +76,7 @@ async def list_roles(
     )
 
     try:
-        from superset.mcp_service.role.dao import RoleDAO
+        from superset.daos.role import RoleDAO
 
         def _serialize_role(obj: Any, cols: list[str] | None) -> RoleInfo | None:
             return serialize_role_object(obj)
@@ -116,7 +116,16 @@ async def list_roles(
             )
         )
 
-        return result
+        columns_to_filter = result.columns_requested
+        await ctx.debug(
+            "Applying field filtering via serialization context: columns=%s"
+            % (columns_to_filter,)
+        )
+        with event_logger.log_context(action="mcp.list_roles.serialization"):
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": columns_to_filter},
+            )
 
     except Exception as e:
         await ctx.error(
