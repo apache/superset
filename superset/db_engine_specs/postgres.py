@@ -136,6 +136,34 @@ def parse_options(connect_args: dict[str, Any]) -> dict[str, str]:
     return {token[0]: token[1] for token in tokens}
 
 
+def _normalize_interval(v: Any) -> Optional[float]:
+    """Convert PostgreSQL INTERVAL values to milliseconds.
+
+    psycopg2 and psycopg3 always return INTERVAL values as datetime.timedelta
+    objects. We convert to milliseconds so users can apply the built-in
+    "DURATION" number format for human-readable display (e.g.,
+    "1d 2h 30m 45s") and so the values participate cleanly in numeric
+    aggregations in bar/pie charts.
+
+    Returns None for the NULL case (preserves NULL semantics) and for any
+    unexpected non-timedelta type (avoids producing a mixed-type column
+    when an unfamiliar driver surfaces something other than timedelta).
+    """
+    if v is None:
+        return None
+    if hasattr(v, "total_seconds"):
+        return v.total_seconds() * 1000
+    # Defensive: psycopg2/3 should always hand us a timedelta. If a future
+    # driver doesn't, surface the surprise in the logs rather than silently
+    # dropping the value so operators can diagnose it.
+    logger.warning(
+        "Cannot normalize PostgreSQL INTERVAL value of type %s to numeric; "
+        "returning None.",
+        type(v).__name__,
+    )
+    return None
+
+
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """Abstract class for Postgres 'like' databases"""
 
@@ -534,28 +562,8 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         ),
     )
 
-    @staticmethod
-    def _normalize_interval(v: Any) -> Any:
-        """Convert PostgreSQL INTERVAL values to milliseconds.
-
-        psycopg2 returns timedelta objects which we convert to milliseconds for
-        numeric operations in bar/pie charts. Using milliseconds allows users to
-        apply the built-in "DURATION" number format for human-readable display
-        (e.g., "1d 2h 30m 45s").
-
-        Returns None for values that cannot be converted to preserve NULL semantics
-        and avoid mixed-type columns.
-        """
-        if v is None:
-            return None
-        if hasattr(v, "total_seconds"):
-            return v.total_seconds() * 1000
-        if isinstance(v, (int, float)) and not isinstance(v, bool):
-            return float(v) * 1000
-        return None  # Can't convert to numeric — treat as missing
-
     column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
-        INTERVAL: _normalize_interval.__func__,  # type: ignore[attr-defined]
+        INTERVAL: _normalize_interval,
     }
 
     @classmethod

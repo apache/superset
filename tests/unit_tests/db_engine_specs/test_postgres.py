@@ -376,30 +376,27 @@ def test_interval_type_mutator() -> None:
     """
     mutator = spec.column_type_mutators[INTERVAL]
 
-    # Test timedelta conversion (most common case from psycopg2)
-    # Result is in milliseconds for compatibility with DURATION formatter
+    # Timedelta conversion — the only path psycopg2/psycopg3 actually
+    # exercises. Result is in milliseconds for compatibility with the
+    # DURATION formatter.
     td = timedelta(days=1, hours=2, minutes=30, seconds=45)
-    assert mutator(td) == 95445000.0  # Total ms: (1*86400 + 2*3600 + 30*60 + 45) * 1000
+    assert mutator(td) == 95445000.0  # (1*86400 + 2*3600 + 30*60 + 45) * 1000
 
-    # Test zero duration
+    # Zero duration
     assert mutator(timedelta(0)) == 0.0
 
-    # Test negative interval
+    # Negative interval
     assert mutator(timedelta(days=-1)) == -86400000.0
 
-    # Test numeric values (assumed to be seconds) are converted to milliseconds
-    assert mutator(12345) == 12345000.0
-    assert mutator(123.45) == 123450.0
-
-    # Test None preserves NULL semantics (not converted to 0)
+    # None preserves NULL semantics (not converted to 0)
     assert mutator(None) is None
 
-    # Test bool is not treated as numeric (bool is subclass of int in Python)
-    assert mutator(True) is None
-    assert mutator(False) is None
-
-    # Test unconvertible types return None to avoid mixed-type columns
+    # Unexpected non-timedelta types fall through to the defensive
+    # `return None` (and emit a warning) rather than producing a
+    # mixed-type column.
     assert mutator("1 day 02:30:45") is None
     assert mutator("P1DT2H30M45S") is None
+    assert mutator(12345) is None
+    assert mutator(True) is None
     assert mutator([1, 2, 3]) is None
     assert mutator({"days": 1}) is None
