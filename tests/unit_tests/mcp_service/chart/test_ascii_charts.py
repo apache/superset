@@ -15,7 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Unit tests for ASCII charts: trend analysis, NaN/null handling, and boolean skipping."""
+"""Unit tests for ASCII charts: trend analysis, NaN/null handling,
+and boolean skipping."""
 
 from superset.mcp_service.chart.ascii_charts import (
     _analyze_trend,
