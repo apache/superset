@@ -51,7 +51,7 @@ beforeEach(() => {
             meta: { chartId: 123 },
             parents: ['ROOT_ID', 'TAB_1'],
           },
-          'TAB_1': { type: 'TAB', id: 'TAB_1' },
+          TAB_1: { type: 'TAB', id: 'TAB_1' },
         },
       },
     };
@@ -884,4 +884,166 @@ test('useSelectFiltersInScope: correctly scopes chartsInScope filters when activ
   expect(result.current[1][0]).toEqual(
     expect.objectContaining({ id: 'filter_inactive_tab' }),
   );
+});
+
+// Layout-derived default-tab fallback edge cases. These pin behavior of
+// useActiveDashboardTabs when activeTabs is empty across structural variants
+// of dashboardLayout, so the fallback can't silently regress.
+
+test('useIsFilterInScope: dashboard with no top-level tabs (root child is GRID_ID) treats filters as in-scope', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: [] },
+      dashboardLayout: {
+        present: {
+          ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
+          GRID_ID: { type: 'GRID', id: 'GRID_ID', children: ['CHART-1'] },
+          'CHART-1': {
+            type: 'CHART',
+            meta: { chartId: 1 },
+            parents: ['ROOT_ID', 'GRID_ID'],
+          },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const filter: Filter = {
+    id: 'filter_no_tabs',
+    name: 'No-tabs filter',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [1],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'col' }, datasetId: 1 }],
+    description: 'Filter on a no-tabs dashboard',
+  };
+
+  const { result } = renderHook(() => useIsFilterInScope());
+  // Chart has no TAB ancestors → tabParents is empty → considered in-scope.
+  expect(result.current(filter)).toBe(true);
+});
+
+test('useIsFilterInScope: missing dashboardLayout falls back without crashing', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: [] },
+      dashboardLayout: { present: undefined },
+    };
+    return selector(mockState);
+  });
+
+  const filter: Filter = {
+    id: 'filter_no_layout',
+    name: 'No layout',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [1],
+    scope: { rootPath: ['TAB-A'], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'col' }, datasetId: 1 }],
+    description: 'Filter when layout is missing',
+  };
+
+  // The hook should not throw when layout is missing. Without the
+  // useActiveDashboardTabs guard, indexing dashboardLayout[ROOT_ID] would
+  // crash here.
+  const { result } = renderHook(() => useIsFilterInScope());
+  expect(() => result.current(filter)).not.toThrow();
+});
+
+test('useIsFilterInScope: deeply nested tabs — default path includes inner-tab default', () => {
+  // ROOT → TABS-1 → [TAB-Outer1, TAB-Outer2]
+  //                  └─ TAB-Outer1 → TABS-2 → [TAB-Inner1, TAB-Inner2]
+  // Default path should be ['TAB-Outer1', 'TAB-Inner1'].
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: [] },
+      dashboardLayout: {
+        present: {
+          ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['TABS-1'] },
+          'TABS-1': {
+            type: 'TABS',
+            id: 'TABS-1',
+            children: ['TAB-Outer1', 'TAB-Outer2'],
+          },
+          'TAB-Outer1': {
+            type: 'TAB',
+            id: 'TAB-Outer1',
+            children: ['TABS-2'],
+          },
+          'TAB-Outer2': {
+            type: 'TAB',
+            id: 'TAB-Outer2',
+            children: ['CHART-Outer2'],
+          },
+          'TABS-2': {
+            type: 'TABS',
+            id: 'TABS-2',
+            children: ['TAB-Inner1', 'TAB-Inner2'],
+          },
+          'TAB-Inner1': {
+            type: 'TAB',
+            id: 'TAB-Inner1',
+            children: ['CHART-Inner1'],
+          },
+          'TAB-Inner2': {
+            type: 'TAB',
+            id: 'TAB-Inner2',
+            children: ['CHART-Inner2'],
+          },
+          'CHART-Inner1': {
+            type: 'CHART',
+            meta: { chartId: 11 },
+            parents: ['ROOT_ID', 'TAB-Outer1', 'TABS-2', 'TAB-Inner1'],
+          },
+          'CHART-Inner2': {
+            type: 'CHART',
+            meta: { chartId: 12 },
+            parents: ['ROOT_ID', 'TAB-Outer1', 'TABS-2', 'TAB-Inner2'],
+          },
+          'CHART-Outer2': {
+            type: 'CHART',
+            meta: { chartId: 20 },
+            parents: ['ROOT_ID', 'TAB-Outer2'],
+          },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const innerDefaultFilter: Filter = {
+    id: 'filter_inner1',
+    name: 'Inner default-tab filter',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [11],
+    scope: { rootPath: ['TAB-Inner1'], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'col' }, datasetId: 1 }],
+    description: 'Filter scoped to inner default tab',
+  };
+
+  const innerNonDefaultFilter: Filter = {
+    ...innerDefaultFilter,
+    id: 'filter_inner2',
+    chartsInScope: [12],
+    scope: { rootPath: ['TAB-Inner2'], excluded: [] },
+  };
+
+  const { result } = renderHook(() => useIsFilterInScope());
+  // CHART-Inner1's tab parents [TAB-Outer1, TAB-Inner1] are both in default
+  // path → in scope.
+  expect(result.current(innerDefaultFilter)).toBe(true);
+  // CHART-Inner2's tab parent TAB-Inner2 is not in default path → out of scope.
+  expect(result.current(innerNonDefaultFilter)).toBe(false);
 });

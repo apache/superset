@@ -31,7 +31,7 @@ import {
 import { FilterElement } from './FilterBar/FilterControls/types';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { CHART_TYPE, TAB_TYPE, TABS_TYPE } from '../../util/componentTypes';
-import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
+import { DASHBOARD_ROOT_ID } from '../../util/constants';
 import { isChartCustomizationId } from './FiltersConfigModal/utils';
 import {
   migrateChartCustomizationArray,
@@ -39,6 +39,7 @@ import {
 } from '../../util/migrateChartCustomization';
 
 const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
+const EMPTY_ACTIVE_TABS: ActiveTabs = [];
 const defaultFilterConfiguration: (Filter | Divider)[] = [];
 
 export const selectFilterConfiguration: (
@@ -194,21 +195,22 @@ function useActiveDashboardTabs(): ActiveTabs {
     // where the Tabs component never mounts, or transient first-render race),
     // derive the default active tabs from the layout: pick the first tab at
     // each nesting level along the default path.
+    if (!dashboardLayout) return EMPTY_ACTIVE_TABS;
+
     const root = dashboardLayout[DASHBOARD_ROOT_ID];
-    if (!root?.children?.length) return reduxTabs;
+    if (!root?.children?.length) return EMPTY_ACTIVE_TABS;
 
     const firstChildId = root.children[0];
-    if (firstChildId === DASHBOARD_GRID_ID) return reduxTabs;
-
     const tabsContainer = dashboardLayout[firstChildId];
     if (tabsContainer?.type !== TABS_TYPE || !tabsContainer.children?.length) {
-      return reduxTabs;
+      return EMPTY_ACTIVE_TABS;
     }
 
-    const defaults: string[] = [];
+    const defaults: ActiveTabs = [];
     const queue = [tabsContainer.children[0]];
     while (queue.length > 0) {
-      const tabId = queue.shift()!;
+      const tabId = queue.shift();
+      if (!tabId) continue;
       defaults.push(tabId);
       const tab = dashboardLayout[tabId];
       if (tab?.children) {
@@ -221,7 +223,7 @@ function useActiveDashboardTabs(): ActiveTabs {
       }
     }
 
-    return defaults.length > 0 ? defaults : reduxTabs;
+    return defaults;
   }, [reduxTabs, dashboardLayout]);
 }
 
@@ -229,7 +231,11 @@ function useSelectChartTabParents() {
   const dashboardLayout = useDashboardLayout();
   const layoutChartItems = useMemo(
     () =>
-      Object.values(dashboardLayout).filter(item => item.type === CHART_TYPE),
+      dashboardLayout
+        ? Object.values(dashboardLayout).filter(
+            item => item.type === CHART_TYPE,
+          )
+        : [],
     [dashboardLayout],
   );
   return useCallback(
@@ -238,7 +244,7 @@ function useSelectChartTabParents() {
         layoutItem => layoutItem.meta?.chartId === chartId,
       );
       return chartLayoutItem?.parents?.filter(
-        (parent: string) => dashboardLayout[parent]?.type === TAB_TYPE,
+        (parent: string) => dashboardLayout?.[parent]?.type === TAB_TYPE,
       );
     },
     [dashboardLayout, layoutChartItems],
