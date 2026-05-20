@@ -264,6 +264,40 @@ def _build_pre_upgrade_table(
     return sa.Table(t.name, md, *cols)
 
 
+def _drop_redundant_unique_by_name(
+    conn: Connection, insp: sa.engine.reflection.Inspector, t: AssociationTable
+) -> None:
+    """Drop the redundant ``UNIQUE(fk1, fk2)`` constraint by its reflected
+    name on PostgreSQL / MySQL.
+
+    The two tables in ``TABLES_WITH_PRE_EXISTING_UNIQUE`` carry a UNIQUE
+    constraint that the composite primary key subsumes. PostgreSQL and
+    MySQL both auto-name UNIQUE constraints (``<table>_<cols>_key`` on
+    Postgres, ``<table>_<col>_<n>`` or the explicit ``uq_*`` we may have
+    given it on MySQL), so they're reflectable by name. SQLite is
+    handled separately via ``recreate="always"`` + ``copy_from`` because
+    it reflects unnamed UNIQUEs with ``name=None``.
+
+    No-op if no matching UNIQUE is found (defensive — re-runs after a
+    partial application should not error).
+    """
+    for uc in insp.get_unique_constraints(t.name):
+        if set(uc.get("column_names", [])) == {t.fk1, t.fk2} and uc.get("name"):
+            op.drop_constraint(uc["name"], t.name, type_="unique")
+            return
+
+
+# MySQL ON DELETE actions that the downgrade re-create loop is allowed
+# to interpolate into raw SQL. The reflected value comes from MySQL's
+# information_schema (so not user input), but a whitelist eliminates
+# the "what if an unexpected value appears" question entirely. The
+# four entries are the SQL-standard set; SET DEFAULT is intentionally
+# excluded because InnoDB silently downgrades it to NO ACTION.
+_VALID_ONDELETE_ACTIONS: frozenset[str] = frozenset(
+    {"CASCADE", "SET NULL", "RESTRICT", "NO ACTION"}
+)
+
+
 def _enforce_not_null_for_sqlite(
     batch_op: BatchOperations, t: AssociationTable, conn: Connection
 ) -> None:
@@ -309,39 +343,53 @@ def upgrade() -> None:
         _dedupe_by_min_id(conn, t)
         _assert_no_duplicates(conn, t)
 
-        # For the two tables with a pre-existing redundant UNIQUE
-        # (``dashboard_slices``, ``report_schedule_user``) build an explicit
-        # ``copy_from`` Table that omits the UNIQUE; this deterministically
-        # drops it across all dialects, including SQLite where unnamed
-        # constraints reflect with ``name=None`` and can't be dropped by
-        # name. For the other six tables, reflection-based default
-        # ``batch_alter_table`` (auto-detect) is fine since there's no
-        # UNIQUE to drop. On PostgreSQL/MySQL, direct ALTER avoids the
-        # temp-table index-name collision; on SQLite, the auto-detect picks
-        # ``recreate=True`` because PK changes need it.
+        # Two tables (``dashboard_slices``, ``report_schedule_user``)
+        # carry a redundant ``UNIQUE(fk1, fk2)`` that the composite PK
+        # subsumes. Three dialect-specific paths:
+        #
+        # * **PostgreSQL** — the UNIQUE constraint has a stable
+        #   reflected name (Postgres default convention), so we
+        #   ``DROP CONSTRAINT`` by name and then run the structural
+        #   change as direct ALTER. This avoids the full-table copy
+        #   that ``recreate="always"`` would trigger
+        #   (``CREATE TABLE AS SELECT → DROP → RENAME``), holding
+        #   ``ACCESS EXCLUSIVE`` only for the (much shorter) PK
+        #   index build instead of the full copy duration.
+        #
+        # * **MySQL** — InnoDB binds the FK constraints to the
+        #   redundant UNIQUE's underlying index for back-reference,
+        #   so a direct ``DROP CONSTRAINT`` of the UNIQUE raises
+        #   ``ERROR 1553``. Use ``recreate="always"`` to rebuild the
+        #   table without the UNIQUE; drop the FKs first to dodge
+        #   the ``ERROR 1826`` (duplicate FK constraint name) that
+        #   the temp-table phase would otherwise provoke. The FKs
+        #   are re-created automatically as part of ``copy_from``.
+        #
+        # * **SQLite** — unnamed UNIQUE constraints reflect with
+        #   ``name=None`` and can't be dropped by name. Use
+        #   ``recreate="always"`` + ``copy_from`` (omits UNIQUE).
+        #   SQLite always rebuilds for PK changes anyway, so the
+        #   recreate isn't extra cost there.
         if t.name in TABLES_WITH_PRE_EXISTING_UNIQUE:
-            # MySQL ERROR 1826: foreign-key constraint names are unique
-            # per-database, not per-table. ``recreate="always"`` builds
-            # ``_alembic_tmp_<table>`` with the original FK names from
-            # ``copy_from``, but the original table still holds those
-            # names until it's dropped, which fails on MySQL with
-            # ``Duplicate foreign key constraint name``. PostgreSQL and
-            # SQLite scope FK names per-table, so the recreate path
-            # works there as-is. Drop the original FKs by name first
-            # on MySQL; ``copy_from`` re-creates them on the rebuilt
-            # table with their original names.
-            if conn.dialect.name == "mysql":
-                for fk in insp.get_foreign_keys(t.name):
-                    if fk_name := fk.get("name"):
-                        op.drop_constraint(fk_name, t.name, type_="foreignkey")
-            with op.batch_alter_table(
-                t.name,
-                recreate="always",
-                copy_from=_build_pre_upgrade_table(insp, t),
-            ) as batch_op:
-                batch_op.drop_column("id")
-                batch_op.create_primary_key(f"pk_{t.name}", [t.fk1, t.fk2])
-                _enforce_not_null_for_sqlite(batch_op, t, conn)
+            if conn.dialect.name == "postgresql":
+                _drop_redundant_unique_by_name(conn, insp, t)
+                with op.batch_alter_table(t.name) as batch_op:
+                    batch_op.drop_column("id")
+                    batch_op.create_primary_key(f"pk_{t.name}", [t.fk1, t.fk2])
+                    _enforce_not_null_for_sqlite(batch_op, t, conn)
+            else:
+                if conn.dialect.name == "mysql":
+                    for fk in insp.get_foreign_keys(t.name):
+                        if fk_name := fk.get("name"):
+                            op.drop_constraint(fk_name, t.name, type_="foreignkey")
+                with op.batch_alter_table(
+                    t.name,
+                    recreate="always",
+                    copy_from=_build_pre_upgrade_table(insp, t),
+                ) as batch_op:
+                    batch_op.drop_column("id")
+                    batch_op.create_primary_key(f"pk_{t.name}", [t.fk1, t.fk2])
+                    _enforce_not_null_for_sqlite(batch_op, t, conn)
         else:
             with op.batch_alter_table(t.name) as batch_op:
                 batch_op.drop_column("id")
@@ -453,14 +501,31 @@ def _downgrade_mysql_table(
         )
 
     for fk in fks:
+        # Guard the FK name for symmetry with the drop loop above.
+        # MySQL/InnoDB always reflects a name for FK constraints
+        # (auto-assigning ``<table>_ibfk_<n>`` if none was specified),
+        # so this branch is defensive rather than reachable in practice.
+        fk_name = fk.get("name")
+        if not fk_name:
+            continue
         ondelete = fk.get("options", {}).get("ondelete")
+        # Defensive whitelist: ``ondelete`` is reflected from MySQL's
+        # information_schema (not user input), but interpolating it
+        # into raw SQL without a check leaves a "what if an
+        # unexpected value appears" footgun. The SQL standard defines
+        # exactly four actions; reject anything else loudly.
+        if ondelete and ondelete.upper() not in _VALID_ONDELETE_ACTIONS:
+            raise RuntimeError(
+                f"Unexpected ON DELETE action {ondelete!r} reflected from "
+                f"{t.name}.{fk_name}; refusing to interpolate into raw SQL."
+            )
         ondelete_clause = f" ON DELETE {ondelete}" if ondelete else ""
         local_cols = ", ".join(f"`{c}`" for c in fk["constrained_columns"])
         ref_cols = ", ".join(f"`{c}`" for c in fk["referred_columns"])
         op.execute(
             f"""
             ALTER TABLE `{t.name}`
-                ADD CONSTRAINT `{fk["name"]}`
+                ADD CONSTRAINT `{fk_name}`
                     FOREIGN KEY ({local_cols})
                     REFERENCES `{fk["referred_table"]}` ({ref_cols})
                     {ondelete_clause}
