@@ -196,7 +196,7 @@ test('should bulk delete multiple charts', async ({
   chartListPage,
   testAssets,
 }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(TIMEOUT.SLOW_TEST);
 
   // Create 2 throwaway charts for bulk delete
   const [chart1, chart2] = await Promise.all([

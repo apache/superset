@@ -151,7 +151,11 @@ const BulkSelectWrapper = styled(Alert)`
 
 const bulkSelectColumnConfig = {
   Cell: ({ row }: any) => (
-    <Checkbox {...row.getToggleRowSelectedProps()} id={row.id} />
+    <Checkbox
+      {...row.getToggleRowSelectedProps()}
+      id={row.id}
+      data-test="row-select-checkbox"
+    />
   ),
   Header: ({ getToggleAllRowsSelectedProps }: any) => (
     <Checkbox

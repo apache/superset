@@ -464,7 +464,7 @@ test.describe('import dataset', () => {
     datasetListPage,
     testAssets,
   }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(TIMEOUT.SLOW_TEST);
 
     // Create a dataset, export it via API, then delete it, then reimport via UI
     const { id: datasetId, name: datasetName } = await createTestDataset(

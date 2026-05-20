@@ -145,7 +145,7 @@ test('should bulk delete multiple dashboards', async ({
   dashboardListPage,
   testAssets,
 }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(TIMEOUT.SLOW_TEST);
 
   // Create 2 throwaway dashboards for bulk delete
   const [dashboard1, dashboard2] = await Promise.all([
@@ -283,7 +283,7 @@ test.describe('import dashboard', () => {
     dashboardListPage,
     testAssets,
   }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(TIMEOUT.SLOW_TEST);
 
     // Create a dashboard, export it via API, then delete it, then reimport via UI
     const { id: dashboardId, name: dashboardName } = await createTestDashboard(

@@ -24,6 +24,7 @@ const BULK_SELECT_SELECTORS = {
   CONTROLS: '[data-test="bulk-select-controls"]',
   ACTION: '[data-test="bulk-select-action"]',
   HEADER_TOGGLE: '[data-test="header-toggle-all"]',
+  ROW_CHECKBOX: '[data-test="row-select-checkbox"]',
 } as const;
 
 /**
@@ -79,12 +80,20 @@ export class BulkSelect {
   }
 
   /**
-   * Gets the checkbox for a row by name
+   * Gets the bulk-select checkbox for a row by name.
+   *
+   * Scoped to `[data-test="row-select-checkbox"]` so a future second
+   * checkbox in the row (e.g. a column-level toggle) can't break strict
+   * mode.
+   *
    * @param rowName - The name/text identifying the row
    */
   getRowCheckbox(rowName: string): Checkbox {
     const row = this.table.getRow(rowName);
-    return new Checkbox(this.page, row.getByRole('checkbox'));
+    return new Checkbox(
+      this.page,
+      row.locator(BULK_SELECT_SELECTORS.ROW_CHECKBOX),
+    );
   }
 
   /**
