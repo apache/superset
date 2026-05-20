@@ -130,6 +130,37 @@ export default function RedirectWarning() {
     );
   }
 
+  // AF-1 defense-in-depth: when the URL's scheme is rejected we render a
+  // visible "blocked" state without a Continue button, instead of the
+  // standard "External link warning" Card. The handler also short-circuits
+  // on `isAllowedScheme(targetUrl)`, but rendering Continue for a URL we
+  // refuse to follow lets the page mislead the user into believing the
+  // target is safe to consent to.
+  if (!isAllowedScheme(targetUrl)) {
+    return (
+      <PageContainer justify="center" align="center">
+        <WarningCard>
+          <WarningHeader align="center" gap="middle">
+            <Icons.WarningOutlined iconColor={theme.colorError} iconSize="xl" />
+            <WarningTitle level={4}>{t('Unsafe link blocked')}</WarningTitle>
+          </WarningHeader>
+          <WarningBody>
+            <Typography.Paragraph type="secondary">
+              {t('This link cannot be followed because its address is unsafe.')}
+            </Typography.Paragraph>
+            <UrlDisplay align="center" gap="small">
+              <Icons.LinkOutlined iconColor={theme.colorTextTertiary} />
+              <UrlText>{targetUrl}</UrlText>
+            </UrlDisplay>
+          </WarningBody>
+          <WarningFooter justify="flex-end" gap="small">
+            <Button onClick={handleReturn}>{t('Return to Superset')}</Button>
+          </WarningFooter>
+        </WarningCard>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer justify="center" align="center">
       <WarningCard>

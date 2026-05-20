@@ -69,6 +69,52 @@ test('isAllowedScheme does not block single-leading-slash absolute paths', () =>
   expect(isAllowedScheme('/dashboard/list/')).toBe(true);
 });
 
+// AF-1 (2026-05-19, dual-lane adversarial review): the up-front
+// `startsWith('//')` check missed backslash variants. `new URL('/\\evil.com')`
+// throws → the catch returns `true` (allow) → the interstitial UI shows
+// `/\evil.com` inside an "External link warning" Card with a Continue
+// button. Browsers normalise `/\` → `//` in the special-scheme authority,
+// so the consented click became `https://evil.com`. The fix must reject
+// **before** the `new URL` attempt so the throw cannot route through the
+// allow branch.
+
+test('isAllowedScheme blocks /\\evil.com (AF-1 backslash variant)', () => {
+  expect(isAllowedScheme('/\\evil.example.com')).toBe(false);
+});
+
+test('isAllowedScheme blocks \\/evil.com (AF-1 backslash variant)', () => {
+  expect(isAllowedScheme('\\/evil.example.com')).toBe(false);
+});
+
+test('isAllowedScheme blocks \\\\evil.com (AF-1 backslash variant)', () => {
+  expect(isAllowedScheme('\\\\evil.example.com')).toBe(false);
+});
+
+test('isAllowedScheme blocks /\\evil.com BEFORE the new URL attempt (not via the catch)', () => {
+  // Stub `URL` to throw — the result must still be `false`, proving the
+  // backslash rejection happens up-front and not via the catch's
+  // "relative URLs — allow" branch. (If the rejection were inside the
+  // try-block, a URL-constructor throw would route through `catch { return
+  // true }` and we'd see `true` here.)
+  const originalURL = global.URL;
+  global.URL = class {
+    constructor() {
+      throw new Error('stubbed URL constructor');
+    }
+  } as unknown as typeof URL;
+  try {
+    expect(isAllowedScheme('/\\evil.example.com')).toBe(false);
+  } finally {
+    global.URL = originalURL;
+  }
+});
+
+test('isAllowedScheme still blocks the catch-branch protocol-relative case after backslash rejection', () => {
+  // Regression: hardening must not accidentally drop the existing `//host`
+  // protection.
+  expect(isAllowedScheme('//evil.example.com')).toBe(false);
+});
+
 test('getTargetUrl reads the url query parameter', () => {
   Object.defineProperty(window, 'location', {
     value: { search: '?url=https%3A%2F%2Fexample.com%2Fpage' },

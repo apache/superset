@@ -29,34 +29,11 @@ import { ensureAppRoot, makeUrl, stripAppRoot } from './pathUtils';
 // importing from `pathUtils` directly outside this module.
 export { ensureAppRoot, makeUrl, stripAppRoot };
 
-// `navigateTo` and `navigateWithState` are declared first so the focused
-// helpers below can call them without tripping oxlint's no-use-before-define
-// (which does not honour function-declaration hoisting).
-
-export function navigateTo(
-  url: string,
-  options?: { newWindow?: boolean; assign?: boolean },
-): void {
-  if (options?.newWindow) {
-    window.open(ensureAppRoot(url), '_blank', 'noopener noreferrer');
-  } else if (options?.assign) {
-    window.location.assign(ensureAppRoot(url));
-  } else {
-    window.location.href = ensureAppRoot(url);
-  }
-}
-
-export function navigateWithState(
-  url: string,
-  state: Record<string, unknown>,
-  options?: { replace?: boolean },
-): void {
-  if (options?.replace) {
-    window.history.replaceState(state, '', ensureAppRoot(url));
-  } else {
-    window.history.pushState(state, '', ensureAppRoot(url));
-  }
-}
+// The guard helpers are declared before `navigateTo` / `navigateWithState`
+// so oxlint's no-use-before-define lint (which does not honour function-
+// declaration hoisting) does not fire on the wired-up imperative-nav
+// path. The focused helpers below (`openInNewTab`, `getShareableUrl`,
+// `AppLink`) also reach for `assertSafeNavigationUrl` directly.
 
 const NEW_TAB_FEATURES = 'noopener noreferrer';
 
@@ -65,16 +42,108 @@ const NEW_TAB_FEATURES = 'noopener noreferrer';
 // `javascript:` / `data:` by prefixing them as relative paths; protocol-
 // relative `//host` is intentionally excluded here because it is a cross-
 // origin navigation primitive that previously enabled open redirects.
+//
+// nit-3 / AF-1 hardening: the leading-slash branch also rejects any URL
+// containing a backslash anywhere — browsers normalise `/\evil.com` →
+// `//evil.com` in the special-scheme authority, so backslashes in any
+// position let an attacker craft a path that looks router-relative until
+// the browser parses it. http(s)/ftp URLs with userinfo (`@` before the
+// first `/` after `//`) are rejected by the post-regex authority check
+// below, since `https://good@evil.com` resolves to the host `evil.com`
+// despite presenting as a same-origin-looking URL to the eye.
 const SAFE_NAVIGATION_URL_RE = /^(?:\/(?!\/)|https?:|ftp:|mailto:|tel:)/i;
+const USERINFO_BEARING_SCHEME_RE = /^(?:https?|ftp):/i;
 
 function assertSafeNavigationUrl(url: string): string {
-  if (!SAFE_NAVIGATION_URL_RE.test(url)) {
+  if (!SAFE_NAVIGATION_URL_RE.test(url) || url.includes('\\')) {
     throw new Error(
       'navigationUtils refused unsafe URL: only relative paths and ' +
         'http(s):, ftp:, mailto:, tel: schemes are allowed.',
     );
   }
+  if (USERINFO_BEARING_SCHEME_RE.test(url)) {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new Error(
+        'navigationUtils refused unsafe URL: unparseable authority.',
+      );
+    }
+    if (parsed.username || parsed.password) {
+      throw new Error(
+        'navigationUtils refused unsafe URL: ' +
+          'http(s)/ftp URLs with userinfo are not allowed.',
+      );
+    }
+  }
   return url;
+}
+
+/**
+ * Imperative full-page navigation. Internal entry point for `redirect()`
+ * and a handful of legacy callers; new code should prefer `<AppLink>` or
+ * `redirect()`. Unsafe URLs (protocol-relative, backslash-laden, userinfo-
+ * carrying http(s)) fall back to `ensureAppRoot('/')` with a `console.error`
+ * — never a silent navigation to the rejected target.
+ *
+ * @internal
+ */
+export function navigateTo(
+  url: string,
+  options?: { newWindow?: boolean; assign?: boolean },
+): void {
+  let safe: string;
+  try {
+    safe = assertSafeNavigationUrl(ensureAppRoot(url));
+  } catch (err) {
+    // Full-page nav fallback: the user clicked something that resolved to
+    // the home page is better than landing on an attacker-controlled origin.
+    // eslint-disable-next-line no-console -- guarded surface, observable in dev.
+    console.error('navigationUtils.navigateTo refused unsafe URL:', url, err);
+    window.location.href = ensureAppRoot('/');
+    return;
+  }
+  if (options?.newWindow) {
+    window.open(safe, '_blank', 'noopener noreferrer');
+  } else if (options?.assign) {
+    window.location.assign(safe);
+  } else {
+    window.location.href = safe;
+  }
+}
+
+/**
+ * Imperative history-API navigation (no page load). Unsafe URLs become a
+ * silent no-op + `console.error`; we deliberately do NOT fall back to a
+ * full-page nav here because callers (e.g. dashboard-properties save)
+ * already display their own success/failure feedback and a surprise
+ * `window.location.href = '/'` would discard unsaved state.
+ *
+ * @internal
+ */
+export function navigateWithState(
+  url: string,
+  state: Record<string, unknown>,
+  options?: { replace?: boolean },
+): void {
+  let safe: string;
+  try {
+    safe = assertSafeNavigationUrl(ensureAppRoot(url));
+  } catch (err) {
+    // eslint-disable-next-line no-console -- guarded surface, observable in dev.
+    console.error(
+      'navigationUtils.navigateWithState refused unsafe URL:',
+      url,
+      err,
+    );
+    return;
+  }
+  if (options?.replace) {
+    window.history.replaceState(state, '', safe);
+  } else {
+    window.history.pushState(state, '', safe);
+  }
 }
 
 /** Open a router-relative path in a new browser tab. */

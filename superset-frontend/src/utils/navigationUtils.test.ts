@@ -152,6 +152,191 @@ describe('redirect', () => {
       expect(window.location.href).toBe('https://external.example.com/foo');
     });
   });
+
+  // AF-1 (2026-05-19, dual-lane adversarial review): backslash-laden URLs
+  // were accepted by `SAFE_NAVIGATION_URL_RE` and the sibling guards in
+  // `ensureAppRoot` / `isAllowedScheme`. Browsers normalise `/\` → `//` in
+  // the special-scheme authority, so `/\evil.com` became a cross-origin
+  // navigation. The hardened guard must reject these *before* nav, and
+  // `redirect` (which routes through `navigateTo`) must fall back to `/`
+  // with a `console.error` rather than navigating to the unsafe target.
+
+  test.each([
+    ['empty app root', ''],
+    ['/superset app root', '/superset/'],
+  ])(
+    'falls back to "/" + console.error for /\\evil.com under %s (AF-1)',
+    async (_label, appRoot) => {
+      await withApplicationRoot(appRoot, async () => {
+        const errorSpy = jest
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+        try {
+          const { redirect } = await import('src/utils/navigationUtils');
+          redirect('/\\evil.com');
+          // Fall back to ensureAppRoot('/') under the active root.
+          expect(window.location.href).toBe(
+            appRoot === '' ? '/' : '/superset/',
+          );
+          expect(errorSpy).toHaveBeenCalled();
+        } finally {
+          errorSpy.mockRestore();
+        }
+      });
+    },
+  );
+
+  test('falls back to "/" + console.error for https://good@evil.com (nit-3 userinfo)', async () => {
+    await withApplicationRoot('', async () => {
+      const errorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const { redirect } = await import('src/utils/navigationUtils');
+        redirect('https://good@evil.example.com/path');
+        expect(window.location.href).toBe('/');
+        expect(errorSpy).toHaveBeenCalled();
+      } finally {
+        errorSpy.mockRestore();
+      }
+    });
+  });
+
+  test('falls back to "/" + console.error for //evil.com (already-blocked regression)', async () => {
+    await withApplicationRoot('', async () => {
+      const errorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const { redirect } = await import('src/utils/navigationUtils');
+        redirect('//evil.example.com');
+        expect(window.location.href).toBe('/');
+        expect(errorSpy).toHaveBeenCalled();
+      } finally {
+        errorSpy.mockRestore();
+      }
+    });
+  });
+});
+
+// `navigateTo` and `navigateWithState` are exported imperative helpers
+// (channel-3 stubs) and are the entry points that nit-1 / AF-1 cover.
+describe('navigateTo (AF-1 + nit-1)', () => {
+  let originalLocation: Location;
+  let openSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    originalLocation = window.location;
+    delete (window as unknown as { location?: Location }).location;
+    (
+      window as unknown as {
+        location: { href: string; assign: jest.Mock };
+      }
+    ).location = {
+      href: '',
+      assign: jest.fn(),
+    };
+    openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+  });
+
+  afterEach(() => {
+    (window as unknown as { location: Location }).location = originalLocation;
+    openSpy.mockRestore();
+  });
+
+  test('falls back to "/" + console.error for /\\evil.com (default href)', async () => {
+    await withApplicationRoot('', async () => {
+      const errorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const { navigateTo } = await import('src/utils/navigationUtils');
+        navigateTo('/\\evil.com');
+        expect(window.location.href).toBe('/');
+        expect(errorSpy).toHaveBeenCalled();
+      } finally {
+        errorSpy.mockRestore();
+      }
+    });
+  });
+
+  test('falls back to "/" + console.error for /\\evil.com (newWindow path)', async () => {
+    await withApplicationRoot('', async () => {
+      const errorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const { navigateTo } = await import('src/utils/navigationUtils');
+        navigateTo('/\\evil.com', { newWindow: true });
+        // window.open never called with the unsafe URL; fallback to href='/'
+        expect(openSpy).not.toHaveBeenCalledWith(
+          expect.stringContaining('\\evil.com'),
+          expect.anything(),
+          expect.anything(),
+        );
+        expect(window.location.href).toBe('/');
+        expect(errorSpy).toHaveBeenCalled();
+      } finally {
+        errorSpy.mockRestore();
+      }
+    });
+  });
+
+  test('passes legitimate router-relative path through unchanged', async () => {
+    await withApplicationRoot('/superset/', async () => {
+      const { navigateTo } = await import('src/utils/navigationUtils');
+      navigateTo('/dashboard/list/');
+      expect(window.location.href).toBe('/superset/dashboard/list/');
+    });
+  });
+});
+
+describe('navigateWithState (AF-1 + nit-1)', () => {
+  let pushSpy: jest.SpyInstance;
+  let replaceSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    pushSpy = jest
+      .spyOn(window.history, 'pushState')
+      .mockImplementation(() => {});
+    replaceSpy = jest
+      .spyOn(window.history, 'replaceState')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    pushSpy.mockRestore();
+    replaceSpy.mockRestore();
+  });
+
+  test('no-ops + console.error for /\\evil.com (does NOT trigger full-page nav)', async () => {
+    await withApplicationRoot('', async () => {
+      const errorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const { navigateWithState } = await import('src/utils/navigationUtils');
+        navigateWithState('/\\evil.com', { from: 'test' });
+        expect(pushSpy).not.toHaveBeenCalled();
+        expect(replaceSpy).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalled();
+      } finally {
+        errorSpy.mockRestore();
+      }
+    });
+  });
+
+  test('passes legitimate router-relative path through to pushState', async () => {
+    await withApplicationRoot('/superset/', async () => {
+      const { navigateWithState } = await import('src/utils/navigationUtils');
+      navigateWithState('/dashboard/42/', { from: 'test' });
+      expect(pushSpy).toHaveBeenCalledWith(
+        { from: 'test' },
+        '',
+        '/superset/dashboard/42/',
+      );
+    });
+  });
 });
 
 describe('getShareableUrl', () => {
@@ -170,6 +355,82 @@ describe('getShareableUrl', () => {
       expect(getShareableUrl('/sqllab?id=1')).toBe(
         `${window.location.origin}/superset/sqllab?id=1`,
       );
+    });
+  });
+
+  // Composition pin (AF-1 / round-6 step-0 addendum):
+  // `assertSafeNavigationUrl` is module-private; route the pin through the
+  // purest public helper. `getShareableUrl` runs the same composition
+  // (`assertSafeNavigationUrl(ensureAppRoot(...))`) as `openInNewTab` /
+  // `AppLink`, side-effect-free. Throwing here proves the guard runs
+  // post-`ensureAppRoot`, which is the invariant `pathUtils.ts:41` must
+  // preserve in lockstep.
+  test.each([
+    ['empty app root', ''],
+    ['/superset app root', '/superset/'],
+  ])(
+    'throws for /\\evil.com under %s (AF-1 composition pin)',
+    async (_label, appRoot) => {
+      await withApplicationRoot(appRoot, async () => {
+        const { getShareableUrl } = await import('src/utils/navigationUtils');
+        expect(() => getShareableUrl('/\\evil.com')).toThrow(
+          /refused unsafe URL/,
+        );
+      });
+    },
+  );
+
+  test('throws for //evil.com (already-blocked regression)', async () => {
+    await withApplicationRoot('', async () => {
+      const { getShareableUrl } = await import('src/utils/navigationUtils');
+      expect(() => getShareableUrl('//evil.example.com')).toThrow(
+        /refused unsafe URL/,
+      );
+    });
+  });
+
+  test('throws for https://good@evil.com (nit-3 userinfo)', async () => {
+    await withApplicationRoot('', async () => {
+      const { getShareableUrl } = await import('src/utils/navigationUtils');
+      expect(() =>
+        getShareableUrl('https://good@evil.example.com/path'),
+      ).toThrow(/refused unsafe URL/);
+    });
+  });
+});
+
+describe('openInNewTab — AF-1 sibling-site coverage', () => {
+  let openSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+  });
+
+  afterEach(() => {
+    openSpy.mockRestore();
+  });
+
+  test.each([
+    ['empty app root', ''],
+    ['/superset app root', '/superset/'],
+  ])(
+    'throws for /\\evil.com under %s and never calls window.open',
+    async (_label, appRoot) => {
+      await withApplicationRoot(appRoot, async () => {
+        const { openInNewTab } = await import('src/utils/navigationUtils');
+        expect(() => openInNewTab('/\\evil.com')).toThrow(/refused unsafe URL/);
+        expect(openSpy).not.toHaveBeenCalled();
+      });
+    },
+  );
+
+  test('throws for https://good@evil.com (nit-3 userinfo)', async () => {
+    await withApplicationRoot('', async () => {
+      const { openInNewTab } = await import('src/utils/navigationUtils');
+      expect(() => openInNewTab('https://good@evil.example.com')).toThrow(
+        /refused unsafe URL/,
+      );
+      expect(openSpy).not.toHaveBeenCalled();
     });
   });
 });

@@ -35,10 +35,19 @@ const SAFE_ABSOLUTE_URL_RE = /^(https?|ftp|mailto|tel):/i;
  * Potentially dangerous schemes such as javascript: and data: are not treated
  * as absolute and will be prefixed.
  *
+ * Protocol-relative detection is backslash-aware: browsers normalise the
+ * leading `\` of `/\evil.com`, `\/evil.com`, `\\evil.com` etc. into `//` in
+ * the special-scheme authority, so these inputs are cross-origin navigations
+ * masquerading as router-relative paths. Returning them unchanged lets the
+ * downstream navigation guard reject them (see
+ * `navigationUtils.assertSafeNavigationUrl`).
+ *
  * @param path A string path or URL to a resource
  */
+const PROTOCOL_RELATIVE_LIKE_RE = /^[/\\][/\\]/;
+
 export function ensureAppRoot(path: string): string {
-  if (SAFE_ABSOLUTE_URL_RE.test(path) || path.startsWith('//')) {
+  if (SAFE_ABSOLUTE_URL_RE.test(path) || PROTOCOL_RELATIVE_LIKE_RE.test(path)) {
     return path;
   }
   const root = applicationRoot();
